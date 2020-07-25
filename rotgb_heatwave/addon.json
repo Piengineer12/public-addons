@@ -1,0 +1,9 @@
+{
+	"title": "[RotgB] Heatwave",
+	"type": "map",
+	"tags": [
+		"fun",
+		"scenic"
+	],
+	"ignore": ["*.cmd","rotgb_heatwave.jpg"]
+}

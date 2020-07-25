@@ -1,0 +1,11 @@
+"sandbox"
+{
+	"base"		"base"
+	"title"		"Revenge of the gBalloons!"
+	"maps"		"^rotgb_"
+	"menusystem"	"0"
+	
+	"settings"
+	{
+	}
+}
