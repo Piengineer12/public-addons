@@ -452,6 +452,20 @@ end)
 ISAWC.ConSpawnDelay = CreateConVar("isawc_spawn_delay","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "Sets the minimum delay between inventory item spawns by players.")
 
+ISAWC.ConAdminOverride = CreateConVar("isawc_allow_adminpickupanything", "1", FCVAR_ARCHIVE+FCVAR_REPLICATED,
+"Allows admins to pick up anything regardless of ConVars (except for players and the map, as those can crash the game).")
+
+local function BasicAutoComplete(cmd, argStr)
+	local possibilities = {}
+	local namesearch = argStr:Trim():lower()
+	for k,v in pairs(player.GetAll()) do
+		if string.StartWith(v:Nick():lower(), namesearch) then
+			table.insert(possibilities, cmd .. " " .. v:Nick())
+		end
+	end
+	return possibilities
+end
+
 if SERVER then
 	concommand.Add("isawc_reset_convars",function(ply,cmd,args,argStr)
 		for k,v in pairs(ISAWC) do
@@ -460,6 +474,66 @@ if SERVER then
 			end
 		end
 	end)
+	
+	concommand.Add("isawc_copy",function(ply,cmd,args,argStr)
+		if IsValid(ply) and not ply:IsAdmin() then
+			ISAWC:Log("Access denied.")
+		else
+			if #args==0 then
+				ISAWC:Log("Usage: isawc_copy <player>")
+			else
+				local success = false
+				for k,v in pairs(player.GetAll()) do
+					if v:Nick() == argStr then
+						success = true
+						if ply == v then
+							ISAWC:Log("You can't copy your own inventory!")
+						else
+							table.Empty(ply.ISAWC_Inventory)
+							for i2,v2 in ipairs(v.ISAWC_Inventory) do
+								table.insert(ply.ISAWC_Inventory, v2)
+							end
+							ISAWC:Log("You have copied the inventory of " .. argStr .. " into your inventory.")
+						end
+						break
+					end
+				end
+				if not success then
+					ISAWC:Log("Can't find player \"" .. argStr .. "\".")
+				end
+			end
+		end
+	end, BasicAutoComplete, "Usage: isawc_copy <player>")
+	
+	concommand.Add("isawc_paste",function(ply,cmd,args,argStr)
+		if IsValid(ply) and not ply:IsAdmin() then
+			ISAWC:Log("Access denied.")
+		else
+			if #args==0 then
+				ISAWC:Log("Usage: isawc_paste <player>")
+			else
+				local success = false
+				for k,v in pairs(player.GetAll()) do
+					if v:Nick() == argStr then
+						success = true
+						if ply == v then
+							ISAWC:Log("You can't paste into your own inventory!")
+						else
+							table.Empty(v.ISAWC_Inventory)
+							for i2,v2 in ipairs(ply.ISAWC_Inventory) do
+								table.insert(v.ISAWC_Inventory, v2)
+							end
+							ISAWC:Log("You have pasted your inventory into the inventory of " .. argStr .. ".")
+						end
+						break
+					end
+				end
+				if not success then
+					ISAWC:Log("Can't find player \"" .. argStr .. "\".")
+				end
+			end
+		end
+	end, BasicAutoComplete, "Usage: isawc_paste <player>")
 end
 
 if CLIENT then
@@ -607,6 +681,8 @@ ISAWC.PopulateDForm = function(DForm)
 	DForm:Help(" - "..ISAWC.ConDropOnDeath:GetHelpText().."\n")
 	DForm:CheckBox("Save Player Inventories",ISAWC.ConDoSave:GetName())
 	DForm:Help(" - "..ISAWC.ConDoSave:GetHelpText().."\n")
+	DForm:NumSlider("Admin Can Pickup Any",ISAWC.ConAdminOverride:GetName(),0,100,2)
+	DForm:Help(" - "..ISAWC.ConAdminOverride:GetHelpText().."\n")
 	
 	DForm:Help("") --whitespace
 	DForm:ControlHelp("Player Multipliers")
@@ -2264,7 +2340,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					net.Start("isawc_general")
 					net.WriteString("container_close")
 					net.WriteEntity(container)
-					net.Broadcast()
+					net.SendPAS(container:GetPos())
 				end
 			end
 		else return
@@ -2331,74 +2407,81 @@ end
 
 ISAWC.CanPickup = function(self,ply,ent)
 	if not (IsValid(ply) and IsValid(ent)) then return false end
-	if ent.ISAWC_BeingPickedUp or ply.ISAWC_IsDeathDrop then return false end
+	if ent.ISAWC_BeingPhysgunned or ply.ISAWC_IsDeathDrop then return false end
 	if (tonumber(ent.NextPickup2) or 0) > CurTime() and (tonumber(ent.NextPickup2) or 0) <= CurTime() + 0.5 and SERVER then return false end
 	ent.NextPickup2 = CurTime() + 0.5
-	if (ply.NextPickup or 0) > CurTime() and (ply.NextPickup or 0) <= CurTime() + self.ConDelay:GetFloat() and ply:IsPlayer() and SERVER then self:NoPickup("You need to wait for "..string.format("%.1f",ply.NextPickup-CurTime()).." seconds before picking up another object!",ply) return false end
-	ply.NextPickup = CurTime() + self.ConDelay:GetFloat()
-	local class = ent:GetClass():lower()
-	local passesblist = self.Blacklist[class]
-	local passeswlist = self.Whitelist[class]
-	if passesblist and not passeswlist then self:NoPickup("That entity is blacklisted from being picked up!",ply) return false end
-	if self.ConUseWhitelist:GetBool() and not passeswlist then self:NoPickup("That entity isn't whitelisted from being picked up!",ply) return false end
-	if ent:IsPlayer() and not passeswlist then self:NoPickup("You can't pick up players!",ply) return false end
-	if ent==game.GetWorld() and not passeswlist then self:NoPickup("You can't pick up worldspawn!",ply) return false end
-	if SERVER then
+	if ply:IsAdmin() and self.ConAdminOverride:GetBool() and SERVER then
+		local passeswlist = self.Whitelist[class]
+		if ent:IsPlayer() and not passeswlist then self:NoPickup("You can't pick up players!",ply) return false end
+		if ent==game.GetWorld() and not passeswlist then self:NoPickup("You can't pick up worldspawn!",ply) return false end
 		DropEntityIfHeld(ent)
-		if ply:GetPos():Distance(ent:GetPos())-ent:BoundingRadius()-ply:BoundingRadius()>self.ConDistance:GetFloat() then self:NoPickup("You need to be closer to the object!",ply) return false end
-		if not (ent:IsSolid() or passeswlist or ent:IsWeapon()) then self:NoPickup("You can't pick up non-solid entities!",ply) return false end
-		if ent:GetMoveType()~=MOVETYPE_VPHYSICS and self.ConVPhysicsOnly:GetBool() and not (passeswlist or ent:IsWeapon()) then self:NoPickup("You can't pick up non-VPhysics entities!",ply) return false end
-		if constraint.HasConstraints(ent) and not self.ConAllowConstrained:GetBool() then self:NoPickup("You can't pick up constrained entities!",ply) return false end
-		local TotalMass,TotalVolume,TotalCount = 0,0,0
-		for k,v in pairs(constraint.GetAllConstrainedEntities(ent)) do
-			local model = (v:GetModel() or ""):lower()
-			local class = v:GetClass():lower()
-			local list_mass, list_volume
-			list_mass = ISAWC.Masslist[model] or ISAWC.Masslist[class]
-			list_volume = ISAWC.Volumelist[model] or ISAWC.Volumelist[class]
-			if list_mass then
-				list_mass = list_mass * (v.BackpackMassMul and -v.BackpackMassMul*v:GetMassMul() or 1)
-			end
-			if list_volume then
-				list_volume = list_volume * (v.BackpackVolumeMul and -v.BackpackVolumeMul*v:GetVolumeMul() or 1)
-			end
-			for i=0,v:GetPhysicsObjectCount()-1 do
-				local physobj = v:GetPhysicsObjectNum(i)
-				if IsValid(physobj) then
-					local physsim = ISAWC.ConConstEnabled:GetBool() and v.BackpackConstants or {}
-					if not list_mass then
-						TotalMass = TotalMass + (physsim.Mass or physobj:GetMass() * -(v.BackpackMassMul and v.BackpackMassMul*v:GetMassMul() or -1))
+	else
+		if (ply.NextPickup or 0) > CurTime() and (ply.NextPickup or 0) <= CurTime() + self.ConDelay:GetFloat() and ply:IsPlayer() and SERVER then self:NoPickup("You need to wait for "..string.format("%.1f",ply.NextPickup-CurTime()).." seconds before picking up another object!",ply) return false end
+		ply.NextPickup = CurTime() + self.ConDelay:GetFloat()
+		local class = ent:GetClass():lower()
+		local passesblist = self.Blacklist[class]
+		local passeswlist = self.Whitelist[class]
+		if passesblist and not passeswlist then self:NoPickup("That entity is blacklisted from being picked up!",ply) return false end
+		if self.ConUseWhitelist:GetBool() and not passeswlist then self:NoPickup("That entity isn't whitelisted from being picked up!",ply) return false end
+		if ent:IsPlayer() and not passeswlist then self:NoPickup("You can't pick up players!",ply) return false end
+		if ent==game.GetWorld() and not passeswlist then self:NoPickup("You can't pick up worldspawn!",ply) return false end
+		if SERVER then
+			DropEntityIfHeld(ent)
+			if ply:GetPos():Distance(ent:GetPos())-ent:BoundingRadius()-ply:BoundingRadius()>self.ConDistance:GetFloat() then self:NoPickup("You need to be closer to the object!",ply) return false end
+			if not (ent:IsSolid() or passeswlist or ent:IsWeapon()) then self:NoPickup("You can't pick up non-solid entities!",ply) return false end
+			if ent:GetMoveType()~=MOVETYPE_VPHYSICS and self.ConVPhysicsOnly:GetBool() and not (passeswlist or ent:IsWeapon()) then self:NoPickup("You can't pick up non-VPhysics entities!",ply) return false end
+			if constraint.HasConstraints(ent) and not self.ConAllowConstrained:GetBool() then self:NoPickup("You can't pick up constrained entities!",ply) return false end
+			local TotalMass,TotalVolume,TotalCount = 0,0,0
+			for k,v in pairs(constraint.GetAllConstrainedEntities(ent)) do
+				local model = (v:GetModel() or ""):lower()
+				local class = v:GetClass():lower()
+				local list_mass, list_volume
+				list_mass = ISAWC.Masslist[model] or ISAWC.Masslist[class]
+				list_volume = ISAWC.Volumelist[model] or ISAWC.Volumelist[class]
+				if list_mass then
+					list_mass = list_mass * (v.BackpackMassMul and -v.BackpackMassMul*v:GetMassMul() or 1)
+				end
+				if list_volume then
+					list_volume = list_volume * (v.BackpackVolumeMul and -v.BackpackVolumeMul*v:GetVolumeMul() or 1)
+				end
+				for i=0,v:GetPhysicsObjectCount()-1 do
+					local physobj = v:GetPhysicsObjectNum(i)
+					if IsValid(physobj) then
+						local physsim = ISAWC.ConConstEnabled:GetBool() and v.BackpackConstants or {}
+						if not list_mass then
+							TotalMass = TotalMass + (physsim.Mass or physobj:GetMass() * -(v.BackpackMassMul and v.BackpackMassMul*v:GetMassMul() or -1))
+						end
+						if not list_volume and self.ConReal:GetInt()<=0 then
+							TotalVolume = TotalVolume + (physsim.Volume or (physobj:GetVolume() or v:BoundingRadius()^3*math.pi*4/3) * -(v.BackpackVolumeMul and v.BackpackVolumeMul*v:GetVolumeMul() or -1))
+						end
 					end
-					if not list_volume and self.ConReal:GetInt()<=0 then
-						TotalVolume = TotalVolume + (physsim.Volume or (physobj:GetVolume() or v:BoundingRadius()^3*math.pi*4/3) * -(v.BackpackVolumeMul and v.BackpackVolumeMul*v:GetVolumeMul() or -1))
+				end
+				if list_mass then
+					TotalMass = TotalMass + list_mass
+				end
+				if list_volume then
+					TotalVolume = TotalVolume + list_volume
+				elseif self.ConReal:GetInt()==1 then
+					TotalVolume = TotalVolume + self:CalculateVolume(v:GetCollisionBounds()) * -(v.BackpackVolumeMul and v.BackpackVolumeMul*v:GetVolumeMul() or -1)
+				elseif self.ConReal:GetInt()>=2 then
+					TotalVolume = TotalVolume + v:BoundingRadius()^3*math.pi*4/3 * -(v.BackpackVolumeMul and v.BackpackVolumeMul*v:GetVolumeMul() or -1)
+				end
+				TotalCount = TotalCount + (ISAWC.Countlist[class] or 1) * -(v.BackpackCountMul and v.BackpackCountMul*v:GetCountMul() or -1)
+				if v.ISAWC_Inventory then
+					for k2,v2 in pairs(v.ISAWC_Inventory) do
+						TotalMass = TotalMass + v2.TotalMass
+						TotalCount = TotalCount + v2.TotalCount
 					end
 				end
 			end
-			if list_mass then
-				TotalMass = TotalMass + list_mass
-			end
-			if list_volume then
-				TotalVolume = TotalVolume + list_volume
-			elseif self.ConReal:GetInt()==1 then
-				TotalVolume = TotalVolume + self:CalculateVolume(v:GetCollisionBounds()) * -(v.BackpackVolumeMul and v.BackpackVolumeMul*v:GetVolumeMul() or -1)
-			elseif self.ConReal:GetInt()>=2 then
-				TotalVolume = TotalVolume + v:BoundingRadius()^3*math.pi*4/3 * -(v.BackpackVolumeMul and v.BackpackVolumeMul*v:GetVolumeMul() or -1)
-			end
-			TotalCount = TotalCount + (ISAWC.Countlist[class] or 1) * -(v.BackpackCountMul and v.BackpackCountMul*v:GetCountMul() or -1)
-			if v.ISAWC_Inventory then
-				for k2,v2 in pairs(v.ISAWC_Inventory) do
-					TotalMass = TotalMass + v2.TotalMass
-					TotalCount = TotalCount + v2.TotalCount
-				end
-			end
+			TotalCount = TotalCount * ISAWC.ConCount3:GetFloat()
+			TotalMass = TotalMass * ISAWC.ConMassMul3:GetFloat()
+			TotalVolume = TotalVolume * ISAWC.ConVolMul3:GetFloat()
+			local data = self:GetClientStats(ply)
+			if data[5]+TotalCount>data[6] then self:NoPickup("You need "..math.ceil(data[5]+TotalCount-data[6]).." more slot(s) to pick this up!",ply) return false end
+			if data[3]+TotalVolume>data[4] then self:NoPickup("You need "..math.Round((data[3]+TotalVolume-data[4])*dm3perHu,2).." dm³ more to pick this up!",ply) return false end
+			if data[1]+TotalMass>data[2] then self:NoPickup("You need "..math.Round(data[1]+TotalMass-data[2],2).." kg more to pick this up!",ply) return false end
 		end
-		TotalCount = TotalCount * ISAWC.ConCount3:GetFloat()
-		TotalMass = TotalMass * ISAWC.ConMassMul3:GetFloat()
-		TotalVolume = TotalVolume * ISAWC.ConVolMul3:GetFloat()
-		local data = self:GetClientStats(ply)
-		if data[5]+TotalCount>data[6] then self:NoPickup("You need "..math.ceil(data[5]+TotalCount-data[6]).." more slot(s) to pick this up!",ply) return false end
-		if data[3]+TotalVolume>data[4] then self:NoPickup("You need "..math.Round((data[3]+TotalVolume-data[4])*dm3perHu,2).." dm³ more to pick this up!",ply) return false end
-		if data[1]+TotalMass>data[2] then self:NoPickup("You need "..math.Round(data[1]+TotalMass-data[2],2).." kg more to pick this up!",ply) return false end
 	end
 	if self.ConOverride:GetBool() then return true end
 end
@@ -2598,12 +2681,12 @@ end
 
 ISAWC.PhysgunPickup = function(ply,ent)
 	if not ISAWC.ConAllowPickupOnPhysgun:GetBool() then
-		ent.ISAWC_BeingPickedUp = true
+		ent.ISAWC_BeingPhysgunned = true
 	end
 end
 
 ISAWC.PhysgunDrop = function(ply,ent)
-	ent.ISAWC_BeingPickedUp = nil
+	ent.ISAWC_BeingPhysgunned = nil
 end
 
 ISAWC.PropertyTable = {

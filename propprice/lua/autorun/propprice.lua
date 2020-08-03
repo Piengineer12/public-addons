@@ -390,7 +390,7 @@ if SERVER then
 		local bufferent = ents.Create(class)
 		if IsValid(bufferent) then
 			bufferent:Spawn()
-			cost = ConS:GetBool() and ModelPrice[bufferent:GetModel()] or GetCostFromPhysobj(bufferent:GetPhysicsObject())
+			cost = ConS:GetBool() and ModelPrice[bufferent:GetModel() or ""] or GetCostFromPhysobj(bufferent:GetPhysicsObject())
 			bufferent:Remove()
 		end
 		if not ConO:GetBool() and cost>ply:PP_GetCash() then
@@ -411,10 +411,10 @@ if SERVER then
 	local function MarkEnt(ply,ent)
 		ent.PropPrice_Owner = ply:SteamID()
 		if ConS:GetBool() then
-			local cost = ModelPrice[ent:GetModel()]
+			local cost = ModelPrice[ent:GetModel() or ""]
 			if not (ConY:GetBool() and cost) then
 				cost = GetCostFromPhysobj(ent:GetPhysicsObject())
-				ModelPrice[ent:GetModel()] = cost
+				ModelPrice[ent:GetModel() or ""] = cost
 				if ConY:GetBool() then
 					if not file.IsDir("propprice","DATA") then
 						file.CreateDir("propprice")

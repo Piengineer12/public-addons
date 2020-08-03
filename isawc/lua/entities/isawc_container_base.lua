@@ -129,7 +129,7 @@ function ENT:Use(activator,caller,typ,data)
 				net.Start("isawc_general")
 				net.WriteString("container_open")
 				net.WriteEntity(self)
-				net.Broadcast()
+				net.SendPAS(self:GetPos())
 			end
 			self.ISAWC_Openers[activator] = true
 			net.Start("isawc_general")
