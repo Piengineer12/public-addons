@@ -455,6 +455,9 @@ ISAWC.ConSpawnDelay = CreateConVar("isawc_spawn_delay","1",FCVAR_ARCHIVE+FCVAR_R
 ISAWC.ConAdminOverride = CreateConVar("isawc_allow_adminpickupanything", "1", FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "Allows admins to pick up anything regardless of ConVars (except for players and the map, as those can crash the game).")
 
+ISAWC.ConNoAmmo = CreateConVar("isawc_empty_weapons", "0", FCVAR_ARCHIVE+FCVAR_REPLICATED,
+"If set, all weapons spawned from inventories will not have any ammo in their clip.")
+
 local function BasicAutoComplete(cmd, argStr)
 	local possibilities = {}
 	local namesearch = argStr:Trim():lower()
@@ -643,6 +646,8 @@ ISAWC.PopulateDForm = function(DForm)
 	DForm:Help(" - "..ISAWC.ConAllowPickupOnPhysgun:GetHelpText().."\n")
 	DForm:CheckBox("Undo Puts Items Into Inventory",ISAWC.ConUndoIntoContain:GetName())
 	DForm:Help(" - "..ISAWC.ConUndoIntoContain:GetHelpText().."\n")
+	DForm:CheckBox("Empty Weapon Clips",ISAWC.ConNoAmmo:GetName())
+	DForm:Help(" - "..ISAWC.ConNoAmmo:GetHelpText().."\n")
 	DForm:CheckBox("Use Alternate Storing Method",ISAWC.ConAltSave:GetName())
 	DForm:Help(" - "..ISAWC.ConAltSave:GetHelpText().."\n")
 	DForm:CheckBox("[EXPERIMENTAL] Save Engine Tables",ISAWC.ConSaveTable:GetName())
@@ -1120,6 +1125,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 		net.SendToServer()
 	end
 	function Main:Think()
+		if not LocalPlayer():Alive() then self:Close() end
 		if not IsValid(container) then self:Close() return ISAWC:NoPickup("The container is missing!") end
 		if LocalPlayer():GetPos():Distance(container:GetPos())-container:BoundingRadius()>ISAWC.ConDistance:GetFloat() then self:Close() end
 	end
@@ -1816,7 +1822,7 @@ if SERVER then
 end
 
 ISAWC.IsLegalContainer = function(self,ent,ply,ignoreDist)
-	return tobool(IsValid(ent) and ent.Base=="isawc_container_base" and (ignoreDist or ply:GetPos():Distance(ent:GetPos())-ent:BoundingRadius()<=ISAWC.ConDistance:GetFloat()) and (ent:GetOwnerAccountID()==(ply:AccountID() or 0) or ent:GetIsPublic() or ISAWC.ConAlwaysPublic:GetBool()))
+	return tobool(IsValid(ent) and ent.Base=="isawc_container_base" and ply:Alive() and (ignoreDist or ply:GetPos():Distance(ent:GetPos())-ent:BoundingRadius()<=ISAWC.ConDistance:GetFloat()) and (ent:GetOwnerAccountID()==(ply:AccountID() or 0) or ent:GetIsPublic() or ISAWC.ConAlwaysPublic:GetBool()))
 end
 
 ISAWC.RecursiveToNumbering = function(self,tab,done)
@@ -1885,8 +1891,8 @@ ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 				newent:SetAngles(v:GetAngles())
 				entTab[k] = newent
 				newent:Spawn()
-				newent:SetClip1(v.SavedClip1 or v:Clip1())
-				newent:SetClip2(v.SavedClip2 or v:Clip2())
+				newent:SetClip1(ISAWC.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
+				newent:SetClip2(ISAWC.ConNoAmmo:GetBool() and 0 or v.SavedClip2 or v:Clip2())
 				v:Remove()
 			end
 			v.Entity = v
@@ -1971,8 +1977,8 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 				newent:SetAngles(v:GetAngles())
 				entTab[k] = newent
 				newent:Spawn()
-				newent:SetClip1(v.SavedClip1 or v:Clip1())
-				newent:SetClip2(v.SavedClip2 or v:Clip2())
+				newent:SetClip1(ISAWC.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
+				newent:SetClip2(ISAWC.ConNoAmmo:GetBool() and 0 or v.SavedClip2 or v:Clip2())
 				v:Remove()
 			end
 			v.Entity = v
