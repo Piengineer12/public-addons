@@ -452,7 +452,7 @@ end)
 ISAWC.ConSpawnDelay = CreateConVar("isawc_spawn_delay","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "Sets the minimum delay between inventory item spawns by players.")
 
-ISAWC.ConAdminOverride = CreateConVar("isawc_allow_adminpickupanything", "1", FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConAdminOverride = CreateConVar("isawc_allow_adminpickupanything", "0", FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "Allows admins to pick up anything regardless of ConVars (except for players and the map, as those can crash the game).")
 
 ISAWC.ConNoAmmo = CreateConVar("isawc_empty_weapons", "0", FCVAR_ARCHIVE+FCVAR_REPLICATED,
@@ -686,7 +686,7 @@ ISAWC.PopulateDForm = function(DForm)
 	DForm:Help(" - "..ISAWC.ConDropOnDeath:GetHelpText().."\n")
 	DForm:CheckBox("Save Player Inventories",ISAWC.ConDoSave:GetName())
 	DForm:Help(" - "..ISAWC.ConDoSave:GetHelpText().."\n")
-	DForm:NumSlider("Admin Can Pickup Any",ISAWC.ConAdminOverride:GetName(),0,100,2)
+	DForm:CheckBox("Admin Can Pickup Any",ISAWC.ConAdminOverride:GetName())
 	DForm:Help(" - "..ISAWC.ConAdminOverride:GetHelpText().."\n")
 	
 	DForm:Help("") --whitespace
@@ -994,7 +994,7 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 		if next(inv) then
 			for i,v in ipairs(inv) do
 				local enum,info = next(v)
-				if info then
+				if (info and info.Class) then
 					local Item = InvPanel:Add("SpawnIcon")
 					Item:SetSize(64,64)
 					Item:SetModel(info.Model,info.Skin,info.BodyGroups)
@@ -1291,7 +1291,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 		if next(inv1) then
 			for i,v in ipairs(inv1) do
 				local enum,info = next(v)
-				if info then
+				if (info and info.Class) then
 					local Item = InvLeft:Add("SpawnIcon")
 					Item:SetSize(64,64)
 					Item:SetModel(info.Model,info.Skin,info.BodyGroups)
@@ -2416,7 +2416,7 @@ ISAWC.CanPickup = function(self,ply,ent)
 	if ent.ISAWC_BeingPhysgunned or ply.ISAWC_IsDeathDrop then return false end
 	if (tonumber(ent.NextPickup2) or 0) > CurTime() and (tonumber(ent.NextPickup2) or 0) <= CurTime() + 0.5 and SERVER then return false end
 	ent.NextPickup2 = CurTime() + 0.5
-	if ply:IsAdmin() and self.ConAdminOverride:GetBool() and SERVER then
+	if (ply:IsPlayer() and ply:IsAdmin()) and self.ConAdminOverride:GetBool() and SERVER then
 		local passeswlist = self.Whitelist[class]
 		if ent:IsPlayer() and not passeswlist then self:NoPickup("You can't pick up players!",ply) return false end
 		if ent==game.GetWorld() and not passeswlist then self:NoPickup("You can't pick up worldspawn!",ply) return false end
@@ -2428,10 +2428,10 @@ ISAWC.CanPickup = function(self,ply,ent)
 		local passesblist = self.Blacklist[class]
 		local passeswlist = self.Whitelist[class]
 		if passesblist and not passeswlist then self:NoPickup("That entity is blacklisted from being picked up!",ply) return false end
-		if self.ConUseWhitelist:GetBool() and not passeswlist then self:NoPickup("That entity isn't whitelisted from being picked up!",ply) return false end
 		if ent:IsPlayer() and not passeswlist then self:NoPickup("You can't pick up players!",ply) return false end
 		if ent==game.GetWorld() and not passeswlist then self:NoPickup("You can't pick up worldspawn!",ply) return false end
 		if SERVER then
+			if self.ConUseWhitelist:GetBool() and not passeswlist then self:NoPickup("That entity isn't whitelisted from being picked up!",ply) return false end
 			DropEntityIfHeld(ent)
 			if ply:GetPos():Distance(ent:GetPos())-ent:BoundingRadius()-ply:BoundingRadius()>self.ConDistance:GetFloat() then self:NoPickup("You need to be closer to the object!",ply) return false end
 			if not (ent:IsSolid() or passeswlist or ent:IsWeapon()) then self:NoPickup("You can't pick up non-solid entities!",ply) return false end

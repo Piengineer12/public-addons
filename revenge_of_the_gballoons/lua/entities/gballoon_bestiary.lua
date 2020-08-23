@@ -6,8 +6,8 @@ ENT.PrintName			= "gBalloon Bestiary"
 ENT.Purpose				= "The compendium of knowledge all about Rouge gBalloons."
 ENT.Instructions		= ""
 ENT.Category			= "RotgB: Miscellaneous"
-ENT.Author				= "RandomTNT"
-ENT.Contact				= "http://steamcommunity.com/id/RandomTNT12/"
+ENT.Author				= "Piengineer"
+ENT.Contact				= "http://steamcommunity.com/id/Piengineer12/"
 ENT.Spawnable			= false
 ENT.AdminOnly			= false
 ENT.RenderGroup			= RENDERGROUP_BOTH
@@ -173,12 +173,33 @@ local function AddBalloon(ColumnSheet,class)
 		Label:AppendText("\n\tIgnores damage > "..cvals.BalloonMaxDamage.." layers")
 		hasimms = true
 	end
+	if cvals.BalloonGlass then
+		Label:AppendText("\n\t")
+		local text = "Complete Immunity"
+		for i=1,#text do
+			local hue = math.Remap(i,1,#text,0,360)
+			local color = HSVToColor(hue,0.5,1)
+			Label:InsertColorChange(color:Unpack())
+			Label:AppendText(text[i])
+		end
+		hasimms = true
+	end
+	if cvals.BalloonVoid then
+		Label:AppendText("\n\t")
+		local text = "Cannot be detected by towers"
+		for i=1,#text do
+			local lum = math.Remap(i,1,#text,1,0.5)
+			local color = HSVToColor(0,0,lum)
+			Label:InsertColorChange(color:Unpack())
+			Label:AppendText(text[i])
+		end
+		hasimms = true
+	end
 	if class == "gballoon_blimp_rainbow" then
-		Label:InsertColorChange(255,255,0,255)
 		Label:AppendText("\n\t")
 		local text = "Regenerates "..math.Round(GetConVar("rotgb_rainbow_gblimp_regen_rate"):GetFloat()*200/3,2).." Health Per Second"
 		for i=1,#text do
-			local hue = math.Remap(i-1,0,#text,0,720)
+			local hue = math.Remap(i,1,#text,0,720)
 			local color = HSVToColor(hue,0.5,1)
 			Label:InsertColorChange(color:Unpack())
 			Label:AppendText(text[i])
@@ -277,7 +298,7 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 		With this book, it is hoped that its readers will have a better understanding on how to defeat each type of gBalloon, \z
 		should they start to stir up harm.\n\n")
 		RichText:InsertColorChange(127,127,127,255)
-		RichText:AppendText("Respectfully,\nPiengineer of RandomTNT")
+		RichText:AppendText("Respectfully,\nPiengineer of Piengineer")
 		function RichText:PerformLayout()
 			self:SetBGColor(0,0,0,191)
 			self:SetFontInternal("Trebuchet24")

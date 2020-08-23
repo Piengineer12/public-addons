@@ -1,9 +1,9 @@
--- Have you ever wanted to see why the buttons and functions are seperate?
+-- Have you ever wanted to see why the buttons and functions are separate?
 
 local xe = 11
 
 -- Functions
-	
+
 local function CalcIndex(x,y)
 	return (x+y*xe)+1
 end

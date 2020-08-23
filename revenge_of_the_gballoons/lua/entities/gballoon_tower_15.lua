@@ -4,8 +4,8 @@ ENT.Base = "gballoon_tower_base"
 ENT.Type = "anim"
 ENT.PrintName = "Turret Factory"
 ENT.Category = "RotgB: Towers"
-ENT.Author = "RandomTNT"
-ENT.Contact = "http://steamcommunity.com/id/RandomTNT12/"
+ENT.Author = "Piengineer"
+ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Gun those gBalloons!"
 ENT.Instructions = ""
 ENT.Spawnable = true
@@ -33,7 +33,7 @@ ENT.UpgradeReference = {
 			"Reduces turret generation delay by 1 second.",
 			"Reduces turret generation delay by another second. Also slightly increases the turrets' ranges.",
 			"Turrets can now detect Hidden gBalloons.",
-			"Turrets that are sparking deal quadruple damage!",
+			"Turrets that are sparking deal decuple (x10) damage!",
 			"Every time a turret hits a gBalloon, gain $10!",
 		},
 		Prices = {150,800,1500,2000,2500},
@@ -49,7 +49,7 @@ ENT.UpgradeReference = {
 				self.SeeCamo = true
 			end,
 			function(self)
-				self.rotgb_PostMul = self.rotgb_PostMul * 4
+				self.rotgb_PostMul = self.rotgb_PostMul * 10
 			end,
 			function(self)
 				self.rotgb_TurretBucks = true

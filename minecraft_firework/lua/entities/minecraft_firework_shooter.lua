@@ -4,7 +4,7 @@ ENT.Type 			= "anim"
 ENT.Base 			= "base_anim"
 ENT.PrintName		= "Firework Launcher"
 ENT.Author			= "Piengineer"
-ENT.Contact			= "http://steamcommunity.com/id/RandomTNT12/"
+ENT.Contact			= "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose			= "\"You can keep your eyes closed. Just listen. Ah - here it comes! In five... four... three... two... ONE...!\""
 ENT.Instructions	= "Set up a rocket then use. Has wire inputs too."
 ENT.Category		= "Minecraft"
@@ -76,9 +76,10 @@ function ENT:Think()
 end
 
 function ENT:AcceptInput(inputname, activator, caller, data)
-	if inputname:lower() == "launch" then
-		self:Trigger()
-	elseif inputname:lower() == "setlaunchvelocity" then
+	if inputname:lower() == "fire" then
+		self:CreateFirework()
+	elseif inputname:lower() == "launchvelocity" then
+		self:SetLaunchVelocity(tonumber(data) or 0)
 	end
 end
 
@@ -133,7 +134,7 @@ end
 
 net.Receive("minecraft_firework", function(length, ply)
 	local func = net.ReadString()
-	if func == "prompt" and CLIENT then
+	if CLIENT and func == "prompt" then
 		local proxEntity = net.ReadEntity()
 		MFR_SelectFireworkRocket(function(rocket, velocity)
 			if IsValid(proxEntity) then
@@ -148,15 +149,18 @@ net.Receive("minecraft_firework", function(length, ply)
 				net.SendToServer()
 			end
 		end, proxEntity:GetLaunchVelocity())
-	elseif func == "receive" and SERVER then
-		local bytes = net.ReadUInt(16)
-		local data = net.ReadData(bytes)
-		local ent = net.ReadEntity()
-		local velocity = net.ReadUInt(32)
-		if (IsValid(ent) and ent:GetClass()=="minecraft_firework_shooter" and ent.SelectingPlayer == ply) then
-			ent.Firework = util.JSONToTable(util.Decompress(data))
-			ent:SetLaunchVelocity(velocity)
-			ent.SelectingPlayer = nil
+	end
+	if SERVER then
+		if func == "receive" then
+			local bytes = net.ReadUInt(16)
+			local data = net.ReadData(bytes)
+			local ent = net.ReadEntity()
+			local velocity = net.ReadUInt(32)
+			if (IsValid(ent) and (ent:GetClass()=="minecraft_firework_shooter" and ent.SelectingPlayer == ply or ent:GetClass()=="weapon_minecraft_firework" and ent.Owner == ply)) then
+				ent.Firework = util.JSONToTable(util.Decompress(data))
+				ent:SetLaunchVelocity(velocity)
+				ent.SelectingPlayer = nil
+			end
 		end
 	end
 end)

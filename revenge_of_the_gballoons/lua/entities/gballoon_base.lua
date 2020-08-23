@@ -5,8 +5,8 @@ ENT.Base = "base_nextbot"
 ENT.PrintName = "Rouge gBalloon"
 ENT.Category = "RotgB: Basic"
 -- ENT.ScriptedEntityType = "entity"
-ENT.Author = "RandomTNT"
-ENT.Contact = "http://steamcommunity.com/id/RandomTNT12/"
+ENT.Author = "Piengineer"
+ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "To conquer the world!"
 ENT.Instructions = ""
 ENT.Spawnable = false
@@ -3992,7 +3992,7 @@ local registerkeys = {
 			BalloonType = "gballoon_marble",
 			BalloonMaterial = "phoenix_storms/plastic",
 			BalloonHealth = "60",
-			BalloonMaxDamage = "2"
+			BalloonMaxDamage = "4"
 		}
 	}
 }

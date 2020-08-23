@@ -4,8 +4,8 @@ ENT.Base = "gballoon_tower_base"
 ENT.Type = "anim"
 ENT.PrintName = "Sawblade Launcher"
 ENT.Category = "RotgB: Towers"
-ENT.Author = "RandomTNT"
-ENT.Contact = "http://steamcommunity.com/id/RandomTNT12/"
+ENT.Author = "Piengineer"
+ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Shred those gBalloons!"
 ENT.Instructions = ""
 ENT.Spawnable = true
@@ -183,7 +183,6 @@ function ENT:FireFunction(tableOfBalloons)
 		saw:SetModel("models/props_junk/sawblade001a.mdl")
 		saw:SetModelScale(self.rotgb_Size)
 		saw:Spawn()
-		saw:Activate()
 		saw:SetCollisionGroup(COLLISION_GROUP_WORLD)
 		saw.Tower = self
 		saw.rotgb_MaxPierce = self.rotgb_MaxPierce

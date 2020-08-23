@@ -2,10 +2,10 @@ AddCSLuaFile()
 
 ENT.Base = "gballoon_tower_base"
 ENT.Type = "anim"
-ENT.PrintName = "Fire Cube [alpha]"
+ENT.PrintName = "Fire Cube"
 ENT.Category = "RotgB: Towers"
-ENT.Author = "RandomTNT"
-ENT.Contact = "http://steamcommunity.com/id/RandomTNT12/"
+ENT.Author = "Piengineer"
+ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Burn those gBalloons!"
 ENT.Instructions = ""
 ENT.Spawnable = true
@@ -159,12 +159,12 @@ hook.Add("EntityTakeDamage","RotgB_Tower13",function(vic,dmginfo)
 	end
 end)
 
-function ENT:ROTGB_Initialize()
+--[[function ENT:ROTGB_Initialize()
 	--self:SetMaterial("phoenix_storms/stripes")
 	if SERVER then
 		self:SetPos(self:GetPos()+Vector(24,0,24))
 	end
-end
+end]]
 
 function ENT:FireFunction(gBalloons)
 	local towerTarget = gBalloons[1]

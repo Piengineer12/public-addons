@@ -5,8 +5,8 @@ ENT.Type = "anim"
 ENT.PrintName = "gBalloon Spawner"
 ENT.Category = "RotgB: Miscellaneous"
 ENT.ScriptedEntityType = "entity"
-ENT.Author = "RandomTNT"
-ENT.Contact = "http://steamcommunity.com/id/RandomTNT12/"
+ENT.Author = "Piengineer"
+ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Spawns gBalloons in a nostalgic way."
 ENT.Instructions = ""
 ENT.Spawnable = false
@@ -1138,6 +1138,7 @@ function ENT:SpawnFunction(ply,trace,classname)
 end
 
 local notifshown = 0
+local gBalloonTable = baseclass.Get("gballoon_base")
 
 function ENT:Initialize()
 	if SERVER then
@@ -1230,7 +1231,7 @@ function ENT:Use(activator)
 				timeframe = (timeframe or 0) / self:GetSpeedMul()
 				local function layer1()
 					if IsValid(self) then
-						if #ents.FindByClass("gballoon_base")<GetConVar("rotgb_max_to_exist"):GetInt() then
+						if gBalloonTable:GetgBalloonCount() < GetConVar("rotgb_max_to_exist"):GetInt() then
 							local SpawnPos = self:GetPos()+Vector(0,0,10)
 							local bln = ents.Create("gballoon_base")
 							if IsValid(bln) then

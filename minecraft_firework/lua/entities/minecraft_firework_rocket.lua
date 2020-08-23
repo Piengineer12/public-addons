@@ -4,12 +4,13 @@ ENT.Type 			= "anim"
 ENT.Base 			= "base_anim"
 ENT.PrintName		= "Firework Rocket"
 ENT.Author			= "Piengineer"
-ENT.Contact			= "http://steamcommunity.com/id/RandomTNT12/"
+ENT.Contact			= "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose			= "Launched firework rocket, will explode after some time."
 ENT.Instructions	= "How are you reading this?!"
 ENT.Category		= "Minecraft"
 ENT.Spawnable		= false
 ENT.AdminOnly		= false
+ENT.RenderGroup		= RENDERGROUP_OTHER
 
 local fireworkModel = "models/mcitems3d_mariro/firework_rocket.mdl"
 local altFireworkModel = false
@@ -19,7 +20,7 @@ if not util.IsValidModel(fireworkModel) then
 end
 
 local fireworkRadius = 12
-local fireworkTravelVelocity = vector_up * 10
+local fireworkTravelVelocity = vector_up * 15
 local fireworkTravelWaterVelocity = vector_up * -8
 
 local networkingConstant = 64
@@ -83,7 +84,22 @@ function ENT:Think()
 	end
 	if SERVER then
 		local physobj = self:GetPhysicsObject()
-		if IsValid(physobj) then
+		local parent = self:GetParent()
+		if IsValid(parent) then
+			if (parent:IsPlayer() and not parent:Alive()) then
+				self:ExplodeEffect()
+				self:Remove()
+			elseif (PPM2 and parent:IsPlayer() and parent:IsPonyCached()) then -- this may get interesting!
+				local data = parent:GetPonyData()
+				if (data and data:GetFly()) then -- use a very different velocity of moving
+					parent:SetVelocity(parent:GetAimVector() / 2)
+				else
+					parent:SetVelocity(parent:GetAimVector() * 15)
+				end
+			else
+				parent:SetVelocity(parent:GetAimVector() * 15)
+			end
+		elseif IsValid(physobj) then
 			if self:WaterLevel() > 2 then
 				physobj:AddVelocity(fireworkTravelWaterVelocity)
 			else
@@ -99,16 +115,38 @@ function ENT:Think()
 	end
 	if CLIENT then
 		if self:CheckProxyModel() then
-			self.ClientModel:SetPos(self:GetPos())
-			local fAng = self:GetAngles()
-			fAng.p = 0
-			if altFireworkModel then
-				fAng.y = fAng.y - 90
-				fAng.r = 0
+			--[[if IsValid(self:GetParent()) and not self.ClientModel.NoShow then
+				self.ClientModel:SetNoDraw(true)
+				self.ClientModel.NoShow = true
 			else
-				fAng.r = -180
-			end
-			self.ClientModel:SetAngles(fAng)
+				if self.ClientModel.NoShow then
+					self.ClientModel:SetNoDraw(false)
+					self.ClientModel.NoShow = false
+				end]]
+				self.ClientModel:SetPos(self:GetPos())
+				local fAng = self:EyeAngles()
+				if IsValid(self:GetParent()) then
+					fAng = self:GetParent():EyeAngles()
+					if altFireworkModel then
+						fAng.p = -90 - fAng.p
+						fAng.y = fAng.y + 180
+						fAng.r = 0
+					else
+						fAng.y = fAng.y - 90
+						fAng.r = 90 - fAng.p
+						fAng.p = 0
+					end
+				else
+					fAng.p = 0
+					if altFireworkModel then
+						fAng.y = fAng.y - 90
+						fAng.r = 0
+					else
+						fAng.r = -180
+					end
+				end
+				self.ClientModel:SetAngles(fAng)
+			--end
 		end
 	end
 end
@@ -184,11 +222,11 @@ function ENT:CheckProxyModel()
 	return IsValid(self.ClientModel)
 end
 
-function ENT:Draw()
-	if self:CheckProxyModel() then
+--[[function ENT:Draw()
+	if self:CheckProxyModel() and not IsValid(self:GetParent()) then
 		self.ClientModel:DrawModel()
 	end
-end
+end]]
 
 function ENT:OnRemove()
 	if IsValid(self.ClientModel) then

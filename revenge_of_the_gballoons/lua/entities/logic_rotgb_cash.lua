@@ -1,7 +1,7 @@
 ENT.Type = "point"
 ENT.PrintName = "RotgB Cash Logic"
-ENT.Author = "RandomTNT"
-ENT.Contact = "http://steamcommunity.com/id/RandomTNT12/"
+ENT.Author = "Piengineer"
+ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Sets or gets the current cash amount. Can also detect if a player has enough cash or not."
 ENT.Instructions = "Hook this entity's inputs and outputs to something."
 

@@ -4,8 +4,8 @@ ENT.Base = "gballoon_tower_base"
 ENT.Type = "anim"
 ENT.PrintName = "Proximity Mine"
 ENT.Category = "RotgB: Towers"
-ENT.Author = "RandomTNT"
-ENT.Contact = "http://steamcommunity.com/id/RandomTNT12/"
+ENT.Author = "Piengineer"
+ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Blow those gBalloons!"
 ENT.Instructions = ""
 ENT.Spawnable = true
@@ -130,41 +130,41 @@ function ENT:FireFunction(gBalloons)
 	self:EmitSound("phx/kaboom.wav", 75, math.random(80,120), 0.5)
 	--if self.rotgb_AlternateExplode then
 		for k,v in pairs(gBalloons) do
-			if IsValid(v) then
-				dmginfo:SetDamagePosition(v:GetPos())
-				local scale = 1
-				if self.rotgb_ExtraVsCeramic and v:GetBalloonProperty("BalloonBlimp") then
-					scale = 3
-				end
-				dmginfo:ScaleDamage(scale)
-				if not v:GetBalloonProperty("BalloonBlimp") then
-					if self.rotgb_StrengthBreaker then
-						if v:GetBalloonProperty("BalloonShielded") then
-							v:SetHealth(v:Health()/2)
-							v:SetMaxHealth(v:GetMaxHealth()/2)
-							v.Properties.BalloonShielded = false
-							v:SetNWBool("RenderShield",false)
-						end
-						if v:GetBalloonProperty("BalloonFast") then
-							v.loco:SetAcceleration(v.loco:GetAcceleration()/2)
-							v.loco:SetDesiredSpeed(v.loco:GetAcceleration()*0.2)
-							v.loco:SetDeceleration(v.loco:GetAcceleration())
-							v.Properties.BalloonFast = false
-							if IsValid(self.FastTrail) then self.FastTrail:Remove() end
-						end
+			dmginfo:SetDamagePosition(v:GetPos())
+			local scaled = false
+			if self.rotgb_ExtraVsCeramic and v:GetBalloonProperty("BalloonBlimp") then
+				dmginfo:ScaleDamage(3)
+				scaled = true
+			end
+			if not v:GetBalloonProperty("BalloonBlimp") then
+				if self.rotgb_StrengthBreaker then
+					if v:GetBalloonProperty("BalloonShielded") then
+						v:SetHealth(v:Health()/2)
+						v:SetMaxHealth(v:GetMaxHealth()/2)
+						v.Properties.BalloonShielded = false
+						v:SetNWBool("RenderShield",false)
 					end
-					if self.rotgb_Stun then
-						v:Stun(1)
+					if v:GetBalloonProperty("BalloonFast") then
+						v.loco:SetAcceleration(v.loco:GetAcceleration()/2)
+						v.loco:SetDesiredSpeed(v.loco:GetAcceleration()*0.2)
+						v.loco:SetDeceleration(v.loco:GetAcceleration())
+						v.Properties.BalloonFast = false
+						if IsValid(self.FastTrail) then self.FastTrail:Remove() end
 					end
 				end
-				if self.rotgb_AlternateExplode then
-					v:Slowdown("ROTGB_PROX_MINE",0.7,3)
+				if self.rotgb_Stun then
+					v:Stun(1)
 				end
-				v:TakeDamageInfo(dmginfo)
-				dmginfo:ScaleDamage(1/scale)
-				if self.rotgb_Recursion then
-					self:Recur(v,self.rotgb_Recursion)
-				end
+			end
+			if self.rotgb_AlternateExplode then
+				v:Slowdown("ROTGB_PROX_MINE",0.7,3)
+			end
+			v:TakeDamageInfo(dmginfo)
+			if scaled then
+				dmginfo:ScaleDamage(1/3)
+			end
+			if self.rotgb_Recursion then
+				self:Recur(v,self.rotgb_Recursion)
 			end
 		end
 	--[[else

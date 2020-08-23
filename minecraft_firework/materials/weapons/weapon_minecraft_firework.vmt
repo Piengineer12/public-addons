@@ -1,0 +1,6 @@
+UnlitGeneric
+{
+	$basetexture weapons/weapon_minecraft_firework
+	$vertexalpha 1
+	$vertexcolor 1
+}

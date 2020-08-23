@@ -95,7 +95,7 @@ function ENT:FireAtEnemy()
 		if iscrit then
 			damage = damage * self:GetSpawnedTower().rotgb_CritMul
 		end
-		if CurTime() - self:GetCreationTime() > 15 then
+		if CurTime() - self:GetCreationTime() > 18 then
 			damage = damage * self:GetSpawnedTower().rotgb_PostMul
 		end
 		if self:GetSpawnedTower().rotgb_TurretLasers then
@@ -212,13 +212,13 @@ function ENT:Think()
 			self.loco:SetDeceleration(self:GetSpawnedTower().rotgb_TurretSpeed*5)
 			if CurTime() - self:GetCreationTime() > 20 then
 				self:Remove()
-			elseif CurTime() - self:GetCreationTime() > 15 then
+			elseif CurTime() - self:GetCreationTime() > 18 then
 				local effdata = EffectData()
 				effdata:SetEntity(self)
 				effdata:SetOrigin(self:GetShootPos())
 				effdata:SetMagnitude(1)
 				effdata:SetScale(0)
-				effdata:SetRadius(1)
+				effdata:SetRadius(4)
 				util.Effect("Sparks", effdata)
 			end
 		else
@@ -235,7 +235,7 @@ function ENT:MoveToEnemy()
 	path:Compute(self, enemy:GetPos())
 	while IsValid(path) and self:HaveEnemy() do
 		if self:GetEnemy() ~= enemy then break end
-		if path:GetAge() > 0.5 then
+		if path:GetAge() > 1 then
 			path:Compute(self, enemy:GetPos())
 		end
 		path:Chase(self, enemy)
