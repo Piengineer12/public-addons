@@ -19,30 +19,30 @@ ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,40)
 ENT.UserTargeting = true
 ENT.AttackDamage = 10
-ENT.rotgb_Spread = 40
+ENT.rotgb_Spread = 100
 ENT.rotgb_Shots = 1
 ENT.UpgradeReference = {
 	{
-		Names = {"Stabilized Barrel","Heated Bullets","Consistent Barrel Spinner","Computerized Targeting","Laser Shooter","Ray of Doom"},
+		Names = {"Stabilized Barrel","Penetrating Bullets","Consistent Barrel Spinner","Computerized Targeting","Laser Shooter","Ray of Doom"},
 		Descs = {
 			"Considerably reduces bullet spread.",
-			"Increases damage dealt by each bullet and can pop Gray gBalloons.",
-			"Disables bullet spread altogether.",
-			"Deals tremendously increased damage versus gBlimps. Also enables the tower to see hidden gBalloons.",
-			"Fires a continuous focused laser that shreds gBalloons.",
-			"Fires an even bigger beam that obliterates ALL gBalloons in its path."
+			"Enables the tower to pop Gray gBalloons.",
+			"Tremendously reduces bullet spread.",
+			"Deals slightly increased damage versus gBlimps. Also enables the tower to see hidden gBalloons.",
+			"Fires a continuous, perfectly accurate focused laser that shreds gBalloons. However, the tower no longer pops Purple gBalloons.",
+			"Fires an even bigger beam that obliterates all gBalloons in its path, regardless of immunities."
 		},
-		Prices = {400,1200,4000,40000,100000,400000},
+		Prices = {400,1200,2000,12500,50000,400000},
 		Funcs = {
 			function(self)
-				self.rotgb_Spread = self.rotgb_Spread * 0.65
+				self.rotgb_Spread = self.rotgb_Spread * 2/3
 			end,
 			function(self)
 				self.rotgb_CanPopGray = true
 				self.AttackDamage = self.AttackDamage + 10
 			end,
 			function(self)
-				self.rotgb_Spread = 0
+				self.rotgb_Spread = self.rotgb_Spread * 0.5
 			end,
 			function(self)
 				self.rotgb_ExtraVsCeramic = true
@@ -177,7 +177,7 @@ local function SnipeEntity()
 						util.BlastDamageInfo(dmginfo,tracer.HitPos,128)
 					end]]
 				end,
-				Damage = self.rotgb_ExtraVsCeramic and ent:GetBalloonProperty("BalloonBlimp") and self.AttackDamage*5 or self.AttackDamage,
+				Damage = self.rotgb_ExtraVsCeramic and ent:GetBalloonProperty("BalloonBlimp") and self.AttackDamage*2 or self.AttackDamage,
 				Distance = self.DetectionRadius*1.5,
 				HullSize = 1,
 				Num = self.rotgb_Shots,

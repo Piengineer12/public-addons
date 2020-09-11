@@ -6,13 +6,14 @@ local color_white_semitransparent = Color(255,255,255,63)
 local color_gray_semitransparent = Color(127,127,127,63)
 local color_black_semiopaque = Color(0,0,0,191)
 local color_black_semitransparent = Color(0,0,0,63)
-local dm3perHu = 0.00204838
 
 ISAWC = ISAWC or {}
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
 ISAWC.DoNothing = function()end
+
+ISAWC.dm3perHu = 0.00204838
 
 ISAWC.Log = function(self,msg)
 	MsgC(color_aqua,"[ISAWC] ",color_white,msg,"\n")
@@ -458,6 +459,12 @@ ISAWC.ConAdminOverride = CreateConVar("isawc_allow_adminpickupanything", "0", FC
 ISAWC.ConNoAmmo = CreateConVar("isawc_empty_weapons", "0", FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "If set, all weapons spawned from inventories will not have any ammo in their clip.")
 
+ISAWC.ConAllowInterConnection = CreateConVar("isawc_allow_interownerconnections", "0", FCVAR_ARCHIVE+FCVAR_REPLICATED,
+"If set, Inventory Importers, Exporters and Viewers may be connected to a container owned by someone else.")
+
+ISAWC.ConMinExportDelay = CreateConVar("isawc_export_mindelay", "0.05", FCVAR_ARCHIVE+FCVAR_REPLICATED,
+"Minimum delay between items exported by Inventory Exporters.")
+
 local function BasicAutoComplete(cmd, argStr)
 	local possibilities = {}
 	local namesearch = argStr:Trim():lower()
@@ -648,6 +655,10 @@ ISAWC.PopulateDForm = function(DForm)
 	DForm:Help(" - "..ISAWC.ConUndoIntoContain:GetHelpText().."\n")
 	DForm:CheckBox("Empty Weapon Clips",ISAWC.ConNoAmmo:GetName())
 	DForm:Help(" - "..ISAWC.ConNoAmmo:GetHelpText().."\n")
+	DForm:CheckBox("Allow UP'd Inventory Connections",ISAWC.ConAllowInterConnection:GetName())
+	DForm:Help(" - "..ISAWC.ConAllowInterConnection:GetHelpText().."\n")
+	DForm:NumSlider("Minimum Export Delay",ISAWC.ConMinExportDelay:GetName(),0.01,10,2)
+	DForm:Help(" - "..ISAWC.ConMinExportDelay:GetHelpText().."\n")
 	DForm:CheckBox("Use Alternate Storing Method",ISAWC.ConAltSave:GetName())
 	DForm:Help(" - "..ISAWC.ConAltSave:GetHelpText().."\n")
 	DForm:CheckBox("[EXPERIMENTAL] Save Engine Tables",ISAWC.ConSaveTable:GetName())
@@ -773,7 +784,7 @@ ISAWC.DrawInfos = function(self,invinfo,w,h)
 	end
 	if pv>=0 then
 		draw.RoundedBox(4,0,h-self.FontH*2,w*math.min(pv,1),self.FontH,color_dark_green_semitransparent)
-		draw.SimpleTextOutlined(string.format("    Volume: %.2f dm³/%.2f dm³ (%i%%)",cv*dm3perHu,mv*dm3perHu,pv*100),"DermaDefault",0,h-self.FontH*1.5,self:GetPercentageColor(pv),TEXT_ALIGN_LEFT,TEXT_ALIGN_CENTER,1,color_black_semitransparent)
+		draw.SimpleTextOutlined(string.format("    Volume: %.2f dm³/%.2f dm³ (%i%%)",cv*self.dm3perHu,mv*self.dm3perHu,pv*100),"DermaDefault",0,h-self.FontH*1.5,self:GetPercentageColor(pv),TEXT_ALIGN_LEFT,TEXT_ALIGN_CENTER,1,color_black_semitransparent)
 	end
 	if pc>=0 then
 		draw.RoundedBox(4,0,h-self.FontH,w*math.min(pc,1),self.FontH,color_dark_blue_semitransparent)
@@ -1637,10 +1648,10 @@ ISAWC.GetClientStats = function(self,ply)
 	if self.ConConstEnabled:GetBool() then
 		if ply:IsPlayer() then
 			mw = self.ConConstMass:GetFloat()
-			mv = self.ConConstVol:GetFloat()/dm3perHu
+			mv = self.ConConstVol:GetFloat()/self.dm3perHu
 		else
 			mw = ply.ContainerConstants.Mass * self.ConMassMul2:GetFloat() * (ply.GetMassMul and ply:GetMassMul() or 1)
-			mv = ply.ContainerConstants.Volume/dm3perHu * self.ConVolMul2:GetFloat() * (ply.GetVolumeMul and ply:GetVolumeMul() or 1)
+			mv = ply.ContainerConstants.Volume/self.dm3perHu * self.ConVolMul2:GetFloat() * (ply.GetVolumeMul and ply:GetVolumeMul() or 1)
 		end
 	else
 		for k,v in pairs({ply,ply:GetChildren()}) do
@@ -1891,8 +1902,8 @@ ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 				newent:SetAngles(v:GetAngles())
 				entTab[k] = newent
 				newent:Spawn()
-				newent:SetClip1(ISAWC.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
-				newent:SetClip2(ISAWC.ConNoAmmo:GetBool() and 0 or v.SavedClip2 or v:Clip2())
+				newent:SetClip1(self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
+				newent:SetClip2(self.ConNoAmmo:GetBool() and 0 or v.SavedClip2 or v:Clip2())
 				v:Remove()
 			end
 			v.Entity = v
@@ -1907,11 +1918,11 @@ ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 			end
 			if self.ConUndoIntoContain:GetBool() then
 				undo.AddFunction(function(undoInfo)
-					if IsValid(ply) then 
+					if IsValid(ply) then
 						if IsTableOfEntitiesValid(entTab) then
 							table.insert(ply.ISAWC_Inventory,dupe)
 						else
-							ISAWC:NoPickup("Error: Can't undo deleted entity!",ply)
+							self:NoPickup("Error: Can't undo deleted entity!",ply)
 						end
 					end
 				end)
@@ -1977,8 +1988,8 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 				newent:SetAngles(v:GetAngles())
 				entTab[k] = newent
 				newent:Spawn()
-				newent:SetClip1(ISAWC.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
-				newent:SetClip2(ISAWC.ConNoAmmo:GetBool() and 0 or v.SavedClip2 or v:Clip2())
+				newent:SetClip1(self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
+				newent:SetClip2(self.ConNoAmmo:GetBool() and 0 or v.SavedClip2 or v:Clip2())
 				v:Remove()
 			end
 			v.Entity = v
@@ -1994,7 +2005,11 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 			if self.ConUndoIntoContain:GetBool() then
 				undo.AddFunction(function(undoInfo)
 					if IsValid(container) then
-						table.insert(container.ISAWC_Inventory,dupe)
+						if IsTableOfEntitiesValid(entTab) then
+							table.insert(container.ISAWC_Inventory,dupe)
+						else
+							self:NoPickup("Error: Can't undo deleted entity!",ply)
+						end
 					end
 				end)
 			end
@@ -2003,6 +2018,56 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 				undo.SetPlayer(ply)
 				undo.Finish()
 			end
+		end
+	end
+end
+
+ISAWC.SpawnDupeWeak = function(self,dupe,spawnpos,spawnangles,ply)
+	for k,v in pairs(dupe.Entities) do
+		local ent = Entity(k)
+		if IsValid(ent) and self.ConAltSave:GetBool() then
+			if self.ConSaveTable:GetBool() then
+				for k,v in pairs(ent.ISAWC_SaveTable or {}) do
+					ent:SetSaveValue(k,v)
+				end
+			end
+			ent:SetNoDraw(ent.ISAWC_OldNoDraw or false)
+			ent:SetNotSolid(not ent.ISAWC_OldSolid or false)
+			ent:SetMoveType(ent.ISAWC_OldMoveType or MOVETYPE_VPHYSICS)
+			ent:PhysWake()
+			timer.Simple(0,function()
+				if IsValid(ent) then
+					ent:SetAngles((ent.ISAWC_OldAngles or angle_zero)+spawnangles)
+					ent:SetPos((ent.ISAWC_OldPos or vector_origin)+spawnpos)
+				end
+			end)
+		end
+	end
+	if not self.ConAltSave:GetBool() then
+		duplicator.SetLocalPos(spawnpos)
+		duplicator.SetLocalAng(Angle(0,spawnangles.y,0))
+		local entTab,conTab = duplicator.Paste(ply,dupe.Entities,dupe.Constraints)
+		duplicator.SetLocalPos(vector_origin)
+		duplicator.SetLocalAng(angle_zero)
+		for k,v in pairs(entTab) do
+			self:RecursiveToNumbering(v)
+			if self.ConSaveTable:GetBool() then
+				for k2,v2 in pairs(v.ISAWC_SaveTable or {}) do
+					v:SetSaveValue(k2,v2)
+				end
+			end
+			if v:IsWeapon() then
+				local newent = ents.Create(v:GetClass())
+				newent:SetPos(v:GetPos())
+				newent:SetAngles(v:GetAngles())
+				entTab[k] = newent
+				newent:Spawn()
+				newent:SetClip1(self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
+				newent:SetClip2(self.ConNoAmmo:GetBool() and 0 or v.SavedClip2 or v:Clip2())
+				v:Remove()
+			end
+			v.Entity = v
+			v.NextPickup2 = CurTime() + 0.5
 		end
 	end
 end
@@ -2233,7 +2298,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 							if not dupe then break end
 							local data = self:GetClientStats(container)
 							if data[5]+dupe.TotalCount>data[6] then self:NoPickup("The container needs "..math.ceil(data[5]+dupe.TotalCount-data[6]).." more slot(s) before it can accept the item!",ply) break end
-							if data[3]+dupe.TotalVolume>data[4] then self:NoPickup("The container needs "..math.Round((data[3]+dupe.TotalVolume-data[4])*dm3perHu,2).." dm³ more before it can accept the item!",ply) break end
+							if data[3]+dupe.TotalVolume>data[4] then self:NoPickup("The container needs "..math.Round((data[3]+dupe.TotalVolume-data[4])*self.dm3perHu,2).." dm³ more before it can accept the item!",ply) break end
 							if data[1]+dupe.TotalMass>data[2] then self:NoPickup("The container needs "..math.Round(data[1]+dupe.TotalMass-data[2],2).." kg more before it can accept the item!",ply) break end
 							table.insert(container.ISAWC_Inventory,dupe)
 							table.remove(ply.ISAWC_Inventory,invnum)
@@ -2243,7 +2308,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 						if not dupe then return end
 						local data = self:GetClientStats(container)
 						if data[5]+dupe.TotalCount>data[6] then return self:NoPickup("The container needs "..math.ceil(data[5]+dupe.TotalCount-data[6]).." more slot(s) before it can accept the item!",ply) end
-						if data[3]+dupe.TotalVolume>data[4] then return self:NoPickup("The container needs "..math.Round((data[3]+dupe.TotalVolume-data[4])*dm3perHu,2).." dm³ more before it can accept the item!",ply) end
+						if data[3]+dupe.TotalVolume>data[4] then return self:NoPickup("The container needs "..math.Round((data[3]+dupe.TotalVolume-data[4])*self.dm3perHu,2).." dm³ more before it can accept the item!",ply) end
 						if data[1]+dupe.TotalMass>data[2] then return self:NoPickup("The container needs "..math.Round(data[1]+dupe.TotalMass-data[2],2).." kg more before it can accept the item!",ply) end
 						table.insert(container.ISAWC_Inventory,dupe)
 						table.remove(ply.ISAWC_Inventory,invnum)
@@ -2262,7 +2327,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 						if not dupe then break end
 						local data = self:GetClientStats(ply)
 						if data[5]+dupe.TotalCount>data[6] then self:NoPickup("You need "..math.ceil(data[5]+dupe.TotalCount-data[6]).." more slot(s) to take that item!",ply) break end
-						if data[3]+dupe.TotalVolume>data[4] then self:NoPickup("You need "..math.Round((data[3]+dupe.TotalVolume-data[4])*dm3perHu,2).." dm³ more to take that item!",ply) break end
+						if data[3]+dupe.TotalVolume>data[4] then self:NoPickup("You need "..math.Round((data[3]+dupe.TotalVolume-data[4])*self.dm3perHu,2).." dm³ more to take that item!",ply) break end
 						if data[1]+dupe.TotalMass>data[2] then self:NoPickup("You need "..math.Round(data[1]+dupe.TotalMass-data[2],2).." kg more to take that item!",ply) break end
 						table.insert(ply.ISAWC_Inventory,dupe)
 						table.remove(container.ISAWC_Inventory,invnum)
@@ -2272,7 +2337,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					if not dupe then return end
 					local data = self:GetClientStats(ply)
 					if data[5]+dupe.TotalCount>data[6] then return self:NoPickup("You need "..math.ceil(data[5]+dupe.TotalCount-data[6]).." more slot(s) to take that item!",ply) end
-					if data[3]+dupe.TotalVolume>data[4] then return self:NoPickup("You need "..math.Round((data[3]+dupe.TotalVolume-data[4])*dm3perHu,2).." dm³ more to take that item!",ply) end
+					if data[3]+dupe.TotalVolume>data[4] then return self:NoPickup("You need "..math.Round((data[3]+dupe.TotalVolume-data[4])*self.dm3perHu,2).." dm³ more to take that item!",ply) end
 					if data[1]+dupe.TotalMass>data[2] then return self:NoPickup("You need "..math.Round(data[1]+dupe.TotalMass-data[2],2).." kg more to take that item!",ply) end
 					table.insert(ply.ISAWC_Inventory,dupe)
 					table.remove(container.ISAWC_Inventory,invnum)
@@ -2349,7 +2414,26 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					net.SendPAS(container:GetPos())
 				end
 			end
-		else return
+		elseif func == "exporter" then
+			local exporter = net.ReadEntity()
+			if IsValid(exporter) and exporter:GetClass()=="isawc_extractor" and exporter:GetOwnerAccountID() == (ply:AccountID() or 0) then
+				exporter:SetActiFlags(net.ReadInt(32))
+				exporter:SetSpawnDelay(net.ReadFloat())
+				exporter:SetActiMass(net.ReadFloat())
+				exporter:SetActiVolume(net.ReadFloat())
+				exporter:SetActiCount(net.ReadFloat())
+			end
+		elseif func == "exporter_disconnect" then
+			local exporter = net.ReadEntity()
+			if IsValid(exporter) and exporter:GetClass()=="isawc_extractor" and exporter:GetOwnerAccountID() == (ply:AccountID() or 0) then
+				exporter:SetStorageEntity(NULL)
+				exporter:SetFileID("")
+				exporter:SetCollisionGroup(COLLISION_GROUP_NONE)
+				exporter:UpdateWireOutputs()
+			end
+		else
+			self:Log("Received unrecognised message header \"" .. func .. "\" from " .. ply:Nick() .. ". Assuming data packet corrupted.")
+			return
 		end
 		self:SaveInventory(ply)
 	end
@@ -2395,6 +2479,11 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			else
 				self.reliantwindow:Close()
 			end
+		elseif func == "exporter" then
+			local questionEnt = net.ReadEntity()
+			if IsValid(questionEnt) then
+				questionEnt:BuildConfigGUI()
+			end
 		end
 	end
 end
@@ -2402,6 +2491,56 @@ end
 net.Receive("isawc_general",function(length,ply)
 	ISAWC:ReceiveMessage(length,ply,net.ReadString())
 end)
+
+ISAWC.CalculateEntitySpace = function(self,ent)
+	local TotalMass,TotalVolume,TotalCount = 0,0,0
+	for k,v in pairs(constraint.GetAllConstrainedEntities(ent)) do
+		local model = (v:GetModel() or ""):lower()
+		local class = v:GetClass():lower()
+		local list_mass, list_volume
+		list_mass = ISAWC.Masslist[model] or ISAWC.Masslist[class]
+		list_volume = ISAWC.Volumelist[model] or ISAWC.Volumelist[class]
+		if list_mass then
+			list_mass = list_mass * (v.BackpackMassMul and -v.BackpackMassMul*v:GetMassMul() or 1)
+		end
+		if list_volume then
+			list_volume = list_volume * (v.BackpackVolumeMul and -v.BackpackVolumeMul*v:GetVolumeMul() or 1)
+		end
+		for i=0,v:GetPhysicsObjectCount()-1 do
+			local physobj = v:GetPhysicsObjectNum(i)
+			if IsValid(physobj) then
+				local physsim = ISAWC.ConConstEnabled:GetBool() and v.BackpackConstants or {}
+				if not list_mass then
+					TotalMass = TotalMass + (physsim.Mass or physobj:GetMass() * -(v.BackpackMassMul and v.BackpackMassMul*v:GetMassMul() or -1))
+				end
+				if not list_volume and self.ConReal:GetInt()<=0 then
+					TotalVolume = TotalVolume + (physsim.Volume or (physobj:GetVolume() or v:BoundingRadius()^3*math.pi*4/3) * -(v.BackpackVolumeMul and v.BackpackVolumeMul*v:GetVolumeMul() or -1))
+				end
+			end
+		end
+		if list_mass then
+			TotalMass = TotalMass + list_mass
+		end
+		if list_volume then
+			TotalVolume = TotalVolume + list_volume
+		elseif self.ConReal:GetInt()==1 then
+			TotalVolume = TotalVolume + self:CalculateVolume(v:GetCollisionBounds()) * -(v.BackpackVolumeMul and v.BackpackVolumeMul*v:GetVolumeMul() or -1)
+		elseif self.ConReal:GetInt()>=2 then
+			TotalVolume = TotalVolume + v:BoundingRadius()^3*math.pi*4/3 * -(v.BackpackVolumeMul and v.BackpackVolumeMul*v:GetVolumeMul() or -1)
+		end
+		TotalCount = TotalCount + (ISAWC.Countlist[class] or 1) * -(v.BackpackCountMul and v.BackpackCountMul*v:GetCountMul() or -1)
+		if v.ISAWC_Inventory then
+			for k2,v2 in pairs(v.ISAWC_Inventory) do
+				TotalMass = TotalMass + v2.TotalMass
+				TotalCount = TotalCount + v2.TotalCount
+			end
+		end
+	end
+	TotalCount = TotalCount * ISAWC.ConCount3:GetFloat()
+	TotalMass = TotalMass * ISAWC.ConMassMul3:GetFloat()
+	TotalVolume = TotalVolume * ISAWC.ConVolMul3:GetFloat()
+	return TotalMass,TotalVolume,TotalCount
+end
 
 ISAWC.CanProperty = function(self,ply,ent)
 	if GAMEMODE.IsSandboxDerived and not ISAWC.ConOverride:GetBool() then
@@ -2430,63 +2569,37 @@ ISAWC.CanPickup = function(self,ply,ent)
 		if passesblist and not passeswlist then self:NoPickup("That entity is blacklisted from being picked up!",ply) return false end
 		if ent:IsPlayer() and not passeswlist then self:NoPickup("You can't pick up players!",ply) return false end
 		if ent==game.GetWorld() and not passeswlist then self:NoPickup("You can't pick up worldspawn!",ply) return false end
+		if not ply:IsPlayer() and (class=="isawc_phantomface" or class=="isawc_extractor" or class=="isawc_weighingscale") and not passeswlist then
+			local phrase = class=="isawc_phantomface" and "Inventory Importers" or "Inventory Exporters"
+			if class=="isawc_weighingscale" then
+				self:NoPickup("You can't pick up Weighing Scales!",ply) return false
+			elseif ent:GetFileID()=="" then
+				self:NoPickup("You can't pick up unconnected "..phrase.."!",ply) return false
+			elseif ent:GetContainer()==ply then
+				self:NoPickup("You can't pick up "..phrase.." connected to you!",ply) return false
+			end
+		end
 		if SERVER then
 			if self.ConUseWhitelist:GetBool() and not passeswlist then self:NoPickup("That entity isn't whitelisted from being picked up!",ply) return false end
 			DropEntityIfHeld(ent)
-			if ply:GetPos():Distance(ent:GetPos())-ent:BoundingRadius()-ply:BoundingRadius()>self.ConDistance:GetFloat() then self:NoPickup("You need to be closer to the object!",ply) return false end
+			if ply:GetPos():Distance(ent:GetPos())-ent:BoundingRadius()-ply:BoundingRadius()>self.ConDistance:GetFloat() and ply:IsPlayer() then self:NoPickup("You need to be closer to the object!",ply) return false end
 			if not (ent:IsSolid() or passeswlist or ent:IsWeapon()) then self:NoPickup("You can't pick up non-solid entities!",ply) return false end
 			if ent:GetMoveType()~=MOVETYPE_VPHYSICS and self.ConVPhysicsOnly:GetBool() and not (passeswlist or ent:IsWeapon()) then self:NoPickup("You can't pick up non-VPhysics entities!",ply) return false end
 			if constraint.HasConstraints(ent) and not self.ConAllowConstrained:GetBool() then self:NoPickup("You can't pick up constrained entities!",ply) return false end
-			local TotalMass,TotalVolume,TotalCount = 0,0,0
-			for k,v in pairs(constraint.GetAllConstrainedEntities(ent)) do
-				local model = (v:GetModel() or ""):lower()
-				local class = v:GetClass():lower()
-				local list_mass, list_volume
-				list_mass = ISAWC.Masslist[model] or ISAWC.Masslist[class]
-				list_volume = ISAWC.Volumelist[model] or ISAWC.Volumelist[class]
-				if list_mass then
-					list_mass = list_mass * (v.BackpackMassMul and -v.BackpackMassMul*v:GetMassMul() or 1)
-				end
-				if list_volume then
-					list_volume = list_volume * (v.BackpackVolumeMul and -v.BackpackVolumeMul*v:GetVolumeMul() or 1)
-				end
-				for i=0,v:GetPhysicsObjectCount()-1 do
-					local physobj = v:GetPhysicsObjectNum(i)
-					if IsValid(physobj) then
-						local physsim = ISAWC.ConConstEnabled:GetBool() and v.BackpackConstants or {}
-						if not list_mass then
-							TotalMass = TotalMass + (physsim.Mass or physobj:GetMass() * -(v.BackpackMassMul and v.BackpackMassMul*v:GetMassMul() or -1))
-						end
-						if not list_volume and self.ConReal:GetInt()<=0 then
-							TotalVolume = TotalVolume + (physsim.Volume or (physobj:GetVolume() or v:BoundingRadius()^3*math.pi*4/3) * -(v.BackpackVolumeMul and v.BackpackVolumeMul*v:GetVolumeMul() or -1))
-						end
-					end
-				end
-				if list_mass then
-					TotalMass = TotalMass + list_mass
-				end
-				if list_volume then
-					TotalVolume = TotalVolume + list_volume
-				elseif self.ConReal:GetInt()==1 then
-					TotalVolume = TotalVolume + self:CalculateVolume(v:GetCollisionBounds()) * -(v.BackpackVolumeMul and v.BackpackVolumeMul*v:GetVolumeMul() or -1)
-				elseif self.ConReal:GetInt()>=2 then
-					TotalVolume = TotalVolume + v:BoundingRadius()^3*math.pi*4/3 * -(v.BackpackVolumeMul and v.BackpackVolumeMul*v:GetVolumeMul() or -1)
-				end
-				TotalCount = TotalCount + (ISAWC.Countlist[class] or 1) * -(v.BackpackCountMul and v.BackpackCountMul*v:GetCountMul() or -1)
-				if v.ISAWC_Inventory then
-					for k2,v2 in pairs(v.ISAWC_Inventory) do
-						TotalMass = TotalMass + v2.TotalMass
-						TotalCount = TotalCount + v2.TotalCount
-					end
-				end
-			end
-			TotalCount = TotalCount * ISAWC.ConCount3:GetFloat()
-			TotalMass = TotalMass * ISAWC.ConMassMul3:GetFloat()
-			TotalVolume = TotalVolume * ISAWC.ConVolMul3:GetFloat()
+			local TotalMass, TotalVolume, TotalCount = self:CalculateEntitySpace(ent)
 			local data = self:GetClientStats(ply)
-			if data[5]+TotalCount>data[6] then self:NoPickup("You need "..math.ceil(data[5]+TotalCount-data[6]).." more slot(s) to pick this up!",ply) return false end
-			if data[3]+TotalVolume>data[4] then self:NoPickup("You need "..math.Round((data[3]+TotalVolume-data[4])*dm3perHu,2).." dm³ more to pick this up!",ply) return false end
-			if data[1]+TotalMass>data[2] then self:NoPickup("You need "..math.Round(data[1]+TotalMass-data[2],2).." kg more to pick this up!",ply) return false end
+			if data[5]+TotalCount>data[6] then
+				ply.ISAWC_ExportFullTimestamp = CurTime()
+				self:NoPickup("You need "..math.ceil(data[5]+TotalCount-data[6]).." more slot(s) to pick this up!",ply) return false
+			end
+			if data[3]+TotalVolume>data[4] then
+				ply.ISAWC_ExportFullTimestamp = CurTime()
+				self:NoPickup("You need "..math.Round((data[3]+TotalVolume-data[4])*self.dm3perHu,2).." dm³ more to pick this up!",ply) return false
+			end
+			if data[1]+TotalMass>data[2] then
+				ply.ISAWC_ExportFullTimestamp = CurTime()
+				self:NoPickup("You need "..math.Round(data[1]+TotalMass-data[2],2).." kg more to pick this up!",ply) return false
+			end
 		end
 	end
 	if self.ConOverride:GetBool() then return true end
@@ -2616,50 +2729,8 @@ ISAWC.PropPickup = function(self,ply,ent,container)
 	local dupe = duplicator.Copy(ent)
 	duplicator.SetLocalPos(vector_origin)
 	duplicator.SetLocalAng(angle_zero)
-	dupe.TotalCount = 0
-	dupe.TotalMass = 0
-	dupe.TotalVolume = 0
+	dupe.TotalMass, dupe.TotalVolume, dupe.TotalCount = self:CalculateEntitySpace(ent)
 	for k,v in pairs(constraint.GetAllConstrainedEntities(ent)) do
-		local model = (v:GetModel() or ""):lower()
-		local class = v:GetClass():lower()
-		local list_mass, list_volume
-		list_mass = ISAWC.Masslist[model] or ISAWC.Masslist[class]
-		list_volume = ISAWC.Volumelist[model] or ISAWC.Volumelist[class]
-		if list_mass then
-			list_mass = list_mass * (v.BackpackMassMul and -v.BackpackMassMul*v:GetMassMul() or 1)
-		end
-		if list_volume then
-			list_volume = list_volume * (v.BackpackVolumeMul and -v.BackpackVolumeMul*v:GetVolumeMul() or 1)
-		end
-		for i=0,v:GetPhysicsObjectCount()-1 do
-			local physobj = v:GetPhysicsObjectNum(i)
-			if IsValid(physobj) then
-				local physsim = ISAWC.ConConstEnabled:GetBool() and v.BackpackConstants or {}
-				if not list_mass then
-					dupe.TotalMass = dupe.TotalMass + (physsim.Mass or physobj:GetMass() * -(v.BackpackMassMul and v.BackpackMassMul*v:GetMassMul() or -1))
-				end
-				if not list_volume and self.ConReal:GetInt()<=0 then
-					dupe.TotalVolume = dupe.TotalVolume + (physsim.Volume or (physobj:GetVolume() or v:BoundingRadius()^3*math.pi*4/3) * -(v.BackpackVolumeMul and v.BackpackVolumeMul*v:GetVolumeMul() or -1))
-				end
-			end
-		end
-		if list_mass then
-			dupe.TotalMass = dupe.TotalMass + list_mass
-		end
-		if list_volume then
-			dupe.TotalVolume = dupe.TotalVolume + list_volume
-		elseif self.ConReal:GetInt()==1 then
-			dupe.TotalVolume = dupe.TotalVolume + self:CalculateVolume(v:GetCollisionBounds()) * -(v.BackpackVolumeMul and v.BackpackVolumeMul*v:GetVolumeMul() or -1)
-		elseif self.ConReal:GetInt()>=2 then
-			dupe.TotalVolume = dupe.TotalVolume + v:BoundingRadius()^3*math.pi*4/3 * -(v.BackpackVolumeMul and v.BackpackVolumeMul*v:GetVolumeMul() or -1)
-		end
-		dupe.TotalCount = dupe.TotalCount + (ISAWC.Countlist[model] or ISAWC.Countlist[class] or 1) * -(v.BackpackCountMul and v.BackpackCountMul*v:GetCountMul() or -1)
-		if v.ISAWC_Inventory then
-			for k2,v2 in pairs(v.ISAWC_Inventory) do
-				dupe.TotalMass = dupe.TotalMass + v2.TotalMass
-				dupe.TotalCount = dupe.TotalCount + v2.TotalCount
-			end
-		end
 		if ISAWC.ConAltSave:GetBool() then
 			v.ISAWC_OldPos,v.ISAWC_OldAngles,v.ISAWC_OldNoDraw,v.ISAWC_OldSolid,v.ISAWC_OldMoveType = v:GetPos()-tpos,v:GetAngles()-ply:GetAngles(),v:GetNoDraw(),v:IsSolid(),v:GetMoveType()
 			v:SetPos(Vector(16000,16000,16000))
@@ -2670,9 +2741,6 @@ ISAWC.PropPickup = function(self,ply,ent,container)
 			v:Fire("Kill")
 		end
 	end
-	dupe.TotalCount = dupe.TotalCount * ISAWC.ConCount3:GetFloat()
-	dupe.TotalMass = dupe.TotalMass * ISAWC.ConMassMul3:GetFloat()
-	dupe.TotalVolume = dupe.TotalVolume * ISAWC.ConVolMul3:GetFloat()
 	table.insert(ply.ISAWC_Inventory,dupe)
 	if ply:IsPlayer() then
 		if IsValid(container) then

@@ -21,9 +21,9 @@ ENT.AttackDamage = 10
 ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,70)
 ENT.UserTargeting = true
-ENT.rotgb_ChargeDelay = 5
+ENT.rotgb_ChargeDelay = 4
 ENT.rotgb_MultiShot = 1
-ENT.rotgb_MaxCharges = 100
+ENT.rotgb_MaxCharges = 250
 --ENT.rotgb_SoundType = "67"
 ENT.UpgradeReference = {
 	{
@@ -32,18 +32,18 @@ ENT.UpgradeReference = {
 			"Particle charges are accumulated faster.",
 			"Increases fire rate and maximum charges considerably.",
 			"Tremendously increases fire rate and particle charges are accumulated even faster.",
-			"Shots no longer consume charges.",
-			"Once every 30 seconds, firing at this tower colossally increases fire rate and attack damage for 10 seconds.",
+			"Whenever this tower loses a charge, this tower gains a charge.",
+			"Once every 60 seconds, firing at this tower massively increases fire rate and attack damage for 15 seconds!",
 		},
-		Prices = {600,1500,7500,30000,150000},
+		Prices = {600,3500,12500,20000,100000},
 		Funcs = {
 			function(self)
 				self.rotgb_ChargeDelay = self.rotgb_ChargeDelay / 2
 			end,
 			function(self)
-				self.FireRate = self.FireRate * 1.5
-				self.rotgb_ChargeDelay = self.rotgb_ChargeDelay * 1.5
-				self.rotgb_MaxCharges = self.rotgb_MaxCharges * 1.5
+				self.FireRate = self.FireRate * 2
+				self.rotgb_ChargeDelay = self.rotgb_ChargeDelay * 2
+				self.rotgb_MaxCharges = self.rotgb_MaxCharges * 2
 				--self.ContFire = nil
 				--self:StopSound("ROTGB_TOWER_10_67")
 				--self.rotgb_SoundType = "100"
@@ -69,9 +69,9 @@ ENT.UpgradeReference = {
 			"Allows the tower to see Hidden gBalloons.",
 			"Considerably increases attack damage.",
 			"Tremendously increases attack damage. Balloons popped by this tower do not spawn any children.",
-			"Colossally increases attack damage. This tower now attacks up to 16 gBalloons at once.",
+			"Colossally increases attack damage!",
 		},
-		Prices = {600,1500,5000,35000,1500000},
+		Prices = {600,1500,5000,30000,300000},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 10
@@ -89,7 +89,7 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.AttackDamage = self.AttackDamage + 2700
-				self.rotgb_MultiShot = self.rotgb_MultiShot * 16
+				--self.rotgb_MultiShot = self.rotgb_MultiShot * 16
 			end
 		}
 	},
@@ -288,14 +288,14 @@ function ENT:ROTGB_Draw()
 end
 
 function ENT:TriggerAbility()
-	self.FireRate = self.FireRate * 4
-	self.AttackDamage = self.AttackDamage + 1990
+	self.FireRate = self.FireRate * 2
+	self.AttackDamage = self.AttackDamage + 380
 	--self.rotgb_PopAqua2 = true
 	self:SetNWFloat("rotgb_CC",CurTime()+10)
-	timer.Simple(10,function()
+	timer.Simple(15,function()
 		if IsValid(self) then
-			self.FireRate = self.FireRate / 4
-			self.AttackDamage = self.AttackDamage - 1990
+			self.FireRate = self.FireRate / 2
+			self.AttackDamage = self.AttackDamage - 380
 			--self.rotgb_PopAqua2 = nil
 		end
 	end)

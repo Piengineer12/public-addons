@@ -71,30 +71,35 @@ function ENT:Initialize()
 	if SERVER and (IsValid(self:GetCreator()) and self:GetCreator():IsPlayer()) then
 		self:SetOwnerAccountID(self:GetCreator():AccountID() or 0)
 	end
-	if IsValid(self) then
-		local endername = self:GetEnderInvName()
-		if (endername or "")~="" and table.IsEmpty(self.ISAWC_Inventory) then
-			for k,v in pairs(ents.GetAll()) do
-				if (IsValid(v) and v.Base=="isawc_container_base" and v:GetEnderInvName()==endername and not table.IsEmpty(v.ISAWC_Inventory)) then
-					self.ISAWC_Inventory = v.ISAWC_Inventory break
-				end
+	local endername = self:GetEnderInvName()
+	if (endername or "")~="" and table.IsEmpty(self.ISAWC_Inventory) then
+		for k,v in pairs(ents.GetAll()) do
+			if (IsValid(v) and v.Base=="isawc_container_base" and v:GetEnderInvName()==endername and not table.IsEmpty(v.ISAWC_Inventory)) then
+				self.ISAWC_Inventory = v.ISAWC_Inventory break
 			end
 		end
-		if ISAWC.ConSaveIntoFile:GetBool() then
-			if (self:GetFileID() or "")=="" then
-				local function GenStringFile()
-					local str = ""
-					for i=1,4 do
-						str = str .. bit.tohex(bit.tobit(math.random(2147483647,-2147483648)))
-					end
-					return str
-				end
-				while self:GetFileID()=="" or file.Exists("isawc_containers/"..self:GetFileID()..".dat","DATA") do
-					self:SetFileID(GenStringFile())
-				end
-			elseif file.Exists("isawc_containers/"..self:GetFileID()..".dat","DATA") then
-				self.ISAWC_Inventory = table.DeSanitise(util.JSONToTable(util.Decompress(file.Read("isawc_containers/"..self:GetFileID()..".dat"))))
+	end
+	if (self:GetFileID() or "")=="" and SERVER then
+		local container_ents = {}
+		for k,v in pairs(ents.GetAll()) do
+			if v.Base == "isawc_container_base" then
+				container_ents[v:GetFileID()] = v
 			end
+		end
+		local function GenStringFile()
+			local str = ""
+			for i=1,4 do
+				str = str .. string.char(math.random(32, 126))
+			end
+			return str
+		end
+		while self:GetFileID()=="" or file.Exists("isawc_containers/"..self:GetFileID()..".dat","DATA") or container_ents[self:GetFileID()] do
+			self:SetFileID(GenStringFile())
+		end
+	end
+	if ISAWC.ConSaveIntoFile:GetBool() then
+		if file.Exists("isawc_containers/"..self:GetFileID()..".dat","DATA") then
+			self.ISAWC_Inventory = table.DeSanitise(util.JSONToTable(util.Decompress(file.Read("isawc_containers/"..self:GetFileID()..".dat"))))
 		end
 	end
 	self.NextRegenThink = CurTime()
@@ -188,6 +193,9 @@ function ENT:Think()
 			self:SetHealth(self.CHealth)
 			self:SetMaxHealth(self.CHealth)
 		end
+		if not self.NextRegenThink then
+			self.NextRegenThink = CurTime()
+		end
 		if self.NextRegenThink <= CurTime() and ISAWC.ConContainerRegen:GetFloat() ~= 0 then
 			while self.NextRegenThink <= CurTime() do
 				self.NextRegenThink = self.NextRegenThink + math.abs(1/ISAWC.ConContainerRegen:GetFloat())
@@ -213,6 +221,16 @@ function ENT:Think()
 		elseif self.ContainerState=="closing" then
 			self.ContainerState="closed"
 			self:CloseAnim(1)
+		end
+	end
+end
+
+function ENT:SendInventoryUpdate()
+	for k,v in pairs(self.ISAWC_Openers) do
+		if IsValid(k) then
+			ISAWC:SendInventory2(k, self)
+		else
+			self.ISAWC_Openers[k] = nil
 		end
 	end
 end

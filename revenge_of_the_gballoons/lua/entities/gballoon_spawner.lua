@@ -1057,35 +1057,46 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Float",1,"SpeedMul",{KeyName="spawn_speed_mul",Edit={title="Spawn Rate",type="Float",min=0.1,max=10,order=2}})
 	self:NetworkVar("Float",2,"NextWaveTime")
 	self:NetworkVar("String",0,"WaveFile",{KeyName="wave_file",Edit={title="Custom Wave Name",type="Generic",order=7}})
-	self:NetworkVar("Entity",0,"NextTarget")
-	self:NetworkVar("Entity",1,"NextTarget1")
-	self:NetworkVar("Entity",2,"NextTarget2")
-	self:NetworkVar("Entity",3,"NextTarget3")
-	self:NetworkVar("Entity",4,"NextTarget4")
-	self:NetworkVar("Entity",5,"NextTarget5")
-	self:NetworkVar("Entity",6,"NextTarget6")
-	self:NetworkVar("Entity",7,"NextTarget7")
-	self:NetworkVar("Entity",8,"NextTarget8")
-	self:NetworkVar("Entity",9,"NextTarget9")
-	self:NetworkVar("Entity",10,"NextTarget10")
-	self:NetworkVar("Entity",11,"NextTarget11")
-	self:NetworkVar("Entity",12,"NextTarget12")
-	self:NetworkVar("Entity",13,"NextTarget13")
-	self:NetworkVar("Entity",14,"NextTarget14")
-	self:NetworkVar("Entity",15,"NextTarget15")
-	self:NetworkVar("Entity",16,"NextTarget16")
-	-- keys: start_wave, auto_start, auto_start_delay, spawn_speed_mul, next_target_X, model, finished_shortly_threshold, dont_trigger_wave_relays
-	-- inputs: Use, SetNextWaypoint_X
-	-- outputs: OnWaveStart, OnWaveFinished, OnWaveFinishedShortly
+	self:NetworkVar("Entity",0,"NextTarget1")
+	self:NetworkVar("Entity",1,"NextTarget2")
+	self:NetworkVar("Entity",2,"NextTarget3")
+	self:NetworkVar("Entity",3,"NextTarget4")
+	self:NetworkVar("Entity",4,"NextTarget5")
+	self:NetworkVar("Entity",5,"NextTarget6")
+	self:NetworkVar("Entity",6,"NextTarget7")
+	self:NetworkVar("Entity",7,"NextTarget8")
+	self:NetworkVar("Entity",8,"NextTarget9")
+	self:NetworkVar("Entity",9,"NextTarget10")
+	self:NetworkVar("Entity",10,"NextTarget11")
+	self:NetworkVar("Entity",11,"NextTarget12")
+	self:NetworkVar("Entity",12,"NextTarget13")
+	self:NetworkVar("Entity",13,"NextTarget14")
+	self:NetworkVar("Entity",14,"NextTarget15")
+	self:NetworkVar("Entity",15,"NextTarget16")
+	self:NetworkVar("Entity",16,"NextBlimpTarget1")
+	self:NetworkVar("Entity",17,"NextBlimpTarget2")
+	self:NetworkVar("Entity",18,"NextBlimpTarget3")
+	self:NetworkVar("Entity",19,"NextBlimpTarget4")
+	self:NetworkVar("Entity",20,"NextBlimpTarget5")
+	self:NetworkVar("Entity",21,"NextBlimpTarget6")
+	self:NetworkVar("Entity",22,"NextBlimpTarget7")
+	self:NetworkVar("Entity",23,"NextBlimpTarget8")
+	self:NetworkVar("Entity",24,"NextBlimpTarget9")
+	self:NetworkVar("Entity",25,"NextBlimpTarget10")
+	self:NetworkVar("Entity",26,"NextBlimpTarget11")
+	self:NetworkVar("Entity",27,"NextBlimpTarget12")
+	self:NetworkVar("Entity",28,"NextBlimpTarget13")
+	self:NetworkVar("Entity",29,"NextBlimpTarget14")
+	self:NetworkVar("Entity",30,"NextBlimpTarget15")
+	self:NetworkVar("Entity",31,"NextBlimpTarget16")
 end
 
 function ENT:KeyValue(key,value)
 	local lkey = key:lower()
 	if lkey=="start_wave" then
 		self:SetWave(tonumber(value) or 1)
-	elseif lkey=="auto_start" then
-		self:SetAutoStart(tobool(value))
-		self.OldAutoStart = true
+	--[[elseif lkey=="auto_start" then
+		self:SetAutoStart(tobool(value))]]
 	elseif lkey=="no_auto_start" then
 		self.NoAutoStart = true
 	elseif lkey=="force_next" then
@@ -1098,7 +1109,10 @@ function ENT:KeyValue(key,value)
 		local num = (tonumber("0x"..string.sub(lkey,-1)) or 0) + 1
 		self.TempNextTargets = self.TempNextTargets or {}
 		self.TempNextTargets[num] = value
-		--self.TmepNextTarget = value
+	elseif string.sub(lkey,1,17) == "next_blimp_target" then
+		local num = (tonumber("0x"..string.sub(lkey,-1)) or 0) + 1
+		self.TempNextBlimpTargets = self.TempNextBlimpTargets or {}
+		self.TempNextBlimpTargets[num] = value
 	elseif lkey=="model" then
 		self.Model = value
 	elseif lkey=="skin" then
@@ -1120,9 +1134,16 @@ end
 
 function ENT:AcceptInput(input,activator,caller,data)
 	input = input:lower()
-	if string.sub(input,1,15) == "setnextwaypoint" then
+	if input=="setautostart" then
+		self:SetAutoStart(tobool(data))
+	elseif input=="setforcenext" then
+		self:SetForceNextWave(tobool(data))
+	elseif string.sub(input,1,15) == "setnextwaypoint" then
 		local num = (tonumber("0x"..string.sub(input,-1)) or 0) + 1
-		self["SetNextTarget"..num](self,ents.FindByName(data)[1] or NULL)
+		self["SetNextTarget"..num](self,data~="" and ents.FindByName(data)[1] or NULL)
+	elseif string.sub(input,1,20) == "setnextblimpwaypoint" then
+		local num = (tonumber("0x"..string.sub(input,-1)) or 0) + 1
+		self["SetNextBlimpTarget"..num](self,data~="" and ents.FindByName(data)[1] or NULL)
 	end
 end
 
@@ -1157,7 +1178,12 @@ function ENT:Initialize()
 		end
 		if self.TempNextTargets then
 			for k,v in pairs(self.TempNextTargets) do
-				self["SetNextTarget"..k](self,ents.FindByName(v)[1] or NULL)
+				self["SetNextTarget"..k](self,v~="" and ents.FindByName(v)[1] or NULL)
+			end
+		end
+		if self.TempNextBlimpTargets then
+			for k,v in pairs(self.TempNextBlimpTargets) do
+				self["SetNextBlimpTarget"..k](self,v~="" and ents.FindByName(v)[1] or NULL)
 			end
 		end
 		self:PhysicsInit(SOLID_VPHYSICS)
@@ -1166,7 +1192,8 @@ function ENT:Initialize()
 			physobj:Wake()
 		end
 		self:SetUseType(SIMPLE_USE)
-		if not (self.OldAutoStart or self.NoAutoStart) then
+		if not self.NoAutoStart then
+			self.NoAutoStart = true
 			self:SetAutoStart(true)
 		end
 	end
@@ -1184,7 +1211,7 @@ function ENT:Use(activator)
 				v:Use(self,self,USE_ON,1)
 			end
 		end
-		if self:GetNextWaveTime()>CurTime() or not self:GetForceNextWave() and #ents.FindByClass("gballoon_base")>0 then
+		if self:GetNextWaveTime()>CurTime() or not self:GetForceNextWave() and gBalloonTable:GetgBalloonCount()>0 then
 			ROTGB_AddCash(100*GetConVar("rotgb_cash_mul"):GetFloat())
 		end
 		self:SetSpeedMul(self:GetSpeedMul()>0 and self:GetSpeedMul() or 1) -- needed for older versions of this addon.
@@ -1228,6 +1255,7 @@ function ENT:Use(activator)
 				PrintMessage(HUD_PRINTTALK,"RgBE: "..v)
 			elseif tonumber(k) then
 				local balloontype,amount,timeframe,delay = unpack(v)
+				local timername = "BalloonSpawner_"..creaid.."_"..cwave.."_"..k
 				timeframe = (timeframe or 0) / self:GetSpeedMul()
 				local function layer1()
 					if IsValid(self) then
@@ -1241,19 +1269,31 @@ function ENT:Use(activator)
 								end
 								bln:Spawn()
 								bln:Activate()
-								if IsValid(self:GetNextTarget()) then
+								--[[if IsValid(self:GetNextTarget()) then
 									self:SetNextTarget1(self:GetNextTarget())
 									self:SetNextTarget(NULL)
-								end
+								end]]
 								local nextTargs = {}
-								for i=1,16 do
-									local gTarg = self["GetNextTarget"..i](self)
-									if IsValid(gTarg) then
-										table.insert(nextTargs,gTarg)
+								if bln:GetBalloonProperty("BalloonBlimp") then
+									for i=1,16 do
+										local gTarg = self["GetNextBlimpTarget"..i](self)
+										if IsValid(gTarg) then
+											table.insert(nextTargs,gTarg)
+										end
 									end
 								end
 								if next(nextTargs) then
 									bln:SetTarget(nextTargs[math.random(#nextTargs)])
+								else
+									for i=1,16 do
+										local gTarg = self["GetNextTarget"..i](self)
+										if IsValid(gTarg) then
+											table.insert(nextTargs,gTarg)
+										end
+									end
+									if next(nextTargs) then
+										bln:SetTarget(nextTargs[math.random(#nextTargs)])
+									end
 								end
 								--timer.Simple(0,function()
 									if bln.loco then
@@ -1263,17 +1303,17 @@ function ENT:Use(activator)
 							end
 						else
 							self:SetNextWaveTime(self:GetNextWaveTime()+1)
-							timer.Pause("BalloonSpawner_"..creaid.."_"..cwave.."_"..k)
+							timer.Pause(timername)
 							timer.Simple(1,function()
-								timer.UnPause("BalloonSpawner_"..creaid.."_"..cwave.."_"..k)
+								timer.UnPause(timername)
 							end)
 						end
 					else
-						timer.Remove("BalloonSpawner_"..creaid.."_"..cwave.."_"..k)
+						timer.Remove(timername)
 					end
 				end
 				local function layer2()
-					timer.Create("BalloonSpawner_"..creaid.."_"..cwave.."_"..k,timeframe/(amount or 1),amount or 1,layer1)
+					timer.Create(timername,timeframe/(amount or 1),amount or 1,layer1)
 				end
 				timer.Simple((delay or 0)/self:GetSpeedMul(),layer2)
 			end
@@ -1365,7 +1405,7 @@ function ENT:Think()
 			self.EnableBalloonChecking = nil
 			self:SpawnNextWave()
 		else
-			if #ents.FindByClass("gballoon_base")==0 then
+			if gBalloonTable:GetgBalloonCount()==0 then
 				self.EnableBalloonChecking = nil
 				self:SpawnNextWave()
 			end
@@ -1395,7 +1435,6 @@ function ENT:Think()
 				end
 				self.CustomWaveData = rawdata
 				self:SetNWString("rotgb_validwave",self.CustomWaveName)
-				--print("SXSW!")
 			end
 		end
 	end

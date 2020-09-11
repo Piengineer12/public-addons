@@ -42,6 +42,8 @@ local ConT = CreateClientConVar("rotgb_range_fade_time","0.25",true,false,
 local ConA = CreateClientConVar("rotgb_range_alpha","15",true,false,
 [[Sets how visible the range indicator is, in the range of 0-255.]])
 
+local gBalloonTable = baseclass.Get("gballoon_base")
+
 if SERVER then
 	util.AddNetworkString("rotgb_openupgrademenu")
 end
@@ -215,7 +217,14 @@ function ENT:Think()
 			self.SellAmount = (self.SellAmount or 0) + self.LocalCost
 		end
 		if not self:IsStunned() then
-			self.ExpensiveThinkDelay = (self.ExpensiveThinkDelay or 0) - 1
+			self.ExpensiveThinkDelay = self.ExpensiveThinkDelay or CurTime()
+			if self.ExpensiveThinkDelay <= CurTime() then
+				self.ExpensiveThinkDelay = CurTime() + 0.5
+				self:ExpensiveThink()
+				if not IsValid(self:GetTowerOwner()) then
+					self:SetTowerOwner(player.GetAll()[1])
+				end
+			end
 			if (self.NextFire or 0) < CurTime() and (self.DetectedEnemy or self.FireWhenNoEnemies) then
 				self.NextFire = CurTime() + 1/(self.FireRate or 1)
 				self:ExpensiveThink(true)
@@ -225,13 +234,7 @@ function ENT:Think()
 						self.NextFire = 0
 					end
 				end
-			end
-			if self.ExpensiveThinkDelay <= 0 then
-				self.ExpensiveThinkDelay = 5
 				self:ExpensiveThink()
-				if not IsValid(self:GetTowerOwner()) then
-					self:SetTowerOwner(player.GetAll()[1])
-				end
 			end
 			self:NextThink(CurTime())
 			return true
@@ -267,7 +270,9 @@ end]]
 
 function ENT:ValidTarget(v)
 	--if v:GetClass()=="gballoon_base" then
-		return (IsValid(v) and v:GetClass()=="gballoon_base" and not v:GetBalloonProperty("BalloonVoid") and (not v:GetBalloonProperty("BalloonHidden") or self.SeeCamo or v:HasRotgBStatusEffect("unhide")))
+		return (IsValid(v) and v:GetClass()=="gballoon_base" and not v:GetBalloonProperty("BalloonVoid")
+		and (not v:GetBalloonProperty("BalloonHidden") or self.SeeCamo or v:HasRotgBStatusEffect("unhide"))
+		and v:LocalToWorld(v:OBBCenter()):DistToSqr(self:GetShootPos()) <= self.DetectionRadius * self.DetectionRadius)
 	--end
 	--return self:MaskFilter(GetConVar("rotgb_extratargets"):GetInt(),v) and (not v:IsFlagSet(FL_NOTARGET) or self.SeeCamo)
 end
@@ -287,7 +292,7 @@ function ENT:ExpensiveThink(bool)
 		output = self.lastBalloonTrace
 	}
 	self.gBTraceData.start = selfpos
-	for k,v in pairs(self.DetectionRadius < 16384 and not (self.InfiniteRange or self.InfiniteRange2) and ents.FindInSphere(selfpos,self.DetectionRadius) or ents.GetAll()) do
+	for k,v in pairs(gBalloonTable:GetgBalloons()) do
 		if self:ValidTarget(v) then
 			local LosOK = not self.UseLOS
 			if self.UseLOS then

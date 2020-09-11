@@ -53,26 +53,28 @@ SWEP.TraceResult = {}
 
 function SWEP:GetCashText(amount)
 	if amount == math.huge then return "∞"
+	elseif amount == -math.huge then return "-∞"
 	elseif not (amount < 0 or amount >= 0) then return "☠"
-	else return math.Round(amount,0)
+	else return string.Comma(math.Round(amount,0))
 	end
 end
 
 function SWEP:BuildTowerTable()
-	local temptable = {}
+	local towertable = {}
 	for k,v in pairs(scripted_ents.GetList()) do
 		if v.Base == "gballoon_tower_base" then
-			table.insert(temptable, {class=v.t.ClassName, name=v.t.PrintName, cost=v.t.Cost, model=v.t.Model, infinite=v.t.InfiniteRange, range=v.t.DetectionRadius, damage=v.t.AttackDamage, firerate=v.t.FireRate, losoffset=v.t.LOSOffset or vector_origin})
+			table.insert(towertable, {class=v.t.ClassName, name=v.t.PrintName, cost=v.t.Cost, model=v.t.Model, infinite=v.t.InfiniteRange, range=v.t.DetectionRadius,
+			damage=v.t.AttackDamage, firerate=v.t.FireRate, losoffset=v.t.LOSOffset or vector_origin, material=Material("vgui/entities/"..v.t.ClassName)})
 		end
 	end
-	table.sort(temptable, function(a,b)
+	table.sort(towertable, function(a,b)
 		if a.cost == b.cost then
 			return a.name < b.name
 		else
 			return a.cost < b.cost
 		end
 	end)
-	return temptable
+	return towertable
 end
 
 function SWEP:SetupDataTables()
@@ -226,6 +228,7 @@ function SWEP:Think()
 	end
 end
 
+local color_black_semiopaque = Color(0,0,0,191)
 local color_blue = Color(0,0,255)
 local color_aqua = Color(0,255,255)
 local color_red = Color(255,0,0)
@@ -248,85 +251,101 @@ function SWEP:DrawHUD()
 		if not self.TowerTable then
 			self.TowerTable = self:BuildTowerTable()
 		end
+		self.rotgb_Offset = self.rotgb_Offset or 0
 		local cash = ROTGB_GetCash(LocalPlayer())
-		local tower1 = self.TowerTable[ self:GetCurrentTower()-1 ]
-		local tower2 = self.TowerTable[ self:GetCurrentTower()   ]
+		--local tower1 = self.TowerTable[ self:GetCurrentTower()-1 ]
+		--local tower2 = self.TowerTable[ self:GetCurrentTower()   ]
 		local tower3 = self.TowerTable[ self:GetCurrentTower()+1 ]
-		local tower4 = self.TowerTable[ self:GetCurrentTower()+2 ]
-		local tower5 = self.TowerTable[ self:GetCurrentTower()+3 ]
+		--local tower4 = self.TowerTable[ self:GetCurrentTower()+2 ]
+		--local tower5 = self.TowerTable[ self:GetCurrentTower()+3 ]
 		
-		if not IsValid(self.ClientsideModel) then
-			self.ClientsideModel = ClientsideModel(tower3.model, RENDERGROUP_BOTH)
-			self.ClientsideModel:SetMaterial("models/wireframe")
-		elseif self.ClientsideModel:GetModel() ~= tower3.model then
-			self.ClientsideModel:SetModel(tower3.model)
+		if not self.IsInVote then
+			self.IsInVote = true
+			self.rotgb_Show = false
+			self:DoTowerSelector()
 		end
 		
-		local statustext = "Cost: $"..string.Comma(tower3.cost)
-		
-		local trace = self:BuildTraceData(LocalPlayer())
-		if trace.Hit then
-			self.ClientsideModel:SetPos(trace.HitPos)
-			self.ClientsideModel.RenderOverride = function(self)
-				self:DrawModel()
-				if tower3.range < 16384 and ConR:GetBool() then
-					local fadeout = ConT:GetFloat()
-					self.DrawFadeNext = RealTime()+fadeout+ConH:GetFloat()
-					if (self.DrawFadeNext or 0)>RealTime() then
-						local scol = self:GetColor() == color_aqua and tower3.infinite and color_blue or self:GetColor()
-						local alpha = math.Clamp(math.Remap(self.DrawFadeNext-RealTime(),fadeout,0,ConA:GetFloat(),0),0,ConA:GetFloat())
-						scol = Color(scol.r,scol.g,scol.b,alpha)
-						render.DrawWireframeSphere(self:LocalToWorld(tower3.losoffset),-tower3.range,32,17,scol,true)
+		if self.rotgb_Show then
+			if not IsValid(self.ClientsideModel) then
+				self.ClientsideModel = ClientsideModel(tower3.model, RENDERGROUP_BOTH)
+				self.ClientsideModel:SetMaterial("models/wireframe")
+			elseif self.ClientsideModel:GetModel() ~= tower3.model then
+				self.ClientsideModel:SetModel(tower3.model)
+			end
+			
+			local statustext = "Cost: $"..self:GetCashText(tower3.cost)
+			
+			local trace = self:BuildTraceData(LocalPlayer())
+			if trace.Hit then
+				self.ClientsideModel:SetPos(trace.HitPos)
+				self.ClientsideModel.RenderOverride = function(self)
+					self:DrawModel()
+					if tower3.range < 16384 and ConR:GetBool() then
+						local fadeout = ConT:GetFloat()
+						self.DrawFadeNext = RealTime()+fadeout+ConH:GetFloat()
+						if (self.DrawFadeNext or 0)>RealTime() then
+							local scol = self:GetColor() == color_aqua and tower3.infinite and color_blue or self:GetColor()
+							local alpha = math.Clamp(math.Remap(self.DrawFadeNext-RealTime(),fadeout,0,ConA:GetFloat(),0),0,ConA:GetFloat())
+							scol = Color(scol.r,scol.g,scol.b,alpha)
+							render.DrawWireframeSphere(self:LocalToWorld(tower3.losoffset),-tower3.range,32,17,scol,true)
+						end
 					end
 				end
+				local tempang = EyeAngles()
+				tempang.p = 0
+				tempang.r = 0
+				self.ClientsideModel:SetAngles(tempang)
+				
+				if self:GetServerMentionBlock() then
+					self.ClientsideModel:SetColor(color_red)
+					statustext = "Placement is illegal!"
+				elseif (ply:GetShootPos():DistToSqr(trace.HitPos) <= 65536 and tower3.cost <= cash) and self.ClientsideModel:GetColor() ~= color_aqua then
+					self.ClientsideModel:SetColor(color_aqua)
+				elseif tower3.cost > cash and self.ClientsideModel:GetColor() ~= color_red then
+					self.ClientsideModel:SetColor(color_red)
+				elseif ply:GetShootPos():DistToSqr(trace.HitPos) > 65536 and self.ClientsideModel:GetColor() ~= color_red then
+					self.ClientsideModel:SetColor(color_red)
+					statustext = "Too far!"
+				end
 			end
-			local tempang = EyeAngles()
-			tempang.p = 0
-			tempang.r = 0
-			self.ClientsideModel:SetAngles(tempang)
 			
-			if self:GetServerMentionBlock() then
-				self.ClientsideModel:SetColor(color_red)
-				statustext = "Placement is illegal!"
-			elseif (ply:GetShootPos():DistToSqr(trace.HitPos) <= 65536 and tower3.cost <= cash) and self.ClientsideModel:GetColor() ~= color_aqua then
-				self.ClientsideModel:SetColor(color_aqua)
-			elseif tower3.cost > cash and self.ClientsideModel:GetColor() ~= color_red then
-				self.ClientsideModel:SetColor(color_red)
-			elseif ply:GetShootPos():DistToSqr(trace.HitPos) > 65536 and self.ClientsideModel:GetColor() ~= color_red then
-				self.ClientsideModel:SetColor(color_red)
-				statustext = "Too far!"
+			local font1 = "CloseCaption_Normal"
+			--[[anchorx, anchory = scrW/3, scrH/2
+			draw.SimpleTextOutlined(tower3.name, font1, anchorx, anchory, tower3.cost > cash and color_red or color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER, 1, color_black)
+			if tower1 then
+				draw.SimpleTextOutlined(tower1.name, font1, anchorx, anchory-height*2, tower1.cost > cash and color_red_dark or color_gray, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER, 1, color_black)
 			end
+			if tower2 then
+				draw.SimpleTextOutlined(tower2.name, font1, anchorx, anchory-height, tower2.cost > cash and color_red_dark or color_gray, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER, 1, color_black)
+			end
+			if tower4 then
+				draw.SimpleTextOutlined(tower4.name, font1, anchorx, anchory+height, tower4.cost > cash and color_red_dark or color_gray, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER, 1, color_black)
+			end
+			if tower5 then
+				draw.SimpleTextOutlined(tower5.name, font1, anchorx, anchory+height*2, tower5.cost > cash and color_red_dark or color_gray, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER, 1, color_black)
+			end
+			
+			anchorx, anchory = scrW/2, scrH/4
+			draw.SimpleTextOutlined("Sprint+Secondary: Backward", font1, anchorx, anchory, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM, 1, color_black)
+			draw.SimpleTextOutlined("Secondary: Forward", font1, anchorx, anchory-height, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM, 1, color_black)]]
+			
+			anchorx, anchory = scrW/3, scrH/2
+			draw.SimpleTextOutlined("Secondary: Cancel Placement", font1, anchorx, anchory, color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER, 1, color_black)
+			
+			anchorx, anchory = scrW/2, scrH*3/4
+			draw.SimpleTextOutlined(statustext, font1, anchorx, anchory, self.ClientsideModel:GetColor().r==255 and color_red or color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP, 1, color_black)
+			
+			anchorx, anchory = scrW*2/3, scrH/2
+			draw.SimpleTextOutlined("Damage: "..tower3.damage/10, font1, anchorx, anchory-height, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER, 1, color_black)
+			draw.SimpleTextOutlined("Fire Rate: "..math.Round(tower3.firerate,2).."/s", font1, anchorx, anchory, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER, 1, color_black)
+			draw.SimpleTextOutlined("Range: "..tower3.range.." Hu", font1, anchorx, anchory+height, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER, 1, color_black)
 		end
-		
-		anchorx, anchory = scrW/3, scrH/2
-		local font1 = "CloseCaption_Normal"
-		draw.SimpleTextOutlined(tower3.name, font1, anchorx, anchory, tower3.cost > cash and color_red or color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER, 1, color_black)
-		if tower1 then
-			draw.SimpleTextOutlined(tower1.name, font1, anchorx, anchory-height*2, tower1.cost > cash and color_red_dark or color_gray, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER, 1, color_black)
+	elseif self.IsInVote then
+		if IsValid(self.ClientsideModel) then
+			self.ClientsideModel:Remove()
 		end
-		if tower2 then
-			draw.SimpleTextOutlined(tower2.name, font1, anchorx, anchory-height, tower2.cost > cash and color_red_dark or color_gray, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER, 1, color_black)
-		end
-		if tower4 then
-			draw.SimpleTextOutlined(tower4.name, font1, anchorx, anchory+height, tower4.cost > cash and color_red_dark or color_gray, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER, 1, color_black)
-		end
-		if tower5 then
-			draw.SimpleTextOutlined(tower5.name, font1, anchorx, anchory+height*2, tower5.cost > cash and color_red_dark or color_gray, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER, 1, color_black)
-		end
-		
-		anchorx, anchory = scrW/2, scrH/4
-		draw.SimpleTextOutlined("Sprint+Secondary: Backward", font1, anchorx, anchory, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM, 1, color_black)
-		draw.SimpleTextOutlined("Secondary: Forward", font1, anchorx, anchory-height, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM, 1, color_black)
-		
-		anchorx, anchory = scrW/2, scrH*3/4
-		draw.SimpleTextOutlined(statustext, font1, anchorx, anchory, self.ClientsideModel:GetColor().r==255 and color_red or color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP, 1, color_black)
-		
-		anchorx, anchory = scrW*2/3, scrH/2
-		draw.SimpleTextOutlined("Damage: "..tower3.damage/10, font1, anchorx, anchory-height, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER, 1, color_black)
-		draw.SimpleTextOutlined("Fire Rate: "..math.Round(tower3.firerate,2).."/s", font1, anchorx, anchory, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER, 1, color_black)
-		draw.SimpleTextOutlined("Range: "..tower3.range.." Hu", font1, anchorx, anchory+height, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER, 1, color_black)
-	elseif IsValid(self.ClientsideModel) then
-		self.ClientsideModel:Remove()
+		self.IsInVote = false
+		self.Owner:AddPlayerOption("RotgB_TowerSelect", 0)
 	end
 	if self:GetMode()==2 then
 		anchorx, anchory = scrW/2, scrH/4
@@ -372,12 +391,87 @@ function SWEP:DrawHUD()
 	draw.SimpleTextOutlined("Sprint+Reload: Switch to "..modes[(self:GetMode()-1)%4+1], "CloseCaption_Normal", anchorx, anchory+height*2, dispcolor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 1, color_black)
 end
 
+function SWEP:DrawTowerSelector()
+	local fontheight = GetConVar("rotgb_hud_size"):GetInt()
+	local tower_size = fontheight*4
+	local space = fontheight*0.5
+	local totalwidth = space*5+tower_size*4
+	local totalheight = fontheight*5+space*3+tower_size*2
+	local basex = (ScrW()-totalwidth)/2
+	local basey = (ScrH()-totalheight)/2
+	draw.RoundedBoxEx(8, basex, basey, totalwidth, totalheight, color_black_semiopaque, true, true, true)
+	
+	local x_offset = basex + space
+	local y_offset = basey + space + fontheight
+	for i=self.rotgb_Offset+1,self.rotgb_Offset+8 do
+		if self.TowerTable[i] then
+			surface.SetMaterial(self.TowerTable[i].material)
+			surface.SetDrawColor(color_white:Unpack())
+			surface.DrawTexturedRect(x_offset, y_offset, tower_size, tower_size)
+			local tx, ty = x_offset+tower_size/2, y_offset+tower_size
+			draw.SimpleTextOutlined(self.TowerTable[i].name, "Default", tx, ty, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM, 2, color_black)
+			draw.SimpleTextOutlined("$"..self:GetCashText(self.TowerTable[i].cost), "RotgB_font", tx, ty, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP, 2, color_black)
+			
+			ty = ty+fontheight
+			draw.RoundedBox(8, tx-fontheight/2, ty, fontheight, fontheight, color_white)
+			draw.SimpleText(i-self.rotgb_Offset, "RotgB_font", tx, ty, color_black, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+			
+			if i==self.rotgb_Offset+4 then
+				x_offset = x_offset - (space + tower_size) * 3
+				y_offset = y_offset + tower_size + fontheight * 2 + space
+			else
+				x_offset = x_offset + space + tower_size
+			end
+		end
+	end
+	
+	local next_text = self.TowerTable[self.rotgb_Offset+9] and "Next >" or "Return"
+	surface.SetFont("RotgB_font")
+	local tw = surface.GetTextSize(next_text)
+	local next_w = space * 3 + fontheight + tw
+	local next_h = space + fontheight
+	local next_x = basex + totalwidth - next_w
+	local next_y = basey + totalheight
+	draw.RoundedBoxEx(8, next_x, next_y, next_w, next_h, color_black_semiopaque, false, false, true, true)
+	draw.RoundedBox(8, next_x + space, next_y, fontheight, fontheight, color_white)
+	draw.SimpleText("9", "RotgB_font", next_x + space + fontheight / 2, next_y, color_black, TEXT_ALIGN_CENTER)
+	draw.SimpleTextOutlined(next_text, "RotgB_font", next_x + space*2 + fontheight, next_y + fontheight / 2, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER, 2, color_black)
+end
+
+function SWEP:DoTowerSelector()
+	self.Owner:AddPlayerOption("RotgB_TowerSelect", 999999, function(number)
+		if IsValid(self) and self.Owner:IsPlayer() then
+			if number==9 then
+				self.rotgb_Offset = self.rotgb_Offset + 8
+				if not self.TowerTable[self.rotgb_Offset + 1] then
+					self.rotgb_Offset = 0
+				end
+			elseif self.TowerTable[self.rotgb_Offset + number] then
+				self.Owner:AddPlayerOption("RotgB_TowerSelect", 0)
+				self.rotgb_Show = true
+				net.Start("rotgb_generic")
+				net.WriteString("settower")
+				net.WriteUInt(number-1+self.rotgb_Offset,8)
+				net.SendToServer()
+			end
+		end
+	end, function()
+		if IsValid(self) then
+			self:DrawTowerSelector()
+		end
+	end)
+end
+
 function SWEP:Holster()
 	if IsValid(self.ClientsideModel) then
 		self.ClientsideModel:Remove()
 	end
 	if IsValid(self.ServersideModel) then
 		self.ServersideModel:Remove()
+	end
+	if CLIENT and IsValid(self.Owner) and self.Owner:IsPlayer() then
+		self.IsInVote = false
+		self.Owner:AddPlayerOption("RotgB_TowerSelect", 0)
 	end
 	return true
 end
@@ -388,6 +482,10 @@ function SWEP:OnRemove()
 	end
 	if IsValid(self.ServersideModel) then
 		self.ServersideModel:Remove()
+	end
+	if CLIENT and IsValid(self.Owner) and self.Owner:IsPlayer() then
+		self.IsInVote = false
+		self.Owner:AddPlayerOption("RotgB_TowerSelect", 0)
 	end
 end
 
@@ -505,12 +603,16 @@ function SWEP:CanSecondaryAttack()
 end
 
 function SWEP:SecondaryAttack()
-	if not IsFirstTimePredicted() then return end
-	if self:GetMode()==1 then
-		local shft = self.Owner:IsNPC() and 1 or self.Owner:KeyDown(IN_SPEED) and -1 or 1
-		self:SetCurrentTower( (self:GetCurrentTower()+shft) % #self.TowerTable)
-		self.Weapon:EmitSound("weapons/pistol/pistol_empty.wav",60,100,1,CHAN_WEAPON)
-	elseif self:GetMode()==3 and self:CanSecondaryAttack() then
+	if game.SinglePlayer() then self:CallOnClient("SecondaryAttack") end
+	if self:GetMode()==1 and CLIENT and self.Owner == LocalPlayer() then
+		--[[local shft = self.Owner:IsNPC() and 1 or self.Owner:KeyDown(IN_SPEED) and -1 or 1
+		self:SetCurrentTower( (self:GetCurrentTower()+shft) % #self.TowerTable)]]
+		self.IsInVote = false
+		if IsValid(self.ClientsideModel) then
+			self.ClientsideModel:Remove()
+		end
+		--self.Weapon:EmitSound("weapons/pistol/pistol_empty.wav",60,100,1,CHAN_WEAPON)
+	elseif self:GetMode()==3 and self:CanSecondaryAttack() and IsFirstTimePredicted() and SERVER then
 		local shft = self.Owner:IsNPC() and 1 or self.Owner:KeyDown(IN_SPEED) and 0.5 or 2
 		local newscale = game.GetTimeScale()*shft
 		if 1 <= newscale and newscale <= 8 then
@@ -526,7 +628,7 @@ function SWEP:Reload()
 	if not IsFirstTimePredicted() then return end
 	if (self.NextReload or 0) < RealTime() and SERVER then
 		self.NextReload = RealTime() + 0.25
-		local shft = self.Owner:IsNPC() and 1 or self.Owner:KeyDown(IN_SPEED) and -1 or 1
+		local shft = self.Owner:IsNPC() and 0 or self.Owner:KeyDown(IN_SPEED) and -1 or 1
 		self:SetMode((self:GetMode()+shft)%4)
 		self.Weapon:EmitSound("weapons/shotgun/shotgun_empty.wav",60,100,1,CHAN_WEAPON)
 	end

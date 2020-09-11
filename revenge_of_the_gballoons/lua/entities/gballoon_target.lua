@@ -521,12 +521,25 @@ hook.Add("PopulateToolMenu","RotgB",function()
 		choicelist:AddChoice("Solid",3)
 		choicelist:AddChoice("Solid (Fade In Out)",4)
 		choicelist:AddChoice("Solid (Fade Middle)",5)
+		choicelist:AddChoice("Rainbow, Solid for Blimps",6)
+		choicelist:AddChoice("Rainbow, Solid for Blimps (Fade In Out)",7)
+		choicelist:AddChoice("Rainbow, Solid for Blimps (Fade Middle)",8)
+		choicelist:AddChoice("Solid, Rainbow for Blimps",9)
+		choicelist:AddChoice("Solid, Rainbow for Blimps (Fade In Out)",10)
+		choicelist:AddChoice("Solid, Rainbow for Blimps (Fade Middle)",11)
 		local mixer = vgui.Create("DColorMixer")
 		mixer:SetLabel("Solid Colour")
 		mixer:SetConVarR("waypoint_editor_rotgb_indicator_r")
 		mixer:SetConVarG("waypoint_editor_rotgb_indicator_g")
 		mixer:SetConVarB("waypoint_editor_rotgb_indicator_b")
 		mixer:SetConVarA("waypoint_editor_rotgb_indicator_a")
+		form:AddItem(mixer)
+		mixer = vgui.Create("DColorMixer")
+		mixer:SetLabel("Solid Colour for Blimps")
+		mixer:SetConVarR("waypoint_editor_rotgb_indicator_boss_r")
+		mixer:SetConVarG("waypoint_editor_rotgb_indicator_boss_g")
+		mixer:SetConVarB("waypoint_editor_rotgb_indicator_boss_b")
+		mixer:SetConVarA("waypoint_editor_rotgb_indicator_boss_a")
 		form:AddItem(mixer)
 	end)
 end)
@@ -536,26 +549,38 @@ end -- END CLIENT
 function ENT:SetupDataTables()
 	self:NetworkVar("Bool",0,"GBOnly",{KeyName="gballoon_damage_only",Edit={title="Only gBalloon Damage",type="Boolean"}})
 	self:NetworkVar("Bool",1,"IsBeacon",{KeyName="is_beacon",Edit={title="Is Waypoint",type="Boolean"}})
-	self:NetworkVar("Entity",0,"NextTarget")
-	self:NetworkVar("Entity",1,"NextTarget1")
-	self:NetworkVar("Entity",2,"NextTarget2")
-	self:NetworkVar("Entity",3,"NextTarget3")
-	self:NetworkVar("Entity",4,"NextTarget4")
-	self:NetworkVar("Entity",5,"NextTarget5")
-	self:NetworkVar("Entity",6,"NextTarget6")
-	self:NetworkVar("Entity",7,"NextTarget7")
-	self:NetworkVar("Entity",8,"NextTarget8")
-	self:NetworkVar("Entity",9,"NextTarget9")
-	self:NetworkVar("Entity",10,"NextTarget10")
-	self:NetworkVar("Entity",11,"NextTarget11")
-	self:NetworkVar("Entity",12,"NextTarget12")
-	self:NetworkVar("Entity",13,"NextTarget13")
-	self:NetworkVar("Entity",14,"NextTarget14")
-	self:NetworkVar("Entity",15,"NextTarget15")
-	self:NetworkVar("Entity",16,"NextTarget16")
-	-- keys: gballoon_damage_only, model, health, max_health, is_beacon, next_target_X, is_visible
-	-- inputs: SetModelScale, SetHealth, AddHealth, RemoveHealth, Break, SetIsWaypoint, SetNextWaypoint_X
-	-- outputs: OnBreak, OnHealthChanged, OnKilled, OnWaypointed
+	self:NetworkVar("Entity",0,"NextTarget1")
+	self:NetworkVar("Entity",1,"NextTarget2")
+	self:NetworkVar("Entity",2,"NextTarget3")
+	self:NetworkVar("Entity",3,"NextTarget4")
+	self:NetworkVar("Entity",4,"NextTarget5")
+	self:NetworkVar("Entity",5,"NextTarget6")
+	self:NetworkVar("Entity",6,"NextTarget7")
+	self:NetworkVar("Entity",7,"NextTarget8")
+	self:NetworkVar("Entity",8,"NextTarget9")
+	self:NetworkVar("Entity",9,"NextTarget10")
+	self:NetworkVar("Entity",10,"NextTarget11")
+	self:NetworkVar("Entity",11,"NextTarget12")
+	self:NetworkVar("Entity",12,"NextTarget13")
+	self:NetworkVar("Entity",13,"NextTarget14")
+	self:NetworkVar("Entity",14,"NextTarget15")
+	self:NetworkVar("Entity",15,"NextTarget16")
+	self:NetworkVar("Entity",16,"NextBlimpTarget1")
+	self:NetworkVar("Entity",17,"NextBlimpTarget2")
+	self:NetworkVar("Entity",18,"NextBlimpTarget3")
+	self:NetworkVar("Entity",19,"NextBlimpTarget4")
+	self:NetworkVar("Entity",20,"NextBlimpTarget5")
+	self:NetworkVar("Entity",21,"NextBlimpTarget6")
+	self:NetworkVar("Entity",22,"NextBlimpTarget7")
+	self:NetworkVar("Entity",23,"NextBlimpTarget8")
+	self:NetworkVar("Entity",24,"NextBlimpTarget9")
+	self:NetworkVar("Entity",25,"NextBlimpTarget10")
+	self:NetworkVar("Entity",26,"NextBlimpTarget11")
+	self:NetworkVar("Entity",27,"NextBlimpTarget12")
+	self:NetworkVar("Entity",28,"NextBlimpTarget13")
+	self:NetworkVar("Entity",29,"NextBlimpTarget14")
+	self:NetworkVar("Entity",30,"NextBlimpTarget15")
+	self:NetworkVar("Entity",31,"NextBlimpTarget16")
 end
 
 function ENT:KeyValue(key,value)
@@ -572,7 +597,10 @@ function ENT:KeyValue(key,value)
 		local num = (tonumber("0x"..string.sub(lkey,-1)) or 0) + 1
 		self.TempNextTargets = self.TempNextTargets or {}
 		self.TempNextTargets[num] = value
-		--self.TmepNextTarget = value
+	elseif string.sub(lkey,1,17) == "next_blimp_target" then
+		local num = (tonumber("0x"..string.sub(lkey,-1)) or 0) + 1
+		self.TempNextBlimpTargets = self.TempNextBlimpTargets or {}
+		self.TempNextBlimpTargets[num] = value
 	elseif lkey=="is_visible" then
 		self.TempIsHidden = not tobool(value)
 	elseif lkey=="onbreak" then
@@ -628,7 +656,10 @@ function ENT:AcceptInput(input,activator,caller,data)
 		self:SetIsBeacon(tobool(data))
 	elseif string.sub(input,1,15) == "setnextwaypoint" then
 		local num = (tonumber("0x"..string.sub(input,-1)) or 0) + 1
-		self["SetNextTarget"..num](self,ents.FindByName(data)[1] or NULL)
+		self["SetNextTarget"..num](self,data~="" and ents.FindByName(data)[1] or NULL)
+	elseif string.sub(input,1,20) == "setnextblimpwaypoint" then
+		local num = (tonumber("0x"..string.sub(input,-1)) or 0) + 1
+		self["SetNextBlimpTarget"..num](self,data~="" and ents.FindByName(data)[1] or NULL)
 	end
 end
 
@@ -661,14 +692,19 @@ function ENT:Initialize()
 		--[[if self.TmepNextTarget then
 			self:SetNextTarget(ents.FindByName(self.TmepNextTarget)[1] or NULL)
 			self.TmepNextTarget = nil
-		end]]
+		end
 		if IsValid(self:GetNextTarget()) then
 			self:SetNextTarget1(self:GetNextTarget())
 			self:SetNextTarget(NULL)
-		end
+		end]]
 		if self.TempNextTargets then
 			for k,v in pairs(self.TempNextTargets) do
-				self["SetNextTarget"..k](self,ents.FindByName(v)[1] or NULL)
+				self["SetNextTarget"..k](self,v~="" and ents.FindByName(v)[1] or NULL)
+			end
+		end
+		if self.TempNextBlimpTargets then
+			for k,v in pairs(self.TempNextBlimpTargets) do
+				self["SetNextBlimpTarget"..k](self,v~="" and ents.FindByName(v)[1] or NULL)
 			end
 		end
 		if self.TempIsHidden then
@@ -711,7 +747,7 @@ function ENT:OnRemove()
 end
 
 function ENT:DrawTranslucent()
-	self:Draw()
+	--self:Draw()
 	if not self:GetIsBeacon() then
 		--self:DrawModel()
 		local text1 = "Health: "..self:Health()

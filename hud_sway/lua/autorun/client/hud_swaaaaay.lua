@@ -1,6 +1,6 @@
 local ConE = CreateClientConVar("hud_sway_enabled","1",true,false,"Should HUD Sway be enabled?")
-local ConR = CreateClientConVar("hud_sway_rate","20",true,false,"Higher values make the HUD recover faster. Range: 0-100")
-local ConA = CreateClientConVar("hud_sway_intensity","20",true,false,"Higher values increase turning effects.")
+local ConR = CreateClientConVar("hud_sway_rate","20",true,false,"Higher values make the HUD recover faster.",0,100)
+local ConA = CreateClientConVar("hud_sway_intensity","10",true,false,"Higher values increase turning effects.")
 local ConC = CreateClientConVar("hud_sway_noclip","1",true,false,"Enables HUDs to draw off-screen. You will want to leave this active.")
 local ConX = CreateClientConVar("hud_sway_scale_x","1",true,false,"Scales the HUDs horizontally.\
  - All individual elements of the HUDs are scaled, except for the default HUD, which is treated as one element.")
@@ -12,7 +12,7 @@ local ConU = CreateClientConVar("hud_sway_canvas_x","1",true,false,"Resizes the 
  - Does nothing for the default HUD.")
 local ConV = CreateClientConVar("hud_sway_canvas_y","1",true,false,"Resizes the HUDs' canvas vertically.\
  - Does nothing for the default HUD.")
-local ConB = CreateClientConVar("hud_sway_passive_intensity","10",true,false,"Higher values increase passive sway effects.")
+local ConB = CreateClientConVar("hud_sway_passive_intensity","0",true,false,"Higher values increase passive sway effects.")
 local ConD = CreateClientConVar("hud_sway_passive_direction","90",true,false,"Changes the passive sway direction clockwise.")
 local ConF = CreateClientConVar("hud_sway_passive_speed","1",true,false,"Higher values increase passive sway movement.")
 local oldAngle = Angle()

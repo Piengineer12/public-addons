@@ -144,7 +144,7 @@ local ConV = CreateConVar("rotgb_visual_scale","1",FCVAR_ARCHIVE,
  - This causes NPCs to be able to target the gBalloons.
  - However, it appears that they won't seem to fire their weapons at them.]])]=]
 
-local ConN = CreateConVar("rotgb_target_choice","1",FCVAR_ARCHIVE,
+local ConN = CreateConVar("rotgb_target_choice","3",FCVAR_ARCHIVE,
 [[Causes gBalloons to target:
  - 0 : None except for the gBalloon targets.
  - 1 : Players.
@@ -177,7 +177,7 @@ local ConG = CreateConVar("rotgb_search_size","-1",FCVAR_ARCHIVE,
 [[Determines radius to search for enemies.
  - -1 means no limit.]])
 
-local ConY = CreateConVar("rotgb_target_tolerance","50",FCVAR_ARCHIVE,
+local ConY = CreateConVar("rotgb_target_tolerance","25",FCVAR_ARCHIVE,
 [[Determines how close the gBalloons should be to a target before popping.]])
 
 local ConZ = CreateConVar("rotgb_setminlookaheaddistance","10",FCVAR_ARCHIVE,
@@ -530,6 +530,14 @@ if SERVER then
 				file.Write("rotgb_wavedata/"..wavename..".dat",table.concat(ROTGB_WAVEPARTS[wavename]))
 				PrintMessage(HUD_PRINTTALK, "\""..wavename.."\" assembled successfully.")
 			end
+		elseif operation == "settower" then
+			local wep = ply:GetActiveWeapon()
+			if IsValid(wep) and wep:GetClass()=="rotgb_multitool" and wep:GetMode()==1 then
+				local desiredtower = net.ReadUInt(8)
+				if wep.TowerTable[desiredtower+1] then
+					wep:SetCurrentTower(desiredtower)
+				end
+			end
 		end
 	end)
 	hook.Add("Think","RotgB",function()
@@ -596,32 +604,35 @@ function ENT:AcceptInput(input,activator,caller,data)
 	elseif input:lower()=="unfreeze" then
 		self:UnFreeze()
 	end
-	-- inputs: Pop, Stun, UnStun
 end
 
 function ENT:GetBalloonProperty(key)
 	self.Properties = self.Properties or {}
-	self.Properties.BalloonFast = tobool(self.Properties.BalloonFast)
-	self.Properties.BalloonMoveSpeed = self.Properties.BalloonMoveSpeed or 100
-	self.Properties.BalloonScale = self.Properties.BalloonScale or 1
-	self.Properties.BalloonShielded = tobool(self.Properties.BalloonShielded)
-	self.Properties.BalloonHealth = self.Properties.BalloonHealth or 1
-	self.Properties.BalloonRainbow = tobool(self.Properties.BalloonRainbow)
-	self.Properties.BalloonHidden = tobool(self.Properties.BalloonHidden)
-	self.Properties.BalloonColor = self.Properties.BalloonRainbow and string.FromColor(HSVToColor(math.random(0,360),1,1)) or self.Properties.BalloonColor or "255 0 0 255"
-	self.Properties.BalloonMaterial = self.Properties.BalloonMaterial or Con1:GetBool() and self.Properties.BalloonShielded and "models/balloon/balloon_star" or self.Properties.BalloonDoRegen and "models/balloon/balloon_classicheart" or (Con1:GetBool() or Con15:GetBool()) and self.Properties.BalloonFast and "models/balloon/balloon_dog" or "models/balloon/balloon"
-	self.Properties.BalloonModel = self.Properties.BalloonModel or Con1:GetBool() and self.Properties.BalloonShielded and "models/balloons/balloon_star.mdl" or self.Properties.BalloonDoRegen and "models/balloons/balloon_classicheart.mdl" or (Con1:GetBool() or Con15:GetBool()) and self.Properties.BalloonFast and "models/balloons/balloon_dog.mdl" or "models/maxofs2d/balloon_classic.mdl"
-	self.Properties.BalloonPopSound = self.Properties.BalloonPopSound or "garrysmod/balloon_pop_cute.wav"
-	self.Properties.BalloonType = self.Properties.BalloonType or "gballoon_red"
-	self.Properties.BalloonBlack = tobool(self.Properties.BalloonBlack)
-	self.Properties.BalloonWhite = tobool(self.Properties.BalloonWhite)
-	self.Properties.BalloonPurple = tobool(self.Properties.BalloonPurple)
-	self.Properties.BalloonGray = tobool(self.Properties.BalloonGray)
-	self.Properties.BalloonAqua = tobool(self.Properties.BalloonAqua)
-	self.Properties.BalloonBlimp = tobool(self.Properties.BalloonBlimp)
-	self.Properties.BalloonDoRegen = tobool(self.Properties.BalloonDoRegen)
-	self.Properties.BalloonVoid = tobool(self.Properties.BalloonVoid)
-	self.Properties.BalloonGlass = tobool(self.Properties.BalloonGlass)
+	if not self.PropertyConverted then
+		self.PropertyConverted = true
+		self.Properties.BalloonFast = tobool(self.Properties.BalloonFast)
+		self.Properties.BalloonMoveSpeed = self.Properties.BalloonMoveSpeed or 100
+		self.Properties.BalloonScale = self.Properties.BalloonScale or 1
+		self.Properties.BalloonShielded = tobool(self.Properties.BalloonShielded)
+		self.Properties.BalloonHealth = self.Properties.BalloonHealth or 1
+		self.Properties.BalloonHealth = self.Properties.BalloonHealth or 1
+		self.Properties.BalloonRainbow = tobool(self.Properties.BalloonRainbow)
+		self.Properties.BalloonHidden = tobool(self.Properties.BalloonHidden)
+		self.Properties.BalloonColor = self.Properties.BalloonRainbow and string.FromColor(HSVToColor(math.random(0,360),1,1)) or self.Properties.BalloonColor or "255 0 0 255"
+		self.Properties.BalloonMaterial = self.Properties.BalloonMaterial or Con1:GetBool() and self.Properties.BalloonShielded and "models/balloon/balloon_star" or self.Properties.BalloonDoRegen and "models/balloon/balloon_classicheart" or (Con1:GetBool() or Con15:GetBool()) and self.Properties.BalloonFast and "models/balloon/balloon_dog" or "models/balloon/balloon"
+		self.Properties.BalloonModel = self.Properties.BalloonModel or Con1:GetBool() and self.Properties.BalloonShielded and "models/balloons/balloon_star.mdl" or self.Properties.BalloonDoRegen and "models/balloons/balloon_classicheart.mdl" or (Con1:GetBool() or Con15:GetBool()) and self.Properties.BalloonFast and "models/balloons/balloon_dog.mdl" or "models/maxofs2d/balloon_classic.mdl"
+		self.Properties.BalloonPopSound = self.Properties.BalloonPopSound or "garrysmod/balloon_pop_cute.wav"
+		self.Properties.BalloonType = self.Properties.BalloonType or "gballoon_red"
+		self.Properties.BalloonBlack = tobool(self.Properties.BalloonBlack)
+		self.Properties.BalloonWhite = tobool(self.Properties.BalloonWhite)
+		self.Properties.BalloonPurple = tobool(self.Properties.BalloonPurple)
+		self.Properties.BalloonGray = tobool(self.Properties.BalloonGray)
+		self.Properties.BalloonAqua = tobool(self.Properties.BalloonAqua)
+		self.Properties.BalloonBlimp = tobool(self.Properties.BalloonBlimp)
+		self.Properties.BalloonDoRegen = tobool(self.Properties.BalloonDoRegen)
+		self.Properties.BalloonVoid = tobool(self.Properties.BalloonVoid)
+		self.Properties.BalloonGlass = tobool(self.Properties.BalloonGlass)
+	end
 	return tonumber(self.Properties[key]) or self.Properties[key]
 end
 
@@ -703,7 +714,12 @@ function ENT:Initialize()
 			notifshown = RealTime()+60
 		end
 		--self:SetLocalPos(Vector(0,0,10))
-		self:SetModel(self:GetBalloonProperty("BalloonModel"))
+		local model = self:GetBalloonProperty("BalloonModel")
+		if not model then
+			self.PropertyConverted = false
+			model = self:GetBalloonProperty("BalloonModel")
+		end
+		self:SetModel(model)
 		self:SetModelScale(self:GetBalloonProperty("BalloonScale")*ConS:GetFloat())
 		local desiredCol = self:GetBalloonProperty("BalloonRainbow") and Color(255,255,255) or string.ToColor(self:GetBalloonProperty("BalloonColor"))
 		if self:GetBalloonProperty("BalloonHidden") then
@@ -776,6 +792,18 @@ function ENT:Initialize()
 			self.FastTrail = util.SpriteTrail(self,0,col,false,self:BoundingRadius()*2,0,1,0.125,self:GetBalloonProperty("BalloonRainbow") and "beams/rainbow1.vmt" or "effects/beam_generic01.vmt")
 		end
 		--self:AddRelationship("player D_HT 30")
+		local mask = ConN:GetInt()
+		for k,v in pairs(ents.GetAll()) do
+			if v:IsNPC() then
+				if mask<0 and v:Health()>0 and v:GetClass()~="gballoon_base" then
+					v:AddEntityRelationship(self,D_HT,99)
+					--v:AddRelationship("!self D_HT 98")
+				elseif self:MaskFilter(mask,v) then
+					v:AddEntityRelationship(self,D_HT,99)
+					--v:AddRelationship("!self D_HT 98")
+				end
+			end
+		end
 		self:AddFlags(FL_OBJECT)
 		local physobj = self:GetPhysicsObject()
 		if IsValid(physobj) then
@@ -1578,26 +1606,37 @@ function ENT:RunBehaviour()
 						self.LastBeacon = selftarg
 						selftarg:TriggerOutput("OnWaypointed",self)
 						local nextTargs = {}
-						for i=1,16 do
-							local gTarg = selftarg["GetNextTarget"..i](selftarg)
-							if IsValid(gTarg) then
-								table.insert(nextTargs,gTarg)
+						if self:GetBalloonProperty("BalloonBlimp") then
+							for i=1,16 do
+								local gTarg = selftarg["GetNextBlimpTarget"..i](selftarg)
+								if IsValid(gTarg) then
+									table.insert(nextTargs,gTarg)
+								end
 							end
 						end
 						if next(nextTargs) then
 							self:SetTarget(nextTargs[math.random(#nextTargs)])
+						else
+							for i=1,16 do
+								local gTarg = selftarg["GetNextTarget"..i](selftarg)
+								if IsValid(gTarg) then
+									table.insert(nextTargs,gTarg)
+								end
+							end
+							if next(nextTargs) then
+								self:SetTarget(nextTargs[math.random(#nextTargs)])
+							end
 						end
 					else
 						self:Pop(nil,selftarg)
 					end
 				else
 					self:LogError(tostring(result),"pathfinding")
-					coroutine.wait(0.5)
 				end
 			else
 				self.loco:SetDesiredSpeed(0)
 				if not self:FindTarget() then
-					coroutine.wait(0.5)
+					coroutine.wait(1)
 				end
 			end
 		end
@@ -1783,8 +1822,8 @@ function ENT:OnInjured(dmginfo)
 		end
 		if self:GetBalloonProperty("BalloonMaxDamage") and not ConI:GetBool() then
 			if dmginfo:GetDamage() > self:GetBalloonProperty("BalloonMaxDamage") then
-				--local remainingdamage = dmginfo:GetDamage() - self:GetBalloonProperty("BalloonMaxDamage")
-				dmginfo:SetDamage(self:GetBalloonProperty("BalloonMaxDamage"))--+math.floor(remainingdamage*0.9)
+				local remainingdamage = dmginfo:GetDamage() - self:GetBalloonProperty("BalloonMaxDamage")
+				dmginfo:SetDamage(self:GetBalloonProperty("BalloonMaxDamage")+math.floor(remainingdamage*0.9))
 			end
 		end
 		if self:GetBalloonProperty("BalloonShielded") and self:HasRotgBStatusEffect("unshield") then
@@ -1897,15 +1936,16 @@ function ENT:DetermineNextBalloons(blns,dmgbits,instant)
 				local Hidden = v.Hidden
 				local keyvals = list.GetForEdit("NPC")[class].KeyValues
 				local blockbymaxdamage = (v.InternalPops or 0) >= (tonumber(keyvals.BalloonMaxDamage) or math.huge)
+				local unitshift = blockbymaxdamage and 0.1 or 1
 				if TestDamageResistances(keyvals,dmgbits--[[,v.Frozen]]) and not self:HasRotgBStatusEffect("unimmune") then
 					table.insert(newspawns,v)
-				--elseif (istable(v) and (v.Health or 1)>unitshift) and not instant then
-				elseif (istable(v) and v.Health > 1) and (not instant or blockbymaxdamage) then
-					if not blockbymaxdamage then
+				elseif (istable(v) and (v.Health or 1)>unitshift) and not instant then
+				--elseif (istable(v) and v.Health > 1) and (not instant or blockbymaxdamage) then
+					--if not blockbymaxdamage then
 						v.InternalPops = (v.InternalPops or 0) + 1
-						v.Health = v.Health - 1--unitshift
-						pops = pops + v.Amount-- * unitshift
-					end
+						v.Health = v.Health - unitshift
+						pops = pops + v.Amount * unitshift
+					--end
 					table.insert(newspawns,v)
 				elseif self.rotgb_spawns[class] then
 					for k2,v2 in pairs(self.rotgb_spawns[class]) do
@@ -2188,21 +2228,7 @@ function ENT:GetRelationship(ent)
 	end
 end
 
-function ENT:Think()
-	if SERVER then
-		local mask = ConN:GetInt()
-		for k,v in pairs(ents.GetAll()) do
-			if v:IsNPC() then
-				if mask<0 and v:Health()>0 and v:GetClass()~="gballoon_base" then
-					v:AddEntityRelationship(self,D_HT,99)
-					--v:AddRelationship("!self D_HT 98")
-				elseif self:MaskFilter(mask,v) then
-					v:AddEntityRelationship(self,D_HT,99)
-					--v:AddRelationship("!self D_HT 98")
-				end
-			end
-		end
-	end
+--[=[function ENT:Think()
 	--[[if self:GetBalloonProperty("BalloonHidden") then
 		local mgh = CurTime()%2<1.5
 		if mgh and not self:GetNoDraw() then
@@ -2211,7 +2237,7 @@ function ENT:Think()
 			self:SetNoDraw(false)
 		end
 	end]]
-end
+end]=]
 
 hook.Add("EntityKeyValue","RotgB",function(ent,key,value)
 	if ent:GetClass()=="func_nav_avoid" or ent:GetClass()=="func_nav_prefer" then

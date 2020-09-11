@@ -1,4 +1,5 @@
 ENT.Type = "brush"
+ENT.Base = "base_brush"
 ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Defines an area where towers can't be placed."

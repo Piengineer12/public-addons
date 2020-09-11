@@ -30,7 +30,7 @@ ENT.UpgradeReference = {
 			"Reduces charging delay and increases beaming time further. gBalloons popped by this tower do not spawn any children.",
 			"Colossally increases attack damage and enables the tower to pop Hidden gBalloons.",
 			"This tower's charging rate is increased by 20% for every Rainbow Beamer within a radius of 512 Hammer Units. Also enables the tower to adjust its beaming angles while firing.",
-			"Once every 60 seconds, shooting at this tower OBLITERATES the strongest gBalloon on the map and any gBalloons surrounding it after 5 seconds.",
+			"Once every 60 seconds, shooting at this tower DELETES the strongest gBalloon on the map and any gBalloons surrounding it after 5 seconds.",
 			"Reduces charging delay to 0, but tremendously reduces beaming time. Also reduces Orbital Friendship Cannon's cooldown by 30 seconds and you gain $10000000 for every use.",
 			"This tower no longer shoots beams and firing at this tower will no longer do anything. Instead, one Orbital Friendship Cannon is fired EVERY SECOND."
 		},

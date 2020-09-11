@@ -135,7 +135,7 @@ ENT.UpgradeReference = {
 				The chance is reduced if the firing tower fires more than once per second.",
 			"All towers in this tower's radius no longer have upgrade path restrictions!",
 		},
-		Prices = {400,500,2500,5000,15000,500000},
+		Prices = {400,500,2500,5000,15000,1000000},
 		Funcs = {
 			function(self)
 				self.rotgb_Buff = 1

@@ -11,11 +11,11 @@ ENT.Instructions = ""
 ENT.Spawnable = true
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
-ENT.Model = Model("models/props_phx/construct/metal_wire1x1x1.mdl")
+ENT.Model = Model("models/props_phx/construct/wood/wood_wire1x1x1.mdl")
 ENT.FireRate = 4
 ENT.Cost = 550
 ENT.DetectionRadius = 384
-ENT.LOSOffset = Vector(-24,0,0)
+ENT.LOSOffset = Vector(0,0,24)
 ENT.UserTargeting = true
 ENT.AbilityCooldown = 15
 ENT.AttackDamage = 0
@@ -159,12 +159,9 @@ hook.Add("EntityTakeDamage","RotgB_Tower13",function(vic,dmginfo)
 	end
 end)
 
---[[function ENT:ROTGB_Initialize()
-	--self:SetMaterial("phoenix_storms/stripes")
-	if SERVER then
-		self:SetPos(self:GetPos()+Vector(24,0,24))
-	end
-end]]
+function ENT:ROTGB_Initialize()
+	self:SetMaterial("phoenix_storms/metal")
+end
 
 function ENT:FireFunction(gBalloons)
 	local towerTarget = gBalloons[1]

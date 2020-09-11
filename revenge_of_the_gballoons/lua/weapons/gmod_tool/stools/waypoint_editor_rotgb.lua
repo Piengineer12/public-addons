@@ -14,15 +14,19 @@ TOOL.Information = {
 }
 TOOL.ClientConVar = {
 	indicator_effect = "sprites/glow04_noz",
-	indicator_color = "0",
+	indicator_color = "6",
 	indicator_scale = "1",
 	indicator_speed = "1",
 	indicator_always = "0",
 	indicator_bounce = "1",
-	indicator_r = "255",
-	indicator_g = "255",
+	indicator_r = "0",
+	indicator_g = "0",
 	indicator_b = "255",
-	indicator_a = "255"
+	indicator_a = "255",
+	indicator_boss_r = "255",
+	indicator_boss_g = "0",
+	indicator_boss_b = "0",
+	indicator_boss_a = "255"
 }
 TOOL.AddToMenu = false
 
@@ -32,7 +36,7 @@ if CLIENT then
 	language.Add("tool.waypoint_editor_rotgb.left","Place / Link a gBalloon Spawner / gBalloon Target waypoint")
 	language.Add("tool.waypoint_editor_rotgb.right","Remove an outgoing waypoint link")
 	language.Add("tool.waypoint_editor_rotgb.reload","Remove a gBalloon Target waypoint")
-	language.Add("tool.waypoint_editor_rotgb.left_2","Set gBalloon Target as next destination")
+	language.Add("tool.waypoint_editor_rotgb.left_2","Set gBalloon Target as next destination (+Crouch: Only for gBlimps)")
 	language.Add("tool.waypoint_editor_rotgb.right_2","Cancel")
 	language.Add("tool.waypoint_editor_rotgb.left_3","Cancel")
 	language.Add("tool.waypoint_editor_rotgb.right_3","Remove connection towards gBalloon Target")
@@ -64,12 +68,25 @@ TOOL.BuildCPanel = function(form)
 	choicelist:AddChoice("Solid",3)
 	choicelist:AddChoice("Solid (Fade In Out)",4)
 	choicelist:AddChoice("Solid (Fade Middle)",5)
+	choicelist:AddChoice("Rainbow, Solid for Blimps",6)
+	choicelist:AddChoice("Rainbow, Solid for Blimps (Fade In Out)",7)
+	choicelist:AddChoice("Rainbow, Solid for Blimps (Fade Middle)",8)
+	choicelist:AddChoice("Solid, Rainbow for Blimps",9)
+	choicelist:AddChoice("Solid, Rainbow for Blimps (Fade In Out)",10)
+	choicelist:AddChoice("Solid, Rainbow for Blimps (Fade Middle)",11)
 	local mixer = vgui.Create("DColorMixer")
 	mixer:SetLabel("Solid Colour")
 	mixer:SetConVarR("waypoint_editor_rotgb_indicator_r")
 	mixer:SetConVarG("waypoint_editor_rotgb_indicator_g")
 	mixer:SetConVarB("waypoint_editor_rotgb_indicator_b")
 	mixer:SetConVarA("waypoint_editor_rotgb_indicator_a")
+	form:AddItem(mixer)
+	mixer = vgui.Create("DColorMixer")
+	mixer:SetLabel("Solid Colour for Blimps")
+	mixer:SetConVarR("waypoint_editor_rotgb_indicator_boss_r")
+	mixer:SetConVarG("waypoint_editor_rotgb_indicator_boss_g")
+	mixer:SetConVarB("waypoint_editor_rotgb_indicator_boss_b")
+	mixer:SetConVarA("waypoint_editor_rotgb_indicator_boss_a")
 	form:AddItem(mixer)
 end
 
@@ -89,10 +106,17 @@ TOOL.IsValidEndPoint = function(self,ent)
 	return IsValid(ent) and ent:GetClass()=="gballoon_target"
 end
 
-TOOL.GenerateNextTargetFunction = function(self,ent,func)
+TOOL.GenerateNextTargetFunction = function(self,ent,func,blimp)
+	local prefix = blimp and "GetNextBlimpTarget" or "GetNextTarget"
 	for i=1,16 do
-		local ret = func(ent["GetNextTarget"..i](ent),i)
+		local ret = func(ent[prefix..i](ent),i)
 		if ret then return true end
+	end
+	if blimp=="both" then
+		for i=1,16 do
+			local ret = func(ent["GetNextTarget"..i](ent),i,true)
+			if ret then return true end
+		end
 	end
 end
 
@@ -106,7 +130,7 @@ TOOL.LeftClick = function(self,trace)
 					self:SetOperation(2)
 					return true
 				end
-			end)
+			end,"both")
 		else
 			if trace.Hit then
 				if SERVER then
@@ -123,18 +147,41 @@ TOOL.LeftClick = function(self,trace)
 		local ent = trace.Entity
 		local start = self:GetEnt(1)
 		if self:IsValidEndPoint(ent) and self:IsValidStartPoint(start) and ent~=start then
-			local placepos = 16
-			if not self:GenerateNextTargetFunction(start,function(target,num)
-				if not IsValid(target) then
-					placepos = math.min(placepos,num)
-				elseif target == ent then
-					return true
+			local placepos = 17
+			if self:GetOwner():KeyDown(IN_DUCK) then
+				if not self:GenerateNextTargetFunction(start,function(target,num)
+					if not IsValid(target) then
+						placepos = math.min(placepos,num)
+					elseif target == ent then
+						return true
+					end
+				end,true) then
+					if placepos == 17 then
+						self:GetOwner():PrintMessage(HUD_PRINTTALK, "Cannot exceed 16 gBlimp waypoints!")
+					else
+						start["SetNextBlimpTarget"..placepos](start,ent)
+						self:ClearObjects()
+						self:SetOperation(1)
+						return true
+					end
 				end
-			end) then
-				start["SetNextTarget"..placepos](start,ent)
-				self:ClearObjects()
-				self:SetOperation(1)
-				return true
+			else
+				if not self:GenerateNextTargetFunction(start,function(target,num)
+					if not IsValid(target) then
+						placepos = math.min(placepos,num)
+					elseif target == ent then
+						return true
+					end
+				end) then
+					if placepos == 17 then
+						self:GetOwner():PrintMessage(HUD_PRINTTALK, "Cannot exceed 16 non-gBlimp waypoints!")
+					else
+						start["SetNextTarget"..placepos](start,ent)
+						self:ClearObjects()
+						self:SetOperation(1)
+						return true
+					end
+				end
 			end
 		end
 	elseif self:GetOperation()==3 then
@@ -154,7 +201,7 @@ TOOL.RightClick = function(self,trace)
 					self:SetOperation(3)
 					return true
 				end
-			end)
+			end,"both")
 		end
 	elseif self:GetOperation()==2 then
 		self:ClearObjects()
@@ -164,14 +211,14 @@ TOOL.RightClick = function(self,trace)
 		local ent = trace.Entity
 		local start = self:GetEnt(1)
 		if self:IsValidEndPoint(ent) and self:IsValidStartPoint(start) and ent~=start then
-			return self:GenerateNextTargetFunction(start,function(target,num)
+			return self:GenerateNextTargetFunction(start,function(target,num,nonblimp)
 				if target == ent then
-					start["SetNextTarget"..num](start,NULL)
+					start[(nonblimp and "SetNextTarget" or "SetNextBlimpTarget")..num](start,NULL)
 					self:ClearObjects()
 					self:SetOperation(1)
 					return true
 				end
-			end)
+			end,"both")
 		end
 	end
 end
@@ -182,6 +229,7 @@ TOOL.Reload = function(self,trace)
 		if self:IsValidStartPoint(start) then
 			self:GenerateNextTargetFunction(start,function(target,num)
 				start["SetNextTarget"..num](start,NULL)
+				start["SetNextBlimpTarget"..num](start,NULL)
 			end)
 			self:ClearObjects()
 			self:SetOperation(1)
@@ -209,24 +257,38 @@ TOOL.Reload = function(self,trace)
 	end
 end
 
-TOOL.GetEColor = function(self,delta)
+TOOL.GetEColor = function(self,delta,nonblimp)
 	local colmode = tonumber(self:GetClientInfo("indicator_color"))
+	if colmode>=6 and colmode<=11 then
+		if nonblimp then
+			colmode = colmode - 6
+		else
+			colmode = colmode - (colmode>=9 and 9 or 3)
+		end
+	end
 	if colmode==0 then
-		return HSVToColor(delta*360,1,1)
+		return HSVToColor(delta*360,1,1):Unpack()
 	elseif colmode==1 then
 		local col = HSVToColor(delta*360,1,1)
 		col.a = math.sin(delta*math.pi)*255
-		return col
+		return col:Unpack()
 	elseif colmode==2 then
 		local col = HSVToColor(delta*360,1,1)
 		col.a = 255-math.sin(delta*math.pi)*255
-		return col
-	elseif colmode==3 then
-		return self:GetClientInfo("indicator_r"),self:GetClientInfo("indicator_g"),self:GetClientInfo("indicator_b"),self:GetClientInfo("indicator_a")
-	elseif colmode==4 then
-		return self:GetClientInfo("indicator_r"),self:GetClientInfo("indicator_g"),self:GetClientInfo("indicator_b"),self:GetClientInfo("indicator_a")*(math.sin(delta*math.pi))
-	elseif colmode==5 then
-		return self:GetClientInfo("indicator_r"),self:GetClientInfo("indicator_g"),self:GetClientInfo("indicator_b"),self:GetClientInfo("indicator_a")*(1-math.sin(delta*math.pi))
+		return col:Unpack()
+	else
+		local builtcolor
+		if nonblimp then
+			builtcolor = Color(self:GetClientInfo("indicator_r"),self:GetClientInfo("indicator_g"),self:GetClientInfo("indicator_b"),self:GetClientInfo("indicator_a"))
+		else
+			builtcolor = Color(self:GetClientInfo("indicator_boss_r"),self:GetClientInfo("indicator_boss_g"),self:GetClientInfo("indicator_boss_b"),self:GetClientInfo("indicator_boss_a"))
+		end
+		if colmode==4 then
+			builtcolor.a = builtcolor.a*(math.sin(delta*math.pi))
+		elseif colmode==5 then
+			builtcolor.a = builtcolor.a*(1-math.sin(delta*math.pi))
+		end
+		return builtcolor:Unpack()
 	end
 end
 
@@ -236,7 +298,7 @@ TOOL.DrawDedicatedHUD = function(self)
 	cam.Start3D()
 	for k,v in pairs(ents.GetAll()) do
 		if self:IsValidStartPoint(v) then
-			self:GenerateNextTargetFunction(v,function(dest)
+			self:GenerateNextTargetFunction(v,function(dest,_,nonblimp)
 				if IsValid(dest) then
 					local zmul = (tobool(self:GetClientInfo("indicator_bounce")) and math.ceil or tonumber)(v:GetPos():Distance(dest:GetPos())/100/self:GetClientInfo("indicator_speed"))
 					local offset = RealTime()*4%1/zmul
@@ -248,12 +310,13 @@ TOOL.DrawDedicatedHUD = function(self)
 							data.x,
 							data.y,
 							desvec:Distance(EyePos()),
-							offset
+							offset,
+							nonblimp
 						})
 						offset = offset + 1/zmul
 					end
 				end
-			end)
+			end,"both")
 		end
 	end
 	cam.End3D()
@@ -264,7 +327,7 @@ TOOL.DrawDedicatedHUD = function(self)
 	surface.SetMaterial(circlemat[effect])
 	for k,v in pairs(veccollection) do
 		if v[1] then
-			surface.SetDrawColor(self:GetEColor(v[5]))
+			surface.SetDrawColor(self:GetEColor(v[5],v[6]))
 			local size = 1/v[4]*30000*self:GetClientInfo("indicator_scale")
 			surface.DrawTexturedRect(v[2]-size/2,v[3]-size/2,size,size)
 		end
