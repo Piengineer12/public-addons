@@ -108,7 +108,7 @@ function ENT:Touch(ent)
 		if IsValid(container) then
 			if ISAWC:CanProperty(container,ent) then
 				ISAWC:PropPickup(container,ent)
-				container:SendInventoryUpdate()
+				--container:SendInventoryUpdate()
 			end
 		elseif ent.Base == "isawc_container_base" --[[or ent:IsPlayer()]] then
 			self:LinkEntity(ent)
@@ -122,7 +122,7 @@ function ENT:StartTouch(ent)
 		if IsValid(container) then
 			if ISAWC:CanProperty(container,ent) then
 				ISAWC:PropPickup(container,ent)
-				container:SendInventoryUpdate()
+				--container:SendInventoryUpdate()
 			end
 		elseif ent.Base == "isawc_container_base" --[[or ent:IsPlayer()]] then
 			self:LinkEntity(ent)

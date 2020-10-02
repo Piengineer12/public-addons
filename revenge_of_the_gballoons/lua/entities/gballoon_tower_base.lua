@@ -272,7 +272,7 @@ function ENT:ValidTarget(v)
 	--if v:GetClass()=="gballoon_base" then
 		return (IsValid(v) and v:GetClass()=="gballoon_base" and not v:GetBalloonProperty("BalloonVoid")
 		and (not v:GetBalloonProperty("BalloonHidden") or self.SeeCamo or v:HasRotgBStatusEffect("unhide"))
-		and v:LocalToWorld(v:OBBCenter()):DistToSqr(self:GetShootPos()) <= self.DetectionRadius * self.DetectionRadius)
+		and (v:LocalToWorld(v:OBBCenter()):DistToSqr(self:GetShootPos()) <= self.DetectionRadius * self.DetectionRadius or self.InfiniteRange or self.InfiniteRange2))
 	--end
 	--return self:MaskFilter(GetConVar("rotgb_extratargets"):GetInt(),v) and (not v:IsFlagSet(FL_NOTARGET) or self.SeeCamo)
 end

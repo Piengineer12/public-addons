@@ -97,14 +97,14 @@ function ENT:Think()
 			end
 		end
 		
-		local physobj = self:GetPhysicsObject()
+		--[[local physobj = self:GetPhysicsObject()
 		if IsValid(physobj) then
 			if physobj:IsMotionEnabled() and next(self.WeightedEntities) then
 				physobj:EnableMotion(false)
 			elseif not (physobj:IsMotionEnabled() or next(self.WeightedEntities)) then
 				physobj:EnableMotion(true)
 			end
-		end
+		end]]
 	end
 end
 

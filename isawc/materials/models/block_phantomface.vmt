@@ -2,4 +2,5 @@ VertexLitGeneric
 {
 	$basetexture models/block_phantomface 
 	$model 1
+	$halflambert 1
 }

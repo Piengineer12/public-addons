@@ -88,7 +88,7 @@ function ENT:Initialize()
 		end
 		local function GenStringFile()
 			local str = ""
-			for i=1,4 do
+			for i=1,8 do
 				str = str .. string.char(math.random(32, 126))
 			end
 			return str
@@ -109,6 +109,7 @@ function ENT:Touch(ent)
 	if ISAWC.ConDragAndDropOntoContainer:GetInt()==1 then
 		if ISAWC:CanProperty(self,ent) then
 			ISAWC:PropPickup(self,ent)
+			--self:SendInventoryUpdate()
 		end
 	end
 end
@@ -117,6 +118,7 @@ function ENT:StartTouch(ent)
 	if ISAWC.ConDragAndDropOntoContainer:GetInt()==2 then
 		if ISAWC:CanProperty(self,ent) then
 			ISAWC:PropPickup(self,ent)
+			--self:SendInventoryUpdate()
 		end
 	end
 end
@@ -225,7 +227,7 @@ function ENT:Think()
 	end
 end
 
-function ENT:SendInventoryUpdate()
+--[[function ENT:SendInventoryUpdate()
 	for k,v in pairs(self.ISAWC_Openers) do
 		if IsValid(k) then
 			ISAWC:SendInventory2(k, self)
@@ -233,4 +235,4 @@ function ENT:SendInventoryUpdate()
 			self.ISAWC_Openers[k] = nil
 		end
 	end
-end
+end]]

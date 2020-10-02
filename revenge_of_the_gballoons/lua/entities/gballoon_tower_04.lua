@@ -19,27 +19,27 @@ ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,40)
 ENT.UserTargeting = true
 ENT.AttackDamage = 10
-ENT.rotgb_Spread = 100
+ENT.rotgb_Spread = 75
 ENT.rotgb_Shots = 1
 ENT.UpgradeReference = {
 	{
 		Names = {"Stabilized Barrel","Penetrating Bullets","Consistent Barrel Spinner","Computerized Targeting","Laser Shooter","Ray of Doom"},
 		Descs = {
-			"Considerably reduces bullet spread.",
+			"Slightly reduces bullet spread.",
 			"Enables the tower to pop Gray gBalloons.",
-			"Tremendously reduces bullet spread.",
+			"Considerably reduces bullet spread.",
 			"Deals slightly increased damage versus gBlimps. Also enables the tower to see hidden gBalloons.",
 			"Fires a continuous, perfectly accurate focused laser that shreds gBalloons. However, the tower no longer pops Purple gBalloons.",
 			"Fires an even bigger beam that obliterates all gBalloons in its path, regardless of immunities."
 		},
-		Prices = {400,1200,2000,12500,50000,400000},
+		Prices = {500,1200,4000,12500,50000,400000},
 		Funcs = {
 			function(self)
 				self.rotgb_Spread = self.rotgb_Spread * 2/3
 			end,
 			function(self)
 				self.rotgb_CanPopGray = true
-				self.AttackDamage = self.AttackDamage + 10
+				--self.AttackDamage = self.AttackDamage + 10
 			end,
 			function(self)
 				self.rotgb_Spread = self.rotgb_Spread * 0.5
@@ -49,26 +49,28 @@ ENT.UpgradeReference = {
 				self.SeeCamo = true
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 90
+				self.FireRate = self.FireRate * 3
+				--self.AttackDamage = self.AttackDamage + 90
 				self.rotgb_UseLaser = 1
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage - 90
+				self.FireRate = self.FireRate / 3
+				--self.AttackDamage = self.AttackDamage - 90
 				self.rotgb_UseLaser = 2
 			end
 		}
 	},
 	{
-		Names = {"Higher Torque","Aerodynamic Bullets","TripShot","Super High Torque","DodecaShot","A Million Rounds Per Minute"},
+		Names = {"Higher Torque","Bigger Bullets","TripShot","Super High Torque","DodecaShot","A Million Rounds Per Minute"},
 		Descs = {
-			"Increases fire rate.",
-			"Increases range and damage dealt by each bullet.",
+			"Slightly increases fire rate.",
+			"Slightly increases damage dealt by each bullet.",
 			"Fires three bullets per shot.",
-			"Significantly increases fire rate.",
-			"Significantly increases bullet spread, but twelve bullets are fired per shot!",
-			"Tremendously increases bullet spread, but sixty bullets are fired per shot!"
+			"Considerably increases fire rate.",
+			"Slightly increases bullet spread, but twelve bullets are fired per shot!",
+			"Considerably increases bullet spread, but considerably increases damage dealt by each bullet and sixty bullets are fired per shot!"
 		},
-		Prices = {250,2500,6000,9000,17500,50000},
+		Prices = {250,750,3000,4000,12500,30000},
 		Funcs = {
 			function(self)
 				self.FireRate = self.FireRate * 1.5
@@ -84,12 +86,13 @@ ENT.UpgradeReference = {
 				self.FireRate = self.FireRate * 2
 			end,
 			function(self)
-				self.rotgb_Spread = self.rotgb_Spread * 2
+				self.rotgb_Spread = self.rotgb_Spread * 1.5
 				self.rotgb_Shots = self.rotgb_Shots * 4
 			end,
 			function(self)
 				self.rotgb_Spread = self.rotgb_Spread * 2
 				self.rotgb_Shots = self.rotgb_Shots * 5
+				self.AttackDamage = self.AttackDamage + 20
 			end
 		}
 	}

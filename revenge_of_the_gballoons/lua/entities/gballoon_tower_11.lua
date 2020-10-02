@@ -16,29 +16,66 @@ ENT.FireRate = 0.5
 ENT.ShellAmt = 1
 ENT.Cost = 500
 ENT.DetectionRadius = 512
-ENT.AttackDamage = 20
+ENT.AttackDamage = 30
 ENT.UserTargeting = true
 ENT.AbilityCooldown = 30
 ENT.rotgb_ExploRadius = 64
-ENT.rotgb_TravelTime = 0.5 -- maybe later there'll be an upgrade for this.
+ENT.rotgb_TravelTime = 0.6
 ENT.UpgradeReference = {
 	{
-		Names = {"Faster Reload","Longer Cannon","Better Shells","Double Up","Artillery Cannons"},
+		Names = {"Faster Reload","High Impact Shells","Slippery Shells","Double Up","Artillery Cannons"},
 		Descs = {
 			"Slightly increases the tower's fire rate.",
-			"Slightly increases the tower's range and damage.",
-			"Considerably increases the tower's fire rate and range.",
-			"The tower fires two shells at once and dramatically increases shells' damage!",
-			"The tower fires three shells at once and significantly increases shells' damage! Once every 30 seconds, shooting at this tower causes its shots to stun gBalloons for 1 second! Lasts for 10 seconds when activated.",
+			"Enables the tower to pop Black gBalloons, Zebra gBalloons and Monochrome gBlimps.",
+			"Considerably increases the tower's fire rate and shells' speed.",
+			"Tremendously increases fire rate and two shells are fired at once!",
+			"The tower now fires three shells at once and can see Hidden gBalloons! Once every 30 seconds, shooting at this tower colossally increases its fire rate, shells' speed and causes its shots to stun gBalloons for 1 second! Lasts for 10 seconds when activated.",
 		},
-		Prices = {200,2000,5000,50000,200000},
+		Prices = {200,750,2000,15000,100000},
 		Funcs = {
 			function(self)
 				self.FireRate = self.FireRate*1.5
 			end,
 			function(self)
+				--self.AttackDamage = self.AttackDamage + 30
+				self.rotgb_RespectPlayers = true
+			end,
+			function(self)
+				self.FireRate = self.FireRate*2
+				--self.DetectionRadius = self.DetectionRadius*1.5
+				self.rotgb_TravelTime = self.rotgb_TravelTime*0.5
+			end,
+			function(self)
+				self.ShellAmt = self.ShellAmt*2
+				--self.AttackDamage = self.AttackDamage + 60
+				self.FireRate = self.FireRate*3
+			end,
+			function(self)
+				self.ShellAmt = self.ShellAmt*1.5
+				self.SeeCamo = true
+				--self.AttackDamage = self.AttackDamage + 90
+				self.HasAbility = true
+			end
+		}
+	},
+	{
+		Names = {"Bigger Shells","Longer Cannon","Shell Lobber","Q.U.A.K.E. Shells","Sol Shells"},
+		Descs = {
+			"Slightly increases the shells' explosion radii.",
+			"Slightly increases the tower's range and shells' speed.",
+			"Considerably increases damage and increases range to infinite.",
+			"Tremendously increases the shells' explosion radii and damage.",
+			"Colossally increases damage. Shots will also set gBalloons on fire."
+		},
+		Prices = {200,1000,5000,30000,125000},
+		Funcs = {
+			function(self)
+				self.rotgb_ExploRadius = self.rotgb_ExploRadius*1.5
+			end,
+			function(self)
 				self.DetectionRadius = self.DetectionRadius*1.5
-				self.AttackDamage = self.AttackDamage + 10
+				self.rotgb_TravelTime = self.rotgb_TravelTime/1.5
+				--self.AttackDamage = self.AttackDamage + 10
 				self:SetModel("models/hunter/tubes/tube1x1x2.mdl")
 				self:PhysicsInit(SOLID_VPHYSICS)
 				if IsValid(self:GetPhysicsObject()) then
@@ -46,50 +83,18 @@ ENT.UpgradeReference = {
 				end
 			end,
 			function(self)
-				self.FireRate = self.FireRate*1.5
-				self.DetectionRadius = self.DetectionRadius*1.5
-			end,
-			function(self)
-				self.ShellAmt = self.ShellAmt*2
-				self.AttackDamage = self.AttackDamage + 60
-			end,
-			function(self)
-				self.ShellAmt = self.ShellAmt*1.5
-				self.AttackDamage = self.AttackDamage + 90
-				self.HasAbility = true
-			end
-		}
-	},
-	{
-		Names = {"Bigger Shells","Class-Specific Shells","Shell Lobber","Q.U.A.K.E. Shells","Sol Shells"},
-		Descs = {
-			"Slightly increases the shells' explosion radii.",
-			"Considerably increases the tower's damage and enables the tower to pop Black gBalloons, Zebra gBalloons and Monochrome gBlimps.",
-			"Increases range to infinite, but also considerably reduces fire rate.",
-			"Tremendously increases the shells' explosion radii and damage. Allows the tower to see Hidden gBalloons.",
-			"Colossally increases the shells' explosion radii and damage. Shots will also set gBalloons on fire."
-		},
-		Prices = {200,3000,3500,100000,750000},
-		Funcs = {
-			function(self)
-				self.rotgb_ExploRadius = self.rotgb_ExploRadius*1.5
-			end,
-			function(self)
-				self.AttackDamage = self.AttackDamage + 30
-				self.rotgb_RespectPlayers = true
-			end,
-			function(self)
-				self.FireRate = self.FireRate*0.5
+				--self.FireRate = self.FireRate*0.5
 				self.InfiniteRange = true
-			end,
-			function(self)
-				self.rotgb_ExploRadius = self.rotgb_ExploRadius*2
-				self.AttackDamage = self.AttackDamage + 160
-				self.SeeCamo = true
+				self.AttackDamage = self.AttackDamage + 30
 			end,
 			function(self)
 				self.rotgb_ExploRadius = self.rotgb_ExploRadius*3
-				self.AttackDamage = self.AttackDamage + 400
+				self.AttackDamage = self.AttackDamage + 120
+			end,
+			function(self)
+				--self.rotgb_ExploRadius = self.rotgb_ExploRadius*5
+				--self.rotgb_Heavy = true
+				self.AttackDamage = self.AttackDamage + 720
 				self.rotgb_SetOnFire = true
 			end
 		}
@@ -99,6 +104,7 @@ ENT.UpgradeLimits = {5,2}
 
 function ENT:ROTGB_Initialize()
 	self:SetMaterial("phoenix_storms/metalset_1-2")
+	self:EmitSound("phx/kaboom.wav",60,100,0,CHAN_WEAPON)
 end
 
 function ENT:FireFunction(tableOfBalloons)
@@ -127,7 +133,9 @@ function ENT:FireFunction(tableOfBalloons)
 				dmginfo:SetReportedPosition(pos)
 				effdata:SetOrigin(pos)
 				effdata:SetStart(pos)
-				util.Effect("Explosion",effdata,true,true)
+				--util.Effect("Explosion",effdata,true,true)
+				util.Effect("HelicopterMegaBomb",effdata,true,true)
+				EmitSound("phx/kaboom.wav", pos, 0, CHAN_WEAPON, 0.5, 75, SND_SHOULDPAUSE, math.random(80,120))
 				--if self.rotgb_RespectPlayers then
 					for k,v in pairs(ents.FindInSphere(pos,self.rotgb_ExploRadius)) do
 						if self:ValidTarget(v) then
@@ -138,7 +146,13 @@ function ENT:FireFunction(tableOfBalloons)
 							if self.rotgb_SetOnFire then
 								v:RotgB_Ignite(10, self:GetTowerOwner(), self, 10)
 							end
+							--[[if self.rotgb_Heavy and v:GetBalloonProperty("BalloonBlimp") then
+								dmginfo:ScaleDamage(5)
+							end]]
 							v:TakeDamageInfo(dmginfo)
+							--[[if self.rotgb_Heavy and v:GetBalloonProperty("BalloonBlimp") then
+								dmginfo:ScaleDamage(0.2)
+							end]]
 						end
 					end
 				--[[else
@@ -158,8 +172,12 @@ end
 
 function ENT:TriggerAbility()
 	self.rotgb_Stun = true
+	self.FireRate = self.FireRate*5
+	self.rotgb_TravelTime = self.rotgb_TravelTime/5
 	timer.Simple(10,function()
 		self.rotgb_Stun = nil
+		self.FireRate = self.FireRate/5
+		self.rotgb_TravelTime = self.rotgb_TravelTime*5
 	end)
 end
 

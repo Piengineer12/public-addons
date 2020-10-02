@@ -19,6 +19,13 @@ ISAWC.Log = function(self,msg)
 	MsgC(color_aqua,"[ISAWC] ",color_white,msg,"\n")
 end
 
+ISAWC.ConCommands = {}
+
+ISAWC.AddConCommand = function(self, name, data)
+	concommand.Add(name, data.exec, data.autocomplete, data.help_small or data.help)
+	self.ConCommands[name] = data.help
+end
+
 ISAWC.ConAllowConstrained = CreateConVar("isawc_allow_constrained","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "Allows constrained props to be picked up.\
 This feature is in beta - use it at your own risk.")
@@ -110,272 +117,315 @@ ISAWC.ConVPhysicsOnly = CreateConVar("isawc_use_strictvphysics","1",FCVAR_ARCHIV
 "If set, only entities with MOVETYPE_VPHYSICS can be picked up (anything that is a prop, basically).\
 Turning off this option is not recommended as players might pick up normally immovable props.")
 
-ISAWC.Blacklist = ISAWC.Blacklist or {}
-concommand.Add("isawc_blacklist",function(ply,cmd,args)
-	if IsValid(ply) and not ply:IsAdmin() then
-		ISAWC:Log("Access denied.")
-	else
-		if #args==0 then
-			ISAWC:Log("The blacklist is as follows: {")
-			for k,v in pairs(ISAWC.Blacklist) do
-				ISAWC:Log("\t"..string.format('%q',k)..",")
-			end
-			ISAWC:Log("}")
-			ISAWC:Log("")
-			ISAWC:Log("Use \"isawc_blacklist <class1> <class2> ...\" to add/remove entity classes into/from the list.")
-			ISAWC:Log("Use \"isawc_blacklist *\" to clear the list.")
-		else
-			for k,v in pairs(args) do
-				v = v:lower()
-				if v=="*" then
-					table.Empty(ISAWC.Blacklist)
-					ISAWC:Log("Removed everything from the blacklist.") break
-				elseif ISAWC.Blacklist[v] then
-					ISAWC.Blacklist[v] = nil
-					ISAWC:Log("Removed \""..v.."\" from the blacklist.")
+ISAWC.CreateListConCommand = function(self, name, data)
+	ISAWC:AddConCommand(name, {
+		exec = function(ply,cmd,args)
+			if IsValid(ply) and not ply:IsAdmin() then
+				ISAWC:Log("Access denied.")
+			else
+				if #args==0 then
+					ISAWC:Log(data.display..'{')
+					for k,v in pairs(data.display_table) do
+						data.display_function(k,v)
+					end
+					ISAWC:Log("}")
+					ISAWC:Log("")
+					for i,v in ipairs(data.help) do
+						ISAWC:Log(v)
+					end
 				else
-					ISAWC.Blacklist[v] = true
-					ISAWC:Log("Added \""..v.."\" into the blacklist.")
+					data.exe(args)
+					ISAWC:SaveInventory(ply)
 				end
 			end
-			ISAWC:SaveInventory(ply)
+		end,
+		help_small = data.help_small,
+		help = data.purpose
+	})
+end
+
+ISAWC.Blacklist = ISAWC.Blacklist or {}
+ISAWC:CreateListConCommand("isawc_blacklist", {
+	display = "The blacklist is as follows: ",
+	display_table = ISAWC.Blacklist,
+	display_function = function(k,v)
+		ISAWC:Log("\t"..string.format('%q',k)..",")
+	end,
+	purpose = "Adds and removes entity classes from the blacklist. Classes in the blacklist cannot be picked up.",
+	help = {
+		"Use \"isawc_blacklist <class1> <class2> ...\" to add/remove entity classes into/from the list.",
+		"Use \"isawc_blacklist *\" to clear the list."
+	},
+	help_small = "Usage: isawc_blacklist <class1> <class2> ...",
+	exe = function(args)
+		for k,v in pairs(args) do
+			v = v:lower()
+			if v=="*" then
+				table.Empty(ISAWC.Blacklist)
+				ISAWC:Log("Removed everything from the blacklist.") break
+			elseif ISAWC.Blacklist[v] then
+				ISAWC.Blacklist[v] = nil
+				ISAWC:Log("Removed \""..v.."\" from the blacklist.")
+			else
+				ISAWC.Blacklist[v] = true
+				ISAWC:Log("Added \""..v.."\" into the blacklist.")
+			end
 		end
 	end
-end,nil,"Usage: isawc_blacklist <class1> <class2> ...")
+})
 
 ISAWC.ConUseWhitelist = CreateConVar("isawc_use_whitelist","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "If set, only entity classes that are in the whitelist can be picked up.\
 Otherwise, entity classes that aren't in the blacklist or are in the whitelist can be picked up.\
-See the ConCommands \"isawc_blacklist\" and \"isawc_whitelist\" to manipulate the lists.\
+Use the ConCommands \"isawc_blacklist\" and \"isawc_whitelist\" to manipulate the lists.\
 Tip: Even if this is not set, non-solid and non-VPhysics entities can still be specified in the whitelist to make them able to be picked up,\
 regardless of the other ConVars.")
 
+ISAWC.ConUseExportWhitelist = CreateConVar("isawc_use_exportwhitelist","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+"If set, only entity classes that are in the whitelist can be exported by Inventory Exporters.\
+See the ConCommand \"isawc_export_whitelist\" to manipulate the list.")
+
 ISAWC.Whitelist = ISAWC.Whitelist or {}
-concommand.Add("isawc_whitelist",function(ply,cmd,args)
-	if IsValid(ply) and not ply:IsAdmin() then
-		ISAWC:Log("Access denied.")
-	else
-		if #args==0 then
-			ISAWC:Log("The whitelist is as follows: {")
-			for k,v in pairs(ISAWC.Whitelist) do
-				ISAWC:Log("\t"..string.format('%q',k)..",")
+ISAWC:CreateListConCommand("isawc_whitelist", {
+	display = "The whitelist is as follows: ",
+	display_table = ISAWC.Whitelist,
+	display_function = function(k,v)
+		ISAWC:Log("\t"..string.format('%q',k)..",")
+	end,
+	purpose = "Adds and removes entity classes from the whitelist. See the ConVar \"isawc_use_whitelist\" for more information.",
+	help = {
+		"Use \"isawc_whitelist <class1> <class2> ...\" to add/remove an entity class into/from the list.",
+		"Use \"isawc_whitelist *\" to clear the list.",
+		"Tip: Non-solid and Non-VPhysics entities can be specified here to make them able to be picked up regardless of the other ConVars."
+	},
+	help_small = "Usage: isawc_whitelist <class1> <class2> ...",
+	exe = function(args)
+		for k,v in pairs(args) do
+			v = v:lower()
+			if v=="*" then
+				table.Empty(ISAWC.Whitelist)
+				ISAWC:Log("Removed everything from the whitelist.") break
+			elseif ISAWC.Whitelist[v] then
+				ISAWC.Whitelist[v] = nil
+				ISAWC:Log("Removed \""..v.."\" from the whitelist.")
+			else
+				ISAWC.Whitelist[v] = true
+				ISAWC:Log("Added \""..v.."\" into the whitelist.")
 			end
-			ISAWC:Log("}")
-			ISAWC:Log("")
-			ISAWC:Log("Use \"isawc_whitelist <class1> <class2> ...\" to add/remove an entity class into/from the list.")
-			ISAWC:Log("Use \"isawc_whitelist *\" to clear the list.")
-			ISAWC:Log("Tip: Non-solid and Non-VPhysics entities can be specified here to make them able to be picked up regardless of the other ConVars.")
-		else
-			for k,v in pairs(args) do
-				v = v:lower()
-				if v=="*" then
-					table.Empty(ISAWC.Whitelist)
-					ISAWC:Log("Removed everything from the whitelist.") break
-				elseif ISAWC.Whitelist[v] then
-					ISAWC.Whitelist[v] = nil
-					ISAWC:Log("Removed \""..v.."\" from the whitelist.")
-				else
-					ISAWC.Whitelist[v] = true
-					ISAWC:Log("Added \""..v.."\" into the whitelist.")
-				end
-			end
-			ISAWC:SaveInventory(ply)
 		end
 	end
-end,nil,"Usage: isawc_whitelist <class1> <class2> ...")
+})
+
+ISAWC.WhiteExtractList = ISAWC.WhiteExtractList or {}
+ISAWC:CreateListConCommand("isawc_export_whitelist", {
+	display = "The Inventory Exporter whitelist is as follows: ",
+	display_table = ISAWC.WhiteExtractList,
+	display_function = function(k,v)
+		ISAWC:Log("\t"..string.format('%q',k)..",")
+	end,
+	purpose = "Adds and removes entity classes from the Inventory Exporter whitelist. See the ConVar \"isawc_use_exportwhitelist\" for more information.",
+	help = {
+		"Use \"isawc_export_whitelist <class1> <class2> ...\" to add/remove an entity class into/from the list.",
+		"Use \"isawc_export_whitelist *\" to clear the list."
+	},
+	help_small = "Usage: isawc_export_whitelist <class1> <class2> ...",
+	exe = function(args)
+		for k,v in pairs(args) do
+			v = v:lower()
+			if v=="*" then
+				table.Empty(ISAWC.WhiteExtractList)
+				ISAWC:Log("Removed everything from the Inventory Exporter whitelist.") break
+			elseif ISAWC.WhiteExtractList[v] then
+				ISAWC.WhiteExtractList[v] = nil
+				ISAWC:Log("Removed \""..v.."\" from the Inventory Exporter whitelist.")
+			else
+				ISAWC.WhiteExtractList[v] = true
+				ISAWC:Log("Added \""..v.."\" into the Inventory Exporter whitelist.")
+			end
+		end
+	end
+})
 
 ISAWC.Stacklist = ISAWC.Stacklist or {}
-concommand.Add("isawc_stacklist",function(ply,cmd,args)
-	if IsValid(ply) and not ply:IsAdmin() then
-		ISAWC:Log("Access denied.")
-	else
-		if #args==0 then
-			ISAWC:Log("The stacking list is as follows: {")
-			for k,v in pairs(ISAWC.Stacklist) do
-				ISAWC:Log(string.format("\t%s={player=%u,container=%u}",k,v[1],v[2]))
-			end
-			ISAWC:Log("}")
-			ISAWC:Log("")
-			ISAWC:Log("Use \"isawc_stacklist <class> <playerStackAmt> <containerStackAmt>\" to add an entity class into the list. \z
-			A StackAmt of 0 means that the maximum stacking amount is unlimited. \z
-			If any StackAmt is -1, it will be removed from the list instead.")
-			ISAWC:Log("Use \"isawc_stacklist *\" to clear the list.")
-		else
-			local builttabs = {}
-			local curName = ""
-			for i,v in ipairs(args) do
-				if i%3==1 then -- every 1st
-					v = v:lower()
-					if v=="*" then
-						table.Empty(ISAWC.Stacklist)
-						ISAWC:Log("Removed everything from the stack list.") break
-					end
-					curName = v
-					builttabs[curName] = {}
-				elseif i%3==2 then -- every 2nd
-					builttabs[curName][1] = tonumber(v)
-				else -- every 3rd
-					builttabs[curName][2] = tonumber(v)
+ISAWC:CreateListConCommand("isawc_stacklist", {
+	display = "The stacking list is as follows: ",
+	display_table = ISAWC.Stacklist,
+	display_function = function(k,v)
+		ISAWC:Log(string.format("\t%s={player=%u,container=%u}",k,v[1],v[2]))
+	end,
+	purpose = "Adds and removes entity classes from the stack list. The stack list currently does nothing.",
+	help = {
+		"Use \"isawc_stacklist <class> <playerStackAmt> <containerStackAmt>\" to add an entity class into the list. \z
+		A StackAmt of 0 means that the maximum stacking amount is unlimited. \z
+		If any StackAmt is -1, it will be removed from the list instead.",
+		"Use \"isawc_stacklist *\" to clear the list."
+	},
+	help_small = "Usage: isawc_whitelist <class1> <class2> ...",
+	exe = function(args)
+		local builttabs = {}
+		local curName = ""
+		for i,v in ipairs(args) do
+			if i%3==1 then -- every 1st
+				v = v:lower()
+				if v=="*" then
+					table.Empty(ISAWC.Stacklist)
+					ISAWC:Log("Removed everything from the stack list.") break
 				end
+				curName = v
+				builttabs[curName] = {}
+			elseif i%3==2 then -- every 2nd
+				builttabs[curName][1] = tonumber(v)
+			else -- every 3rd
+				builttabs[curName][2] = tonumber(v)
 			end
-			for k,v in pairs(builttabs) do
-				if v[1] then
-					v[2] = v[2] or v[1]
-					if v[1] < 0 or v[2] < 0 then
-						ISAWC.Stacklist[k] = nil
-						ISAWC:Log("Removed \""..k.."\" from the stack list.")
-					else
-						ISAWC.Stacklist[k] = v
-						ISAWC:Log("Added \""..k.."\" into the stack list.")
-					end
+		end
+		for k,v in pairs(builttabs) do
+			if v[1] then
+				v[2] = v[2] or v[1]
+				if v[1] < 0 or v[2] < 0 then
+					ISAWC.Stacklist[k] = nil
+					ISAWC:Log("Removed \""..k.."\" from the stack list.")
 				else
-					ISAWC:Log("Usage: isawc_stacklist <class> <playerStackAmt> <containerStackAmt>") break
+					ISAWC.Stacklist[k] = v
+					ISAWC:Log("Added \""..k.."\" into the stack list.")
 				end
+			else
+				ISAWC:Log("Usage: isawc_stacklist <class> <playerStackAmt> <containerStackAmt>") break
 			end
-			ISAWC:SaveInventory(ply)
 		end
 	end
-end)
+})
 
 ISAWC.Masslist = ISAWC.Masslist or {}
-concommand.Add("isawc_masslist",function(ply,cmd,args)
-	if IsValid(ply) and not ply:IsAdmin() then
-		ISAWC:Log("Access denied.")
-	else
-		if #args==0 then
-			ISAWC:Log("The custom mass list is as follows: {")
-			for k,v in pairs(ISAWC.Masslist) do
-				ISAWC:Log("\t"..string.format("%q=%g",k,v)..",")
-			end
-			ISAWC:Log("}")
-			ISAWC:Log("")
-			ISAWC:Log("Use \"isawc_masslist <model/class1> <kg1> <model/class2> <kg2> ...\" to update or add a model into the list. \z
-			If mass is -1, it will be removed from the list instead.")
-			ISAWC:Log("Use \"isawc_masslist *\" to clear the list.")
-			ISAWC:Log("Note that the \"isawc_pickup_massmul\" ConVar still affects the picked up entities.")
+ISAWC:CreateListConCommand("isawc_masslist", {
+	display = "The custom mass list is as follows: ",
+	display_table = ISAWC.Masslist,
+	display_function = function(k,v)
+		ISAWC:Log("\t"..string.format("%q=%g",k,v)..",")
+	end,
+	purpose = "Adds and removes entity classes or models from the mass list. Can be used to change the amount of mass needed to store an entity.",
+	help = {
+		"Use \"isawc_masslist <model/class1> <kg1> <model/class2> <kg2> ...\" to update or add a model into the list. \z
+		If mass is -1, it will be removed from the list instead.",
+		"Use \"isawc_masslist *\" to clear the list.",
+		"Note that the \"isawc_pickup_massmul\" ConVar still affects the picked up entities."
+	},
+	help_small = "Usage: isawc_masslist <model/class1> <kg1> <model/class2> <kg2> ...",
+	exe = function(args)
+		if args[1]=="*" then
+			table.Empty(ISAWC.Masslist)
+			ISAWC:Log("Removed everything from the custom mass list.")
+		elseif #args%2~=0 then
+			ISAWC:Log("Usage: isawc_masslist <model/class1> <kg1> <model/class2> <kg2> ...")
 		else
-			if args[1]=="*" then
-				table.Empty(ISAWC.Masslist)
-				ISAWC:Log("Removed everything from the custom mass list.")
-			elseif #args%2~=0 then
-				ISAWC:Log("Usage: isawc_masslist <model/class1> <kg1> <model/class2> <kg2> ...")
-			else
-				for i,v in ipairs(args) do
-					if i%2==1 then
-						v = v:lower()
-						local mass = tonumber(args[i+1])
-						if (not mass or mass < 0) then
-							ISAWC.Masslist[v] = nil
-							ISAWC:Log("Removed \""..v.."\" from the custom mass list.")
-						elseif ISAWC.Masslist[v] then
-							ISAWC.Masslist[v] = mass
-							ISAWC:Log("Updated \""..v.."\" in the custom mass list.")
-						else
-							ISAWC.Masslist[v] = mass
-							ISAWC:Log("Added \""..v.."\" into the custom mass list.")
-						end
+			for i,v in ipairs(args) do
+				if i%2==1 then
+					v = v:lower()
+					local mass = tonumber(args[i+1])
+					if (not mass or mass < 0) then
+						ISAWC.Masslist[v] = nil
+						ISAWC:Log("Removed \""..v.."\" from the custom mass list.")
+					elseif ISAWC.Masslist[v] then
+						ISAWC.Masslist[v] = mass
+						ISAWC:Log("Updated \""..v.."\" in the custom mass list.")
+					else
+						ISAWC.Masslist[v] = mass
+						ISAWC:Log("Added \""..v.."\" into the custom mass list.")
 					end
 				end
 			end
-			ISAWC:SaveInventory(ply)
 		end
 	end
-end,nil,"Usage: isawc_masslist <model/class1> <kg1> <model/class2> <kg2> ...")
+})
 
 ISAWC.Volumelist = ISAWC.Volumelist or {}
-concommand.Add("isawc_volumelist",function(ply,cmd,args)
-	if IsValid(ply) and not ply:IsAdmin() then
-		ISAWC:Log("Access denied.")
-	else
-		if #args==0 then
-			ISAWC:Log("The custom volume list is as follows: {")
-			for k,v in pairs(ISAWC.Volumelist) do
-				ISAWC:Log("\t"..string.format("%q=%g",k,v)..",")
-			end
-			ISAWC:Log("}")
-			ISAWC:Log("")
-			ISAWC:Log("Use \"isawc_volumelist <model/class1> <vol1> <model/class2> <vol2> ...\" to update or add a model into the list. \z
-			If volume is -1, it will be removed from the list instead.")
-			ISAWC:Log("Use \"isawc_volumelist *\" to clear the list.")
-			ISAWC:Log("Note that the \"isawc_pickup_volumemul\" ConVar still affects the picked up entities.")
+ISAWC:CreateListConCommand("isawc_volumelist", {
+	display = "The custom volume list is as follows: ",
+	display_table = ISAWC.Volumelist,
+	display_function = function(k,v)
+		ISAWC:Log("\t"..string.format("%q=%g",k,v)..",")
+	end,
+	purpose = "Adds and removes entity classes or models from the volume list. Can be used to change the amount of volume needed to store an entity.",
+	help = {
+		"Use \"isawc_volumelist <model/class1> <vol1> <model/class2> <vol2> ...\" to update or add a model into the list. \z
+		If volume is -1, it will be removed from the list instead.",
+		"Use \"isawc_volumelist *\" to clear the list.",
+		"Note that the \"isawc_pickup_volumemul\" ConVar still affects the picked up entities."
+	},
+	help_small = "Usage: isawc_volumelist <model/class1> <vol1> <model/class2> <vol2> ...",
+	exe = function(args)
+		if args[1]=="*" then
+			table.Empty(ISAWC.Volumelist)
+			ISAWC:Log("Removed everything from the custom volume list.")
+		elseif #args%2~=0 then
+			ISAWC:Log("Usage: isawc_volumelist <model/class1> <vol1> <model/class2> <vol2> ...")
 		else
-			if args[1]=="*" then
-				table.Empty(ISAWC.Volumelist)
-				ISAWC:Log("Removed everything from the custom volume list.")
-			elseif #args%2~=0 then
-				ISAWC:Log("Usage: isawc_volumelist <model/class1> <vol1> <model/class2> <vol2> ...")
-			else
-				for i,v in ipairs(args) do
-					if i%2==1 then
-						v = v:lower()
-						local volume = tonumber(args[i+1])
-						if (not volume or volume < 0) then
-							ISAWC.Volumelist[v] = nil
-							ISAWC:Log("Removed \""..v.."\" from the custom volume list.")
-						elseif ISAWC.Volumelist[v] then
-							ISAWC.Volumelist[v] = volume
-							ISAWC:Log("Updated \""..v.."\" in the custom volume list.")
-						else
-							ISAWC.Volumelist[v] = volume
-							ISAWC:Log("Added \""..v.."\" into the custom volume list.")
-						end
+			for i,v in ipairs(args) do
+				if i%2==1 then
+					v = v:lower()
+					local volume = tonumber(args[i+1])
+					if (not volume or volume < 0) then
+						ISAWC.Volumelist[v] = nil
+						ISAWC:Log("Removed \""..v.."\" from the custom volume list.")
+					elseif ISAWC.Volumelist[v] then
+						ISAWC.Volumelist[v] = volume
+						ISAWC:Log("Updated \""..v.."\" in the custom volume list.")
+					else
+						ISAWC.Volumelist[v] = volume
+						ISAWC:Log("Added \""..v.."\" into the custom volume list.")
 					end
 				end
 			end
-			ISAWC:SaveInventory(ply)
 		end
 	end
-end,nil,"Usage: isawc_volumelist <model/class1> <vol1> <model/class2> <vol2> ...")
+})
 
 ISAWC.Countlist = ISAWC.Countlist or {}
-concommand.Add("isawc_amountlist",function(ply,cmd,args)
-	if IsValid(ply) and not ply:IsAdmin() then
-		ISAWC:Log("Access denied.")
-	else
-		if #args==0 then
-			ISAWC:Log("The custom amount list is as follows: {")
-			for k,v in pairs(ISAWC.Countlist) do
-				ISAWC:Log("\t"..string.format("%q=%u",k,v)..",")
-			end
-			ISAWC:Log("}")
-			ISAWC:Log("")
-			ISAWC:Log("Use \"isawc_amountlist <model/class1> <amount1> <model/class2> <amount2> ...\" to update or add a class into the list. \z
-			If amount is -1, it will be removed from the list instead.")
-			ISAWC:Log("Use \"isawc_amountlist *\" to clear the list.")
-			ISAWC:Log("Note that the \"isawc_pickup_amountmul\" ConVar still affects the picked up entities.")
+ISAWC:CreateListConCommand("isawc_countlist", {
+	display = "The custom count list is as follows: ",
+	display_table = ISAWC.Countlist,
+	display_function = function(k,v)
+		ISAWC:Log("\t"..string.format("%q=%u",k,v)..",")
+	end,
+	purpose = "Adds and removes entity classes or models from the custom count list. Can be used to change the amount of slots needed to store an entity.",
+	help = {
+		"Use \"isawc_countlist <model/class1> <count1> <model/class2> <count2> ...\" to update or add a class into the list. \z
+		If amount is -1, it will be removed from the list instead.",
+		"Use \"isawc_countlist *\" to clear the list.",
+		"Note that the \"isawc_pickup_countmul\" ConVar still affects the picked up entities."
+	},
+	help_small = "Usage: isawc_countlist <model/class1> <count1> <model/class2> <count2> ...",
+	exe = function(args)
+		if args[1]=="*" then
+			table.Empty(ISAWC.Countlist)
+			ISAWC:Log("Removed everything from the custom amount list.")
+		elseif #args%2~=0 then
+			ISAWC:Log("Usage: isawc_countlist <model/class1> <count1> <model/class2> <count2> ...")
 		else
-			if args[1]=="*" then
-				table.Empty(ISAWC.Countlist)
-				ISAWC:Log("Removed everything from the custom amount list.")
-			elseif #args%2~=0 then
-				ISAWC:Log("Usage: isawc_amountlist <model/class1> <amount1> <model/class2> <amount2> ...")
-			else
-				for i,v in ipairs(args) do
-					if i%2==1 then
-						v = v:lower()
-						local amount = tonumber(args[i+1])
-						if (not amount or amount < 0) then
-							ISAWC.Countlist[v] = nil
-							ISAWC:Log("Removed \""..v.."\" from the custom amount list.")
-						elseif ISAWC.Countlist[v] then
-							ISAWC.Countlist[v] = amount
-							ISAWC:Log("Updated \""..v.."\" in the custom amount list.")
-						else
-							ISAWC.Countlist[v] = amount
-							ISAWC:Log("Added \""..v.."\" into the custom amount list.")
-						end
+			for i,v in ipairs(args) do
+				if i%2==1 then
+					v = v:lower()
+					local amount = tonumber(args[i+1])
+					if (not amount or amount < 0) then
+						ISAWC.Countlist[v] = nil
+						ISAWC:Log("Removed \""..v.."\" from the custom amount list.")
+					elseif ISAWC.Countlist[v] then
+						ISAWC.Countlist[v] = amount
+						ISAWC:Log("Updated \""..v.."\" in the custom amount list.")
+					else
+						ISAWC.Countlist[v] = amount
+						ISAWC:Log("Added \""..v.."\" into the custom amount list.")
 					end
 				end
 			end
-			ISAWC:SaveInventory(ply)
 		end
 	end
-end,nil,"Usage: isawc_amountlist <model/class1> <amount1> <model/class2> <amount2> ...")
+})
 
 ISAWC.ConAllowDelete = CreateConVar("isawc_allow_delete","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "Enables players to delete props that they've picked up.")
 
-ISAWC.ConOverride = CreateConVar("isawc_use_forcepickup","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConOverride = CreateConVar("isawc_use_forcepickup","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "Ignores other potential return values from hooks it calls.\
 Tick this option if you can't pick up items in other gamemodes.")
 
@@ -427,28 +477,13 @@ ISAWC.ConVolMul3 = CreateConVar("isawc_pickup_volumemul","1",FCVAR_ARCHIVE+FCVAR
 "Sets the volume multiplier for all picked up items.\
 If you want to set the volume of individual items, see the isawc_volumelist ConCommand.")
 
-ISAWC.ConCount3 = CreateConVar("isawc_pickup_amountmul","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConCount3 = CreateConVar("isawc_pickup_countmul","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "Sets the amount multiplier for all picked up items.\
-If you want to set the amount for individual items, see the isawc_amountlist ConCommand.\
+If you want to set the amount for individual items, see the isawc_countlist ConCommand.\
 Note that decimal values are rounded down within inventories, which can lead to confusion.")
 
 ISAWC.ConDeathRemoveDelay = CreateConVar("isawc_player_deathdroptime","10",FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "Sets the amount of time to wait before removing the box players drop upon death, after being emptied.")
-
-concommand.Add("isawc_container_clearcache",function(ply,cmd,args)
-	if IsValid(ply) and not ply:IsAdmin() then
-		ISAWC:Log("Access denied.")
-	else
-		for k,v in pairs(file.Find("isawc_containers/*.dat","DATA")) do
-			file.Delete("isawc_containers/"..v)
-		end
-		for k,v in pairs(ents.GetAll()) do
-			if (IsValid(v) and v.Base=="isawc_container_base") then
-				ISAWC:SaveContainerInventory(v)
-			end
-		end
-	end
-end)
 
 ISAWC.ConSpawnDelay = CreateConVar("isawc_spawn_delay","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "Sets the minimum delay between inventory item spawns by players.")
@@ -476,75 +511,182 @@ local function BasicAutoComplete(cmd, argStr)
 	return possibilities
 end
 
+local clearcachemessage = "Clears inventories saved from Alternate Saving. Containers that aren't presently in the map will have their contents wiped out."
 if SERVER then
-	concommand.Add("isawc_reset_convars",function(ply,cmd,args,argStr)
-		for k,v in pairs(ISAWC) do
-			if TypeID(v)==TYPE_CONVAR then
-				v:SetString(v:GetDefault())
-			end
-		end
-	end)
-	
-	concommand.Add("isawc_copy",function(ply,cmd,args,argStr)
-		if IsValid(ply) and not ply:IsAdmin() then
-			ISAWC:Log("Access denied.")
-		else
-			if #args==0 then
-				ISAWC:Log("Usage: isawc_copy <player>")
+	ISAWC:AddConCommand("isawc_container_clearcache", {
+		exec = function(ply,cmd,args)
+			if IsValid(ply) and not ply:IsAdmin() then
+				ISAWC:Log("Access denied.")
 			else
-				local success = false
-				for k,v in pairs(player.GetAll()) do
-					if v:Nick() == argStr then
-						success = true
-						if ply == v then
-							ISAWC:Log("You can't copy your own inventory!")
-						else
-							table.Empty(ply.ISAWC_Inventory)
-							for i2,v2 in ipairs(v.ISAWC_Inventory) do
-								table.insert(ply.ISAWC_Inventory, v2)
-							end
-							ISAWC:Log("You have copied the inventory of " .. argStr .. " into your inventory.")
-						end
-						break
+				for k,v in pairs(file.Find("isawc_containers/*.dat","DATA")) do
+					file.Delete("isawc_containers/"..v)
+				end
+				for k,v in pairs(ents.GetAll()) do
+					if (IsValid(v) and v.Base=="isawc_container_base") then
+						ISAWC:SaveContainerInventory(v)
 					end
 				end
-				if not success then
-					ISAWC:Log("Can't find player \"" .. argStr .. "\".")
+			end
+		end,
+		help = clearcachemessage
+	})
+	
+	ISAWC:AddConCommand("isawc_reset_convars", {
+		exec = function(ply,cmd,args,argStr)
+			for k,v in pairs(ISAWC) do
+				if TypeID(v)==TYPE_CONVAR then
+					v:Revert()
 				end
 			end
-		end
-	end, BasicAutoComplete, "Usage: isawc_copy <player>")
+		end,
+		help = "Sets all ConVars to their default values."
+	})
 	
-	concommand.Add("isawc_paste",function(ply,cmd,args,argStr)
-		if IsValid(ply) and not ply:IsAdmin() then
-			ISAWC:Log("Access denied.")
-		else
-			if #args==0 then
-				ISAWC:Log("Usage: isawc_paste <player>")
+	ISAWC:AddConCommand("isawc_copy", {
+		exec = function(ply,cmd,args,argStr)
+			if IsValid(ply) and not ply:IsAdmin() then
+				ISAWC:Log("Access denied.")
 			else
-				local success = false
-				for k,v in pairs(player.GetAll()) do
-					if v:Nick() == argStr then
-						success = true
-						if ply == v then
-							ISAWC:Log("You can't paste into your own inventory!")
-						else
-							table.Empty(v.ISAWC_Inventory)
-							for i2,v2 in ipairs(ply.ISAWC_Inventory) do
-								table.insert(v.ISAWC_Inventory, v2)
+				if #args==0 then
+					ISAWC:Log("Usage: isawc_copy <player>")
+				else
+					local success = false
+					for k,v in pairs(player.GetAll()) do
+						if v:Nick() == argStr then
+							success = true
+							if ply == v then
+								ISAWC:Log("You can't copy your own inventory!")
+							else
+								table.Empty(ply.ISAWC_Inventory)
+								for i2,v2 in ipairs(v.ISAWC_Inventory) do
+									table.insert(ply.ISAWC_Inventory, v2)
+								end
+								ISAWC:Log("You have copied the inventory of " .. argStr .. " into your inventory.")
 							end
-							ISAWC:Log("You have pasted your inventory into the inventory of " .. argStr .. ".")
+							break
 						end
-						break
+					end
+					if not success then
+						ISAWC:Log("Can't find player \"" .. argStr .. "\".")
 					end
 				end
-				if not success then
-					ISAWC:Log("Can't find player \"" .. argStr .. "\".")
+			end
+		end,
+		autocomplete = BasicAutoComplete,
+		help = "Copies a player's inventory into your inventory.",
+		help_small = "Usage: isawc_copy <player>"
+	})
+	
+	ISAWC:AddConCommand("isawc_paste", {
+		exec = function(ply,cmd,args,argStr)
+			if IsValid(ply) and not ply:IsAdmin() then
+				ISAWC:Log("Access denied.")
+			else
+				if #args==0 then
+					ISAWC:Log("Usage: isawc_paste <player>")
+				else
+					local success = false
+					for k,v in pairs(player.GetAll()) do
+						if v:Nick() == argStr then
+							success = true
+							if ply == v then
+								ISAWC:Log("You can't paste into your own inventory!")
+							else
+								table.Empty(v.ISAWC_Inventory)
+								for i2,v2 in ipairs(ply.ISAWC_Inventory) do
+									table.insert(v.ISAWC_Inventory, v2)
+								end
+								ISAWC:Log("You have pasted your inventory into the inventory of " .. argStr .. ".")
+							end
+							break
+						end
+					end
+					if not success then
+						ISAWC:Log("Can't find player \"" .. argStr .. "\".")
+					end
 				end
 			end
-		end
-	end, BasicAutoComplete, "Usage: isawc_paste <player>")
+		end,
+		autocomplete = BasicAutoComplete,
+		help = "Pastes your inventory into another player's inventory.",
+		help_small = "Usage: isawc_paste <player>"
+	})
 end
+
+ISAWC.CachedConVars = nil
+ISAWC.GetConVarList = function()
+	if not ISAWC.CachedConVars then
+		ISAWC.CachedConVars = {}
+		for k,v in pairs(ISAWC) do
+			if TypeID(v) == TYPE_CONVAR then
+				ISAWC.CachedConVars[v:GetName()] = v
+			end
+		end
+	end
+	return ISAWC.CachedConVars
+end
+
+ISAWC:AddConCommand("isawc_help", {
+	exec = function(ply,cmd,args,argStr)
+		if not ply:IsAdmin() and ply.ISAWC_HelpCooldown > RealTime() then
+			ISAWC:NoPickup(string.format("You need to wait for %.2f seconds before calling this command again!", ply.ISAWC_HelpCooldown - RealTime()), ply)
+		else
+			ply.ISAWC_HelpCooldown = RealTime() + 10
+			if #args==0 then
+				ISAWC:Log("The list of ConVars is as follows: {")
+				for k,v in SortedPairs(ISAWC:GetConVarList()) do
+					ISAWC:Log(string.format("\t%q = %s,",k,v:GetString()))
+				end
+				ISAWC:Log("}")
+				ISAWC:Log("The list of ConCommands is as follows: {")
+				for k,v in SortedPairs(ISAWC.ConCommands) do
+					ISAWC:Log(string.format("\t%q,",k))
+				end
+				ISAWC:Log("}")
+				ISAWC:Log("Usage: isawc_help <command>")
+			else
+				argStr = string.Trim(argStr)
+				local success = false
+				for k,v in SortedPairs(ISAWC:GetConVarList()) do
+					if argStr == k then
+						ISAWC:Log(string.format("%s (Console Variable, Current = %s, Default = %s)\n%s", k, v:GetString(), v:GetDefault(), v:GetHelpText()))
+						success = true
+						break
+					end
+				end
+				if not success then
+					for k,v in SortedPairs(ISAWC.ConCommands) do
+						if argStr == k then
+							ISAWC:Log(argStr.." (Console Command)\n"..v)
+							success = true
+							break
+						end
+					end
+				end
+				if not success then
+					ISAWC:Log("The ConVar / ConCommand \""..argStr.."\" does not exist within ISAWC.")
+				end
+			end
+		end
+	end,
+	autocomplete = function(cmd, argStr)
+		argStr = string.Trim(argStr)
+		local possibilities = {}
+		for k,v in SortedPairs(ISAWC:GetConVarList()) do
+			if string.StartWith(k, argStr) then
+				table.insert(possibilities, cmd .. ' ' .. k)
+			end
+		end
+		for k,v in SortedPairs(ISAWC.ConCommands) do
+			if string.StartWith(k, argStr) then
+				table.insert(possibilities, cmd .. ' ' .. k)
+			end
+		end
+		return possibilities
+	end,
+	help = "Shows a list of ISAWC ConVars and ConCommands, or a help topic about one of them.",
+	help_small = "Usage: isawc_help <command>"
+})
 
 if CLIENT then
 
@@ -566,46 +708,65 @@ if CLIENT then
 	
 	ISAWC.ConHideNotifSound = CreateClientConVar("isawc_hide_notificationsound","0",true,false,
 	"Stops the annoying buzzer sound from playing every time you fail to pick up an item.")
+
+	ISAWC.ConPermaConnectorHUD = CreateClientConVar("isawc_always_showconnectorhud","0",true,false,
+	"Shows links between containers and Inventory Exporters to other containers you own, even if the ISAWC MultiConnector SWEP is not equipped.")
 	
-	concommand.Add("isawc_activate_inventory_menu",function(ply,cmd,args)
-		ISAWC:BuildInventory()
-	end,nil,"Opens the inventory.")
+	ISAWC:AddConCommand("isawc_activate_inventory_menu", {
+		exec = function(ply,cmd,args)
+			ISAWC:BuildInventory()
+		end,
+		help = "Opens the inventory."
+	})
 	
-	concommand.Add("isawc_inventory",function(ply,cmd,args)
-		ISAWC:BuildInventory()
-	end,nil,"Opens the inventory.")
+	ISAWC:AddConCommand("isawc_inventory", {
+		exec = function(ply,cmd,args)
+			ISAWC:BuildInventory()
+		end,
+		help = "Opens the inventory."
+	})
 	
-	concommand.Add("+isawc_inventory",function(ply,cmd,args)
-		if IsValid(ISAWC.TempWindow) then
-			ISAWC.TempWindow:Show()
-			ISAWC.TempWindow:RequestFocus()
-		else
-			ISAWC.TempWindow = ISAWC:BuildInventory()
-		end
-	end,nil,"Opens the inventory.")
+	ISAWC:AddConCommand("+isawc_inventory", {
+		exec = function(ply,cmd,args)
+			if IsValid(ISAWC.TempWindow) then
+				ISAWC.TempWindow:Show()
+				ISAWC.TempWindow:RequestFocus()
+			else
+				ISAWC.TempWindow = ISAWC:BuildInventory()
+			end
+		end,
+		help = "Opens the inventory."
+	})
 	
-	concommand.Add("-isawc_inventory",function(ply,cmd,args)
-		if IsValid(ISAWC.TempWindow) then
-			ISAWC.TempWindow:Hide()
-			ISAWC.TempWindow:KillFocus()
-		end
-	end,nil,"Closes the inventory.")
+	ISAWC:AddConCommand("-isawc_inventory", {
+		exec = function(ply,cmd,args)
+			if IsValid(ISAWC.TempWindow) then
+				ISAWC.TempWindow:Hide()
+				ISAWC.TempWindow:KillFocus()
+			end
+		end,
+		help = "Closes the inventory."
+	})
 
 end
 
 ISAWC.AddToolMenuTabs = function()
-	spawnmenu.AddToolTab("Options")
+	spawnmenu.AddToolTab("ISAWC")
 end
 
 ISAWC.AddToolMenuCategories = function()
-	spawnmenu.AddToolCategory("Options","ISAWC","ISAWC")
+	spawnmenu.AddToolCategory("ISAWC","client","Client")
+	spawnmenu.AddToolCategory("ISAWC","server","Server")
 end
 
 ISAWC.PopulateToolMenu = function()
-	spawnmenu.AddToolMenuOption("Options","ISAWC","ISAWC_Options","Options","","",ISAWC.PopulateDForm)
+	spawnmenu.AddToolMenuOption("ISAWC","client","isawc_client","General","","",ISAWC.PopulateDFormClient)
+	spawnmenu.AddToolMenuOption("ISAWC","server","isawc_general","General","","",ISAWC.PopulateDFormGeneral)
+	spawnmenu.AddToolMenuOption("ISAWC","server","isawc_multipliers","Scaling","","",ISAWC.PopulateDFormMultipliers)
+	spawnmenu.AddToolMenuOption("ISAWC","server","isawc_others","Various Others","","",ISAWC.PopulateDFormOthers)
 end
 
-ISAWC.PopulateDForm = function(DForm)
+ISAWC.PopulateDFormClient = function(DForm)
 	DForm:Help("") --whitespace
 	DForm:ControlHelp("Clientside Settings")
 	
@@ -640,7 +801,11 @@ ISAWC.PopulateDForm = function(DForm)
 	DForm:Help(" - "..ISAWC.ConHideNotifs:GetHelpText().."\n")
 	DForm:CheckBox("Disable Notification Sound",ISAWC.ConHideNotifSound:GetName())
 	DForm:Help(" - "..ISAWC.ConHideNotifSound:GetHelpText().."\n")
-	
+	DForm:CheckBox("Always Show Connections",ISAWC.ConPermaConnectorHUD:GetName())
+	DForm:Help(" - "..ISAWC.ConPermaConnectorHUD:GetHelpText().."\n")
+end
+
+ISAWC.PopulateDFormGeneral = function(DForm)
 	DForm:Help("") --whitespace
 	DForm:ControlHelp("General Settings")
 	DForm:NumberWang("Use Realistic Volumes",ISAWC.ConReal:GetName(),0,2)
@@ -665,6 +830,8 @@ ISAWC.PopulateDForm = function(DForm)
 	DForm:Help(" - "..ISAWC.ConSaveTable:GetHelpText().."\n")
 	DForm:CheckBox("Use Item Whitelist",ISAWC.ConUseWhitelist:GetName())
 	DForm:Help(" - "..ISAWC.ConUseWhitelist:GetHelpText().."\n")
+	DForm:CheckBox("Use Inventory Exporter Whitelist",ISAWC.ConUseExportWhitelist:GetName())
+	DForm:Help(" - "..ISAWC.ConUseExportWhitelist:GetHelpText().."\n")
 	DForm:CheckBox("Strictly VPhysics Props",ISAWC.ConVPhysicsOnly:GetName())
 	DForm:Help(" - "..ISAWC.ConVPhysicsOnly:GetHelpText().."\n")
 	DForm:CheckBox("Suppress All Notifications (Global)",ISAWC.ConHideNotifsG:GetName())
@@ -673,7 +840,9 @@ ISAWC.PopulateDForm = function(DForm)
 	DForm:Help(" - "..ISAWC.ConOverride:GetHelpText().."\n")
 	DForm:CheckBox("Hide Pickup Fail Events",ISAWC.ConPickupDenyLogs:GetName())
 	DForm:Help(" - "..ISAWC.ConPickupDenyLogs:GetHelpText().."\n")
-	
+end
+
+ISAWC.PopulateDFormMultipliers = function(DForm)
 	DForm:Help("") --whitespace
 	DForm:ControlHelp("Pickup Multipliers")
 	DForm:NumSlider("Mass Multiplier",ISAWC.ConMassMul3:GetName(),0,10,3)
@@ -682,23 +851,6 @@ ISAWC.PopulateDForm = function(DForm)
 	DForm:Help(" - "..ISAWC.ConVolMul3:GetHelpText().."\n")
 	DForm:NumSlider("Amount Multiplier",ISAWC.ConCount3:GetName(),0,10,3)
 	DForm:Help(" - "..ISAWC.ConCount3:GetHelpText().."\n")
-	
-	DForm:Help("") --whitespace
-	DForm:ControlHelp("Player Options")
-	DForm:NumSlider("Pickup Delay",ISAWC.ConDelay:GetName(),0,100,2)
-	DForm:Help(" - "..ISAWC.ConDelay:GetHelpText().."\n")
-	DForm:NumSlider("Drop Delay",ISAWC.ConSpawnDelay:GetName(),0,100,2)
-	DForm:Help(" - "..ISAWC.ConSpawnDelay:GetHelpText().."\n")
-	DForm:NumSlider("Max Pickup Distance",ISAWC.ConDistance:GetName(),0,1024,1)
-	DForm:Help(" - "..ISAWC.ConDistance:GetHelpText().."\n")
-	DForm:NumSlider("Distance from Obstructions",ISAWC.ConDistBefore:GetName(),0,1024,1)
-	DForm:Help(" - "..ISAWC.ConDistBefore:GetHelpText().."\n")
-	DForm:CheckBox("Drop Inventory On Death",ISAWC.ConDropOnDeath:GetName())
-	DForm:Help(" - "..ISAWC.ConDropOnDeath:GetHelpText().."\n")
-	DForm:CheckBox("Save Player Inventories",ISAWC.ConDoSave:GetName())
-	DForm:Help(" - "..ISAWC.ConDoSave:GetHelpText().."\n")
-	DForm:CheckBox("Admin Can Pickup Any",ISAWC.ConAdminOverride:GetName())
-	DForm:Help(" - "..ISAWC.ConAdminOverride:GetHelpText().."\n")
 	
 	DForm:Help("") --whitespace
 	DForm:ControlHelp("Player Multipliers")
@@ -710,23 +862,6 @@ ISAWC.PopulateDForm = function(DForm)
 	DForm:Help(" - "..ISAWC.ConCount:GetHelpText().."\n")
 	--DForm:NumSlider("Max Items per Stack",ISAWC.ConStackLimit:GetName(),0,1024,0)
 	--DForm:Help(" - "..ISAWC.ConStackLimit:GetHelpText().."\n")
-	
-	DForm:Help("") --whitespace
-	DForm:ControlHelp("Container Options")
-	DForm:NumberWang("Hyperactive Containers",ISAWC.ConDragAndDropOntoContainer:GetName(),0,2)
-	DForm:Help(" - "..ISAWC.ConDragAndDropOntoContainer:GetHelpText().."\n")
-	DForm:CheckBox("Always Openable By Everyone",ISAWC.ConAlwaysPublic:GetName())
-	DForm:Help(" - "..ISAWC.ConAlwaysPublic:GetHelpText().."\n")
-	DForm:CheckBox("Drop Inventory On Remove",ISAWC.ConDropOnDeathContainer:GetName())
-	DForm:Help(" - "..ISAWC.ConDropOnDeathContainer:GetHelpText().."\n")
-	DForm:NumSlider("Health Multiplier",ISAWC.ConAutoHealth:GetName(),0,10,3)
-	DForm:Help(" - "..ISAWC.ConAutoHealth:GetHelpText().."\n")
-	DForm:NumSlider("Health Regen",ISAWC.ConContainerRegen:GetName(),-100,100,2)
-	DForm:Help(" - "..ISAWC.ConContainerRegen:GetHelpText().."\n")
-	DForm:CheckBox("Use Alternate Saving",ISAWC.ConSaveIntoFile:GetName())
-	DForm:Help(" - "..ISAWC.ConSaveIntoFile:GetHelpText().."\n")
-	DForm:Button("Clear Save Cache (Admin Only)","isawc_container_clearcache")
-	DForm:Help(" - Clears inventories saved from Alternate Saving. Containers that aren't presently in the map will have their contents wiped out.\n")
 	
 	DForm:Help("") --whitespace
 	DForm:ControlHelp("Containers' Multipliers")
@@ -747,6 +882,42 @@ ISAWC.PopulateDForm = function(DForm)
 	DForm:Help(" - "..ISAWC.ConConstMass:GetHelpText().."\n")
 	DForm:NumSlider("Player Max Volume (dm³)",ISAWC.ConConstVol:GetName(),0,1024,1)
 	DForm:Help(" - "..ISAWC.ConConstVol:GetHelpText().."\n")
+end
+
+ISAWC.PopulateDFormOthers = function(DForm)
+	DForm:Help("") --whitespace
+	DForm:ControlHelp("Player Options")
+	DForm:NumSlider("Pickup Delay",ISAWC.ConDelay:GetName(),0,100,2)
+	DForm:Help(" - "..ISAWC.ConDelay:GetHelpText().."\n")
+	DForm:NumSlider("Drop Delay",ISAWC.ConSpawnDelay:GetName(),0,100,2)
+	DForm:Help(" - "..ISAWC.ConSpawnDelay:GetHelpText().."\n")
+	DForm:NumSlider("Max Pickup Distance",ISAWC.ConDistance:GetName(),0,1024,1)
+	DForm:Help(" - "..ISAWC.ConDistance:GetHelpText().."\n")
+	DForm:NumSlider("Distance from Obstructions",ISAWC.ConDistBefore:GetName(),0,1024,1)
+	DForm:Help(" - "..ISAWC.ConDistBefore:GetHelpText().."\n")
+	DForm:CheckBox("Drop Inventory On Death",ISAWC.ConDropOnDeath:GetName())
+	DForm:Help(" - "..ISAWC.ConDropOnDeath:GetHelpText().."\n")
+	DForm:CheckBox("Save Player Inventories",ISAWC.ConDoSave:GetName())
+	DForm:Help(" - "..ISAWC.ConDoSave:GetHelpText().."\n")
+	DForm:CheckBox("Admin Can Pickup Any",ISAWC.ConAdminOverride:GetName())
+	DForm:Help(" - "..ISAWC.ConAdminOverride:GetHelpText().."\n")
+	
+	DForm:Help("") --whitespace
+	DForm:ControlHelp("Container Options")
+	DForm:NumberWang("Hyperactive Containers",ISAWC.ConDragAndDropOntoContainer:GetName(),0,2)
+	DForm:Help(" - "..ISAWC.ConDragAndDropOntoContainer:GetHelpText().."\n")
+	DForm:CheckBox("Always Openable By Everyone",ISAWC.ConAlwaysPublic:GetName())
+	DForm:Help(" - "..ISAWC.ConAlwaysPublic:GetHelpText().."\n")
+	DForm:CheckBox("Drop Inventory On Remove",ISAWC.ConDropOnDeathContainer:GetName())
+	DForm:Help(" - "..ISAWC.ConDropOnDeathContainer:GetHelpText().."\n")
+	DForm:NumSlider("Health Multiplier",ISAWC.ConAutoHealth:GetName(),0,10,3)
+	DForm:Help(" - "..ISAWC.ConAutoHealth:GetHelpText().."\n")
+	DForm:NumSlider("Health Regen",ISAWC.ConContainerRegen:GetName(),-100,100,2)
+	DForm:Help(" - "..ISAWC.ConContainerRegen:GetHelpText().."\n")
+	DForm:CheckBox("Use Alternate Saving",ISAWC.ConSaveIntoFile:GetName())
+	DForm:Help(" - "..ISAWC.ConSaveIntoFile:GetHelpText().."\n")
+	DForm:Button("Clear Save Cache (Admin Only)","isawc_container_clearcache")
+	DForm:Help(" - "..clearcachemessage.."\n")
 	
 	DForm:Help("") --whitespace
 	DForm:ControlHelp("Miscellaneous")
@@ -1603,7 +1774,7 @@ end
 ISAWC.GetClientInventory = function(self,ply)
 	local nt = {}
 	for k,v in pairs(ply.ISAWC_Inventory or {}) do
-		if next(v.Entities) then
+		if next(v.Entities or {}) then
 			nt[k] = self:GetModelsFromDupeTable(v)
 		else
 			ply.ISAWC_Inventory[k] = nil
@@ -1755,6 +1926,33 @@ ISAWC.NoPickup = function(self,msg,ply)
 	end
 end
 
+ISAWC.RemoveRecursions = function(self,tab,done)
+	if not istable(tab) then return false end
+	
+	if not done then
+		done = {}
+	elseif done[tab] then
+		done[tab] = done[tab] + 1
+	else
+		done[tab] = 0
+	end
+	
+	local recursive = false
+	for k,v in pairs(tab) do
+		if istable(v) then
+			if (done[tab] or 0) > 8 then
+				tab[k] = nil
+				recursive = true
+			else
+				recursive = recursive or self:RemoveRecursions(v,done)
+			end
+		end
+	end
+	done[tab] = nil
+	
+	return recursive
+end
+
 ISAWC.SaveInventory = function(self,ply)
 	local data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "")) or {}
 	data.Blacklist = self.Blacklist or {}
@@ -1765,6 +1963,9 @@ ISAWC.SaveInventory = function(self,ply)
 	data.Countlist = self.Countlist or {}
 	if self.ConDoSave:GetBool() and SERVER and IsValid(ply) and ply:IsPlayer() then
 		data[ply:SteamID()] = ply.ISAWC_Inventory or {}
+	end
+	if self:RemoveRecursions(ply.ISAWC_Inventory) then
+		self:Log("Warning! " .. ply:Nick() .. " had an item with recursive tables! This may cause errors to occur!")
 	end
 	file.Write("isawc_data.dat",util.Compress(util.TableToJSON(data)))
 end
@@ -1777,6 +1978,9 @@ ISAWC.SaveContainerInventory = function(self,container)
 				v.ISAWC_Inventory = container.ISAWC_Inventory
 			end
 		end
+	end
+	if self:RemoveRecursions(container.ISAWC_Inventory) then
+		self:Log("Warning! " .. tostring(container) .. " had an item with recursive tables! This may cause errors to occur!")
 	end
 	if self.ConSaveIntoFile:GetBool() then
 		local data = container.ISAWC_Inventory
@@ -2416,7 +2620,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			end
 		elseif func == "exporter" then
 			local exporter = net.ReadEntity()
-			if IsValid(exporter) and exporter:GetClass()=="isawc_extractor" and exporter:GetOwnerAccountID() == (ply:AccountID() or 0) then
+			if IsValid(exporter) and exporter:GetClass()=="isawc_extractor" and (exporter:GetOwnerAccountID() == (ply:AccountID() or 0) or ply:IsAdmin()) then
 				exporter:SetActiFlags(net.ReadInt(32))
 				exporter:SetSpawnDelay(net.ReadFloat())
 				exporter:SetActiMass(net.ReadFloat())
@@ -2425,11 +2629,10 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			end
 		elseif func == "exporter_disconnect" then
 			local exporter = net.ReadEntity()
-			if IsValid(exporter) and exporter:GetClass()=="isawc_extractor" and exporter:GetOwnerAccountID() == (ply:AccountID() or 0) then
-				exporter:SetStorageEntity(NULL)
-				exporter:SetFileID("")
+			if IsValid(exporter) and exporter:GetClass()=="isawc_extractor" and (exporter:GetOwnerAccountID() == (ply:AccountID() or 0) or ply:IsAdmin()) then
+				exporter:ClearStorageEntities()
 				exporter:SetCollisionGroup(COLLISION_GROUP_NONE)
-				exporter:UpdateWireOutputs()
+				--exporter:UpdateWireOutputs()
 			end
 		else
 			self:Log("Received unrecognised message header \"" .. func .. "\" from " .. ply:Nick() .. ". Assuming data packet corrupted.")
@@ -2570,13 +2773,20 @@ ISAWC.CanPickup = function(self,ply,ent)
 		if ent:IsPlayer() and not passeswlist then self:NoPickup("You can't pick up players!",ply) return false end
 		if ent==game.GetWorld() and not passeswlist then self:NoPickup("You can't pick up worldspawn!",ply) return false end
 		if not ply:IsPlayer() and (class=="isawc_phantomface" or class=="isawc_extractor" or class=="isawc_weighingscale") and not passeswlist then
-			local phrase = class=="isawc_phantomface" and "Inventory Importers" or "Inventory Exporters"
 			if class=="isawc_weighingscale" then
 				self:NoPickup("You can't pick up Weighing Scales!",ply) return false
-			elseif ent:GetFileID()=="" then
-				self:NoPickup("You can't pick up unconnected "..phrase.."!",ply) return false
-			elseif ent:GetContainer()==ply then
-				self:NoPickup("You can't pick up "..phrase.." connected to you!",ply) return false
+			elseif class=="isawc_phantomface" then
+				if ent:GetFileID()=='' then
+					self:NoPickup("You can't pick up unconnected Inventory Importers!",ply) return false
+				elseif ent:GetContainer()==ply then
+					self:NoPickup("You can't pick up Inventory Importers connected to you!",ply) return false
+				end
+			elseif class=="isawc_extractor" then
+				if not ent:HasContainer() then
+					self:NoPickup("You can't pick up unconnected Inventory Exporters!",ply) return false
+				elseif ent:HasContainer(ply) then
+					self:NoPickup("You can't pick up Inventory Exporters connected to you!",ply) return false
+				end
 			end
 		end
 		if SERVER then
