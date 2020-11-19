@@ -120,7 +120,7 @@ function ENT:FireAtEnemy()
 					ROTGB_AddCash(10, self:GetSpawnedTower():GetTowerOwner())
 				end
 				if iscrit then
-					util.ScreenShake(self:GetShootPos(), 4, 20, 0.5, 1024)
+					--util.ScreenShake(self:GetShootPos(), 4, 20, 0.5, 1024)
 					self:EmitSound("phx/epicmetal_hard"..math.random(7)..".wav",75,100,0.5,CHAN_WEAPON)
 					v:ShowCritEffect()
 					--self:EmitSound("phx/epicmetal_hard"..math.random(7)..".wav",75,100,1,CHAN_WEAPON)
@@ -195,7 +195,7 @@ function ENT:FireAtEnemy()
 				self:EmitSound("weapons/pistol/pistol_fire2.wav",60,100,1,CHAN_WEAPON)
 				if iscrit then
 					dmginfo:SetDamageType(DMG_GENERIC)
-					util.ScreenShake(self:GetShootPos(), 4, 20, 0.5, 1024)
+					--util.ScreenShake(self:GetShootPos(), 4, 20, 0.5, 1024)
 					self:EmitSound("phx/epicmetal_hard"..math.random(7)..".wav",75,100,0.5,CHAN_WEAPON)
 				end
 			end

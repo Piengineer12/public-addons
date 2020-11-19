@@ -24,18 +24,18 @@ ENT.rotgb_ShardDamage = 10
 ENT.rotgb_FreezeFireRate = 0.5
 ENT.rotgb_FreezeTime = 1
 ENT.rotgb_SpeedPercent = 1
-ENT.rotgb_FireRateMul = 3
+ENT.rotgb_FireRateMul = 1
 ENT.UpgradeReference = {
 	{
 		Names = {"Snappy Freezing","Thorough Freezing","Snappier Freezing","Pathogenic Freezing","Snappiest Freezing"},
 		Descs = {
 			"Pops one layer when freezing gBalloons.",
-			"gBalloons move 50% slower after frozen, for 10 seconds.",
+			"gBalloons move 50% slower after frozen, for 3 seconds.",
 			"Pops 4 layers when freezing gBalloons.",
 			"Significantly increases freezing rate. Freezes gBalloons that come in contact with frozen gBalloons in this tower's radius.",
-			"Pops 32 layers when freezing gBalloons. Also enables the tower to freeze gBlimps, except for Purple and Rainbow gBlimps. White gBalloons still cannot be frozen.",
+			"Pops 16 layers when freezing gBalloons! White gBalloons still cannot be frozen.",
 		},
-		Prices = {500,750,5000,7500,100000},
+		Prices = {500,850,5000,7500,40000},
 		Funcs = {
 			function(self)
 				self.rotgb_DoFreezeDamage = true
@@ -52,8 +52,7 @@ ENT.UpgradeReference = {
 				self.rotgb_Viral = true
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 280
-				self.rotgb_Intense = true
+				self.AttackDamage = self.AttackDamage + 120
 			end
 		}
 	},
@@ -61,21 +60,22 @@ ENT.UpgradeReference = {
 		Names = {"Greater Influence","Better Coolant","Below Zero","Winds of Antarctica","Ice Sign: Absolute Zero"},
 		Descs = {
 			"Increases freezing range.",
-			"gBalloons are frozen for 50% longer.",
-			"Freezing now causes ALL layers to be frozen. Enables the tower to freeze white gBalloons, but not gBlimps.",
+			"gBalloons are frozen for 50% longer. Enables the tower to freeze white gBalloons, but not gBlimps.",
+			"Freezing now causes ALL layers to be frozen. Enables the tower to freeze gBlimps weaker than Purple gBlimps.",
 			"Every gBalloon in its radius moves 50% slower, even if hidden.",
 			"Once every 30 seconds, shooting at this tower causes ALL gBalloons to move 75% slower for 15 seconds.",
 		},
-		Prices = {250,300,3500,4500,20000},
+		Prices = {200,1250,4000,5000,10000},
 		Funcs = {
 			function(self)
-				self.DetectionRadius = self.DetectionRadius * 1.25
+				self.DetectionRadius = self.DetectionRadius * 1.5
 			end,
 			function(self)
 				self.rotgb_FreezeTime = self.rotgb_FreezeTime * 1.5
+				self.rotgb_FreezeBoost = true
 			end,
 			function(self)
-				self.rotgb_FreezeBoost = true
+				self.rotgb_Intense = true
 			end,
 			function(self)
 				self.rotgb_SpeedSlowdown = true
@@ -92,15 +92,17 @@ ENT.UpgradeReference = {
 			"The Orb of Cold now fires ice shards which pop one layer per shot.",
 			"Ice shards are shot twice as often and pop two layers per shot.",
 			"Ice shards pop four layers per shot and now have infinite range. Will still freeze gBalloons only in its original radius.",
-			"Increases fire rate by 10% for every gBalloon currently in the map.",
+			"Increases fire rate by 1% per RgBE of every gBalloon within range.",
 		},
-		Prices = {200,750,4000,15000,75000},
+		Prices = {400,450,3500,10000,45000},
 		Funcs = {
 			function(self)
+				self.FireRate = self.FireRate * 1.5
 				self.rotgb_FreezeFireRate = self.rotgb_FreezeFireRate * 1.5
 			end,
 			function(self)
-				self.FireRate = self.FireRate * 6
+				self.FireRate = self.FireRate * 4
+				self.rotgb_FireRateMul = self.rotgb_FireRateMul * 4
 				self.UserTargeting = true
 			end,
 			function(self)
@@ -125,13 +127,13 @@ function ENT:DoFreeze(ent)
 		if (not ent:GetBalloonProperty("BalloonWhite") or self.rotgb_FreezeBoost)
 		and (not ent:GetBalloonProperty("BalloonBlimp") or self.rotgb_Intense and ent:GetBalloonProperty("BalloonType")~="gballoon_blimp_purple" and ent:GetBalloonProperty("BalloonType")~="gballoon_blimp_rainbow")
 		or ent:HasRotgBStatusEffect("unimmune") then
-			if self.rotgb_FreezeBoost then
+			if self.rotgb_Intense then
 				ent:Freeze2(self.rotgb_FreezeTime)
 			else
 				ent:Freeze(self.rotgb_FreezeTime)
 			end
 			if self.rotgb_SpeedPercent ~= 1 then
-				ent:Slowdown("ROTGB_ICE_TOWER",self.rotgb_SpeedPercent,10+self.rotgb_FreezeTime)
+				ent:Slowdown("ROTGB_ICE_TOWER",self.rotgb_SpeedPercent,3+self.rotgb_FreezeTime)
 			end
 		else
 			ent:ShowResistEffect(1)
@@ -187,8 +189,12 @@ function ENT:FireFunction(gBalloons)
 		self:SetNWFloat("LastFireTime",CurTime())
 	end
 	if self.rotgb_FireRateBoost then
+		local increment = 0
+		for k,v in pairs(gBalloons) do
+			increment = v:GetRgBE()
+		end
 		self.FireRate = self.FireRate / self.rotgb_FireRateMul
-		self.rotgb_FireRateMul = 6 + #gBalloons * 0.6
+		self.rotgb_FireRateMul = 8 * (1 + increment * 0.01)
 		self.FireRate = self.FireRate * self.rotgb_FireRateMul
 	end
 end

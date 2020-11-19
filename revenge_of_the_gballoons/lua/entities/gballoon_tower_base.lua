@@ -158,12 +158,15 @@ function ENT:PostEntityPaste(ply,ent,tab)
 end
 
 ENT.FireFunction = function() end
+ENT.ROTGB_AcceptInput = ENT.FireFunction
 
 function ENT:AcceptInput(input,activator,caller,data)
 	if input:lower()=="stun" then
 		self:Stun(data or 1)
 	elseif input:lower()=="unstun" then
 		self:UnStun()
+	else
+		self:ROTGB_AcceptInput(input,activator,caller,data)
 	end
 	-- inputs: Pop, Stun, UnStun
 end

@@ -179,7 +179,7 @@ local function AddBalloon(ColumnSheet,class)
 		for i=1,#text do
 			local hue = math.Remap(i,1,#text,0,360)
 			local color = HSVToColor(hue,0.5,1)
-			Label:InsertColorChange(color:Unpack())
+			Label:InsertColorChange(color.r, color.g, color.b)
 			Label:AppendText(text[i])
 		end
 		hasimms = true
@@ -190,7 +190,7 @@ local function AddBalloon(ColumnSheet,class)
 		for i=1,#text do
 			local lum = math.Remap(i,1,#text,1,0.5)
 			local color = HSVToColor(0,0,lum)
-			Label:InsertColorChange(color:Unpack())
+			Label:InsertColorChange(color.r, color.g, color.b)
 			Label:AppendText(text[i])
 		end
 		hasimms = true
@@ -201,7 +201,7 @@ local function AddBalloon(ColumnSheet,class)
 		for i=1,#text do
 			local hue = math.Remap(i,1,#text,0,720)
 			local color = HSVToColor(hue,0.5,1)
-			Label:InsertColorChange(color:Unpack())
+			Label:InsertColorChange(color.r, color.g, color.b)
 			Label:AppendText(text[i])
 		end
 	end

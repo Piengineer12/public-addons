@@ -24,7 +24,6 @@ ENT.rotgb_TurretSpeed = 300
 ENT.rotgb_TurretRange = 256
 ENT.rotgb_CritChance = 0
 ENT.rotgb_CritMul = 5
---ENT.rotgb_CritMulBlimp = 1
 ENT.rotgb_PostMul = 1
 ENT.UpgradeReference = {
 	{
@@ -36,7 +35,7 @@ ENT.UpgradeReference = {
 			"Turrets that are sparking deal decuple (x10) damage!",
 			"Every time a turret hits a gBalloon, gain $10!",
 		},
-		Prices = {150,800,1500,2000,2500},
+		Prices = {150,800,1500,2500,5000},
 		Funcs = {
 			function(self)
 				self.AbilityCooldown = self.AbilityCooldown * 3/4
@@ -90,7 +89,7 @@ ENT.UpgradeReference = {
 	{
 		Names = {"Bigger Bullets","Critical Bullets","Super Bullets","One With The Crits","Real Bangers"},
 		Descs = {
-			"Slightly increases the turrets' damage.",
+			"Considerably increases the turrets' damage.",
 			"Turrets have a 10% chance to critically hit, dealing quintuple (x5) damage and ignoring resistances.",
 			"Critical hits now deal quindecuple (x15) damage instead of quintuple damage.",
 			"Critical hits now deal quinqueseptuagintuple (x75) damage!",

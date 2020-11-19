@@ -24,20 +24,20 @@ ENT.UpgradeReference = {
 	{
 		Names = {"Faster Cycle","Rapid Cycle","Flaring Shot","Hot Hail","Incinerator","Hellfire Hearth"},
 		Descs = {
-			"Fires 10% faster.",
-			"Fires 30% faster.",
+			"Slightly increases attack speed.",
+			"Considerably increases attack speed.",
 			"Attacks deal one additional layer of damage and can pop Gray gBalloons.",
 			"Fires searing hot shots that set their victims on fire.",
 			"All gBalloons within the tower's range get set on fire. Also slightly increases fire damage dealt.",
-			"Once every 60 seconds, shooting at this tower causes it to erupt with a deadly flame, dealing damage to ALL gBalloons regardless of immunities, setting them on fire, and causing them to take tremendously increased damage from fires."
+			"Once every 60 seconds, shooting at this tower causes it to erupt with a deadly flame, dealing damage to ALL gBalloons regardless of immunities, setting them on fire, and causing them to take massively increased damage from fires."
 		},
-		Prices = {100,150,350,1000,5000,15000},
+		Prices = {100,300,1750,4500,5000,15000},
 		Funcs = {
 			function(self)
-				self.FireRate = self.FireRate * 1.1
+				self.FireRate = self.FireRate * 1.5
 			end,
 			function(self)
-				self.FireRate = self.FireRate * 1.3
+				self.FireRate = self.FireRate * 2
 			end,
 			function(self)
 				self.rotgb_CanPopGray = true
@@ -58,16 +58,16 @@ ENT.UpgradeReference = {
 		Names = {"Long Range Bullets","Optical Lens"},
 		Descs = {
 			"Slightly increases tower range.",
-			"Allows the tower to see Hidden gBalloons and slightly increases tower range.",
+			"Allows the tower to see Hidden gBalloons and considerably increases tower range.",
 		},
-		Prices = {125,750},
+		Prices = {100,1250},
 		Funcs = {
 			function(self)
-				self.DetectionRadius = self.DetectionRadius * 1.25
+				self.DetectionRadius = self.DetectionRadius * 1.5
 			end,
 			function(self)
 				self.SeeCamo = true
-				self.DetectionRadius = self.DetectionRadius * 1.25
+				self.DetectionRadius = self.DetectionRadius * 2
 			end
 		}
 	}
@@ -88,7 +88,7 @@ local function SnipeEntity()
 					tracer.Entity:TakeDamage(self.AttackDamage,self,self)
 				end]]
 				if IsValid(ent) and self.rotgb_DoFire then
-					ent:RotgB_Ignite(10, self:GetTowerOwner(), self, 5)
+					ent:RotgB_Ignite(10, self:GetTowerOwner(), self, 8)
 				end
 			end,
 			Damage = self.AttackDamage,
@@ -109,7 +109,7 @@ function ENT:ROTGB_Think()
 		if self.rotgb_DoFireAura then
 			for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
 				if self:ValidTarget(v) then
-					v:RotgB_Ignite(20, self:GetTowerOwner(), self, 5)
+					v:RotgB_Ignite(20, self:GetTowerOwner(), self, 8)
 					--v.FireSusceptibility = (v.FireSusceptibility or 0) + 0.1
 				end
 			end
@@ -135,8 +135,8 @@ function ENT:TriggerAbility()
 		effdata:SetEntity(ent)
 		util.Effect("Explosion",effdata,true,true)
 		ent:TakeDamage(64,self:GetTowerOwner(),self)
-		ent.FireSusceptibility = (ent.FireSusceptibility or 0) + 9
-		ent:RotgB_Ignite(10, self:GetTowerOwner(), self, 15)
+		ent.FireSusceptibility = (ent.FireSusceptibility or 0) + 99
+		ent:RotgB_Ignite(10, self:GetTowerOwner(), self, 16)
 	end
 end
 

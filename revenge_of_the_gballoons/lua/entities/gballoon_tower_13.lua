@@ -36,7 +36,7 @@ ENT.UpgradeReference = {
 			"Three more flamethrowers are added. Also tremendously increases the flamethrowers' direct damage.",
 			"Once every 15 seconds, shooting at this tower ignites ALL gBalloons currently in the map! Also causes them to be poppable by fires for the fire duration."
 		},
-		Prices = {100,250,750,2000,10000,20000},
+		Prices = {100,500,750,1000,10000,20000},
 		Funcs = {
 			function(self)
 				self.rotgb_SpreadAngle = self.rotgb_SpreadAngle * 1.5
@@ -71,8 +71,8 @@ ENT.UpgradeReference = {
 	{
 		Names = {"Second-hand Diesel","Mysterious Diesel","Fresh Fuel","High-Octane gBalloon Fuel","Super Hot Gasoline","Napalm"},
 		Descs = {
-			"Slightly increases burning duration, but considerably reduces fire rate.",
-			"Considerably increases burning duration and slightly increases damage over time. However, fire rate is tremendously reduced.",
+			"Slightly increases burning duration, but slightly reduces fire rate.",
+			"Considerably increases burning duration and slightly increases damage over time. However, fire rate is considerably reduced.",
 			"Slightly increases range and fires now ignore immunities.",
 			"Considerably increases range and fire damage over time.",
 			"All gBlimps take tremendously more fire damage over time! Also considerably increases fire rate.",
@@ -104,7 +104,7 @@ ENT.UpgradeReference = {
 			function(self)
 				self.FireRate = self.FireRate * 3
 				self.InfiniteRange = true
-				self.rotgb_FireDuration = self.rotgb_FireDuration * 1000 -- Not infinite, but close enough.
+				self.rotgb_FireDuration = self.rotgb_FireDuration * 1000
 			end
 		}
 	},
@@ -118,7 +118,7 @@ ENT.UpgradeReference = {
 			"Tremendously increases fire rate, but all flamethrowers are removed. Instead, shrapnel thrown by this tower sets them on fire.",
 			"Tremendously increases shrapnel damage and all gBalloons within range are hit every shot!",
 		},
-		Prices = {200,300,500,750,2000,10000},
+		Prices = {200,500,2000,4000,20000,60000},
 		Funcs = {
 			function(self)
 				self.rotgb_ShrapnelDamage = self.rotgb_ShrapnelDamage + 10
@@ -173,19 +173,9 @@ function ENT:FireFunction(gBalloons)
 				local uDir = v:LocalToWorld(v:OBBCenter())-startpos
 				local bullet = {
 					Attacker = self:GetTowerOwner(),
-					Callback = function(attacker,tracer,dmginfo)
-						dmginfo:SetDamageType(self.rotgb_CanPopGray and DMG_SNIPER or DMG_BULLET)
-						if self:ValidTarget(tracer.Entity) and self.rotgb_FlamingShrapnel then
-							tracer.Entity:RotgB_Ignite(self.rotgb_FireUptick * (v:GetBalloonProperty("BalloonBlimp") and self.rotgb_HeavyFireUptick or 1), self:GetTowerOwner(), self, self.rotgb_FireDuration)
-							if self.rotgb_AltFire then
-								tracer.Entity:InflictRotgBStatusEffect("unimmune_fireonly",self.rotgb_FireDuration)
-							end
-						end
-					end,
-					Damage = self.rotgb_ShrapnelDamage + self.AttackDamage,
+					Damage = 0,
 					Distance = self.InfiniteRange and 32767 or self.DetectionRadius*1.5,
 					HullSize = 1,
-					IgnoreEntity = game.GetWorld(),
 					Num = 1,
 					Tracer = 1,
 					AmmoType = "357",
@@ -194,15 +184,24 @@ function ENT:FireFunction(gBalloons)
 					Src = startpos
 				}
 				self:FireBullets(bullet)
+				local dmginfo = DamageInfo()
+				dmginfo:SetAttacker(self:GetTowerOwner())
+				dmginfo:SetInflictor(self)
+				dmginfo:SetDamage(self.rotgb_ShrapnelDamage + self.AttackDamage)
+				dmginfo:SetDamageType(self.rotgb_CanPopGray and DMG_SNIPER or DMG_BULLET)
+				v:TakeDamageInfo(dmginfo)
+				if self.rotgb_FlamingShrapnel then
+					v:RotgB_Ignite(self.rotgb_FireUptick * (v:GetBalloonProperty("BalloonBlimp") and self.rotgb_HeavyFireUptick or 1), self:GetTowerOwner(), self, self.rotgb_FireDuration)
+					if self.rotgb_AltFire then
+						v:InflictRotgBStatusEffect("unimmune_fireonly",self.rotgb_FireDuration)
+					end
+				end
 			end
 		elseif IsValid(towerTarget) then
 			local uDir = towerTarget:LocalToWorld(towerTarget:OBBCenter())-startpos
 			local bullet = {
 				Attacker = self:GetTowerOwner(),
-				Callback = function(attacker,tracer,dmginfo)
-					dmginfo:SetDamageType(self.rotgb_CanPopGray and DMG_SNIPER or DMG_BULLET)
-				end,
-				Damage = self.rotgb_ShrapnelDamage + self.AttackDamage,
+				Damage = 0,
 				Distance = self.InfiniteRange and 32767 or self.DetectionRadius*1.5,
 				HullSize = 1,
 				Num = 1,
@@ -213,6 +212,12 @@ function ENT:FireFunction(gBalloons)
 				Src = startpos
 			}
 			self:FireBullets(bullet)
+			local dmginfo = DamageInfo()
+			dmginfo:SetAttacker(self:GetTowerOwner())
+			dmginfo:SetInflictor(self)
+			dmginfo:SetDamage(self.rotgb_ShrapnelDamage + self.AttackDamage)
+			dmginfo:SetDamageType(self.rotgb_CanPopGray and DMG_SNIPER or DMG_BULLET)
+			towerTarget:TakeDamageInfo(dmginfo)
 		end
 	end
 	--[[for k,v in pairs(gBalloons) do

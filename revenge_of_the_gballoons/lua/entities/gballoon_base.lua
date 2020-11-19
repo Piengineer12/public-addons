@@ -1808,7 +1808,7 @@ function ENT:OnInjured(dmginfo)
 	if dmginfo:GetInflictor():GetClass()~="env_fire" then
 		self.BalloonRegenTime = CurTime()+ConR:GetFloat()
 		dmginfo:SetDamage(math.ceil(dmginfo:GetDamage()*0.1*ConP:GetFloat()))
-		self:Log("About to take "..dmginfo:GetDamage().." damage!","damage")
+		self:Log("About to take "..dmginfo:GetDamage().." damage at "..self:Health().." health!","damage")
 		local resistresults = TestDamageResistances(self.Properties,dmginfo:GetDamageType()--[[,(self.FreezeUntil or 0)>CurTime() or (self.FreezeUntil2 or 0)>CurTime()]])
 		if resistresults and not self:HasRotgBStatusEffect("unimmune") then
 			dmginfo:SetDamage(0)

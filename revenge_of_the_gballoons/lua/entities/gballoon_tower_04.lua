@@ -19,7 +19,7 @@ ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,40)
 ENT.UserTargeting = true
 ENT.AttackDamage = 10
-ENT.rotgb_Spread = 75
+ENT.rotgb_Spread = 60--75
 ENT.rotgb_Shots = 1
 ENT.UpgradeReference = {
 	{
@@ -35,11 +35,10 @@ ENT.UpgradeReference = {
 		Prices = {500,1200,4000,12500,50000,400000},
 		Funcs = {
 			function(self)
-				self.rotgb_Spread = self.rotgb_Spread * 2/3
+				self.rotgb_Spread = self.rotgb_Spread / 1.5
 			end,
 			function(self)
 				self.rotgb_CanPopGray = true
-				--self.AttackDamage = self.AttackDamage + 10
 			end,
 			function(self)
 				self.rotgb_Spread = self.rotgb_Spread * 0.5
@@ -50,12 +49,10 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.FireRate = self.FireRate * 3
-				--self.AttackDamage = self.AttackDamage + 90
 				self.rotgb_UseLaser = 1
 			end,
 			function(self)
 				self.FireRate = self.FireRate / 3
-				--self.AttackDamage = self.AttackDamage - 90
 				self.rotgb_UseLaser = 2
 			end
 		}
@@ -64,13 +61,13 @@ ENT.UpgradeReference = {
 		Names = {"Higher Torque","Bigger Bullets","TripShot","Super High Torque","DodecaShot","A Million Rounds Per Minute"},
 		Descs = {
 			"Slightly increases fire rate.",
-			"Slightly increases damage dealt by each bullet.",
+			"Slightly increases range and damage dealt by each bullet.",
 			"Fires three bullets per shot.",
 			"Considerably increases fire rate.",
 			"Slightly increases bullet spread, but twelve bullets are fired per shot!",
 			"Considerably increases bullet spread, but considerably increases damage dealt by each bullet and sixty bullets are fired per shot!"
 		},
-		Prices = {250,750,3000,4000,12500,30000},
+		Prices = {250,1500,4500,6500,10000,30000},
 		Funcs = {
 			function(self)
 				self.FireRate = self.FireRate * 1.5
@@ -92,7 +89,7 @@ ENT.UpgradeReference = {
 			function(self)
 				self.rotgb_Spread = self.rotgb_Spread * 2
 				self.rotgb_Shots = self.rotgb_Shots * 5
-				self.AttackDamage = self.AttackDamage + 20
+				self.AttackDamage = self.AttackDamage + 10
 			end
 		}
 	}

@@ -29,7 +29,7 @@ ENT.UpgradeReference = {
 			"Enables the tower to pop Black gBalloons, Zebra gBalloons and Monochrome gBlimps.",
 			"Considerably increases the tower's fire rate and shells' speed.",
 			"Tremendously increases fire rate and two shells are fired at once!",
-			"The tower now fires three shells at once and can see Hidden gBalloons! Once every 30 seconds, shooting at this tower colossally increases its fire rate, shells' speed and causes its shots to stun gBalloons for 1 second! Lasts for 10 seconds when activated.",
+			"The tower now fires three shells at once! Once every 30 seconds, shooting at this tower colossally increases its fire rate, shells' speed and causes its shots to stun gBalloons for 1 second! Lasts for 10 seconds when activated.",
 		},
 		Prices = {200,750,2000,15000,100000},
 		Funcs = {
@@ -37,45 +37,50 @@ ENT.UpgradeReference = {
 				self.FireRate = self.FireRate*1.5
 			end,
 			function(self)
-				--self.AttackDamage = self.AttackDamage + 30
 				self.rotgb_RespectPlayers = true
 			end,
 			function(self)
 				self.FireRate = self.FireRate*2
-				--self.DetectionRadius = self.DetectionRadius*1.5
 				self.rotgb_TravelTime = self.rotgb_TravelTime*0.5
 			end,
 			function(self)
 				self.ShellAmt = self.ShellAmt*2
-				--self.AttackDamage = self.AttackDamage + 60
 				self.FireRate = self.FireRate*3
 			end,
 			function(self)
 				self.ShellAmt = self.ShellAmt*1.5
-				self.SeeCamo = true
-				--self.AttackDamage = self.AttackDamage + 90
+				--self.SeeCamo = true
 				self.HasAbility = true
 			end
 		}
 	},
 	{
-		Names = {"Bigger Shells","Longer Cannon","Shell Lobber","Q.U.A.K.E. Shells","Sol Shells"},
+		Names = {"Bigger Shells","Seeking Shells","Longer Cannon","Q.U.A.K.E. Shells","Sol Shells"},--{"Bigger Shells","Longer Cannon","Shell Lobber","Q.U.A.K.E. Shells","Sol Shells"},
 		Descs = {
 			"Slightly increases the shells' explosion radii.",
-			"Slightly increases the tower's range and shells' speed.",
+			"Slightly increases the shells' speed and enables the tower to pop Hidden gBalloons.",
 			"Considerably increases damage and increases range to infinite.",
 			"Tremendously increases the shells' explosion radii and damage.",
 			"Colossally increases damage. Shots will also set gBalloons on fire."
 		},
-		Prices = {200,1000,5000,30000,125000},
+		Prices = {200,1500,6000,40000,175000},--{200,1000,5000,30000,125000},
 		Funcs = {
 			function(self)
 				self.rotgb_ExploRadius = self.rotgb_ExploRadius*1.5
 			end,
 			function(self)
-				self.DetectionRadius = self.DetectionRadius*1.5
+				--self.DetectionRadius = self.DetectionRadius*1.5
 				self.rotgb_TravelTime = self.rotgb_TravelTime/1.5
-				--self.AttackDamage = self.AttackDamage + 10
+				self.SeeCamo = true
+				--[[self:SetModel("models/hunter/tubes/tube1x1x2.mdl")
+				self:PhysicsInit(SOLID_VPHYSICS)
+				if IsValid(self:GetPhysicsObject()) then
+					self:GetPhysicsObject():EnableMotion(false)
+				end]]
+			end,
+			function(self)
+				self.InfiniteRange = true
+				self.AttackDamage = self.AttackDamage + 30
 				self:SetModel("models/hunter/tubes/tube1x1x2.mdl")
 				self:PhysicsInit(SOLID_VPHYSICS)
 				if IsValid(self:GetPhysicsObject()) then
@@ -83,17 +88,10 @@ ENT.UpgradeReference = {
 				end
 			end,
 			function(self)
-				--self.FireRate = self.FireRate*0.5
-				self.InfiniteRange = true
-				self.AttackDamage = self.AttackDamage + 30
-			end,
-			function(self)
-				self.rotgb_ExploRadius = self.rotgb_ExploRadius*3
+				self.rotgb_ExploRadius = self.rotgb_ExploRadius*2 --self.rotgb_ExploRadius = self.rotgb_ExploRadius*3
 				self.AttackDamage = self.AttackDamage + 120
 			end,
 			function(self)
-				--self.rotgb_ExploRadius = self.rotgb_ExploRadius*5
-				--self.rotgb_Heavy = true
 				self.AttackDamage = self.AttackDamage + 720
 				self.rotgb_SetOnFire = true
 			end

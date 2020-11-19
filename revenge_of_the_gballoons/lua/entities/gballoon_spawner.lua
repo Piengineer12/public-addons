@@ -1214,7 +1214,6 @@ function ENT:Use(activator)
 		if self:GetNextWaveTime()>CurTime() or not self:GetForceNextWave() and gBalloonTable:GetgBalloonCount()>0 then
 			ROTGB_AddCash(100*GetConVar("rotgb_cash_mul"):GetFloat())
 		end
-		self:SetSpeedMul(self:GetSpeedMul()>0 and self:GetSpeedMul() or 1) -- needed for older versions of this addon.
 		self:SetNWBool("HasShownUsage",true)
 		local cwave = self:GetWave() or 1
 		if not self:GetWaveTable()[cwave] and GetConVar("rotgb_freeplay"):GetBool() then
@@ -1259,7 +1258,7 @@ function ENT:Use(activator)
 				timeframe = (timeframe or 0) / self:GetSpeedMul()
 				local function layer1()
 					if IsValid(self) then
-						if gBalloonTable:GetgBalloonCount() < GetConVar("rotgb_max_to_exist"):GetInt() then
+						--if gBalloonTable:GetgBalloonCount() < GetConVar("rotgb_max_to_exist"):GetInt() then
 							local SpawnPos = self:GetPos()+Vector(0,0,10)
 							local bln = ents.Create("gballoon_base")
 							if IsValid(bln) then
@@ -1301,13 +1300,13 @@ function ENT:Use(activator)
 									end
 								--end)
 							end
-						else
+						--[[else
 							self:SetNextWaveTime(self:GetNextWaveTime()+1)
 							timer.Pause(timername)
 							timer.Simple(1,function()
 								timer.UnPause(timername)
 							end)
-						end
+						end]]
 					else
 						timer.Remove(timername)
 					end

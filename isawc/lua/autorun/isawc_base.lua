@@ -1,3 +1,10 @@
+ISAWC = ISAWC or {}
+
+ISAWC._VERSION = "2.0.0"
+ISAWC._VERSIONDATE = "2020-10-06"
+
+if SERVER then util.AddNetworkString("isawc_general") end
+
 local color_dark_red_semitransparent = Color(127,0,0,63)
 local color_dark_green_semitransparent = Color(0,127,0,63)
 local color_aqua = Color(0,255,255)
@@ -6,10 +13,6 @@ local color_white_semitransparent = Color(255,255,255,63)
 local color_gray_semitransparent = Color(127,127,127,63)
 local color_black_semiopaque = Color(0,0,0,191)
 local color_black_semitransparent = Color(0,0,0,63)
-
-ISAWC = ISAWC or {}
-
-if SERVER then util.AddNetworkString("isawc_general") end
 
 ISAWC.DoNothing = function()end
 
@@ -98,7 +101,9 @@ ISAWC.ConDistance = CreateConVar("isawc_pickup_maxdistance","128",FCVAR_ARCHIVE+
 If this is 0, the distance limit will not be enforced.")
 
 ISAWC.ConDoSave = CreateConVar("isawc_player_save","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
-"Sets whether all players' inventories are automatically saved or not.")
+"Sets whether players' inventories are saved or not.\
+1: Saves players' inventories periodically (see \"isawc_player_savedelay\") or when they disconnect or die.\
+2: Saves players' inventories whenever their inventory is changed (may caused tremendous lag!)")
 
 ISAWC.ConUndoIntoContain = CreateConVar("isawc_undo_into_container","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "If set, undone spawn groups will be put back into the container it came from, instead of being deleted entirely.")
@@ -135,7 +140,9 @@ ISAWC.CreateListConCommand = function(self, name, data)
 					end
 				else
 					data.exe(args)
-					ISAWC:SaveInventory(ply)
+					if ISAWC.ConDoSave:GetInt() > 1 then
+						ISAWC:SaveInventory(ply)
+					end
 				end
 			end
 		end,
@@ -500,6 +507,10 @@ ISAWC.ConAllowInterConnection = CreateConVar("isawc_allow_interownerconnections"
 ISAWC.ConMinExportDelay = CreateConVar("isawc_export_mindelay", "0.05", FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "Minimum delay between items exported by Inventory Exporters.")
 
+ISAWC.ConDoSaveDelay = CreateConVar("isawc_player_savedelay", "300", FCVAR_ARCHIVE+FCVAR_REPLICATED,
+"Sets the delay between automatic saves for player inventories. No effect when Save Player Inventories (isawc_player_save) is disabled.\
+Note that low values may severely impact performance!")
+
 local function BasicAutoComplete(cmd, argStr)
 	local possibilities = {}
 	local namesearch = argStr:Trim():lower()
@@ -712,27 +723,27 @@ if CLIENT then
 	ISAWC.ConPermaConnectorHUD = CreateClientConVar("isawc_always_showconnectorhud","0",true,false,
 	"Shows links between containers and Inventory Exporters to other containers you own, even if the ISAWC MultiConnector SWEP is not equipped.")
 	
-	ISAWC:AddConCommand("isawc_activate_inventory_menu", {
+	local inventoryOpenTable = {
 		exec = function(ply,cmd,args)
-			ISAWC:BuildInventory()
+			if IsValid(ISAWC.TempWindow2) then
+				ISAWC.TempWindow2:Close()
+			else
+				ISAWC.TempWindow2 = ISAWC:BuildInventory()
+			end
 		end,
 		help = "Opens the inventory."
-	})
+	}
 	
-	ISAWC:AddConCommand("isawc_inventory", {
-		exec = function(ply,cmd,args)
-			ISAWC:BuildInventory()
-		end,
-		help = "Opens the inventory."
-	})
+	ISAWC:AddConCommand("isawc_activate_inventory_menu", inventoryOpenTable)
+	ISAWC:AddConCommand("isawc_inventory", inventoryOpenTable)
 	
 	ISAWC:AddConCommand("+isawc_inventory", {
 		exec = function(ply,cmd,args)
-			if IsValid(ISAWC.TempWindow) then
-				ISAWC.TempWindow:Show()
-				ISAWC.TempWindow:RequestFocus()
+			if IsValid(ISAWC.TempWindow2) then
+				ISAWC.TempWindow2:Show()
+				ISAWC.TempWindow2:RequestFocus()
 			else
-				ISAWC.TempWindow = ISAWC:BuildInventory()
+				ISAWC.TempWindow2 = ISAWC:BuildInventory()
 			end
 		end,
 		help = "Opens the inventory."
@@ -740,9 +751,9 @@ if CLIENT then
 	
 	ISAWC:AddConCommand("-isawc_inventory", {
 		exec = function(ply,cmd,args)
-			if IsValid(ISAWC.TempWindow) then
-				ISAWC.TempWindow:Hide()
-				ISAWC.TempWindow:KillFocus()
+			if IsValid(ISAWC.TempWindow2) then
+				ISAWC.TempWindow2:Hide()
+				ISAWC.TempWindow2:KillFocus()
 			end
 		end,
 		help = "Closes the inventory."
@@ -808,7 +819,10 @@ end
 ISAWC.PopulateDFormGeneral = function(DForm)
 	DForm:Help("") --whitespace
 	DForm:ControlHelp("General Settings")
-	DForm:NumberWang("Use Realistic Volumes",ISAWC.ConReal:GetName(),0,2)
+	local combox = DForm:ComboBox("Use Realistic Volumes",ISAWC.ConReal:GetName())
+	combox:AddChoice("0 - Don't", 0)
+	combox:AddChoice("1 - Outer Box", 1)
+	combox:AddChoice("2 - Outer Sphere", 2)
 	DForm:Help(" - "..ISAWC.ConReal:GetHelpText().."\n")
 	DForm:CheckBox("Allow Item Deletion",ISAWC.ConAllowDelete:GetName())
 	DForm:Help(" - "..ISAWC.ConAllowDelete:GetHelpText().."\n")
@@ -897,14 +911,22 @@ ISAWC.PopulateDFormOthers = function(DForm)
 	DForm:Help(" - "..ISAWC.ConDistBefore:GetHelpText().."\n")
 	DForm:CheckBox("Drop Inventory On Death",ISAWC.ConDropOnDeath:GetName())
 	DForm:Help(" - "..ISAWC.ConDropOnDeath:GetHelpText().."\n")
-	DForm:CheckBox("Save Player Inventories",ISAWC.ConDoSave:GetName())
+	local combox = DForm:ComboBox("Save Player Inventories",ISAWC.ConDoSave:GetName())
+	combox:AddChoice("0 - Don't", 0)
+	combox:AddChoice("1 - Occasionally", 1)
+	combox:AddChoice("2 - Frequently", 2)
 	DForm:Help(" - "..ISAWC.ConDoSave:GetHelpText().."\n")
+	DForm:NumSlider("Auto Save Delay",ISAWC.ConDoSaveDelay:GetName(),1,600,0)
+	DForm:Help(" - "..ISAWC.ConDoSaveDelay:GetHelpText().."\n")
 	DForm:CheckBox("Admin Can Pickup Any",ISAWC.ConAdminOverride:GetName())
 	DForm:Help(" - "..ISAWC.ConAdminOverride:GetHelpText().."\n")
 	
 	DForm:Help("") --whitespace
 	DForm:ControlHelp("Container Options")
-	DForm:NumberWang("Hyperactive Containers",ISAWC.ConDragAndDropOntoContainer:GetName(),0,2)
+	local combox = DForm:ComboBox("Hyperactive Containers",ISAWC.ConDragAndDropOntoContainer:GetName())
+	combox:AddChoice("0 - Don't", 0)
+	combox:AddChoice("1 - Use Touch", 1)
+	combox:AddChoice("2 - Use StartTouch", 2)
 	DForm:Help(" - "..ISAWC.ConDragAndDropOntoContainer:GetHelpText().."\n")
 	DForm:CheckBox("Always Openable By Everyone",ISAWC.ConAlwaysPublic:GetName())
 	DForm:Help(" - "..ISAWC.ConAlwaysPublic:GetHelpText().."\n")
@@ -1175,13 +1197,17 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 		InvPanel:Clear()
 		if next(inv) then
 			for i,v in ipairs(inv) do
-				local enum,info = next(v)
+				--local enum,info = next(v)
+				local info = v
 				if (info and info.Class) then
 					local Item = InvPanel:Add("SpawnIcon")
 					Item:SetSize(64,64)
 					Item:SetModel(info.Model,info.Skin,info.BodyGroups)
 					Item.MdlInfo = info
 					Item:Droppable("ISAWC.ItemMove")
+					if info.Class ~= "prop_physics" and info.Class ~= "prop_ragdoll" then
+						Item:SetTooltip(language.GetPhrase(info.Class))
+					end
 					function Item:SendSignal(msg)
 						if Item.SendIDs then
 							net.Start("isawc_general")
@@ -1261,9 +1287,6 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 						end)
 						Option:SetIcon("icon16/wrench.png")
 						Options:Open()
-					end
-					if info.Class ~= "prop_physics" and info.Class ~= "prop_ragdoll" then
-						Item:SetTooltip(language.GetPhrase(info.Class))
 					end
 					Item.ID = i
 				end
@@ -1472,7 +1495,8 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 		InvRight:Clear()
 		if next(inv1) then
 			for i,v in ipairs(inv1) do
-				local enum,info = next(v)
+				--local enum,info = next(v)
+				local info = v
 				if (info and info.Class) then
 					local Item = InvLeft:Add("SpawnIcon")
 					Item:SetSize(64,64)
@@ -1615,8 +1639,9 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 		end
 		if next(inv2) then
 			for i,v in ipairs(inv2) do
-				local enum,info = next(v)
-				if info then
+				--local enum,info = next(v)
+				local info = v
+				if (info and info.Class) then
 					local Item = InvRight:Add("SpawnIcon")
 					Item:SetSize(64,64)
 					Item:SetModel(info.Model,info.Skin,info.BodyGroups)
@@ -1771,28 +1796,28 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 	
 end
 
-ISAWC.GetClientInventory = function(self,ply)
-	local nt = {}
-	for k,v in pairs(ply.ISAWC_Inventory or {}) do
+ISAWC.WriteClientInventory = function(self,ply)
+	local inv = ply.ISAWC_Inventory or {}
+	net.WriteUInt(#inv, 16)
+	for i,v in ipairs(inv) do
 		if next(v.Entities or {}) then
-			nt[k] = self:GetModelsFromDupeTable(v)
-		else
-			ply.ISAWC_Inventory[k] = nil
+			self:WriteModelFromDupeTable(v)
 		end
 	end
-	return nt
 end
 
-ISAWC.GetModelsFromDupeTable = function(self,dupe)
-	local nt = {}
-	for k,v in pairs(dupe.Entities) do
-		local bodyGroups = "000000000"
-		for k,v in pairs(v.BodyG or {}) do
-			bodyGroups = string.SetChar(bodyGroups,k,v)
-		end
-		nt[k] = {Model=v.Model,Class=v.EntityMods and v.EntityMods.WireName and v.EntityMods.WireName.name~="" and v.EntityMods.WireName.name or v.Name~="" and v.Name or v.name~="" and v.name or v.PrintName~="" and v.PrintName~="Scripted Weapon" and v.PrintName or v.Class,Skin=tonumber(v.Skin),BodyGroups=bodyGroups}
+ISAWC.WriteModelFromDupeTable = function(self,dupe)
+	local ent = dupe.Entities[next(dupe.Entities)]
+	local bodyGroups = "000000000"
+	for k,v in pairs(ent.BodyG or {}) do
+		bodyGroups = string.SetChar(bodyGroups,k,v)
 	end
-	return nt
+	net.WriteString(ent.Model)
+	net.WriteString(ent.EntityMods and ent.EntityMods.WireName and ent.EntityMods.WireName.name~="" and ent.EntityMods.WireName.name
+	or ent.Name~="" and ent.Name or ent.name~="" and ent.name or ent.PrintName~="" and ent.PrintName~="Scripted Weapon" and ent.PrintName
+	or ent.Class)
+	net.WriteUInt(ent.Skin, 16)
+	net.WriteString(bodyGroups)
 end
 
 ISAWC.GetClientStats = function(self,ply)
@@ -1863,9 +1888,12 @@ end
 ISAWC.SendInventory = function(self,ply)
 	net.Start("isawc_general")
 	net.WriteString("inv")
-	local data = util.Compress(util.TableToJSON(self:GetClientInventory(ply)))
+	--[[local data = util.Compress(util.TableToJSON(self:GetClientInventory(ply)))
 	net.WriteUInt(#data,32)
-	net.WriteData(data,#data)
+	net.WriteData(data,#data)]]
+	
+	self:WriteClientInventory(ply)
+	
 	local stats = self:GetClientStats(ply)
 	for i=1,4 do
 		net.WriteFloat(stats[i])
@@ -1880,12 +1908,14 @@ ISAWC.SendInventory2 = function(self,ply,container)
 	if not IsValid(container) then return end
 	net.Start("isawc_general")
 	net.WriteString("inv2")
-	local data1 = util.Compress(util.TableToJSON(self:GetClientInventory(ply)))
-	local data2 = util.Compress(util.TableToJSON(self:GetClientInventory(container)))
+	--[[local data1 = util.Compress(util.TableToJSON(self:WriteClientInventory(ply)))
+	local data2 = util.Compress(util.TableToJSON(self:WriteClientInventory(container)))
 	net.WriteUInt(#data1,32)
 	net.WriteUInt(#data2,32)
 	net.WriteData(data1,#data1)
-	net.WriteData(data2,#data2)
+	net.WriteData(data2,#data2)]]
+	self:WriteClientInventory(ply)
+	self:WriteClientInventory(container)
 	local stats = self:GetClientStats(ply)
 	for i=1,4 do
 		net.WriteFloat(stats[i])
@@ -1955,17 +1985,43 @@ end
 
 ISAWC.SaveInventory = function(self,ply)
 	local data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "")) or {}
+	local steamid
 	data.Blacklist = self.Blacklist or {}
 	data.Whitelist = self.Whitelist or {}
 	data.Stacklist = self.Stacklist or {}
 	data.Masslist = self.Masslist or {}
 	data.Volumelist = self.Volumelist or {}
 	data.Countlist = self.Countlist or {}
-	if self.ConDoSave:GetBool() and SERVER and IsValid(ply) and ply:IsPlayer() then
-		data[ply:SteamID()] = ply.ISAWC_Inventory or {}
+	if isstring(ply) then
+		steamid = ply
+		ply = player.GetBySteamID(ply)
 	end
-	if self:RemoveRecursions(ply.ISAWC_Inventory) then
-		self:Log("Warning! " .. ply:Nick() .. " had an item with recursive tables! This may cause errors to occur!")
+	if (IsValid(ply) and ply:IsPlayer()) then
+		steamid = steamid or ply:SteamID()
+		if steamid then
+			if self.ConDoSave:GetInt() > 0 then
+				if not isstring(ply) and self:RemoveRecursions(ply.ISAWC_Inventory) then
+					self:Log("Warning! " .. (isstring(ply) and ply or ply:Nick()) .. " had an item with recursive tables! This may cause errors to occur!")
+				end
+				data[steamid] = ply.ISAWC_Inventory or {}
+			else
+				data[steamid] = nil
+			end
+		end
+	elseif istable(ply) then
+		for k,v in pairs(ply) do
+			steamid = v:SteamID()
+			if steamid then
+				if self.ConDoSave:GetInt() > 0 then
+					if self:RemoveRecursions(v.ISAWC_Inventory) then
+						self:Log("Warning! " .. v:Nick() .. " had an item with recursive tables! This may cause errors to occur!")
+					end
+					data[steamid] = v.ISAWC_Inventory or {}
+				else
+					data[steamid] = nil
+				end
+			end
+		end
 	end
 	file.Write("isawc_data.dat",util.Compress(util.TableToJSON(data)))
 end
@@ -2000,7 +2056,7 @@ ISAWC.PlayerSpawn = function(ply)
 		ISAWC.Masslist = data.Masslist or ISAWC.Masslist
 		ISAWC.Volumelist = data.Volumelist or ISAWC.Volumelist
 		ISAWC.Countlist = data.Countlist or ISAWC.Countlist
-		if data[ply:SteamID()] and ISAWC.ConDoSave:GetBool() then
+		if data[ply:SteamID()] and ISAWC.ConDoSave:GetInt() > 0 then
 			ply.ISAWC_Inventory = data[ply:SteamID()]
 		end
 		if IsValid(ply) then
@@ -2027,6 +2083,16 @@ ISAWC.PlayerDeath = function(ply)
 		table.Empty(ply.ISAWC_Inventory)
 		ISAWC:SendInventory(ply)
 		ISAWC:SaveInventory(ply)
+	end
+end
+
+ISAWC.PlayerDisconnect = function(data)
+	if SERVER then
+		if data then
+			ISAWC:SaveInventory(data.networkid)
+		else
+			ISAWC:SaveInventory(player.GetAll())
+		end
 	end
 end
 
@@ -2475,7 +2541,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					end
 					self:SetSuppressUndo(false)
 					table.Empty(container.ISAWC_Inventory)
-					self:SaveInventory2(ply,container)
+					self:SendInventory2(ply,container)
 				end
 			end
 		elseif func == "delete_in_container_full2" then
@@ -2638,15 +2704,22 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			self:Log("Received unrecognised message header \"" .. func .. "\" from " .. ply:Nick() .. ". Assuming data packet corrupted.")
 			return
 		end
-		self:SaveInventory(ply)
+		if self.ConDoSave:GetInt() > 1 then
+			self:SaveInventory(ply)
+		end
 	end
 	if CLIENT then
 		if func == "inv" and IsValid(self.reliantwindow) then
 			if self.reliantwindow.IsDouble then
 				self.reliantwindow:Close()
 			else
-				local bytes = net.ReadUInt(32)
-				self.reliantwindow:ReceiveInventory(util.JSONToTable(util.Decompress(net.ReadData(bytes))))
+				--[[local bytes = net.ReadUInt(32)
+				self.reliantwindow:ReceiveInventory(util.JSONToTable(util.Decompress(net.ReadData(bytes))))]]
+				local data = {}
+				for i=1,net.ReadUInt(16) do
+					data[i] = {Model=net.ReadString(), Class=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString()}
+				end
+				self.reliantwindow:ReceiveInventory(data)
 				self.reliantwindow:ReceiveStats({net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadUInt(16),net.ReadUInt(16)})
 			end
 		elseif func == "no_pickup" then
@@ -2674,10 +2747,17 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			end
 		elseif func == "inv2" and IsValid(self.reliantwindow) then
 			if self.reliantwindow.IsDouble then
-				local bytes1,bytes2 = net.ReadUInt(32),net.ReadUInt(32)
+				--[[local bytes1,bytes2 = net.ReadUInt(32),net.ReadUInt(32)
 				local data1 = util.JSONToTable(util.Decompress(net.ReadData(bytes1)))
-				local data2 = util.JSONToTable(util.Decompress(net.ReadData(bytes2)))
-				self.reliantwindow:ReceiveInventory(data1,data2)
+				local data2 = util.JSONToTable(util.Decompress(net.ReadData(bytes2)))]]
+				local nt1, nt2 = {}, {}
+				for i=1,net.ReadUInt(16) do
+					nt1[i] = {Model=net.ReadString(), Class=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString()}
+				end
+				for i=1,net.ReadUInt(16) do
+					nt2[i] = {Model=net.ReadString(), Class=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString()}
+				end
+				self.reliantwindow:ReceiveInventory(nt1,nt2)
 				self.reliantwindow:ReceiveStats({net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadUInt(16),net.ReadUInt(16)},{net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadUInt(16),net.ReadUInt(16)})
 			else
 				self.reliantwindow:Close()
@@ -2833,7 +2913,14 @@ ISAWC.CanDrop = function(self,ply)
 end
 
 local invcooldown = 0
+local nextsave = 0
 ISAWC.Tick = function()
+	if SERVER then
+		if nextsave < RealTime() then
+			nextsave = RealTime() + ISAWC.ConDoSaveDelay:GetFloat()
+			ISAWC:SaveInventory(player.GetAll())
+		end
+	end
 	if CLIENT then
 		local ply = LocalPlayer()
 		if input.IsKeyDown(input.GetKeyCode(ISAWC.ConUseBind:GetString())) and not IsValid(vgui.GetKeyboardFocus()) then
@@ -2877,7 +2964,11 @@ ISAWC.Tick = function()
 		elseif input.IsKeyDown(input.GetKeyCode(ISAWC.ConInventoryBind:GetString())) and not IsValid(vgui.GetKeyboardFocus()) and invcooldown < RealTime() then
 			invcooldown = RealTime() + 1
 			if not (ply:GetActiveWeapon().CW20Weapon and ply:GetActiveWeapon().dt.State == CW_CUSTOMIZE and CW_CUSTOMIZE) then
-				ISAWC:BuildInventory()
+				if IsValid(ISAWC.reliantwindow) then
+					ISAWC.reliantwindow:Close()
+				else
+					ISAWC.reliantwindow = ISAWC:BuildInventory()
+				end
 			end
 		elseif input.IsKeyDown(input.GetKeyCode(ISAWC.ConInventoryBindHold:GetString())) and not (IsValid(ISAWC.TempWindow) and ISAWC.TempWindow:IsVisible()) then
 			if IsValid(ISAWC.TempWindow) then
@@ -2999,9 +3090,16 @@ ISAWC.PropertyTable = {
 ISAWC.DesktopTable = {
 	title = "Open Inventory",
 	icon = "entities/weapon_satchel.png",
-	init = ISAWC.BuildInventory
+	init = function(...)
+		if IsValid(ISAWC.reliantwindow) then
+			ISAWC.reliantwindow:Close()
+		else
+			ISAWC.reliantwindow = ISAWC.BuildInventory(...)
+		end
+	end
 }
 
+gameevent.Listen("player_disconnect")
 properties.Add("isawc_pickup",ISAWC.PropertyTable)
 hook.Add("AddToolMenuTabs","ISAWC",ISAWC.AddToolMenuTabs)
 hook.Add("AddToolMenuCategories","ISAWC",ISAWC.AddToolMenuCategories)
@@ -3010,6 +3108,8 @@ hook.Add("PhysgunPickup","ISAWC",ISAWC.PhysgunPickup)
 hook.Add("PhysgunDrop","ISAWC",ISAWC.PhysgunDrop)
 hook.Add("PlayerSpawn","ISAWC",ISAWC.PlayerSpawn)
 hook.Add("PlayerDeath","ISAWC",ISAWC.PlayerDeath)
+hook.Add("player_disconnect","ISAWC",ISAWC.PlayerDisconnect)
+hook.Add("ShutDown","ISAWC",ISAWC.PlayerDisconnect)
 hook.Add("CanProperty","ISAWC",ISAWC.OldCanProperty)
 hook.Add("Tick","ISAWC",ISAWC.Tick)
 

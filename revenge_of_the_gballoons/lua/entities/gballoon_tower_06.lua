@@ -16,8 +16,6 @@ ENT.FireRate = 1
 ENT.Cost = 600
 ENT.AbilityCooldown = 60
 ENT.LOSOffset = Vector(0,0,25)
-ENT.rotgb_HoverballWorth = 0
-ENT.rotgb_HoverballDelay = 10
 ENT.AttackDamage = 0
 ENT.DetectionRadius = 512
 ENT.SeeCamo = true
@@ -25,41 +23,6 @@ ENT.InfiniteRange2 = true
 ENT.rotgb_Buff = 0
 ENT.rotgb_Towers = {}
 ENT.UpgradeReference = {
-	{
-		Names = {"Hoverball Factory","Advanced Hoverballs","Faster Generation","Auto-Sell","Garry's Bank","Automatic Trading Service"},
-		Descs = {
-			"Generates hoverballs per round, which can be sold (removed) for $100 each. You can simply touch them to remove them. Only works while gBalloons are present.",
-			"Hoverballs last three times longer and are sold for 50% more.",
-			"Hoverballs are made significantly faster.",
-			"Hoverballs are now automatically removed.",
-			"For each player, generates cash equal to 0.1% of their current cash per second, up to $100 per second. Only works while gBalloons are present.",
-			"The tower no longer generates hoverballs. Instead, it performs (fake) trades, with payoffs ranging from $250 to $500 per second!",
-		},
-		Prices = {500,1500,2500,3000,10000,100000},
-		Funcs = {
-			function(self)
-				self.rotgb_HoverballWorth = 100
-			end,
-			function(self)
-				self.rotgb_HoverballLife = true
-				self.rotgb_HoverballWorth = self.rotgb_HoverballWorth * 1.5
-			end,
-			function(self)
-				self.rotgb_HoverballDelay = self.rotgb_HoverballDelay / 2
-			end,
-			function(self)
-				self.rotgb_AutoHoverball = true
-			end,
-			function(self)
-				self.rotgb_Bank = true
-			end,
-			function(self)
-				self.rotgb_HoverballDelay = self.rotgb_HoverballDelay / 5
-				self.rotgb_HoverballWorth = self.rotgb_HoverballWorth * 5
-				self.rotgb_Trading = true
-			end
-		}
-	},
 	{
 		Names = {"Ultrasound Annoyance","Speed Traps","Radar Pulsar","Unfastening Dust","Immunity Shatter","Total Meltdown"},
 		Descs = {
@@ -158,59 +121,11 @@ ENT.UpgradeReference = {
 		}
 	}
 }
-ENT.UpgradeLimits = {6,4,2,0}
+ENT.UpgradeLimits = {6,2,0}
 
-function ENT:FireFunction(gBalloons)
+--[[function ENT:FireFunction(gBalloons)
 	local cmul = GetConVar("rotgb_cash_mul"):GetFloat()
-	self.rotgb_HoverballCharge = (self.rotgb_HoverballCharge or 0) + 1
-	if self.rotgb_HoverballCharge >= self.rotgb_HoverballDelay and self.rotgb_HoverballWorth > 0 then
-		self.rotgb_HoverballCharge = 0
-		if self.rotgb_AutoHoverball then
-			ROTGB_AddCash(self.rotgb_HoverballWorth*(self.rotgb_Trading and math.random()+0.5 or 1)*cmul, self:GetTowerOwner())
-		else
-			local hoverball = ents.Create("gmod_hoverball")
-			hoverball:SetPos(self:LocalToWorld(self.LOSOffset*2))
-			hoverball:SetModel(self.rotgb_HoverballLife and "models/maxofs2d/hover_rings.mdl" or "models/maxofs2d/hover_classic.mdl")
-			hoverball:Spawn()
-			hoverball:Activate()
-			hoverball:AddEffects(EF_ITEM_BLINK)
-			local physobj = hoverball:GetPhysicsObject()
-			if IsValid(physobj) then
-				physobj:Wake()
-				physobj:SetVelocity(VectorRand()*10)
-			end
-			hoverball.rotgb_Value = self.rotgb_HoverballWorth
-			hoverball:SetTrigger(true)
-			hoverball:UseTriggerBounds(true,64)
-			function hoverball:StartTouch(ent)
-				if (IsValid(ent) and ent:IsPlayer()) then
-					hoverball:SetTrigger(false)
-					hoverball:SetNotSolid(true)
-					hoverball:SetMoveType(MOVETYPE_NONE)
-					hoverball:SetNoDraw(true)
-					local effdata = EffectData()
-					effdata:SetEntity(hoverball)
-					util.Effect("entity_remove",effdata,true,true)
-					return SafeRemoveEntityDelayed(hoverball,1)
-				end
-			end
-			hoverball:CallOnRemove("RotgB.Hoverball",function()
-				ROTGB_AddCash(hoverball.rotgb_Value*cmul, IsValid(self) and self:GetTowerOwner())
-			end)
-			timer.Simple(self.rotgb_HoverballLife and 60 or 20,function()
-				if IsValid(hoverball) then
-					hoverball.rotgb_Value = 0
-					hoverball:Remove()
-				end
-			end)
-		end
-	end
-	if self.rotgb_Bank then
-		for k,v in pairs(player.GetAll()) do
-			ROTGB_AddCash(math.min(100,ROTGB_GetCash(v)*.001*cmul),v)
-		end
-	end
-	--[[if self.rotgb_Buff > 4 then
+	if self.rotgb_Buff > 4 then
 		self.rotgb_TowerCharge = (self.rotgb_TowerCharge or 0) + 1
 		if self.rotgb_TowerCharge >= 60 then
 			self.rotgb_TowerCharge = 0
@@ -221,8 +136,8 @@ function ENT:FireFunction(gBalloons)
 				end
 			end
 		end
-	end]]
-end
+	end
+end]]
 
 function ENT:ROTGB_Think()
 	local anotherfired

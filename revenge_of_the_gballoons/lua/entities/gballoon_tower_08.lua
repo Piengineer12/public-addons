@@ -12,52 +12,56 @@ ENT.Spawnable = true
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/hunter/tubes/tube1x1x1.mdl")
-ENT.FireRate = 1/5
+ENT.FireRate = 50
 ENT.Cost = 2500
-ENT.DetectionRadius = 1024
+ENT.DetectionRadius = 512--1024
 ENT.AbilityCooldown = 60
 ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,150)
-ENT.AttackDamage = 100
-ENT.rotgb_BeamTime = 1
+ENT.UserTargeting = true
+ENT.AttackDamage = 10
+--ENT.rotgb_BeamTime = 1
+--ENT.rotgb_BeamDelay = 4
+--ENT.rotgb_NextFire = 0
+ENT.rotgb_BeamWidth = 8
 ENT.UpgradeReference = {
 	{
-		Names = {"Super Range","Enhanced Prisms","Secondary Spectrum","Iridescent Mirrors","Fury of the Radiant Sun","Rainbow Overlord","Orbital Friendship Cannon","Dyson Sphere","INFINITE POWER!"},
+		Names = {"Super Range","Enhanced Prisms","Secondary Spectrum","Fury of the Radiant Sun","Rainbow Overlord","Orbital Friendship Cannon","Dyson Sphere","INFINITE POWER!"},
 		Descs = {
 			"Increases range to infinite.",
-			"Tremendously increases attack damage and reduces charging delay.",
-			"Increases beaming time and enables the tower to pop purple gBalloons.",
-			"Reduces charging delay and increases beaming time further. gBalloons popped by this tower do not spawn any children.",
+			"Considerably increases attack damage and enables the tower to pop purple gBalloons.",
+			"Tremendously increases attack damage. gBalloons popped by this tower do not spawn any children.",
 			"Colossally increases attack damage and enables the tower to pop Hidden gBalloons.",
-			"This tower's charging rate is increased by 20% for every Rainbow Beamer within a radius of 512 Hammer Units. Also enables the tower to adjust its beaming angles while firing.",
-			"Once every 60 seconds, shooting at this tower DELETES the strongest gBalloon on the map and any gBalloons surrounding it after 5 seconds.",
-			"Reduces charging delay to 0, but tremendously reduces beaming time. Also reduces Orbital Friendship Cannon's cooldown by 30 seconds and you gain $10000000 for every use.",
-			"This tower no longer shoots beams and firing at this tower will no longer do anything. Instead, one Orbital Friendship Cannon is fired EVERY SECOND."
+			"This tower now hits ALL gBalloons within sight.",
+			"Once every 60 seconds, shooting at this tower DELETES the strongest gBalloon on the map after 5 seconds. You still get the cash.",
+			"Reduces Orbital Friendship Cannon's cooldown by 30 seconds and you gain $10000000 for every use.",
+			"It's worth it."
 		},
-		Prices = {2000,30000,60000,100000,2000000,8000000,10000000,50000000,1000000000},
+		Prices = {2000,15000,100000,1250000,5000000,10000000,50000000,1000000000},--{2000,30000,60000,100000,2000000,8000000,10000000,50000000,1000000000},
 		Funcs = {
 			function(self)
 				self.InfiniteRange = true
 			end,
 			function(self)
-				self.FireRate = self.FireRate * 5/3
-				self.AttackDamage = self.AttackDamage + 400
-			end,
-			function(self)
-				self.FireRate = self.FireRate * 3/4
-				self.rotgb_BeamTime = self.rotgb_BeamTime + 1
+				--self.rotgb_BeamDelay = self.rotgb_BeamDelay - 1
+				self.AttackDamage = self.AttackDamage + 10
+				self.rotgb_BeamWidth = self.rotgb_BeamWidth * 1.5
 				self.rotgb_UseAltLaser = true
 			end,
 			function(self)
-				self.rotgb_BeamTime = self.rotgb_BeamTime + 1
+				--self.rotgb_BeamTime = self.rotgb_BeamTime + 1
+				self.AttackDamage = self.AttackDamage + 40
+				self.rotgb_BeamWidth = self.rotgb_BeamWidth * 1.5
 				self.rotgb_BeamNoChildren = true
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 2000
+				self.AttackDamage = self.AttackDamage + 120
+				self.rotgb_BeamWidth = self.rotgb_BeamWidth * 1.5
 				self.SeeCamo = true
 			end,
 			function(self)
-				self.rotgb_OtherBonus = true
+				--self.rotgb_OtherBonus = true
+				self.UserTargeting = false
 			end,
 			function(self)
 				self.HasAbility = true
@@ -66,11 +70,11 @@ ENT.UpgradeReference = {
 				end
 			end,
 			function(self)
-				self.FireRate = self.FireRate * 4/1
-				self.rotgb_BeamTime = self.rotgb_BeamTime - 2
+				--self.rotgb_BeamDelay = self.rotgb_BeamDelay - 2
+				--self.rotgb_BeamTime = self.rotgb_BeamTime - 2
 				self.rotgb_Infinite = true
 				self.AbilityCooldown = self.AbilityCooldown - 30
-				self:SetNWFloat("LastFireTime",math.huge)
+				--self:SetNWFloat("LastFireTime",math.huge)
 			end,
 			function(self)
 				self.HasAbility = nil
@@ -86,22 +90,26 @@ ENT.UpgradeLimits = {99}
 
 local function SnipeEntity()
 	while true do
-		local self,ent,percent = coroutine.yield()
+		local self,ent,damagemul = coroutine.yield()
 		local startPos = self.rotgb_StartPos
 		local laser = ents.Create("env_beam")
+		--[[local oldEntName = ent:GetName()
+		local entityName = ent:GetName() ~= "" and ent:GetName() or "ROTGB08_"..ent:GetCreationID()
+		ent:SetName(entityName)]]
 		local endEnt = ents.Create("info_target")
+		--local percent = math.Remap(self.rotgb_NextFire - CurTime(), self.rotgb_BeamDelay + self.rotgb_BeamTime, self.rotgb_BeamDelay, 1, 0)
 		laser:SetPos(startPos:GetPos())
 		if IsValid(endEnt) then
 			endEnt:SetName("ROTGB08_"..endEnt:GetCreationID())
-			endEnt:SetPos(ent:GetPos()+ent.loco:GetVelocity()*0.1+Vector(0,0,ent:OBBMins().z))
+			endEnt:SetPos(ent:GetPos()+ent.loco:GetVelocity()*0.1+ent:OBBCenter())
 		end
 		laser:SetKeyValue("renderamt","255")
 		laser:SetKeyValue("rendercolor","255 255 255")
-		laser:SetKeyValue("BoltWidth","32")
+		laser:SetKeyValue("BoltWidth",self.rotgb_BeamWidth)
 		laser:SetKeyValue("NoiseAmplitude","1")
 		laser:SetKeyValue("texture","beams/rainbow1.vmt")
 		laser:SetKeyValue("TextureScroll","20")
-		laser:SetKeyValue("damage",self.AttackDamage*10)
+		laser:SetKeyValue("damage",self.AttackDamage*damagemul)
 		laser:SetKeyValue("LightningStart",startPos:GetName())
 		laser:SetKeyValue("LightningEnd",endEnt:GetName())
 		laser:SetKeyValue("HDRColorScale","1")
@@ -114,11 +122,11 @@ local function SnipeEntity()
 		laser:Activate()
 		laser.rotgb_UseLaser = self.rotgb_UseAltLaser and 2 or 1
 		laser.rotgb_NoChildren = self.rotgb_BeamNoChildren
-		if percent then
-			laser:Fire("Alpha",(1-percent)*255)
-		end
+		--if percent then
+			--laser:Fire("Alpha",percent*255)
+		--end
 		laser:Fire("TurnOn")
-		local canOtherBonus = #ents.GetAll()<1000
+		--[[local canOtherBonus = #ents.GetAll()<1000
 		if not percent then
 			local lastfiretime = CurTime()
 			timer.Create("ROTGB_08_B_"..endEnt:GetCreationID(),0.05,self.rotgb_BeamTime*20,function()
@@ -137,12 +145,15 @@ local function SnipeEntity()
 					end
 				end
 			end)
-		end
-		timer.Simple(self.rotgb_OtherBonus and canOtherBonus and 0.11 or self.rotgb_BeamTime,function()
+		end]]
+		timer.Simple(0.2,function()
 			if IsValid(laser) then
 				self:DontDeleteOnRemove(laser)
 				laser:Remove()
 			end
+			--[[if (IsValid(ent) and entityName == ent:GetName()) then
+				ent:SetName(oldEntName)
+			end]]
 			if IsValid(endEnt) then
 				endEnt:Remove()
 			end
@@ -152,13 +163,13 @@ local function SnipeEntity()
 end
 
 ENT.thread = coroutine.create(SnipeEntity)
-coroutine.resume(ENT.thread)
+--coroutine.resume(ENT.thread)
 
 function ENT:ROTGB_Initialize()
 	if SERVER then
-		if not self.rotgb_Infinite then
+		--[[if not self.rotgb_Infinite then
 			self:SetNWFloat("LastFireTime",CurTime()-self.rotgb_BeamTime)
-		end
+		end]]
 		local startPos = ents.Create("info_target")
 		startPos:SetName("ROTGB08_"..startPos:GetCreationID())
 		startPos:SetPos(self:GetShootPos())
@@ -198,16 +209,16 @@ function ENT:ROTGB_Think()
 end
 
 function ENT:ROTGB_Draw()
-	local elapsedseconds = CurTime()-self:GetNWFloat("LastFireTime")
+	--[[local elapsedseconds = CurTime()-self:GetNWFloat("LastFireTime")
 	local val = 0
 	if elapsedseconds < self.rotgb_BeamTime then
 		val = math.Remap(self.rotgb_BeamTime-elapsedseconds,self.rotgb_BeamTime,0,255,0)
 	else
-		val = math.Remap(elapsedseconds-self.rotgb_BeamTime,0,1/self.FireRate-self.rotgb_BeamTime,0,255)
-	end
+		val = math.Remap(elapsedseconds-self.rotgb_BeamTime,0,self.rotgb_BeamDelay,0,255)
+	end]]
 	self:DrawModel()
 	render.SetColorMaterial()
-	render.DrawSphere(self:GetShootPos(),24,24,13,val >= 255 and color_white or Color(val,val,val))
+	render.DrawSphere(self:GetShootPos(),24,24,13,color_white)--val >= 255 and color_white or Color(val,val,val))
 end
 
 local abilityFunction
@@ -216,13 +227,30 @@ function ENT:FireFunction(gBalloons)
 	if not self.UseLOS then
 		abilityFunction(self)
 	elseif IsValid(self.rotgb_StartPos) then
-		if not self.rotgb_Infinite then
-			self:SetNWFloat("LastFireTime",CurTime())
+		--[[if self.rotgb_NextFire <= CurTime() then
+			self.rotgb_NextFire = CurTime() + self.rotgb_BeamDelay + self.rotgb_BeamTime
+			if not self.rotgb_Infinite then
+				self:SetNWFloat("LastFireTime",CurTime())
+			end
 		end
-		for k,v in pairs(gBalloons) do
-			local perf,str = coroutine.resume(self.thread,self,v)
-			if not perf then error(str) end
-		end
+		if self.rotgb_NextFire > CurTime() + self.rotgb_BeamDelay then]]
+			if self.UserTargeting then
+				local perf,str = coroutine.resume(self.thread,self,gBalloons[1],10)
+				if not perf then error(str) end
+			else
+				--[[local damagemul = 10
+				if self.rotgb_Infinite then
+					damagemul = 10
+					for k,v in pairs(gBalloons) do
+						damagemul = damagemul + v:GetRgBE() / 10
+					end
+				end]]
+				for k,v in pairs(gBalloons) do
+					local perf,str = coroutine.resume(self.thread,self,v,10)
+					if not perf then error(str) end
+				end
+			end
+		--end
 		if self.rotgb_OtherBonus then
 			self.rotgb_OtherBy = self.rotgb_OtherBy or 0
 			self.FireRate = self.FireRate / (1+self.rotgb_OtherBy*0.2)

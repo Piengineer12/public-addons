@@ -21,7 +21,7 @@ ENT.LOSOffset = Vector(0,0,20)
 ENT.UserTargeting = true
 ENT.rotgb_MaxPierce = 3
 ENT.rotgb_Size = 2
-ENT.rotgb_Torque = 1e5
+ENT.rotgb_Torque = 5e4
 ENT.UpgradeReference = {
 	{
 		Names = {"BB Module","RF Module","TX Module","C4 Module","PB Module"},
@@ -32,11 +32,11 @@ ENT.UpgradeReference = {
 			"Sawblades explode when expiring!",
 			"Considerably increases the sawblades' size and damage dealt!",
 		},
-		Prices = {300,125,800,1500,9000},
+		Prices = {400,900,1500,2000,25000},
 		Funcs = {
 			function(self)
-				self.rotgb_Size = self.rotgb_Size*1.5
-				self.rotgb_MaxPierce = self.rotgb_MaxPierce*5/3
+				self.rotgb_Size = self.rotgb_Size * 1.5
+				self.rotgb_MaxPierce = self.rotgb_MaxPierce * 2
 				self.rotgb_Torque = self.rotgb_Torque * 3
 			end,
 			function(self)
@@ -49,7 +49,7 @@ ENT.UpgradeReference = {
 				self.rotgb_Explosive = true
 			end,
 			function(self)
-				self.rotgb_Size = self.rotgb_Size*1.5
+				self.rotgb_Size = self.rotgb_Size * 1.5
 				self.AttackDamage = self.AttackDamage + 20
 				self.rotgb_Torque = self.rotgb_Torque * 3
 			end,
@@ -58,20 +58,20 @@ ENT.UpgradeReference = {
 	{
 		Names = {"OD Module","OV Module","FX Module","EV Module","DX Module"},
 		Descs = {
-			"Very slightly increases the tower's fire rate. Once every 200 pops, the tower overdrives, causing 8 sawblades to be released at once.",
-			"Slightly increases fire rate. Reduces pops required to overdrive the tower by 100.",
+			"Slightly increases fire rate. Once every 200 pops, the tower overdrives, causing 8 sawblades to be released at once.",
+			"Considerably increases fire rate. Reduces pops required to overdrive the tower by 100.",
 			"Sawblades pierce considerably more gBalloons before shattering.",
-			"Sawblades deal additional electrical damage upon any impact!",
+			"Sawblades deal additional electrical damage upon impact!",
 			"Sawblades pierce tremendously more gBalloons before shattering!"
 		},
-		Prices = {175,250,850,1750,6500},
+		Prices = {200,750,1250,2500,10000},
 		Funcs = {
 			function(self)
-				self.FireRate = self.FireRate*1.15
+				self.FireRate = self.FireRate * 1.5
 				self.rotgb_Count = 200
 			end,
 			function(self)
-				self.FireRate = self.FireRate*1.15
+				self.FireRate = self.FireRate * 2
 				self.rotgb_Count = self.rotgb_Count - 100
 			end,
 			function(self)

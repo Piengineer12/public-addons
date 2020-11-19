@@ -27,28 +27,28 @@ ENT.UpgradeReference = {
 	{
 		Names = {"Concentrated Waves","Intense Waves","Thermal Detection","Super Intense Waves","Extreme Frequency Waves"},
 		Descs = {
-			"Increases the tower's range.",
+			"Slightly increases the tower's range.",
 			"Considerably increases microwave damage.",
 			"Enables the tower to see hidden gBalloons.",
 			"Tremendously increases microwave damage.",
-			"Colossally increases microwave damage. Once every 45 seconds, firing at this tower massively increases fire rate and triples the width of microwaves for 10 seconds.",
+			"Colossally increases microwave damage. Once every 45 seconds, firing at this tower colossally increases fire rate and triples the width of microwaves for 10 seconds.",
 		},
-		Prices = {650,2500,4000,15000,100000},
+		Prices = {300,900,2000,7500,100000},
 		Funcs = {
 			function(self)
 				self.DetectionRadius = self.DetectionRadius * 1.5
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 20
+				self.AttackDamage = self.AttackDamage + 10
 			end,
 			function(self)
 				self.SeeCamo = true
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 60
+				self.AttackDamage = self.AttackDamage + 40
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 180
+				self.AttackDamage = self.AttackDamage + 240
 				self.HasAbility = true
 				self.rotgb_AbilityType = bit.bor(self.rotgb_AbilityType, 1)
 			end
@@ -63,7 +63,7 @@ ENT.UpgradeReference = {
 			"Microwaves now have a 20% chance to set gBalloons on fire permanently. Every time the tower successfully does this, fires from this tower pop one extra layer for 10 seconds. This effect stacks.",
 			"Microwaves are now guaranteed to set gBalloons alight. Once every 45 seconds, firing at this tower massively increases damage dealt for 10 seconds.",
 		},
-		Prices = {300,750,1500,3000,50000},
+		Prices = {300,1000,2000,3000,50000},
 		Funcs = {
 			function(self)
 				self.FireRate = self.FireRate * 1.5
@@ -105,7 +105,6 @@ function ENT:FireFunction(gBalloons)
 				v:RotgB_Ignite(10 + self:GetFireDamageBonus(), self:GetTowerOwner(), self, 1000000)
 				v.MicrowaveFire = true
 				table.insert(self.rotgb_FiresMade, CurTime() + 10)
-				v.FireSusceptibility = (v.FireSusceptibility or 0)
 			end
 		end
 	end

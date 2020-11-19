@@ -68,7 +68,7 @@ ENT.UpgradeLimits = {2,0}										// upgrade limit ({4,2} in BTD5 and {5,2,0} i
 
 function ENT:FireFunction(tableOfBalloons)						// since self.SeeCamo is false, only non-hidden gBalloons will be passed here, unless the tower is an X-3.
 	tableOfBalloons[1]:TakeDamage(self.AttackDamage,self,self)	// edit the body of the function however you want.
-end																// tableOfBalloons is all balloons in its radius.
+end																// tableOfBalloons is all balloons in its radius, sorted by the player.
 
 list.Set("NPC","gballoon_tower_readme",{						// replace "gballoon_tower_readme" with your tower class.
 	Name = ENT.PrintName,										// don't touch this.

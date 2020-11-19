@@ -12,7 +12,7 @@ ENT.Spawnable = true
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/props_phx/games/chess/black_bishop.mdl")
-ENT.FireRate = 1
+ENT.FireRate = 2--1
 ENT.Cost = 300
 ENT.DetectionRadius = 384
 ENT.UseLOS = true
@@ -28,24 +28,23 @@ ENT.UpgradeReference = {
 	{
 		Names = {"Stronger Glue","High Speed Glue Nozzle","Liquid-Solid Glue","G.G. Glue","Shattering Glue"},
 		Descs = {
-			"Glue slows down gBalloons more and lasts longer.",
+			"Glue slows down gBalloons more and lasts slightly longer.",
 			"Considerably increases fire rate.",
-			"Tremendously increases fire rate and glue slows down gBalloons even more.",
+			"Glue slows down gBalloons even more.",
 			"Glue can now affect gBlimps and Aqua gBalloons.",
 			"Glue causes gBalloons to lose all immunities."
 		},
-		Prices = {200,450,1250,2500,20000},
+		Prices = {250,500,1000,2500,4500},
 		Funcs = {
 			function(self)
 				self.rotgb_GlueSlowdown = self.rotgb_GlueSlowdown * 1.5
-				self.rotgb_GlueDuration = self.rotgb_GlueDuration * 2
+				self.rotgb_GlueDuration = self.rotgb_GlueDuration * 1.5
 			end,
 			function(self)
 				self.FireRate = self.FireRate * 2
 			end,
 			function(self)
 				self.rotgb_GlueSlowdown = self.rotgb_GlueSlowdown * 1.5
-				self.FireRate = self.FireRate * 2
 			end,
 			function(self)
 				self.rotgb_GreatGlue = true
@@ -56,15 +55,15 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Glue Soak","Corrosive Glue","Acid-Glue Mixture","High Impact Nozzle","gBalloon Ultimate Solvent"},
+		Names = {"Glue Soak","Corrosive Glue","Acid-Glue Mixture","gBalloon Dissolver","gBalloon Ultimate Solvent"},
 		Descs = {
 			"Glue soaks through all layers of gBalloons.",
 			"Glue causes gBalloons to take damage over time.",
-			"Glue pops two layers per second and lasts even longer.",
-			"Glue hits pop four layers per hit.",
-			"Glue pops ten layers per second!"
+			"Glue pops two layers per second and lasts longer.",
+			"Glue pops ten layers per second!",
+			"Glue pops 100 layers per second!"
 		},
-		Prices = {250,550,3000,4000,25000},
+		Prices = {250,750,3500,17500,200000},
 		Funcs = {
 			function(self)
 				self.rotgb_GlueSoak = true
@@ -77,26 +76,26 @@ ENT.UpgradeReference = {
 				self.rotgb_GlueDuration = self.rotgb_GlueDuration * 2
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 40
+				self.rotgb_GlueDamage = self.rotgb_GlueDamage + 40
 			end,
 			function(self)
-				self.rotgb_GlueDamage = self.rotgb_GlueDamage + 40
+				self.rotgb_GlueDamage = self.rotgb_GlueDamage + 450
 			end
 		}
 	},
 	{
 		Names = {"Glue Nozzle","Glue Splatter","Glue Blaster","Glue Sprinkler","Glue Air Strike"},
 		Descs = {
-			"Glue travels further.",
+			"Glue travels considerably further.",
 			"Three gBalloons are glued per shot.",
 			"One gBalloon is glued per shot, but glue hits affect surrounding gBalloons.",
-			"Any gBalloon within the tower's range gets glued! Also enables the tower to see hidden gBalloons.",
-			"Once every 15 seconds, shooting at this tower causes ALL gBalloons to be glued, regardless of immunities!"
+			"Any non-immune gBalloon within the tower's range gets glued! Also enables the tower to glue hidden gBalloons.",
+			"Glue lasts even longer. Once every 15 seconds, shooting at this tower causes ALL gBalloons to be glued, regardless of immunities!"
 		},
 		Prices = {250,1000,3000,7500,17500},
 		Funcs = {
 			function(self)
-				self.DetectionRadius = self.DetectionRadius * 1.5
+				self.DetectionRadius = self.DetectionRadius * 2
 			end,
 			function(self)
 				self.rotgb_Hits = self.rotgb_Hits * 3
@@ -111,6 +110,7 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.HasAbility = true
+				self.rotgb_GlueDuration = self.rotgb_GlueDuration * 2
 			end
 		}
 	}

@@ -18,17 +18,17 @@ ENT.DetectionRadius = 384
 ENT.AttackDamage = 10
 ENT.UserTargeting = true
 ENT.rotgb_Radius = 128
-ENT.rotgb_Bounces = 10
+ENT.rotgb_Bounces = 4
 ENT.UpgradeReference = {
 	{
 		Names = {"Long Spark","Faster Recharge","High Farad Capacitors","Recursive Zap"},
 		Descs = {
 			"Increases the travel distance of electrostatic jumps.",
 			"Static electricity is generated faster.",
-			"Static electricity is generated even faster and travels further.",
+			"Static electricity is generated even faster and deals more damage.",
 			"Static electricity can now hit multiple gBalloons and bounce on the same gBalloon multiple times, resulting in extremely large amounts of damage per hit."
 		},
-		Prices = {450,900,5000,70000},
+		Prices = {250,700,4000,35000},
 		Funcs = {
 			function(self)
 				self.rotgb_Radius = self.rotgb_Radius * 2
@@ -38,7 +38,7 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.FireRate = self.FireRate*2
-				self.rotgb_Radius = self.rotgb_Radius * 2
+				self.AttackDamage = self.AttackDamage + 10
 			end,
 			function(self)
 				self.rotgb_Recursion = 1
@@ -50,10 +50,10 @@ ENT.UpgradeReference = {
 		Descs = {
 			"Doubles the number of electrostatic jumps.",
 			"Electrostatic jumps can hit hidden gBalloons.",
-			"On hit, Regen gBalloons may only regenerate up to their current tier.",
-			"This tower now radiates a deadly electric field that shocks all gBalloons within its radius. Also considerably increases range, tremendously increases attack damage and enables the tower to pop Purple gBalloons."
+			"On hit, stuns gBalloons for 0.25s and Regen gBalloons may only regenerate up to their current tier.",
+			"This tower now radiates an electric field that shocks all gBalloons within its radius. Also considerably increases range and enables the tower to pop Purple gBalloons."
 		},
-		Prices = {250,800,1000,20000},
+		Prices = {400,1000,2000,15000},
 		Funcs = {
 			function(self)
 				self.rotgb_Bounces = self.rotgb_Bounces * 2
@@ -67,7 +67,6 @@ ENT.UpgradeReference = {
 			function(self)
 				self.rotgb_Bounces = 0
 				self.DetectionRadius = self.DetectionRadius * 2
-				self.AttackDamage = self.AttackDamage + 40
 				self.UserTargeting = false
 			end
 		}
@@ -126,6 +125,7 @@ function ENT:FireFunction(gBalloons)
 			dmginfo:SetDamagePosition(k:GetPos())
 			if self.rotgb_StopRegen then
 				k.PrevBalloons = nil
+				k:Stun(0.25)
 			end
 			--[[if self.rotgb_Stun and k:GetBalloonProperty("BalloonType")~="gballoon_blimp_purple" and k:GetBalloonProperty("BalloonType")~="gballoon_blimp_rainbow" then
 				k:Stun(1)

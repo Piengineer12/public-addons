@@ -49,16 +49,16 @@ ENT.UpgradeReference = {
 	{
 		Names = {"Fat Man Bombs","Mysterious Gadget","Little Boy Bombs","Antimatter Bombs","The Biggest One"},
 		Descs = {
-			"Increases blast size.",
+			"Considerably increases blast size.",
 			"Enables the tower to pop hidden gBalloons.",
-			"Significantly increases blast damage.",
+			"Tremendously increases blast damage.",
 			"Enables the tower to pop Black gBalloons, Zebra gBalloons and Monochrome gBlimps.",
 			"Increases blast radius considerably and damage colossally.",
 		},
-		Prices = {350,800,3000,10000,250000},
+		Prices = {350,800,3000,5000,75000},
 		Funcs = {
 			function(self)
-				self.DetectionRadius = self.DetectionRadius * 1.5
+				self.DetectionRadius = self.DetectionRadius * 2
 			end,
 			function(self)
 				self.SeeCamo = true
@@ -77,15 +77,15 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"WOWsplosions","Heavy Bombs","Flex Remover","Bombs to be Feared","The Tsar Bomba"},
+		Names = {"WOWsplosions","Heavy Bombs","Flex Remover","Ice Bombs","The Tsar Bomba"},
 		Descs = {
 			"gBalloons hit by this tower move 30% slower for 3 seconds.",
-			"Sharply increases damage versus gBlimps.",
+			"Tremendously increases damage versus gBlimps.",
 			"Explosions strip gBalloons of their Shielded and Fast properties.",
-			"All gBalloons that aren't Blimps get stunned for 1 second per hit.",
-			"Once every 30 seconds, firing at this tower deals massive damage to ALL gBalloons regardless of immunities.",
+			"Freezes gBalloons for 2 seconds per hit.",
+			"Once every 30 seconds, firing at this tower deals massive damage to all gBalloons regardless of immunities.",
 		},
-		Prices = {350,1000,1500,10000,250000}, --11450
+		Prices = {350,700,1500,4000,250000},
 		Funcs = {
 			function(self)
 				self.rotgb_AlternateExplode = true
@@ -153,7 +153,12 @@ function ENT:FireFunction(gBalloons)
 					end
 				end
 				if self.rotgb_Stun then
-					v:Stun(1)
+					if not (v:GetBalloonProperty("BalloonWhite") or v:GetBalloonProperty("BalloonBlimp") or v:GetBalloonProperty("BalloonBlack")) or v:HasRotgBStatusEffect("unimmune") then
+						v:Freeze2(2)
+					elseif not v:GetBalloonProperty("BalloonBlack") then
+						v:ShowResistEffect(1)
+					end
+					--v:Stun(1)
 				end
 			end
 			if self.rotgb_AlternateExplode then
