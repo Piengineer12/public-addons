@@ -33,7 +33,7 @@ ENT.UpgradeReference = {
 			"Tremendously increases attack damage. gBalloons popped by this tower do not spawn any children.",
 			"Colossally increases attack damage and enables the tower to pop Hidden gBalloons.",
 			"This tower now hits ALL gBalloons within sight.",
-			"Once every 60 seconds, shooting at this tower DELETES the strongest gBalloon on the map after 5 seconds. You still get the cash.",
+			"Once every 60 seconds, shooting at this tower OBLITERATES the strongest gBalloon on the map after 5 seconds. You still get the cash.",
 			"Reduces Orbital Friendship Cannon's cooldown by 30 seconds and you gain $10000000 for every use.",
 			"It's worth it."
 		},
@@ -119,6 +119,7 @@ local function SnipeEntity()
 			laser:SetKeyValue("life",self.rotgb_BeamTime)
 		end]]
 		laser:Spawn()
+		laser.rotgb_Owner = self
 		laser:Activate()
 		laser.rotgb_UseLaser = self.rotgb_UseAltLaser and 2 or 1
 		laser.rotgb_NoChildren = self.rotgb_BeamNoChildren
@@ -202,7 +203,7 @@ function ENT:ROTGB_Think()
 	if IsValid(self.KillDamagePos) then
 		for k,v in pairs(ents.FindInSphere(self.KillDamagePos:GetPos(),32)) do
 			if v:GetClass()=="gballoon_base" then
-				v:Pop(-1)
+				v:TakeDamage(v:GetRgBE()*1000, self:GetTowerOwner(), self)
 			end
 		end
 	end
@@ -310,7 +311,7 @@ abilityFunction = function(self)
 		beam:SetKeyValue("LightningEnd",endPos:GetName())
 		beam:SetKeyValue("HDRColorScale","1")
 		beam:SetKeyValue("spawnflags","1")
-		beam:SetKeyValue("damage","999999")
+		--beam:SetKeyValue("damage","999999")
 		beam:Spawn()
 		beam:Activate()
 		beam:Fire("TurnOn")
@@ -331,11 +332,11 @@ abilityFunction = function(self)
 				beam:Remove()
 			end
 		end)
-		for k,v in pairs(ents.FindInSphere(ent:GetPos(),32)) do
+		--[[for k,v in pairs(ents.FindInSphere(ent:GetPos(),32)) do
 			if v:GetClass()=="gballoon_base" then
 				v:Pop(-1)
 			end
-		end
+		end]]
 	elseif IsValid(self) then
 		timer.Simple(math.random(),function()
 			abilityFunction(self)

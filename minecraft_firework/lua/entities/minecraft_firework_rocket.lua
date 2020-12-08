@@ -12,6 +12,10 @@ ENT.Spawnable		= false
 ENT.AdminOnly		= false
 ENT.RenderGroup		= RENDERGROUP_OTHER
 
+if CLIENT then
+	killicon.Add("minecraft_firework_rocket", "vgui/entities/weapon_minecraft_firework", color_white)
+end
+
 local fireworkModel = "models/mcitems3d_mariro/firework_rocket.mdl"
 local altFireworkModel = false
 if not util.IsValidModel(fireworkModel) then

@@ -149,7 +149,7 @@ function SWEP:CheckProxyModel()
 end
 
 function SWEP:Initialize()
-	self:SetLaunchVelocity(500)
+	self:SetLaunchVelocity(1000)
 end
 
 function SWEP:PostDrawViewModel()

@@ -37,22 +37,9 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Int",0,"OwnerAccountID")
 	self:NetworkVar("Int",1,"ActiFlags")
 	self:NetworkVar("Int",2,"CurrentFileIDs")
-	self:NetworkVar("Entity",0,"StorageEntity1")
-	self:NetworkVar("Entity",1,"StorageEntity2")
-	self:NetworkVar("Entity",2,"StorageEntity3")
-	self:NetworkVar("Entity",3,"StorageEntity4")
-	self:NetworkVar("Entity",4,"StorageEntity5")
-	self:NetworkVar("Entity",5,"StorageEntity6")
-	self:NetworkVar("Entity",6,"StorageEntity7")
-	self:NetworkVar("Entity",7,"StorageEntity8")
-	self:NetworkVar("Entity",8,"StorageEntity9")
-	self:NetworkVar("Entity",9,"StorageEntity10")
-	self:NetworkVar("Entity",10,"StorageEntity11")
-	self:NetworkVar("Entity",11,"StorageEntity12")
-	self:NetworkVar("Entity",12,"StorageEntity13")
-	self:NetworkVar("Entity",13,"StorageEntity14")
-	self:NetworkVar("Entity",14,"StorageEntity15")
-	self:NetworkVar("Entity",15,"StorageEntity16")
+	for i=1,32 do
+		self:NetworkVar("Entity",i-1,string.format("StorageEntity%u",i))
+	end
 	self:NetworkVar("String",0,"FileIDComposite")
 	self:NetworkVar("Float",0,"SpawnDelay") -- minimum spawn delay is 0.05, no matter what.
 	self:NetworkVar("Float",1,"ActiMass")
@@ -154,7 +141,7 @@ function ENT:TriggerInput(input, value)
 end
 
 function ENT:MakeContainerTable()
-	for i=1,16 do
+	for i=1,32 do
 		print(i, self:GetContainer(i))
 	end
 end
@@ -199,7 +186,7 @@ function ENT:GetContainer(index)
 end
 
 function ENT:HasContainer(container)
-	for i=1,16 do
+	for i=1,32 do
 		if self:GetContainer(i)==container or not container and IsValid(self:GetContainer(i)) then return true end
 	end
 	return false
@@ -236,7 +223,7 @@ function ENT:LinkEntity(ent)
 	local alreadyConnected = false
 	local availableSpace
 	
-	for i=1,16 do
+	for i=1,32 do
 		local storageEntity = self:GetContainer(i)
 		if storageEntity == ent then
 			alreadyConnected = true break
@@ -277,7 +264,7 @@ function ENT:UnlinkEntity(ent)
 		self["SetStorageEntity"..ent](self, NULL)
 		self:SetFileID(ent, '')
 	else
-		for i=1,16 do
+		for i=1,32 do
 			if self:GetContainer(i)==ent then
 				self["SetStorageEntity"..i](self, NULL)
 				self:SetFileID(i, '') break
@@ -287,7 +274,7 @@ function ENT:UnlinkEntity(ent)
 end
 
 function ENT:ClearStorageEntities()
-	for i=1,16 do
+	for i=1,32 do
 		self:UnlinkEntity(i)
 	end
 end
@@ -350,7 +337,7 @@ end
 function ENT:SpawnProp(forcedSpawn)
 	local spawnDelay = math.max(self:GetSpawnDelay(), ISAWC.ConMinExportDelay:GetFloat(), 0.05)
 	local validContainer = false
-	for i=1,16 do
+	for i=1,32 do
 		local container = self:GetContainer(i)
 		if self:IsExtractableContainer(container) then
 			validContainer = true break
@@ -366,7 +353,7 @@ function ENT:SpawnProp(forcedSpawn)
 					forcedSpawn = true
 				else
 					local totalMass, totalVolume, totalCount = 0, 0, 0
-					for i=1,16 do
+					for i=1,32 do
 						local container = self:GetContainer(i)
 						if IsValid(container) then
 							local data = ISAWC:GetClientStats(container)
@@ -401,7 +388,7 @@ function ENT:SpawnProp(forcedSpawn)
 				
 				if sortFlags == 0 then
 					local possibleContainers = {}
-					for i=1,16 do
+					for i=1,32 do
 						local possibleContainer = self:GetContainer(i)
 						if self:IsExtractableContainer(possibleContainer) then
 							table.insert(possibleContainers, possibleContainer)
@@ -418,7 +405,7 @@ function ENT:SpawnProp(forcedSpawn)
 						invnum = math.random(#container.ISAWC_Inventory)
 					end
 				elseif sortFlags == ACTI_COUNT_FIRST then
-					for i=1,16 do
+					for i=1,32 do
 						local possibleContainer = self:GetContainer(i)
 						if self:IsExtractableContainer(possibleContainer) then
 							if ISAWC.ConUseExportWhitelist:GetBool() then
@@ -436,7 +423,7 @@ function ENT:SpawnProp(forcedSpawn)
 						if container then break end
 					end
 				elseif sortFlags == ACTI_COUNT_LAST then
-					for i=16,1,-1 do
+					for i=32,1,-1 do
 						local possibleContainer = self:GetContainer(i)
 						if self:IsExtractableContainer(possibleContainer) then
 							if ISAWC.ConUseExportWhitelist:GetBool() then
@@ -455,7 +442,7 @@ function ENT:SpawnProp(forcedSpawn)
 					end
 				else
 					local maxvalue = -math.huge
-					for i=1,16 do
+					for i=1,32 do
 						local checkContainer = self:GetContainer(i)
 						if self:IsExtractableContainer(checkContainer) then
 							for k,v in pairs(checkContainer.ISAWC_Inventory or {}) do
@@ -519,7 +506,7 @@ end
 function ENT:DrawTranslucent()
 	--self:DrawModel()
 	local noConnections = true
-	for i=1,16 do
+	for i=1,32 do
 		if self:GetFileID(i)~='' then
 			noConnections = false break
 		end
@@ -619,7 +606,7 @@ function ENT:BuildConfigGUI()
 	Main:SetTitle("Inventory Exporter")
 	
 	local hasConnections = false
-	for i=1,16 do
+	for i=1,32 do
 		if self:GetFileID(i)~='' then
 			hasConnections = true break
 		end

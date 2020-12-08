@@ -1,7 +1,7 @@
 ISAWC = ISAWC or {}
 
-ISAWC._VERSION = "2.0.0"
-ISAWC._VERSIONDATE = "2020-10-06"
+ISAWC._VERSION = "2.1.3"
+ISAWC._VERSIONDATE = "2020-12-08"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -72,7 +72,6 @@ If this is 0, the mass limit will not be enforced.")
 ISAWC.ConVolMul2 = CreateConVar("isawc_container_volumemul","0.9",FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "Sets the container inventory maximum volume multiplier.\
 Note that the maximum inventory volume is affected by the container's model.\
-If is value is more than or equal to 1, the container will be able to fit inside itself, which can cause some... strange behavior.\
 If this is 0, the volume limit will not be enforced.")
 
 ISAWC.ConCount2 = CreateConVar("isawc_container_maxcount","100",FCVAR_ARCHIVE+FCVAR_REPLICATED,
@@ -881,7 +880,7 @@ ISAWC.PopulateDFormMultipliers = function(DForm)
 	DForm:ControlHelp("Containers' Multipliers")
 	DForm:NumSlider("Mass Carrying Multiplier",ISAWC.ConMassMul2:GetName(),0,10,3)
 	DForm:Help(" - "..ISAWC.ConMassMul2:GetHelpText().."\n")
-	DForm:NumSlider("Volume Carrying Multiplier",ISAWC.ConVolMul2:GetName(),0,1,3)
+	DForm:NumSlider("Volume Carrying Multiplier",ISAWC.ConVolMul2:GetName(),0,10,3)
 	DForm:Help(" - "..ISAWC.ConVolMul2:GetHelpText().."\n")
 	DForm:NumSlider("Max Items",ISAWC.ConCount2:GetName(),0,1024,0)
 	DForm:Help(" - "..ISAWC.ConCount2:GetHelpText().."\n")
@@ -1119,14 +1118,10 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 		self.SelectedItems = self.SelectedItems or {}
 		if self.SelectedItems[item] then
 			self.SelectedItems[item] = nil
-			item.PaintOver = item.OldPaintOver
+			item.Selected = nil
 		else
 			self.SelectedItems[item] = true
-			item.OldPaintOver = item.PaintOver
-			function item:PaintOver(w,h)
-				ISAWC.DrawSelectionBox(0,0,w,h,color_white)
-				self:OldPaintOver(w,h)
-			end
+			item.Selected = true
 		end
 	end
 	function Main:GetSelectedItems()
@@ -1208,6 +1203,29 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 					if info.Class ~= "prop_physics" and info.Class ~= "prop_ragdoll" then
 						Item:SetTooltip(language.GetPhrase(info.Class))
 					end
+					Item.OldPaintOver = Item.PaintOver
+					function Item:PaintOver(w,h)
+						local hasClip1 = false
+						if info.Clip1 > 0 or info.MaxClip1 > 0 then
+							hasClip1 = true
+							if info.MaxClip1 > 0 then
+								draw.SimpleTextOutlined(string.format("%i/%i", info.Clip1, info.MaxClip1), "DermaDefault", w-1, 1, ISAWC:GetPercentageColor(1-info.Clip1/info.MaxClip1), TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, 1, color_black_semitransparent)
+							else
+								draw.SimpleTextOutlined(string.format("%i", info.Clip1), "DermaDefault", w-1, 1, info.Clip1 > 0 and color_aqua or color_red, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, 1, color_black_semitransparent)
+							end
+						end
+						if info.Clip2 > 0 or info.MaxClip2 > 0 then
+							if info.MaxClip2 > 0 then
+								draw.SimpleTextOutlined(string.format("%i/%i", info.Clip2, info.MaxClip2), "DermaDefault", w-1, hasClip1 and 14 or 1, ISAWC:GetPercentageColor(1-info.Clip2/info.MaxClip2), TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, 1, color_black_semitransparent)
+							else
+								draw.SimpleTextOutlined(string.format("%i", info.Clip2), "DermaDefault", w-1, hasClip1 and 14 or 1, info.Clip2 > 0 and color_aqua or color_red, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, 1, color_black_semitransparent)
+							end
+						end
+						if self.Selected then
+							ISAWC.DrawSelectionBox(0,0,w,h,color_white)
+						end
+						self:OldPaintOver(w,h)
+					end
 					function Item:SendSignal(msg)
 						if Item.SendIDs then
 							net.Start("isawc_general")
@@ -1259,6 +1277,17 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 								end
 							end)
 							Option:SetIcon("icon16/pencil.png")
+						end
+						if info.Clip1 > 0 or info.Clip2 > 0 then
+							Option = Options:AddOption("Empty Weapon Clips",function()
+								if IsValid(self) then
+									for k2,v2 in SortedPairsByMemberValue(Main:GetSelectedItems(), "ID", true) do
+										self:AddSignal(v2.ID)
+									end
+									self:SendSignal("empty")
+								end
+							end)
+							Option:SetIcon("icon16/basket_remove.png")
 						end
 						if ISAWC.ConAllowDelete:GetBool() then
 							local SubOptions,SubOption = Options:AddSubMenu("Delete")
@@ -1338,14 +1367,10 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 		self.SelectedItems = self.SelectedItems or {}
 		if self.SelectedItems[item] then
 			self.SelectedItems[item] = nil
-			item.PaintOver = item.OldPaintOver
+			item.Selected = nil
 		else
 			self.SelectedItems[item] = true
-			item.OldPaintOver = item.PaintOver
-			function item:PaintOver(w,h)
-				ISAWC.DrawSelectionBox(0,0,w,h,color_white)
-				self:OldPaintOver(w,h)
-			end
+			item.Selected = true
 		end
 	end
 	function Main:GetSelectedItems()
@@ -1506,6 +1531,29 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 					if info.Class ~= "prop_physics" and info.Class ~= "prop_ragdoll" then
 						Item:SetTooltip(language.GetPhrase(info.Class))
 					end
+					Item.OldPaintOver = Item.PaintOver
+					function Item:PaintOver(w,h)
+						local hasClip1 = false
+						if info.Clip1 > 0 or info.MaxClip1 > 0 then
+							hasClip1 = true
+							if info.MaxClip1 > 0 then
+								draw.SimpleTextOutlined(string.format("%i/%i", info.Clip1, info.MaxClip1), "DermaDefault", w-1, 1, ISAWC:GetPercentageColor(1-info.Clip1/info.MaxClip1), TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, 1, color_black_semitransparent)
+							else
+								draw.SimpleTextOutlined(string.format("%i", info.Clip1), "DermaDefault", w-1, 1, info.Clip1 > 0 and color_aqua or color_red, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, 1, color_black_semitransparent)
+							end
+						end
+						if info.Clip2 > 0 or info.MaxClip2 > 0 then
+							if info.MaxClip2 > 0 then
+								draw.SimpleTextOutlined(string.format("%i/%i", info.Clip2, info.MaxClip2), "DermaDefault", w-1, hasClip1 and 14 or 1, ISAWC:GetPercentageColor(1-info.Clip2/info.MaxClip2), TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, 1, color_black_semitransparent)
+							else
+								draw.SimpleTextOutlined(string.format("%i", info.Clip2), "DermaDefault", w-1, hasClip1 and 14 or 1, info.Clip2 > 0 and color_aqua or color_red, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, 1, color_black_semitransparent)
+							end
+						end
+						if self.Selected then
+							ISAWC.DrawSelectionBox(0,0,w,h,color_white)
+						end
+						self:OldPaintOver(w,h)
+					end
 					function Item:SendSignal(msg,msg2)
 						if Item.SendIDs or Item.SendIDs2 then
 							if Item.SendIDs then
@@ -1596,6 +1644,21 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 							end)
 							Option:SetIcon("icon16/pencil.png")
 						end
+						if info.Clip1 > 0 or info.Clip2 > 0 then
+							Option = Options:AddOption("Empty Weapon Clips",function()
+								if IsValid(self) then
+									for k2,v2 in SortedPairsByMemberValue(Main:GetSelectedItems(), "ID", true) do
+										if v2.IsInContainer then
+											self:AddSignal(v2.ID)
+										else
+											self:AddSignal2(v2.ID)
+										end
+									end
+									self:SendSignal("empty_in_container2","empty_in_container")
+								end
+							end)
+							Option:SetIcon("icon16/basket_remove.png")
+						end
 						if ISAWC.ConAllowDelete:GetBool() then
 							local SubOptions,SubOption = Options:AddSubMenu("Delete")
 							Option = SubOptions:AddOption("Confirm Deletion",function()
@@ -1649,6 +1712,29 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 					Item.MdlInfo = info
 					if info.Class ~= "prop_physics" and info.Class ~= "prop_ragdoll" then
 						Item:SetTooltip(language.GetPhrase(info.Class))
+					end
+					Item.OldPaintOver = Item.PaintOver
+					function Item:PaintOver(w,h)
+						local hasClip1 = false
+						if info.Clip1 > 0 or info.MaxClip1 > 0 then
+							hasClip1 = true
+							if info.MaxClip1 > 0 then
+								draw.SimpleTextOutlined(string.format("%i/%i", info.Clip1, info.MaxClip1), "DermaDefault", w-1, 1, ISAWC:GetPercentageColor(1-info.Clip1/info.MaxClip1), TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, 1, color_black_semitransparent)
+							else
+								draw.SimpleTextOutlined(string.format("%i", info.Clip1), "DermaDefault", w-1, 1, info.Clip1 > 0 and color_aqua or color_red, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, 1, color_black_semitransparent)
+							end
+						end
+						if info.Clip2 > 0 or info.MaxClip2 > 0 then
+							if info.MaxClip2 > 0 then
+								draw.SimpleTextOutlined(string.format("%i/%i", info.Clip2, info.MaxClip2), "DermaDefault", w-1, hasClip1 and 14 or 1, ISAWC:GetPercentageColor(1-info.Clip2/info.MaxClip2), TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, 1, color_black_semitransparent)
+							else
+								draw.SimpleTextOutlined(string.format("%i", info.Clip2), "DermaDefault", w-1, hasClip1 and 14 or 1, info.Clip2 > 0 and color_aqua or color_red, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, 1, color_black_semitransparent)
+							end
+						end
+						if self.Selected then
+							ISAWC.DrawSelectionBox(0,0,w,h,color_white)
+						end
+						self:OldPaintOver(w,h)
 					end
 					function Item:SendSignal(msg,msg2)
 						if Item.SendIDs or Item.SendIDs2 then
@@ -1740,6 +1826,21 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 							end)
 							Option:SetIcon("icon16/pencil.png")
 						end
+						if info.Clip1 > 0 or info.Clip2 > 0 then
+							Option = Options:AddOption("Empty Weapon Clips",function()
+								if IsValid(self) then
+									for k2,v2 in SortedPairsByMemberValue(Main:GetSelectedItems(), "ID", true) do
+										if v2.IsInContainer then
+											self:AddSignal(v2.ID)
+										else
+											self:AddSignal2(v2.ID)
+										end
+									end
+									self:SendSignal("empty_in_container2","empty_in_container")
+								end
+							end)
+							Option:SetIcon("icon16/basket_remove.png")
+						end
 						if ISAWC.ConAllowDelete:GetBool() then
 							local SubOptions,SubOption = Options:AddSubMenu("Delete")
 							Option = SubOptions:AddOption("Confirm Deletion",function()
@@ -1818,6 +1919,10 @@ ISAWC.WriteModelFromDupeTable = function(self,dupe)
 	or ent.Class)
 	net.WriteUInt(ent.Skin, 16)
 	net.WriteString(bodyGroups)
+	net.WriteInt(ent.SavedClip1 or -1, 32)
+	net.WriteInt(ent.SavedClip2 or -1, 32)
+	net.WriteInt(ent.SavedMaxClip1 or -1, 32)
+	net.WriteInt(ent.SavedMaxClip2 or -1, 32)
 end
 
 ISAWC.GetClientStats = function(self,ply)
@@ -2027,11 +2132,13 @@ ISAWC.SaveInventory = function(self,ply)
 end
 
 ISAWC.SaveContainerInventory = function(self,container)
+	container:SendInventoryUpdate()
 	local endername = container:GetEnderInvName()
 	if (endername or "")~="" then
 		for k,v in pairs(ents.GetAll()) do
 			if (IsValid(v) and v.Base=="isawc_container_base" and v:GetEnderInvName()==endername) then
 				v.ISAWC_Inventory = container.ISAWC_Inventory
+				v:SendInventoryUpdate()
 			end
 		end
 	end
@@ -2048,7 +2155,7 @@ ISAWC.SaveContainerInventory = function(self,container)
 end
 
 ISAWC.PlayerSpawn = function(ply)
-	timer.Simple(0,function()
+	timer.Simple(0.5,function()
 		local data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "")) or {}
 		ISAWC.Blacklist = data.Blacklist or ISAWC.Blacklist
 		ISAWC.Whitelist = data.Whitelist or ISAWC.Whitelist
@@ -2104,6 +2211,25 @@ end
 
 ISAWC.IsLegalContainer = function(self,ent,ply,ignoreDist)
 	return tobool(IsValid(ent) and ent.Base=="isawc_container_base" and ply:Alive() and (ignoreDist or ply:GetPos():Distance(ent:GetPos())-ent:BoundingRadius()<=ISAWC.ConDistance:GetFloat()) and (ent:GetOwnerAccountID()==(ply:AccountID() or 0) or ent:GetIsPublic() or ISAWC.ConAlwaysPublic:GetBool()))
+end
+
+ISAWC.EmptyWeaponClipsToPlayer = function(self,dupe,ply)
+	local success = false
+	for k,v in pairs(dupe.Entities) do
+		if v.SavedClip1 > 0 then
+			ply:GiveAmmo(v.SavedClip1, v.SavedAmmoType1)
+			v.SavedClip1 = 0
+			success = true
+		end
+		if v.SavedClip2 > 0 then
+			ply:GiveAmmo(v.SavedClip2, v.SavedAmmoType2)
+			v.SavedClip2 = 0
+			success = true
+		end
+	end
+	if not success then
+		self:NoPickup("The weapon has no ammo!", ply)
+	end
 end
 
 ISAWC.RecursiveToNumbering = function(self,tab,done)
@@ -2625,6 +2751,39 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 				end
 				self:SendInventory2(ply,container)
 			end
+		elseif func == "empty" then
+			local invnum = net.ReadUInt(16)
+			if invnum == 0 then
+				for i=1,net.ReadUInt(16) do
+					invnum = net.ReadUInt(16)
+					local dupe = ply.ISAWC_Inventory[invnum]
+					if not dupe then return end
+					self:EmptyWeaponClipsToPlayer(dupe, ply)
+				end
+			else
+				local dupe = ply.ISAWC_Inventory[invnum]
+				if not dupe then return end
+				self:EmptyWeaponClipsToPlayer(dupe, ply)
+			end
+			self:SendInventory(ply)
+		elseif func == "empty_in_container" or func == "empty_in_container2" then
+			local container = net.ReadEntity()
+			if self:IsLegalContainer(container,ply) then
+				local invnum = net.ReadUInt(16)
+				if invnum == 0 then
+					for i=1,net.ReadUInt(16) do
+						invnum = net.ReadUInt(16)
+						local dupe = func == "empty_in_container" and ply.ISAWC_Inventory[invnum] or container.ISAWC_Inventory[invnum]
+						if not dupe then return end
+						self:EmptyWeaponClipsToPlayer(dupe, ply)
+					end
+				else
+					local dupe = func == "empty_in_container" and ply.ISAWC_Inventory[invnum] or container.ISAWC_Inventory[invnum]
+					if not dupe then return end
+					self:EmptyWeaponClipsToPlayer(dupe, ply)
+				end
+				self:SendInventory2(ply,container)
+			end
 		elseif func == "store_weapon" then
 			local ent = ply:GetActiveWeapon()
 			if IsValid(ent) then
@@ -2717,7 +2876,8 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 				self.reliantwindow:ReceiveInventory(util.JSONToTable(util.Decompress(net.ReadData(bytes))))]]
 				local data = {}
 				for i=1,net.ReadUInt(16) do
-					data[i] = {Model=net.ReadString(), Class=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString()}
+					data[i] = {Model=net.ReadString(), Class=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
+					Clip1=net.ReadInt(32), Clip2=net.ReadInt(32), MaxClip1=net.ReadInt(32), MaxClip2=net.ReadInt(32)}
 				end
 				self.reliantwindow:ReceiveInventory(data)
 				self.reliantwindow:ReceiveStats({net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadUInt(16),net.ReadUInt(16)})
@@ -2752,10 +2912,12 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 				local data2 = util.JSONToTable(util.Decompress(net.ReadData(bytes2)))]]
 				local nt1, nt2 = {}, {}
 				for i=1,net.ReadUInt(16) do
-					nt1[i] = {Model=net.ReadString(), Class=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString()}
+					nt1[i] = {Model=net.ReadString(), Class=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
+					Clip1=net.ReadInt(32), Clip2=net.ReadInt(32), MaxClip1=net.ReadInt(32), MaxClip2=net.ReadInt(32)}
 				end
 				for i=1,net.ReadUInt(16) do
-					nt2[i] = {Model=net.ReadString(), Class=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString()}
+					nt2[i] = {Model=net.ReadString(), Class=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
+					Clip1=net.ReadInt(32), Clip2=net.ReadInt(32), MaxClip1=net.ReadInt(32), MaxClip2=net.ReadInt(32)}
 				end
 				self.reliantwindow:ReceiveInventory(nt1,nt2)
 				self.reliantwindow:ReceiveStats({net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadUInt(16),net.ReadUInt(16)},{net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadUInt(16),net.ReadUInt(16)})
@@ -2838,6 +3000,7 @@ ISAWC.CanPickup = function(self,ply,ent)
 	if ent.ISAWC_BeingPhysgunned or ply.ISAWC_IsDeathDrop then return false end
 	if (tonumber(ent.NextPickup2) or 0) > CurTime() and (tonumber(ent.NextPickup2) or 0) <= CurTime() + 0.5 and SERVER then return false end
 	ent.NextPickup2 = CurTime() + 0.5
+	if ply.NextPickup2 == ent.NextPickup2 then return false end
 	if (ply:IsPlayer() and ply:IsAdmin()) and self.ConAdminOverride:GetBool() and SERVER then
 		local passeswlist = self.Whitelist[class]
 		if ent:IsPlayer() and not passeswlist then self:NoPickup("You can't pick up players!",ply) return false end
@@ -3023,6 +3186,10 @@ ISAWC.PropPickup = function(self,ply,ent,container)
 		if v:IsWeapon() then
 			v.SavedClip1 = v:Clip1()
 			v.SavedClip2 = v:Clip2()
+			v.SavedMaxClip1 = v:GetMaxClip1()
+			v.SavedMaxClip2 = v:GetMaxClip2()
+			v.SavedAmmoType1 = v:GetPrimaryAmmoType()
+			v.SavedAmmoType2 = v:GetSecondaryAmmoType()
 		end
 	end
 	duplicator.SetLocalPos(tpos)

@@ -1,7 +1,7 @@
 ENT.Base = "base_anim"
 ENT.Type = "anim"
 ENT.PrintName = "Base Container"
-ENT.Category = "Containers"
+ENT.Category = "ISAWC"
 ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Base container for the Inventory System."
@@ -64,6 +64,26 @@ function ENT:Initialize()
 			end
 		end
 		self:PrecacheGibs()
+		self:SendInventoryUpdate()
+		if WireLib then
+			self.Inputs = WireLib.CreateSpecialInputs(self,
+				{"Disable"},
+				{"NORMAL"}
+			)
+			self.Outputs = WireLib.CreateSpecialOutputs(self,
+				{"Mass", "Volume", "Count", "MaxMass", "MaxVolume", "MaxCount"},
+				{"NORMAL", "NORMAL", "NORMAL", "NORMAL", "NORMAL", "NORMAL"}
+			)
+			local baseClass = baseclass.Get("base_wire_entity")
+			self.ISAWC_OnRemove = baseClass.OnRemove
+			self.OnRestore = baseClass.OnRestore
+			self.BuildDupeInfo = baseClass.BuildDupeInfo
+			self.ApplyDupeInfo = baseClass.ApplyDupeInfo
+			self.PreEntityCopy = baseClass.PreEntityCopy
+			self.OnEntityCopyTableFinish = baseClass.OnEntityCopyTableFinish
+			self.OnDuplicated = baseClass.OnDuplicated
+			self.PostEntityPaste = baseClass.PostEntityPaste
+		end
 	end
 	self:SetMassMul(1)
 	self:SetVolumeMul(1)
@@ -106,20 +126,26 @@ function ENT:Initialize()
 end
 
 function ENT:Touch(ent)
-	if ISAWC.ConDragAndDropOntoContainer:GetInt()==1 then
+	if ISAWC.ConDragAndDropOntoContainer:GetInt()==1 and not self.ISAWC_Disabled then
 		if ISAWC:CanProperty(self,ent) then
 			ISAWC:PropPickup(self,ent)
-			--self:SendInventoryUpdate()
+			self:SendInventoryUpdate()
 		end
 	end
 end
 
 function ENT:StartTouch(ent)
-	if ISAWC.ConDragAndDropOntoContainer:GetInt()==2 then
+	if ISAWC.ConDragAndDropOntoContainer:GetInt()==2 and not self.ISAWC_Disabled then
 		if ISAWC:CanProperty(self,ent) then
 			ISAWC:PropPickup(self,ent)
-			--self:SendInventoryUpdate()
+			self:SendInventoryUpdate()
 		end
+	end
+end
+
+function ENT:TriggerInput(input, value)
+	if input == "Disable" then
+		self.ISAWC_Disabled = tobool(value)
 	end
 end
 
@@ -185,6 +211,9 @@ function ENT:OnRemove()
 		ISAWC:SetSuppressUndo(false)
 		table.Empty(self.ISAWC_Inventory)
 		ISAWC:SaveContainerInventory(self)
+		if (self.ISAWC_OnRemove) then
+			self:ISAWC_OnRemove()
+		end
 	end
 end
 
@@ -227,12 +256,21 @@ function ENT:Think()
 	end
 end
 
---[[function ENT:SendInventoryUpdate()
-	for k,v in pairs(self.ISAWC_Openers) do
+function ENT:SendInventoryUpdate()
+	--[[for k,v in pairs(self.ISAWC_Openers) do
 		if IsValid(k) then
 			ISAWC:SendInventory2(k, self)
 		else
 			self.ISAWC_Openers[k] = nil
 		end
+	end]]
+	if WireLib then
+		local stats = ISAWC:GetClientStats(self)
+		Wire_TriggerOutput(self, "Mass", stats[1])
+		Wire_TriggerOutput(self, "MaxMass", stats[2])
+		Wire_TriggerOutput(self, "Volume", stats[3] * ISAWC.dm3perHu)
+		Wire_TriggerOutput(self, "MaxVolume", stats[4] * ISAWC.dm3perHu)
+		Wire_TriggerOutput(self, "Count", stats[5])
+		Wire_TriggerOutput(self, "MaxCount", stats[6])
 	end
-end]]
+end

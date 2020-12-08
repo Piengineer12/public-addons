@@ -13,6 +13,7 @@ TOOL.Information = {
 	{name="reload_3",op=3}
 }
 TOOL.ClientConVar = {
+	teleport = "0",
 	indicator_effect = "sprites/glow04_noz",
 	indicator_color = "6",
 	indicator_scale = "1",
@@ -45,6 +46,7 @@ end
 
 TOOL.BuildCPanel = function(form)
 	form:Help("#tool.waypoint_editor_rotgb.desc")
+	form:CheckBox("Teleport Instantly","waypoint_editor_rotgb_teleport")
 	form:CheckBox("Always Show Paths","waypoint_editor_rotgb_indicator_always")
 	local choicelist = form:ComboBox("Path Sprite","waypoint_editor_rotgb_indicator_effect")
 	choicelist:SetSortItems(false)
@@ -139,6 +141,7 @@ TOOL.LeftClick = function(self,trace)
 					ent:Spawn()
 					ent:Activate()
 					ent:SetIsBeacon(true)
+					ent:SetTeleport(tobool(self:GetClientInfo("teleport")))
 				end
 				return true
 			end
@@ -160,6 +163,7 @@ TOOL.LeftClick = function(self,trace)
 						self:GetOwner():PrintMessage(HUD_PRINTTALK, "Cannot exceed 16 gBlimp waypoints!")
 					else
 						start["SetNextBlimpTarget"..placepos](start,ent)
+						ent:SetTeleport(tobool(self:GetClientInfo("teleport")))
 						self:ClearObjects()
 						self:SetOperation(1)
 						return true
@@ -177,6 +181,7 @@ TOOL.LeftClick = function(self,trace)
 						self:GetOwner():PrintMessage(HUD_PRINTTALK, "Cannot exceed 16 non-gBlimp waypoints!")
 					else
 						start["SetNextTarget"..placepos](start,ent)
+						ent:SetTeleport(tobool(self:GetClientInfo("teleport")))
 						self:ClearObjects()
 						self:SetOperation(1)
 						return true

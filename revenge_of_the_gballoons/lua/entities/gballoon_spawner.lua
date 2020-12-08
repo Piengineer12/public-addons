@@ -744,8 +744,8 @@ ROTGB_WAVES = {
 		rbe=183600--300*612
 	},
 	{ -- 90
-		{"gballoon_blimp_gray"},
-		{"gballoon_blimp_gray",100,50,10},
+		{"gballoon_fast_hidden_regen_shielded_blimp_gray"},
+		{"gballoon_fast_hidden_regen_shielded_blimp_gray",100,50,10},
 		duration=60,
 		rbe=196344--101*1944
 	},-- 90
@@ -770,15 +770,15 @@ ROTGB_WAVES = {
 		{"gballoon_blimp_blue",9,nil,51},
 		{"gballoon_blimp_red",9,nil,54},
 		{"gballoon_blimp_green",9,nil,57},
-		{"gballoon_blimp_gray",9,nil,60},
+		{"gballoon_fast_hidden_regen_shielded_blimp_gray",9,nil,60},
 		duration=60,
 		rbe=206721--9*(1944+16592+3148+612+193+133+103+93+23*4+11*4+15)
 	},
 	{
 		{"gballoon_blimp_blue",60,60},
 		{"gballoon_blimp_blue",30,60,0.25},
-		{"gballoon_blimp_gray",60,60,0.5},
-		{"gballoon_blimp_gray",30,60,0.75},
+		{"gballoon_fast_hidden_regen_shielded_blimp_gray",60,60,0.5},
+		{"gballoon_fast_hidden_regen_shielded_blimp_gray",30,60,0.75},
 		duration=60,
 		rbe=230040--90*612+90*1944
 	},
@@ -792,7 +792,7 @@ ROTGB_WAVES = {
 	},
 	{
 		{"gballoon_blimp_green",15,60},
-		{"gballoon_blimp_gray",15,60},
+		{"gballoon_fast_hidden_regen_shielded_blimp_gray",15,60},
 		duration=60,
 		rbe=278040--15*(1944+16592)
 	},
@@ -808,7 +808,7 @@ ROTGB_WAVES = {
 	},-- 95
 	{
 		{"gballoon_blimp_red",60,60},
-		{"gballoon_blimp_gray",30,60},
+		{"gballoon_fast_hidden_regen_shielded_blimp_gray",30,60},
 		{"gballoon_marble",240,60},
 		duration=60,
 		rbe=293520--60*(1944/2+3148+193*4)
@@ -816,7 +816,7 @@ ROTGB_WAVES = {
 	{
 		{"gballoon_blimp_green",15,30},
 		{"gballoon_blimp_red",15,60},
-		{"gballoon_blimp_gray",15,15,45},
+		{"gballoon_fast_hidden_regen_shielded_blimp_gray",15,15,45},
 		duration=60,
 		rbe=325260--15*(1944+16592+3148)
 	},
@@ -834,7 +834,7 @@ ROTGB_WAVES = {
 		{"gballoon_blimp_blue",30,15},
 		{"gballoon_blimp_red",15,15,15},
 		{"gballoon_blimp_green",15,15,30},
-		{"gballoon_blimp_gray",30,15,45},
+		{"gballoon_fast_hidden_regen_shielded_blimp_gray",30,15,45},
 		duration=60,
 		rbe=372780--30*612+15*3148+15*16592+30*1944
 	},
@@ -853,7 +853,7 @@ ROTGB_WAVES = {
 	{
 		{"gballoon_blimp_red",60,60},
 		{"gballoon_blimp_red",20,60},
-		{"gballoon_blimp_gray",120,60,0.25},
+		{"gballoon_fast_hidden_regen_shielded_blimp_gray",120,60,0.25},
 		duration=60.25,
 		rbe=485120--120*1944+80*3148
 	},
@@ -929,10 +929,10 @@ ROTGB_WAVES = {
 		{"gballoon_blimp_green",10,30},
 		{"gballoon_blimp_green",10,30},
 		{"gballoon_blimp_green",10,30},
-		{"gballoon_blimp_gray",10,30},
-		{"gballoon_blimp_gray",10,30},
-		{"gballoon_blimp_gray",10,30},
-		{"gballoon_blimp_gray",10,30},
+		{"gballoon_fast_hidden_regen_shielded_blimp_gray",10,30},
+		{"gballoon_fast_hidden_regen_shielded_blimp_gray",10,30},
+		{"gballoon_fast_hidden_regen_shielded_blimp_gray",10,30},
+		{"gballoon_fast_hidden_regen_shielded_blimp_gray",10,30},
 		{"gballoon_blimp_purple",6,30,30},
 		duration=60,
 		rbe=1083872--40*(16592+1944)+6*57072
@@ -950,7 +950,7 @@ ROTGB_WAVES = {
 	},
 	{
 		{"gballoon_blimp_magenta",120,60},
-		{"gballoon_blimp_gray",120,60},
+		{"gballoon_fast_hidden_regen_shielded_blimp_gray",120,60},
 		duration=60,
 		rbe=1346400--120*(9276+1944)
 	},
@@ -999,7 +999,7 @@ ROTGB_WAVES = {
 		{"gballoon_blimp_blue",25,5,85},
 		{"gballoon_blimp_red",25,5,90},
 		{"gballoon_blimp_green",25,5,95},
-		{"gballoon_blimp_gray",25,5,100},
+		{"gballoon_fast_hidden_regen_shielded_blimp_gray",25,5,100},
 		{"gballoon_blimp_purple",25,5,105},
 		{"gballoon_blimp_magenta",50,10,110},
 		duration=120,
@@ -1010,7 +1010,7 @@ ROTGB_WAVES = {
 		{"gballoon_red",600,300},
 		{"gballoon_blimp_magenta",50,10,60},
 		{"gballoon_blimp_purple",50,10,70},
-		{"gballoon_blimp_gray",50,10,80},
+		{"gballoon_fast_hidden_regen_shielded_blimp_gray",50,10,80},
 		{"gballoon_blimp_green",50,10,90},
 		{"gballoon_blimp_red",50,10,100},
 		{"gballoon_blimp_blue",50,10,110},
@@ -1334,7 +1334,7 @@ function ENT:GenerateNextWave(cwave)
 	local trbe = 0
 	local wavetab = {}
 	DEFINE_BASECLASS("gballoon_base")
-	local choices = {"gballoon_blimp_blue","gballoon_blimp_red","gballoon_blimp_green","gballoon_blimp_gray","gballoon_blimp_purple","gballoon_blimp_magenta","gballoon_blimp_rainbow"}
+	local choices = {"gballoon_blimp_blue","gballoon_blimp_red","gballoon_blimp_green","gballoon_fast_hidden_regen_shielded_blimp_gray","gballoon_blimp_purple","gballoon_blimp_magenta","gballoon_blimp_rainbow"}
 	local factors = {120,60,40,30,24,20,15,12,10,8,6,5,4,3,2,1}
 	while true do
 		if trbe > (self:GetWaveTable()[cwave-1].assumerbe or self:GetWaveTable()[cwave-1].rbe) then break end

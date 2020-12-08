@@ -184,7 +184,7 @@ local function SnipeEntity()
 			ent:InflictRotgBStatusEffect("unimmune",999999)
 		end
 		if self.rotgb_NoC and self.AttackDamage/10>=ent:Health() then
-			ent:Pop(-1)
+			bullet.Damage = ent:GetRgBE() * 1000
 			self:FireBullets(bullet)
 		else
 			self:FireBullets(bullet)

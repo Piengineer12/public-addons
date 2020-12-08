@@ -180,7 +180,7 @@ function ENT:ROTGB_Think()
 				v:InflictRotgBStatusEffect("unimmune",0.25)
 			end
 			if v:GetRgBE() <= self.AttackDamage/10 and self.AttackDamage>=30 then
-				v:Pop(-1)
+				v:TakeDamage(v:GetRgBE() * 1000, self:GetTowerOwner(), self)
 			end
 		elseif v.Base=="gballoon_tower_base" then
 			if not IsValid(v.rotgb_AffectedBy) then

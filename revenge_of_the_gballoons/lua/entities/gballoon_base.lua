@@ -381,50 +381,53 @@ local ConT = CreateConVar("rotgb_crit_effect_delay","0",FCVAR_ARCHIVE,
 [[Sets the delay between "Crit!" text effects shown by the gBalloons.
  - A value of -1 disables the effect altogether.]])
 
+local ConF = CreateConVar("rotgb_use_kill_handler","0",FCVAR_ARCHIVE,
+[[Enabling this option will cause gBalloons to trigger on-kill effects when popped.]])
+
 concommand.Add("rotgb_reset_convars",function(ply,cmd,args,argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
-		ConA:SetString(ConA:GetDefault())
-		ConB:SetString(ConB:GetDefault())
-		ConC:SetString(ConC:GetDefault())
-		ConD:SetString(ConD:GetDefault())
-		ConE:SetString(ConE:GetDefault())
-		--ConF:SetString(ConF:GetDefault())
-		ConG:SetString(ConG:GetDefault())
-		ConH:SetString(ConH:GetDefault())
-		ConI:SetString(ConI:GetDefault())
-		ConJ:SetString(ConJ:GetDefault())
-		ConK:SetString(ConK:GetDefault())
-		ConL:SetString(ConL:GetDefault())
-		ConM:SetString(ConM:GetDefault())
-		ConN:SetString(ConN:GetDefault())
-		ConO:SetString(ConO:GetDefault())
-		ConP:SetString(ConP:GetDefault())
-		ConQ:SetString(ConQ:GetDefault())
-		ConR:SetString(ConR:GetDefault())
-		ConS:SetString(ConS:GetDefault())
-		ConT:SetString(ConT:GetDefault())
-		--ConU:SetString(ConU:GetDefault())
-		ConV:SetString(ConV:GetDefault())
-		ConW:SetString(ConW:GetDefault())
-		ConX:SetString(ConX:GetDefault())
-		ConY:SetString(ConY:GetDefault())
-		ConZ:SetString(ConZ:GetDefault())
-		Con0:SetString(Con0:GetDefault())
-		Con1:SetString(Con1:GetDefault())
-		Con2:SetString(Con2:GetDefault())
-		Con3:SetString(Con3:GetDefault())
-		Con4:SetString(Con4:GetDefault())
-		Con5:SetString(Con5:GetDefault())
-		Con6:SetString(Con6:GetDefault())
-		Con7:SetString(Con7:GetDefault())
-		Con8:SetString(Con8:GetDefault())
-		Con9:SetString(Con9:GetDefault())
-		Con10:SetString(Con10:GetDefault())
-		Con11:SetString(Con11:GetDefault())
-		Con12:SetString(Con12:GetDefault())
-		Con13:SetString(Con13:GetDefault())
-		Con14:SetString(Con14:GetDefault())
-		Con15:SetString(Con15:GetDefault())
+		ConA:Revert()
+		ConB:Revert()
+		ConC:Revert()
+		ConD:Revert()
+		ConE:Revert()
+		ConF:Revert()
+		ConG:Revert()
+		ConH:Revert()
+		ConI:Revert()
+		ConJ:Revert()
+		ConK:Revert()
+		ConL:Revert()
+		ConM:Revert()
+		ConN:Revert()
+		ConO:Revert()
+		ConP:Revert()
+		ConQ:Revert()
+		ConR:Revert()
+		ConS:Revert()
+		ConT:Revert()
+		--ConU:Revert()
+		ConV:Revert()
+		ConW:Revert()
+		ConX:Revert()
+		ConY:Revert()
+		ConZ:Revert()
+		Con0:Revert()
+		Con1:Revert()
+		Con2:Revert()
+		Con3:Revert()
+		Con4:Revert()
+		Con5:Revert()
+		Con6:Revert()
+		Con7:Revert()
+		Con8:Revert()
+		Con9:Revert()
+		Con10:Revert()
+		Con11:Revert()
+		Con12:Revert()
+		Con13:Revert()
+		Con14:Revert()
+		Con15:Revert()
 	end
 end,nil,
 [[Admin only command.
@@ -782,10 +785,10 @@ function ENT:Initialize()
 		if self:GetBalloonProperty("BalloonPurple") and not (self:GetBalloonProperty("BalloonHidden") or Con1:GetBool() and not Con2:GetBool()) then
 			self:SetNWBool("BalloonPurple",true)
 		end
-		if self:GetBalloonProperty("BalloonShielded") and self:Health()*2>self:GetMaxHealth() and not self:GetBalloonProperty("BalloonBlimp") and (not Con1:GetBool() or Con2:GetBool()) then
+		if self:GetBalloonProperty("BalloonShielded") and self:Health()*2>self:GetMaxHealth() and (not Con1:GetBool() or Con2:GetBool()) then
 			self:SetNWBool("RenderShield",true)
 		end
-		if self:GetBalloonProperty("BalloonFast") and not (Con1:GetBool() and not Con2:GetBool() or self:GetBalloonProperty("BalloonBlimp") or Con15:GetBool()) then
+		if self:GetBalloonProperty("BalloonFast") and not (Con1:GetBool() and not Con2:GetBool() or Con15:GetBool()) then
 			if IsValid(self.FastTrail) then self.FastTrail:Remove() end
 			local col = self:GetBalloonProperty("BalloonRainbow") and Color(255,255,255) or string.ToColor(self:GetBalloonProperty("BalloonColor"))
 			col.a = self:GetBalloonProperty("BalloonHidden") and col.a/4 or col.a
@@ -1483,102 +1486,106 @@ function ENT:ComputePathWrapper(path,pos)
 end
 
 function ENT:MoveToTarget()
-	--coroutine.wait(0.05*ConD:GetFloat()*#ents.FindByClass("gballoon_base"))
-	local path = Path("Chase")
-	local position = self:GetTarget():GetPos()
-	path:SetGoalTolerance(ConY:GetFloat())
-	path:SetMinLookAheadDistance(ConZ:GetFloat())
-	local waitamt = SysTime()
-	self:ComputePathWrapper(path,position)
-	waitamt = SysTime()-waitamt
-	waitamt = math.max(waitamt*self:GetgBalloonCount()*ConD:GetFloat(),0.5)
-	self:Log("Regenerated pathway. Recomputing in "..waitamt.." seconds...","pathfinding")
-	self.RecheckPath = true
-	if not IsValid(path) then return "Failed to find a path." end
-	--local supptab = {}
-	--[[for k,v in pairs(path:GetAllSegments()) do
-		if v.area:HasAttributes(NAV_MESH_TRANSIENT) then
-			util.TraceLine({
-				start = v.area:GetCenter(),
-				endpos = v.area:GetCenter()+vector_up*self:BoundingRadius(),
-				filter = self,
-				mask = MASK_NPCSOLID,
-				ignoreworld = true,
-				output = supptab
-			})
-			if supptab.Hit then
-				return "Transient NavMesh #"..v.area:GetID().." should not be crossed! Abort!"
+	if (self:GetTarget():GetClass()=="gballoon_target" and self:GetTarget():GetTeleport()) then
+		self:SetPos(self:GetTarget():GetPos())
+	else
+		--coroutine.wait(0.05*ConD:GetFloat()*#ents.FindByClass("gballoon_base"))
+		local path = Path("Chase")
+		local position = self:GetTarget():GetPos()
+		path:SetGoalTolerance(ConY:GetFloat())
+		path:SetMinLookAheadDistance(ConZ:GetFloat())
+		local waitamt = SysTime()
+		self:ComputePathWrapper(path,position)
+		waitamt = SysTime()-waitamt
+		waitamt = math.max(waitamt*self:GetgBalloonCount()*ConD:GetFloat(),0.5)
+		self:Log("Regenerated pathway. Recomputing in "..waitamt.." seconds...","pathfinding")
+		self.RecheckPath = true
+		if not IsValid(path) then return "Failed to find a path." end
+		--local supptab = {}
+		--[[for k,v in pairs(path:GetAllSegments()) do
+			if v.area:HasAttributes(NAV_MESH_TRANSIENT) then
+				util.TraceLine({
+					start = v.area:GetCenter(),
+					endpos = v.area:GetCenter()+vector_up*self:BoundingRadius(),
+					filter = self,
+					mask = MASK_NPCSOLID,
+					ignoreworld = true,
+					output = supptab
+				})
+				if supptab.Hit then
+					return "Transient NavMesh #"..v.area:GetID().." should not be crossed! Abort!"
+				end
 			end
-		end
-	end]]
-	while IsValid(path) and IsValid(self:GetTarget()) and not GetConVar("ai_disabled"):GetBool() do
-		if self:GetTarget():GetPos():DistToSqr(position)>ConY:GetFloat()^2 or path:GetAge()>(self.RecheckPath and 0.5 or waitamt) then
-			self.RecheckPath = nil
-			position = self:GetTarget():GetPos()
-			waitamt = SysTime()
-			self:ComputePathWrapper(path,position)
-			waitamt = SysTime()-waitamt
-			waitamt = math.max(waitamt*self:GetgBalloonCount()*ConD:GetFloat(),0.5)
-			self:Log("Regenerated pathway. Recomputing in "..waitamt.." seconds...","pathfinding")
-		end
-		if string.find(ConX:GetString(),"pathfinding") then
-			path:Draw()
-		end
-		local firstPos = self:GetPos()
-		if not self:IsStunned() then
-			path:Chase(self,self:GetTarget())
-		end
-		if not IsValid(path) and (IsValid(self:GetTarget()) and not navmesh.GetNearestNavArea(self:GetPos()):HasAttributes(NAV_MESH_STOP) and self:GetTarget():GetPos():DistToSqr(self:GetPos()) > ConY:GetFloat()^2*2.25) then
-			self:LogError("Temporarily lost track! Using stock pathfinding...","pathfinding")
-			self.correcting = true
-			path:Compute(self,self:GetTarget():GetPos())
-			path:Chase(self,self:GetTarget())
-		end
-		if self.loco:IsStuck() or (self.WallStuck or 0)>=4 and not self:IsStunned() then
-			self.WallStuck = nil
-			if (self.ResetStuck or 0) < CurTime() then
-				self.UnstuckAttempts = 0
-			end
-			self.UnstuckAttempts = self.UnstuckAttempts + 1
-			self.ResetStuck = CurTime() + 30
-			if self.UnstuckAttempts == 1 then -- A simple jump should fix it.
+		end]]
+		while IsValid(path) and IsValid(self:GetTarget()) and not GetConVar("ai_disabled"):GetBool() do
+			if self:GetTarget():GetPos():DistToSqr(position)>ConY:GetFloat()^2 or path:GetAge()>(self.RecheckPath and 0.5 or waitamt) then
+				self.RecheckPath = nil
+				position = self:GetTarget():GetPos()
+				waitamt = SysTime()
 				self:ComputePathWrapper(path,position)
-				self.loco:Jump()
-				self.loco:ClearStuck()
-			elseif self.UnstuckAttempts == 2 then -- That didn't fix it, try to teleport slightly upwards instead.
-				self:SetPos(self:GetPos()+vector_up*20)
-				self.loco:ClearStuck()
-			elseif self.UnstuckAttempts == 3 then -- If not, ask GMod kindly to free us.
-				self:HandleStuck()
-			else -- If not, just teleport us ahead on the path. (Sanic method)
-				self.LastStuck = CurTime()
-				self:SetPos(path:GetPositionOnPath(path:GetCursorPosition()+2^self.UnstuckAttempts))
-				self.loco:ClearStuck()
+				waitamt = SysTime()-waitamt
+				waitamt = math.max(waitamt*self:GetgBalloonCount()*ConD:GetFloat(),0.5)
+				self:Log("Regenerated pathway. Recomputing in "..waitamt.." seconds...","pathfinding")
 			end
-			return "Got stuck for the "..self.UnstuckAttempts..STNDRD(self.UnstuckAttempts).." time!"
-		end
-		self:CheckForRegenAndFire()
-		self:CheckForSpeedMods()
-		coroutine.yield()
-		if self.correcting and navmesh.GetNearestNavArea(self:GetPos()):HasAttributes(NAV_MESH_STOP) then
-			self.correcting = nil
-			self:ComputePathWrapper(path,position)
-		end
-		firstPos:Sub(self:GetPos())
-		local cdd = firstPos:Length()
-		self.TravelledDistance = (self.TravelledDistance or 0) + cdd
-		if cdd==0 and not (self:IsStunned() or navmesh.GetNearestNavArea(self:GetPos()):HasAttributes(NAV_MESH_STOP)) then
-			self.WallStuck = (self.WallStuck or 0) + 1
-			self:LogError("Stuck in a wall, "..self.WallStuck*25 .."% sure.","pathfinding")
-			if self.WallStuck>=4 then
-				self:LogError("Definitely stuck! Waiting for HandleStuck...","pathfinding")
+			if string.find(ConX:GetString(),"pathfinding") then
+				path:Draw()
 			end
-		else
-			self.WallStuck = nil
+			local firstPos = self:GetPos()
+			if not self:IsStunned() then
+				path:Chase(self,self:GetTarget())
+			end
+			if not IsValid(path) and (IsValid(self:GetTarget()) and not navmesh.GetNearestNavArea(self:GetPos()):HasAttributes(NAV_MESH_STOP) and self:GetTarget():GetPos():DistToSqr(self:GetPos()) > ConY:GetFloat()^2*2.25) then
+				self:LogError("Temporarily lost track! Using stock pathfinding...","pathfinding")
+				self.correcting = true
+				path:Compute(self,self:GetTarget():GetPos())
+				path:Chase(self,self:GetTarget())
+			end
+			if self.loco:IsStuck() or (self.WallStuck or 0)>=4 and not self:IsStunned() then
+				self.WallStuck = nil
+				if (self.ResetStuck or 0) < CurTime() then
+					self.UnstuckAttempts = 0
+				end
+				self.UnstuckAttempts = self.UnstuckAttempts + 1
+				self.ResetStuck = CurTime() + 30
+				if self.UnstuckAttempts == 1 then -- A simple jump should fix it.
+					self:ComputePathWrapper(path,position)
+					self.loco:Jump()
+					self.loco:ClearStuck()
+				elseif self.UnstuckAttempts == 2 then -- That didn't fix it, try to teleport slightly upwards instead.
+					self:SetPos(self:GetPos()+vector_up*20)
+					self.loco:ClearStuck()
+				elseif self.UnstuckAttempts == 3 then -- If not, ask GMod kindly to free us.
+					self:HandleStuck()
+				else -- If not, just teleport us ahead on the path. (Sanic method)
+					self.LastStuck = CurTime()
+					self:SetPos(path:GetPositionOnPath(path:GetCursorPosition()+2^self.UnstuckAttempts))
+					self.loco:ClearStuck()
+				end
+				return "Got stuck for the "..self.UnstuckAttempts..STNDRD(self.UnstuckAttempts).." time!"
+			end
+			self:CheckForRegenAndFire()
+			self:CheckForSpeedMods()
+			coroutine.yield()
+			if self.correcting and navmesh.GetNearestNavArea(self:GetPos()):HasAttributes(NAV_MESH_STOP) then
+				self.correcting = nil
+				self:ComputePathWrapper(path,position)
+			end
+			firstPos:Sub(self:GetPos())
+			local cdd = firstPos:Length()
+			self.TravelledDistance = (self.TravelledDistance or 0) + cdd
+			if cdd==0 and not (self:IsStunned() or navmesh.GetNearestNavArea(self:GetPos()):HasAttributes(NAV_MESH_STOP)) then
+				self.WallStuck = (self.WallStuck or 0) + 1
+				self:LogError("Stuck in a wall, "..self.WallStuck*25 .."% sure.","pathfinding")
+				if self.WallStuck>=4 then
+					self:LogError("Definitely stuck! Waiting for HandleStuck...","pathfinding")
+				end
+			else
+				self.WallStuck = nil
+			end
 		end
-	end
-	if not IsValid(self:GetTarget()) then
-		return "Lost its target."
+		if not IsValid(self:GetTarget()) then
+			return "Lost its target."
+		end
 	end
 	return "Completely lost track!!"
 end
@@ -1752,7 +1759,7 @@ function ENT:HasRotgBStatusEffect(typ)
 end
 
 function ENT:GetRgBE()
-	return self.rotgb_rbetab[self:GetBalloonProperty("BalloonType")]*(self:GetBalloonProperty("BalloonShielded") and 2 or 1)+self:Health()-self:GetMaxHealth()
+	return self.rotgb_rbetab[self:GetBalloonProperty("BalloonType")]*(self:GetBalloonProperty("BalloonShielded") and 2 or 1)+math.max(self:Health(), 1)-self:GetMaxHealth()
 end
 
 function ENT:GetDistanceTravelled()
@@ -1836,7 +1843,7 @@ function ENT:OnInjured(dmginfo)
 		local newhealth = self:Health()-math.max(dmginfo:GetDamage(),0)
 		self:SetHealth(newhealth)
 		self:Log("Took "..dmginfo:GetDamage().." damage! We are now at "..newhealth.." health.","damage")
-		if self:GetBalloonProperty("BalloonShielded") and self:Health()*2>self:GetMaxHealth() and not self:GetBalloonProperty("BalloonBlimp") and (not Con1:GetBool() or Con2:GetBool()) then
+		if self:GetBalloonProperty("BalloonShielded") and self:Health()*2>self:GetMaxHealth() and (not Con1:GetBool() or Con2:GetBool()) then
 			self:SetNWBool("RenderShield",true)
 		else
 			self:SetNWBool("RenderShield",false)
@@ -1896,7 +1903,11 @@ function ENT:OnContact(ent)
 	end]]
 end
 
+local baseNextbotClass = baseclass.Get("base_nextbot")
 function ENT:OnKilled(dmginfo)
+	if ConF:GetBool() then
+		baseNextbotClass.OnKilled(self, dmginfo)
+	end
 	-- self.Attractor:Remove()
 	-- self:Pop(-self:Health(),nil,dmginfo:GetDamageType())
 end
@@ -2642,17 +2653,6 @@ if CLIENT then
 		end
 		Scroller:CreateEntry("Type:", typetable, function(value)
 			currentparams[1] = value
-			if value:sub(1,15)=="gballoon_blimp_" then
-				Scroller.Modifier1:SetEnabled(false)
-				Scroller.Modifier2:SetEnabled(false)
-				Scroller.Modifier3:SetEnabled(false)
-				Scroller.Modifier4:SetEnabled(false)
-			else
-				Scroller.Modifier1:SetEnabled(true)
-				Scroller.Modifier2:SetEnabled(true)
-				Scroller.Modifier3:SetEnabled(true)
-				Scroller.Modifier4:SetEnabled(true)
-			end
 		end, currentparams[1])
 
 		--[[ List flags:
@@ -2681,21 +2681,11 @@ if CLIENT then
 			currentparams[2] = bit.bor( bit.band(currentparams[2], bit.bnot(12)), value )
 		end, bit.band(currentparams[2], 12))
 		
-		if currentparams[1]:sub(1,15)=="gballoon_blimp_" then
-			Scroller.Modifier1:SetEnabled(false)
-			Scroller.Modifier2:SetEnabled(false)
-			Scroller.Modifier3:SetEnabled(false)
-			Scroller.Modifier4:SetEnabled(false)
-		end
-		
 		local OKButton = vgui.Create("DButton", Scroller)
 		OKButton:SetText(def_type and "Update Entry" or "Add Entry")
 		OKButton:Dock(TOP)
 		function OKButton:DoClick()
 			Main:Close()
-			if currentparams[1]:sub(1,15)=="gballoon_blimp_" then
-				currentparams[2] = 255
-			end
 			run_func(currentparams)
 		end
 	end
@@ -2927,31 +2917,28 @@ if CLIENT then
 			local npcdata = list.GetForEdit("NPC")[defs[1]]
 			local KVs = npcdata.KeyValues
 			currentparams[1] = KVs.BalloonType
-			if not tobool(KVs.BalloonBlimp) then
-				local bits = currentparams[2]
-				if tobool(KVs.BalloonFast) then
-					bits = bits - 2
-				else
-					bits = bits - 1
-				end
-				if tobool(KVs.BalloonHidden) then
-					bits = bits - 8
-				else
-					bits = bits - 4
-				end
-				if tobool(KVs.BalloonDoRegen) then
-					bits = bits - 32
-				else
-					bits = bits - 16
-				end
-				if tobool(KVs.BalloonShielded) then
-					bits = bits - 128
-				else
-					bits = bits - 64
-				end
-				currentparams[2] = bits
+			local bits = currentparams[2]
+			if tobool(KVs.BalloonFast) then
+				bits = bits - 2
+			else
+				bits = bits - 1
 			end
-			currentparams[3], currentparams[4], currentparams[5] = defs[2] or 1, defs[3] or 0, defs[4] or 0
+			if tobool(KVs.BalloonHidden) then
+				bits = bits - 8
+			else
+				bits = bits - 4
+			end
+			if tobool(KVs.BalloonDoRegen) then
+				bits = bits - 32
+			else
+				bits = bits - 16
+			end
+			if tobool(KVs.BalloonShielded) then
+				bits = bits - 128
+			else
+				bits = bits - 64
+			end
+			currentparams[2], currentparams[3], currentparams[4], currentparams[5] = bits, defs[2] or 1, defs[3] or 0, defs[4] or 0
 		end
 		
 		local Main = vgui.Create("DFrame")
@@ -2994,17 +2981,6 @@ if CLIENT then
 		end
 		Scroller:CreateEntry("Type:", typetable, function(value)
 			currentparams[1] = value
-			if value:sub(1,15)=="gballoon_blimp_" then
-				Scroller.Modifier1:SetEnabled(false)
-				Scroller.Modifier2:SetEnabled(false)
-				Scroller.Modifier3:SetEnabled(false)
-				Scroller.Modifier4:SetEnabled(false)
-			else
-				Scroller.Modifier1:SetEnabled(true)
-				Scroller.Modifier2:SetEnabled(true)
-				Scroller.Modifier3:SetEnabled(true)
-				Scroller.Modifier4:SetEnabled(true)
-			end
 		end, currentparams[1])
 		
 		Scroller.Modifier1 = Scroller:CreateEntry("Is Regen:", {{"#GameUI_Yes", 16}, {"#GameUI_No", 32}, not defs and {"< don't change >", 48} or nil}, function(value)
@@ -3022,13 +2998,6 @@ if CLIENT then
 		Scroller.Modifier4 = Scroller:CreateEntry("Is Hidden:", {{"#GameUI_Yes", 4}, {"#GameUI_No", 8}, not defs and {"< don't change >", 12} or nil}, function(value)
 			currentparams[2] = bit.bor( bit.band(currentparams[2], bit.bnot(12)), value )
 		end, bit.band(currentparams[2], 12))
-		
-		if currentparams[1]:sub(1,15)=="gballoon_blimp_" then
-			Scroller.Modifier1:SetEnabled(false)
-			Scroller.Modifier2:SetEnabled(false)
-			Scroller.Modifier3:SetEnabled(false)
-			Scroller.Modifier4:SetEnabled(false)
-		end
 		
 		function Main:CreateNumSlider(argnum, low, dec, text)
 			local AmountSelector = vgui.Create("DNumSlider", Main)
@@ -3053,9 +3022,6 @@ if CLIENT then
 		OKButton:Dock(TOP)
 		function OKButton:DoClick()
 			Main:Close()
-			if currentparams[1]:sub(1,15)=="gballoon_blimp_" then
-				currentparams[2] = 255
-			end
 			run_func(currentparams)
 		end
 		
@@ -3123,19 +3089,17 @@ if CLIENT then
 			local name = npcdata.Name
 			local KVs = npcdata.KeyValues
 			
-			if not tobool(KVs.BalloonBlimp) then
-				if tobool(KVs.BalloonShielded) then
-					name = "Shielded " .. name
-				end
-				if tobool(KVs.BalloonDoRegen) then
-					name = "Regen " .. name
-				end
-				if tobool(KVs.BalloonHidden) then
-					name = "Hidden " .. name
-				end
-				if tobool(KVs.BalloonFast) then
-					name = "Fast " .. name
-				end
+			if tobool(KVs.BalloonShielded) then
+				name = "Shielded " .. name
+			end
+			if tobool(KVs.BalloonDoRegen) then
+				name = "Regen " .. name
+			end
+			if tobool(KVs.BalloonHidden) then
+				name = "Hidden " .. name
+			end
+			if tobool(KVs.BalloonFast) then
+				name = "Fast " .. name
 			end
 			
 			self:SetColumnText(1, name)
@@ -3174,35 +3138,29 @@ if CLIENT then
 							PrintTable(compdata)]]
 							local npcdata = list.GetForEdit("NPC")[v.wavecomp[1]]
 							local KVs = npcdata.KeyValues
-							if tobool(KVs.BalloonBlimp) then
-								if compdata[1] ~= "gballoon_*" then
-									v.wavecomp[1] = compdata[1]
-								end
-							else
-								local name, bits = "gballoon_", compdata[2]
-								if bit.band(bits,3)==1 then
-									name = name.."fast_"
-								elseif bit.band(bits,3)==3 and tobool(KVs.BalloonFast) then
-									name = name.."fast_"
-								end
-								if bit.band(bits,12)==4 then
-									name = name.."hidden_"
-								elseif bit.band(bits,12)==12 and tobool(KVs.BalloonHidden) then
-									name = name.."hidden_"
-								end
-								if bit.band(bits,48)==16 then
-									name = name.."regen_"
-								elseif bit.band(bits,48)==48 and tobool(KVs.BalloonDoRegen) then
-									name = name.."regen_"
-								end
-								if bit.band(bits,192)==64 then
-									name = name.."shielded_"
-								elseif bit.band(bits,192)==192 and tobool(KVs.BalloonShielded) then
-									name = name.."shielded_"
-								end
-								local dname = compdata[1] ~= "gballoon_*" and compdata[1] or v.wavecomp[1]
-								v.wavecomp[1] = name .. (dname:match("blimp_%w+$") or dname:match("%w+$"))
+							local name, bits = "gballoon_", compdata[2]
+							if bit.band(bits,3)==1 then
+								name = name.."fast_"
+							elseif bit.band(bits,3)==3 and tobool(KVs.BalloonFast) then
+								name = name.."fast_"
 							end
+							if bit.band(bits,12)==4 then
+								name = name.."hidden_"
+							elseif bit.band(bits,12)==12 and tobool(KVs.BalloonHidden) then
+								name = name.."hidden_"
+							end
+							if bit.band(bits,48)==16 then
+								name = name.."regen_"
+							elseif bit.band(bits,48)==48 and tobool(KVs.BalloonDoRegen) then
+								name = name.."regen_"
+							end
+							if bit.band(bits,192)==64 then
+								name = name.."shielded_"
+							elseif bit.band(bits,192)==192 and tobool(KVs.BalloonShielded) then
+								name = name.."shielded_"
+							end
+							local dname = compdata[1] ~= "gballoon_*" and compdata[1] or v.wavecomp[1]
+							v.wavecomp[1] = name .. (dname:match("blimp_%w+$") or dname:match("%w+$"))
 							if compdata[3] >= 0 then
 								v.wavecomp[2] = compdata[3] > 1 and math.Round(compdata[3])
 							end
@@ -3738,19 +3696,17 @@ if CLIENT then
 					local col = HSVToColor(hue,sat,val)
 					wavecontents:InsertColorChange(col.r,col.g,col.b,col.a)
 					wavecontents:AppendText(balloons[v2] .. "x ")
-					if not tobool(KVs.BalloonBlimp) then
-						if tobool(KVs.BalloonFast) then
-							wavecontents:AppendText("Fast ")
-						end
-						if tobool(KVs.BalloonHidden) then
-							wavecontents:AppendText("Hidden ")
-						end
-						if tobool(KVs.BalloonDoRegen) then
-							wavecontents:AppendText("Regen ")
-						end
-						if tobool(KVs.BalloonShielded) then
-							wavecontents:AppendText("Shielded ")
-						end
+					if tobool(KVs.BalloonFast) then
+						wavecontents:AppendText("Fast ")
+					end
+					if tobool(KVs.BalloonHidden) then
+						wavecontents:AppendText("Hidden ")
+					end
+					if tobool(KVs.BalloonDoRegen) then
+						wavecontents:AppendText("Regen ")
+					end
+					if tobool(KVs.BalloonShielded) then
+						wavecontents:AppendText("Shielded ")
 					end
 					wavecontents:AppendText(npcdata.Name.."\n")
 				end
@@ -3813,8 +3769,6 @@ local minuteclass = {Base = "base_anim", Type = "anim"}
 local registerkeys = {
 	red = {
 		Name = "Red gBalloon",
-		Class = "gballoon_base",
-		--Category = "RotgB: Basic",
 		KeyValues = {
 			BalloonMoveSpeed = "100",
 			BalloonScale = "1",
@@ -3824,8 +3778,6 @@ local registerkeys = {
 	},
 	blue = {
 		Name = "Blue gBalloon",
-		Class = "gballoon_base",
-		--Category = "RotgB: Basic",
 		KeyValues = {
 			BalloonMoveSpeed = "125",
 			BalloonScale = "1.25",
@@ -3835,8 +3787,6 @@ local registerkeys = {
 	},
 	green = {
 		Name = "Green gBalloon",
-		Class = "gballoon_base",
-		--Category = "RotgB: Basic",
 		KeyValues = {
 			BalloonMoveSpeed = "150",
 			BalloonScale = "1.5",
@@ -3846,8 +3796,6 @@ local registerkeys = {
 	},
 	yellow = {
 		Name = "Yellow gBalloon",
-		Class = "gballoon_base",
-		--Category = "RotgB: Basic",
 		KeyValues = {
 			BalloonMoveSpeed = "175",
 			BalloonScale = "1.75",
@@ -3857,8 +3805,6 @@ local registerkeys = {
 	},
 	pink = {
 		Name = "Pink gBalloon",
-		Class = "gballoon_base",
-		--Category = "RotgB: Basic",
 		KeyValues = {
 			BalloonMoveSpeed = "200",
 			BalloonScale = "2",
@@ -3868,8 +3814,6 @@ local registerkeys = {
 	},
 	white = {
 		Name = "White gBalloon",
-		Class = "gballoon_base",
-		--Category = "RotgB: Basic",
 		KeyValues = {
 			BalloonMoveSpeed = "150",
 			BalloonScale = "0.75",
@@ -3880,8 +3824,6 @@ local registerkeys = {
 	},
 	black = {
 		Name = "Black gBalloon",
-		Class = "gballoon_base",
-		--Category = "RotgB: Basic",
 		KeyValues = {
 			BalloonMoveSpeed = "150",
 			BalloonScale = "0.75",
@@ -3892,8 +3834,6 @@ local registerkeys = {
 	},
 	purple = {
 		Name = "Purple gBalloon",
-		Class = "gballoon_base",
-		--Category = "RotgB: Basic",
 		KeyValues = {
 			BalloonMoveSpeed = "150",
 			BalloonScale = "1.5",
@@ -3904,8 +3844,6 @@ local registerkeys = {
 	},
 	orange = {
 		Name = "Orange gBalloon",
-		Class = "gballoon_base",
-		--Category = "RotgB: Basic",
 		KeyValues = {
 			BalloonMoveSpeed = "250",
 			BalloonScale = "2.5",
@@ -3915,8 +3853,6 @@ local registerkeys = {
 	},
 	gray = {
 		Name = "Gray gBalloon",
-		Class = "gballoon_base",
-		--Category = "RotgB: Basic",
 		KeyValues = {
 			BalloonMoveSpeed = "175",
 			BalloonScale = "1.75",
@@ -3928,8 +3864,6 @@ local registerkeys = {
 	},
 	zebra = {
 		Name = "Zebra gBalloon",
-		Class = "gballoon_base",
-		--Category = "RotgB: Basic",
 		KeyValues = {
 			BalloonMoveSpeed = "175",
 			BalloonScale = "1.75",
@@ -3942,21 +3876,16 @@ local registerkeys = {
 	},
 	aqua = {
 		Name = "Aqua gBalloon",
-		Class = "gballoon_base",
-		--Category = "RotgB: Basic",
 		KeyValues = {
 			BalloonMoveSpeed = "175",
 			BalloonScale = "1.75",
 			BalloonColor = "0 255 255 255",
 			BalloonType = "gballoon_aqua",
-			--BalloonMaterial = "models/shiny",
 			BalloonAqua = "1"
 		}
 	},
 	error = {
 		Name = "Error gBalloon",
-		Class = "gballoon_base",
-		--Category = "RotgB: Basic",
 		KeyValues = {
 			BalloonMoveSpeed = "250",
 			BalloonScale = "1.75",
@@ -3969,8 +3898,6 @@ local registerkeys = {
 	},
 	rainbow = {
 		Name = "Rainbow gBalloon",
-		Class = "gballoon_base",
-		--Category = "RotgB: Basic",
 		KeyValues = {
 			BalloonMoveSpeed = "225",
 			BalloonScale = "2.25",
@@ -3982,8 +3909,6 @@ local registerkeys = {
 	},
 	ceramic = {
 		Name = "Ceramic gBalloon",
-		Class = "gballoon_base",
-		--Category = "RotgB: Basic",
 		KeyValues = {
 			BalloonMoveSpeed = "175",
 			BalloonScale = "1.75",
@@ -3995,8 +3920,6 @@ local registerkeys = {
 	},
 	brick = {
 		Name = "Brick gBalloon",
-		Class = "gballoon_base",
-		--Category = "RotgB: Basic",
 		KeyValues = {
 			BalloonMoveSpeed = "125",
 			BalloonScale = "2",
@@ -4009,8 +3932,6 @@ local registerkeys = {
 	},
 	marble = {
 		Name = "Marble gBalloon",
-		Class = "gballoon_base",
-		--Category = "RotgB: Basic",
 		KeyValues = {
 			BalloonMoveSpeed = "75",
 			BalloonScale = "2.25",
@@ -4020,12 +3941,118 @@ local registerkeys = {
 			BalloonHealth = "60",
 			BalloonMaxDamage = "4"
 		}
+	},
+	blimp_blue = {
+		Name = "Blue gBlimp",
+		KeyValues = {
+			BalloonMoveSpeed = "100",
+			BalloonScale = "2",
+			BalloonColor = "0 127 255 255",
+			BalloonType = "gballoon_blimp_blue",
+			BalloonMaterial = "models/debug/debugwhite",
+			BalloonModel = "models/props_phx/ww2bomb.mdl",
+			BalloonHealth = "200",
+			BalloonBlimp = "1",
+			BalloonPopSound = "ambient/explosions/explode_5.wav"
+		}
+	},
+	blimp_red = {
+		Name = "Red gBlimp",
+		KeyValues = {
+			BalloonMoveSpeed = "75",
+			BalloonScale = "2.25",
+			BalloonColor = "255 0 0 255",
+			BalloonType = "gballoon_blimp_red",
+			BalloonMaterial = "models/debug/debugwhite",
+			BalloonModel = "models/props_phx/ww2bomb.mdl",
+			BalloonHealth = "700",
+			BalloonBlimp = "1",
+			BalloonPopSound = "ambient/explosions/explode_5.wav"
+		}
+	},
+	blimp_green = {
+		Name = "Green gBlimp",
+		KeyValues = {
+			BalloonMoveSpeed = "56",
+			BalloonScale = "2.5",
+			BalloonColor = "0 255 0 255",
+			BalloonType = "gballoon_blimp_green",
+			BalloonMaterial = "models/debug/debugwhite",
+			BalloonModel = "models/props_phx/ww2bomb.mdl",
+			BalloonHealth = "4000",
+			BalloonBlimp = "1",
+			BalloonPopSound = "ambient/explosions/explode_5.wav"
+		}
+	},
+	blimp_gray = {
+		Name = "Monochrome gBlimp",
+		KeyValues = {
+			BalloonMoveSpeed = "100",
+			BalloonScale = "2",
+			BalloonColor = "127 127 127 255",
+			BalloonType = "gballoon_blimp_gray",
+			BalloonMaterial = "models/debug/debugwhite",
+			BalloonModel = "models/props_phx/ww2bomb.mdl",
+			BalloonHealth = "200",
+			BalloonBlack = "1",
+			BalloonGray = "1",
+			BalloonBlimp = "1",
+			BalloonPopSound = "ambient/explosions/explode_5.wav"
+		}
+	},
+	blimp_purple = {
+		Name = "Purple gBlimp",
+		KeyValues = {
+			BalloonMoveSpeed = "42",
+			BalloonScale = "2.75",
+			BalloonColor = "127 0 255 255",
+			BalloonType = "gballoon_blimp_purple",
+			BalloonMaterial = "models/debug/debugwhite",
+			BalloonModel = "models/props_phx/ww2bomb.mdl",
+			BalloonHealth = "20000",
+			BalloonBlimp = "1",
+			BalloonPopSound = "ambient/explosions/explode_5.wav"
+		}
+	},
+	blimp_magenta = {
+		Name = "Magenta gBlimp",
+		KeyValues = {
+			BalloonMoveSpeed = "300",
+			BalloonScale = "2.25",
+			BalloonColor = "255 0 255 255",
+			BalloonType = "gballoon_blimp_magenta",
+			BalloonMaterial = "models/shiny",
+			BalloonModel = "models/props_phx/ww2bomb.mdl",
+			BalloonHealth = "1500",
+			BalloonBlimp = "1",
+			BalloonFast = "1",
+			BalloonArmor = "15",
+			BalloonPopSound = "ambient/explosions/explode_5.wav"
+		}
+	},
+	blimp_rainbow = {
+		Name = "Rainbow gBlimp",
+		KeyValues = {
+			BalloonMoveSpeed = "42",
+			BalloonScale = "3",
+			BalloonColor = "255 255 255 255",
+			BalloonType = "gballoon_blimp_rainbow",
+			BalloonMaterial = "!gBalloonRainbow",
+			BalloonModel = "models/props_phx/ww2bomb.mdl",
+			BalloonHealth = "99999",
+			BalloonPurple = "1",
+			BalloonAqua = "1",
+			BalloonRainbow = "1",
+			BalloonBlimp = "1",
+			BalloonArmor = "15",
+			BalloonPopSound = "ambient/explosions/explode_5.wav"
+		}
 	}
 }
 
 for i=0,15 do
 	for k,v in pairs(table.Copy(registerkeys)) do
-		local cat = "RotgB: gBalloons"
+		local cat = v.KeyValues.BalloonBlimp and "RotgB: gBlimps" or "RotgB: gBalloons"
 		local prefix = "gballoon_"
 		if bit.band(i,1)==1 then
 			v.KeyValues.BalloonFast = "1"
@@ -4047,149 +4074,18 @@ for i=0,15 do
 			cat = cat.." Shielded"
 			prefix = prefix.."shielded_"
 		end
-		if i==0 then cat = "RotgB: gBalloons Basic" end
+		if i==0 then cat = cat.." Basic" end
+		v.Class = "gballoon_base"
 		v.Category = cat
 		list.Set("NPC",prefix..k,v)
 		scripted_ents.Register(minuteclass,prefix..k)
 	end
 end
 
-list.Set("NPC","gballoon_blimp_blue",{
-	Name = "Blue gBlimp",
-	Class = "gballoon_base",
-	Category = "RotgB: gBlimps",
-	KeyValues = {
-		BalloonMoveSpeed = "100",
-		BalloonScale = "2",
-		BalloonColor = "0 127 255 255",
-		BalloonType = "gballoon_blimp_blue",
-		BalloonMaterial = "models/debug/debugwhite",
-		BalloonModel = "models/props_phx/ww2bomb.mdl",
-		BalloonHealth = "200",
-		BalloonBlimp = "1",
-		BalloonPopSound = "ambient/explosions/explode_5.wav"
-	}
-})
-list.Set("NPC","gballoon_blimp_red",{
-	Name = "Red gBlimp",
-	Class = "gballoon_base",
-	Category = "RotgB: gBlimps",
-	KeyValues = {
-		BalloonMoveSpeed = "75",
-		BalloonScale = "2.25",
-		BalloonColor = "255 0 0 255",
-		BalloonType = "gballoon_blimp_red",
-		BalloonMaterial = "models/debug/debugwhite",
-		BalloonModel = "models/props_phx/ww2bomb.mdl",
-		BalloonHealth = "700",
-		BalloonBlimp = "1",
-		BalloonPopSound = "ambient/explosions/explode_5.wav"
-	}
-})
-list.Set("NPC","gballoon_blimp_green",{
-	Name = "Green gBlimp",
-	Class = "gballoon_base",
-	Category = "RotgB: gBlimps",
-	KeyValues = {
-		BalloonMoveSpeed = "56",
-		BalloonScale = "2.5",
-		BalloonColor = "0 255 0 255",
-		BalloonType = "gballoon_blimp_green",
-		BalloonMaterial = "models/debug/debugwhite",
-		BalloonModel = "models/props_phx/ww2bomb.mdl",
-		BalloonHealth = "4000",
-		BalloonBlimp = "1",
-		BalloonPopSound = "ambient/explosions/explode_5.wav"
-	}
-})
-list.Set("NPC","gballoon_blimp_gray",{
-	Name = "Monochrome gBlimp",
-	Class = "gballoon_base",
-	Category = "RotgB: gBlimps",
-	KeyValues = {
-		BalloonMoveSpeed = "100",
-		BalloonScale = "2",
-		BalloonColor = "127 127 127 255",
-		BalloonType = "gballoon_blimp_gray",
-		BalloonMaterial = "models/debug/debugwhite",
-		BalloonModel = "models/props_phx/ww2bomb.mdl",
-		BalloonHealth = "200",
-		BalloonBlack = "1",
-		BalloonGray = "1",
-		BalloonDoRegen = "1",
-		BalloonFast = "1",
-		BalloonShielded = "1",
-		BalloonHidden = "1",
-		BalloonBlimp = "1",
-		BalloonPopSound = "ambient/explosions/explode_5.wav"
-	}
-})
-list.Set("NPC","gballoon_blimp_purple",{
-	Name = "Purple gBlimp",
-	Class = "gballoon_base",
-	Category = "RotgB: gBlimps",
-	KeyValues = {
-		BalloonMoveSpeed = "42",
-		BalloonScale = "2.75",
-		BalloonColor = "127 0 255 255",
-		BalloonType = "gballoon_blimp_purple",
-		BalloonMaterial = "models/debug/debugwhite",
-		BalloonModel = "models/props_phx/ww2bomb.mdl",
-		BalloonHealth = "20000",
-		BalloonBlimp = "1",
-		BalloonPopSound = "ambient/explosions/explode_5.wav"
-	}
-})
-list.Set("NPC","gballoon_blimp_magenta",{
-	Name = "Magenta gBlimp",
-	Class = "gballoon_base",
-	Category = "RotgB: gBlimps",
-	KeyValues = {
-		BalloonMoveSpeed = "300",
-		BalloonScale = "2.25",
-		BalloonColor = "255 0 255 255",
-		BalloonType = "gballoon_blimp_magenta",
-		BalloonMaterial = "models/shiny",
-		BalloonModel = "models/props_phx/ww2bomb.mdl",
-		BalloonHealth = "1500",
-		BalloonBlimp = "1",
-		BalloonFast = "1",
-		BalloonArmor = "15",
-		BalloonPopSound = "ambient/explosions/explode_5.wav"
-	}
-})
-list.Set("NPC","gballoon_blimp_rainbow",{
-	Name = "Rainbow gBlimp",
-	Class = "gballoon_base",
-	Category = "RotgB: gBlimps",
-	KeyValues = {
-		BalloonMoveSpeed = "42",
-		BalloonScale = "3",
-		BalloonColor = "255 255 255 255",
-		BalloonType = "gballoon_blimp_rainbow",
-		BalloonMaterial = "!gBalloonRainbow",
-		BalloonModel = "models/props_phx/ww2bomb.mdl",
-		BalloonHealth = "99999",
-		BalloonPurple = "1",
-		BalloonAqua = "1",
-		BalloonRainbow = "1",
-		BalloonBlimp = "1",
-		BalloonArmor = "15",
-		BalloonPopSound = "ambient/explosions/explode_5.wav"
-	}
-})
-scripted_ents.Register(minuteclass,"gballoon_blimp_blue")
-scripted_ents.Register(minuteclass,"gballoon_blimp_red")
-scripted_ents.Register(minuteclass,"gballoon_blimp_green")
-scripted_ents.Register(minuteclass,"gballoon_blimp_gray")
-scripted_ents.Register(minuteclass,"gballoon_blimp_purple")
-scripted_ents.Register(minuteclass,"gballoon_blimp_magenta")
-scripted_ents.Register(minuteclass,"gballoon_blimp_rainbow")
-
 list.Set("NPC","gballoon_void",{
 	Name = "Void gBalloon",
 	Class = "gballoon_base",
-	Category = "RotgB: gBalloons Debugging",
+	Category = "RotgB: gBalloons Miscellaneous",
 	KeyValues = {
 		BalloonMoveSpeed = "500",
 		BalloonScale = "3",
@@ -4202,7 +4098,7 @@ list.Set("NPC","gballoon_void",{
 list.Set("NPC","gballoon_glass",{
 	Name = "Glass gBalloon",
 	Class = "gballoon_base",
-	Category = "RotgB: gBalloons Debugging",
+	Category = "RotgB: gBalloons Miscellaneous",
 	KeyValues = {
 		BalloonMoveSpeed = "100",
 		BalloonScale = "3",
@@ -4215,7 +4111,7 @@ list.Set("NPC","gballoon_glass",{
 list.Set("NPC","gballoon_cfiber",{
 	Name = "Carbon Fiber gBalloon",
 	Class = "gballoon_base",
-	Category = "RotgB: gBalloons Debugging",
+	Category = "RotgB: gBalloons Miscellaneous",
 	KeyValues = {
 		BalloonMoveSpeed = "100",
 		BalloonScale = "3",
@@ -4225,6 +4121,20 @@ list.Set("NPC","gballoon_cfiber",{
 		BalloonHealth = "999999999"
 	}
 })
+list.Set("NPC","gballoon_hidden",{
+	Name = "Hidden gBalloon",
+	Class = "gballoon_base",
+	Category = "RotgB: gBalloons Miscellaneous",
+	KeyValues = {
+		BalloonMoveSpeed = "150",
+		BalloonScale = "1.5",
+		BalloonColor = "0 255 0 255",
+		BalloonType = "gballoon_orange",
+		BalloonMaterial = "models/xqm/cellshadedcamo_diffuse",
+		BalloonHidden = "1"
+	}
+})
 scripted_ents.Register(minuteclass,"gballoon_void")
 scripted_ents.Register(minuteclass,"gballoon_glass")
 scripted_ents.Register(minuteclass,"gballoon_cfiber")
+scripted_ents.Register(minuteclass,"gballoon_hidden")

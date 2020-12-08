@@ -167,7 +167,7 @@ function SWEP:Think()
 		--self:SetSubMaterial(0,"phoenix_storms/stripes")
 		self:SetHoldType("slam")
 	end
-	if SERVER and IsValid(self.Owner) then
+	if SERVER and IsValid(self:GetOwner()) then
 		if self:GetMode()==1 then
 			local tower3 = self.TowerTable[self:GetCurrentTower()+1]
 			if not IsValid(self.ServersideModel) then
@@ -182,9 +182,9 @@ function SWEP:Think()
 				self.ServersideModel:SetModel(tower3.model)
 			end
 			
-			local trace = self:BuildTraceData(self.Owner)
+			local trace = self:BuildTraceData(self:GetOwner())
 			self.ServersideModel:SetPos(trace.HitPos)
-			local tempang = self.Owner:GetAngles()
+			local tempang = self:GetOwner():GetAngles()
 			tempang.p = 0
 			tempang.r = 0
 			self.ServersideModel:SetAngles(tempang)
@@ -345,7 +345,7 @@ function SWEP:DrawHUD()
 			self.ClientsideModel:Remove()
 		end
 		self.IsInVote = false
-		self.Owner:AddPlayerOption("RotgB_TowerSelect", 0)
+		self:GetOwner():AddPlayerOption("RotgB_TowerSelect", 0)
 	end
 	if self:GetMode()==2 then
 		anchorx, anchory = scrW/2, scrH/4
@@ -439,15 +439,15 @@ function SWEP:DrawTowerSelector()
 end
 
 function SWEP:DoTowerSelector()
-	self.Owner:AddPlayerOption("RotgB_TowerSelect", 999999, function(number)
-		if IsValid(self) and self.Owner:IsPlayer() then
+	self:GetOwner():AddPlayerOption("RotgB_TowerSelect", 999999, function(number)
+		if IsValid(self) and self:GetOwner():IsPlayer() then
 			if number==9 then
 				self.rotgb_Offset = self.rotgb_Offset + 8
 				if not self.TowerTable[self.rotgb_Offset + 1] then
 					self.rotgb_Offset = 0
 				end
 			elseif self.TowerTable[self.rotgb_Offset + number] then
-				self.Owner:AddPlayerOption("RotgB_TowerSelect", 0)
+				self:GetOwner():AddPlayerOption("RotgB_TowerSelect", 0)
 				self.rotgb_Show = true
 				net.Start("rotgb_generic")
 				net.WriteString("settower")
@@ -469,9 +469,9 @@ function SWEP:Holster()
 	if IsValid(self.ServersideModel) then
 		self.ServersideModel:Remove()
 	end
-	if CLIENT and IsValid(self.Owner) and self.Owner:IsPlayer() then
+	if CLIENT and IsValid(self:GetOwner()) and self:GetOwner():IsPlayer() then
 		self.IsInVote = false
-		self.Owner:AddPlayerOption("RotgB_TowerSelect", 0)
+		self:GetOwner():AddPlayerOption("RotgB_TowerSelect", 0)
 	end
 	return true
 end
@@ -483,18 +483,18 @@ function SWEP:OnRemove()
 	if IsValid(self.ServersideModel) then
 		self.ServersideModel:Remove()
 	end
-	if CLIENT and IsValid(self.Owner) and self.Owner:IsPlayer() then
+	if CLIENT and IsValid(self:GetOwner()) and self:GetOwner():IsPlayer() then
 		self.IsInVote = false
-		self.Owner:AddPlayerOption("RotgB_TowerSelect", 0)
+		self:GetOwner():AddPlayerOption("RotgB_TowerSelect", 0)
 	end
 end
 
 function SWEP:GetBestPlayer()
-	local localdir = self.Owner:GetAimVector()
+	local localdir = self:GetOwner():GetAimVector()
 	local bestscore, bestplayer = 0
 	for k,v in pairs(player.GetAll()) do
-		if v~=self.Owner then
-			local dir = v:GetShootPos() - self.Owner:GetShootPos()
+		if v~=self:GetOwner() then
+			local dir = v:GetShootPos() - self:GetOwner():GetShootPos()
 			local score = localdir:Dot(dir)
 			if bestscore < score then
 				bestscore = score
@@ -507,14 +507,14 @@ end
 
 function SWEP:CanPrimaryAttack()
 	if not GetConVar("rotgb_individualcash"):GetBool() and self:GetMode()==2 then
-		self.Owner:EmitSound("items/medshotno1.wav",60,100,1,CHAN_WEAPON)
+		self:GetOwner():EmitSound("items/medshotno1.wav",60,100,1,CHAN_WEAPON)
 		return false
 	elseif self.Weapon:Clip1() <= 0 and SERVER then
-		self.Owner:EmitSound("items/medshotno1.wav",60,100,1,CHAN_WEAPON)
+		self:GetOwner():EmitSound("items/medshotno1.wav",60,100,1,CHAN_WEAPON)
 		if self:GetMode()==2 then
-			self.Owner:PrintMessage(HUD_PRINTTALK, "You're transferring too fast!")
+			self:GetOwner():PrintMessage(HUD_PRINTTALK, "You're transferring too fast!")
 		elseif self:GetMode()==3 then
-			self.Owner:PrintMessage(HUD_PRINTTALK, "You can't vote until the wave ends!")
+			self:GetOwner():PrintMessage(HUD_PRINTTALK, "You can't vote until the wave ends!")
 		end
 		return false
 	end
@@ -524,10 +524,10 @@ end
 function SWEP:PrimaryAttack()
 	--self.Weapon:SetNextPrimaryFire(RealTime()+1)
 	if not IsFirstTimePredicted() then return end
-	if IsValid(self.Owner) and SERVER then
-		if self.Owner:IsNPC() then self:SetMode(1) end
+	if IsValid(self:GetOwner()) and SERVER then
+		local ply = self:GetOwner()
+		if ply:IsNPC() then self:SetMode(1) end
 		if self:GetMode()==1 then
-			local ply = self.Owner
 			local trace = self:BuildTraceData(ply)
 			if (trace.Hit and ply:GetShootPos():DistToSqr(trace.HitPos) <= 65536) then
 				if not self.TowerTable then
@@ -542,51 +542,54 @@ function SWEP:PrimaryAttack()
 				local tower = ents.Create(self.TowerTable[self:GetCurrentTower()+1].class)
 				tower:SetPos(trace.HitPos)
 				tower:SetAngles(tempang)
-				tower:SetTowerOwner(self.Owner)
+				tower:SetTowerOwner(ply)
 				tower:Spawn()
-				--util.ScreenShake(self.Owner:GetShootPos(), 4, 20, 0.5, 64)
+				--util.ScreenShake(ply:GetShootPos(), 4, 20, 0.5, 64)
 				tower:EmitSound("phx/epicmetal_soft"..math.random(7)..".wav",60,100,0.5,CHAN_WEAPON)
+				if (ply:IsPlayer() and not ply:IsSprinting()) then
+					self:SetMode(0)
+				end
 			else
-				self.Owner:EmitSound("items/medshotno1.wav",60,100,1,CHAN_WEAPON)
+				ply:EmitSound("items/medshotno1.wav",60,100,1,CHAN_WEAPON)
 			end
 		elseif self:GetMode()==2 and self:CanPrimaryAttack() then
-			local ply = self:GetBestPlayer()
-			local cashtransfer = ROTGB_GetCash(self.Owner)*0.1
-			if cashtransfer < 1 or not ply then
-				self.Owner:EmitSound("items/medshotno1.wav",60,100,1,CHAN_WEAPON)
+			local ply2 = self:GetBestPlayer()
+			local cashtransfer = ROTGB_GetCash(ply)*0.1
+			if cashtransfer < 1 or not ply2 then
+				ply:EmitSound("items/medshotno1.wav",60,100,1,CHAN_WEAPON)
 			else
-				ROTGB_RemoveCash(cashtransfer, self.Owner)
-				ROTGB_AddCash(cashtransfer, ply)
-				self.Owner:EmitSound("items/medshot4.wav",60,100,1,CHAN_WEAPON)
-				ply:PrintMessage(HUD_PRINTTALK, "You gained $"..math.Round(cashtransfer,0).." from "..self.Owner:Nick().."!")
+				ROTGB_RemoveCash(cashtransfer, ply)
+				ROTGB_AddCash(cashtransfer, ply2)
+				ply:EmitSound("items/medshot4.wav",60,100,1,CHAN_WEAPON)
+				ply2:PrintMessage(HUD_PRINTTALK, "You gained $"..math.Round(cashtransfer,0).." from "..ply:Nick().."!")
 				self:TakePrimaryAmmo(1)
 				self.Weapon.NextCharge = RealTime() + 1
-				--util.ScreenShake(self.Owner:GetShootPos(), 4, 20, 0.5, 64)
+				--util.ScreenShake(ply:GetShootPos(), 4, 20, 0.5, 64)
 			end
-		elseif self:GetMode()==3 and not self.Owner:IsNPC() then
+		elseif self:GetMode()==3 and not ply:IsNPC() then
 			local spawners = ents.FindByClass("gballoon_spawner")
 			if table.IsEmpty(spawners) then
-				self.Owner:EmitSound("items/medshotno1.wav",60,100,1,CHAN_WEAPON)
-				return self.Owner:PrintMessage(HUD_PRINTTALK, "Place one gBalloon Spawner first!")
+				ply:EmitSound("items/medshotno1.wav",60,100,1,CHAN_WEAPON)
+				return ply:PrintMessage(HUD_PRINTTALK, "Place one gBalloon Spawner first!")
 			elseif #ents.FindByClass("gballoon_base") > 0 then
-				self.Owner:EmitSound("items/medshotno1.wav",60,100,1,CHAN_WEAPON)
-				return self.Owner:PrintMessage(HUD_PRINTTALK, "You can't vote until the wave ends!")
+				ply:EmitSound("items/medshotno1.wav",60,100,1,CHAN_WEAPON)
+				return ply:PrintMessage(HUD_PRINTTALK, "You can't vote until the wave ends!")
 			else
 				for k,v in pairs(spawners) do
 					if v:GetNextWaveTime() > RealTime() then
-						self.Owner:EmitSound("items/medshotno1.wav",60,100,1,CHAN_WEAPON)
-						return self.Owner:PrintMessage(HUD_PRINTTALK, "You can't vote until the wave ends!")
+						ply:EmitSound("items/medshotno1.wav",60,100,1,CHAN_WEAPON)
+						return ply:PrintMessage(HUD_PRINTTALK, "You can't vote until the wave ends!")
 					end
 				end
 			end
 			if self:CanPrimaryAttack() then
-				self.Owner.rotgb_Ready = not self.Owner.rotgb_Ready
+				ply.rotgb_Ready = not ply.rotgb_Ready
 				self:TakePrimaryAmmo(1)
 				self.Weapon.NextCharge = RealTime() + 1
-				if self.Owner.rotgb_Ready then
-					IsolatedStartTimer(self.Owner)
+				if ply.rotgb_Ready then
+					IsolatedStartTimer(ply)
 				else
-					IsolatedStopTimer(self.Owner)
+					IsolatedStopTimer(ply)
 				end
 			end
 		end
@@ -595,8 +598,8 @@ end
 
 function SWEP:CanSecondaryAttack()
 	if self.Weapon:Clip1() <= 0 then
-		self.Owner:EmitSound("buttons/combine_button_locked.wav",60,100,1,CHAN_WEAPON)
-		self.Owner:PrintMessage(HUD_PRINTTALK, "You're changing the game speed too much!")
+		self:GetOwner():EmitSound("buttons/combine_button_locked.wav",60,100,1,CHAN_WEAPON)
+		self:GetOwner():PrintMessage(HUD_PRINTTALK, "You're changing the game speed too much!")
 		return false
 	end
 	return true
@@ -604,8 +607,8 @@ end
 
 function SWEP:SecondaryAttack()
 	if game.SinglePlayer() then self:CallOnClient("SecondaryAttack") end
-	if self:GetMode()==1 and CLIENT and self.Owner == LocalPlayer() then
-		--[[local shft = self.Owner:IsNPC() and 1 or self.Owner:KeyDown(IN_SPEED) and -1 or 1
+	if self:GetMode()==1 and CLIENT and self:GetOwner() == LocalPlayer() then
+		--[[local shft = self:GetOwner():IsNPC() and 1 or self:GetOwner():KeyDown(IN_SPEED) and -1 or 1
 		self:SetCurrentTower( (self:GetCurrentTower()+shft) % #self.TowerTable)]]
 		self.IsInVote = false
 		if IsValid(self.ClientsideModel) then
@@ -613,10 +616,10 @@ function SWEP:SecondaryAttack()
 		end
 		--self.Weapon:EmitSound("weapons/pistol/pistol_empty.wav",60,100,1,CHAN_WEAPON)
 	elseif self:GetMode()==3 and self:CanSecondaryAttack() and IsFirstTimePredicted() and SERVER then
-		local shft = self.Owner:IsNPC() and 1 or self.Owner:KeyDown(IN_SPEED) and 0.5 or 2
+		local shft = self:GetOwner():IsNPC() and 1 or self:GetOwner():KeyDown(IN_SPEED) and 0.5 or 2
 		local newscale = game.GetTimeScale()*shft
 		if 1 <= newscale and newscale <= 8 then
-			self.Owner:EmitSound(self.Owner:KeyDown(IN_SPEED) and "buttons/combine_button3.wav" or "buttons/combine_button5.wav",60,100+5*newscale,1,CHAN_WEAPON)
+			self:GetOwner():EmitSound(self:GetOwner():KeyDown(IN_SPEED) and "buttons/combine_button3.wav" or "buttons/combine_button5.wav",60,100+5*newscale,1,CHAN_WEAPON)
 			game.SetTimeScale(newscale)
 			self:TakePrimaryAmmo(1)
 			self.Weapon.NextCharge = RealTime() + 1
@@ -628,7 +631,7 @@ function SWEP:Reload()
 	if not IsFirstTimePredicted() then return end
 	if (self.NextReload or 0) < RealTime() and SERVER then
 		self.NextReload = RealTime() + 0.25
-		local shft = self.Owner:IsNPC() and 0 or self.Owner:KeyDown(IN_SPEED) and -1 or 1
+		local shft = self:GetOwner():IsNPC() and 0 or self:GetOwner():KeyDown(IN_SPEED) and -1 or 1
 		self:SetMode((self:GetMode()+shft)%4)
 		self.Weapon:EmitSound("weapons/shotgun/shotgun_empty.wav",60,100,1,CHAN_WEAPON)
 	end

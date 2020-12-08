@@ -129,6 +129,7 @@ local function SnipeEntity()
 				laser:SetKeyValue("life",2/self.FireRate)
 				laser:Spawn()
 				laser:Activate()
+				laser.rotgb_Owner = self
 				laser.rotgb_UseLaser = self.rotgb_UseLaser
 				laser:Fire("TurnOn")
 				timer.Simple(0.2,function()
@@ -194,10 +195,17 @@ local function SnipeEntity()
 end
 
 hook.Add("EntityTakeDamage","RotgB_Towers",function(vic,dmginfo)
-	if (IsValid(dmginfo:GetAttacker()) and dmginfo:GetAttacker().rotgb_UseLaser==2) then
-		dmginfo:SetDamageType(DMG_GENERIC)
-		if dmginfo:GetDamage()>=vic:Health() and vic:GetClass()=="gballoon_base" and dmginfo:GetAttacker().rotgb_NoChildren then
-			vic:Pop(-1)
+	local laser = dmginfo:GetAttacker()
+	if (IsValid(laser) and laser.rotgb_UseLaser) then
+		if (IsValid(laser.rotgb_Owner) and laser.rotgb_Owner.Base == "gballoon_tower_base") then
+			dmginfo:SetAttacker(laser.rotgb_Owner:GetTowerOwner())
+			dmginfo:SetInflictor(laser.rotgb_Owner)
+		end
+		if laser.rotgb_UseLaser==2 then
+			dmginfo:SetDamageType(DMG_GENERIC)
+			if dmginfo:GetDamage()>=vic:Health() and vic:GetClass()=="gballoon_base" and laser.rotgb_NoChildren then
+				dmginfo:SetDamage(vic:GetRgBE() * 1000)
+			end
 		end
 	end
 end)

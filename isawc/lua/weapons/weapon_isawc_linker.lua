@@ -15,7 +15,7 @@ SWEP.Instructions		= "Follow the on-screen instructions."
 --	SWEP.ViewModelFlip1		= false
 --	SWEP.ViewModelFlip2		= false
 --	SWEP.ViewModelFOV		= 62
---	SWEP.WorldModel			= "models/weapons/w_357.mdl"
+SWEP.WorldModel			= "models/weapons/w_pistol.mdl" -- because someone asked
 SWEP.AutoSwitchFrom		= false
 SWEP.AutoSwitchTo		= false
 --	SWEP.Weight				= 5
@@ -229,7 +229,7 @@ local function DrawLinks(exporter, active)
 			end
 		end
 	else
-		for i=1,16 do
+		for i=1,32 do
 			local dEnt = exporter["GetStorageEntity"..i](exporter)
 			if IsValid(dEnt) then
 				table.insert(containerPosTable, dEnt:WorldSpaceCenter():ToScreen())
