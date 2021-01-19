@@ -222,7 +222,7 @@ function ENT:Think()
 		if not self:IsStunned() then
 			self.ExpensiveThinkDelay = self.ExpensiveThinkDelay or CurTime()
 			if self.ExpensiveThinkDelay <= CurTime() then
-				self.ExpensiveThinkDelay = CurTime() + 0.5
+				self.ExpensiveThinkDelay = CurTime() + math.min(0.5, 1/(self.FireRate or 1))
 				self:ExpensiveThink()
 				if not IsValid(self:GetTowerOwner()) then
 					self:SetTowerOwner(player.GetAll()[1])
@@ -237,7 +237,7 @@ function ENT:Think()
 						self.NextFire = 0
 					end
 				end
-				self:ExpensiveThink()
+				self.ExpensiveThinkDelay = 0
 			end
 			self:NextThink(CurTime())
 			return true
@@ -280,6 +280,11 @@ function ENT:ValidTarget(v)
 	--return self:MaskFilter(GetConVar("rotgb_extratargets"):GetInt(),v) and (not v:IsFlagSet(FL_NOTARGET) or self.SeeCamo)
 end
 
+function ENT:ValidTargetIgnoreRange(v)
+	return (IsValid(v) and v:GetClass()=="gballoon_base" and not v:GetBalloonProperty("BalloonVoid")
+	and (not v:GetBalloonProperty("BalloonHidden") or self.SeeCamo or v:HasRotgBStatusEffect("unhide")))
+end
+
 function ENT:ExpensiveThink(bool)
 	self.gBalloons = self.gBalloons or {}
 	self.balloonTable = self.balloonTable or {}
@@ -301,7 +306,7 @@ function ENT:ExpensiveThink(bool)
 			if self.UseLOS then
 				self.gBTraceData.endpos = v:GetPos()+v:OBBCenter()
 				util.TraceLine(self.gBTraceData)
-				if self.lastBalloonTrace.Entity == v then
+				if IsValid(self.lastBalloonTrace.Entity) and self.lastBalloonTrace.Entity:GetClass()=="gballoon_base" then
 					LosOK = true
 				end
 			end
@@ -676,8 +681,17 @@ function ENT:Use(activator,caller,...)
 	end	
 end
 
-hook.Add("EntityTakeDamage","ROTGB_TOWERS",function(vic,dmginfo)
-	if (IsValid(dmginfo:GetAttacker()) and dmginfo:GetAttacker().Base=="gballoon_tower_base") then
-		if not self:ValidTarget(vic) then return true end
+for k,v in pairs(scripted_ents.GetList()) do
+	if v.Base == "gballoon_tower_base" then
+		list.Set("NPC",k,{
+			Name = string.format("%s ($%i)", v.t.PrintName, v.t.Cost),
+			Class = k,
+			Category = v.t.Category
+		})
+		list.Set("SpawnableEntities",k,{
+			PrintName = string.format("%s ($%i)", v.t.PrintName, v.t.Cost),
+			ClassName = k,
+			Category = v.t.Category
+		})
 	end
-end)
+end

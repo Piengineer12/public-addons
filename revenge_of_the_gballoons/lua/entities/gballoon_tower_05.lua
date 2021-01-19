@@ -8,7 +8,7 @@ ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Freeze those gBalloons!"
 ENT.Instructions = ""
-ENT.Spawnable = true
+ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/hunter/misc/cone1x05.mdl")
@@ -21,7 +21,7 @@ ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,40)
 ENT.AttackDamage = 0
 ENT.rotgb_ShardDamage = 10
-ENT.rotgb_FreezeFireRate = 0.5
+--ENT.rotgb_FreezeFireRate = 1
 ENT.rotgb_FreezeTime = 1
 ENT.rotgb_SpeedPercent = 1
 ENT.rotgb_FireRateMul = 1
@@ -32,7 +32,7 @@ ENT.UpgradeReference = {
 			"Pops one layer when freezing gBalloons.",
 			"gBalloons move 50% slower after frozen, for 3 seconds.",
 			"Pops 4 layers when freezing gBalloons.",
-			"Significantly increases freezing rate. Freezes gBalloons that come in contact with frozen gBalloons in this tower's radius.",
+			"Considerably increases freezing rate. Freezes gBalloons that come in contact with frozen gBalloons in this tower's radius.",
 			"Pops 16 layers when freezing gBalloons! White gBalloons still cannot be frozen.",
 		},
 		Prices = {500,850,5000,7500,40000},
@@ -48,7 +48,8 @@ ENT.UpgradeReference = {
 				self.AttackDamage = self.AttackDamage + 30
 			end,
 			function(self)
-				self.rotgb_FreezeFireRate = self.rotgb_FreezeFireRate * 2
+				self.FireRate = self.FireRate * 2
+				--self.rotgb_FreezeFireRate = self.rotgb_FreezeFireRate * 2
 				self.rotgb_Viral = true
 			end,
 			function(self)
@@ -88,7 +89,7 @@ ENT.UpgradeReference = {
 	{
 		Names = {"Quick Refresher","Agitated Core","Angered Core","Cold Play","Icicle Storm"},
 		Descs = {
-			"Increases freezing rate.",
+			"Slightly increases freezing rate.",
 			"The Orb of Cold now fires ice shards which pop one layer per shot.",
 			"Ice shards are shot twice as often and pop two layers per shot.",
 			"Ice shards pop four layers per shot and now have infinite range. Will still freeze gBalloons only in its original radius.",
@@ -98,7 +99,7 @@ ENT.UpgradeReference = {
 		Funcs = {
 			function(self)
 				self.FireRate = self.FireRate * 1.5
-				self.rotgb_FreezeFireRate = self.rotgb_FreezeFireRate * 1.5
+				--self.rotgb_FreezeFireRate = self.rotgb_FreezeFireRate * 1.5
 			end,
 			function(self)
 				self.FireRate = self.FireRate * 4
@@ -142,12 +143,12 @@ function ENT:DoFreeze(ent)
 end
 
 function ENT:FireFunction(gBalloons)
-	self.rotgb_Freezer = (self.rotgb_Freezer or 0) + self.rotgb_FreezeFireRate/self.rotgb_FireRateMul
+	self.rotgb_Freezer = (self.rotgb_Freezer or 0) + --[[self.rotgb_FreezeFireRate]]1/self.rotgb_FireRateMul
 	if self.rotgb_Freezer >= 1 then
 		self.FireWhenNoEnemies = false
 	end
 	if self.rotgb_Freezer >= 1 and next(gBalloons) then
-		self.rotgb_Freezer = 0
+		self.rotgb_Freezer = self.rotgb_Freezer - 1
 		self.FireWhenNoEnemies = true
 		local drrt = self.DetectionRadius*self.DetectionRadius
 		if self.rotgb_DoFreezeDamage then
@@ -236,9 +237,3 @@ function ENT:TriggerAbility()
 		ent:Slowdown("ROTGB_ICE_TOWER_ABILITY",0.25,15)
 	end
 end
-
-list.Set("NPC","gballoon_tower_05",{
-	Name = ENT.PrintName,
-	Class = "gballoon_tower_05",
-	Category = ENT.Category
-})

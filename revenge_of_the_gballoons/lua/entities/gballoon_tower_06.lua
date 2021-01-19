@@ -8,7 +8,7 @@ ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Discourage those gBalloons!"
 ENT.Instructions = ""
-ENT.Spawnable = true
+ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/maxofs2d/hover_propeller.mdl")
@@ -98,7 +98,7 @@ ENT.UpgradeReference = {
 				The chance is reduced if the firing tower fires more than once per second.",
 			"All towers in this tower's radius no longer have upgrade path restrictions!",
 		},
-		Prices = {400,500,2500,5000,15000,1000000},
+		Prices = {400,500,2500,5000,15000,50000000},--1000000
 		Funcs = {
 			function(self)
 				self.rotgb_Buff = 1
@@ -254,9 +254,3 @@ hook.Add("EntityTakeDamage","ROTGB_TOWER_06",function(ent,dmginfo)
 		end
 	end
 end)
-
-list.Set("NPC","gballoon_tower_06",{
-	Name = ENT.PrintName,
-	Class = "gballoon_tower_06",
-	Category = ENT.Category
-})

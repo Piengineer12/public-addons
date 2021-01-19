@@ -8,7 +8,7 @@ ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Bombard those gBalloons!"
 ENT.Instructions = ""
-ENT.Spawnable = true
+ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/hunter/misc/cone1x1.mdl")
@@ -262,9 +262,3 @@ function ENT:TriggerAbility()
 		end
 	end)
 end
-
-list.Set("NPC","gballoon_tower_10",{
-	Name = ENT.PrintName,
-	Class = "gballoon_tower_10",
-	Category = ENT.Category
-})

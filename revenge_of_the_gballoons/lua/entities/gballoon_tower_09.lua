@@ -8,7 +8,7 @@ ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Glue those gBalloons!"
 ENT.Instructions = ""
-ENT.Spawnable = true
+ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/props_phx/games/chess/black_bishop.mdl")
@@ -224,9 +224,3 @@ function ENT:TriggerAbility()
 		if not perf then error(str) end
 	end
 end
-
-list.Set("NPC","gballoon_tower_09",{
-	Name = ENT.PrintName,
-	Class = "gballoon_tower_09",
-	Category = ENT.Category
-})

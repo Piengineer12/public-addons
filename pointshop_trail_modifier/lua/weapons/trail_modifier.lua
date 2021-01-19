@@ -1,6 +1,6 @@
 AddCSLuaFile()
 if SERVER then
-	util.AddNetworkString("OpenTrailMenu")
+	util.AddNetworkString("trail_modifier_generic")
 end
 
 SWEP.Category			= "Pointshop"
@@ -57,11 +57,11 @@ end
 
 function SWEP:SecondaryAttack()
 	if not IsFirstTimePredicted() then return end
-	if IsValid(self.Owner) and SERVER then
-		net.Start("OpenTrailMenu",true)
+	if IsValid(self:GetOwner()) and SERVER then
+		net.Start("trail_modifier_generic",true)
 			net.WriteBool(false)
-			net.WriteTable(self.Owner.RemotelyAddedTrails or {})
-		net.Send(self.Owner)
+			net.WriteTable(self:GetOwner().RemotelyAddedTrails or {})
+		net.Send(self:GetOwner())
 	end
 	--self.Weapon:SetSubMaterial(4,"computerscreen03")
 end
@@ -126,7 +126,7 @@ if CLIENT then
 	local equippedMat = Material("gui/ps_hover.png")
 	local holsteredMat = Material("gui/sm_hover.png")
 	local isInInventory = false
-	net.Receive("OpenTrailMenu",function(length,sender)
+	net.Receive("trail_modifier_generic",function(length,sender)
 		if not PS then return end
 		local ply = LocalPlayer()
 		if not ply.RemotelyAddedTrails then ply.RemotelyAddedTrails = {} end
@@ -224,7 +224,7 @@ if CLIENT then
 						end
 						Derma_Query("Are you sure?\nIt takes "..buyprice.." "..PS.Config.PointsName.." to buy all of them!","Buy All","Yes",function()
 							if buyprice > LocalPlayer():PS_GetPoints() then notification.AddLegacy( "Not enough "..PS.Config.PointsName.."!", NOTIFY_ERROR, 5 ); surface.PlaySound( "buttons/button10.wav" ); return end
-							net.Start("OpenTrailMenu",true)
+							net.Start("trail_modifier_generic",true)
 								net.WriteString("ALL")
 								net.WriteBool(true)
 								net.WriteTable({buy=true})
@@ -239,7 +239,7 @@ if CLIENT then
 							end
 						end
 						Derma_Query("Are you sure?\nYou will earn up to "..sellprice.." "..PS.Config.PointsName.." if you do!","Sell All","Yes",function()
-							net.Start("OpenTrailMenu",true)
+							net.Start("trail_modifier_generic",true)
 								net.WriteString("ALL")
 								net.WriteBool(true)
 								net.WriteTable({sell=true})
@@ -254,7 +254,7 @@ if CLIENT then
 							end
 						end
 						Derma_Query("Are you sure?\nThis will equip "..counter.." trail"..(counter == 1 and "" or "s").."!","Equip All","Yes",function()
-							net.Start("OpenTrailMenu",true)
+							net.Start("trail_modifier_generic",true)
 								net.WriteString("ALL")
 								net.WriteBool(true)
 								net.WriteTable({equip=true})
@@ -269,7 +269,7 @@ if CLIENT then
 							end
 						end
 						Derma_Query("Are you sure?\nThis will holster "..counter.." trail"..(counter == 1 and "" or "s").."!","Holster All","Yes",function()
-							net.Start("OpenTrailMenu",true)
+							net.Start("trail_modifier_generic",true)
 								net.WriteString("ALL")
 								net.WriteBool(true)
 								net.WriteTable({holster=true})
@@ -391,7 +391,7 @@ if CLIENT then
 						CommitButton:SetFont("PS_Heading2")
 						CommitButton:SetTextColor(Color(0,127,0))
 						function CommitButton:DoClick()
-							net.Start("OpenTrailMenu",true)
+							net.Start("trail_modifier_generic",true)
 								net.WriteString("ALL")
 								net.WriteBool(false)
 								net.WriteTable({modify=options})
@@ -423,7 +423,7 @@ if CLIENT then
 										Sub2 = SubMenu:AddOption("Equip")
 									end
 									function Sub2:DoClick()
-										net.Start("OpenTrailMenu",true)
+										net.Start("trail_modifier_generic",true)
 											net.WriteString(trailTex)
 											net.WriteBool(false)
 											net.WriteTable({})
@@ -545,7 +545,7 @@ if CLIENT then
 										CommitButton:SetFont("PS_Heading2")
 										CommitButton:SetTextColor(Color(0,127,0))
 										function CommitButton:DoClick()
-											net.Start("OpenTrailMenu",true)
+											net.Start("trail_modifier_generic",true)
 												net.WriteString(trailTex)
 												net.WriteBool(false)
 												net.WriteTable(options)
@@ -560,7 +560,7 @@ if CLIENT then
 								function Sub1:DoClick()
 									if not ply.RemotelyAddedTrails[trailTex] and customTrails[trailTex] > LocalPlayer():PS_GetPoints() then notification.AddLegacy( "Not enough "..PS.Config.PointsName.."!", NOTIFY_ERROR, 5 ); surface.PlaySound( "buttons/button10.wav" ); return end
 									Derma_Query("Are you sure?","Buy/Sell","Yes",function()
-										net.Start("OpenTrailMenu",true)
+										net.Start("trail_modifier_generic",true)
 											net.WriteString(trailTex)
 											net.WriteBool(true)
 										net.SendToServer()
@@ -772,7 +772,7 @@ if CLIENT then
 					CommitEntry:SetFont("PS_Heading2")
 					CommitEntry:SetTextColor(Color(0,127,0))
 					function CommitEntry:DoClick()
-						net.Start("OpenTrailMenu",true)
+						net.Start("trail_modifier_generic",true)
 							net.WriteString(key)
 							net.WriteBool(false)
 							net.WriteTable({TO_COMBINE = true, price = value})
@@ -943,13 +943,13 @@ if SERVER then
 		end
 	end)
 	
-	net.Receive("OpenTrailMenu",function(length,ply)
+	net.Receive("trail_modifier_generic",function(length,ply)
 		if IsValid(ply) and ply:IsPlayer() then -- ply sent it
 			if ConA:GetBool() and not ply:IsAdmin() then return end
 			local trail = net.ReadString()
 			local operCash = net.ReadBool()
 			if not trail then -- Probably just prodding
-				net.Start("OpenTrailMenu")
+				net.Start("trail_modifier_generic")
 					net.WriteBool(true)
 					net.WriteTable(ply.RemotelyAddedTrails)
 				net.Send(ply)
@@ -976,7 +976,7 @@ if SERVER then
 					end
 					ply:PS_TakePoints(buyprice)
 					ply:ChatPrint("Bought EVERYTHING!")
-					net.Start("OpenTrailMenu")
+					net.Start("trail_modifier_generic")
 						net.WriteBool(true)
 						net.WriteTable(ply.RemotelyAddedTrails)
 					net.Send(ply)
@@ -995,7 +995,7 @@ if SERVER then
 					end
 					ply:PS_GivePoints(sellprice)
 					ply:ChatPrint("Sold EVERYTHING!")
-					net.Start("OpenTrailMenu")
+					net.Start("trail_modifier_generic")
 						net.WriteBool(true)
 						net.WriteTable(ply.RemotelyAddedTrails)
 					net.Send(ply)
@@ -1006,7 +1006,7 @@ if SERVER then
 						end
 					end
 					ply:ChatPrint("Equipped EVERYTHING!")
-					net.Start("OpenTrailMenu")
+					net.Start("trail_modifier_generic")
 						net.WriteBool(true)
 						net.WriteTable(ply.RemotelyAddedTrails)
 					net.Send(ply)
@@ -1017,7 +1017,7 @@ if SERVER then
 						end
 					end
 					ply:ChatPrint("Holstered EVERYTHING!")
-					net.Start("OpenTrailMenu")
+					net.Start("trail_modifier_generic")
 						net.WriteBool(true)
 						net.WriteTable(ply.RemotelyAddedTrails)
 					net.Send(ply)
@@ -1042,7 +1042,7 @@ if SERVER then
 							end
 						end
 						ply:ChatPrint("Changes saved.")
-						net.Start("OpenTrailMenu")
+						net.Start("trail_modifier_generic")
 							net.WriteBool(true)
 							net.WriteTable(ply.RemotelyAddedTrails)
 						net.Send(ply)
@@ -1060,7 +1060,7 @@ if SERVER then
 							file.Write("customtrailoptions.txt",util.TableToJSON(tab,true))
 							ReadFiles()
 							ply:ChatPrint("All trails have been set to "..options.price.." "..PS.Config.PointsName)
-							net.Start("OpenTrailMenu")
+							net.Start("trail_modifier_generic")
 								net.WriteBool(true)
 								net.WriteTable({READ_FILES = true})
 							net.Send(ply)
@@ -1076,7 +1076,7 @@ if SERVER then
 					if IsValid(ply.RemotelyAddedTrails[trail]) then ply.RemotelyAddedTrails[trail]:Remove() end
 					ply.RemotelyAddedTrails[trail] = nil
 					ply:ChatPrint("Sold trail \""..trail.."\" for "..sellprice.." "..PS.Config.PointsName)
-					net.Start("OpenTrailMenu")
+					net.Start("trail_modifier_generic")
 						net.WriteBool(true)
 						net.WriteTable(ply.RemotelyAddedTrails)
 					net.Send(ply)
@@ -1086,7 +1086,7 @@ if SERVER then
 					ply.RemotelyAddedTrails[trail] = util.SpriteTrail(ply,0,l1,l2,l3,l4,l5,l6,trail)
 					ply:PS_TakePoints(buyprice)
 					ply:ChatPrint("Bought trail \""..trail.."\" for "..buyprice.." "..PS.Config.PointsName)
-					net.Start("OpenTrailMenu")
+					net.Start("trail_modifier_generic")
 						net.WriteBool(true)
 						net.WriteTable(ply.RemotelyAddedTrails)
 					net.Send(ply)
@@ -1105,7 +1105,7 @@ if SERVER then
 						file.Write("customtrailoptions.txt",util.TableToJSON(tab,true))
 						ReadFiles()
 						ply:ChatPrint("Trail \""..trail.."\" has been set to "..options.price.." "..PS.Config.PointsName)
-						net.Start("OpenTrailMenu")
+						net.Start("trail_modifier_generic")
 							net.WriteBool(true)
 							net.WriteTable({READ_FILES = true})
 						net.Send(ply)
@@ -1130,21 +1130,21 @@ if SERVER then
 						ply.RemotelyAddedTrails[trail] = util.SpriteTrail(ply,0,l1,l2,l3,l4,l5,l6,trail)
 					end
 					ply:ChatPrint("Changes saved.")
-					net.Start("OpenTrailMenu")
+					net.Start("trail_modifier_generic")
 						net.WriteBool(true)
 						net.WriteTable(ply.RemotelyAddedTrails)
 					net.Send(ply)
 				elseif IsValid(ply.RemotelyAddedTrails[trail]) then
 					ply.RemotelyAddedTrails[trail]:Remove()
 					ply:ChatPrint("Holstered trail \""..trail.."\".")
-					net.Start("OpenTrailMenu")
+					net.Start("trail_modifier_generic")
 						net.WriteBool(true)
 						net.WriteTable(ply.RemotelyAddedTrails)
 					net.Send(ply)
 				elseif ply.RemotelyAddedTrails[trail] ~= nil then
 					ply.RemotelyAddedTrails[trail] = util.SpriteTrail(ply,0,l1,l2,l3,l4,l5,l6,trail)
 					ply:ChatPrint("Equipped trail \""..trail.."\".")
-					net.Start("OpenTrailMenu")
+					net.Start("trail_modifier_generic")
 						net.WriteBool(true)
 						net.WriteTable(ply.RemotelyAddedTrails)
 					net.Send(ply)

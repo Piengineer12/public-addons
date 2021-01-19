@@ -50,14 +50,30 @@ SWEP.AccurateCrosshair	= true
 
 local DEFAULT = 0
 local EXPORTER_SELECTED = 1
+local color_gray = Color(127, 127, 127)
 
 function SWEP:SetupDataTables()
 	self:NetworkVar("Int",0,"State")
+	self:NetworkVar("Int",1,"ConnectionDisplays") -- this value tends to be wrong on client, so we need to network it
 	self:NetworkVar("Entity",0,"Exporter")
 end
 
 function SWEP:Initialize()
 	self.Weapon:SetHoldType("normal")
+end
+
+function SWEP:UpdateConnectionDisplays()
+	local exporter = self:GetExporter()
+	if exporter:GetClass()=="isawc_extractor" then
+		local displays = 0
+		for i=1,32 do
+			local storageEntity = exporter:GetContainer(i)
+			if IsValid(storageEntity) then
+				displays = displays + 1
+			end
+		end
+		self:SetConnectionDisplays(displays)
+	end
 end
 
 function SWEP:LeftClickEntity(ent)
@@ -70,6 +86,7 @@ function SWEP:LeftClickEntity(ent)
 			end
 			if ent:GetOwnerAccountID() == (accountID) then
 				self:SetExporter(ent)
+				self:UpdateConnectionDisplays()
 				self:SetState(EXPORTER_SELECTED)
 				self:EmitSound("buttons/button17.wav")
 			else
@@ -80,6 +97,7 @@ function SWEP:LeftClickEntity(ent)
 			local target = self:GetExporter()
 			if target:GetClass()=="isawc_extractor" then
 				target:LinkEntity(ent)
+				self:UpdateConnectionDisplays()
 			else
 				if ent:GetEnderInvName()~=target:GetEnderInvName() or target:GetEnderInvName()=='' then
 					if ent:GetEnderInvName()==target:GetEnderInvName() then
@@ -130,6 +148,7 @@ function SWEP:RightClickEntity(ent)
 			elseif self:GetState()==EXPORTER_SELECTED and ent.Base=="isawc_container_base" then
 				if self:GetExporter():HasContainer(ent) then
 					self:GetExporter():UnlinkEntity(ent)
+					self:UpdateConnectionDisplays()
 					self:EmitSound("buttons/button17.wav")
 					ply:PrintMessage(HUD_PRINTTALK, "Device unlinked from "..tostring(ent).."!")
 					if not ply:Crouching() then
@@ -265,7 +284,7 @@ function SWEP:DrawHUD()
 			draw.SimpleTextOutlined("Primary: Sync with Container", "CloseCaption_Normal", baseX, baseY, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 1, color_black)
 			draw.SimpleTextOutlined("Secondary: Cancel", "CloseCaption_Normal", baseX, baseY+fontHeight, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 1, color_black)
 		else
-			draw.SimpleTextOutlined("Primary: Connect with Container", "CloseCaption_Normal", baseX, baseY, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 1, color_black)
+			draw.SimpleTextOutlined(string.format("Primary: Connect with Container (%u/32)", self:GetConnectionDisplays()), "CloseCaption_Normal", baseX, baseY, self:GetConnectionDisplays() < 32 and color_white or color_gray, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 1, color_black)
 			draw.SimpleTextOutlined("Secondary: Disconnect with Container", "CloseCaption_Normal", baseX, baseY+fontHeight, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 1, color_black)
 		end
 		draw.SimpleTextOutlined("Reload: Cancel", "CloseCaption_Normal", baseX, baseY+fontHeight*2, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 1, color_black)

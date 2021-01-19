@@ -8,21 +8,18 @@ ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Beam those gBalloons!"
 ENT.Instructions = ""
-ENT.Spawnable = true
+ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/hunter/tubes/tube1x1x1.mdl")
 ENT.FireRate = 50
 ENT.Cost = 2500
-ENT.DetectionRadius = 512--1024
+ENT.DetectionRadius = 512
 ENT.AbilityCooldown = 60
 ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,150)
 ENT.UserTargeting = true
 ENT.AttackDamage = 10
---ENT.rotgb_BeamTime = 1
---ENT.rotgb_BeamDelay = 4
---ENT.rotgb_NextFire = 0
 ENT.rotgb_BeamWidth = 8
 ENT.UpgradeReference = {
 	{
@@ -37,19 +34,17 @@ ENT.UpgradeReference = {
 			"Reduces Orbital Friendship Cannon's cooldown by 30 seconds and you gain $10000000 for every use.",
 			"It's worth it."
 		},
-		Prices = {2000,15000,100000,1250000,5000000,10000000,50000000,1000000000},--{2000,30000,60000,100000,2000000,8000000,10000000,50000000,1000000000},
+		Prices = {2000,15000,100000,1.25e6,5e6,10e6,50e6,1e9},
 		Funcs = {
 			function(self)
 				self.InfiniteRange = true
 			end,
 			function(self)
-				--self.rotgb_BeamDelay = self.rotgb_BeamDelay - 1
 				self.AttackDamage = self.AttackDamage + 10
 				self.rotgb_BeamWidth = self.rotgb_BeamWidth * 1.5
 				self.rotgb_UseAltLaser = true
 			end,
 			function(self)
-				--self.rotgb_BeamTime = self.rotgb_BeamTime + 1
 				self.AttackDamage = self.AttackDamage + 40
 				self.rotgb_BeamWidth = self.rotgb_BeamWidth * 1.5
 				self.rotgb_BeamNoChildren = true
@@ -60,7 +55,6 @@ ENT.UpgradeReference = {
 				self.SeeCamo = true
 			end,
 			function(self)
-				--self.rotgb_OtherBonus = true
 				self.UserTargeting = false
 			end,
 			function(self)
@@ -70,11 +64,8 @@ ENT.UpgradeReference = {
 				end
 			end,
 			function(self)
-				--self.rotgb_BeamDelay = self.rotgb_BeamDelay - 2
-				--self.rotgb_BeamTime = self.rotgb_BeamTime - 2
 				self.rotgb_Infinite = true
 				self.AbilityCooldown = self.AbilityCooldown - 30
-				--self:SetNWFloat("LastFireTime",math.huge)
 			end,
 			function(self)
 				self.HasAbility = nil
@@ -103,16 +94,16 @@ local function SnipeEntity()
 			endEnt:SetName("ROTGB08_"..endEnt:GetCreationID())
 			endEnt:SetPos(ent:GetPos()+ent.loco:GetVelocity()*0.1+ent:OBBCenter())
 		end
-		laser:SetKeyValue("renderamt","255")
+		laser:SetKeyValue("renderamt","63")
 		laser:SetKeyValue("rendercolor","255 255 255")
 		laser:SetKeyValue("BoltWidth",self.rotgb_BeamWidth)
 		laser:SetKeyValue("NoiseAmplitude","1")
 		laser:SetKeyValue("texture","beams/rainbow1.vmt")
-		laser:SetKeyValue("TextureScroll","20")
+		laser:SetKeyValue("TextureScroll","0")
 		laser:SetKeyValue("damage",self.AttackDamage*damagemul)
 		laser:SetKeyValue("LightningStart",startPos:GetName())
 		laser:SetKeyValue("LightningEnd",endEnt:GetName())
-		laser:SetKeyValue("HDRColorScale","1")
+		laser:SetKeyValue("HDRColorScale","0.7")
 		laser:SetKeyValue("decalname","decals/dark")
 		laser:SetKeyValue("spawnflags","97")
 		--[[if percent then
@@ -186,10 +177,10 @@ function ENT:ROTGB_Initialize()
 		laser:SetKeyValue("BoltWidth","8")
 		laser:SetKeyValue("NoiseAmplitude","2")
 		laser:SetKeyValue("texture","beams/rainbow1.vmt")
-		laser:SetKeyValue("TextureScroll","20")
+		laser:SetKeyValue("TextureScroll","0")
 		laser:SetKeyValue("LightningStart",self:GetName())
 		laser:SetKeyValue("LightningEnd",startPos:GetName())
-		laser:SetKeyValue("HDRColorScale","1")
+		laser:SetKeyValue("HDRColorScale","0.7")
 		laser:SetKeyValue("spawnflags","129")
 		laser:Spawn()
 		laser:Activate()
@@ -433,14 +424,6 @@ if CLIENT then
 		emitter:Finish()
 	end
 	function EFFECT:Think() end
-	function EFFECT:Rander() end
+	function EFFECT:Render() end
 	effects.Register(EFFECT,"rainbow_wave")
 end
-
-
-
-list.Set("NPC","gballoon_tower_08",{
-	Name = ENT.PrintName,
-	Class = "gballoon_tower_08",
-	Category = ENT.Category
-})

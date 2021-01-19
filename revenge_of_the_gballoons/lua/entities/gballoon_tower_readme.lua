@@ -11,7 +11,7 @@ ENT.Author = "Piengineer"										// replace "Piengineer" with yourself.
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"		// replace this string with your own contact link.
 ENT.Purpose = ""												// optional: specify a string as the purpose.
 ENT.Instructions = ""											// optional: specify a string as the instructions.
-ENT.Spawnable = true											// don't touch this.
+ENT.Spawnable = false											// don't touch this, the addon will add your entity to the spawnmenu automatically.
 ENT.AdminOnly = false											// don't touch this.
 ENT.RenderGroup = RENDERGROUP_BOTH								// don't touch this.
 ENT.Model = Model("models/props_phx/empty_barrel.mdl")			// replace "models/props_phx/empty_barrel.mdl" with another model if you want to.
@@ -69,11 +69,5 @@ ENT.UpgradeLimits = {2,0}										// upgrade limit ({4,2} in BTD5 and {5,2,0} i
 function ENT:FireFunction(tableOfBalloons)						// since self.SeeCamo is false, only non-hidden gBalloons will be passed here, unless the tower is an X-3.
 	tableOfBalloons[1]:TakeDamage(self.AttackDamage,self,self)	// edit the body of the function however you want.
 end																// tableOfBalloons is all balloons in its radius, sorted by the player.
-
-list.Set("NPC","gballoon_tower_readme",{						// replace "gballoon_tower_readme" with your tower class.
-	Name = ENT.PrintName,										// don't touch this.
-	Class = "gballoon_tower_readme",							// replace "gballoon_tower_readme" with your tower class.
-	Category = ENT.Category										// don't touch this.
-})																// don't touch this.
 
 ]]																// delete this line.

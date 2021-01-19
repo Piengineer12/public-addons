@@ -8,29 +8,29 @@ ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Blow those gBalloons!"
 ENT.Instructions = ""
-ENT.Spawnable = true
+ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/dav0r/tnt/tnttimed.mdl")
 ENT.FireRate = 0.5
-ENT.Cost = 400
-ENT.DetectionRadius = 384
+ENT.Cost = 850--400
+ENT.DetectionRadius = 256--384
 ENT.AbilityCooldown = 30
 ENT.AttackDamage = 10
 ENT.UpgradeReference = {
 	{
 		Names = {"Faster Blasting","Faster-er Blasting","Sticky Bombs","Sticky Cluster Bombs","Infinite Sticky Bombs"},
 		Descs = {
-			"Increases explosion rate.",
-			"Increases explosion rate further.",
+			"Slightly increases explosion rate.",
+			"Considerably increases explosion rate.",
 			"gBalloons hit by the explosion from this tower explode again after half a second.",
 			"gBalloons hit by the explosions caused by Sticky Bombs explode once more after half a second.",
 			"gBalloons hit by ANY explosion caused by this tower explode again after half a second.",
 		},
-		Prices = {350,700,1000,2000,5000},
+		Prices = {400,1200,2500,5000,12500},--{350,700,1000,2000,5000},
 		Funcs = {
 			function(self)
-				self.FireRate = self.FireRate * 2
+				self.FireRate = self.FireRate * 1.5
 			end,
 			function(self)
 				self.FireRate = self.FireRate * 2
@@ -55,7 +55,7 @@ ENT.UpgradeReference = {
 			"Enables the tower to pop Black gBalloons, Zebra gBalloons and Monochrome gBlimps.",
 			"Increases blast radius considerably and damage colossally.",
 		},
-		Prices = {350,800,3000,5000,75000},
+		Prices = {800,1750,6500,10000,175000},--{350,800,3000,5000,75000},
 		Funcs = {
 			function(self)
 				self.DetectionRadius = self.DetectionRadius * 2
@@ -85,7 +85,7 @@ ENT.UpgradeReference = {
 			"Freezes gBalloons for 2 seconds per hit.",
 			"Once every 30 seconds, firing at this tower deals massive damage to all gBalloons regardless of immunities.",
 		},
-		Prices = {350,700,1500,4000,250000},
+		Prices = {400,1750,3500,25000,300000},--{350,700,1500,4000,250000},
 		Funcs = {
 			function(self)
 				self.rotgb_AlternateExplode = true
@@ -266,9 +266,3 @@ function ENT:TriggerAbility()
 		ent:TakeDamage(32767,self:GetTowerOwner(),self)
 	end
 end
-
-list.Set("NPC","gballoon_tower_02",{
-	Name = ENT.PrintName,
-	Class = "gballoon_tower_02",
-	Category = ENT.Category
-})

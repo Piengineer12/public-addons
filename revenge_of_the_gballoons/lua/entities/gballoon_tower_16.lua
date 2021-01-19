@@ -8,7 +8,7 @@ ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Triumph those gBalloons!"
 ENT.Instructions = ""
-ENT.Spawnable = true
+ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/maxofs2d/hover_plate.mdl")
@@ -110,8 +110,8 @@ ENT.UpgradeReference = {
 			"This tower no longer generates hoverballs. Instead, at the start of each round, gain 45 seconds worth of hoverball cash that would have been generated.",
 			"Each round, hoverball cash production is altered to a random number between 0% and 400%.",
 			"At the end of each round, all gBalloon Targets gain 20 health.",
-			"At the end of each round, the hoverballs' selling values are multiplied by 1.15!",
-			"At the end of each round, all gBalloon Targets' health are multiplied by 1.15!"
+			"At the end of each round, the income of all Hoverball Factory towers are multiplied by 1.2!",
+			"At the end of each round, all gBalloon Targets' health are multiplied by 1.2!"
 		},
 		Prices = {450,1000,2000,5000,20000,75000},
 		Funcs = {
@@ -227,12 +227,12 @@ function ENT:ROTGB_AcceptInput(input,activator,caller,data)
 		*(self.rotgb_Trading and math.random()*4 or 1)*GetConVar("rotgb_cash_mul"):GetFloat(), self:GetTowerOwner())
 		if buff > 0 then
 			if buff > 1 then
-				self.rotgb_HoverballWorth = self.rotgb_HoverballWorth * 1.15
+				self.rotgb_HoverballWorth = self.rotgb_HoverballWorth * 1.2
 			end
 			for k,v in pairs(ents.FindByClass("gballoon_target")) do
 				v:SetHealth(v:Health()+(self.rotgb_AutoHoverball and 40 or 20))
 				if buff > 2 then
-					v:SetHealth(v:Health()*(self.rotgb_AutoHoverball and 1.3 or 1.15))
+					v:SetHealth(v:Health()*(self.rotgb_AutoHoverball and 1.3 or 1.2))
 				end
 			end
 		end
@@ -244,9 +244,3 @@ function ENT:TriggerAbility()
 		ROTGB_AddCash(ROTGB_GetCash(v)*GetConVar("rotgb_cash_mul"):GetFloat(),v)
 	end
 end
-
-list.Set("NPC","gballoon_tower_16",{
-	Name = ENT.PrintName,
-	Class = "gballoon_tower_16",
-	Category = ENT.Category
-})

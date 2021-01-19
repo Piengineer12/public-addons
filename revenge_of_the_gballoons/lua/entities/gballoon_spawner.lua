@@ -906,9 +906,9 @@ ROTGB_WAVES = {
 		rbe=869760--180*612+60*3148+10*57072
 	},
 	{ -- 110
-		{"gballoon_blimp_magenta",60,60},
-		{"gballoon_blimp_magenta",20,20,40},
-		{"gballoon_blimp_magenta",20,20,40},
+		{"gballoon_fast_blimp_magenta",60,60},
+		{"gballoon_fast_blimp_magenta",20,20,40},
+		{"gballoon_fast_blimp_magenta",20,20,40},
 		duration=60,
 		rbe=927600--100*9276
 	},-- 110
@@ -949,7 +949,7 @@ ROTGB_WAVES = {
 		rbe=1234567--20*57072+5*16592+3*3148+612+103+5+3
 	},
 	{
-		{"gballoon_blimp_magenta",120,60},
+		{"gballoon_fast_blimp_magenta",120,60},
 		{"gballoon_fast_hidden_regen_shielded_blimp_gray",120,60},
 		duration=60,
 		rbe=1346400--120*(9276+1944)
@@ -964,7 +964,7 @@ ROTGB_WAVES = {
 		rbe=1426800--25*57072
 	},-- 115
 	{
-		{"gballoon_blimp_magenta",180,60},
+		{"gballoon_fast_blimp_magenta",180,60},
 		duration=60,
 		rbe=1669680--180*9276
 	},
@@ -1001,14 +1001,14 @@ ROTGB_WAVES = {
 		{"gballoon_blimp_green",25,5,95},
 		{"gballoon_fast_hidden_regen_shielded_blimp_gray",25,5,100},
 		{"gballoon_blimp_purple",25,5,105},
-		{"gballoon_blimp_magenta",50,10,110},
+		{"gballoon_fast_blimp_magenta",50,10,110},
 		duration=120,
 		rbe=2464825--25*(9276*2+57072+1944+16592+3148+612+193+133+103+93+23*4+11*4+15)
 	},
 	{ -- 120
 		{"gballoon_blimp_rainbow"},
 		{"gballoon_red",600,300},
-		{"gballoon_blimp_magenta",50,10,60},
+		{"gballoon_fast_blimp_magenta",50,10,60},
 		{"gballoon_blimp_purple",50,10,70},
 		{"gballoon_fast_hidden_regen_shielded_blimp_gray",50,10,80},
 		{"gballoon_blimp_green",50,10,90},
@@ -1035,6 +1035,287 @@ ROTGB_WAVES = {
 		assumerbe=2.5e6,
 		rbe=7056745--232695+50*(9276+57072+1944+16592+3148+612+193*2+133*2+103*2+93*2+23*4*2+11*4+14)+600+10*232695
 	}
+}
+
+ROTGB_WAVES_RAMP = {
+	-- format: { balloon_type, amount=1, timespan=0, delay=0 }
+	{ -- 1
+		{"gballoon_red",10,5},
+		{"gballoon_red",8,2,5},
+		duration=7,
+		rbe=18
+	},
+	{
+		{"gballoon_red",10,5},
+		{"gballoon_red",12,3,5},
+		{"gballoon_red",8,1,8},
+		{"gballoon_blue",8,1,9},
+		duration=10,
+		rbe=46--30+8*2
+	},
+	{ -- 3
+		{"gballoon_red",6,3},
+		{"gballoon_red",8,2,3},
+		{"gballoon_blue",6,3,5},
+		{"gballoon_blue",8,2,8},
+		{"gballoon_blue",8,1,10},
+		{"gballoon_green",4,0.5,11},
+		{"gballoon_regen_green",4,0.5,11.5},
+		duration=12,
+		rbe=82--14+22*2+8*3
+	},
+	{
+		{"gballoon_red",12,3},
+		{"gballoon_blue",2,1,3},
+		{"gballoon_blue",12,3,4},
+		{"gballoon_blue",8,1,7},
+		{"gballoon_green",6,3,8},
+		{"gballoon_green",8,1,11},
+		{"gballoon_green",8,0.5,12},
+		{"gballoon_regen_yellow",8,0.5,12.5},
+		duration=13,
+		rbe=146--12+22*2+22*3+8*4
+	},
+	{ -- 5
+		{"gballoon_red",4,1},
+		{"gballoon_red",8,1,1},
+		{"gballoon_blue",4,1,2},
+		{"gballoon_blue",8,1,3},
+		{"gballoon_green",20,5,4},
+		{"gballoon_regen_green",8,1,9},
+		{"gballoon_yellow",4,1,10},
+		{"gballoon_regen_yellow",8,1,11},
+		{"gballoon_fast_pink",8,1,12},
+		duration=13,
+		rbe=208--12+12*2+28*3+12*4+8*5
+	},
+	{
+		{"gballoon_blue",40,5},
+		{"gballoon_green",40,5,5},
+		{"gballoon_yellow",40,10,10},
+		{"gballoon_regen_yellow",8,1,20},
+		{"gballoon_pink",10,5,21},
+		{"gballoon_regen_pink",4,1,26},
+		{"gballoon_fast_pink",8,1,27},
+		{"gballoon_white",8,2,28},
+		duration=30,
+		rbe=590--40*2+40*3+48*4+22*5+8*11
+	},
+	{ -- 7
+		{"gballoon_shielded_blue",40,10},
+		{"gballoon_fast_pink",8,1,10},
+		{"gballoon_white",4,1,11},
+		{"gballoon_black",4,1,12},
+		duration=13,
+		rbe=288--40*4+8*5+8*11
+	},
+	{
+		{"gballoon_green",40,10},
+		{"gballoon_yellow",16,1,10},
+		{"gballoon_pink",40,10,11},
+		{"gballoon_white",8,1,21},
+		{"gballoon_black",8,1,22},
+		{"gballoon_shielded_purple",8,1,23},
+		duration=24,
+		rbe=736--40*3+16*4+40*5+16*11+8*22
+	},
+	{ -- 9
+		{"gballoon_red",12,3},
+		{"gballoon_fast_hidden_regen_shielded_red",16,1,3},
+		{"gballoon_blue",2,1,4},
+		{"gballoon_green",2,1,5},
+		{"gballoon_yellow",2,1,6},
+		{"gballoon_pink",6,3,7},
+		{"gballoon_pink",4,1,10},
+		{"gballoon_pink",8,1,11},
+		{"gballoon_fast_white",8,1,12},
+		{"gballoon_fast_black",8,1,13},
+		{"gballoon_fast_purple",8,1,14},
+		{"gballoon_fast_orange",8,1,15},
+		duration=16,
+		rbe=504--12*1+16*2+2*2+2*3+2*4+18*5+32*11
+	},
+	{
+		{"gballoon_pink",80,10},
+		{"gballoon_white",2,1,10},
+		{"gballoon_white",16,1,11},
+		{"gballoon_black",2,1,12},
+		{"gballoon_black",16,1,13},
+		{"gballoon_purple",2,1,14},
+		{"gballoon_purple",16,1,15},
+		{"gballoon_orange",2,1,16},
+		{"gballoon_orange",16,1,17},
+		{"gballoon_gray",4,2,18},
+		duration=20,
+		rbe=1284--80*5+72*11+4*23
+	},
+	{ -- 11
+		{"gballoon_fast_regen_shielded_pink",20,5},
+		{"gballoon_white",8,0.5,5},
+		{"gballoon_black",8,0.5,5.5},
+		{"gballoon_purple",8,0.5,6},
+		{"gballoon_orange",8,0.5,6.5},
+		{"gballoon_gray",8,2,7},
+		{"gballoon_regen_zebra",16,1,9},
+		duration=10,
+		rbe=1104--20*10+32*11+24*23
+	},
+	{
+		{"gballoon_white",16,4},
+		{"gballoon_black",16,4,4},
+		{"gballoon_purple",16,4,8},
+		{"gballoon_orange",16,4,12},
+		{"gballoon_gray",16,2,16},
+		{"gballoon_zebra",16,2,18},
+		{"gballoon_aqua",16,2,20},
+		{"gballoon_aqua",16,1,22},
+		duration=23,
+		rbe=2176--64*11+64*23
+	},
+	{ -- 13
+		{"gballoon_fast_hidden_regen_shielded_white",16,2},
+		{"gballoon_fast_hidden_regen_shielded_black",16,2,2},
+		{"gballoon_fast_hidden_regen_shielded_purple",16,2,4},
+		{"gballoon_fast_hidden_regen_shielded_orange",16,2,6},
+		{"gballoon_shielded_gray",2,1,8},
+		{"gballoon_shielded_zebra",4,1,9},
+		{"gballoon_shielded_aqua",8,1,10},
+		{"gballoon_shielded_error",16,1,11},
+		duration=12,
+		rbe=2788--64*22+30*46
+	},
+	{
+		{"gballoon_fast_pink",160,10},
+		{"gballoon_white",16,4,10},
+		{"gballoon_black",16,4,14},
+		{"gballoon_purple",16,4,18},
+		{"gballoon_orange",16,4,22},
+		{"gballoon_gray",16,1,24},
+		{"gballoon_zebra",16,1,25},
+		{"gballoon_aqua",16,1,26},
+		{"gballoon_error",16,1,27},
+		{"gballoon_rainbow",1,2,28},
+		duration=30,
+		rbe=4329--160*10+64*11+84*23+93
+	},
+	{ -- 15
+		{"gballoon_regen_rainbow",16,1},
+		{"gballoon_regen_rainbow",16,1,5},
+		{"gballoon_regen_rainbow",16,1,10},
+		duration=11,
+		rbe=4464--48*93
+	},
+	{
+		{"gballoon_regen_gray",32,4},
+		{"gballoon_fast_zebra",32,4,4},
+		{"gballoon_shielded_aqua",32,4,8},
+		{"gballoon_hidden_error",32,4,12},
+		{"gballoon_rainbow",24,12,16},
+		{"gballoon_fast_rainbow",16,2,28},
+		duration=30,
+		rbe=7400--96*23+32*46+40*93
+	},
+	{ -- 17
+		{"gballoon_shielded_rainbow",48,12},
+		duration=12,
+		rbe=8928--48*186
+	},
+	{
+		{"gballoon_gray",32,4},
+		{"gballoon_zebra",32,4,4},
+		{"gballoon_aqua",32,4,8},
+		{"gballoon_error",32,4,12},
+		{"gballoon_rainbow",24,12,16},
+		{"gballoon_fast_rainbow",8,1,28},
+		{"gballoon_ceramic",8,1,29},
+		duration=30,
+		rbe=7480--96*23+32*46+32*93+8*103
+	},
+	{ -- 19
+		{"gballoon_ceramic",16,1},
+		{"gballoon_ceramic",16,1,5},
+		{"gballoon_ceramic",32,2,10},
+		{"gballoon_blimp_blue",1,0,15},
+		duration=15,
+		rbe=7204--64*103+612
+	},
+	{
+		{"gballoon_fast_hidden_regen_shielded_gray",32,4},
+		{"gballoon_fast_hidden_regen_shielded_zebra",32,4,4},
+		{"gballoon_fast_hidden_regen_shielded_aqua",32,4,8},
+		{"gballoon_fast_hidden_regen_shielded_error",32,4,12},
+		{"gballoon_fast_regen_rainbow",16,8,16},
+		{"gballoon_ceramic",20,5,24},
+		{"gballoon_brick",16,1,29},
+		duration=30,
+		rbe=11564--128*46+16*93+20*103+16*133
+	},
+	{ -- 21
+		{"gballoon_fast_regen_ceramic",30,15},
+		{"gballoon_blimp_blue",4,1,15},
+		{"gballoon_blimp_red",1,1,16},
+		duration=17,
+		rbe=8686--30*103+4*612+3148
+	},
+	{
+		{"gballoon_fast_hidden_regen_shielded_orange",160,20},
+		{"gballoon_shielded_ceramic",16,8,20},
+		{"gballoon_brick",16,4,28},
+		{"gballoon_brick",16,1,32},
+		{"gballoon_marble",16,1,33},
+		duration=34,
+		rbe=14160--160*22+16*206+32*133+16*193
+	},
+	{ -- 23
+		{"gballoon_fast_hidden_regen_shielded_ceramic",20,5},
+		{"gballoon_shielded_blimp_blue",5,5,10},
+		{"gballoon_blimp_red",2,4,15},
+		{"gballoon_blimp_green",1,1,19},
+		duration=20,
+		rbe=26832--20*206+5*1224+16592
+	},
+	{
+		{"gballoon_ceramic",40,10},
+		{"gballoon_brick",40,5,10},
+		{"gballoon_shielded_marble",40,5,15},
+		{"gballoon_blimp_blue",2,4,20},
+		{"gballoon_blimp_blue",8,1,24},
+		{"gballoon_fast_hidden_regen_shielded_blimp_gray",8,1,25},
+		duration=26,
+		rbe=46552--40*103+40*133+40*386+10*612+8*1944
+	},
+	{ -- 25
+		{"gballoon_shielded_blimp_red",2,8},
+		{"gballoon_blimp_green",2,8,8},
+		{"gballoon_blimp_purple",1,1,16},
+		duration=17,
+		rbe=100904--2*3148*2+2*16592+55128
+	},
+	{
+		{"gballoon_fast_ceramic",40,5},
+		{"gballoon_hidden_ceramic",40,5,5},
+		{"gballoon_regen_ceramic",40,5,10},
+		{"gballoon_shielded_ceramic",40,5,15},
+		{"gballoon_fast_brick",40,5,20},
+		{"gballoon_hidden_brick",40,5,25},
+		{"gballoon_regen_brick",40,5,30},
+		{"gballoon_shielded_brick",40,5,35},
+		{"gballoon_fast_marble",40,5,40},
+		{"gballoon_hidden_marble",40,5,45},
+		{"gballoon_regen_marble",40,5,50},
+		{"gballoon_shielded_marble",40,5,55},
+		{"gballoon_blimp_green",5,5,60},
+		{"gballoon_fast_hidden_regen_shielded_blimp_gray",32,2,65},
+		{"gballoon_fast_blimp_magenta",16,1,67},
+		duration=68,
+		rbe=317176--200*103+200*133+200*193+5*16592+32*1944+16*5388
+	},
+	{ -- 27
+		{"gballoon_blimp_purple",8,16},
+		{"gballoon_blimp_rainbow",1,16,16},
+		duration=32,
+		rbe=541023--8*55128+99999
+	},
 }
 
 function ENT:GetWaveDuration(wave)
@@ -1323,7 +1604,7 @@ function ENT:Use(activator)
 end
 
 function ENT:GetWaveTable()
-	return self:GetWaveFile()~="" and self.CustomWaveData or ROTGB_WAVES
+	return self:GetWaveFile()=="?RAMP" and ROTGB_WAVES_RAMP or self:GetWaveFile()~="" and self.CustomWaveData or ROTGB_WAVES
 end
 
 function ENT:GenerateNextWave(cwave)
@@ -1333,14 +1614,14 @@ function ENT:GenerateNextWave(cwave)
 	local erbe = self:GetWaveTable()[cwave-1].assumerbe and self:GetWaveTable()[cwave-1].assumerbe*1.1 or self:GetWaveTable()[cwave-1].rbe*1.1
 	local trbe = 0
 	local wavetab = {}
-	DEFINE_BASECLASS("gballoon_base")
-	local choices = {"gballoon_blimp_blue","gballoon_blimp_red","gballoon_blimp_green","gballoon_fast_hidden_regen_shielded_blimp_gray","gballoon_blimp_purple","gballoon_blimp_magenta","gballoon_blimp_rainbow"}
+	local gballoon_base = baseclass.Get("gballoon_base")
+	local choices = {"gballoon_blimp_blue","gballoon_blimp_red","gballoon_blimp_green","gballoon_fast_hidden_regen_shielded_blimp_gray","gballoon_blimp_purple","gballoon_fast_blimp_magenta","gballoon_blimp_rainbow"}
 	local factors = {120,60,40,30,24,20,15,12,10,8,6,5,4,3,2,1}
 	while true do
 		if trbe > (self:GetWaveTable()[cwave-1].assumerbe or self:GetWaveTable()[cwave-1].rbe) then break end
 		local genval = util.SharedRandom("ROTGB_WAVEGEN_"..self:GetWaveFile().."_"..cwave,0,7,trbe)
 		local choice = choices[math.floor(genval)+1]
-		local crbe = BaseClass.rotgb_rbetab[choice]
+		local crbe = gballoon_base.rotgb_rbetab[choice]
 		local amount = math.Clamp((erbe-trbe)/crbe,1,120)
 		for i,v in ipairs(factors) do
 			if amount>=v then amount=v break end
@@ -1412,7 +1693,10 @@ function ENT:Think()
 	end
 	if SERVER and self.CustomWaveName ~= self:GetWaveFile() then
 		self.CustomWaveName = self:GetWaveFile()
-		if SERVER and file.Exists("rotgb_wavedata/"..self:GetWaveFile()..".dat", "DATA") then
+		if self.CustomWaveName == "?RAMP" then
+			self:SetNWString("rotgb_validwave",self.CustomWaveName)
+			PrintMessage(HUD_PRINTTALK, "\"?RAMP\" loaded successfully.")
+		elseif SERVER and file.Exists("rotgb_wavedata/"..self:GetWaveFile()..".dat", "DATA") then
 			local rawdata = util.JSONToTable(util.Decompress(file.Read("rotgb_wavedata/"..self:GetWaveFile()..".dat","DATA") or ""))
 			if rawdata then
 				if not self.NoMessages then
@@ -1438,9 +1722,10 @@ function ENT:Think()
 		end
 	end
 	if CLIENT and self:GetNWString("rotgb_validwave")~=self.CustomWaveName then
-		--print("SXSW!")
-		PrintTable(ROTGB_CLIENTWAVES[self:GetWaveFile()])
-		if ((ROTGB_CLIENTWAVES[self:GetWaveFile()] or {})[1] or {}).rbe then
+		--PrintTable(ROTGB_CLIENTWAVES[self:GetWaveFile()])
+		if self:GetNWString("rotgb_validwave") == "?RAMP" then
+			self.CustomWaveName = self:GetNWString("rotgb_validwave")
+		elseif ((ROTGB_CLIENTWAVES[self:GetWaveFile()] or {})[1] or {}).rbe then
 			self.CustomWaveName = self:GetNWString("rotgb_validwave")
 			self.CustomWaveData = ROTGB_CLIENTWAVES[self:GetWaveFile()]
 		end

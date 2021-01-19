@@ -8,7 +8,7 @@ ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Gun those gBalloons!"
 ENT.Instructions = ""
-ENT.Spawnable = true
+ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/props_phx/gears/bevel90_24.mdl")
@@ -149,9 +149,3 @@ function ENT:ROTGB_Think()
 		self:SetAbilityNextFire(0)
 	end
 end
-
-list.Set("NPC","gballoon_tower_15",{
-	Name = ENT.PrintName,
-	Class = "gballoon_tower_15",
-	Category = ENT.Category
-})

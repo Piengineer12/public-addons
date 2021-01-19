@@ -36,10 +36,14 @@ ENT.rotgb_rbetab = {
 	gballoon_blimp_blue=612,
 	gballoon_blimp_red=3148,
 	gballoon_blimp_green=16592,
-	gballoon_blimp_gray=1944,
-	gballoon_blimp_purple=57072,
-	gballoon_blimp_magenta=9276,
-	gballoon_blimp_rainbow=232695,
+	gballoon_blimp_gray=972,
+	gballoon_blimp_purple=55128,
+	gballoon_blimp_magenta=5388,
+	gballoon_blimp_rainbow=221031,
+	
+	-- the gBalloon Spawner implodes if we don't define these
+	gballoon_fast_hidden_regen_shielded_blimp_gray=972*2,
+	gballoon_fast_blimp_magenta=5388,
 	
 	gballoon_glass=1,
 	gballoon_void=1,
@@ -1253,6 +1257,7 @@ function ENT:MoveToTargetNew()
 		end
 		self:CheckForRegenAndFire()
 		self:CheckForSpeedMods()
+		self:PerformPops()
 		coroutine.yield()
 		firstPos:Sub(self:GetPos())
 		local cdd = firstPos:Length()
@@ -1565,6 +1570,7 @@ function ENT:MoveToTarget()
 			end
 			self:CheckForRegenAndFire()
 			self:CheckForSpeedMods()
+			self:PerformPops()
 			coroutine.yield()
 			if self.correcting and navmesh.GetNearestNavArea(self:GetPos()):HasAttributes(NAV_MESH_STOP) then
 				self.correcting = nil
@@ -1592,6 +1598,15 @@ end
 
 function ENT:RunBehaviour()
 	while true do
+		if not self.FirstRunBehaviour then
+			self.FirstRunBehaviour = true
+			if self:Health() <= 0 then
+				self:SetHealth(1)
+				self:Log("Took damage WHILE spawning. Damage negated.", "damage")
+			end
+		end
+		self:CheckForRegenAndFire()
+		self:PerformPops()
 		if GetConVar("ai_disabled"):GetBool() then
 			self:Log("ai_disabled is set, waiting...","pathfinding")
 			coroutine.wait(1)
@@ -1789,7 +1804,7 @@ function ENT:ShowResistEffect(typ)
 	end
 end
 
-function ENT:ShowCritEffect(typ)
+function ENT:ShowCritEffect()
 	if ConT:GetFloat()>=0 and (ROTGB_NEXTSHOW2 or 0)<=CurTime() then
 		local effdata = EffectData()
 		effdata:SetOrigin(self:GetPos())
@@ -1809,6 +1824,42 @@ local function TestDamageResistances(properties,dmgbits)
 	DMG_REMOVENORAGDOLL,DMG_PLASMA,DMG_DISSOLVE,DMG_DIRECT) then return 3
 	elseif properties.BalloonGray and HasAnyBits(dmgbits,DMG_BULLET+DMG_SLASH+DMG_BUCKSHOT) then return 4 end
 	--if properties.BalloonAqua and (HasAnyBits(dmgbits,DMG_CRUSH+DMG_FALL+DMG_CLUB+DMG_PHYSGUN)) then return 6 end
+end
+
+function ENT:PerformPops()
+	local health = self:Health()
+	if health<=0 then
+		local attacker = self.LastAttacker
+		if Con12:GetInt()>=16 then
+			util.Decal(ConA:GetString(),self:GetPos()+vector_up,self:GetPos()-vector_up*self:BoundingRadius()*self:GetModelScale(),self)
+		elseif Con12:GetInt()>=8 then
+			local inkproj = ents.Create("splashootee")
+			if IsValid(inkproj) then
+				local CNames = {"Orange","Pink","Purple","Blue","Cyan","Green",[0]="White"}
+				--local CCodes = {30,300,270,240,180,120,360}
+				inkproj:SetNoDraw(true)
+				inkproj:Setscale(Vector(1,1,1))
+				inkproj:SetModel("models/spitball_small.mdl")
+				inkproj:SetPos(self:GetPos()+self:OBBCenter())
+				inkproj:SetOwner(attacker)
+				inkproj:SetPhysicsAttacker(attacker)
+				inkproj:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
+				inkproj.InkColor = CNames[Con12:GetInt()-8]
+				inkproj.Dmg = 0
+				inkproj:Spawn()
+				inkproj:GetPhysicsObject():ApplyForceCenter(vector_up*-600)
+			end
+		end
+		if (IsValid(attacker) and attacker:IsPlayer()) then
+			attacker:SendLua("achievements.BalloonPopped()") -- What? It's a balloon, right?
+		end
+		local damageType = self.LastDamageType
+		if self:GetgBalloonCount()>256 then
+			self:Pop(-1,nil,damageType)
+		else
+			self:Pop(-health,nil,damageType)
+		end
+	end
 end
 
 function ENT:OnInjured(dmginfo)
@@ -1848,37 +1899,8 @@ function ENT:OnInjured(dmginfo)
 		else
 			self:SetNWBool("RenderShield",false)
 		end
-		if newhealth<=0 and dmginfo:GetDamage()>0 then
-			if Con12:GetInt()>=16 then
-				util.Decal(ConA:GetString(),self:GetPos()+vector_up,self:GetPos()-vector_up*self:BoundingRadius()*self:GetModelScale(),self)
-			elseif Con12:GetInt()>=8 then
-				local inkproj = ents.Create("splashootee")
-				if IsValid(inkproj) then
-					local CNames = {"Orange","Pink","Purple","Blue","Cyan","Green",[0]="White"}
-					--local CCodes = {30,300,270,240,180,120,360}
-					inkproj:SetNoDraw(true)
-					inkproj:Setscale(Vector(1,1,1))
-					inkproj:SetModel("models/spitball_small.mdl")
-					inkproj:SetPos(self:GetPos()+self:OBBCenter())
-					inkproj:SetOwner(dmginfo:GetAttacker())
-					inkproj:SetPhysicsAttacker(dmginfo:GetAttacker())
-					inkproj:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
-					inkproj.InkColor = CNames[Con12:GetInt()-8]
-					inkproj.Dmg = 0
-					inkproj:Spawn()
-					inkproj:GetPhysicsObject():ApplyForceCenter(vector_up*-600)
-				end
-			end
-			local attacker = dmginfo:GetAttacker()
-			if (IsValid(attacker) and attacker:IsPlayer()) then
-				attacker:SendLua("achievements.BalloonPopped()") -- What? It's a balloon, right?
-			end
-			if self:GetgBalloonCount()>256 then
-				self:Pop(-1,nil,dmginfo:GetDamageType())
-			else
-				self:Pop(-newhealth,nil,dmginfo:GetDamageType())
-			end
-		end
+		self.LastAttacker = dmginfo:GetAttacker()
+		self.LastDamageType = dmginfo:GetDamageType()
 	end
 	dmginfo:SetDamage(0)
 end
@@ -2061,7 +2083,7 @@ function ENT:Pop(damage,target,dmgbits)
 	self:Log("After Popping: "..util.TableToJSON(nexts,true),"damage")
 	self:Log("Time taken: "..(SysTime()-ctime)*1000 .." ms","damage")
 	if IsValid(target) then
-		target:TakeDamage(pops*Con5:GetFloat(),self,self)
+		target:TakeDamage((pops+math.max(self:Health(), 1))*Con5:GetFloat(),self,self)
 	else
 		self:Log("Awarding "..cash*ConO:GetFloat().." cash after "..pops.." pops...","damage")
 		ROTGB_AddCash(cash*ConO:GetFloat())
@@ -2113,6 +2135,7 @@ function ENT:Pop(damage,target,dmgbits)
 					spe.LastBeacon = self.LastBeacon
 					if IsValid(self.RotgBFireEnt) then
 						spe:CreateFire(self.RotgBFireEnt.damage, self.RotgBFireEnt.attacker, self.RotgBFireEnt.inflictor, self.RotgBFireEnt.dietime-CurTime())
+						spe.LastBurn = CurTime() + Con13:GetFloat()
 					end
 					--[[if (self.BurnTime or 0)-0.5 >= CurTime() then
 						local cBurnTime = self.BurnTime
@@ -2126,7 +2149,7 @@ function ENT:Pop(damage,target,dmgbits)
 					spe:SetTarget(self:GetTarget())
 					if istable(v) and SERVER then
 						spe.PrevBalloons = v.PrevBalloons
-						spe:SetHealth(v.Health or 1)
+						spe:SetHealth(math.max(v.Health or 1, 1))
 					end
 					--[[timer.Simple(0,function()
 						if (IsValid(spe) and spe:Health()<=0) then spe:Pop(-spe:Health()) end
@@ -4025,7 +4048,6 @@ local registerkeys = {
 			BalloonModel = "models/props_phx/ww2bomb.mdl",
 			BalloonHealth = "1500",
 			BalloonBlimp = "1",
-			BalloonFast = "1",
 			BalloonArmor = "15",
 			BalloonPopSound = "ambient/explosions/explode_5.wav"
 		}

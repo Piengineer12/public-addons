@@ -158,7 +158,7 @@ hook.Add("HUDPaint","RotgB",function()
 		elseif cash==-math.huge then -- number is negative inf
 			draw.SimpleTextOutlined("$-∞","RotgB_font",ConX:GetFloat()*ScrW()+ConS:GetFloat(),ConY:GetFloat()*ScrH(),color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 		elseif cash<math.huge and cash>-math.huge then -- number is real
-			draw.SimpleTextOutlined(string.format("$%.0f",cash),"RotgB_font",ConX:GetFloat()*ScrW()+ConS:GetFloat(),ConY:GetFloat()*ScrH(),color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+			draw.SimpleTextOutlined("$"..string.Comma(math.floor(cash)),"RotgB_font",ConX:GetFloat()*ScrW()+ConS:GetFloat(),ConY:GetFloat()*ScrH(),color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 		else -- number isn't a number. Caused by inf minus inf
 			draw.SimpleTextOutlined("$☠","RotgB_font",ConX:GetFloat()*ScrW()+ConS:GetFloat(),ConY:GetFloat()*ScrH(),color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 		end

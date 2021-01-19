@@ -26,7 +26,7 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Bool",0,"IsPublic",{KeyName="is_public",Edit={type="Boolean",title="Anyone Can Use",order=1}})
 	self:NetworkVar("Float",0,"MassMul",{KeyName="isawc_mass_mul",Edit={type="Float",category="Multipliers",title="Mass Mul.",min=0,max=10,order=5}})
 	self:NetworkVar("Float",1,"VolumeMul",{KeyName="isawc_volume_mul",Edit={type="Float",category="Multipliers",title="Volume Mul.",min=0,max=10,order=6}})
-	self:NetworkVar("Int",0,"ContainerHealth",{KeyName="isawc_volume_mul",Edit={type="Int",title="Container Health",min=0,max=1000,order=2}})
+	self:NetworkVar("Int",0,"ContainerHealth",{KeyName="isawc_health",Edit={type="Int",title="Container Health",min=0,max=1000,order=2}})
 	self:NetworkVar("Int",1,"OwnerAccountID")
 	self:NetworkVar("String",1,"FileID")
 	self:NetworkVar("String",2,"EnderInvName",{KeyName="enderchest_inv_name",Edit={type="Generic",title="Inv. ID (for EnderChests)",order=3}})
@@ -218,7 +218,7 @@ function ENT:OnRemove()
 end
 
 function ENT:Think()
-	if SERVER then 
+	if SERVER then
 		if self.CHealth~=self:GetContainerHealth() then
 			self.CHealth = self:GetContainerHealth()
 			self:SetHealth(self.CHealth)
@@ -237,6 +237,19 @@ function ENT:Think()
 				end
 			end
 		end
+		if ISAWC.ConMagnet:GetFloat() > 0 then
+			for k,v in pairs(ents.FindInSphere(self:GetPos()+self:OBBCenter(), ISAWC.ConMagnet:GetFloat())) do
+				if v ~= self then
+					if ISAWC.ConUseMagnetWhitelist:GetBool() then
+						if ISAWC:StringMatchParams(v:GetClass(), ISAWC.WhiteMagnetList) then
+							self:Magnetize(v)
+						end
+					else
+						self:Magnetize(v)
+					end
+				end
+			end
+		end
 	end
 	if CLIENT then
 		if (self.FinishOpenAnimTime or 0) >= CurTime() then
@@ -252,6 +265,20 @@ function ENT:Think()
 		elseif self.ContainerState=="closing" then
 			self.ContainerState="closed"
 			self:CloseAnim(1)
+		end
+	end
+end
+
+function ENT:Magnetize(ent)
+	if not IsValid(ent:GetParent()) and ISAWC:CanPickup(self,ent,true) then
+		if IsValid(ent:GetPhysicsObject()) and ent:GetMoveType()==MOVETYPE_VPHYSICS then
+			local dir = self:GetPos()-ent:GetPos()
+			local nDir = dir:GetNormalized()
+			nDir:Mul(100*ISAWC.ConMagnet:GetFloat()/dir:Length())
+			ent:GetPhysicsObject():AddVelocity(nDir)
+		else
+			self:Touch(ent)
+			self:StartTouch(ent)
 		end
 	end
 end

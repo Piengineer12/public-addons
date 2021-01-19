@@ -8,7 +8,7 @@ ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Shred those gBalloons!"
 ENT.Instructions = ""
-ENT.Spawnable = true
+ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/mechanics/wheels/wheel_speed_72.mdl")
@@ -217,9 +217,3 @@ function ENT:FireFunction(tableOfBalloons)
 		self.rotgb_Hits = 0
 	end
 end
-
-list.Set("NPC","gballoon_tower_12",{
-	Name = ENT.PrintName,
-	Class = "gballoon_tower_12",
-	Category = ENT.Category
-})

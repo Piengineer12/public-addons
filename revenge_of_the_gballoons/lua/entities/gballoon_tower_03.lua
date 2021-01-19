@@ -8,7 +8,7 @@ ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Snipe those gBalloons!"
 ENT.Instructions = ""
-ENT.Spawnable = true
+ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/props_phx/games/chess/white_queen.mdl")
@@ -114,9 +114,3 @@ function ENT:FireFunction(gBalloons)
 	local perf,str = coroutine.resume(self.thread,self,gBalloons[1])
 	if not perf then error(str) end
 end
-
-list.Set("NPC","gballoon_tower_03",{
-	Name = ENT.PrintName,
-	Class = "gballoon_tower_03",
-	Category = ENT.Category
-})

@@ -55,7 +55,7 @@ end
 function SWEP:PrimaryAttack()
 	self.Weapon:SetNextPrimaryFire(CurTime())
 	if SERVER and game.SinglePlayer() then self:CallOnClient("PrimaryAttack") end
-	if CLIENT then
+	if CLIENT and (IsFirstTimePredicted() or game.SinglePlayer()) then
 		local ent = LocalPlayer():GetEyeTrace().Entity
 		if IsValid(ent) then
 			net.Start("isawc_general")

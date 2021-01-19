@@ -8,7 +8,7 @@ ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Zap those gBalloons!"
 ENT.Instructions = ""
-ENT.Spawnable = true
+ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/props_phx/facepunch_barrel.mdl")
@@ -145,9 +145,3 @@ function ENT:FireFunction(gBalloons)
 		end
 	end
 end
-
-list.Set("NPC","gballoon_tower_01",{
-	Name = ENT.PrintName,
-	Class = "gballoon_tower_01",
-	Category = ENT.Category
-})

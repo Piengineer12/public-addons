@@ -8,7 +8,7 @@ ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Shoot those gBalloons!"
 ENT.Instructions = ""
-ENT.Spawnable = true
+ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/props_phx/games/chess/white_pawn.mdl")
@@ -27,11 +27,11 @@ ENT.UpgradeReference = {
 			"Slightly increases attack speed.",
 			"Considerably increases attack speed.",
 			"Attacks deal one additional layer of damage and can pop Gray gBalloons.",
-			"Fires searing hot shots that set their victims on fire.",
-			"All gBalloons within the tower's range get set on fire. Also slightly increases fire damage dealt.",
-			"Once every 60 seconds, shooting at this tower causes it to erupt with a deadly flame, dealing damage to ALL gBalloons regardless of immunities, setting them on fire, and causing them to take massively increased damage from fires."
+			"Fires searing hot shots that set their victims on fire for 5 seconds.",
+			"All gBalloons within the tower's range get set on fire. Also considerably increases fire duration.",
+			"Once every 60 seconds, shooting at this tower causes it to erupt with a deadly flame, dealing damage to ALL gBalloons regardless of immunities and setting them on fire that deals 100 layers of damage over 5 seconds."
 		},
-		Prices = {100,300,1750,4500,5000,15000},
+		Prices = {100,300,1750,4000,10000,15000},--{100,300,1750,4500,5000,15000},
 		Funcs = {
 			function(self)
 				self.FireRate = self.FireRate * 1.5
@@ -45,12 +45,16 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.rotgb_DoFire = true
+				--duration: 8 -> 5
 			end,
 			function(self)
 				self.rotgb_DoFireAura = true
+				--damage: 2 -> 1
+				--duration: 8 -> 10
 			end,
 			function(self)
 				self.HasAbility = true
+				--100x16s -> 20x5s
 			end
 		}
 	},
@@ -60,7 +64,7 @@ ENT.UpgradeReference = {
 			"Slightly increases tower range.",
 			"Allows the tower to see Hidden gBalloons and considerably increases tower range.",
 		},
-		Prices = {100,1250},
+		Prices = {100,1200},--{100,1250},
 		Funcs = {
 			function(self)
 				self.DetectionRadius = self.DetectionRadius * 1.5
@@ -88,7 +92,7 @@ local function SnipeEntity()
 					tracer.Entity:TakeDamage(self.AttackDamage,self,self)
 				end]]
 				if IsValid(ent) and self.rotgb_DoFire then
-					ent:RotgB_Ignite(10, self:GetTowerOwner(), self, 8)
+					ent:RotgB_Ignite(10, self:GetTowerOwner(), self, 5)
 				end
 			end,
 			Damage = self.AttackDamage,
@@ -109,7 +113,7 @@ function ENT:ROTGB_Think()
 		if self.rotgb_DoFireAura then
 			for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
 				if self:ValidTarget(v) then
-					v:RotgB_Ignite(20, self:GetTowerOwner(), self, 8)
+					v:RotgB_Ignite(10, self:GetTowerOwner(), self, 5)
 					--v.FireSusceptibility = (v.FireSusceptibility or 0) + 0.1
 				end
 			end
@@ -135,13 +139,7 @@ function ENT:TriggerAbility()
 		effdata:SetEntity(ent)
 		util.Effect("Explosion",effdata,true,true)
 		ent:TakeDamage(64,self:GetTowerOwner(),self)
-		ent.FireSusceptibility = (ent.FireSusceptibility or 0) + 99
-		ent:RotgB_Ignite(10, self:GetTowerOwner(), self, 16)
+		--ent.FireSusceptibility = (ent.FireSusceptibility or 0) + 99
+		ent:RotgB_Ignite(200, self:GetTowerOwner(), self, 5)
 	end
 end
-
-list.Set("NPC","gballoon_tower_07",{
-	Name = ENT.PrintName,
-	Class = "gballoon_tower_07",
-	Category = ENT.Category
-})

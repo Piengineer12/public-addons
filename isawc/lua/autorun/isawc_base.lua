@@ -1,7 +1,7 @@
 ISAWC = ISAWC or {}
 
-ISAWC._VERSION = "2.1.3"
-ISAWC._VERSIONDATE = "2020-12-08"
+ISAWC._VERSION = "2.2.0"
+ISAWC._VERSIONDATE = "2021-01-14"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -157,10 +157,11 @@ ISAWC:CreateListConCommand("isawc_blacklist", {
 	display_function = function(k,v)
 		ISAWC:Log("\t"..string.format('%q',k)..",")
 	end,
-	purpose = "Adds and removes entity classes from the blacklist. Classes in the blacklist cannot be picked up.",
+	purpose = "Adds or removes entity classes from the blacklist. Classes in the blacklist cannot be picked up.",
 	help = {
 		"Use \"isawc_blacklist <class1> <class2> ...\" to add/remove entity classes into/from the list.",
-		"Use \"isawc_blacklist *\" to clear the list."
+		"* and ? wildcards are supported.",
+		"Use \"isawc_blacklist *\" to clear the list.",
 	},
 	help_small = "Usage: isawc_blacklist <class1> <class2> ...",
 	exe = function(args)
@@ -191,6 +192,10 @@ ISAWC.ConUseExportWhitelist = CreateConVar("isawc_use_exportwhitelist","0",FCVAR
 "If set, only entity classes that are in the whitelist can be exported by Inventory Exporters.\
 See the ConCommand \"isawc_export_whitelist\" to manipulate the list.")
 
+ISAWC.ConUseMagnetWhitelist = CreateConVar("isawc_use_magnetwhitelist","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+"If set, only entity classes that are in the whitelist can be magnetized by containers.\
+See the ConCommand \"isawc_container_magnetwhitelist\" to manipulate the list.")
+
 ISAWC.Whitelist = ISAWC.Whitelist or {}
 ISAWC:CreateListConCommand("isawc_whitelist", {
 	display = "The whitelist is as follows: ",
@@ -198,9 +203,10 @@ ISAWC:CreateListConCommand("isawc_whitelist", {
 	display_function = function(k,v)
 		ISAWC:Log("\t"..string.format('%q',k)..",")
 	end,
-	purpose = "Adds and removes entity classes from the whitelist. See the ConVar \"isawc_use_whitelist\" for more information.",
+	purpose = "Adds or removes entity classes from the whitelist. See the ConVar \"isawc_use_whitelist\" for more information.",
 	help = {
 		"Use \"isawc_whitelist <class1> <class2> ...\" to add/remove an entity class into/from the list.",
+		"* and ? wildcards are supported.",
 		"Use \"isawc_whitelist *\" to clear the list.",
 		"Tip: Non-solid and Non-VPhysics entities can be specified here to make them able to be picked up regardless of the other ConVars."
 	},
@@ -229,10 +235,11 @@ ISAWC:CreateListConCommand("isawc_export_whitelist", {
 	display_function = function(k,v)
 		ISAWC:Log("\t"..string.format('%q',k)..",")
 	end,
-	purpose = "Adds and removes entity classes from the Inventory Exporter whitelist. See the ConVar \"isawc_use_exportwhitelist\" for more information.",
+	purpose = "Adds or removes entity classes from the Inventory Exporter whitelist. See the ConVar \"isawc_use_exportwhitelist\" for more information.",
 	help = {
 		"Use \"isawc_export_whitelist <class1> <class2> ...\" to add/remove an entity class into/from the list.",
-		"Use \"isawc_export_whitelist *\" to clear the list."
+		"* and ? wildcards are supported.",
+		"Use \"isawc_export_whitelist *\" to clear the list.",
 	},
 	help_small = "Usage: isawc_export_whitelist <class1> <class2> ...",
 	exe = function(args)
@@ -252,6 +259,37 @@ ISAWC:CreateListConCommand("isawc_export_whitelist", {
 	end
 })
 
+ISAWC.WhiteMagnetList = ISAWC.WhiteMagnetList or {}
+ISAWC:CreateListConCommand("isawc_container_magnetwhitelist", {
+	display = "The container magnetization whitelist is as follows: ",
+	display_table = ISAWC.WhiteMagnetList,
+	display_function = function(k,v)
+		ISAWC:Log("\t"..string.format('%q',k)..",")
+	end,
+	purpose = "Adds or removes entity classes from the container magnetization whitelist. See the ConVar \"isawc_container_magnetwhitelist\" for more information.",
+	help = {
+		"Use \"isawc_container_magnetwhitelist <class1> <class2> ...\" to add/remove an entity class into/from the list.",
+		"* and ? wildcards are supported.",
+		"Use \"isawc_container_magnetwhitelist *\" to clear the list."
+	},
+	help_small = "Usage: isawc_container_magnetwhitelist <class1> <class2> ...",
+	exe = function(args)
+		for k,v in pairs(args) do
+			v = v:lower()
+			if v=="*" then
+				table.Empty(ISAWC.WhiteMagnetList)
+				ISAWC:Log("Removed everything from the container magnetization whitelist.") break
+			elseif ISAWC.WhiteMagnetList[v] then
+				ISAWC.WhiteMagnetList[v] = nil
+				ISAWC:Log("Removed \""..v.."\" from the container magnetization whitelist.")
+			else
+				ISAWC.WhiteMagnetList[v] = true
+				ISAWC:Log("Added \""..v.."\" into the container magnetization whitelist.")
+			end
+		end
+	end
+})
+
 ISAWC.Stacklist = ISAWC.Stacklist or {}
 ISAWC:CreateListConCommand("isawc_stacklist", {
 	display = "The stacking list is as follows: ",
@@ -259,11 +297,12 @@ ISAWC:CreateListConCommand("isawc_stacklist", {
 	display_function = function(k,v)
 		ISAWC:Log(string.format("\t%s={player=%u,container=%u}",k,v[1],v[2]))
 	end,
-	purpose = "Adds and removes entity classes from the stack list. The stack list currently does nothing.",
+	purpose = "Adds or removes entity classes from the stack list. The stack list currently does nothing.",
 	help = {
 		"Use \"isawc_stacklist <class> <playerStackAmt> <containerStackAmt>\" to add an entity class into the list. \z
 		A StackAmt of 0 means that the maximum stacking amount is unlimited. \z
 		If any StackAmt is -1, it will be removed from the list instead.",
+		"* and ? wildcards are supported.",
 		"Use \"isawc_stacklist *\" to clear the list."
 	},
 	help_small = "Usage: isawc_whitelist <class1> <class2> ...",
@@ -309,10 +348,11 @@ ISAWC:CreateListConCommand("isawc_masslist", {
 	display_function = function(k,v)
 		ISAWC:Log("\t"..string.format("%q=%g",k,v)..",")
 	end,
-	purpose = "Adds and removes entity classes or models from the mass list. Can be used to change the amount of mass needed to store an entity.",
+	purpose = "Adds or removes entity classes or models from the mass list. Can be used to change the amount of mass needed to store an entity.",
 	help = {
 		"Use \"isawc_masslist <model/class1> <kg1> <model/class2> <kg2> ...\" to update or add a model into the list. \z
 		If mass is -1, it will be removed from the list instead.",
+		"* and ? wildcards are supported.",
 		"Use \"isawc_masslist *\" to clear the list.",
 		"Note that the \"isawc_pickup_massmul\" ConVar still affects the picked up entities."
 	},
@@ -351,10 +391,11 @@ ISAWC:CreateListConCommand("isawc_volumelist", {
 	display_function = function(k,v)
 		ISAWC:Log("\t"..string.format("%q=%g",k,v)..",")
 	end,
-	purpose = "Adds and removes entity classes or models from the volume list. Can be used to change the amount of volume needed to store an entity.",
+	purpose = "Adds or removes entity classes or models from the volume list. Can be used to change the amount of volume needed to store an entity.",
 	help = {
 		"Use \"isawc_volumelist <model/class1> <vol1> <model/class2> <vol2> ...\" to update or add a model into the list. \z
 		If volume is -1, it will be removed from the list instead.",
+		"* and ? wildcards are supported.",
 		"Use \"isawc_volumelist *\" to clear the list.",
 		"Note that the \"isawc_pickup_volumemul\" ConVar still affects the picked up entities."
 	},
@@ -393,10 +434,11 @@ ISAWC:CreateListConCommand("isawc_countlist", {
 	display_function = function(k,v)
 		ISAWC:Log("\t"..string.format("%q=%u",k,v)..",")
 	end,
-	purpose = "Adds and removes entity classes or models from the custom count list. Can be used to change the amount of slots needed to store an entity.",
+	purpose = "Adds or removes entity classes or models from the custom count list. Can be used to change the amount of slots needed to store an entity.",
 	help = {
 		"Use \"isawc_countlist <model/class1> <count1> <model/class2> <count2> ...\" to update or add a class into the list. \z
 		If amount is -1, it will be removed from the list instead.",
+		"* and ? wildcards are supported.",
 		"Use \"isawc_countlist *\" to clear the list.",
 		"Note that the \"isawc_pickup_countmul\" ConVar still affects the picked up entities."
 	},
@@ -421,6 +463,48 @@ ISAWC:CreateListConCommand("isawc_countlist", {
 					else
 						ISAWC.Countlist[v] = amount
 						ISAWC:Log("Added \""..v.."\" into the custom amount list.")
+					end
+				end
+			end
+		end
+	end
+})
+
+ISAWC.Remaplist = ISAWC.Remaplist or {}
+ISAWC:CreateListConCommand("isawc_remaplist", {
+	display = "The class remapping list is as follows: ",
+	display_table = ISAWC.Remaplist,
+	display_function = function(k,v)
+		ISAWC:Log("\t"..string.format("%q=%q",k,v)..",")
+	end,
+	purpose = "Adds or removes entity classes from the class remap list. Can be used to change the class a certain entity becomes when stored.",
+	help = {
+		"Use \"isawc_remaplist <oldClass1> <newClass1> <oldClass2> <newClass2> ...\" to update or add a class into the list. \z
+		If newClass is *, it will be removed from the list instead.",
+		"* and ? wildcards are supported.",
+		"Use \"isawc_remaplist *\" to clear the list."
+	},
+	help_small = "Usage: isawc_remaplist <oldClass1> <newClass1> <oldClass2> <newClass2> ...",
+	exe = function(args)
+		if args[1]=="*" then
+			table.Empty(ISAWC.Remaplist)
+			ISAWC:Log("Removed everything from the class remap list.")
+		elseif #args%2~=0 then
+			ISAWC:Log("Usage: isawc_remaplist <oldClass1> <newClass1> <oldClass2> <newClass2> ...")
+		else
+			for i,v in ipairs(args) do
+				if i%2==1 then
+					v = v:lower()
+					local newMap = args[i+1]
+					if newMap == "*" then
+						ISAWC.Remaplist[v] = nil
+						ISAWC:Log("Removed \""..v.."\" from the class remap list.")
+					elseif ISAWC.Remaplist[v] then
+						ISAWC.Remaplist[v] = newMap
+						ISAWC:Log("Updated \""..v.."\" in the class remap list.")
+					else
+						ISAWC.Remaplist[v] = newMap
+						ISAWC:Log("Added \""..v.."\" into the class remap list.")
 					end
 				end
 			end
@@ -509,6 +593,9 @@ ISAWC.ConMinExportDelay = CreateConVar("isawc_export_mindelay", "0.05", FCVAR_AR
 ISAWC.ConDoSaveDelay = CreateConVar("isawc_player_savedelay", "300", FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "Sets the delay between automatic saves for player inventories. No effect when Save Player Inventories (isawc_player_save) is disabled.\
 Note that low values may severely impact performance!")
+
+ISAWC.ConMagnet = CreateConVar("isawc_container_magnetradius", "0", FCVAR_ARCHIVE+FCVAR_REPLICATED,
+"Sets the minimum range of containers to instantly pick up an item. A range of 0 disables this feature.")
 
 local function BasicAutoComplete(cmd, argStr)
 	local possibilities = {}
@@ -929,6 +1016,10 @@ ISAWC.PopulateDFormOthers = function(DForm)
 	DForm:Help(" - "..ISAWC.ConDragAndDropOntoContainer:GetHelpText().."\n")
 	DForm:CheckBox("Always Openable By Everyone",ISAWC.ConAlwaysPublic:GetName())
 	DForm:Help(" - "..ISAWC.ConAlwaysPublic:GetHelpText().."\n")
+	DForm:NumSlider("Magnet Range",ISAWC.ConMagnet:GetName(),0,1000,1)
+	DForm:Help(" - "..ISAWC.ConMagnet:GetHelpText().."\n")
+	DForm:CheckBox("Use Magnet Whitelist",ISAWC.ConUseMagnetWhitelist:GetName())
+	DForm:Help(" - "..ISAWC.ConUseMagnetWhitelist:GetHelpText().."\n")
 	DForm:CheckBox("Drop Inventory On Remove",ISAWC.ConDropOnDeathContainer:GetName())
 	DForm:Help(" - "..ISAWC.ConDropOnDeathContainer:GetHelpText().."\n")
 	DForm:NumSlider("Health Multiplier",ISAWC.ConAutoHealth:GetName(),0,10,3)
@@ -1917,7 +2008,7 @@ ISAWC.WriteModelFromDupeTable = function(self,dupe)
 	net.WriteString(ent.EntityMods and ent.EntityMods.WireName and ent.EntityMods.WireName.name~="" and ent.EntityMods.WireName.name
 	or ent.Name~="" and ent.Name or ent.name~="" and ent.name or ent.PrintName~="" and ent.PrintName~="Scripted Weapon" and ent.PrintName
 	or ent.Class)
-	net.WriteUInt(ent.Skin, 16)
+	net.WriteUInt(ent.Skin or 0, 16)
 	net.WriteString(bodyGroups)
 	net.WriteInt(ent.SavedClip1 or -1, 32)
 	net.WriteInt(ent.SavedClip2 or -1, 32)
@@ -2097,6 +2188,7 @@ ISAWC.SaveInventory = function(self,ply)
 	data.Masslist = self.Masslist or {}
 	data.Volumelist = self.Volumelist or {}
 	data.Countlist = self.Countlist or {}
+	data.Remaplist = self.Remaplist or {}
 	if isstring(ply) then
 		steamid = ply
 		ply = player.GetBySteamID(ply)
@@ -2154,19 +2246,28 @@ ISAWC.SaveContainerInventory = function(self,container)
 	end
 end
 
+ISAWC.LastLoadedData = {}
 ISAWC.PlayerSpawn = function(ply)
 	timer.Simple(0.5,function()
-		local data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "")) or {}
-		ISAWC.Blacklist = data.Blacklist or ISAWC.Blacklist
-		ISAWC.Whitelist = data.Whitelist or ISAWC.Whitelist
-		ISAWC.Stacklist = data.Stacklist or ISAWC.Stacklist
-		ISAWC.Masslist = data.Masslist or ISAWC.Masslist
-		ISAWC.Volumelist = data.Volumelist or ISAWC.Volumelist
-		ISAWC.Countlist = data.Countlist or ISAWC.Countlist
-		if data[ply:SteamID()] and ISAWC.ConDoSave:GetInt() > 0 then
-			ply.ISAWC_Inventory = data[ply:SteamID()]
+		if not next(ISAWC.LastLoadedData) then
+			local data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "")) or {}
+			ISAWC.Blacklist = data.Blacklist or ISAWC.Blacklist
+			ISAWC.Whitelist = data.Whitelist or ISAWC.Whitelist
+			ISAWC.Stacklist = data.Stacklist or ISAWC.Stacklist
+			ISAWC.Masslist = data.Masslist or ISAWC.Masslist
+			ISAWC.Volumelist = data.Volumelist or ISAWC.Volumelist
+			ISAWC.Countlist = data.Countlist or ISAWC.Countlist
+			ISAWC.Remaplist = data.Remaplist or ISAWC.Remaplist
+			ISAWC.LastLoadedData = data
 		end
 		if IsValid(ply) then
+			if (ply.ISAWC_Inventory and next(ply.ISAWC_Inventory)) then
+				ISAWC.LastLoadedData[ply:SteamID() or ""] = nil
+			else
+				if ISAWC.LastLoadedData[ply:SteamID()] and ISAWC.ConDoSave:GetInt() > 0 then
+					ply.ISAWC_Inventory = ISAWC.LastLoadedData[ply:SteamID()]
+				end
+			end
 			ISAWC:SendInventory(ply)
 		end
 	end)
@@ -2287,6 +2388,7 @@ ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 		duplicator.SetLocalAng(angle_zero)
 		for k,v in pairs(entTab) do
 			self:RecursiveToNumbering(v)
+			v:SetCreator(ply)
 			if self.ConSaveTable:GetBool() then
 				for k2,v2 in pairs(v.ISAWC_SaveTable or {}) do
 					v:SetSaveValue(k2,v2)
@@ -2303,6 +2405,9 @@ ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 				v:Remove()
 			end
 			v.Entity = v
+			if not isSpawn then
+				v:Use(ply)
+			end
 			v.NextPickup2 = CurTime() + 0.5
 		end
 		if not self:GetSuppressUndo() then
@@ -2373,6 +2478,7 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 		duplicator.SetLocalAng(angle_zero)
 		for k,v in pairs(entTab) do
 			self:RecursiveToNumbering(v)
+			v:SetCreator(ply)
 			if self.ConSaveTable:GetBool() then
 				for k2,v2 in pairs(v.ISAWC_SaveTable or {}) do
 					v:SetSaveValue(k2,v2)
@@ -2389,6 +2495,9 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 				v:Remove()
 			end
 			v.Entity = v
+			if not isSpawn then
+				v:Use(ply)
+			end
 			v.NextPickup2 = CurTime() + 0.5
 		end
 		if not self:GetSuppressUndo() then
@@ -2447,6 +2556,7 @@ ISAWC.SpawnDupeWeak = function(self,dupe,spawnpos,spawnangles,ply)
 		duplicator.SetLocalAng(angle_zero)
 		for k,v in pairs(entTab) do
 			self:RecursiveToNumbering(v)
+			v:SetCreator(ply)
 			if self.ConSaveTable:GetBool() then
 				for k2,v2 in pairs(v.ISAWC_SaveTable or {}) do
 					v:SetSaveValue(k2,v2)
@@ -2942,9 +3052,10 @@ ISAWC.CalculateEntitySpace = function(self,ent)
 	for k,v in pairs(constraint.GetAllConstrainedEntities(ent)) do
 		local model = (v:GetModel() or ""):lower()
 		local class = v:GetClass():lower()
-		local list_mass, list_volume
-		list_mass = ISAWC.Masslist[model] or ISAWC.Masslist[class]
-		list_volume = ISAWC.Volumelist[model] or ISAWC.Volumelist[class]
+		local list_count, list_mass, list_volume
+		list_mass = self:StringMatchParams(model, ISAWC.Masslist) or self:StringMatchParams(class, ISAWC.Masslist)
+		list_volume = self:StringMatchParams(model, ISAWC.Volumelist) or self:StringMatchParams(class, ISAWC.Volumelist)
+		list_count = self:StringMatchParams(model, ISAWC.Countlist) or self:StringMatchParams(class, ISAWC.Countlist) or 1
 		if list_mass then
 			list_mass = list_mass * (v.BackpackMassMul and -v.BackpackMassMul*v:GetMassMul() or 1)
 		end
@@ -2973,7 +3084,7 @@ ISAWC.CalculateEntitySpace = function(self,ent)
 		elseif self.ConReal:GetInt()>=2 then
 			TotalVolume = TotalVolume + v:BoundingRadius()^3*math.pi*4/3 * -(v.BackpackVolumeMul and v.BackpackVolumeMul*v:GetVolumeMul() or -1)
 		end
-		TotalCount = TotalCount + (ISAWC.Countlist[class] or 1) * -(v.BackpackCountMul and v.BackpackCountMul*v:GetCountMul() or -1)
+		TotalCount = TotalCount + list_count * -(v.BackpackCountMul and v.BackpackCountMul*v:GetCountMul() or -1)
 		if v.ISAWC_Inventory then
 			for k2,v2 in pairs(v.ISAWC_Inventory) do
 				TotalMass = TotalMass + v2.TotalMass
@@ -2995,11 +3106,25 @@ ISAWC.CanProperty = function(self,ply,ent)
 	end
 end
 
-ISAWC.CanPickup = function(self,ply,ent)
+ISAWC.StringMatchParams = function(self,str,params)
+	for k,v in pairs(params) do
+		local findStr = string.PatternSafe(k)
+		findStr = string.Replace(findStr, "%*", ".+")
+		findStr = string.Replace(findStr, "%?", ".")
+		if string.find(str, "^"..findStr.."$") then return v end
+	end
+	return false
+end
+
+ISAWC.CanPickup = function(self,ply,ent,speculative)
 	if not (IsValid(ply) and IsValid(ent)) then return false end
 	if ent.ISAWC_BeingPhysgunned or ply.ISAWC_IsDeathDrop then return false end
 	if (tonumber(ent.NextPickup2) or 0) > CurTime() and (tonumber(ent.NextPickup2) or 0) <= CurTime() + 0.5 and SERVER then return false end
-	ent.NextPickup2 = CurTime() + 0.5
+	if not speculative then
+		ent.NextPickup2 = CurTime() + 0.5
+	else
+		ent.NextPickup2 = CurTime()
+	end
 	if ply.NextPickup2 == ent.NextPickup2 then return false end
 	if (ply:IsPlayer() and ply:IsAdmin()) and self.ConAdminOverride:GetBool() and SERVER then
 		local passeswlist = self.Whitelist[class]
@@ -3008,10 +3133,14 @@ ISAWC.CanPickup = function(self,ply,ent)
 		DropEntityIfHeld(ent)
 	else
 		if (ply.NextPickup or 0) > CurTime() and (ply.NextPickup or 0) <= CurTime() + self.ConDelay:GetFloat() and ply:IsPlayer() and SERVER then self:NoPickup("You need to wait for "..string.format("%.1f",ply.NextPickup-CurTime()).." seconds before picking up another object!",ply) return false end
-		ply.NextPickup = CurTime() + self.ConDelay:GetFloat()
+		if not speculative then
+			ply.NextPickup = CurTime() + self.ConDelay:GetFloat()
+		else
+			ply.NextPickup = CurTime()
+		end
 		local class = ent:GetClass():lower()
-		local passesblist = self.Blacklist[class]
-		local passeswlist = self.Whitelist[class]
+		local passesblist = self:StringMatchParams(class, self.Blacklist)
+		local passeswlist = self:StringMatchParams(class, self.Whitelist)
 		if passesblist and not passeswlist then self:NoPickup("That entity is blacklisted from being picked up!",ply) return false end
 		if ent:IsPlayer() and not passeswlist then self:NoPickup("You can't pick up players!",ply) return false end
 		if ent==game.GetWorld() and not passeswlist then self:NoPickup("You can't pick up worldspawn!",ply) return false end
@@ -3176,7 +3305,6 @@ ISAWC.PropPickup = function(self,ply,ent,container)
 					duplicator.DoGeneric(ent, data)
 					ent:Spawn()
 					ent:Activate()
-					-- The following function is DEPRECATED! If the addon stops working in the future this might be the cause.
 					duplicator.DoGenericPhysics(ent, ply, data)
 					table.Merge(ent:GetTable(), data)
 					return ent
@@ -3190,6 +3318,10 @@ ISAWC.PropPickup = function(self,ply,ent,container)
 			v.SavedMaxClip2 = v:GetMaxClip2()
 			v.SavedAmmoType1 = v:GetPrimaryAmmoType()
 			v.SavedAmmoType2 = v:GetSecondaryAmmoType()
+		end
+		local newClass = self:StringMatchParams(v:GetClass(), ISAWC.Remaplist)
+		if newClass then
+			v:SetKeyValue("classname", newClass)
 		end
 	end
 	duplicator.SetLocalPos(tpos)

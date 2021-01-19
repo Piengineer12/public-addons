@@ -75,10 +75,13 @@ function SWEP:LeftClickEntity(ent)
 					if ent:GetEnderInvName()==container:GetEnderInvName() then
 						container:SetEnderInvName(accountID.."'s "..ent:GetCreationID())
 						ent:SetEnderInvName(container:GetEnderInvName())
+						ent.ISAWC_Inventory = container.ISAWC_Inventory
 					elseif container:GetEnderInvName()=='' then
 						container:SetEnderInvName(ent:GetEnderInvName())
+						container.ISAWC_Inventory = ent.ISAWC_Inventory
 					else
 						ent:SetEnderInvName(container:GetEnderInvName())
+						ent.ISAWC_Inventory = container.ISAWC_Inventory
 					end
 					self:EmitSound("buttons/button17.wav")
 					ply:PrintMessage(HUD_PRINTTALK, "Container is now synced with "..tostring(ent).."!")

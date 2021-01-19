@@ -8,7 +8,7 @@ ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Burn those gBalloons!"
 ENT.Instructions = ""
-ENT.Spawnable = true
+ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/props_phx/construct/wood/wood_wire1x1x1.mdl")
@@ -349,9 +349,3 @@ function ENT:TriggerAbility()
 	end
 	if not success then return true end
 end
-
-list.Set("NPC","gballoon_tower_13",{
-	Name = ENT.PrintName,
-	Class = "gballoon_tower_13",
-	Category = ENT.Category
-})

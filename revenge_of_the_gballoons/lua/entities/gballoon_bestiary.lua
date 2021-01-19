@@ -179,7 +179,7 @@ local function AddBalloon(ColumnSheet,class)
 		for i=1,#text do
 			local hue = math.Remap(i,1,#text,0,360)
 			local color = HSVToColor(hue,0.5,1)
-			Label:InsertColorChange(color.r, color.g, color.b)
+			Label:InsertColorChange(color.r, color.g, color.b, color.a)
 			Label:AppendText(text[i])
 		end
 		hasimms = true
@@ -190,7 +190,7 @@ local function AddBalloon(ColumnSheet,class)
 		for i=1,#text do
 			local lum = math.Remap(i,1,#text,1,0.5)
 			local color = HSVToColor(0,0,lum)
-			Label:InsertColorChange(color.r, color.g, color.b)
+			Label:InsertColorChange(color.r, color.g, color.b, color.a)
 			Label:AppendText(text[i])
 		end
 		hasimms = true
@@ -201,7 +201,7 @@ local function AddBalloon(ColumnSheet,class)
 		for i=1,#text do
 			local hue = math.Remap(i,1,#text,0,720)
 			local color = HSVToColor(hue,0.5,1)
-			Label:InsertColorChange(color.r, color.g, color.b)
+			Label:InsertColorChange(color.r, color.g, color.b, color.a)
 			Label:AppendText(text[i])
 		end
 	end
@@ -216,39 +216,41 @@ local function AddBalloon(ColumnSheet,class)
 	ColumnSheet:AddSheet(npcprops.Name,Label)
 end
 
---[=[local addonoffers = [[What This Addon Offers:
+local addonoffers = [[What This Addon Offers:
 
-gBalloons
-	17 different types
-	4 different modifiers
+gBalloon Bestiary (Entities > RotgB: Miscellaneous)
 
-gBlimps
-	7 different types
+1 weapon (Weapons > RotgB)
+	RotgB Multitool
 
-Anti-gBalloon Towers
-	12 different types
+gBalloons (NPCs > RotgB)
+	17 basic types (NPCs > RotgB: gBalloons)
+	7 blimp types (NPCs > RotgB: gBlimps)
+	4 miscellaneous types (NPCs > RotgB: gBalloons Miscellaneous)
+	4 different modifiers (non-misc. only)
 
-gBalloon Targets
+Anti-gBalloon Towers (Entities > RotgB: Towers)
+	16 different types
+
+gBalloon Spawner (Entities > RotgB: Miscellaneous)
+	Can be set to spawn a custom wave (see rotgb_waveeditor ConCommand)
+	Can be set to also start all other spawners
+	Initial wave can be adjusted
+	Spawn rate can be set
+	Can be set to auto-start
+
+gBalloon Targets (Entities > RotgB: Miscellaneous)
 	5 different health amounts
-	can be set to be waypoints (gBalloons approach, then ignore)
-	can be set to be damaged only by gBalloons
+	Can be set to be waypoints (gBalloons approach, then ignore)
+	Can be linked to other waypoints
+	Waypoint links can be set as gBlimp-only
+	Can be set as teleportation waypoints
+	Can be set to be damaged only by gBalloons
 
-gBalloon Spawner
-	initial wave can be set
-	spawn rate can be set
-	can be set to auto-start
-	auto-start delay can be set
-	auto-start can be forced
-
-gBalloon Bestiary
-
-2 tool gun modes
+2 tool gun modes (Options > RotgB)
 	RotgB Avoidance Editor
 	gBalloon Target Waypoint Editor
-
-PopSave™ system
-
-]]]=]
+]]
 
 net.Receive("RotgB_Bestiary",function(length,ply)
 	if CLIENT then
@@ -268,8 +270,8 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 		RichText:InsertColorChange(127,127,127,255)
 		RichText:AppendText("Introduction\n\n")
 		RichText:InsertColorChange(255,255,255,255)
-		RichText:AppendText("The purpose of the RotgB Bestiary is to educate its readers about the potential dangers of the gBalloons, \z
-		their statistics, immunities and weaknesses. Each gBalloon page describes about a gBalloon as well as its ")
+		RichText:AppendText("The RotgB Bestiary functions to tell about how to use the addon effectively, as well as listing the gBalloons statistics, \z
+		immunities and weaknesses. Each gBalloon page describes about a gBalloon as well as its ")
 		RichText:InsertColorChange(255,127,127,255)
 		RichText:AppendText("Hit Points")
 		RichText:InsertColorChange(255,255,255,255)
@@ -298,14 +300,14 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 		With this book, it is hoped that its readers will have a better understanding on how to defeat each type of gBalloon, \z
 		should they start to stir up harm.\n\n")
 		RichText:InsertColorChange(127,127,127,255)
-		RichText:AppendText("Respectfully,\nPiengineer of Piengineer")
+		RichText:AppendText("- Piengineer")
 		function RichText:PerformLayout()
 			self:SetBGColor(0,0,0,191)
 			self:SetFontInternal("Trebuchet24")
 		end
 		ColumnSheet:AddSheet("Introduction",RichText)
 		
-		--[[RichText = ColumnSheet:Add("RichText")
+		RichText = ColumnSheet:Add("RichText")
 		RichText:Dock(FILL)
 		RichText:SetText("")
 		RichText:InsertColorChange(255,255,255,255)
@@ -316,7 +318,7 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 			self:SetBGColor(63,63,63,255)
 			self:SetFontInternal("Trebuchet24")
 		end
-		ColumnSheet:AddSheet("Addon Contents",RichText)]]
+		ColumnSheet:AddSheet("Addon Contents",RichText)
 		
 		for i,v in ipairs(order) do
 			AddBalloon(ColumnSheet,v)
