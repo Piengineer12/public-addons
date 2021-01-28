@@ -59,6 +59,8 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Float",0,"AbilityNextFire")
 	self:NetworkVar("Int",1,"Targeting")
 	self:NetworkVar("Entity",0,"TowerOwner")
+	self:NetworkVar("Int",2,"Pops")
+	self:NetworkVar("Float",1,"CashGenerated")
 end
 
 function ENT:SpawnFunction(ply,trace,classname)

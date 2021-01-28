@@ -100,6 +100,8 @@ if SERVER then
 	local ConT = CreateConVar("propprice_non_developer",0,FCVAR_ARCHIVE+FCVAR_NOTIFY+FCVAR_SERVER_CAN_EXECUTE)
 	local ConF = CreateConVar("propprice_income_on_purchase",0,FCVAR_ARCHIVE+FCVAR_NOTIFY+FCVAR_SERVER_CAN_EXECUTE)
 	local ConG = CreateConVar("propprice_lost_income_on_sell",1,FCVAR_ARCHIVE+FCVAR_NOTIFY+FCVAR_SERVER_CAN_EXECUTE)
+	local ConJ = CreateConVar("propprice_max_income",100000,FCVAR_ARCHIVE+FCVAR_NOTIFY+FCVAR_SERVER_CAN_EXECUTE)
+	local ConN = CreateConVar("propprice_max_cash",1000000,FCVAR_ARCHIVE+FCVAR_NOTIFY+FCVAR_SERVER_CAN_EXECUTE)
 	
 	local function GetAllPlayers(cmd,stringargs)
 			
@@ -166,7 +168,7 @@ if SERVER then
 			local plynick = v:Nick()
 			if string.lower(actualname) == string.lower(plynick) then
 				success = true
-				points = v:PP_GetCash() + points
+				points = math.min(v:PP_GetCash() + points, ConN:GetFloat())
 				v:PP_SetCash(points) break
 			end
 		end
@@ -208,7 +210,7 @@ if SERVER then
 			local plynick = v:Nick()
 			if string.lower(actualname) == string.lower(plynick) then
 				success = true
-				points = v:PP_GetIncome() + points
+				points = math.min(v:PP_GetIncome() + points, ConJ:GetFloat())
 				v:PP_SetIncome(points) break
 			end
 		end
@@ -374,7 +376,7 @@ if SERVER then
 			tableOfPPEnts[ply:SteamID()]=(tableOfPPEnts[ply:SteamID()] or 0) + cost
 			-- ply.PropCost = (ply.PropCost or 0) + cost
 			ply:PP_SetCash(ply:PP_GetCash()-cost)
-			ply:PP_SetIncome(ply:PP_GetIncome()+cost*ConF:GetFloat())
+			ply:PP_SetIncome(math.min(ply:PP_GetIncome()+cost*ConF:GetFloat(), ConJ:GetFloat()))
 		end
 	end
 
@@ -404,7 +406,7 @@ if SERVER then
 			tableOfPPEnts[ply:SteamID()]=(tableOfPPEnts[ply:SteamID()] or 0) + cost
 			-- ply.PropCost = (ply.PropCost or 0) + cost
 			ply:PP_SetCash(ply:PP_GetCash()-cost)
-			ply:PP_SetIncome(ply:PP_GetIncome()+cost*ConF:GetFloat())
+			ply:PP_SetIncome(math.min(ply:PP_GetIncome()+cost*ConF:GetFloat(), ConJ:GetFloat()))
 		end
 	end
 	
@@ -425,7 +427,7 @@ if SERVER then
 			tableOfPPEnts[ent.PropPrice_Owner]=(tableOfPPEnts[ent.PropPrice_Owner] or 0) + cost
 			-- ply.PropCost = (ply.PropCost or 0) + cost
 			ply:PP_SetCash(ply:PP_GetCash()-cost)
-			ply:PP_SetIncome(ply:PP_GetIncome()+cost*ConF:GetFloat())
+			ply:PP_SetIncome(math.min(ply:PP_GetIncome()+cost*ConF:GetFloat(), ConJ:GetFloat()))
 		end
 	end
 	
@@ -451,7 +453,7 @@ if SERVER then
 			tableOfPPEnts[ent.PropPrice_Owner]=(tableOfPPEnts[ent.PropPrice_Owner] or 0) + cost
 			-- ply.PropCost = (ply.PropCost or 0) + cost
 			ply:PP_SetCash(ply:PP_GetCash()-cost)
-			ply:PP_SetIncome(ply:PP_GetIncome()+cost*ConF:GetFloat())
+			ply:PP_SetIncome(math.min(ply:PP_GetIncome()+cost*ConF:GetFloat(), ConJ:GetFloat()))
 		end
 	end
 	
@@ -500,7 +502,7 @@ if SERVER then
 			local cost = ConS:GetBool() and (ModelPrice[ent:GetModel()] or isEffect and ModelPrice._effect) or GetCostFromPhysobj(ent:GetPhysicsObject())
 			local ply = player.GetBySteamID(ent.PropPrice_Owner)
 			if ply then
-				ply:PP_SetCash(ply:PP_GetCash()+cost*ConR:GetFloat())
+				ply:PP_SetCash(math.min(ply:PP_GetCash()+cost*ConR:GetFloat(), ConN:GetFloat()))
 				ply:PP_SetIncome(ply:PP_GetIncome()-cost*ConF:GetFloat()*ConG:GetFloat())
 			elseif ConW:GetBool() then
 				if not file.IsDir("propprice","DATA") then
@@ -556,15 +558,15 @@ if SERVER then
 		local attacker = Entity(data.entindex_attacker or 0)
 		local victim = Entity(data.entindex_killed or 0)
 		if attacker:IsPlayer() and victim ~= attacker then
-			attacker:PP_SetCash(attacker:PP_GetCash()+victim:GetMaxHealth()*ConK:GetFloat())
-			attacker:PP_SetIncome(attacker:PP_GetIncome()+victim:GetMaxHealth()*ConB:GetFloat())
+			attacker:PP_SetCash(math.min(attacker:PP_GetCash()+victim:GetMaxHealth()*ConK:GetFloat(), ConN:GetFloat()))
+			attacker:PP_SetIncome(math.min(attacker:PP_GetIncome()+victim:GetMaxHealth()*ConB:GetFloat(), ConJ:GetFloat()))
 		end
 	end)
 	
 	local function RecreateTimer()
 		timer.Create("PropPrice_Cash",ConP:GetFloat(),0,function()
 			for k,v in pairs(player.GetAll()) do
-				v:PP_SetCash(v:PP_GetCash()+v:PP_GetIncome())
+				v:PP_SetCash(math.min(v:PP_GetCash()+v:PP_GetIncome(), ConN:GetFloat()))
 			end
 		end)
 	end
@@ -696,6 +698,10 @@ if SERVER then
 						ConF:SetFloat(v)
 					elseif k=="s_p" then
 						ConG:SetFloat(v)
+					elseif k=="m_c" then
+						ConN:SetFloat(v)
+					elseif k=="m_i" then
+						ConJ:SetFloat(v)
 					end
 				end
 				if not ConY:GetBool() then
@@ -895,7 +901,7 @@ if CLIENT then
 			default=control==0 and "Select an option...",
 			choices={
 				{"1 - Novice",1,control==1},
-				{"2 - Veteran",2,control==2},
+				{"2 - Intermediate",2,control==2},
 				{"3 - Expert",3,control==3},
 				{"4 - Master",4,control==4},
 			},
@@ -1121,6 +1127,18 @@ if CLIENT then
 				PPV.i_i = val
 			end,"propprice_packet_amount",2)
 			PaintAsBody(Scroller:CreateNewLabel("How much income should new players start with."))
+			Scroller:CreateSpace()
+			
+			Scroller:CreateNumSlider("Maximum Cash",0,10000000,function(self,val)
+				PPV.m_c = val
+			end,"propprice_max_cash",2)
+			PaintAsBody(Scroller:CreateNewLabel("Maximum cash that players can hold."))
+			Scroller:CreateSpace()
+			
+			Scroller:CreateNumSlider("Maximum Income Amount",0,1000000,function(self,val)
+				PPV.m_i = val
+			end,"propprice_max_income",2)
+			PaintAsBody(Scroller:CreateNewLabel("Maximum income that players can have."))
 			Scroller:CreateSpace()
 			
 			if control>1 then

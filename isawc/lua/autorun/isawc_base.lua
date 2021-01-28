@@ -520,8 +520,9 @@ ISAWC.ConOverride = CreateConVar("isawc_use_forcepickup","1",FCVAR_ARCHIVE+FCVAR
 Tick this option if you can't pick up items in other gamemodes.")
 
 ISAWC.ConAlwaysPublic = CreateConVar("isawc_container_alwayspublic","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
-"Causes containers to always be openable by anyone.\
-This overrides the option in the \"Edit Properties...\" menu.")
+"If set to 1, all containers are always openable by anyone.\
+If set to 2, containers may be opened by another player in the same team.\
+This overrides the \"always public\" option in the \"Edit Properties...\" menu.")
 	
 ISAWC.ConHideNotifsG = CreateConVar("isawc_hide_notifications_global","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "Same as Hide All Notifications (isawc_hide_notifications) on client, but affects the whole server.\
@@ -585,7 +586,8 @@ ISAWC.ConNoAmmo = CreateConVar("isawc_empty_weapons", "0", FCVAR_ARCHIVE+FCVAR_R
 "If set, all weapons spawned from inventories will not have any ammo in their clip.")
 
 ISAWC.ConAllowInterConnection = CreateConVar("isawc_allow_interownerconnections", "0", FCVAR_ARCHIVE+FCVAR_REPLICATED,
-"If set, Inventory Importers, Exporters and Viewers may be connected to a container owned by someone else.")
+"If set to 1, Inventory Importers, Exporters and Viewers may be connected to a container owned by someone else.\
+If set to 2, connections are only allowed to containers owned by the same team.")
 
 ISAWC.ConMinExportDelay = CreateConVar("isawc_export_mindelay", "0.05", FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "Minimum delay between items exported by Inventory Exporters.")
@@ -595,7 +597,7 @@ ISAWC.ConDoSaveDelay = CreateConVar("isawc_player_savedelay", "300", FCVAR_ARCHI
 Note that low values may severely impact performance!")
 
 ISAWC.ConMagnet = CreateConVar("isawc_container_magnetradius", "0", FCVAR_ARCHIVE+FCVAR_REPLICATED,
-"Sets the minimum range of containers to instantly pick up an item. A range of 0 disables this feature.")
+"Sets the range of containers to instantly pick up an item. Note that the radius gets scaled to the size of the container. A range of 0 disables this feature.")
 
 local function BasicAutoComplete(cmd, argStr)
 	local possibilities = {}
@@ -920,7 +922,7 @@ ISAWC.PopulateDFormGeneral = function(DForm)
 	DForm:Help(" - "..ISAWC.ConUndoIntoContain:GetHelpText().."\n")
 	DForm:CheckBox("Empty Weapon Clips",ISAWC.ConNoAmmo:GetName())
 	DForm:Help(" - "..ISAWC.ConNoAmmo:GetHelpText().."\n")
-	DForm:CheckBox("Allow UP'd Inventory Connections",ISAWC.ConAllowInterConnection:GetName())
+	DForm:NumSlider("Allow UP'd Inventory Connections",ISAWC.ConAllowInterConnection:GetName(),0,2,0)
 	DForm:Help(" - "..ISAWC.ConAllowInterConnection:GetHelpText().."\n")
 	DForm:NumSlider("Minimum Export Delay",ISAWC.ConMinExportDelay:GetName(),0.01,10,2)
 	DForm:Help(" - "..ISAWC.ConMinExportDelay:GetHelpText().."\n")
@@ -1014,9 +1016,9 @@ ISAWC.PopulateDFormOthers = function(DForm)
 	combox:AddChoice("1 - Use Touch", 1)
 	combox:AddChoice("2 - Use StartTouch", 2)
 	DForm:Help(" - "..ISAWC.ConDragAndDropOntoContainer:GetHelpText().."\n")
-	DForm:CheckBox("Always Openable By Everyone",ISAWC.ConAlwaysPublic:GetName())
+	DForm:NumSlider("Always Openable By Everyone",ISAWC.ConAlwaysPublic:GetName(),0,2,0)
 	DForm:Help(" - "..ISAWC.ConAlwaysPublic:GetHelpText().."\n")
-	DForm:NumSlider("Magnet Range",ISAWC.ConMagnet:GetName(),0,1000,1)
+	DForm:NumSlider("Magnet Range",ISAWC.ConMagnet:GetName(),0,10,3)
 	DForm:Help(" - "..ISAWC.ConMagnet:GetHelpText().."\n")
 	DForm:CheckBox("Use Magnet Whitelist",ISAWC.ConUseMagnetWhitelist:GetName())
 	DForm:Help(" - "..ISAWC.ConUseMagnetWhitelist:GetHelpText().."\n")
@@ -2311,7 +2313,9 @@ if SERVER then
 end
 
 ISAWC.IsLegalContainer = function(self,ent,ply,ignoreDist)
-	return tobool(IsValid(ent) and ent.Base=="isawc_container_base" and ply:Alive() and (ignoreDist or ply:GetPos():Distance(ent:GetPos())-ent:BoundingRadius()<=ISAWC.ConDistance:GetFloat()) and (ent:GetOwnerAccountID()==(ply:AccountID() or 0) or ent:GetIsPublic() or ISAWC.ConAlwaysPublic:GetBool()))
+	return (IsValid(ent) and ent.Base=="isawc_container_base") and ply:Alive()
+	and (ignoreDist or ply:GetPos():Distance(ent:GetPos())-ent:BoundingRadius()<=ISAWC.ConDistance:GetFloat())
+	and (ent:GetOwnerAccountID()==(ply:AccountID() or 0) or ent:GetIsPublic() or ISAWC.ConAlwaysPublic:GetInt() == 1 or ISAWC.ConAlwaysPublic:GetInt() >= 2 and ply:Team() == ent:GetPlayerTeam())
 end
 
 ISAWC.EmptyWeaponClipsToPlayer = function(self,dupe,ply)
@@ -3120,12 +3124,12 @@ ISAWC.CanPickup = function(self,ply,ent,speculative)
 	if not (IsValid(ply) and IsValid(ent)) then return false end
 	if ent.ISAWC_BeingPhysgunned or ply.ISAWC_IsDeathDrop then return false end
 	if (tonumber(ent.NextPickup2) or 0) > CurTime() and (tonumber(ent.NextPickup2) or 0) <= CurTime() + 0.5 and SERVER then return false end
-	if not speculative then
-		ent.NextPickup2 = CurTime() + 0.5
+	if speculative then
+		ent.NextPickup2 = CurTime() - math.random()
 	else
-		ent.NextPickup2 = CurTime()
+		ent.NextPickup2 = CurTime() + 0.5
 	end
-	if ply.NextPickup2 == ent.NextPickup2 then return false end
+	if ply.NextPickup2 == ent.NextPickup2 and not speculative then self:NoPickup("You can't pick up a container with the same NP time!",ply) return false end
 	if (ply:IsPlayer() and ply:IsAdmin()) and self.ConAdminOverride:GetBool() and SERVER then
 		local passeswlist = self.Whitelist[class]
 		if ent:IsPlayer() and not passeswlist then self:NoPickup("You can't pick up players!",ply) return false end
@@ -3133,10 +3137,10 @@ ISAWC.CanPickup = function(self,ply,ent,speculative)
 		DropEntityIfHeld(ent)
 	else
 		if (ply.NextPickup or 0) > CurTime() and (ply.NextPickup or 0) <= CurTime() + self.ConDelay:GetFloat() and ply:IsPlayer() and SERVER then self:NoPickup("You need to wait for "..string.format("%.1f",ply.NextPickup-CurTime()).." seconds before picking up another object!",ply) return false end
-		if not speculative then
-			ply.NextPickup = CurTime() + self.ConDelay:GetFloat()
-		else
+		if speculative then
 			ply.NextPickup = CurTime()
+		else
+			ply.NextPickup = CurTime() + self.ConDelay:GetFloat()
 		end
 		local class = ent:GetClass():lower()
 		local passesblist = self:StringMatchParams(class, self.Blacklist)
