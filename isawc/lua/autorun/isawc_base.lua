@@ -1,7 +1,7 @@
 ISAWC = ISAWC or {}
 
-ISAWC._VERSION = "2.2.0"
-ISAWC._VERSIONDATE = "2021-01-14"
+ISAWC._VERSION = "2.3.0"
+ISAWC._VERSIONDATE = "2021-02-05"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -176,6 +176,37 @@ ISAWC:CreateListConCommand("isawc_blacklist", {
 			else
 				ISAWC.Blacklist[v] = true
 				ISAWC:Log("Added \""..v.."\" into the blacklist.")
+			end
+		end
+	end
+})
+
+ISAWC.BlackContainerMagnetList = ISAWC.BlackContainerMagnetList or {}
+ISAWC:CreateListConCommand("isawc_container_magnetcontainerblacklist", {
+	display = "The container magnetization container blacklist is as follows: ",
+	display_table = ISAWC.BlackContainerMagnetList,
+	display_function = function(k,v)
+		ISAWC:Log("\t"..string.format('%q',k)..",")
+	end,
+	purpose = "Adds or removes entity classes from the container magnetization container blacklist. Classes in the blacklist will not be magnetic containers.",
+	help = {
+		"Use \"isawc_container_magnetcontainerblacklist <class1> <class2> ...\" to add/remove entity classes into/from the list.",
+		"* and ? wildcards are supported.",
+		"Use \"isawc_container_magnetcontainerblacklist *\" to clear the list.",
+	},
+	help_small = "Usage: isawc_container_magnetcontainerblacklist <class1> <class2> ...",
+	exe = function(args)
+		for k,v in pairs(args) do
+			v = v:lower()
+			if v=="*" then
+				table.Empty(ISAWC.BlackContainerMagnetList)
+				ISAWC:Log("Removed everything from the container magnetization container blacklist.") break
+			elseif ISAWC.BlackContainerMagnetList[v] then
+				ISAWC.BlackContainerMagnetList[v] = nil
+				ISAWC:Log("Removed \""..v.."\" from the container magnetization container blacklist.")
+			else
+				ISAWC.BlackContainerMagnetList[v] = true
+				ISAWC:Log("Added \""..v.."\" into the container magnetization container blacklist.")
 			end
 		end
 	end
@@ -597,7 +628,7 @@ ISAWC.ConDoSaveDelay = CreateConVar("isawc_player_savedelay", "300", FCVAR_ARCHI
 Note that low values may severely impact performance!")
 
 ISAWC.ConMagnet = CreateConVar("isawc_container_magnetradius", "0", FCVAR_ARCHIVE+FCVAR_REPLICATED,
-"Sets the range of containers to instantly pick up an item. Note that the radius gets scaled to the size of the container. A range of 0 disables this feature.")
+"Sets the range of containers to instantly pick up an item. Note that the radius is multiplied with the size of the container - a range of 3 on a box will allow the box to pick up items 3 boxes away from it. A range of 0 disables this feature.")
 
 local function BasicAutoComplete(cmd, argStr)
 	local possibilities = {}
@@ -2185,7 +2216,10 @@ ISAWC.SaveInventory = function(self,ply)
 	local data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "")) or {}
 	local steamid
 	data.Blacklist = self.Blacklist or {}
+	data.BlackContainerMagnetList = self.BlackContainerMagnetList or {}
 	data.Whitelist = self.Whitelist or {}
+	data.WhiteExtractList = self.WhiteExtractList or {}
+	data.WhiteMagnetList = self.WhiteMagnetList or {}
 	data.Stacklist = self.Stacklist or {}
 	data.Masslist = self.Masslist or {}
 	data.Volumelist = self.Volumelist or {}
@@ -2254,7 +2288,10 @@ ISAWC.PlayerSpawn = function(ply)
 		if not next(ISAWC.LastLoadedData) then
 			local data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "")) or {}
 			ISAWC.Blacklist = data.Blacklist or ISAWC.Blacklist
+			ISAWC.BlackContainerMagnetList = data.BlackContainerMagnetList or ISAWC.BlackContainerMagnetList
 			ISAWC.Whitelist = data.Whitelist or ISAWC.Whitelist
+			ISAWC.WhiteExtractList = data.WhiteExtractList or ISAWC.WhiteExtractList
+			ISAWC.WhiteMagnetList = data.WhiteMagnetList or ISAWC.WhiteMagnetList
 			ISAWC.Stacklist = data.Stacklist or ISAWC.Stacklist
 			ISAWC.Masslist = data.Masslist or ISAWC.Masslist
 			ISAWC.Volumelist = data.Volumelist or ISAWC.Volumelist
@@ -2313,9 +2350,25 @@ if SERVER then
 end
 
 ISAWC.IsLegalContainer = function(self,ent,ply,ignoreDist)
-	return (IsValid(ent) and ent.Base=="isawc_container_base") and ply:Alive()
-	and (ignoreDist or ply:GetPos():Distance(ent:GetPos())-ent:BoundingRadius()<=ISAWC.ConDistance:GetFloat())
-	and (ent:GetOwnerAccountID()==(ply:AccountID() or 0) or ent:GetIsPublic() or ISAWC.ConAlwaysPublic:GetInt() == 1 or ISAWC.ConAlwaysPublic:GetInt() >= 2 and ply:Team() == ent:GetPlayerTeam())
+	local cond1 = IsValid(ent) and ent.Base=="isawc_container_base" and ply:Alive()
+	local cond2 = ignoreDist or ply:GetPos():Distance(ent:GetPos())-ent:BoundingRadius()<=ISAWC.ConDistance:GetFloat()
+	local cond3 = ent:GetOwnerAccountID()==(ply:AccountID() or 0) or ent:GetIsPublic() or ISAWC.ConAlwaysPublic:GetInt() == 1 or ISAWC.ConAlwaysPublic:GetInt() >= 2 and ply:Team() == ent:GetPlayerTeam()
+	local legal = cond1 and cond2 and cond3
+	
+	if not legal then
+		local vioCode = 0
+		if not cond1 then
+			vioCode = 1
+		end
+		if not cond2 then
+			vioCode = bit.bor(vioCode, 2)
+		end
+		if not cond3 then
+			vioCode = bit.bor(vioCode, 4)
+		end
+		self:Log(string.format("Rejected %s's attempt to use container %s (challenge expected 0, got %u)", ply:Nick(), tostring(ent), vioCode))
+	end
+	return legal
 end
 
 ISAWC.EmptyWeaponClipsToPlayer = function(self,dupe,ply)
@@ -3134,7 +3187,9 @@ ISAWC.CanPickup = function(self,ply,ent,speculative)
 		local passeswlist = self.Whitelist[class]
 		if ent:IsPlayer() and not passeswlist then self:NoPickup("You can't pick up players!",ply) return false end
 		if ent==game.GetWorld() and not passeswlist then self:NoPickup("You can't pick up worldspawn!",ply) return false end
-		DropEntityIfHeld(ent)
+		if not speculative then
+			DropEntityIfHeld(ent)
+		end
 	else
 		if (ply.NextPickup or 0) > CurTime() and (ply.NextPickup or 0) <= CurTime() + self.ConDelay:GetFloat() and ply:IsPlayer() and SERVER then self:NoPickup("You need to wait for "..string.format("%.1f",ply.NextPickup-CurTime()).." seconds before picking up another object!",ply) return false end
 		if speculative then
@@ -3167,7 +3222,9 @@ ISAWC.CanPickup = function(self,ply,ent,speculative)
 		end
 		if SERVER then
 			if self.ConUseWhitelist:GetBool() and not passeswlist then self:NoPickup("That entity isn't whitelisted from being picked up!",ply) return false end
-			DropEntityIfHeld(ent)
+			if not speculative then
+				DropEntityIfHeld(ent)
+			end
 			if ply:GetPos():Distance(ent:GetPos())-ent:BoundingRadius()-ply:BoundingRadius()>self.ConDistance:GetFloat() and ply:IsPlayer() then self:NoPickup("You need to be closer to the object!",ply) return false end
 			if not (ent:IsSolid() or passeswlist or ent:IsWeapon()) then self:NoPickup("You can't pick up non-solid entities!",ply) return false end
 			if ent:GetMoveType()~=MOVETYPE_VPHYSICS and self.ConVPhysicsOnly:GetBool() and not (passeswlist or ent:IsWeapon()) then self:NoPickup("You can't pick up non-VPhysics entities!",ply) return false end

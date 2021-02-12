@@ -41,8 +41,8 @@ ENT.rotgb_rbetab = {
 	gballoon_blimp_magenta=5388,
 	gballoon_blimp_rainbow=221031,
 	
-	-- the gBalloon Spawner implodes if we don't define these
-	gballoon_fast_hidden_regen_shielded_blimp_gray=972*2,
+	-- the gBalloon Spawner implodes if we don't define these for some reason
+	gballoon_fast_hidden_regen_shielded_blimp_gray=1944,
 	gballoon_fast_blimp_magenta=5388,
 	
 	gballoon_glass=1,
@@ -495,9 +495,9 @@ end,nil,
 
 if SERVER then
 	local reqgen
-	util.AddNetworkString("NavmeshMissing")
+	--util.AddNetworkString("NavmeshMissing")
 	util.AddNetworkString("rotgb_generic")
-	net.Receive("NavmeshMissing",function()
+	--[[net.Receive("NavmeshMissing",function()
 		if not navmesh.IsLoaded() then
 			reqgen = true
 			--RunConsoleCommand("nav_quicksave","0")
@@ -512,7 +512,7 @@ if SERVER then
 				net.Broadcast()
 			end
 		end
-	end)
+	end)]]
 	net.Receive("rotgb_generic",function(length, ply)
 		local operation = net.ReadString()
 		if operation == "blacklist_editor" and ply:IsAdmin() then
@@ -548,12 +548,12 @@ if SERVER then
 		end
 	end)
 	hook.Add("Think","RotgB",function()
-		if reqgen and not navmesh.IsGenerating() then
+		--[[if reqgen and not navmesh.IsGenerating() then
 			reqgen = nil
 			net.Start("NavmeshMissing")
 			net.WriteBool(true)
 			net.Broadcast()
-		end
+		end]]
 		--[[if ticktime < CurTime() then
 			ticktime = CurTime() + ConF:GetFloat()
 			if ConU:GetBool() then
@@ -679,7 +679,7 @@ local function HasAllBits(a,b)
 	return bit.band(a,b)==b
 end
 
-local notifshown = 0
+local notifshown
 
 function ENT:Initialize()
 	if SERVER then
@@ -714,11 +714,9 @@ function ENT:Initialize()
 			end
 		end
 		self:RegistergBalloon()
-		if not (navmesh.IsLoaded() or notifshown > RealTime()) and game.SinglePlayer() then
-			net.Start("NavmeshMissing")
-			net.WriteBool(false)
-			net.Broadcast()
-			notifshown = RealTime()+60
+		if not (navmesh.IsLoaded() or notifshown) and game.SinglePlayer() then
+			PrintMessage(HUD_PRINTTALK, "No NavMesh found! Please generate one first!")
+			notifshown = true
 		end
 		--self:SetLocalPos(Vector(0,0,10))
 		local model = self:GetBalloonProperty("BalloonModel")
@@ -1847,7 +1845,7 @@ function ENT:PerformPops()
 				inkproj.InkColor = CNames[Con12:GetInt()-8]
 				inkproj.Dmg = 0
 				inkproj:Spawn()
-				inkproj:GetPhysicsObject():ApplyForceCenter(vector_up*-600)
+				inkproj:GetPhysicsObject():ApplyForceCenter(Vector(0,0,-600))
 			end
 		end
 		if (IsValid(attacker) and attacker:IsPlayer()) then
@@ -1865,9 +1863,12 @@ end
 function ENT:OnInjured(dmginfo)
 	if dmginfo:GetInflictor():GetClass()~="env_fire" then
 		self.BalloonRegenTime = CurTime()+ConR:GetFloat()
+		self.LastAttacker = dmginfo:GetAttacker()
+		self.LastInflictor = dmginfo:GetInflictor()
+		self.LastDamageType = dmginfo:GetDamageType()
 		dmginfo:SetDamage(math.ceil(dmginfo:GetDamage()*0.1*ConP:GetFloat()))
 		self:Log("About to take "..dmginfo:GetDamage().." damage at "..self:Health().." health!","damage")
-		local resistresults = TestDamageResistances(self.Properties,dmginfo:GetDamageType()--[[,(self.FreezeUntil or 0)>CurTime() or (self.FreezeUntil2 or 0)>CurTime()]])
+		local resistresults = TestDamageResistances(self.Properties,self.LastDamageType--[[,(self.FreezeUntil or 0)>CurTime() or (self.FreezeUntil2 or 0)>CurTime()]])
 		if resistresults and not self:HasRotgBStatusEffect("unimmune") then
 			dmginfo:SetDamage(0)
 			self:ShowResistEffect(resistresults)
@@ -1892,15 +1893,18 @@ function ENT:OnInjured(dmginfo)
 			dmginfo:SetDamage(math.ceil(dmginfo:GetDamage()))
 		end]]
 		local newhealth = self:Health()-math.max(dmginfo:GetDamage(),0)
+		local addDamageThisLayer = self:Health()-math.max(newhealth, 0)-1
 		self:SetHealth(newhealth)
 		self:Log("Took "..dmginfo:GetDamage().." damage! We are now at "..newhealth.." health.","damage")
+		if (IsValid(self.LastInflictor) and self.LastInflictor.Base == "gballoon_tower_base") and addDamageThisLayer > 0 then
+			self.LastInflictor:AddPops(addDamageThisLayer)
+			self:Log("Credited "..tostring(self.LastInflictor).." "..addDamageThisLayer.." pop(s).","damage")
+		end
 		if self:GetBalloonProperty("BalloonShielded") and self:Health()*2>self:GetMaxHealth() and (not Con1:GetBool() or Con2:GetBool()) then
 			self:SetNWBool("RenderShield",true)
 		else
 			self:SetNWBool("RenderShield",false)
 		end
-		self.LastAttacker = dmginfo:GetAttacker()
-		self.LastDamageType = dmginfo:GetDamageType()
 	end
 	dmginfo:SetDamage(0)
 end
@@ -2087,6 +2091,10 @@ function ENT:Pop(damage,target,dmgbits)
 	else
 		self:Log("Awarding "..cash*ConO:GetFloat().." cash after "..pops.." pops...","damage")
 		ROTGB_AddCash(cash*ConO:GetFloat())
+		if (IsValid(self.LastInflictor) and self.LastInflictor.Base == "gballoon_tower_base") and pops > 0 then
+			self.LastInflictor:AddPops(pops)
+			self:Log("Credited "..tostring(self.LastInflictor).." "..pops.." pop(s).","damage")
+		end
 	end
 	--for i=1,pops do
 		self:EmitSound(self:GetBalloonProperty("BalloonPopSound"),75,math.random(80,120),1)
@@ -2359,7 +2367,7 @@ if CLIENT then
 	local color_gray = Color(127,127,127)
 	local color_gray_translucent = Color(127,127,127,223)
 	local color_black_translucent = Color(0,0,0,223)
-	local scrW,scrH = ScrW(),ScrH()
+	--[[local scrW,scrH = ScrW(),ScrH()
 	local navmeshpanel,starttime
 	local texts = {
 		"The map will automatically restart once the generator is done.",
@@ -2603,7 +2611,7 @@ if CLIENT then
 			end
 		end
 	end
-	net.Receive("NavmeshMissing",CreateMainPanel)
+	net.Receive("NavmeshMissing",CreateMainPanel)]]
 
 	local classes = {
 		"gballoon_red",

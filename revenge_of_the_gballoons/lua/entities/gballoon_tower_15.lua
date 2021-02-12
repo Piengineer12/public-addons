@@ -35,7 +35,7 @@ ENT.UpgradeReference = {
 			"Turrets that are sparking deal decuple (x10) damage!",
 			"Every time a turret hits a gBalloon, gain $10!",
 		},
-		Prices = {150,800,1500,2500,5000},
+		Prices = {150,800,1500,2500,25000},
 		Funcs = {
 			function(self)
 				self.AbilityCooldown = self.AbilityCooldown * 3/4

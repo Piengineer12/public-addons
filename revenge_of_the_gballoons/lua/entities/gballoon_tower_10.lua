@@ -92,7 +92,7 @@ ENT.UpgradeReference = {
 		Descs = {
 			"The tower now pops up to three gBalloons per shot.",
 			"Considerably increases the tower's range.",
-			"Whenever a particle from this tower hits a gBalloon, gain $3.",
+			"Whenever a particle from this tower hits a gBalloon, gain $2.",
 			"The tower now hits all gBalloons within its radius each shot.",
 			"gBalloons hit by this tower's shots permanently lose all immunities."
 		},
@@ -178,7 +178,7 @@ local function SnipeEntity()
 			Src = startPos
 		}
 		if self.rotgb_HitCredit then
-			ROTGB_AddCash(3, self:GetTowerOwner())
+			self:AddCash(2, self:GetTowerOwner())
 		end
 		if self.rotgb_NoI then
 			ent:InflictRotgBStatusEffect("unimmune",999999)

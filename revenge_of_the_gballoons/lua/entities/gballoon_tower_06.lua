@@ -224,19 +224,18 @@ end
 
 hook.Add("OnEntityCreated","ROTGB_TOWER_06",function(ent)
 	timer.Simple(0,function()
-		if IsValid(ent) then
-			if ent.Base=="gballoon_tower_base" then
-				local rebate = nil
-				for k,v in pairs(ents.FindByClass("gballoon_tower_06")) do
-					if v.rotgb_Buff > 1 then rebate = true break end
-				end
-				if rebate then
-					timer.Simple(0.1,function()
-						if IsValid(ent) then
-							ROTGB_AddCash((ent.Cost or 0)*0.2*GetConVar("rotgb_cash_mul"):GetFloat())
-						end
-					end)
-				end
+		if (IsValid(ent) and ent.Base=="gballoon_tower_base") then
+			local rebate = nil
+			for k,v in pairs(ents.FindByClass("gballoon_tower_06")) do
+				if v.rotgb_Buff > 1 then rebate = v break end
+			end
+			if rebate then
+				timer.Simple(0.1,function()
+					if IsValid(ent) then
+						local cash = (ent.Cost or 0)*0.2*GetConVar("rotgb_cash_mul"):GetFloat()
+						rebate:AddCash(cash, ent:GetTowerOwner())
+					end
+				end)
 			end
 		end
 	end)
@@ -245,12 +244,15 @@ end)
 hook.Add("EntityTakeDamage","ROTGB_TOWER_06",function(ent,dmginfo)
 	local caller = dmginfo:GetInflictor()
 	if (IsValid(caller) and caller:GetClass()=="gballoon_base") then
-		local insure = 0
+		local insure = {}
 		for k,v in pairs(ents.FindByClass("gballoon_tower_06")) do
-			if v.rotgb_Buff > 3 then insure = insure + 1 end
+			if v.rotgb_Buff > 3 then table.insert(insure, v) end
 		end
-		if insure > 0 then
-			ROTGB_AddCash(dmginfo:GetDamage()*insure*1000*GetConVar("rotgb_cash_mul"):GetFloat()*player.GetCount())
+		if #insure > 0 then
+			local cash = dmginfo:GetDamage()*1000*GetConVar("rotgb_cash_mul"):GetFloat()*player.GetCount()
+			for k,v in pairs(insure) do
+				v:AddCash(cash)
+			end
 		end
 	end
 end)

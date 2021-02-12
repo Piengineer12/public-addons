@@ -154,9 +154,10 @@ function ENT:ROTGB_Think()
 					dmginfo:SetReportedPosition(v:GetPos())
 					dmginfo:SetDamagePosition(v2:GetPos())
 					v2:TakeDamageInfo(dmginfo)
+					dmginfo:SetDamage(self.AttackDamage)
 					v.rotgb_MaxPierce = v.rotgb_MaxPierce - 1
 					self.rotgb_Hits = (self.rotgb_Hits or 0) + 1
-					if self.rotgb_Electric and IsValid(v2) then
+					if self.rotgb_Electric and not v2:GetBalloonProperty("BalloonPurple") then
 						dmginfo:SetDamageType(DMG_SHOCK)
 						v2:TakeDamageInfo(dmginfo)
 					elseif v2:GetBalloonProperty("BalloonGray") then

@@ -12,7 +12,7 @@ ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/hunter/tubes/tube1x1x1.mdl")
-ENT.FireRate = 50
+ENT.FireRate = 20
 ENT.Cost = 2500
 ENT.DetectionRadius = 512
 ENT.AbilityCooldown = 60
@@ -69,6 +69,7 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.HasAbility = nil
+				self.FireRate = self.FireRate / 10
 				if SERVER and IsValid(self.InternalLaser) then
 					self.InternalLaser:Fire("Alpha",255)
 				end
@@ -271,7 +272,7 @@ abilityFunction = function(self)
 	local ent = next(entities) and self:ChooseSomething(enttab)
 	if IsValid(self) and IsValid(ent) then
 		if self.rotgb_Infinite then
-			ROTGB_AddCash(1e7*GetConVar("rotgb_cash_mul"):GetFloat(), self:GetTowerOwner())
+			self:AddCash(1e7*GetConVar("rotgb_cash_mul"):GetFloat(), self:GetTowerOwner())
 		end
 		ent:EmitSound("ambient/explosions/explode_6.wav",100)
 		local startPos = ents.Create("info_target")
@@ -355,11 +356,11 @@ end
 
 function ENT:ChooseSomething(enttab)
 	local chosen = table.GetWinningKey(enttab)
-	local trace = util.TraceLine({
+	--[[local trace = util.TraceLine({
 		start = chosen:GetPos(),
 		endpos = chosen:GetPos()+Vector(0,0,32768),
 		filter = ents.GetAll(),
-	})
+	})]]
 	--if trace.HitSky then
 		return chosen
 	--[[else

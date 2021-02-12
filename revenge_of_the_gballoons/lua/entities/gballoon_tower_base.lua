@@ -412,6 +412,15 @@ function ENT:OnTakeDamage(dmginfo)
 	end
 end
 
+function ENT:AddPops(pops)
+	self:SetPops(self:GetPops()+pops)
+end
+
+function ENT:AddCash(cash, ply)
+	ROTGB_AddCash(cash, ply)
+	self:SetCashGenerated(self:GetCashGenerated()+cash)
+end
+
 local function UpgradeMenu(ent)
 
 	if not IsValid(ent) then return end
@@ -456,14 +465,8 @@ local function UpgradeMenu(ent)
 		end
 	end
 	
-	local Divider = vgui.Create("DVerticalDivider",Main)
-	Divider:Dock(FILL)
-	Divider:SetDividerHeight(32)
-	Divider:SetBottomMin(32)
-	Divider:SetTopHeight(ScrH())
-	
 	local ListOfUpgrades = vgui.Create("DScrollPanel",Main)
-	Divider:SetTop(ListOfUpgrades)
+	ListOfUpgrades:Dock(FILL)
 	
 	local reference = ent.UpgradeReference
 	
@@ -471,6 +474,8 @@ local function UpgradeMenu(ent)
 	SellButton:SetText("Sell / Remove ($"..string.Comma(math.floor(ent.SellAmount*0.8*GetConVar("rotgb_cash_mul"):GetFloat()))..")")
 	SellButton:SetTextColor(color_red)
 	SellButton:SetFont("DermaLarge")
+	SellButton:SetTall(32)
+	SellButton:Dock(BOTTOM)
 	function SellButton:Paint(w,h)
 		draw.RoundedBox(8,0,0,w,h,self:IsHovered() and color_gray_translucent or color_black_translucent)
 	end
@@ -490,7 +495,6 @@ local function UpgradeMenu(ent)
 			end
 		end,"No")
 	end
-	Divider:SetBottom(SellButton)
 	
 	for i=0,#reference-1 do -- make this zero-indexed
 		
@@ -559,6 +563,8 @@ local function UpgradeMenu(ent)
 	TargetButton:SetTextColor(ent.UserTargeting and color_white or color_gray)
 	TargetButton:SetFont("DermaLarge")
 	TargetButton:SetContentAlignment(5)
+	TargetButton:SetTall(32)
+	TargetButton:Dock(BOTTOM)
 	function TargetButton:Paint(w,h)
 		draw.RoundedBox(8,0,0,w,h,self:IsHovered() and ent.UserTargeting and color_gray_translucent or color_black_translucent)
 	end
@@ -605,7 +611,32 @@ local function UpgradeMenu(ent)
 		end
 		TargetMenu:Open()
 	end
-	Divider:SetMiddle(TargetButton)
+	
+	local InfoButton = vgui.Create("DButton",Main)
+	InfoButton.CurrentPops = ent:GetPops()
+	InfoButton.CurrentCash = ent:GetCashGenerated()
+	if InfoButton.CurrentCash > 0 then
+		InfoButton:SetText("Damage: "..string.Comma(InfoButton.CurrentPops).." | Cash: "..string.Comma(math.floor(InfoButton.CurrentCash)))
+	else
+		InfoButton:SetText("Damage: "..string.Comma(InfoButton.CurrentPops))
+	end
+	InfoButton:SetTextColor(color_white)
+	InfoButton:SetFont("DermaLarge")
+	InfoButton:SetContentAlignment(5)
+	InfoButton:SetTall(32)
+	InfoButton:Dock(BOTTOM)
+	function InfoButton:Paint(w,h)
+		draw.RoundedBox(8,0,0,w,h,color_black_translucent)
+		if (IsValid(ent) and (self.CurrentPops ~= ent:GetPops() or self.CurrentCash ~= ent:GetCashGenerated())) then
+			self.CurrentPops = ent:GetPops()
+			self.CurrentCash = ent:GetCashGenerated()
+			if self.CurrentCash > 0 then
+				self:SetText("Damage: "..string.Comma(self.CurrentPops).." | Cash: "..string.Comma(math.floor(self.CurrentCash)))
+			else
+				self:SetText("Damage: "..string.Comma(self.CurrentPops))
+			end
+		end
+	end
 	
 	Main:Refresh(true)
 	

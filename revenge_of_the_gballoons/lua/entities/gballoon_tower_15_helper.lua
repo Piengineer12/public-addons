@@ -117,7 +117,7 @@ function ENT:FireAtEnemy()
 			end
 			for k,v in pairs(targets) do
 				if self:GetSpawnedTower().rotgb_TurretBucks then
-					ROTGB_AddCash(10, self:GetSpawnedTower():GetTowerOwner())
+					self:GetSpawnedTower():AddCash(10, self:GetSpawnedTower():GetTowerOwner())
 				end
 				if iscrit then
 					--util.ScreenShake(self:GetShootPos(), 4, 20, 0.5, 1024)
@@ -145,6 +145,7 @@ function ENT:FireAtEnemy()
 				laser:SetKeyValue("life",1/self:GetSpawnedTower().FireRate)
 				laser:Spawn()
 				laser:Activate()
+				laser.rotgb_Owner = self:GetSpawnedTower()
 				laser.rotgb_UseLaser = iscrit and 2 or 1
 				laser:Fire("TurnOn")
 				timer.Simple(1/9,function()
@@ -158,8 +159,9 @@ function ENT:FireAtEnemy()
 			end
 		else
 			if self:GetSpawnedTower().rotgb_TurretBucks then
-				ROTGB_AddCash(10)
+				self:GetSpawnedTower():AddCash(10)
 			end
+			self.rotgb_Owner = self:GetSpawnedTower()
 			local enemy = self:GetEnemy()
 			local dir = enemy:GetPos()
 			self.loco:FaceTowards(dir)

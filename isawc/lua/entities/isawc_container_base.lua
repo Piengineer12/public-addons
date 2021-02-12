@@ -244,7 +244,7 @@ function ENT:Think()
 				end
 			end
 		end
-		if ISAWC.ConMagnet:GetFloat() > 0 then
+		if ISAWC.ConMagnet:GetFloat() > 0 and not ISAWC:StringMatchParams(self:GetClass(), ISAWC.BlackContainerMagnetList) then
 			if not self.MagnetScale then self.MagnetScale = self:BoundingRadius() end -- remove after next 2 updates, this is defined in Initialize
 			self:FindMagnetablesInSphere()
 		end
@@ -296,7 +296,6 @@ function ENT:Magnetize(ent)
 				local dir = self:GetPos()-ent:GetPos()
 				local nDir = dir:GetNormalized()
 				nDir:Mul(math.min(self.MagnetScale*5e4*ISAWC.ConMagnet:GetFloat()/dir:LengthSqr(), 1000))
-				print(nDir)
 				ent:GetPhysicsObject():AddVelocity(nDir)
 			else
 				self:Touch(ent)

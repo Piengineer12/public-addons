@@ -196,6 +196,7 @@ end
 
 hook.Add("EntityTakeDamage","RotgB_Towers",function(vic,dmginfo)
 	local laser = dmginfo:GetAttacker()
+	local inflictor = dmginfo:GetInflictor()
 	if (IsValid(laser) and laser.rotgb_UseLaser) then
 		if (IsValid(laser.rotgb_Owner) and laser.rotgb_Owner.Base == "gballoon_tower_base") then
 			dmginfo:SetAttacker(laser.rotgb_Owner:GetTowerOwner())
@@ -207,6 +208,8 @@ hook.Add("EntityTakeDamage","RotgB_Towers",function(vic,dmginfo)
 				dmginfo:SetDamage(vic:GetRgBE() * 1000)
 			end
 		end
+	elseif (IsValid(inflictor) and inflictor.rotgb_Owner) then
+		dmginfo:SetInflictor(inflictor.rotgb_Owner)
 	end
 end)
 
