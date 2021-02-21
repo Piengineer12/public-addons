@@ -388,6 +388,10 @@ local ConT = CreateConVar("rotgb_crit_effect_delay","0",FCVAR_ARCHIVE,
 local ConF = CreateConVar("rotgb_use_kill_handler","0",FCVAR_ARCHIVE,
 [[Enabling this option will cause gBalloons to trigger on-kill effects when popped.]])
 
+local ConU = CreateConVar("rotgb_use_achievement_handler","1",FCVAR_ARCHIVE,
+[[Enabling this option will cause popping gBalloons to count towards the Popper achievement.
+If 2 and above, the achievement is incremented for each pop. Otherwise multiple pops on the same gBalloon will only increment the achievement counter once.]])
+
 concommand.Add("rotgb_reset_convars",function(ply,cmd,args,argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
 		ConA:Revert()
@@ -1848,9 +1852,6 @@ function ENT:PerformPops()
 				inkproj:GetPhysicsObject():ApplyForceCenter(Vector(0,0,-600))
 			end
 		end
-		if (IsValid(attacker) and attacker:IsPlayer()) then
-			attacker:SendLua("achievements.BalloonPopped()") -- What? It's a balloon, right?
-		end
 		local damageType = self.LastDamageType
 		if self:GetgBalloonCount()>256 then
 			self:Pop(-1,nil,damageType)
@@ -2086,6 +2087,16 @@ function ENT:Pop(damage,target,dmgbits)
 	--end
 	self:Log("After Popping: "..util.TableToJSON(nexts,true),"damage")
 	self:Log("Time taken: "..(SysTime()-ctime)*1000 .." ms","damage")
+	if (IsValid(self.LastAttacker) and self.LastAttacker:IsPlayer()) then
+		if ConU:GetInt() == 1 then
+			self.LastAttacker:SendLua("achievements.BalloonPopped()") -- What? It's a balloon, right?
+		elseif ConU:GetInt() > 1 then
+			net.Start("rotgb_generic")
+			net.WriteString("achievement")
+			net.WriteUInt(cash, 32)
+			net.Send(self.LastAttacker)
+		end
+	end
 	if IsValid(target) then
 		target:TakeDamage((pops+math.max(self:Health(), 1))*Con5:GetFloat(),self,self)
 	else
@@ -3774,6 +3785,10 @@ if CLIENT then
 				local wavedata = util.JSONToTable(util.Decompress(table.concat(ROTGB_CLIENTWAVES[wavename])))
 				table.Empty(ROTGB_CLIENTWAVES[wavename])
 				ROTGB_CLIENTWAVES[wavename] = wavedata
+			end
+		elseif operation == "achievement" then
+			for i=1, net.ReadUInt(32) do
+				achievements.BalloonPopped()
 			end
 		end
 	end)
