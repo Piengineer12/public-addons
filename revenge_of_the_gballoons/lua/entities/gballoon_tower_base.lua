@@ -206,6 +206,7 @@ function ENT:Think()
 				end
 			end]] -- already done in func_rotgb_nobuild
 			if self.LocalCost>ROTGB_GetCash(self:GetTowerOwner()) then
+				ROTGB_Log("towers", "Removed tower "..tostring(self).." placed by "..tostring(self:GetTowerOwner()).." due to insufficient cash.")
 				return SafeRemoveEntity(self)
 			elseif GetConVar("rotgb_tower_maxcount"):GetInt()>=0 then
 				local count = 0
@@ -215,6 +216,7 @@ function ENT:Think()
 					end
 				end
 				if count > GetConVar("rotgb_tower_maxcount"):GetInt() then
+					ROTGB_Log("towers", "Removed tower "..tostring(self).." placed by "..tostring(self:GetTowerOwner()).." due to excess towers.")
 					return SafeRemoveEntity(self)
 				end
 			end
@@ -432,6 +434,7 @@ local function UpgradeMenu(ent)
 	Main:SetSize(ScrH()/2,ScrH()/2)
 	Main:Center()
 	Main:SetTitle("Upgrades List")
+	Main:SetSizable(true)
 	Main:MakePopup()
 	function Main:Paint(w,h)
 		draw.RoundedBox(8,0,0,w,h,color_black_translucent)
@@ -526,11 +529,6 @@ local function UpgradeMenu(ent)
 			if reftab.Prices[self.Tier] and self:IsEnabled() then
 				draw.SimpleText("Price: "..string.Comma(math.ceil(reftab.Prices[self.Tier])),"DermaLarge",w,0,reftab.Prices[self.Tier]>curcash and color_red or color_green,TEXT_ALIGN_RIGHT)
 			end
-			local offset = 0
-			for i=1,upgradenum do
-				draw.RoundedBox(8,offset+0,h-24,24,24,i>self.Tier and color_black_translucent or i==self.Tier and (self:IsEnabled() and color_yellow or color_red) or color_green)
-				offset = offset + 32
-			end
 		end
 		function UpgradeStatement:DoClick()
 			if not IsValid(ent) then
@@ -552,6 +550,24 @@ local function UpgradeMenu(ent)
 			self.Tier = self.Tier + 1
 			self:Refresh(true)
 		end
+		
+		local UpgradeIndicatorPanel = UpgradeStatement:Add("DPanel")
+		UpgradeIndicatorPanel:SetTall(24)
+		UpgradeIndicatorPanel:Dock(BOTTOM)
+		function UpgradeIndicatorPanel:Paint() end
+		
+		for i=1,upgradenum do
+			local HoverButton = UpgradeIndicatorPanel:Add("DPanel")
+			HoverButton:SetWide(24)
+			HoverButton:SetText("")
+			HoverButton:SetTooltip(reftab.Names[i].." ($"..string.Comma(math.ceil(reftab.Prices[i]))..")\n"..reftab.Descs[i])
+			HoverButton:DockMargin(0,0,8,0)
+			HoverButton:Dock(LEFT)
+			function HoverButton:Paint(w,h)
+				draw.RoundedBox(8,0,0,w,h,i>UpgradeStatement.Tier and color_black_translucent or i==UpgradeStatement.Tier and (UpgradeStatement:IsEnabled() and color_yellow or color_red) or color_green)
+			end
+		end
+		
 		UpgradeStatement:Refresh()
 		table.insert(Main.SetOfUpgrades,UpgradeStatement)
 		

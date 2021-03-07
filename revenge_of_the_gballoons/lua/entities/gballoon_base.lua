@@ -75,7 +75,7 @@ ENT.rotgb_spawns = {
 	gballoon_blimp_magenta={gballoon_blimp_gray=4},
 	gballoon_blimp_rainbow={gballoon_blimp_purple=2,gballoon_blimp_magenta=2},
 }
-ENT.DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting"}
+ENT.DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","towers"}
 
 ROTGB_GBALLOONS = {}
 

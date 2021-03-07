@@ -1,7 +1,7 @@
 module("LUA_REPAIR", package.seeall)
 
-VERSION = "1.0.0"
-VERSION_DATE = "2021-02-21"
+VERSION = "1.0.1"
+VERSION_DATE = "2021-02-24"
 
 local FIXED
 color_aqua = Color(0, 255, 255)
@@ -16,6 +16,7 @@ end
 	
 	local NIL = getmetatable(nil) or {}
 	local STRING = getmetatable("")
+	local VECTOR = FindMetaTable("Vector")
 	local NULL_META = getmetatable(NULL)
 	local newNilMeta = {
 		__add = function(a,b)
@@ -71,6 +72,20 @@ end
 	end
 	STRING.IsValid = function()
 		return true
+	end
+	local oldadd,oldsub = VECTOR.__add,VECTOR.__sub
+	local oldmul,olddiv = VECTOR.__mul,VECTOR.__div
+	VECTOR.__add = function(a,b)
+		return oldadd(isvector(a) and a or Vector(a),isvector(b) and b or Vector(b))
+	end
+	VECTOR.__sub = function(a,b)
+		return oldsub(isvector(a) and a or Vector(a),isvector(b) and b or Vector(b))
+	end
+	VECTOR.__mul = function(a,b)
+		return oldmul(a or 1,b or 1)
+	end
+	VECTOR.__div = function(a,b)
+		return olddiv(a or 1,b or 1)
 	end
 	local oldGC = NULL_META.GetClass
 	NULL_META.GetClass = function(ent,...)

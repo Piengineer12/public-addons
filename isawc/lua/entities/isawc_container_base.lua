@@ -31,6 +31,9 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Float",1,"VolumeMul",{KeyName="isawc_volume_mul",Edit={type="Float",category="Multipliers",title="Volume Mul.",min=0,max=10,order=6}})
 	self:NetworkVar("String",1,"FileID")
 	self:NetworkVar("String",2,"EnderInvName",{KeyName="enderchest_inv_name",Edit={type="Generic",title="Inv. ID (for EnderChests)",order=3}})
+	
+	self:SetMassMul(1)
+	self:SetVolumeMul(1)
 end
 
 function ENT:SpawnFunction(ply,trace,classname)
@@ -52,8 +55,8 @@ function ENT:ISAWC_Initialize()
 end
 
 function ENT:Initialize()
-	self:SetModel(self.ContainerModel)
 	if SERVER then
+		self:SetModel(self.ContainerModel)
 		self:SetTrigger(true)
 		self:PhysicsInit(SOLID_VPHYSICS)
 		self:SetUseType(SIMPLE_USE)
@@ -86,8 +89,6 @@ function ENT:Initialize()
 			self.PostEntityPaste = baseClass.PostEntityPaste
 		end
 	end
-	self:SetMassMul(1)
-	self:SetVolumeMul(1)
 	self:ISAWC_Initialize()
 	if SERVER and (IsValid(self:GetCreator()) and self:GetCreator():IsPlayer()) then
 		self:SetOwnerAccountID(self:GetCreator():AccountID() or 0)

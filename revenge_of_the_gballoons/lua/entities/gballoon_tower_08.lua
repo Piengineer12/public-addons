@@ -31,7 +31,7 @@ ENT.UpgradeReference = {
 			"Colossally increases attack damage and enables the tower to pop Hidden gBalloons.",
 			"This tower now hits ALL gBalloons within sight.",
 			"Once every 60 seconds, shooting at this tower OBLITERATES the strongest gBalloon on the map after 5 seconds. You still get the cash.",
-			"Reduces Orbital Friendship Cannon's cooldown by 30 seconds and you gain $10000000 for every use.",
+			"Reduces Orbital Friendship Cannon's cooldown by 30 seconds and you gain $10,000,000 for every use.",
 			"It's worth it."
 		},
 		Prices = {2000,15000,100000,1.25e6,5e6,10e6,50e6,1e9},

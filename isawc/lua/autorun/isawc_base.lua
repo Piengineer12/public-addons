@@ -1,7 +1,15 @@
-ISAWC = ISAWC or {}
+--[[
+Workshop:		https://steamcommunity.com/sharedfiles/filedetails/?id=1673039990
+Profile Page:	https://steamcommunity.com/id/Piengineer12
+GitHub Page:	https://github.com/Piengineer12/public-addons/tree/master/isawc
+Donate:			https://ko-fi.com/randomtnt12
 
-ISAWC._VERSION = "2.3.0"
-ISAWC._VERSIONDATE = "2021-02-05"
+Links above are confirmed working as of 2021-03-05. All dates are in ISO 8601 format. 
+]]
+
+ISAWC = ISAWC or {}
+ISAWC._VERSION = "2.5.0"
+ISAWC._VERSIONDATE = "2021-03-05"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -415,6 +423,50 @@ ISAWC:CreateListConCommand("isawc_masslist", {
 	end
 })
 
+ISAWC.MassMultiList = ISAWC.MassMultiList or {}
+ISAWC:CreateListConCommand("isawc_player_usergroupmassmullist", {
+	display = "The usergroup mass multiplier list is as follows: ",
+	display_table = ISAWC.MassMultiList,
+	display_function = function(k,v)
+		if v == 0 then v = math.huge end
+		ISAWC:Log("\t"..string.format("%q=%g",k,v)..",")
+	end,
+	purpose = "Adds or removes usergroups from the usergroup mass multiplier list. Can be used to change the maximum amount of mass a certain usergroup is allowed to carry.",
+	help = {
+		"Use \"isawc_player_usergroupmassmullist <usergroup1> <mul1> <usergroup2> <mul2> ...\" to update or add a usergroup into the list. \z
+		If mul is 0, the usergroup can carry an infinite amount of mass. If mul is -1, the usergroup will be removed from the list instead.",
+		"* and ? wildcards are supported.",
+		"Use \"isawc_player_usergroupmassmullist *\" to clear the list.",
+		"Note that the \"isawc_player_massmul\" ConVar still affects all players' maximum carrying mass."
+	},
+	help_small = "Usage: isawc_player_usergroupmassmullist <usergroup1> <mul1> <usergroup2> <mul2> ...",
+	exe = function(args)
+		if args[1]=="*" then
+			table.Empty(ISAWC.MassMultiList)
+			ISAWC:Log("Removed everything from the usergroup mass multiplier list.")
+		elseif #args%2~=0 then
+			ISAWC:Log("Usage: isawc_player_usergroupmassmullist <usergroup1> <mul1> <usergroup2> <mul2> ...")
+		else
+			for i,v in ipairs(args) do
+				if i%2==1 then
+					v = v:lower()
+					local mass = tonumber(args[i+1])
+					if (not mass or mass < 0) then
+						ISAWC.MassMultiList[v] = nil
+						ISAWC:Log("Removed \""..v.."\" from the usergroup mass multiplier list.")
+					elseif ISAWC.MassMultiList[v] then
+						ISAWC.MassMultiList[v] = mass
+						ISAWC:Log("Updated \""..v.."\" in the usergroup mass multiplier list.")
+					else
+						ISAWC.MassMultiList[v] = mass
+						ISAWC:Log("Added \""..v.."\" into the usergroup mass multiplier list.")
+					end
+				end
+			end
+		end
+	end
+})
+
 ISAWC.Volumelist = ISAWC.Volumelist or {}
 ISAWC:CreateListConCommand("isawc_volumelist", {
 	display = "The custom volume list is as follows: ",
@@ -458,6 +510,50 @@ ISAWC:CreateListConCommand("isawc_volumelist", {
 	end
 })
 
+ISAWC.VolumeMultiList = ISAWC.VolumeMultiList or {}
+ISAWC:CreateListConCommand("isawc_player_usergroupvolumemullist", {
+	display = "The usergroup volume multiplier list is as follows: ",
+	display_table = ISAWC.VolumeMultiList,
+	display_function = function(k,v)
+		if v == 0 then v = math.huge end
+		ISAWC:Log("\t"..string.format("%q=%g",k,v)..",")
+	end,
+	purpose = "Adds or removes usergroups from the usergroup volume multiplier list. Can be used to change the maximum amount of volume a certain usergroup is allowed to carry.",
+	help = {
+		"Use \"isawc_player_usergroupvolumemullist <usergroup1> <mul1> <usergroup2> <mul2> ...\" to update or add a usergroup into the list. \z
+		If mul is 0, the usergroup can carry an infinite amount of volume. If mul is -1, the usergroup will be removed from the list instead.",
+		"* and ? wildcards are supported.",
+		"Use \"isawc_player_usergroupvolumemullist *\" to clear the list.",
+		"Note that the \"isawc_player_volumemul\" ConVar still affects all players' maximum carrying volume."
+	},
+	help_small = "Usage: isawc_player_usergroupvolumemullist <usergroup1> <mul1> <usergroup2> <mul2> ...",
+	exe = function(args)
+		if args[1]=="*" then
+			table.Empty(ISAWC.VolumeMultiList)
+			ISAWC:Log("Removed everything from the usergroup volume multiplier list.")
+		elseif #args%2~=0 then
+			ISAWC:Log("Usage: isawc_player_usergroupvolumemullist <usergroup1> <mul1> <usergroup2> <mul2> ...")
+		else
+			for i,v in ipairs(args) do
+				if i%2==1 then
+					v = v:lower()
+					local volume = tonumber(args[i+1])
+					if (not volume or volume < 0) then
+						ISAWC.VolumeMultiList[v] = nil
+						ISAWC:Log("Removed \""..v.."\" from the usergroup volume multiplier list.")
+					elseif ISAWC.VolumeMultiList[v] then
+						ISAWC.VolumeMultiList[v] = volume
+						ISAWC:Log("Updated \""..v.."\" in the usergroup volume multiplier list.")
+					else
+						ISAWC.VolumeMultiList[v] = volume
+						ISAWC:Log("Added \""..v.."\" into the usergroup volume multiplier list.")
+					end
+				end
+			end
+		end
+	end
+})
+
 ISAWC.Countlist = ISAWC.Countlist or {}
 ISAWC:CreateListConCommand("isawc_countlist", {
 	display = "The custom count list is as follows: ",
@@ -494,6 +590,50 @@ ISAWC:CreateListConCommand("isawc_countlist", {
 					else
 						ISAWC.Countlist[v] = amount
 						ISAWC:Log("Added \""..v.."\" into the custom amount list.")
+					end
+				end
+			end
+		end
+	end
+})
+
+ISAWC.CountMultiList = ISAWC.CountMultiList or {}
+ISAWC:CreateListConCommand("isawc_player_usergroupcountmullist", {
+	display = "The usergroup count multiplier list is as follows: ",
+	display_table = ISAWC.CountMultiList,
+	display_function = function(k,v)
+		if v == 0 then v = math.huge end
+		ISAWC:Log("\t"..string.format("%q=%g",k,v)..",")
+	end,
+	purpose = "Adds or removes usergroups from the usergroup count multiplier list. Can be used to change the maximum amount of items a certain usergroup is allowed to carry.",
+	help = {
+		"Use \"isawc_player_usergroupcountmullist <usergroup1> <mul1> <usergroup2> <mul2> ...\" to update or add a usergroup into the list. \z
+		If mul is 0, the usergroup can carry 65536 items. If mul is -1, the usergroup will be removed from the list instead.",
+		"* and ? wildcards are supported.",
+		"Use \"isawc_player_usergroupcountmullist *\" to clear the list.",
+		"Note that the \"isawc_player_maxcount\" ConVar still affects all players' maximum carried items."
+	},
+	help_small = "Usage: isawc_player_usergroupcountmullist <usergroup1> <mul1> <usergroup2> <mul2> ...",
+	exe = function(args)
+		if args[1]=="*" then
+			table.Empty(ISAWC.CountMultiList)
+			ISAWC:Log("Removed everything from the usergroup count multiplier list.")
+		elseif #args%2~=0 then
+			ISAWC:Log("Usage: isawc_player_usergroupcountmullist <usergroup1> <mul1> <usergroup2> <mul2> ...")
+		else
+			for i,v in ipairs(args) do
+				if i%2==1 then
+					v = v:lower()
+					local count = tonumber(args[i+1])
+					if (not count or count < 0) then
+						ISAWC.CountMultiList[v] = nil
+						ISAWC:Log("Removed \""..v.."\" from the usergroup count multiplier list.")
+					elseif ISAWC.CountMultiList[v] then
+						ISAWC.CountMultiList[v] = count
+						ISAWC:Log("Updated \""..v.."\" in the usergroup count multiplier list.")
+					else
+						ISAWC.CountMultiList[v] = count
+						ISAWC:Log("Added \""..v.."\" into the usergroup count multiplier list.")
 					end
 				end
 			end
@@ -628,7 +768,18 @@ ISAWC.ConDoSaveDelay = CreateConVar("isawc_player_savedelay", "300", FCVAR_ARCHI
 Note that low values may severely impact performance!")
 
 ISAWC.ConMagnet = CreateConVar("isawc_container_magnetradius", "0", FCVAR_ARCHIVE+FCVAR_REPLICATED,
-"Sets the range of containers to instantly pick up an item. Note that the radius is multiplied with the size of the container - a range of 3 on a box will allow the box to pick up items 3 boxes away from it. A range of 0 disables this feature.")
+"Sets the range of containers to instantly pick up an item. Note that the radius is multiplied with the size of the container - a range of 3 on a box will allow the box to pick up items 3 boxes away from it.\
+A range of 0 disables this feature.")
+
+ISAWC.ConDropOnDeathClass = CreateConVar("isawc_player_dropondeathclass", "isawc_container_cbbox_07", FCVAR_ARCHIVE+FCVAR_REPLICATED,
+"Sets the classname of dropped containers on player deaths when the isawc_player_dropondeath ConVar is enabled. Useful for causing custom Lua containers to be dropped.\
+Note that invalid classes will cause the addon to default back to isawc_container_cbbox_07 - a small box.\
+If you just want to set the model, see the isawc_player_dropondeathmodel ConVar.")
+
+ISAWC.ConDropOnDeathModel = CreateConVar("isawc_player_dropondeathmodel", "", FCVAR_ARCHIVE+FCVAR_REPLICATED,
+"Overrides the model of dropped containers on player deaths when the isawc_player_dropondeath ConVar is enabled.\
+Set the ConVar to \"\" to remove the model override.\
+If you want to set the class, see the isawc_player_dropondeathclass ConVar.")
 
 local function BasicAutoComplete(cmd, argStr)
 	local possibilities = {}
@@ -779,7 +930,8 @@ ISAWC:AddConCommand("isawc_help", {
 				local success = false
 				for k,v in SortedPairs(ISAWC:GetConVarList()) do
 					if argStr == k then
-						ISAWC:Log(string.format("%s (Console Variable, Current = %s, Default = %s)\n%s", k, v:GetString(), v:GetDefault(), v:GetHelpText()))
+						ISAWC:Log(string.format("%s (Console Variable, Current = %s, Default = %s)", k, v:GetString(), v:GetDefault()))
+						ISAWC:Log(v:GetHelpText())
 						success = true
 						break
 					end
@@ -787,7 +939,8 @@ ISAWC:AddConCommand("isawc_help", {
 				if not success then
 					for k,v in SortedPairs(ISAWC.ConCommands) do
 						if argStr == k then
-							ISAWC:Log(argStr.." (Console Command)\n"..v)
+							ISAWC:Log(argStr.." (Console Command)")
+							ISAWC:Log(v)
 							success = true
 							break
 						end
@@ -1030,6 +1183,10 @@ ISAWC.PopulateDFormOthers = function(DForm)
 	DForm:Help(" - "..ISAWC.ConDistBefore:GetHelpText().."\n")
 	DForm:CheckBox("Drop Inventory On Death",ISAWC.ConDropOnDeath:GetName())
 	DForm:Help(" - "..ISAWC.ConDropOnDeath:GetHelpText().."\n")
+	DForm:TextEntry("Class of Dropped Container",ISAWC.ConDropOnDeathClass:GetName())
+	DForm:Help(" - "..ISAWC.ConDropOnDeathClass:GetHelpText().."\n")
+	DForm:TextEntry("Model of Dropped Container",ISAWC.ConDropOnDeathModel:GetName())
+	DForm:Help(" - "..ISAWC.ConDropOnDeathModel:GetHelpText().."\n")
 	local combox = DForm:ComboBox("Save Player Inventories",ISAWC.ConDoSave:GetName())
 	combox:AddChoice("0 - Don't", 0)
 	combox:AddChoice("1 - Occasionally", 1)
@@ -1430,7 +1587,7 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 						Option = Options:AddOption("Edit Icon",function()
 							if IsValid(self) then
 								local IconEditor = vgui.Create("IconEditor")
-								IconEditor:SetSize(self.SW/2,ISAWC.SH/2)
+								IconEditor:SetSize(ISAWC.SW/2,ISAWC.SH/2)
 								IconEditor:SetIcon(Item)
 								IconEditor:Refresh()
 								IconEditor:Center()
@@ -2050,8 +2207,9 @@ ISAWC.WriteModelFromDupeTable = function(self,dupe)
 end
 
 ISAWC.GetClientStats = function(self,ply)
+	local isPlayer = ply:IsPlayer()
 	local cw,cv,cc = 0,0,0
-	local mw,mv,mc = 0,0,ply:IsPlayer() and self.ConCount:GetInt() or self.ConCount2:GetInt()
+	local mw,mv,mc = 0,0,isPlayer and self.ConCount:GetInt() or self.ConCount2:GetInt()
 	for k,v in pairs(ply.ISAWC_Inventory or {}) do
 		local aw,av,ac = self:GetStatsFromDupeTable(v)
 		if aw > 0 then
@@ -2071,7 +2229,7 @@ ISAWC.GetClientStats = function(self,ply)
 		end
 	end
 	if self.ConConstEnabled:GetBool() then
-		if ply:IsPlayer() then
+		if isPlayer then
 			mw = self.ConConstMass:GetFloat()
 			mv = self.ConConstVol:GetFloat()/self.dm3perHu
 		else
@@ -2096,13 +2254,18 @@ ISAWC.GetClientStats = function(self,ply)
 		if mv <= 0 then
 			mv = 100
 		end
-		if ply:IsPlayer() then
+		if isPlayer then
 			mw = mw * self.ConMassMul:GetFloat()
 			mv = mv * self.ConVolMul:GetFloat()
 		else
-			mw = mw * self.ConMassMul2:GetFloat() * (ply.GetMassMul and ply:GetMassMul() or 1) * ply.ContainerMassMul
-			mv = mv * self.ConVolMul2:GetFloat() * (ply.GetVolumeMul and ply:GetVolumeMul() or 1) * ply.ContainerVolumeMul
+			mw = mw * self.ConMassMul2:GetFloat() * (ply.GetMassMul and ply:GetMassMul() or 1) * (ply.ContainerMassMul or 1)
+			mv = mv * self.ConVolMul2:GetFloat() * (ply.GetVolumeMul and ply:GetVolumeMul() or 1) * (ply.ContainerVolumeMul or 1)
 		end
+	end
+	if isPlayer then
+		mw = mw * (self:StringMatchParams(ply:GetUserGroup(), ISAWC.MassMultiList) or 1)
+		mv = mv * (self:StringMatchParams(ply:GetUserGroup(), ISAWC.VolumeMultiList) or 1)
+		mc = mc * (self:StringMatchParams(ply:GetUserGroup(), ISAWC.CountMultiList) or 1)
 	end
 	if mw <= 0 then mw = math.huge end
 	if mv <= 0 then mv = math.huge end
@@ -2225,6 +2388,9 @@ ISAWC.SaveInventory = function(self,ply)
 	data.Volumelist = self.Volumelist or {}
 	data.Countlist = self.Countlist or {}
 	data.Remaplist = self.Remaplist or {}
+	data.MassMultiList = self.MassMultiList or {}
+	data.VolumeMultiList = self.VolumeMultiList or {}
+	data.CountMultiList = self.CountMultiList or {}
 	if isstring(ply) then
 		steamid = ply
 		ply = player.GetBySteamID(ply)
@@ -2297,6 +2463,9 @@ ISAWC.PlayerSpawn = function(ply)
 			ISAWC.Volumelist = data.Volumelist or ISAWC.Volumelist
 			ISAWC.Countlist = data.Countlist or ISAWC.Countlist
 			ISAWC.Remaplist = data.Remaplist or ISAWC.Remaplist
+			ISAWC.MassMultiList = data.MassMultiList or ISAWC.MassMultiList
+			ISAWC.VolumeMultiList = data.VolumeMultiList or ISAWC.VolumeMultiList
+			ISAWC.CountMultiList = data.CountMultiList or ISAWC.CountMultiList
 			ISAWC.LastLoadedData = data
 		end
 		if IsValid(ply) then
@@ -2314,22 +2483,36 @@ end
 
 ISAWC.PlayerDeath = function(ply)
 	if (ply.ISAWC_Inventory and next(ply.ISAWC_Inventory)) and ISAWC.ConDropOnDeath:GetBool() then
-		local briefcase = ents.Create("isawc_container_cbbox_07")
-		briefcase:SetPos(ply:GetPos() + ply:OBBCenter())
-		briefcase:Spawn()
-		briefcase.ISAWC_IsDeathDrop = true
-		ISAWC:SetSuppressUndo(true)
-		for i=1,#ply.ISAWC_Inventory do
-			local dupe = ply.ISAWC_Inventory[i]
-			if dupe then
-				table.insert(briefcase.ISAWC_Inventory,dupe)
-				--ISAWC:SpawnDupe(dupe,true,true,i,ply)
+		local briefcase = ents.Create(ISAWC.ConDropOnDeathClass:GetString())
+		local modelOverride = ISAWC.ConDropOnDeathModel:GetString()
+		if not (IsValid(briefcase) and briefcase.Base == "isawc_container_base") then
+			SafeRemoveEntity(briefcase)
+			ISAWC:Log("Failed to create invalid container class "..ISAWC.ConDropOnDeathClass:GetString()..'!')
+			ISAWC:Log("Failed to remove items owned by "..ply:Nick().." as the dropped container was invalid!")
+		elseif not (modelOverride == "" or util.IsValidModel(modelOverride)) then
+			briefcase:Remove()
+			ISAWC:Log("Failed to create invalid model "..modelOverride..'!')
+			ISAWC:Log("Failed to remove items owned by "..ply:Nick().." as the dropped container was invalid!")
+		else
+			briefcase:SetPos(ply:GetPos() + ply:OBBCenter())
+			if modelOverride ~= "" then
+				briefcase.ContainerModel = modelOverride
 			end
+			briefcase:Spawn()
+			briefcase.ISAWC_IsDeathDrop = true
+			ISAWC:SetSuppressUndo(true)
+			for i=1,#ply.ISAWC_Inventory do
+				local dupe = ply.ISAWC_Inventory[i]
+				if dupe then
+					table.insert(briefcase.ISAWC_Inventory,dupe)
+					--ISAWC:SpawnDupe(dupe,true,true,i,ply)
+				end
+			end
+			ISAWC:SetSuppressUndo(false)
+			table.Empty(ply.ISAWC_Inventory)
+			ISAWC:SendInventory(ply)
+			ISAWC:SaveInventory(ply)
 		end
-		ISAWC:SetSuppressUndo(false)
-		table.Empty(ply.ISAWC_Inventory)
-		ISAWC:SendInventory(ply)
-		ISAWC:SaveInventory(ply)
 	end
 end
 
@@ -3059,16 +3242,16 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 		elseif func == "container_open" then
 			local container = net.ReadEntity()
 			if IsValid(container) then
-				container.FinishOpenAnimTime = CurTime() + container.OpenAnimTime
-				if next(container.OpenSounds) then
+				container.FinishOpenAnimTime = CurTime() + (container.OpenAnimTime or 0)
+				if next(container.OpenSounds or {}) then
 					surface.PlaySound(container.OpenSounds[math.random(1,#container.OpenSounds)])
 				end
 			end
 		elseif func == "container_close" then
 			local container = net.ReadEntity()
 			if IsValid(container) then
-				container.FinishCloseAnimTime = CurTime() + container.CloseAnimTime
-				if next(container.CloseSounds) then
+				container.FinishCloseAnimTime = CurTime() + (container.CloseAnimTime or 0)
+				if next(container.CloseSounds or {}) then
 					surface.PlaySound(container.CloseSounds[math.random(1,#container.CloseSounds)])
 				end
 			end
