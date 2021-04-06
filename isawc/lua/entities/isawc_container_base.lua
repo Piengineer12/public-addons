@@ -170,6 +170,10 @@ function ENT:Use(activator,caller,typ,data)
 				net.Start("isawc_general")
 				net.WriteString("container_open")
 				net.WriteEntity(self)
+				if self.ISAWC_Template then -- This is a really bad way to make sure clients know the sounds this container makes... I can't be bothered to make this better though.
+					net.WriteString(table.concat(self.OpenSounds,'|'))
+					net.WriteString(table.concat(self.CloseSounds,'|'))
+				end
 				net.SendPAS(self:GetPos())
 			end
 			self.ISAWC_Openers[activator] = true

@@ -8,8 +8,8 @@ Links above are confirmed working as of 2021-03-05. All dates are in ISO 8601 fo
 ]]
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "2.5.0"
-ISAWC._VERSIONDATE = "2021-03-05"
+ISAWC._VERSION = "3.1.0"
+ISAWC._VERSIONDATE = "2021-03-23"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -781,6 +781,10 @@ ISAWC.ConDropOnDeathModel = CreateConVar("isawc_player_dropondeathmodel", "", FC
 Set the ConVar to \"\" to remove the model override.\
 If you want to set the class, see the isawc_player_dropondeathclass ConVar.")
 
+ISAWC.ConUseBindOverride = CreateConVar("isawc_use_bindoverride", "", FCVAR_ARCHIVE+FCVAR_REPLICATED,
+"Sets the binding used to pick up items. This value overrides the value defined in the isawc_use_bind ConVar for all clients.\
+Set the ConVar to \"\" to remove the override.")
+
 local function BasicAutoComplete(cmd, argStr)
 	local possibilities = {}
 	local namesearch = argStr:Trim():lower()
@@ -983,7 +987,7 @@ if CLIENT then
 	ISAWC.ConInventoryBind = CreateClientConVar("isawc_player_bind","",true,false,
 	"If set, pressing this key will open the inventory.")
 
-	ISAWC.ConInventoryBindHold = CreateClientConVar("isawc_player_bind_hold","",true,false,
+	ISAWC.ConInventoryBindHold = CreateClientConVar("isawc_player_bindhold","",true,false,
 	"If set, holding this key will open the inventory. Releasing it will close it back.")
 	
 	ISAWC.ConHideNotifs = CreateClientConVar("isawc_hide_notifications","0",true,false,
@@ -1173,6 +1177,9 @@ end
 ISAWC.PopulateDFormOthers = function(DForm)
 	DForm:Help("") --whitespace
 	DForm:ControlHelp("Player Options")
+	
+	DForm:TextEntry("Pickup Key Override",ISAWC.ConUseBindOverride:GetName())
+	DForm:Help(" - "..ISAWC.ConUseBindOverride:GetHelpText().."\n")
 	DForm:NumSlider("Pickup Delay",ISAWC.ConDelay:GetName(),0,100,2)
 	DForm:Help(" - "..ISAWC.ConDelay:GetHelpText().."\n")
 	DForm:NumSlider("Drop Delay",ISAWC.ConSpawnDelay:GetName(),0,100,2)
@@ -1236,8 +1243,10 @@ if CLIENT then
 	ISAWC:BuildClientVars()
 	local border = 4
 	local border_w = 5
-	local matSelect = Material("gui/ps_hover.png", "nocull")
-	ISAWC.DrawSelectionBox = GWEN.CreateTextureBorder(border, border, 64-border*2, 64-border*2, border_w, border_w, border_w, border_w, matSelect)
+	local matSelect = Material("gui/sm_hover.png", "nocull")
+	local matSelect2 = Material("gui/ps_hover.png", "nocull")
+	ISAWC.DrawHoverBox = GWEN.CreateTextureBorder(border, border, 64-border*2, 64-border*2, border_w, border_w, border_w, border_w, matSelect)
+	ISAWC.DrawSelectionBox = GWEN.CreateTextureBorder(border, border, 64-border*2, 64-border*2, border_w, border_w, border_w, border_w, matSelect2)
 end
 
 ISAWC.GetPercentageColor = function(self,percent)
@@ -1279,7 +1288,7 @@ ISAWC.InstallSortFunctions = function(self,panel,InvPanel,delname,wepstorename,d
 			if IsValid(InvPanel) then
 				for i,v in ipairs(InvPanel:GetChildren()) do
 					if v.ID then
-						ISAWC.reliantwindow:AddToSelection(v)
+						v:SetSelected(not v:IsSelected())
 					end
 				end
 			end
@@ -1354,6 +1363,21 @@ ISAWC.InstallSortFunctions = function(self,panel,InvPanel,delname,wepstorename,d
 				InvPanel.WaitForSend = true
 			end
 		end):SetIcon("icon16/brick_delete.png")
+		sortOptions:AddOption("Sort Randomly",function()
+			if IsValid(InvPanel) then
+				local temptab,displ = {},0
+				for i,v in ipairs(InvPanel:GetChildren()) do
+					if v.MdlInfo then
+						table.insert(temptab, v.ID)
+					end
+				end
+				for k,v in RandomPairs(temptab) do
+					displ = displ + 1
+					InvPanel.IDOrder[displ]=v
+				end
+				InvPanel.WaitForSend = true
+			end
+		end):SetIcon("icon16/arrow_switch.png")
 		sOptions:AddOption("Drop All Items",function()
 			net.Start("isawc_general")
 			net.WriteString(dropname)
@@ -1385,42 +1409,33 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 	
 	if IsValid(ISAWC.reliantwindow) then ISAWC.reliantwindow:Close() end
 	if not IsValid(Main) then Main = vgui.Create("DFrame") Main:MakePopup() Main:SetKeyboardInputEnabled(false) end
+	
+	-- needed for items to be able to be dragged out of the inventory
+	local worldPanel = vgui.GetWorldPanel()
+	if not worldPanel.ISAWC_Receiver then
+		worldPanel.ISAWC_Receiver = true
+		worldPanel:Receiver("ISAWC.ItemMoveOut", function(this, panels, dropped)
+			if dropped then
+				panels[1]:SignalOutOfInventory(panels)
+			end
+		end)
+	end
+	
 	ISAWC:BuildClientVars()
 	Main:SetSize(ISAWC.SW/4,ISAWC.SH/2)
 	Main:Center()
 	Main:SetTitle("Inventory")
 	Main:SetSizable(true)
-	Main.SelectedItems = {}
+	Main:Receiver("ISAWC.ItemMoveOut", ISAWC.DoNothing) -- This is so that items don't accidentally get dropped into the world
 	function Main:Paint(w,h)
 		draw.RoundedBox(8,0,0,w,h,color_black_semiopaque)
 		draw.RoundedBox(8,0,0,w,24,color_black_semiopaque)
-	end
-	function Main:AddToSelection(item)
-		self.SelectedItems = self.SelectedItems or {}
-		if self.SelectedItems[item] then
-			self.SelectedItems[item] = nil
-			item.Selected = nil
-		else
-			self.SelectedItems[item] = true
-			item.Selected = true
-		end
-	end
-	function Main:GetSelectedItems()
-		if table.IsEmpty(self.SelectedItems) then
-			return {}
-		else
-			local temptable = table.GetKeys(self.SelectedItems)
-			local keysforremoval = {}
-			for k,v in pairs(temptable) do
-				if not v.ID then temptable[k] = nil end
-			end
-			return temptable
-		end
 	end
 	ISAWC.reliantwindow = Main
 	
 	local InvBase = Main:Add("DScrollPanel")
 	InvBase:Dock(FILL)
+	InvBase:SetSelectionCanvas(true)
 	
 	local InfoPanel = Main:Add("DPanel")
 	InfoPanel:SetHeight(ISAWC.FontH*3)
@@ -1436,6 +1451,7 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 	InvPanel:SetDnD(true)
 	InvPanel:SetDropPos("46")
 	InvPanel:SetUseLiveDrag(true)
+	InvPanel:SetSelectionCanvas(true)
 	InvPanel:MakeDroppable("ISAWC.ItemMove",false)
 	InvPanel.IDOrder = {}
 	function InvPanel:Think()
@@ -1454,6 +1470,15 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 			self.IDOrder[i]=v.ID
 		end
 		self.WaitForSend = true
+	end
+	function InvPanel:GetSelectedItems()
+		local selectedPanels = {}
+		for k,v in pairs(self:GetChildren()) do
+			if v.ID and v:IsSelected() then
+				table.insert(selectedPanels, v)
+			end
+		end
+		return selectedPanels
 	end
 	
 	local SortOptions = Main:Add("DButton")
@@ -1479,12 +1504,13 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 					local Item = InvPanel:Add("SpawnIcon")
 					Item:SetSize(64,64)
 					Item:SetModel(info.Model,info.Skin,info.BodyGroups)
-					Item.MdlInfo = info
+					Item:SetSelectable(true)
 					Item:Droppable("ISAWC.ItemMove")
+					Item:Droppable("ISAWC.ItemMoveOut")
+					Item.MdlInfo = info
 					if info.Class ~= "prop_physics" and info.Class ~= "prop_ragdoll" then
 						Item:SetTooltip(language.GetPhrase(info.Class))
 					end
-					Item.OldPaintOver = Item.PaintOver
 					function Item:PaintOver(w,h)
 						local hasClip1 = false
 						if info.Clip1 > 0 or info.MaxClip1 > 0 then
@@ -1502,10 +1528,16 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 								draw.SimpleTextOutlined(string.format("%i", info.Clip2), "DermaDefault", w-1, hasClip1 and 14 or 1, info.Clip2 > 0 and color_aqua or color_red, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, 1, color_black_semitransparent)
 							end
 						end
-						if self.Selected then
+						-- Why is the magenta selection thing defined in PaintOver?! Thanks garry, now I need to redefine the default behaviour...
+						-- ...though I will change it a little because creating a new color table every single frame is NOT optimal.
+						self.OverlayColor = self.OverlayColor or Color(255,255,255,self.OverlayFade)
+						if self.OverlayFade > 0 then
+							self.OverlayColor.a = self.OverlayFade
+							ISAWC.DrawHoverBox(0,0,w,h,self.OverlayColor)
+						end
+						if self:IsSelected() then
 							ISAWC.DrawSelectionBox(0,0,w,h,color_white)
 						end
-						self:OldPaintOver(w,h)
 					end
 					function Item:SendSignal(msg)
 						if Item.SendIDs then
@@ -1530,19 +1562,15 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 						table.insert(Item.SendIDs,id)
 					end
 					function Item:DoClick()
-						if input.IsShiftDown() then
-							Main:AddToSelection(self)
-						else
-							self:SendSignal("spawn")
-						end
+						self:SendSignal("spawn")
 					end
 					function Item:DoRightClick()
 						local Options = DermaMenu(Item)
 						local Option = nil
-						if #Main:GetSelectedItems() <= 0 or ISAWC.ConSpawnDelay:GetFloat() <= 0 then
+						if #InvPanel:GetSelectedItems() <= 0 or ISAWC.ConSpawnDelay:GetFloat() <= 0 then
 							Option = Options:AddOption("Use / Spawn At Self",function()
 								if IsValid(self) then
-									for k2,v2 in SortedPairsByMemberValue(Main:GetSelectedItems(), "ID", true) do
+									for k2,v2 in SortedPairsByMemberValue(InvPanel:GetSelectedItems(), "ID", true) do
 										self:AddSignal(v2.ID)
 									end
 									self:SendSignal("spawn_self")
@@ -1551,7 +1579,7 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 							Option:SetIcon("icon16/arrow_in.png")
 							Option = Options:AddOption("Spawn At Crosshair",function()
 								if IsValid(self) then
-									for k2,v2 in SortedPairsByMemberValue(Main:GetSelectedItems(), "ID", true) do
+									for k2,v2 in SortedPairsByMemberValue(InvPanel:GetSelectedItems(), "ID", true) do
 										self:AddSignal(v2.ID)
 									end
 									self:SendSignal("spawn")
@@ -1562,7 +1590,7 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 						if info.Clip1 > 0 or info.Clip2 > 0 then
 							Option = Options:AddOption("Empty Weapon Clips",function()
 								if IsValid(self) then
-									for k2,v2 in SortedPairsByMemberValue(Main:GetSelectedItems(), "ID", true) do
+									for k2,v2 in SortedPairsByMemberValue(InvPanel:GetSelectedItems(), "ID", true) do
 										self:AddSignal(v2.ID)
 									end
 									self:SendSignal("empty")
@@ -1574,7 +1602,7 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 							local SubOptions,SubOption = Options:AddSubMenu("Delete")
 							Option = SubOptions:AddOption("Confirm Deletion",function()
 								if IsValid(self) then
-									for k2,v2 in SortedPairsByMemberValue(Main:GetSelectedItems(), "ID", true) do
+									for k2,v2 in SortedPairsByMemberValue(InvPanel:GetSelectedItems(), "ID", true) do
 										self:AddSignal(v2.ID)
 									end
 									self:SendSignal("delete")
@@ -1598,6 +1626,14 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 						Option:SetIcon("icon16/wrench.png")
 						Options:Open()
 					end
+					function Item:SignalOutOfInventory(items)
+						if #items > 1 and ISAWC.ConSpawnDelay:GetFloat() <= 0 then
+							for k2,v2 in SortedPairsByMemberValue(items, "ID", true) do
+								self:AddSignal(v2.ID)
+							end
+						end
+						self:SendSignal("spawn")
+					end
 					Item.ID = i
 				end
 			end
@@ -1618,7 +1654,19 @@ end
 
 ISAWC.InvData2 = {0,0,0,0,0,0}
 ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
-
+	
+	-- This is bascially ISAWC.BuildInventory but with some major differences.
+	-- I'd deduplicate the codes if I had a lot of sanity to spare.
+	local worldPanel = vgui.GetWorldPanel()
+	if not worldPanel.ISAWC_Receiver then
+		worldPanel.ISAWC_Receiver = true
+		worldPanel:Receiver("ISAWC.ItemMoveOut", function(this, panels, dropped)
+			if dropped then
+				panels[1]:SignalOutOfInventory(panels)
+			end
+		end)
+	end
+	
 	ISAWC:BuildClientVars()
 	if IsValid(ISAWC.reliantwindow) then ISAWC.reliantwindow:Close() end
 	local Main = vgui.Create("DFrame")
@@ -1628,7 +1676,8 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 	Main:SetSizable(true)
 	Main:MakePopup()
 	Main:SetKeyboardInputEnabled(false)
-	Main.SelectedItems = {}
+	Main:Receiver("ISAWC.ItemMoveContainer", ISAWC.DoNothing)
+	Main:Receiver("ISAWC.ItemMoveContainer2", ISAWC.DoNothing)
 	function Main:Paint(w,h)
 		draw.RoundedBox(8,0,0,w,h,color_black_semiopaque)
 		draw.RoundedBox(8,0,0,w,24,color_black_semiopaque)
@@ -1644,28 +1693,6 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 		if not IsValid(container) then self:Close() return ISAWC:NoPickup("The container is missing!") end
 		if LocalPlayer():GetPos():Distance(container:GetPos())-container:BoundingRadius()>ISAWC.ConDistance:GetFloat() then self:Close() end
 	end
-	function Main:AddToSelection(item)
-		self.SelectedItems = self.SelectedItems or {}
-		if self.SelectedItems[item] then
-			self.SelectedItems[item] = nil
-			item.Selected = nil
-		else
-			self.SelectedItems[item] = true
-			item.Selected = true
-		end
-	end
-	function Main:GetSelectedItems()
-		if table.IsEmpty(self.SelectedItems) then
-			return {}
-		else
-			local temptable = table.GetKeys(self.SelectedItems)
-			local keysforremoval = {}
-			for k,v in pairs(temptable) do
-				if not v.ID then temptable[k] = nil end
-			end
-			return temptable
-		end
-	end
 	Main.IsDouble = true
 	ISAWC.reliantwindow = Main
 	
@@ -1679,14 +1706,14 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 		draw.RoundedBox(8,0,0,w,h,color_black_semitransparent)
 		draw.SimpleText("Your Inventory","Default",w/2,h/2,color_white_semitransparent,TEXT_ALIGN_CENTER,TEXT_ALIGN_CENTER)
 	end
-	InvBaseLeft:Receiver("ISAWC.ItemMoveContainer2",function(self,tab,dropped,...)
+	InvBaseLeft:Receiver("ISAWC.ItemMoveContainer2",function(self,panels,dropped)
 		if dropped then
-			for k2,v2 in SortedPairsByMemberValue(Main:GetSelectedItems(), "ID", true) do
+			for k2,v2 in SortedPairsByMemberValue(panels, "ID", true) do
 				if v2.IsInContainer then
-					tab[1]:AddSignal(v2.ID)
+					panels[1]:AddSignal(v2.ID)
 				end
 			end
-			tab[1]:SendSignal("transfer_from")
+			panels[1]:SendSignal("transfer_from")
 		end
 	end)
 	Divider:SetLeft(InvBaseLeft)
@@ -1700,11 +1727,16 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 	
 	local InvFittingLeft = InvBaseLeft:Add("DScrollPanel")
 	InvFittingLeft:Dock(FILL)
+	InvFittingLeft:SetSelectionCanvas(true)
 	
 	local InvLeft = InvFittingLeft:Add("DIconLayout")
 	InvLeft:Dock(TOP)
 	InvLeft:SetStretchHeight(true)
 	InvLeft:SetStretchWidth(false)
+	InvLeft:SetDnD(true)
+	InvLeft:SetDropPos("46")
+	InvLeft:SetUseLiveDrag(true)
+	InvLeft:SetSelectionCanvas(true)
 	InvLeft:MakeDroppable("ISAWC.ItemMoveContainer",false)
 	InvLeft.IDOrder = {}
 	function InvLeft:Think()
@@ -1712,10 +1744,10 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 			self.WaitForSend = false
 			net.Start("isawc_general")
 			net.WriteString("moving_items_container")
+			net.WriteEntity(container)
 			for i,v in ipairs(self.IDOrder) do
 				net.WriteUInt(v,16)
 			end
-			net.WriteEntity(container)
 			net.SendToServer()
 		end
 	end
@@ -1724,6 +1756,15 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 			self.IDOrder[i]=v.ID
 		end
 		self.WaitForSend = true
+	end
+	function InvLeft:GetSelectedItems()
+		local selectedPanels = {}
+		for k,v in pairs(self:GetChildren()) do
+			if v.ID and v:IsSelected() then
+				table.insert(selectedPanels, v)
+			end
+		end
+		return selectedPanels
 	end
 	
 	local SortLeft = InvBaseLeft:Add("DButton")
@@ -1740,14 +1781,14 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 		draw.RoundedBox(8,0,0,w,h,color_black_semitransparent)
 		draw.SimpleText("Container's Inventory","Default",w/2,h/2,color_white_semitransparent,TEXT_ALIGN_CENTER,TEXT_ALIGN_CENTER)
 	end
-	InvBaseRight:Receiver("ISAWC.ItemMoveContainer",function(self,tab,dropped,...)
+	InvBaseRight:Receiver("ISAWC.ItemMoveContainer",function(self,panels,dropped,...)
 		if dropped then
-			for k2,v2 in SortedPairsByMemberValue(Main:GetSelectedItems(), "ID", true) do
+			for k2,v2 in SortedPairsByMemberValue(panels, "ID", true) do
 				if not v2.IsInContainer then
-					tab[1]:AddSignal(v2.ID)
+					panels[1]:AddSignal(v2.ID)
 				end
 			end
-			tab[1]:SendSignal("transfer_to")
+			panels[1]:SendSignal("transfer_to")
 		end
 	end)
 	Divider:SetRight(InvBaseRight)
@@ -1761,11 +1802,16 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 	
 	local InvFittingRight = InvBaseRight:Add("DScrollPanel")
 	InvFittingRight:Dock(FILL)
+	InvFittingRight:SetSelectionCanvas(true)
 	
 	local InvRight = InvFittingRight:Add("DIconLayout")
 	InvRight:Dock(TOP)
 	InvRight:SetStretchHeight(true)
 	InvRight:SetStretchWidth(false)
+	InvRight:SetDnD(true)
+	InvRight:SetDropPos("46")
+	InvRight:SetUseLiveDrag(true)
+	InvRight:SetSelectionCanvas(true)
 	InvRight:MakeDroppable("ISAWC.ItemMoveContainer2",false)
 	InvRight.IDOrder = {}
 	function InvRight:Think()
@@ -1785,6 +1831,15 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 			self.IDOrder[i]=v.ID
 		end
 		self.WaitForSend = true
+	end
+	function InvRight:GetSelectedItems()
+		local selectedPanels = {}
+		for k,v in pairs(self:GetChildren()) do
+			if v.ID and v:IsSelected() then
+				table.insert(selectedPanels, v)
+			end
+		end
+		return selectedPanels
 	end
 	
 	local SortRight = InvBaseRight:Add("DButton")
@@ -1807,12 +1862,13 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 					local Item = InvLeft:Add("SpawnIcon")
 					Item:SetSize(64,64)
 					Item:SetModel(info.Model,info.Skin,info.BodyGroups)
+					Item:SetSelectable(true)
 					Item:Droppable("ISAWC.ItemMoveContainer")
+					Item:Droppable("ISAWC.ItemMoveOut")
 					Item.MdlInfo = info
 					if info.Class ~= "prop_physics" and info.Class ~= "prop_ragdoll" then
 						Item:SetTooltip(language.GetPhrase(info.Class))
 					end
-					Item.OldPaintOver = Item.PaintOver
 					function Item:PaintOver(w,h)
 						local hasClip1 = false
 						if info.Clip1 > 0 or info.MaxClip1 > 0 then
@@ -1830,10 +1886,14 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 								draw.SimpleTextOutlined(string.format("%i", info.Clip2), "DermaDefault", w-1, hasClip1 and 14 or 1, info.Clip2 > 0 and color_aqua or color_red, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, 1, color_black_semitransparent)
 							end
 						end
-						if self.Selected then
+						self.OverlayColor = self.OverlayColor or Color(255,255,255,self.OverlayFade)
+						if self.OverlayFade > 0 then
+							self.OverlayColor.a = self.OverlayFade
+							ISAWC.DrawHoverBox(0,0,w,h,self.OverlayColor)
+						end
+						if self:IsSelected() then
 							ISAWC.DrawSelectionBox(0,0,w,h,color_white)
 						end
-						self:OldPaintOver(w,h)
 					end
 					function Item:SendSignal(msg,msg2)
 						if Item.SendIDs or Item.SendIDs2 then
@@ -1878,17 +1938,13 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 						table.insert(Item.SendIDs2,id)
 					end
 					function Item:DoClick()
-						if input.IsShiftDown() then
-							Main:AddToSelection(self)
-						else
-							self:SendSignal("transfer_to")
-						end
+						self:SendSignal("transfer_to")
 					end
 					function Item:DoRightClick()
 						local Options = DermaMenu(Item)
 						local Option = Options:AddOption("Deposit",function()
 							if IsValid(self) then
-								for k2,v2 in SortedPairsByMemberValue(Main:GetSelectedItems(), "ID", true) do
+								for k2,v2 in SortedPairsByMemberValue(InvLeft:GetSelectedItems(), "ID", true) do
 									if not v2.IsInContainer then
 										self:AddSignal(v2.ID)
 									end
@@ -1897,10 +1953,10 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 							end
 						end)
 						Option:SetIcon("icon16/arrow_right.png")
-						if #Main:GetSelectedItems() <= 0 or ISAWC.ConSpawnDelay:GetFloat() <= 0 then
+						if #InvLeft:GetSelectedItems() <= 0 or ISAWC.ConSpawnDelay:GetFloat() <= 0 then
 							Option = Options:AddOption("Use / Spawn At Self",function()
 								if IsValid(self) then
-									for k2,v2 in SortedPairsByMemberValue(Main:GetSelectedItems(), "ID", true) do
+									for k2,v2 in SortedPairsByMemberValue(InvLeft:GetSelectedItems(), "ID", true) do
 										if v2.IsInContainer then
 											self:AddSignal(v2.ID)
 										else
@@ -1913,7 +1969,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 							Option:SetIcon("icon16/arrow_in.png")
 							Option = Options:AddOption("Spawn At Crosshair",function()
 								if IsValid(self) then
-									for k2,v2 in SortedPairsByMemberValue(Main:GetSelectedItems(), "ID", true) do
+									for k2,v2 in SortedPairsByMemberValue(InvLeft:GetSelectedItems(), "ID", true) do
 										if v2.IsInContainer then
 											self:AddSignal(v2.ID)
 										else
@@ -1928,7 +1984,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 						if info.Clip1 > 0 or info.Clip2 > 0 then
 							Option = Options:AddOption("Empty Weapon Clips",function()
 								if IsValid(self) then
-									for k2,v2 in SortedPairsByMemberValue(Main:GetSelectedItems(), "ID", true) do
+									for k2,v2 in SortedPairsByMemberValue(InvLeft:GetSelectedItems(), "ID", true) do
 										if v2.IsInContainer then
 											self:AddSignal(v2.ID)
 										else
@@ -1944,7 +2000,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 							local SubOptions,SubOption = Options:AddSubMenu("Delete")
 							Option = SubOptions:AddOption("Confirm Deletion",function()
 								if IsValid(self) then
-									for k2,v2 in SortedPairsByMemberValue(Main:GetSelectedItems(), "ID", true) do
+									for k2,v2 in SortedPairsByMemberValue(InvLeft:GetSelectedItems(), "ID", true) do
 										if v2.IsInContainer then
 											self:AddSignal(v2.ID)
 										else
@@ -1972,6 +2028,18 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 						Option:SetIcon("icon16/wrench.png")
 						Options:Open()
 					end
+					function Item:SignalOutOfInventory(items)
+						if #items > 1 and ISAWC.ConSpawnDelay:GetFloat() <= 0 then
+							for k2,v2 in SortedPairsByMemberValue(items, "ID", true) do
+								if v2.IsInContainer then
+									self:AddSignal(v2.ID)
+								else
+									self:AddSignal2(v2.ID)
+								end
+							end
+						end
+						self:SendSignal("spawn_in_container2","spawn_in_container")
+					end
 					Item.ID = i
 				end
 			end
@@ -1989,12 +2057,13 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 					local Item = InvRight:Add("SpawnIcon")
 					Item:SetSize(64,64)
 					Item:SetModel(info.Model,info.Skin,info.BodyGroups)
+					Item:SetSelectable(true)
 					Item:Droppable("ISAWC.ItemMoveContainer2")
+					Item:Droppable("ISAWC.ItemMoveOut")
 					Item.MdlInfo = info
 					if info.Class ~= "prop_physics" and info.Class ~= "prop_ragdoll" then
 						Item:SetTooltip(language.GetPhrase(info.Class))
 					end
-					Item.OldPaintOver = Item.PaintOver
 					function Item:PaintOver(w,h)
 						local hasClip1 = false
 						if info.Clip1 > 0 or info.MaxClip1 > 0 then
@@ -2012,10 +2081,14 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 								draw.SimpleTextOutlined(string.format("%i", info.Clip2), "DermaDefault", w-1, hasClip1 and 14 or 1, info.Clip2 > 0 and color_aqua or color_red, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, 1, color_black_semitransparent)
 							end
 						end
-						if self.Selected then
+						self.OverlayColor = self.OverlayColor or Color(255,255,255,self.OverlayFade)
+						if self.OverlayFade > 0 then
+							self.OverlayColor.a = self.OverlayFade
+							ISAWC.DrawHoverBox(0,0,w,h,self.OverlayColor)
+						end
+						if self:IsSelected() then
 							ISAWC.DrawSelectionBox(0,0,w,h,color_white)
 						end
-						self:OldPaintOver(w,h)
 					end
 					function Item:SendSignal(msg,msg2)
 						if Item.SendIDs or Item.SendIDs2 then
@@ -2060,17 +2133,13 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 						table.insert(Item.SendIDs2,id)
 					end
 					function Item:DoClick()
-						if input.IsShiftDown() then
-							Main:AddToSelection(self)
-						else
-							self:SendSignal("transfer_from")
-						end
+						self:SendSignal("transfer_from")
 					end
 					function Item:DoRightClick()
 						local Options = DermaMenu(Item)
 						local Option = Options:AddOption("Withdraw",function()
 							if IsValid(self) then
-								for k2,v2 in SortedPairsByMemberValue(Main:GetSelectedItems(), "ID", true) do
+								for k2,v2 in SortedPairsByMemberValue(InvRight:GetSelectedItems(), "ID", true) do
 									if v2.IsInContainer then
 										self:AddSignal(v2.ID)
 									end
@@ -2079,10 +2148,10 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 							end
 						end)
 						Option:SetIcon("icon16/arrow_left.png")
-						if #Main:GetSelectedItems() <= 0 or ISAWC.ConSpawnDelay:GetFloat() <= 0 then
+						if #InvRight:GetSelectedItems() <= 0 or ISAWC.ConSpawnDelay:GetFloat() <= 0 then
 							Option = Options:AddOption("Use / Spawn At Self",function()
 								if IsValid(self) then
-									for k2,v2 in SortedPairsByMemberValue(Main:GetSelectedItems(), "ID", true) do
+									for k2,v2 in SortedPairsByMemberValue(InvRight:GetSelectedItems(), "ID", true) do
 										if v2.IsInContainer then
 											self:AddSignal(v2.ID)
 										else
@@ -2095,7 +2164,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 							Option:SetIcon("icon16/arrow_in.png")
 							Option = Options:AddOption("Spawn At Crosshair",function()
 								if IsValid(self) then
-									for k2,v2 in SortedPairsByMemberValue(Main:GetSelectedItems(), "ID", true) do
+									for k2,v2 in SortedPairsByMemberValue(InvRight:GetSelectedItems(), "ID", true) do
 										if v2.IsInContainer then
 											self:AddSignal(v2.ID)
 										else
@@ -2110,7 +2179,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 						if info.Clip1 > 0 or info.Clip2 > 0 then
 							Option = Options:AddOption("Empty Weapon Clips",function()
 								if IsValid(self) then
-									for k2,v2 in SortedPairsByMemberValue(Main:GetSelectedItems(), "ID", true) do
+									for k2,v2 in SortedPairsByMemberValue(InvRight:GetSelectedItems(), "ID", true) do
 										if v2.IsInContainer then
 											self:AddSignal(v2.ID)
 										else
@@ -2126,7 +2195,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 							local SubOptions,SubOption = Options:AddSubMenu("Delete")
 							Option = SubOptions:AddOption("Confirm Deletion",function()
 								if IsValid(self) then
-									for k2,v2 in SortedPairsByMemberValue(Main:GetSelectedItems(), "ID", true) do
+									for k2,v2 in SortedPairsByMemberValue(InvRight:GetSelectedItems(), "ID", true) do
 										if v2.IsInContainer then
 											self:AddSignal(v2.ID)
 										else
@@ -2153,6 +2222,18 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 						end)
 						Option:SetIcon("icon16/wrench.png")
 						Options:Open()
+					end
+					function Item:SignalOutOfInventory(items)
+						if #items > 1 and ISAWC.ConSpawnDelay:GetFloat() <= 0 then
+							for k2,v2 in SortedPairsByMemberValue(items, "ID", true) do
+								if v2.IsInContainer then
+									self:AddSignal(v2.ID)
+								else
+									self:AddSignal2(v2.ID)
+								end
+							end
+						end
+						self:SendSignal("spawn_in_container2","spawn_in_container")
 					end
 					Item.ID = i
 					Item.IsInContainer = true
@@ -2334,7 +2415,7 @@ ISAWC.NoPickup = function(self,msg,ply)
 	if not self.ConPickupDenyLogs:GetBool() and SERVER then
 		self:Log(tostring(ply)..': '..msg)
 	end
-	if (SERVER and ply:IsPlayer() and not self.ConHideNotifsG:GetBool()) then
+	if (SERVER and ply and ply:IsPlayer() and not self.ConHideNotifsG:GetBool()) then
 		net.Start("isawc_general")
 		net.WriteString("no_pickup")
 		net.WriteString(msg)
@@ -2535,21 +2616,21 @@ end
 ISAWC.IsLegalContainer = function(self,ent,ply,ignoreDist)
 	local cond1 = IsValid(ent) and ent.Base=="isawc_container_base" and ply:Alive()
 	local cond2 = ignoreDist or ply:GetPos():Distance(ent:GetPos())-ent:BoundingRadius()<=ISAWC.ConDistance:GetFloat()
-	local cond3 = ent:GetOwnerAccountID()==(ply:AccountID() or 0) or ent:GetIsPublic() or ISAWC.ConAlwaysPublic:GetInt() == 1 or ISAWC.ConAlwaysPublic:GetInt() >= 2 and ply:Team() == ent:GetPlayerTeam()
+	local cond3 = cond1 and (ent:GetOwnerAccountID()==(ply:AccountID() or 0) or ent:GetIsPublic() or ISAWC.ConAlwaysPublic:GetInt() == 1 or ISAWC.ConAlwaysPublic:GetInt() >= 2 and ply:Team() == ent:GetPlayerTeam())
 	local legal = cond1 and cond2 and cond3
 	
 	if not legal then
 		local vioCode = 0
-		if not cond1 then
+		if cond1 then
 			vioCode = 1
 		end
-		if not cond2 then
+		if cond2 then
 			vioCode = bit.bor(vioCode, 2)
 		end
-		if not cond3 then
+		if cond3 then
 			vioCode = bit.bor(vioCode, 4)
 		end
-		self:Log(string.format("Rejected %s's attempt to use container %s (challenge expected 0, got %u)", ply:Nick(), tostring(ent), vioCode))
+		self:Log(string.format("Rejected %s's attempt to use container \"%s\" (expected 7, got %u)", ply:Nick(), tostring(ent), vioCode))
 	end
 	return legal
 end
@@ -2591,7 +2672,7 @@ end
 
 ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 	local canDel = self.ConAllowDelete:GetBool()
-	local trace = util.QuickTrace(ply:GetShootPos(),isSpawn and ply:EyeAngles():Forward()*self.ConDistance:GetFloat() or vector_origin,ply)
+	local trace = util.QuickTrace(ply:EyePos(),isSpawn and ply:GetAimVector()*self.ConDistance:GetFloat() or vector_origin,ply)
 	local spawnpos = trace.HitPos - Vector(0,0,dupe.Mins.z) + trace.HitNormal * self.ConDistBefore:GetFloat()
 	for k,v in pairs(dupe.Entities) do
 		local ent = Entity(k)
@@ -2679,7 +2760,7 @@ end
 
 ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 	local canDel = self.ConAllowDelete:GetBool()
-	local trace = util.QuickTrace(ply:GetShootPos(),isSpawn and ply:EyeAngles():Forward()*self.ConDistance:GetFloat() or vector_origin,ply)
+	local trace = util.QuickTrace(ply:EyePos(),isSpawn and ply:GetAimVector()*self.ConDistance:GetFloat() or vector_origin,ply)
 	local spawnpos = trace.HitPos - Vector(0,0,dupe.Mins.z) + trace.HitNormal * self.ConDistBefore:GetFloat()
 	for k,v in pairs(dupe.Entities) do
 		local ent = Entity(k)
@@ -2828,6 +2909,11 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 		elseif func == "inv" then
 			self:SendInventory(ply)
 		elseif func == "moving_items" or func == "moving_items_container" then
+			local container
+			if func == "moving_items_container" then
+				container = net.ReadEntity()
+				if not self:IsLegalContainer(container,ply) then return end
+			end
 			local constructtable = {}
 			for i=1,#ply.ISAWC_Inventory do
 				local desired = net.ReadUInt(16)
@@ -2840,13 +2926,10 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 				constructtable[v] = ply.ISAWC_Inventory[k]
 			end
 			ply.ISAWC_Inventory = constructtable
-			if func == "moving_items" then
-				self:SendInventory(ply)
+			if container then
+				self:SendInventory2(ply,container)
 			else
-				local container = net.ReadEntity()
-				if self:IsLegalContainer(container,ply) then
-					self:SendInventory2(ply,container)
-				end
+				self:SendInventory(ply)
 			end
 		elseif func == "moving_items_container2" then
 			local container = net.ReadEntity()
@@ -3089,11 +3172,11 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					table.remove(container.ISAWC_Inventory,invnum)
 				end
 				if container.ISAWC_IsDeathDrop and #container.ISAWC_Inventory <= 0 then
-					timer.Simple(self.ConDeathRemoveDelay:GetFloat()-6, function()
+					timer.Simple(self.ConDeathRemoveDelay:GetFloat()-4.24, function()
 						if IsValid(container) then
 							container:SetRenderMode(RENDERMODE_GLOW)
 							container:SetRenderFX(kRenderFxFadeSlow)
-							timer.Simple(6,function()
+							timer.Simple(4.24,function()
 								SafeRemoveEntity(container)
 							end)
 						end
@@ -3195,7 +3278,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			end
 		elseif func == "exporter" then
 			local exporter = net.ReadEntity()
-			if IsValid(exporter) and exporter:GetClass()=="isawc_extractor" and (exporter:GetOwnerAccountID() == (ply:AccountID() or 0) or ply:IsAdmin()) then
+			if (IsValid(exporter) and exporter:GetClass()=="isawc_extractor" and exporter:GetOwnerAccountID() == (ply:AccountID() or 0) or ply:IsAdmin()) then
 				exporter:SetActiFlags(net.ReadInt(32))
 				exporter:SetSpawnDelay(net.ReadFloat())
 				exporter:SetActiMass(net.ReadFloat())
@@ -3204,10 +3287,26 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			end
 		elseif func == "exporter_disconnect" then
 			local exporter = net.ReadEntity()
-			if IsValid(exporter) and exporter:GetClass()=="isawc_extractor" and (exporter:GetOwnerAccountID() == (ply:AccountID() or 0) or ply:IsAdmin()) then
+			if (IsValid(exporter) and exporter:GetClass()=="isawc_extractor" and exporter:GetOwnerAccountID() == (ply:AccountID() or 0) or ply:IsAdmin()) then
 				exporter:ClearStorageEntities()
 				exporter:SetCollisionGroup(COLLISION_GROUP_NONE)
 				--exporter:UpdateWireOutputs()
+			end
+		elseif func == "send_maker_data" then
+			local weapon = net.ReadEntity()
+			if (IsValid(weapon) and weapon:GetClass()=="weapon_isawc_maker") then
+				local massMul, volumeMul = net.ReadFloat(), net.ReadFloat()
+				local massConstant, volumeConstant = net.ReadFloat(), net.ReadFloat()
+				local openSounds, closeSounds = net.ReadString(), net.ReadString()
+				--print(massMul, volumeMul, massConstant, volumeConstant, openSounds, closeSounds)
+				weapon:SetMassMul(massMul)
+				weapon:SetVolumeMul(volumeMul)
+				weapon:SetMassConstant(massConstant)
+				weapon:SetVolumeConstant(volumeConstant)
+				weapon:SetOpenSounds(openSounds)
+				weapon:SetCloseSounds(closeSounds)
+				weapon:EmitSound("buttons/button17.wav")
+				ply:PrintMessage(HUD_PRINTTALK, "Properties set! They will take place the next time you transform a container.")
 			end
 		else
 			self:Log("Received unrecognised message header \"" .. func .. "\" from " .. ply:Nick() .. ". Assuming data packet corrupted.")
@@ -3243,6 +3342,10 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			local container = net.ReadEntity()
 			if IsValid(container) then
 				container.FinishOpenAnimTime = CurTime() + (container.OpenAnimTime or 0)
+				if container.ISAWC_Template then
+					container.OpenSounds = string.Split(net.ReadString(),'|')
+					container.CloseSounds = string.Split(net.ReadString(),'|')
+				end
 				if next(container.OpenSounds or {}) then
 					surface.PlaySound(container.OpenSounds[math.random(1,#container.OpenSounds)])
 				end
@@ -3278,6 +3381,11 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			local questionEnt = net.ReadEntity()
 			if IsValid(questionEnt) then
 				questionEnt:BuildConfigGUI()
+			end
+		elseif func == "open_maker_menu" then
+			local weapon = net.ReadEntity()
+			if IsValid(weapon) then
+				weapon:OpenMakerMenu()
 			end
 		end
 	end
@@ -3459,7 +3567,9 @@ ISAWC.Tick = function()
 	end
 	if CLIENT then
 		local ply = LocalPlayer()
-		if input.IsKeyDown(input.GetKeyCode(ISAWC.ConUseBind:GetString())) and not IsValid(vgui.GetKeyboardFocus()) then
+		local overrideKey = input.GetKeyCode(ISAWC.ConUseBindOverride:GetString())
+		local useKey = overrideKey > 0 and overrideKey or input.GetKeyCode(ISAWC.ConUseBind:GetString())
+		if input.IsKeyDown(useKey) and not IsValid(vgui.GetKeyboardFocus()) then
 			local probent = ply:GetEyeTrace().Entity
 			if not IsValid(probent) then
 				local tracedata = {

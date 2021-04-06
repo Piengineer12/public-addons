@@ -124,6 +124,8 @@ function ENT:Initialize()
 	if SERVER and (IsValid(self:GetCreator()) and self:GetCreator():IsPlayer()) then
 		self:SetOwnerAccountID(self:GetCreator():AccountID() or 0)
 	end
+	self.CachedEntities = {}
+	self.LastCacheUpdate = 0
 end
 
 function ENT:TriggerInput(input, value)
@@ -176,8 +178,8 @@ end]]
 
 function ENT:GetContainer(index)
 	if not IsValid(self["GetStorageEntity"..index](self)) and self:GetFileID(index)~='' then
-		for k,v in pairs(ents.GetAll()) do
-			if (v.Base == "isawc_container_base" and v:GetFileID() == self:GetFileID(index)) then
+		for k,v in pairs(self.CachedEntities) do
+			if (IsValid(v) and v:GetFileID() == self:GetFileID(index)) then
 				self["SetStorageEntity"..index](self, v) break
 			end
 		end
@@ -492,6 +494,15 @@ function ENT:SpawnProp(forcedSpawn)
 end
 
 function ENT:Think()
+	if self.LastCacheUpdate < CurTime() then
+		table.Empty(self.CachedEntities)
+		for k,v in pairs(ents.GetAll()) do
+			if v.Base == "isawc_container_base" then
+				table.insert(self.CachedEntities, v)
+			end
+		end
+		self.LastCacheUpdate = CurTime() + 0.5
+	end
 	if (self.ISAWC_NextSpawn or 0) < CurTime() then
 		self:SpawnProp()
 	end
