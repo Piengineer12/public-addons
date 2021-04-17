@@ -1,23 +1,33 @@
-module("LUA_REPAIR", package.seeall)
+--[[
+Workshop:		https://steamcommunity.com/sharedfiles/filedetails/?id=2403043112
+Profile Page:	https://steamcommunity.com/id/Piengineer12
+GitHub Page:	https://github.com/Piengineer12/public-addons/tree/master/lua_repair
+Donate:			https://ko-fi.com/randomtnt12
 
-VERSION = "1.0.1"
-VERSION_DATE = "2021-02-24"
+Links above are confirmed working as of 2021-04-14. All dates are in ISO 8601 format. 
+]]
+
+LUA_REPAIR_VERSION = "1.1.0"
+LUA_REPAIR_VERSION_DATE = "2021-04-15"
 
 local FIXED
-color_aqua = Color(0, 255, 255)
+local color_aqua = Color(0, 255, 255)
 
-function Log(msg)
-	MsgC(color_aqua, "[Lua Repair] ", color_white, msg, '\n')
+local function Log(...)
+	local message = {color_aqua, "[Lua Repair] ", color_white, ...}
+	table.insert(message, '\n')
+	MsgC(unpack(message))
 end
 
 -- aaand pretty much everything here is dangerous
 --function FixAllErrors()
-	if FIXED then return end
+	if LUA_REPAIR_FIXED then return end
 	
 	local NIL = getmetatable(nil) or {}
 	local STRING = getmetatable("")
 	local VECTOR = FindMetaTable("Vector")
 	local NULL_META = getmetatable(NULL)
+	local PLAYER = FindMetaTable("Player")
 	local newNilMeta = {
 		__add = function(a,b)
 			return a or b
@@ -114,14 +124,92 @@ end
 	
 	debug.setmetatable(nil,NIL)
 	
-	FIXED = true
+	--[[hook.Add("Initialize", "LUA_REPAIR", function()
+		local shouldBlockCommands = {
+			["con_filter_enable"] = true,
+			["con_filter_text_out"] = true,
+			["crosshair"] = true,
+			["sv_cheats"] = true
+		}
+		local blockedCommands = {}
+		
+		function ReportBlockedCommand(cmd)
+			if not blockedCommands[cmd] then
+				Log("An addon tried to use the console command "..cmd.." which is not allowed.")
+				if table.IsEmpty(blockedCommands) then
+					Log("(You will only see this message once per console command.)")
+				end
+				blockedCommands[cmd] = true
+			end
+		end
+		
+		local oldRunConsoleCommand = RunConsoleCommand
+		RunConsoleCommand = function(cmd, ...)
+			if shouldBlockCommands[cmd] then
+				ReportBlockedCommand(cmd)
+			else
+				local resultTab = {pcall(oldRunConsoleCommand, cmd, ...)}
+				if not resultTab[1] then
+					ReportBlockedCommand(cmd)
+				end
+			end
+		end
+		local oldGameConsoleCommand = game.ConsoleCommand
+		game.ConsoleCommand = function(cmdStr, ...)
+			local cmd = string.match(cmdStr, "^\"([^\"]+)\"")
+			if not cmd then
+				cmd = string.match(cmdStr, "^[^%s%c]+")
+			end
+			if shouldBlockCommands[cmd] then
+				ReportBlockedCommand(cmd)
+			else
+				local resultTab = {pcall(oldGameConsoleCommand, cmdStr, ...)}
+				if not resultTab[1] then
+					ReportBlockedCommand(cmd)
+				end
+			end
+		end
+		local oldConCommand = PLAYER.ConCommand
+		PLAYER.ConCommand = function(self, cmdStr, ...)
+			local cmd = string.match(cmdStr, "^\"([^\"]+)\"")
+			if not cmd then
+				cmd = string.match(cmdStr, "^[^%s%c]+")
+			end
+			if shouldBlockCommands[cmd] then
+				ReportBlockedCommand(cmd)
+			else
+				local resultTab = {pcall(oldConCommand, cmdStr, ...)}
+				if not resultTab[1] then
+					ReportBlockedCommand(cmd)
+				end
+			end
+		end
+	
+		ErrorNoHalt = function(...)
+			Log("ErrorNoHalt: ", ...)
+		end
+		Error = function(...)
+			Log("Error: ", ...)
+		end
+
+		if SERVER then
+			Log("Replaced server console command functions!")
+		end
+		if CLIENT then
+			Log("Replaced client console command functions!")
+		end
+	end)]]
+	
+	
+	
+	LUA_REPAIR_FIXED = true
 --end
 
 if SERVER then
 	Log("Serverside Lua has been repaired! Remember that if you are a Lua developer, please disable this addon or your users may get errors from your code!")
 end
 if CLIENT then
-	Log("Clientside Lua has been repaired! If you still see errors remember to report the full error message to the addon creator!")
+	Log("Clientside Lua has been repaired! If you still see errors remember to report the full error message to the creator of Lua Repair!")
 end
 
 --[[ below is just legacy code, don't bother

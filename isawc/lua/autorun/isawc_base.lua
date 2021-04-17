@@ -4,12 +4,12 @@ Profile Page:	https://steamcommunity.com/id/Piengineer12
 GitHub Page:	https://github.com/Piengineer12/public-addons/tree/master/isawc
 Donate:			https://ko-fi.com/randomtnt12
 
-Links above are confirmed working as of 2021-03-05. All dates are in ISO 8601 format. 
+Links above are confirmed working as of 2021-04-14. All dates are in ISO 8601 format. 
 ]]
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "3.1.0"
-ISAWC._VERSIONDATE = "2021-03-23"
+ISAWC._VERSION = "3.1.3"
+ISAWC._VERSIONDATE = "2021-04-17"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -2319,7 +2319,7 @@ ISAWC.GetClientStats = function(self,ply)
 		end
 	else
 		for k,v in pairs({ply,ply:GetChildren()}) do
-			if IsValid(v) then
+			if (IsValid(v) and v.GetPhysicsObjectCount) then
 				for i=1,v:GetPhysicsObjectCount() do
 					local physobj = v:GetPhysicsObjectNum(i-1)
 					if IsValid(physobj) then
@@ -2744,7 +2744,7 @@ ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 						if IsTableOfEntitiesValid(entTab) then
 							table.insert(ply.ISAWC_Inventory,dupe)
 						else
-							self:NoPickup("Error: Can't undo deleted entity!",ply)
+							self:NoPickup("Can't undo deleted entity!",ply)
 						end
 					end
 				end)
@@ -2834,7 +2834,7 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 						if IsTableOfEntitiesValid(entTab) then
 							table.insert(container.ISAWC_Inventory,dupe)
 						else
-							self:NoPickup("Error: Can't undo deleted entity!",ply)
+							self:NoPickup("Can't undo deleted entity!",ply)
 						end
 					end
 				end)
@@ -3347,7 +3347,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					container.CloseSounds = string.Split(net.ReadString(),'|')
 				end
 				if next(container.OpenSounds or {}) then
-					surface.PlaySound(container.OpenSounds[math.random(1,#container.OpenSounds)])
+					container:EmitSound(container.OpenSounds[math.random(1,#container.OpenSounds)], 60)
 				end
 			end
 		elseif func == "container_close" then
@@ -3355,7 +3355,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			if IsValid(container) then
 				container.FinishCloseAnimTime = CurTime() + (container.CloseAnimTime or 0)
 				if next(container.CloseSounds or {}) then
-					surface.PlaySound(container.CloseSounds[math.random(1,#container.CloseSounds)])
+					container:EmitSound(container.CloseSounds[math.random(1,#container.CloseSounds)], 60)
 				end
 			end
 		elseif func == "inv2" and IsValid(self.reliantwindow) then
@@ -3563,6 +3563,7 @@ ISAWC.Tick = function()
 		if nextsave < RealTime() then
 			nextsave = RealTime() + ISAWC.ConDoSaveDelay:GetFloat()
 			ISAWC:SaveInventory(player.GetAll())
+			ISAWC:Log("Player inventories saved!")
 		end
 	end
 	if CLIENT then
