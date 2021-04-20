@@ -8,8 +8,8 @@ Links above are confirmed working as of 2021-04-14. All dates are in ISO 8601 fo
 ]]
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "3.1.3"
-ISAWC._VERSIONDATE = "2021-04-17"
+ISAWC._VERSION = "3.1.4"
+ISAWC._VERSIONDATE = "2021-04-20"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -110,7 +110,7 @@ If this is 0, the distance limit will not be enforced.")
 ISAWC.ConDoSave = CreateConVar("isawc_player_save","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "Sets whether players' inventories are saved or not.\
 1: Saves players' inventories periodically (see \"isawc_player_savedelay\") or when they disconnect or die.\
-2: Saves players' inventories whenever their inventory is changed (may caused tremendous lag!)")
+2: Saves players' inventories whenever their inventory is changed (may cause tremendous lag!)")
 
 ISAWC.ConUndoIntoContain = CreateConVar("isawc_undo_into_container","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "If set, undone spawn groups will be put back into the container it came from, instead of being deleted entirely.")
@@ -3562,8 +3562,10 @@ ISAWC.Tick = function()
 	if SERVER then
 		if nextsave < RealTime() then
 			nextsave = RealTime() + ISAWC.ConDoSaveDelay:GetFloat()
-			ISAWC:SaveInventory(player.GetAll())
-			ISAWC:Log("Player inventories saved!")
+			if ISAWC.ConDoSave:GetInt() > 0 then
+				ISAWC:SaveInventory(player.GetAll())
+				ISAWC:Log("Player inventories saved!")
+			end
 		end
 	end
 	if CLIENT then
