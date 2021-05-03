@@ -31,7 +31,7 @@ ENT.UpgradeReference = {
 			"All Hidden gBalloons within this tower's radius become visible to all towers.",
 			"All Shielded gBalloons within this tower's radius take double damage from all sources.",
 			"All gBalloons within the tower's range lose all immunities. gBalloon armour is not affected.",
-			"Once every 60 seconds, shooting at this tower causes all towers to deal 400% more damage for 15 seconds.",
+			"Once every 60 seconds, shooting at this tower causes all towers to deal 15 extra layers of damage for 15 seconds.",
 		},
 		Prices = {500,1000,2000,4000,30000,35000},
 		Funcs = {
@@ -98,7 +98,7 @@ ENT.UpgradeReference = {
 				The chance is reduced if the firing tower fires more than once per second.",
 			"All towers in this tower's radius no longer have upgrade path restrictions!",
 		},
-		Prices = {400,500,2500,5000,15000,50000000},--1000000
+		Prices = {400,500,2500,5000,15000,50000000},
 		Funcs = {
 			function(self)
 				self.rotgb_Buff = 1
@@ -212,10 +212,10 @@ end
 function ENT:TriggerAbility()
 	for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
 		if v.Base=="gballoon_tower_base" and v.AttackDamage then
-			v.AttackDamage = v.AttackDamage * 5
-			timer.Simple(5,function()
+			v.AttackDamage = v.AttackDamage + 150
+			timer.Simple(15,function()
 				if IsValid(v) then
-					v.AttackDamage = v.AttackDamage / 5
+					v.AttackDamage = v.AttackDamage - 150
 				end
 			end)
 		end

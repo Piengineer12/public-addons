@@ -21,17 +21,18 @@ ENT.rotgb_Radius = 128
 ENT.rotgb_Bounces = 4
 ENT.UpgradeReference = {
 	{
-		Names = {"Long Spark","Faster Recharge","High Farad Capacitors","Recursive Zap"},
+		Names = {"High Voltage","Faster Recharge","High Farad Capacitors","Recursive Zap","Extreme Voltage"},
 		Descs = {
-			"Increases the travel distance of electrostatic jumps.",
+			"Considerably increases the number of electrostatic jumps.",
 			"Static electricity is generated faster.",
 			"Static electricity is generated even faster and deals more damage.",
-			"Static electricity can now hit multiple gBalloons and bounce on the same gBalloon multiple times, resulting in extremely large amounts of damage per hit."
+			"Static electricity can now hit multiple gBalloons and bounce on the same gBalloon multiple times, resulting in extremely large amounts of damage per hit.",
+			"Tremendously increases the number of electrostatic jumps.",
 		},
-		Prices = {250,700,4000,35000},
+		Prices = {400,700,4000,35000,300000},
 		Funcs = {
 			function(self)
-				self.rotgb_Radius = self.rotgb_Radius * 2
+				self.rotgb_Bounces = self.rotgb_Bounces * 2
 			end,
 			function(self)
 				self.FireRate = self.FireRate*2
@@ -42,21 +43,25 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.rotgb_Recursion = 1
-			end
+			end,
+			function(self)
+				self.rotgb_Bounces = self.rotgb_Bounces * 3
+			end,
 		}
 	},
 	{
-		Names = {"High Voltage","Wild Sparks","Heart Stopper","Electromagnetic Pulser"},
+		Names = {"Long Spark","Wild Sparks","Heart Stopper","Electromagnetic Pulser","Thundercloud"},
 		Descs = {
-			"Doubles the number of electrostatic jumps.",
+			"Considerably increases the travel distance of electrostatic jumps.",
 			"Electrostatic jumps can hit hidden gBalloons.",
 			"On hit, stuns gBalloons for 0.25s and Regen gBalloons may only regenerate up to their current tier.",
-			"This tower now radiates an electric field that shocks all gBalloons within its radius. Also considerably increases range and enables the tower to pop Purple gBalloons."
+			"This tower now radiates an electric field that shocks all gBalloons within its radius. Also considerably increases range and enables the tower to pop Purple gBalloons.",
+			"This tower emits electrostatic sparks again that can jump up to 99 times. Also tremendously increases the travel distance of electrostatic jumps and considerably increases attack damage."
 		},
-		Prices = {400,1000,2000,15000},
+		Prices = {250,1000,2000,15000,75000},
 		Funcs = {
 			function(self)
-				self.rotgb_Bounces = self.rotgb_Bounces * 2
+				self.rotgb_Radius = self.rotgb_Radius * 2
 			end,
 			function(self)
 				self.SeeCamo = true
@@ -68,11 +73,17 @@ ENT.UpgradeReference = {
 				self.rotgb_Bounces = 0
 				self.DetectionRadius = self.DetectionRadius * 2
 				self.UserTargeting = false
+			end,
+			function(self)
+				self.AttackDamage = self.AttackDamage + 10
+				self.rotgb_Bounces = 99
+				self.rotgb_Radius = self.rotgb_Radius * 3
+				self.UserTargeting = true
 			end
 		}
 	}
 }
-ENT.UpgradeLimits = {4,2}
+ENT.UpgradeLimits = {5,2}
 
 function ENT:AccumulategBalloons(tab1)
 	local success

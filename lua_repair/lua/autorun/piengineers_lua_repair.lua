@@ -7,8 +7,8 @@ Donate:			https://ko-fi.com/randomtnt12
 Links above are confirmed working as of 2021-04-14. All dates are in ISO 8601 format. 
 ]]
 
-LUA_REPAIR_VERSION = "1.1.0"
-LUA_REPAIR_VERSION_DATE = "2021-04-15"
+LUA_REPAIR_VERSION = "1.2.1"
+LUA_REPAIR_VERSION_DATE = "2021-05-03"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
@@ -20,14 +20,13 @@ local function Log(...)
 end
 
 -- aaand pretty much everything here is dangerous
---function FixAllErrors()
+local function FixAllErrors()
 	if LUA_REPAIR_FIXED then return end
 	
 	local NIL = getmetatable(nil) or {}
 	local STRING = getmetatable("")
 	local VECTOR = FindMetaTable("Vector")
 	local NULL_META = getmetatable(NULL)
-	local PLAYER = FindMetaTable("Player")
 	local newNilMeta = {
 		__add = function(a,b)
 			return a or b
@@ -124,7 +123,7 @@ end
 	
 	debug.setmetatable(nil,NIL)
 	
-	--[[hook.Add("Initialize", "LUA_REPAIR", function()
+	hook.Add("Initialize", "LUA_REPAIR", function()
 		local shouldBlockCommands = {
 			["con_filter_enable"] = true,
 			["con_filter_text_out"] = true,
@@ -133,7 +132,7 @@ end
 		}
 		local blockedCommands = {}
 		
-		function ReportBlockedCommand(cmd)
+		local function ReportBlockedCommand(cmd)
 			if not blockedCommands[cmd] then
 				Log("An addon tried to use the console command "..cmd.." which is not allowed.")
 				if table.IsEmpty(blockedCommands) then
@@ -148,10 +147,11 @@ end
 			if shouldBlockCommands[cmd] then
 				ReportBlockedCommand(cmd)
 			else
-				local resultTab = {pcall(oldRunConsoleCommand, cmd, ...)}
+				oldRunConsoleCommand(cmd, ...)
+				--[[local resultTab = {pcall(oldRunConsoleCommand, cmd, ...)}
 				if not resultTab[1] then
 					ReportBlockedCommand(cmd)
-				end
+				end]]
 			end
 		end
 		local oldGameConsoleCommand = game.ConsoleCommand
@@ -163,12 +163,14 @@ end
 			if shouldBlockCommands[cmd] then
 				ReportBlockedCommand(cmd)
 			else
-				local resultTab = {pcall(oldGameConsoleCommand, cmdStr, ...)}
+				oldGameConsoleCommand(cmdStr, ...)
+				--[[local resultTab = {pcall(oldGameConsoleCommand, cmdStr, ...)}
 				if not resultTab[1] then
 					ReportBlockedCommand(cmd)
-				end
+				end]]
 			end
 		end
+		local PLAYER = FindMetaTable("Player")
 		local oldConCommand = PLAYER.ConCommand
 		PLAYER.ConCommand = function(self, cmdStr, ...)
 			local cmd = string.match(cmdStr, "^\"([^\"]+)\"")
@@ -178,10 +180,11 @@ end
 			if shouldBlockCommands[cmd] then
 				ReportBlockedCommand(cmd)
 			else
-				local resultTab = {pcall(oldConCommand, cmdStr, ...)}
+				oldConCommand(self, cmdStr, ...)
+				--[[local resultTab = {pcall(oldConCommand, cmdStr, ...)}
 				if not resultTab[1] then
 					ReportBlockedCommand(cmd)
-				end
+				end]]
 			end
 		end
 	
@@ -198,12 +201,12 @@ end
 		if CLIENT then
 			Log("Replaced client console command functions!")
 		end
-	end)]]
-	
-	
+	end)
 	
 	LUA_REPAIR_FIXED = true
---end
+end
+
+FixAllErrors()
 
 if SERVER then
 	Log("Serverside Lua has been repaired! Remember that if you are a Lua developer, please disable this addon or your users may get errors from your code!")
@@ -212,9 +215,7 @@ if CLIENT then
 	Log("Clientside Lua has been repaired! If you still see errors remember to report the full error message to the creator of Lua Repair!")
 end
 
---[[ below is just legacy code, don't bother
-
-function SetAutoFix(bool)
+--[[function SetAutoFix(bool)
 	if bool then
 		cookie.Delete("dont_lua_repair")
 	else
@@ -228,7 +229,7 @@ end
 
 if GetAutoFix() then
 	FixAllErrors()
-end
+end]]
 
 if SERVER then util.AddNetworkString("lua_repair") end
 
@@ -260,12 +261,12 @@ hook.Add("PopulateToolMenu","lua_repair",function()
 		Note that this functionality might cause slight performance issues.")
 		DLabel:SetTextColor(Color(255,0,0))
 		DForm:Button("Run Lua Repair","lua_repair_run")
-		local checkBoxLabel = vgui.Create("DCheckBoxLabel")
+		--[[local checkBoxLabel = vgui.Create("DCheckBoxLabel")
 		checkBoxLabel:SetText("Run On Startup")
 		checkBoxLabel:SetValue(GetAutoFix())
 		function checkBoxLabel:OnChange(bool)
 			SetAutoFix(bool)
 		end
-		DForm:AddItem(checkBoxLabel)
+		DForm:AddItem(checkBoxLabel)]]
 	end)
-end)]]
+end)
