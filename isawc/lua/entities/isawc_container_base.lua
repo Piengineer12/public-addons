@@ -14,6 +14,7 @@ ENT.OpenAnimTime = 1
 ENT.CloseAnimTime = 1
 ENT.ContainerMassMul = 1
 ENT.ContainerVolumeMul = 1
+ENT.ContainerCountMul = 1
 ENT.OpenSounds = {}
 ENT.CloseSounds = {}
 
@@ -29,11 +30,13 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Int",2,"PlayerTeam")
 	self:NetworkVar("Float",0,"MassMul",{KeyName="isawc_mass_mul",Edit={type="Float",category="Multipliers",title="Mass Mul.",min=0,max=10,order=5}})
 	self:NetworkVar("Float",1,"VolumeMul",{KeyName="isawc_volume_mul",Edit={type="Float",category="Multipliers",title="Volume Mul.",min=0,max=10,order=6}})
+	self:NetworkVar("Float",2,"CountMul",{KeyName="isawc_count_mul",Edit={type="Float",category="Multipliers",title="Count Mul.",min=0,max=10,order=7}})
 	self:NetworkVar("String",1,"FileID")
 	self:NetworkVar("String",2,"EnderInvName",{KeyName="enderchest_inv_name",Edit={type="Generic",title="Inv. ID (for EnderChests)",order=3}})
 	
 	self:SetMassMul(1)
 	self:SetVolumeMul(1)
+	self:SetCountMul(1)
 end
 
 function ENT:SpawnFunction(ply,trace,classname)
@@ -252,6 +255,17 @@ function ENT:Think()
 		if ISAWC.ConMagnet:GetFloat() > 0 and not ISAWC:StringMatchParams(self:GetClass(), ISAWC.BlackContainerMagnetList) then
 			if not self.MagnetScale then self.MagnetScale = self:BoundingRadius() end -- remove after next 2 updates, this is defined in Initialize
 			self:FindMagnetablesInSphere()
+		end
+		if self.ISAWC_IsDeathDrop and not self.ISAWC_Inventory[1] then
+			timer.Simple(ISAWC.ConDeathRemoveDelay:GetFloat()-4.24, function()
+				if IsValid(self) then
+					self:SetRenderMode(RENDERMODE_GLOW)
+					self:SetRenderFX(kRenderFxFadeSlow)
+					timer.Simple(4.24,function()
+						SafeRemoveEntity(self)
+					end)
+				end
+			end)
 		end
 	end
 	if CLIENT then

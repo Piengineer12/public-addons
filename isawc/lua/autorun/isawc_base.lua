@@ -8,8 +8,8 @@ Links above are confirmed working as of 2021-04-14. All dates are in ISO 8601 fo
 ]]
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "3.1.4"
-ISAWC._VERSIONDATE = "2021-04-20"
+ISAWC._VERSION = "3.2.0"
+ISAWC._VERSIONDATE = "2021-06-06"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -220,6 +220,37 @@ ISAWC:CreateListConCommand("isawc_container_magnetcontainerblacklist", {
 	end
 })
 
+ISAWC.BlackDeathBoxList = ISAWC.BlackDeathBoxList or {}
+ISAWC:CreateListConCommand("isawc_player_dropondeathblacklist", {
+	display = "The player death box blacklist is as follows: ",
+	display_table = ISAWC.BlackDeathBoxList,
+	display_function = function(k,v)
+		ISAWC:Log("\t"..string.format('%q',k)..",")
+	end,
+	purpose = "Adds or removes entity classes from the player death box blacklist. Classes in the blacklist will not be transferred to player death boxes if isawc_player_dropondeath is enabled.",
+	help = {
+		"Use \"isawc_player_dropondeathblacklist <class1> <class2> ...\" to add/remove entity classes into/from the list.",
+		"* and ? wildcards are supported.",
+		"Use \"isawc_player_dropondeathblacklist *\" to clear the list.",
+	},
+	help_small = "Usage: isawc_player_dropondeathblacklist <class1> <class2> ...",
+	exe = function(args)
+		for k,v in pairs(args) do
+			v = v:lower()
+			if v=="*" then
+				table.Empty(ISAWC.BlackDeathBoxList)
+				ISAWC:Log("Removed everything from the player death box blacklist.") break
+			elseif ISAWC.BlackDeathBoxList[v] then
+				ISAWC.BlackDeathBoxList[v] = nil
+				ISAWC:Log("Removed \""..v.."\" from the player death box blacklist.")
+			else
+				ISAWC.BlackDeathBoxList[v] = true
+				ISAWC:Log("Added \""..v.."\" into the player death box blacklist.")
+			end
+		end
+	end
+})
+
 ISAWC.ConUseWhitelist = CreateConVar("isawc_use_whitelist","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "If set, only entity classes that are in the whitelist can be picked up.\
 Otherwise, entity classes that aren't in the blacklist or are in the whitelist can be picked up.\
@@ -234,6 +265,10 @@ See the ConCommand \"isawc_export_whitelist\" to manipulate the list.")
 ISAWC.ConUseMagnetWhitelist = CreateConVar("isawc_use_magnetwhitelist","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "If set, only entity classes that are in the whitelist can be magnetized by containers.\
 See the ConCommand \"isawc_container_magnetwhitelist\" to manipulate the list.")
+
+ISAWC.ConUseDeathBoxWhitelist = CreateConVar("isawc_use_dropondeathwhitelist","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+"If set, only entity classes that are in the whitelist can be transferred to player death boxes if isawc_player_dropondeath is enabled.\
+See the ConCommand \"isawc_player_dropondeathwhitelist\" to manipulate the list.")
 
 ISAWC.Whitelist = ISAWC.Whitelist or {}
 ISAWC:CreateListConCommand("isawc_whitelist", {
@@ -305,7 +340,7 @@ ISAWC:CreateListConCommand("isawc_container_magnetwhitelist", {
 	display_function = function(k,v)
 		ISAWC:Log("\t"..string.format('%q',k)..",")
 	end,
-	purpose = "Adds or removes entity classes from the container magnetization whitelist. See the ConVar \"isawc_container_magnetwhitelist\" for more information.",
+	purpose = "Adds or removes entity classes from the container magnetization whitelist. See the ConVar \"isawc_use_magnetwhitelist\" for more information.",
 	help = {
 		"Use \"isawc_container_magnetwhitelist <class1> <class2> ...\" to add/remove an entity class into/from the list.",
 		"* and ? wildcards are supported.",
@@ -324,6 +359,37 @@ ISAWC:CreateListConCommand("isawc_container_magnetwhitelist", {
 			else
 				ISAWC.WhiteMagnetList[v] = true
 				ISAWC:Log("Added \""..v.."\" into the container magnetization whitelist.")
+			end
+		end
+	end
+})
+
+ISAWC.WhiteDeathBoxList = ISAWC.WhiteDeathBoxList or {}
+ISAWC:CreateListConCommand("isawc_player_dropondeathwhitelist", {
+	display = "The player death box whitelist is as follows: ",
+	display_table = ISAWC.WhiteDeathBoxList,
+	display_function = function(k,v)
+		ISAWC:Log("\t"..string.format('%q',k)..",")
+	end,
+	purpose = "Adds or removes entity classes from the player death box whitelist. See the ConVar \"isawc_use_dropondeathwhitelist\" for more information.",
+	help = {
+		"Use \"isawc_player_dropondeathwhitelist <class1> <class2> ...\" to add/remove an entity class into/from the list.",
+		"* and ? wildcards are supported.",
+		"Use \"isawc_player_dropondeathwhitelist *\" to clear the list."
+	},
+	help_small = "Usage: isawc_player_dropondeathwhitelist <class1> <class2> ...",
+	exe = function(args)
+		for k,v in pairs(args) do
+			v = v:lower()
+			if v=="*" then
+				table.Empty(ISAWC.WhiteDeathBoxList)
+				ISAWC:Log("Removed everything from the player death box whitelist.") break
+			elseif ISAWC.WhiteDeathBoxList[v] then
+				ISAWC.WhiteDeathBoxList[v] = nil
+				ISAWC:Log("Removed \""..v.."\" from the player death box whitelist.")
+			else
+				ISAWC.WhiteDeathBoxList[v] = true
+				ISAWC:Log("Added \""..v.."\" into the player death box whitelist.")
 			end
 		end
 	end
@@ -1194,6 +1260,8 @@ ISAWC.PopulateDFormOthers = function(DForm)
 	DForm:Help(" - "..ISAWC.ConDropOnDeathClass:GetHelpText().."\n")
 	DForm:TextEntry("Model of Dropped Container",ISAWC.ConDropOnDeathModel:GetName())
 	DForm:Help(" - "..ISAWC.ConDropOnDeathModel:GetHelpText().."\n")
+	DForm:CheckBox("Use Dropped Container Whitelist",ISAWC.ConUseDeathBoxWhitelist:GetName())
+	DForm:Help(" - "..ISAWC.ConUseDeathBoxWhitelist:GetHelpText().."\n")
 	local combox = DForm:ComboBox("Save Player Inventories",ISAWC.ConDoSave:GetName())
 	combox:AddChoice("0 - Don't", 0)
 	combox:AddChoice("1 - Occasionally", 1)
@@ -2290,7 +2358,7 @@ end
 ISAWC.GetClientStats = function(self,ply)
 	local isPlayer = ply:IsPlayer()
 	local cw,cv,cc = 0,0,0
-	local mw,mv,mc = 0,0,isPlayer and self.ConCount:GetInt() or self.ConCount2:GetInt()
+	local mw,mv,mc = 0,0,isPlayer and self.ConCount:GetInt() or self.ConCount2:GetInt() * (ply.GetCountMul and ply:GetCountMul() or 1)
 	for k,v in pairs(ply.ISAWC_Inventory or {}) do
 		local aw,av,ac = self:GetStatsFromDupeTable(v)
 		if aw > 0 then
@@ -2563,7 +2631,7 @@ ISAWC.PlayerSpawn = function(ply)
 end
 
 ISAWC.PlayerDeath = function(ply)
-	if (ply.ISAWC_Inventory and next(ply.ISAWC_Inventory)) and ISAWC.ConDropOnDeath:GetBool() then
+	if (ply.ISAWC_Inventory and next(ply.ISAWC_Inventory) or next(ply:GetWeapons())) and ISAWC.ConDropOnDeath:GetBool() then
 		local briefcase = ents.Create(ISAWC.ConDropOnDeathClass:GetString())
 		local modelOverride = ISAWC.ConDropOnDeathModel:GetString()
 		if not (IsValid(briefcase) and briefcase.Base == "isawc_container_base") then
@@ -2580,7 +2648,9 @@ ISAWC.PlayerDeath = function(ply)
 				briefcase.ContainerModel = modelOverride
 			end
 			briefcase:Spawn()
-			briefcase.ISAWC_IsDeathDrop = true
+			briefcase:SetMassMul(0)
+			briefcase:SetVolumeMul(0)
+			briefcase:SetCountMul(0)
 			ISAWC:SetSuppressUndo(true)
 			for i=1,#ply.ISAWC_Inventory do
 				local dupe = ply.ISAWC_Inventory[i]
@@ -2589,7 +2659,22 @@ ISAWC.PlayerDeath = function(ply)
 					--ISAWC:SpawnDupe(dupe,true,true,i,ply)
 				end
 			end
+			for k,v in pairs(ply:GetWeapons()) do
+				local passesblist = ISAWC:StringMatchParams(v:GetClass(), ISAWC.BlackDeathBoxList)
+				local passeswlist = not ISAWC.ConUseDeathBoxWhitelist:GetBool() or ISAWC:StringMatchParams(v:GetClass(), ISAWC.WhiteDeathBoxList)
+				if ISAWC:CanPickup(briefcase,v,true) and not passesblist and passeswlist then
+					ply:DropWeapon(v)
+					if ISAWC:CanProperty(briefcase,v) then
+						ISAWC:PropPickup(briefcase,v,ply)
+					end
+				end
+			end
 			ISAWC:SetSuppressUndo(false)
+			if next(briefcase.ISAWC_Inventory) then
+				briefcase.ISAWC_IsDeathDrop = true
+			else
+				SafeRemoveEntity(briefcase)
+			end
 			table.Empty(ply.ISAWC_Inventory)
 			ISAWC:SendInventory(ply)
 			ISAWC:SaveInventory(ply)
@@ -3171,17 +3256,6 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					table.insert(ply.ISAWC_Inventory,dupe)
 					table.remove(container.ISAWC_Inventory,invnum)
 				end
-				if container.ISAWC_IsDeathDrop and #container.ISAWC_Inventory <= 0 then
-					timer.Simple(self.ConDeathRemoveDelay:GetFloat()-4.24, function()
-						if IsValid(container) then
-							container:SetRenderMode(RENDERMODE_GLOW)
-							container:SetRenderFX(kRenderFxFadeSlow)
-							timer.Simple(4.24,function()
-								SafeRemoveEntity(container)
-							end)
-						end
-					end)
-				end
 				self:SendInventory2(ply,container)
 			end
 		elseif func == "empty" then
@@ -3220,10 +3294,8 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 		elseif func == "store_weapon" then
 			local ent = ply:GetActiveWeapon()
 			if IsValid(ent) then
-				if self:CanProperty(ply,ent) then
+				if self:CanPickup(ply,ent,true) then
 					ply:DropWeapon(ent)
-					ent.NextPickup2 = 0
-					ply.NextPickup = 0
 					if self:CanProperty(ply,ent) then
 						self:PropPickup(ply,ent)
 					end
@@ -3236,10 +3308,8 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			if self:IsLegalContainer(container,ply) then
 				local ent = ply:GetActiveWeapon()
 				if IsValid(ent) then
-					if self:CanProperty(ply,ent) then
+					if self:CanPickup(ply,ent,true) then
 						ply:DropWeapon(ent)
-						ent.NextPickup2 = 0
-						ply.NextPickup = 0
 						if self:CanProperty(ply,ent) then
 							self:PropPickup(ply,ent,container)
 						end
@@ -3253,10 +3323,8 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			if self:IsLegalContainer(container,ply) then
 				local ent = ply:GetActiveWeapon()
 				if IsValid(ent) then
-					if self:CanProperty(container,ent) then
+					if self:CanPickup(container,ent,true) then
 						ply:DropWeapon(ent)
-						ent.NextPickup2 = 0
-						ply.NextPickup = 0
 						if self:CanProperty(container,ent) then
 							self:PropPickup(container,ent,ply)
 						end
@@ -3295,12 +3363,13 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 		elseif func == "send_maker_data" then
 			local weapon = net.ReadEntity()
 			if (IsValid(weapon) and weapon:GetClass()=="weapon_isawc_maker") then
-				local massMul, volumeMul = net.ReadFloat(), net.ReadFloat()
+				local massMul, volumeMul, countMul = net.ReadFloat(), net.ReadFloat(), net.ReadFloat()
 				local massConstant, volumeConstant = net.ReadFloat(), net.ReadFloat()
 				local openSounds, closeSounds = net.ReadString(), net.ReadString()
 				--print(massMul, volumeMul, massConstant, volumeConstant, openSounds, closeSounds)
 				weapon:SetMassMul(massMul)
 				weapon:SetVolumeMul(volumeMul)
+				weapon:SetCountMul(countMul)
 				weapon:SetMassConstant(massConstant)
 				weapon:SetVolumeConstant(volumeConstant)
 				weapon:SetOpenSounds(openSounds)
@@ -3465,8 +3534,10 @@ ISAWC.StringMatchParams = function(self,str,params)
 end
 
 ISAWC.CanPickup = function(self,ply,ent,speculative)
-	if not (IsValid(ply) and IsValid(ent)) then return false end
-	if ent.ISAWC_BeingPhysgunned or ply.ISAWC_IsDeathDrop then return false end
+	if not IsValid(ply) then return false end
+	if not IsValid(ent) then self:NoPickup("You can't pick up a nonexistent entity!",ply) return false end
+	if ent.ISAWC_BeingPhysgunned then self:NoPickup("You can't pick up an entity that is being carried by the Physics Gun!",ply) return false end
+	if ply.ISAWC_IsDeathDrop then self:NoPickup("You can't pick up any entities!",ply) return false end
 	if (tonumber(ent.NextPickup2) or 0) > CurTime() and (tonumber(ent.NextPickup2) or 0) <= CurTime() + 0.5 and SERVER then return false end
 	if speculative then
 		ent.NextPickup2 = CurTime() - math.random()
@@ -3475,7 +3546,7 @@ ISAWC.CanPickup = function(self,ply,ent,speculative)
 	end
 	if ply.NextPickup2 == ent.NextPickup2 and not speculative then self:NoPickup("You can't pick up a container with the same NP time!",ply) return false end
 	if (ply:IsPlayer() and ply:IsAdmin()) and self.ConAdminOverride:GetBool() and SERVER then
-		local passeswlist = self.Whitelist[class]
+		local passeswlist = self:StringMatchParams(class, self.Whitelist)
 		if ent:IsPlayer() and not passeswlist then self:NoPickup("You can't pick up players!",ply) return false end
 		if ent==game.GetWorld() and not passeswlist then self:NoPickup("You can't pick up worldspawn!",ply) return false end
 		if not speculative then
@@ -3536,7 +3607,7 @@ ISAWC.CanPickup = function(self,ply,ent,speculative)
 			end
 		end
 	end
-	if self.ConOverride:GetBool() then return true end
+	if self.ConOverride:GetBool() or speculative then return true end
 end
 
 ISAWC.CanMultiSpawn = function(self,ply)

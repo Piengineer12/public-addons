@@ -54,13 +54,15 @@ SWEP.Secondary = {
 function SWEP:SetupDataTables()
 	self:NetworkVar("Float",0,"MassMul")
 	self:NetworkVar("Float",1,"VolumeMul")
-	self:NetworkVar("Float",2,"MassConstant")
-	self:NetworkVar("Float",3,"VolumeConstant")
+	self:NetworkVar("Float",2,"CountMul")
+	self:NetworkVar("Float",3,"MassConstant")
+	self:NetworkVar("Float",4,"VolumeConstant")
 	self:NetworkVar("String",0,"OpenSounds")
 	self:NetworkVar("String",1,"CloseSounds")
 	
 	self:SetMassMul(1)
 	self:SetVolumeMul(1)
+	self:SetCountMul(1)
 	self:SetMassConstant(10)
 	self:SetVolumeConstant(10)
 	self:SetOpenSounds("chest/open.wav")
@@ -81,6 +83,7 @@ function SWEP:PrimaryAttack()
 				Mass = self:GetMassConstant(),
 				Volume = self:GetVolumeConstant()
 			}
+			container:SetCountMul(self:GetCountMul())
 			container.OpenSounds = string.Split(self:GetOpenSounds(), '|')
 			container.CloseSounds = string.Split(self:GetCloseSounds(), '|')
 			container:SetPos(ent:GetPos())
@@ -132,7 +135,7 @@ function SWEP:OpenMakerMenu()
 	if (self.cooldown or 0) > RealTime() then return end
 	
 	self.cooldown = RealTime() + 1
-	local massMul, volumeMul = self:GetMassMul(), self:GetVolumeMul()
+	local massMul, volumeMul, countMul = self:GetMassMul(), self:GetVolumeMul(), self:GetCountMul()
 	local massConstant, volumeConstant = self:GetMassConstant(), self:GetVolumeConstant()
 	local openSounds, closeSounds = self:GetOpenSounds(), self:GetCloseSounds()
 	--print(massMul, volumeMul, massConstant, volumeConstant, openSounds, closeSounds)
@@ -167,6 +170,17 @@ function SWEP:OpenMakerMenu()
 	VolumeSlider:Dock(TOP)
 	function VolumeSlider:OnValueChanged(value)
 		volumeMul = value
+	end
+	
+	local CountSlider = Main:Add("DNumSlider")
+	CountSlider:SetText("Count Multiplier")
+	CountSlider:SetMinMax(0,10)
+	CountSlider:SetDecimals(3)
+	CountSlider:SetDefaultValue(1)
+	CountSlider:SetValue(countMul)
+	CountSlider:Dock(TOP)
+	function VolumeSlider:OnValueChanged(value)
+		countMul = value
 	end
 	
 	local ConstantMassSlider = Main:Add("DNumSlider")
@@ -230,6 +244,7 @@ function SWEP:OpenMakerMenu()
 			net.WriteEntity(weapon)
 			net.WriteFloat(massMul)
 			net.WriteFloat(volumeMul)
+			net.WriteFloat(countMul)
 			net.WriteFloat(massConstant)
 			net.WriteFloat(volumeConstant)
 			net.WriteString(openSounds)
