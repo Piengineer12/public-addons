@@ -8,8 +8,8 @@ Links above are confirmed working as of 2021-04-14. All dates are in ISO 8601 fo
 ]]
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "3.2.0"
-ISAWC._VERSIONDATE = "2021-06-06"
+ISAWC._VERSION = "3.3.1"
+ISAWC._VERSIONDATE = "2021-06-09"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -28,6 +28,26 @@ ISAWC.dm3perHu = 0.00204838
 
 ISAWC.Log = function(self,msg)
 	MsgC(color_aqua,"[ISAWC] ",color_white,msg,"\n")
+end
+
+ISAWC.StringMatchParams = function(self,str,params)
+	for k,v in pairs(params) do
+		local findStr = string.PatternSafe(k)
+		findStr = string.Replace(findStr, "%*", ".+")
+		findStr = string.Replace(findStr, "%?", ".")
+		if string.find(str, "^"..findStr.."$") then return v end
+	end
+	return false
+end
+
+ISAWC.FilterSequentialTable = function(self,tab,func)
+	local filtered = {}
+	for i,v in ipairs(tab) do
+		if func(i,v) then
+			table.insert(filtered, v)
+		end
+	end
+	return filtered
 end
 
 ISAWC.ConCommands = {}
@@ -810,8 +830,12 @@ ISAWC.ConCount3 = CreateConVar("isawc_pickup_countmul","1",FCVAR_ARCHIVE+FCVAR_R
 If you want to set the amount for individual items, see the isawc_countlist ConCommand.\
 Note that decimal values are rounded down within inventories, which can lead to confusion.")
 
-ISAWC.ConDeathRemoveDelay = CreateConVar("isawc_player_deathdroptime","10",FCVAR_ARCHIVE+FCVAR_REPLICATED,
-"Sets the amount of time to wait before removing the box players drop upon death, after being emptied.")
+ISAWC.ConDeathRemoveDelay = CreateConVar("isawc_player_dropondeathtime","10",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+"Sets the amount of time to wait before removing the container players drop upon death, after being emptied.")
+
+ISAWC.ConDropOnDeathAmount = CreateConVar("isawc_player_dropondeathmax","-1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+"Sets the maximum number of the containers players drop upon death, per player. If another is created when the player is at its limit, the oldest one is removed.\
+A value of -1 indicates no limit.")
 
 ISAWC.ConSpawnDelay = CreateConVar("isawc_spawn_delay","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "Sets the minimum delay between inventory item spawns by players.")
@@ -1260,6 +1284,8 @@ ISAWC.PopulateDFormOthers = function(DForm)
 	DForm:Help(" - "..ISAWC.ConDropOnDeathClass:GetHelpText().."\n")
 	DForm:TextEntry("Model of Dropped Container",ISAWC.ConDropOnDeathModel:GetName())
 	DForm:Help(" - "..ISAWC.ConDropOnDeathModel:GetHelpText().."\n")
+	DForm:NumSlider("Max Dropped Containers",ISAWC.ConDropOnDeathAmount:GetName(),-1,100,0)
+	DForm:Help(" - "..ISAWC.ConDropOnDeathAmount:GetHelpText().."\n")
 	DForm:CheckBox("Use Dropped Container Whitelist",ISAWC.ConUseDeathBoxWhitelist:GetName())
 	DForm:Help(" - "..ISAWC.ConUseDeathBoxWhitelist:GetHelpText().."\n")
 	local combox = DForm:ComboBox("Save Player Inventories",ISAWC.ConDoSave:GetName())
@@ -1267,7 +1293,7 @@ ISAWC.PopulateDFormOthers = function(DForm)
 	combox:AddChoice("1 - Occasionally", 1)
 	combox:AddChoice("2 - Frequently", 2)
 	DForm:Help(" - "..ISAWC.ConDoSave:GetHelpText().."\n")
-	DForm:NumSlider("Auto Save Delay",ISAWC.ConDoSaveDelay:GetName(),1,600,0)
+	DForm:NumSlider("Auto Save Delay",ISAWC.ConDoSaveDelay:GetName(),1,600,1)
 	DForm:Help(" - "..ISAWC.ConDoSaveDelay:GetHelpText().."\n")
 	DForm:CheckBox("Admin Can Pickup Any",ISAWC.ConAdminOverride:GetName())
 	DForm:Help(" - "..ISAWC.ConAdminOverride:GetHelpText().."\n")
@@ -2670,8 +2696,19 @@ ISAWC.PlayerDeath = function(ply)
 				end
 			end
 			ISAWC:SetSuppressUndo(false)
-			if next(briefcase.ISAWC_Inventory) then
+			if briefcase.ISAWC_Inventory[1] then
 				briefcase.ISAWC_IsDeathDrop = true
+				ply.ISAWC_DropOnDeathContainers = ISAWC:FilterSequentialTable(ply.ISAWC_DropOnDeathContainers or {}, function(k,v)
+					return IsValid(v)
+				end)
+				
+				table.insert(ply.ISAWC_DropOnDeathContainers, briefcase)
+				
+				if ISAWC.ConDropOnDeathAmount:GetInt() > 0 then
+					for i=1,#ply.ISAWC_DropOnDeathContainers-ISAWC.ConDropOnDeathAmount:GetInt() do
+						ply.ISAWC_DropOnDeathContainers[i]:Remove()
+					end
+				end
 			else
 				SafeRemoveEntity(briefcase)
 			end
@@ -3521,16 +3558,6 @@ ISAWC.CanProperty = function(self,ply,ent)
 	else
 		return self:CanPickup(ply,ent)
 	end
-end
-
-ISAWC.StringMatchParams = function(self,str,params)
-	for k,v in pairs(params) do
-		local findStr = string.PatternSafe(k)
-		findStr = string.Replace(findStr, "%*", ".+")
-		findStr = string.Replace(findStr, "%?", ".")
-		if string.find(str, "^"..findStr.."$") then return v end
-	end
-	return false
 end
 
 ISAWC.CanPickup = function(self,ply,ent,speculative)

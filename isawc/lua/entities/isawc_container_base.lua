@@ -252,11 +252,9 @@ function ENT:Think()
 				end
 			end
 		end
-		if ISAWC.ConMagnet:GetFloat() > 0 and not ISAWC:StringMatchParams(self:GetClass(), ISAWC.BlackContainerMagnetList) then
-			if not self.MagnetScale then self.MagnetScale = self:BoundingRadius() end -- remove after next 2 updates, this is defined in Initialize
+		if ISAWC.ConMagnet:GetFloat() > 0 and not ISAWC:StringMatchParams(self:GetClass(), ISAWC.BlackContainerMagnetList) and not self.ISAWC_IsDeathDrop then
 			self:FindMagnetablesInSphere()
-		end
-		if self.ISAWC_IsDeathDrop and not self.ISAWC_Inventory[1] then
+		elseif self.ISAWC_IsDeathDrop and not self.ISAWC_Inventory[1] then
 			timer.Simple(ISAWC.ConDeathRemoveDelay:GetFloat()-4.24, function()
 				if IsValid(self) then
 					self:SetRenderMode(RENDERMODE_GLOW)
