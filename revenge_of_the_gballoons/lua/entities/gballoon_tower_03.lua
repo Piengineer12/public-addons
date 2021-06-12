@@ -6,7 +6,7 @@ ENT.PrintName = "Sniper Queen"
 ENT.Category = "RotgB: Towers"
 ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "Snipe those gBalloons!"
+ENT.Purpose = "This tower slowly fires bullets that deal high damage."
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -21,15 +21,16 @@ ENT.UserTargeting = true
 ENT.AttackDamage = 30
 ENT.UpgradeReference = {
 	{
-		Names = {"Sniping Scope","Night Vision Goggles","Semi-Automatic Rifle","Fully-Automatic Rifle","Marking Shots"},
+		Names = {"Sniping Scope","Night Vision Goggles","Semi-Automatic Rifle","Fully-Automatic Rifle","Marking Shots","England's Grace"},
 		Descs = {
 			"Increases range to infinite.",
 			"Grants Hidden gBalloon popping power.",
 			"Tremendously increases fire rate.",
 			"Colossally increases fire rate!",
-			"This tower now places markers on gBalloons. Each marker placed increases damage taken from Sniper Queens by one layer. Markers only affect the gBalloon's outermost layer."
+			"This tower now places markers on gBalloons. Each marker placed increases damage taken from Sniper Queens by one layer. Markers only affect the gBalloon's outermost layer.",
+			"Increases fire rate further and this tower hits all gBalloons in its radius per shot!"
 		},
-		Prices = {300,750,2500,10000,100000},
+		Prices = {300,750,2500,10000,100000,25e6},
 		Funcs = {
 			function(self)
 				self.InfiniteRange = true
@@ -45,19 +46,24 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.rotgb_MarkingShots = true
+			end,
+			function(self)
+				self.FireRate = self.FireRate * 5
+				self.rotgb_Spread = true
 			end
 		}
 	},
 	{
-		Names = {"Point Five Oh","Large Calibre","Armour Piercing Rounds","Blimp Beatdown","Blimp Eliminator"},
+		Names = {"Point Five Oh","Large Calibre","Armour Piercing Rounds","Blimp Beatdown","Blimp Eliminator","gBalloon Annihilator"},
 		Descs = {
 			"Pops five layers per shot.",
 			"Grants Gray gBalloon popping power and pops eight layers per shot!",
 			"Pops 18 layers per shot, enough to completely destroy a Ceramic gBalloon.",
 			"Pops 54 layers per shot! Shots will also stun gBlimps for 1 second. This upgrade can't stun Purple and Rainbow gBlimps.",
-			"Pops 270 layers per shot! Shots will also deal colossally increased damage versus gBlimps."
+			"Pops 270 layers per shot! Shots will also deal colossally increased damage versus gBlimps.",
+			"Pops 2700 layers per shot! Shots will also cause gBalloons to lose all immunities and most of its properties do not function for 1 second!"
 		},
-		Prices = {200,1250,2500,20000,500000},
+		Prices = {200,1250,2500,20000,500000,10e6},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 20
@@ -76,11 +82,15 @@ ENT.UpgradeReference = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 2160
 				self.rotgb_ExtraToBlimp = true
+			end,
+			function(self)
+				self.AttackDamage = self.AttackDamage + 24300
+				self.rotgb_NoImmune = true
 			end
 		}
 	}
 }
-ENT.UpgradeLimits = {5,2}
+ENT.UpgradeLimits = {6,2}
 
 local function SnipeEntity()
 	while true do
@@ -108,10 +118,23 @@ local function SnipeEntity()
 			ent:Stun(1)
 		end
 		if self.rotgb_MarkingShots then
-			ent.rotgb_AdditionslSniperDamage = ent.rotgb_AdditionslSniperDamage + 10
+			ent.rotgb_AdditionslSniperDamage = (ent.rotgb_AdditionslSniperDamage or 0) + 10
 		end
 		if self.rotgb_ExtraToBlimp and ent:GetBalloonProperty("BalloonBlimp") then
 			bullet.Damage = bullet.Damage * 5
+		end
+		if self.rotgb_NoImmune then
+			ent.BalloonRegenTime = CurTime()+GetConVar("rotgb_regen_delay"):GetFloat()+1
+			if ent:GetBalloonProperty("BalloonFast") then
+				ent:Slowdown("ROTGB_FASTLESS",0.5,1)
+			end
+			if ent:GetBalloonProperty("BalloonHidden") then
+				ent:InflictRotgBStatusEffect("unhide",1)
+			end
+			if ent:GetBalloonProperty("BalloonShielded") then
+				ent:InflictRotgBStatusEffect("unshield",1)
+			end
+			ent:InflictRotgBStatusEffect("unimmune",1)
 		end
 		self:FireBullets(bullet)
 	end
@@ -121,6 +144,13 @@ ENT.thread = coroutine.create(SnipeEntity)
 coroutine.resume(ENT.thread)
 
 function ENT:FireFunction(gBalloons)
-	local perf,str = coroutine.resume(self.thread,self,gBalloons[1])
-	if not perf then error(str) end
+	if self.rotgb_Spread then
+		for k,v in pairs(gBalloons) do
+			local perf,str = coroutine.resume(self.thread,self,v)
+			if not perf then error(str) end
+		end
+	else
+		local perf,str = coroutine.resume(self.thread,self,gBalloons[1])
+		if not perf then error(str) end
+	end
 end

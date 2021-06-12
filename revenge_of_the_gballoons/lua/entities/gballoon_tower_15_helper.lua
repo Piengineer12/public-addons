@@ -158,10 +158,10 @@ function ENT:FireAtEnemy()
 				end)
 			end
 		else
-			if self:GetSpawnedTower().rotgb_TurretBucks then
-				self:GetSpawnedTower():AddCash(10)
-			end
 			self.rotgb_Owner = self:GetSpawnedTower()
+			if self.rotgb_Owner.rotgb_TurretBucks then
+				self.rotgb_Owner:AddCash(10)
+			end
 			local enemy = self:GetEnemy()
 			local dir = enemy:GetPos()
 			self.loco:FaceTowards(dir)
@@ -174,8 +174,11 @@ function ENT:FireAtEnemy()
 				end]]
 				enemy:ShowCritEffect()
 			end
+			if self.rotgb_Owner.rotgb_Slowdown then
+				enemy:Slowdown("ROTGB_TOWER_15",0.25,1)
+			end
 			local bulletstruct = {
-				Attacker = self:GetSpawnedTower():GetTowerOwner(),
+				Attacker = self.rotgb_Owner:GetTowerOwner(),
 				Damage = damage,
 				Force = damage,
 				Distance = self:DetectionRadius(),

@@ -6,13 +6,13 @@ ENT.PrintName = "Bishop of Glue"
 ENT.Category = "RotgB: Towers"
 ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "Glue those gBalloons!"
+ENT.Purpose = "This tower slows gBalloons that it hits, but deals zero damage."
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/props_phx/games/chess/black_bishop.mdl")
-ENT.FireRate = 2--1
+ENT.FireRate = 2
 ENT.Cost = 300
 ENT.DetectionRadius = 384
 ENT.UseLOS = true
@@ -31,10 +31,10 @@ ENT.UpgradeReference = {
 			"Glue slows down gBalloons more and lasts slightly longer.",
 			"Considerably increases fire rate.",
 			"Glue slows down gBalloons even more.",
-			"Glue can now affect gBlimps and Aqua gBalloons.",
+			"Glue can now affect gBlimps.",
 			"Glue causes gBalloons to lose all immunities."
 		},
-		Prices = {250,500,1000,2500,4500},
+		Prices = {250,500,2000,40000,200000},
 		Funcs = {
 			function(self)
 				self.rotgb_GlueSlowdown = self.rotgb_GlueSlowdown * 1.5
@@ -59,11 +59,11 @@ ENT.UpgradeReference = {
 		Descs = {
 			"Glue soaks through all layers of gBalloons.",
 			"Glue causes gBalloons to take damage over time.",
-			"Glue pops two layers per second and lasts longer.",
+			"Glue pops two layers per second and lasts considerably longer.",
 			"Glue pops ten layers per second!",
 			"Glue pops 100 layers per second!"
 		},
-		Prices = {250,750,3500,17500,200000},
+		Prices = {250,1250,7500,75000,1500000},
 		Funcs = {
 			function(self)
 				self.rotgb_GlueSoak = true
@@ -90,9 +90,9 @@ ENT.UpgradeReference = {
 			"Three gBalloons are glued per shot.",
 			"One gBalloon is glued per shot, but glue hits affect surrounding gBalloons.",
 			"Any non-immune gBalloon within the tower's range gets glued! Also enables the tower to glue hidden gBalloons.",
-			"Glue lasts even longer. Once every 15 seconds, shooting at this tower causes ALL gBalloons to be glued, regardless of immunities!"
+			"Glue lasts considerably longer. Once every 15 seconds, shooting at this tower causes ALL gBalloons to be glued, regardless of immunities!"
 		},
-		Prices = {250,1000,3000,7500,17500},
+		Prices = {250,1000,5000,35000,125000},
 		Funcs = {
 			function(self)
 				self.DetectionRadius = self.DetectionRadius * 2
@@ -152,22 +152,21 @@ coroutine.resume(ENT.thread)
 
 function ENT:FireFunction(gBalloons)
 	local hits = 0
-	for i,v in ipairs(gBalloons) do
-		if self.rotgb_GlueSplatter then
-			for k,v in pairs(ents.FindInSphere(v:GetPos(),64)) do
-				if self:ValidTarget(v) and (not (v.rotgb_SpeedMods and v.rotgb_SpeedMods.ROTGB_GLUE_TOWER)) then
-					if not (v:GetBalloonProperty("BalloonBlimp") or v:GetBalloonProperty("BalloonAqua")) or self.rotgb_GreatGlue then
-						local perf,str = coroutine.resume(self.thread,self,v,true)
-						if not perf then error(str) end
-					else
-						v:ShowResistEffect(5)
-					end
+	if self.rotgb_GlueSplatter then
+		for k,v in pairs(ents.FindInSphere(v:GetPos(),64)) do
+			if self:ValidTargetIgnoreRange(v) and (not (v.rotgb_SpeedMods and v.rotgb_SpeedMods.ROTGB_GLUE_TOWER)) then
+				if not (v:GetBalloonProperty("BalloonBlimp") and not self.rotgb_GreatGlue or v:GetBalloonProperty("BalloonAqua")) then
+					local perf,str = coroutine.resume(self.thread,self,v,true)
+					if not perf then error(str) end
+				else
+					v:ShowResistEffect(5)
 				end
 			end
-			break
-		else
+		end
+	else
+		for i,v in ipairs(gBalloons) do
 			if not (v.rotgb_SpeedMods and v.rotgb_SpeedMods.ROTGB_GLUE_TOWER) then
-				if not (v:GetBalloonProperty("BalloonBlimp") or v:GetBalloonProperty("BalloonAqua")) or self.rotgb_GreatGlue then
+				if not (v:GetBalloonProperty("BalloonBlimp") and not self.rotgb_GreatGlue or v:GetBalloonProperty("BalloonAqua")) then
 					local perf,str = coroutine.resume(self.thread,self,v)
 					if not perf then error(str) end
 				else
@@ -207,7 +206,7 @@ function ENT:ROTGB_Think()
 		self.ThinkC = CurTime() + 0.5
 		for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
 			if v:GetClass()=="gballoon_base" then
-				if not (v:GetBalloonProperty("BalloonBlimp") or v:GetBalloonProperty("BalloonAqua")) or self.rotgb_GreatGlue then
+				if not (v:GetBalloonProperty("BalloonBlimp") and not self.rotgb_GreatGlue or v:GetBalloonProperty("BalloonAqua")) then
 					local perf,str = coroutine.resume(self.thread,self,v,true)
 					if not perf then error(str) end
 				else

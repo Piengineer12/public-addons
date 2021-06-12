@@ -6,7 +6,7 @@ ENT.PrintName = "Fire Cube"
 ENT.Category = "RotgB: Towers"
 ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "Burn those gBalloons!"
+ENT.Purpose = "This tower creates cones of fire that can set multiple gBalloons alight."
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -19,7 +19,7 @@ ENT.LOSOffset = Vector(0,0,24)
 ENT.UserTargeting = true
 ENT.AbilityCooldown = 15
 ENT.AttackDamage = 0
-ENT.rotgb_SpreadAngle = 10
+ENT.rotgb_SpreadAngle = 5
 ENT.rotgb_Flames = 1
 ENT.rotgb_FireDuration = 5
 ENT.rotgb_FireUptick = 10
@@ -29,21 +29,21 @@ ENT.UpgradeReference = {
 	{
 		Names = {"Duck Choke","ConeHead Choke","Twin-Spin","Dragon Trio","Ring of Death","Spontaneous Firestorm Protocol"},
 		Descs = {
-			"Slightly increases the flamethrower's width, but also reduces range.",
-			"Considerably increases the flamethrower's width.",
+			"Considerably increases the flamethrower's width, but slightly reduces range.",
+			"Tremendously increases the flamethrower's width.",
 			"Adds another flamethrower to the tower. The flamethrowers now deal direct damage, but spin clockwise at a moderate velocity.",
 			"Adds yet another flamethrower to the tower. Flamethrowers' direct damage is considerably increased and now spin clockwise at a high velocity.",
 			"Three more flamethrowers are added. Also tremendously increases the flamethrowers' direct damage.",
 			"Once every 15 seconds, shooting at this tower ignites ALL gBalloons currently in the map! Also causes them to be poppable by fires for the fire duration."
 		},
-		Prices = {100,500,750,1000,10000,20000},
+		Prices = {150,1250,1750,3500,6500,10000},
 		Funcs = {
 			function(self)
-				self.rotgb_SpreadAngle = self.rotgb_SpreadAngle * 1.5
-				self.DetectionRadius = self.DetectionRadius * 0.75
+				self.rotgb_SpreadAngle = self.rotgb_SpreadAngle * 2
+				self.DetectionRadius = self.DetectionRadius / 1.5
 			end,
 			function(self)
-				self.rotgb_SpreadAngle = self.rotgb_SpreadAngle * 2
+				self.rotgb_SpreadAngle = self.rotgb_SpreadAngle * 3
 			end,
 			function(self)
 				self.rotgb_Flames = self.rotgb_Flames + 1
@@ -71,21 +71,21 @@ ENT.UpgradeReference = {
 	{
 		Names = {"Second-hand Diesel","Mysterious Diesel","Fresh Fuel","High-Octane gBalloon Fuel","Super Hot Gasoline","Napalm"},
 		Descs = {
-			"Slightly increases burning duration, but slightly reduces fire rate.",
-			"Considerably increases burning duration and slightly increases damage over time. However, fire rate is considerably reduced.",
+			"Considerably increases burning duration, but slightly reduces fire rate.",
+			"Tremendously increases burning duration and considerably increases damage over time. However, fire rate is considerably reduced.",
 			"Slightly increases range and fires now ignore immunities.",
-			"Considerably increases range and fire damage over time.",
-			"All gBlimps take tremendously more fire damage over time! Also considerably increases fire rate.",
+			"Considerably increases range and tremendously increases fire damage over time.",
+			"gBlimps take triple fire damage! Also considerably increases fire rate.",
 			"Tremendously increases fire rate, and infinitely increases range and burning duration!"
 		},
-		Prices = {100,250,1500,3000,15000,150000},
+		Prices = {150,1250,3500,25000,100000,350000},
 		Funcs = {
 			function(self)
-				self.rotgb_FireDuration = self.rotgb_FireDuration * 1.5
+				self.rotgb_FireDuration = self.rotgb_FireDuration * 2
 				self.FireRate = self.FireRate / 1.5
 			end,
 			function(self)
-				self.rotgb_FireDuration = self.rotgb_FireDuration * 2
+				self.rotgb_FireDuration = self.rotgb_FireDuration * 3
 				self.rotgb_FireUptick = self.rotgb_FireUptick + 10
 				self.FireRate = self.FireRate / 2
 			end,
@@ -95,7 +95,7 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.DetectionRadius = self.DetectionRadius * 2
-				self.rotgb_FireUptick = self.rotgb_FireUptick + 20
+				self.rotgb_FireUptick = self.rotgb_FireUptick + 40
 			end,
 			function(self)
 				self.rotgb_HeavyFireUptick = 3
@@ -109,41 +109,41 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Shrapnel Thrower","Inner Fans","Hot Shots","Pressurized Tanks","Really Hot Shots","Basically a Tack Shooter"},
+		Names = {"Inner Fans","Shrapnel Thrower","Hot Shots","Pressurized Tanks","Really Hot Shots","Basically a Tack Shooter"},
 		Descs = {
+			"Considerably increases the tower's fire rate, but also slightly reduces the flamethrower's width.",
 			"The flamethrower now throws shrapnel towards gBalloons when burning them, even through walls.",
-			"Slightly increases the tower's fire rate, but also slightly reduces the flamethrowers' width.",
 			"Shrapnel can now deal damage to Gray gBalloons and Monochrome gBlimps.",
-			"Considerably increases fire rate and shrapnel damage, but considerably reduces the flamethrower's width.",
-			"Tremendously increases fire rate, but all flamethrowers are removed. Instead, shrapnel thrown by this tower sets them on fire.",
-			"Tremendously increases shrapnel damage and all gBalloons within range are hit every shot!",
+			"Tremendously increases fire rate and shrapnel damage, but considerably reduces the flamethrower's width.",
+			"Colossally increases fire rate, but all flamethrowers are removed. Instead, shrapnel thrown by this tower sets them on fire.",
+			"Colossally increases shrapnel damage and all gBalloons within range are hit every shot!",
 		},
-		Prices = {200,500,2000,4000,20000,60000},
+		Prices = {150,1000,1250,10000,25000,1500000},
 		Funcs = {
+			function(self)
+				self.FireRate = self.FireRate * 2
+				self.rotgb_SpreadAngle = self.rotgb_SpreadAngle / 1.5
+			end,
 			function(self)
 				self.rotgb_ShrapnelDamage = self.rotgb_ShrapnelDamage + 10
 				self.UserTargeting = true
 			end,
 			function(self)
-				self.FireRate = self.FireRate * 1.5
-				self.rotgb_SpreadAngle = self.rotgb_SpreadAngle / 1.5
-			end,
-			function(self)
 				self.rotgb_CanPopGray = true
 			end,
 			function(self)
-				self.FireRate = self.FireRate * 2
-				self.rotgb_ShrapnelDamage = self.rotgb_ShrapnelDamage + 10
+				self.FireRate = self.FireRate * 3
+				self.rotgb_ShrapnelDamage = self.rotgb_ShrapnelDamage + 20
 				self.rotgb_SpreadAngle = self.rotgb_SpreadAngle / 2
 			end,
 			function(self)
-				self.FireRate = self.FireRate * 3
+				self.FireRate = self.FireRate * 5
 				self.rotgb_Flames = self.rotgb_Flames - 1
 				self.rotgb_FlamingShrapnel = true
 				self:SetNWVector("OurTurning",vector_origin)
 			end,
 			function(self)
-				self.rotgb_ShrapnelDamage = self.rotgb_ShrapnelDamage + 40
+				self.rotgb_ShrapnelDamage = self.rotgb_ShrapnelDamage + 120
 				self.rotgb_MultiShot = true
 			end
 		}

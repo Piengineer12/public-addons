@@ -1,9 +1,9 @@
 AddCSLuaFile()
 
 SWEP.Category			= "RotgB"
-SWEP.Spawnable			= true
+--SWEP.Spawnable			= false
 --	SWEP.AdminOnly			= false
-SWEP.PrintName			= "RotgB Multitool"
+SWEP.PrintName			= "RotgB Multitool [DEPRECATED]"
 --	SWEP.Base				= weapon_base
 SWEP.m_WeaponDeploySpeed= 1
 SWEP.Author				= "Piengineer"

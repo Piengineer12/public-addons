@@ -37,9 +37,9 @@ ENT.rotgb_rbetab = {
 	gballoon_blimp_red=3148,
 	gballoon_blimp_green=16592,
 	gballoon_blimp_gray=972,
-	gballoon_blimp_purple=55128,
-	gballoon_blimp_magenta=5388,
-	gballoon_blimp_rainbow=221031,
+	gballoon_blimp_purple=57072,
+	gballoon_blimp_magenta=9276,
+	gballoon_blimp_rainbow=232695,
 	
 	-- the gBalloon Spawner implodes if we don't define these for some reason
 	gballoon_fast_hidden_regen_shielded_blimp_gray=1944,
@@ -71,9 +71,9 @@ ENT.rotgb_spawns = {
 	gballoon_blimp_red={gballoon_blimp_blue=4},
 	gballoon_blimp_green={gballoon_blimp_red=4},
 	gballoon_blimp_gray={gballoon_marble=4},
-	gballoon_blimp_purple={gballoon_blimp_green=2,gballoon_blimp_gray=2},
-	gballoon_blimp_magenta={gballoon_blimp_gray=4},
-	gballoon_blimp_rainbow={gballoon_blimp_purple=2,gballoon_blimp_magenta=2},
+	gballoon_blimp_purple={gballoon_blimp_green=2,gballoon_fast_hidden_regen_shielded_blimp_gray=2},
+	gballoon_blimp_magenta={gballoon_fast_hidden_regen_shielded_blimp_gray=4},
+	gballoon_blimp_rainbow={gballoon_blimp_purple=2,gballoon_fast_blimp_magenta=2},
 }
 ENT.DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","towers"}
 
@@ -1357,7 +1357,7 @@ function ENT:FindTarget()
 				elseif ConQ:GetInt()==3 then
 					resulttabs[v] = -v:Health()+math.random()
 				end
-				if isTarget then resulttabs[v] = resulttabs[v] + 1e9 end
+				if isTarget then resulttabs[v] = resulttabs[v] + 1e10 * (v:GetWeight() + 1) end
 				self:Log("Targeted "..tostring(v).." with priority "..resulttabs[v]..".","targeting")
 			else
 				self:LogError("Couldn't build a path! Discarding current target.","targeting")
@@ -1598,6 +1598,27 @@ function ENT:MoveToTarget()
 	return "Completely lost track!!"
 end
 
+function ENT:ChooseNextTargetWeighted(current, targets)
+	local targetWeightSelectionZones = {}
+	local totalWeights = 0
+	
+	for i,v in ipairs(targets) do
+		if v:GetWeight() > 0 then
+			table.insert(targetWeightSelectionZones, {totalWeights, v})
+			totalWeights = totalWeights + v:GetWeight()
+		end
+	end
+	
+	if totalWeights > 0 then
+		current = current % totalWeights
+		for i,v in ipairs(table.Reverse(targetWeightSelectionZones)) do
+			if current >= v[1] then return v[2] end
+		end
+	end
+	
+	return targets[math.random(#targets)]
+end
+
 function ENT:RunBehaviour()
 	while true do
 		if not self.FirstRunBehaviour then
@@ -1628,18 +1649,26 @@ function ENT:RunBehaviour()
 				if (IsValid(selftarg) and not GetConVar("ai_disabled"):GetBool() and selftarg:GetPos():DistToSqr(self:GetPos()) <= ConY:GetFloat()^2*2.25) then
 					if (selftarg:GetClass()=="gballoon_target" and selftarg:GetIsBeacon()) and self.LastBeacon ~= selftarg then
 						self.LastBeacon = selftarg
-						selftarg:TriggerOutput("OnWaypointed",self)
 						local nextTargs = {}
 						if self:GetBalloonProperty("BalloonBlimp") then
+							selftarg.rotgb_TimesBlimpWaypointed = (selftarg.rotgb_TimesBlimpWaypointed or 0) + 1
+							selftarg:TriggerOutput("OnWaypointedBlimp",self,selftarg.rotgb_TimesBlimpWaypointed)
 							for i=1,16 do
 								local gTarg = selftarg["GetNextBlimpTarget"..i](selftarg)
 								if IsValid(gTarg) then
 									table.insert(nextTargs,gTarg)
 								end
 							end
+						else
+							selftarg.rotgb_TimesWaypointed = (selftarg.rotgb_TimesWaypointed or 0) + 1
+							selftarg:TriggerOutput("OnWaypointedNonBlimp",self,selftarg.rotgb_TimesWaypointed)
 						end
+						selftarg:TriggerOutput("OnWaypointed",self,(selftarg.rotgb_TimesWaypointed or 0)+(selftarg.rotgb_TimesBlimpWaypointed or 0))
 						if next(nextTargs) then
-							self:SetTarget(nextTargs[math.random(#nextTargs)])
+							--[[ local nextTargetNum = selftarg.rotgb_TimesBlimpWaypointed % #nextTargs
+							if nextTargetNum == 0 then nextTargetNum = #nextTargs end
+							self:SetTarget(nextTargs[nextTargetNum]) ]]
+							self:SetTarget(self:ChooseNextTargetWeighted(selftarg.rotgb_TimesBlimpWaypointed, nextTargs))
 						else
 							for i=1,16 do
 								local gTarg = selftarg["GetNextTarget"..i](selftarg)
@@ -1648,7 +1677,11 @@ function ENT:RunBehaviour()
 								end
 							end
 							if next(nextTargs) then
-								self:SetTarget(nextTargs[math.random(#nextTargs)])
+								local times = self:GetBalloonProperty("BalloonBlimp") and (selftarg.rotgb_TimesWaypointed or 0)+selftarg.rotgb_TimesBlimpWaypointed or selftarg.rotgb_TimesWaypointed
+								--[[ local nextTargetNum = times % #nextTargs
+								if nextTargetNum == 0 then nextTargetNum = #nextTargs end
+								self:SetTarget(nextTargs[nextTargetNum]) ]]
+								self:SetTarget(self:ChooseNextTargetWeighted(times, nextTargs))
 							end
 						end
 					else
@@ -1720,7 +1753,7 @@ function ENT:Slowdown(id,amt,tim)
 	self.rotgb_SpeedMods = self.rotgb_SpeedMods or {}
 	if self.rotgb_SpeedMods[id] then
 		tim = math.max(tim,self.rotgb_SpeedMods[id][1]-CurTime())
-		amt = math.max(amt,self.rotgb_SpeedMods[id][2])
+		amt = math.min(amt,self.rotgb_SpeedMods[id][2])
 	end
 	self.rotgb_SpeedMods[id] = {CurTime() + tim,amt}
 end
@@ -1728,6 +1761,31 @@ end
 function ENT:UnSlowdown(id)
 	self.rotgb_SpeedMods = self.rotgb_SpeedMods or {}
 	self.rotgb_SpeedMods[id] = nil
+end
+
+function ENT:GetAndApplyValueMultipliers(value)
+	local total = value
+	for k,v in pairs(self.rotgb_ValueMultipliers or {}) do
+		if v[1] > CurTime() then
+			local increment = v[2]*value
+			total = total + increment
+			if IsValid(v[3]) then
+				v[3]:SetCashGenerated(v[3]:GetCashGenerated()+increment)
+			end
+		else
+			self.rotgb_ValueMultipliers[k] = nil
+		end
+	end
+	return total
+end
+
+function ENT:MultiplyValue(id,tower,amt,tim)
+	self.rotgb_ValueMultipliers = self.rotgb_ValueMultipliers or {}
+	if self.rotgb_ValueMultipliers[id] then
+		tim = math.max(tim,self.rotgb_ValueMultipliers[id][1]-CurTime())
+		amt = math.max(amt,self.rotgb_ValueMultipliers[id][2])
+	end
+	self.rotgb_ValueMultipliers[id] = {CurTime() + tim,amt,tower}
 end
 
 function ENT:CreateFire(dmg, atk, inflictor, tim)
@@ -1815,11 +1873,10 @@ function ENT:ShowCritEffect()
 	end
 end
 
-game.AddDecal("InkWhite","decals/decal_paintsplattergreen001")
-local function TestDamageResistances(properties,dmgbits)
+local function TestDamageResistances(properties,dmgbits,frozen)
 	if properties.BalloonGlass and dmgbits then return 8
 	elseif ConI:GetBool() then return
-	--if frozen and HasAnyBits(dmgbits,DMG_BULLET+DMG_SLASH+DMG_BUCKSHOT) then return 1
+	elseif frozen and HasAnyBits(dmgbits,DMG_BULLET+DMG_SLASH+DMG_BUCKSHOT) then return 6
 	elseif properties.BalloonBlack and HasAnyBits(dmgbits,DMG_BLAST,DMG_BLAST_SURFACE) then return 2
 	elseif properties.BalloonWhite and HasAnyBits(dmgbits,DMG_VEHICLE,DMG_DROWN,DMG_DROWNRECOVER) then return 1
 	elseif properties.BalloonPurple and HasAnyBits(dmgbits,DMG_BURN,DMG_SHOCK,DMG_ENERGYBEAM,DMG_SLOWBURN,
@@ -1828,6 +1885,7 @@ local function TestDamageResistances(properties,dmgbits)
 	--if properties.BalloonAqua and (HasAnyBits(dmgbits,DMG_CRUSH+DMG_FALL+DMG_CLUB+DMG_PHYSGUN)) then return 6 end
 end
 
+game.AddDecal("InkWhite","decals/decal_paintsplattergreen001")
 function ENT:PerformPops()
 	local health = self:Health()
 	if health<=0 then
@@ -1853,11 +1911,7 @@ function ENT:PerformPops()
 			end
 		end
 		local damageType = self.LastDamageType
-		if self:GetgBalloonCount()>256 then
-			self:Pop(-1,nil,damageType)
-		else
-			self:Pop(-health,nil,damageType)
-		end
+		self:Pop(-health,nil,damageType)
 	end
 end
 
@@ -1869,13 +1923,17 @@ function ENT:OnInjured(dmginfo)
 		self.LastDamageType = dmginfo:GetDamageType()
 		dmginfo:SetDamage(math.ceil(dmginfo:GetDamage()*0.1*ConP:GetFloat()))
 		self:Log("About to take "..dmginfo:GetDamage().." damage at "..self:Health().." health!","damage")
-		local resistresults = TestDamageResistances(self.Properties,self.LastDamageType--[[,(self.FreezeUntil or 0)>CurTime() or (self.FreezeUntil2 or 0)>CurTime()]])
+		local resistresults = TestDamageResistances(self.Properties,self.LastDamageType,(self.FreezeUntil or 0)>CurTime() or (self.FreezeUntil2 or 0)>CurTime())
 		if resistresults and not self:HasRotgBStatusEffect("unimmune") then
 			dmginfo:SetDamage(0)
 			self:ShowResistEffect(resistresults)
 		end
 		if self:GetBalloonProperty("BalloonArmor") and not ConI:GetBool() then
-			dmginfo:SubtractDamage(self:GetBalloonProperty("BalloonArmor"))
+			if self:GetBalloonProperty("BalloonArmor") < 0 then
+				dmginfo:AddDamage(-self:GetBalloonProperty("BalloonArmor"))
+			else
+				dmginfo:SubtractDamage(self:GetBalloonProperty("BalloonArmor"))
+			end
 			if dmginfo:GetDamage()<=0 and not resistresults then
 				self:ShowResistEffect(7)
 			end
@@ -1975,7 +2033,7 @@ function ENT:DetermineNextBalloons(blns,dmgbits,instant)
 				local keyvals = list.GetForEdit("NPC")[class].KeyValues
 				local blockbymaxdamage = (v.InternalPops or 0) >= (tonumber(keyvals.BalloonMaxDamage) or math.huge)
 				local unitshift = blockbymaxdamage and 0.1 or 1
-				if TestDamageResistances(keyvals,dmgbits--[[,v.Frozen]]) and not self:HasRotgBStatusEffect("unimmune") then
+				if TestDamageResistances(keyvals,dmgbits,v.Frozen) and not self:HasRotgBStatusEffect("unimmune") then
 					table.insert(newspawns,v)
 				elseif (istable(v) and (v.Health or 1)>unitshift) and not instant then
 				--elseif (istable(v) and v.Health > 1) and (not instant or blockbymaxdamage) then
@@ -2006,10 +2064,10 @@ function ENT:DetermineNextBalloons(blns,dmgbits,instant)
 						table.insert(newspawns,crt)
 					end
 					pluses = pluses + v.Amount
-					pops = pops + math.max(v.Health,v.Amount)
+					pops = pops + v.Amount * v.Health
 				else
 					pluses = pluses + v.Amount
-					pops = pops + v.Amount
+					pops = pops + v.Amount * v.Health
 				end
 				--[[if ConU:GetBool() then
 					local prod = {}
@@ -2030,7 +2088,7 @@ function ENT:Pop(damage,target,dmgbits)
 	-- self:SetNWBool("BalloonPurple",false)
 	local selftype = self:GetBalloonProperty("BalloonType")
 	local selfblmp = self:GetBalloonProperty("BalloonBlimp")
-	local nexts = {{Type=selftype,Amount=1,Health=1,Properties=self:GetBitflagPropertyState(),PrevBalloons=self.PrevBalloons,Blimp=selfblmp,Frozen=(self.FreezeUntil or 0)>CurTime() or (self.FreezeUntil2 or 0)>CurTime()}}
+	local nexts = {{Type=selftype,Amount=1,Health=1,Properties=self:GetBitflagPropertyState(),PrevBalloons=self.PrevBalloons,Blimp=selfblmp,Frozen=(self.FreezeUntil2 or 0)>CurTime()}}
 	local cash = 0
 	local pops = 0
 	local balloonnum = self:GetgBalloonCount()
@@ -2045,9 +2103,11 @@ function ENT:Pop(damage,target,dmgbits)
 		--local stime = SysTime()+ConT:GetFloat()*0.001/self:GetgBalloonCount()
 		--local toAdd,nextsasstring2,nxttab = {}
 		local i = 1
-		while i <= damage+1 or #nexts+balloonnum > ConH:GetInt() do
+		local spawnedBalloonCount = 1
+		while i <= damage+1 or spawnedBalloonCount+balloonnum > ConH:GetInt() do
 			local addcash,addpops = 0,0
-			nexts,addcash,addpops = self:DetermineNextBalloons(nexts,dmgbits,damage==math.huge or #nexts+balloonnum > ConH:GetInt())
+			local overspawned = spawnedBalloonCount+balloonnum > ConH:GetInt()
+			nexts,addcash,addpops = self:DetermineNextBalloons(nexts,overspawned and 0 or dmgbits,damage==math.huge or overspawned)
 			self:Log("Pop #"..i.." of #"..damage+1 ..":"..util.TableToJSON(nexts,true),"damage")
 			if (self.DeductCash or 0)>0 then
 				self.DeductCash = self.DeductCash - 1
@@ -2072,7 +2132,11 @@ function ENT:Pop(damage,target,dmgbits)
 					end
 				end
 			end]]
-			if #nexts==0 or addpops==0 --[[or (i>=ConL:GetInt() or stime<=SysTime()) and #nexts<=ConM:GetInt() and #nexts+balloonnum<=ConH:GetInt() and not shouldsave]] then break end
+			spawnedBalloonCount = 0
+			for k,v in pairs(nexts) do
+				spawnedBalloonCount = spawnedBalloonCount + (v.Amount or 1)
+			end
+			if spawnedBalloonCount==0 or addpops==0 --[[or (i>=ConL:GetInt() or stime<=SysTime()) and #nexts<=ConM:GetInt() and #nexts+balloonnum<=ConH:GetInt() and not shouldsave]] then break end
 		end
 		--[[if next(toAdd) then
 			self:Log("Values to push:"..util.TableToJSON(toAdd,true),"popping")
@@ -2098,9 +2162,13 @@ function ENT:Pop(damage,target,dmgbits)
 		end
 	end
 	if IsValid(target) then
-		target:TakeDamage((pops+math.max(self:Health(), 1))*Con5:GetFloat(),self,self)
+		local damage = (pops+math.max(self:Health(), 1)-1)*Con5:GetFloat()
+		target:TakeDamage(damage,self,self)
+		self:Log("Hurting "..tostring(target).." for "..damage.." damage...","damage")
 	else
-		self:Log("Awarding "..cash*ConO:GetFloat().." cash after "..pops.." pops...","damage")
+		local newcash = self:GetAndApplyValueMultipliers(cash)
+		self:Log("Awarding "..cash*ConO:GetFloat().." cash (x"..newcash/cash..") after "..pops.." pops...","damage")
+		cash = newcash
 		ROTGB_AddCash(cash*ConO:GetFloat())
 		if (IsValid(self.LastInflictor) and self.LastInflictor.Base == "gballoon_tower_base") and pops > 0 then
 			self.LastInflictor:AddPops(pops)
@@ -2146,6 +2214,13 @@ function ENT:Pop(damage,target,dmgbits)
 					spe.AcidicList = self.AcidicList
 					spe.TravelledDistance = self.TravelledDistance
 					spe.rotgb_SpeedMods = self.rotgb_SpeedMods
+					spe.rotgb_ValueMultipliers = self.rotgb_ValueMultipliers
+					if spe.rotgb_ValueMultipliers and spe.rotgb_ValueMultipliers.ROTGB_TOWER_17 then
+						local effData = EffectData()
+						effData:SetEntity(spe)
+						effData:SetOrigin(spe:GetPos())
+						util.Effect("gballoon_tower_17_morecash", effData)
+					end
 					if not self:HasRotgBStatusEffect("glue_soak") and spe.rotgb_SpeedMods then
 						spe.rotgb_SpeedMods.ROTGB_GLUE_TOWER = nil
 					end
@@ -2220,7 +2295,7 @@ function ENT:CheckForRegenAndFire()
 				--end
 			end
 		end
-		if self:GetBalloonProperty("BalloonDoRegen") and (self.PrevBalloons and #self.PrevBalloons>0) then
+		if self:GetBalloonProperty("BalloonDoRegen") and (self.PrevBalloons and next(self.PrevBalloons)) then
 			local curtime = CurTime()
 			self.BalloonRegenTime = self.BalloonRegenTime or curtime+ConR:GetFloat()
 			if self.BalloonRegenTime <= curtime then
@@ -3933,7 +4008,7 @@ local registerkeys = {
 	error = {
 		Name = "Error gBalloon",
 		KeyValues = {
-			BalloonMoveSpeed = "250",
+			BalloonMoveSpeed = "175",
 			BalloonScale = "1.75",
 			BalloonColor = "255 0 255 255",
 			BalloonType = "gballoon_error",

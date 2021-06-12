@@ -221,7 +221,7 @@ local addonoffers = [[What This Addon Offers:
 gBalloon Bestiary (Entities > RotgB: Miscellaneous)
 
 1 weapon (Weapons > RotgB)
-	RotgB Multitool
+	RotgB Game SWEP
 
 gBalloons (NPCs > RotgB)
 	17 basic types (NPCs > RotgB: gBalloons)
@@ -251,6 +251,36 @@ gBalloon Targets (Entities > RotgB: Miscellaneous)
 	RotgB Avoidance Editor
 	gBalloon Target Waypoint Editor
 ]]
+
+local credits = {
+	{"Piengineer", "76561198144438879", "Creating most parts of the addon."},
+	{"zorich_michael", "76561198196764081", "Suggested the waypoint system (2019-01-16)."},
+	{"Sergius", "76561198293518598", "Suggested the Ally Pawn (2019-01-19)."},
+	{"Fifu the Random Tribal Idiot", "76561198102225296", "Suggested the Orb of Cold (2019-01-28) and Microwave Tower (2019-02-10)."},
+	{"Famis_The_Wendigo", "76561198348095161", "Suggested the Ally Pawn (2019-02-07) and waypoint system (2019-03-03)."},
+	{"Platless", "76561198822619008", "Suggested the Rainbow Beamer (2019-02-13)."},
+	{"Sir. Vapenation", "76561198143774099", "Suggested the waypoint system (2019-03-18), Hoverball Factory (2019-03-18) and Turret Factory (2019-03-18)."},
+	{"mushroom", "76561198337193083", "Suggested the Bishop of Glue (2019-05-06)."},
+	{"Devro", "76561198363697889", "Suggested the Mortar Tower (2019-05-06)."},
+	{"itachi209", "76561198352896173", "Suggested the Glass gBalloon (2019-05-29)."},
+	{"PDA Expert", "76561198024198604", "Suggested the Sawblade Launcher (2019-07-12), Turret Factory (2020-02-13) and Pill Lobber (2020-12-26)."},
+	{"Conga Dispenser", "76561198361428640", "Suggested the Mortar Tower (2019-07-17), waypoint multi-path system (2019-09-01), individual cash system (2019-09-01), custom wave editor (2019-09-24) and gBalloon Target instant teleportation (2020-10-29)."},
+	{"SkyanUltra", "76561198147466564", "Suggested option to bypass upgrade path restrictions (2019-07-21)."},
+	{"BFR2005", "76561198089249743", "Suggested the Fire Cube (2019-07-30)."},
+	{"Pooie Stewie", "76561198274942231", "Suggested the custom wave editor (2019-09-24)."},
+	{"fansided", "76561198117057248", "Suggested multi-gBalloon Spawner activation (2020-03-03)."},
+	{"PuggleLeDog", "76561198120548061", "Suggested BTD4 Camo gBalloon (2020-10-04) and gBlimps with attributes (2020-10-04)."},
+	{"Ryankz11", "76561198004803429", "Suggested removal of annoying NavMesh missing message (2020-10-04)."},
+	{"<various people>", nil, "For reporting many of the bugs and balance changes with this addon."}
+}
+
+local creditsUnimplemented = {
+	{"Egg", "76561198853380897", "Suggested a crowbar / melee tower (2019-01-28)."},
+	{"SarnieMuncher", "76561198154658331", "Suggested for holdable gBalloons (2019-08-29)."},
+	{"dogethedoggo", "76561198857378000", "Suggested the Gravity Blaster (2020-08-11)."},
+	{"Hans", "76561199014467773", "Suggested for gBalloons to be availble for the Balloon tool (2020-12-12)."},
+	{"<various people>", nil, "Many other suggestions that ultimately did not make it."}
+}
 
 net.Receive("RotgB_Bestiary",function(length,ply)
 	if CLIENT then
@@ -315,10 +345,67 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 		RichText:InsertColorChange(127,127,127,255)
 		RichText:AppendText("-- if one or more features listed here are not available in this addon, please contact the customer service department of where you received this addon --")
 		function RichText:PerformLayout()
-			self:SetBGColor(63,63,63,255)
+			self:SetBGColor(0,0,0,191)
 			self:SetFontInternal("Trebuchet24")
 		end
 		ColumnSheet:AddSheet("Addon Contents",RichText)
+		
+		local CreditsPanel = ColumnSheet:Add("DScrollPanel")
+		CreditsPanel:Dock(FILL)
+		local Canvas = CreditsPanel:GetCanvas()
+		function Canvas:Paint(w,h)
+			surface.SetDrawColor(0,0,0,191)
+			surface.DrawRect(0,0,w,h)
+		end
+		function CreditsPanel:CreateCredit(tab)
+			local CreditPanel = CreditsPanel:Add("DPanel")
+			CreditPanel:SetTall(36)
+			CreditPanel:Dock(TOP)
+			function CreditPanel:Paint(w,h)
+				--surface.SetDrawColor(0,0,0)
+				--surface.DrawOutlinedRect(0,0,w,h,1)
+			end
+			local AuthorButton = CreditPanel:Add("DButton")
+			AuthorButton:SetWide(160)
+			AuthorButton:SetText(tab[1])
+			function AuthorButton:DoClick()
+				if tab[2] then
+					gui.OpenURL("https://steamcommunity.com/profiles/"..tab[2])
+				end
+			end
+			AuthorButton:Dock(LEFT)
+			
+			local ContributionText = CreditPanel:Add("DLabel")
+			ContributionText:DockMargin(8,0,0,0)
+			ContributionText:SetText(tab[3])
+			ContributionText:SetTextColor(color_white)
+			ContributionText:SetWrap(true)
+			ContributionText:Dock(FILL)
+		end
+		ColumnSheet:AddSheet("Credits",CreditsPanel)
+		
+		local CreditsText = CreditsPanel:Add("DLabel")
+		CreditsText:SetText("Credits:")
+		CreditsText:SetTextColor(color_white)
+		CreditsText:SetFont("Trebuchet24")
+		CreditsText:SizeToContentsY()
+		CreditsText:Dock(TOP)
+		
+		for i,v in ipairs(credits) do
+			CreditsPanel:CreateCredit(v)
+		end
+		
+		CreditsText = CreditsPanel:Add("DLabel")
+		CreditsText:DockMargin(0,12,0,0)
+		CreditsText:SetText("Honourable mentions, who's suggestions I liked but are not present in the addon:")
+		CreditsText:SetTextColor(color_white)
+		CreditsText:SetFont("Trebuchet24")
+		CreditsText:SizeToContentsY()
+		CreditsText:Dock(TOP)
+		
+		for i,v in ipairs(creditsUnimplemented) do
+			CreditsPanel:CreateCredit(v)
+		end
 		
 		for i,v in ipairs(order) do
 			AddBalloon(ColumnSheet,v)

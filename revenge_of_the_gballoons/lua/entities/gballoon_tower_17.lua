@@ -6,7 +6,7 @@ ENT.PrintName = "Pill Lobber"
 ENT.Category = "RotgB: Towers"
 ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "Treat those gBalloons!"
+ENT.Purpose = "This tower very slowly lobs pills that deal damage on direct hits, as well as splash damage but with a -1 layer penalty."
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -23,19 +23,23 @@ ENT.AbilityCooldown = 80
 ENT.rotgb_Pills = 1
 ENT.rotgb_ExploRadius = 64
 ENT.rotgb_PoisonDamage = 10
+ENT.rotgb_PoisonDuration = 10
+ENT.rotgb_PoisonRange = 64
 ENT.rotgb_SplashDamageModifier = -10
 ENT.rotgb_AbilityType = 0
 ENT.rotgb_FlyTime = 1
+ENT.rotgb_ExtraMul = 0
 ENT.UpgradeReference = {
 	{
-		Names = {"Faster Cooking","Better Cooking","Fire Pill Recipe","Rush Hour"},
+		Names = {"Faster Cooking","Better Cooking","Fire Pill Recipe","Minute Rush","Spray and Pray"},
 		Descs = {
 			"Slightly increases fire rate.",
 			"Considerably increases fire rate and slightly increases splash radius.",
 			"Enables the tower to lob fire pills that set gBalloons on fire for 10 seconds.",
 			"Once every 80 seconds, shooting at this tower tremendously increases fire rate and considerably increases pill count for 60 seconds.",
+			"Colossally increases fire rate and tremendously increases pill count for Minute Rush.",
 		},
-		Prices = {175,1000,6000,20000},
+		Prices = {175,1000,5000,12500,150000},
 		Funcs = {
 			function(self)
 				self.FireRate = self.FireRate*1.5
@@ -51,17 +55,21 @@ ENT.UpgradeReference = {
 				self.HasAbility = true
 				self.rotgb_AbilityType = self.rotgb_AbilityType + 1
 			end,
+			function(self)
+				self.rotgb_AbilityType = self.rotgb_AbilityType + 8
+			end
 		}
 	},
 	{
-		Names = {"Better Pills","Better Splash","Toxic Pill Recipe","Toxin Cloud"},
+		Names = {"Better Pills","Better Splash","Toxic Pill Recipe","Toxin Cloud","Cloud Nine"},
 		Descs = {
-			"Slightly increases direct hit damage and splash radius.",
-			"Considerably increases splash radius and tremendously increases indirect hit damage.",
+			"Increases direct hit damage by 1 layer and increases splash radius.",
+			"Considerably increases splash radius and increases indirect hit damage by 2 layers.",
 			"Enables the tower to lob toxic pills that leave a poisonous cloud behind. The clouds last for 10 seconds and deal 1 damage per half-second.",
 			"Tremendously increases poison cloud damage. Once every 80 seconds, shooting at this tower poisons all gBalloons in the map for 90 seconds.",
+			"Poison clouds deal 9x damage, are considerably bigger and last considerably longer."
 		},
-		Prices = {300,2750,10000,25000},
+		Prices = {250,3000,10000,25000,1.2e6},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 10
@@ -80,42 +88,84 @@ ENT.UpgradeReference = {
 				self.HasAbility = true
 				self.rotgb_AbilityType = self.rotgb_AbilityType + 2
 			end,
+			function(self)
+				self.rotgb_PoisonDamage = self.rotgb_PoisonDamage + 240
+				self.rotgb_PoisonDuration = self.rotgb_PoisonDuration * 2
+				self.rotgb_PoisonRange = self.rotgb_PoisonRange * 2
+			end,
 		}
 	},
 	{
-		Names = {"Sharper Glass","Even Sharper Glass","Electric Pill Recipe","Shock N' Wave"},
+		Names = {"Sharper Glass","Even Sharper Glass","Electric Pill Recipe","Shock N' Wave","Hypersonic Explosion"},
 		Descs = {
-			"Slightly increases direct hit damage and considerably increases indirect hit damage.",
-			"Considerably increases direct hit damage and tremendously increases indirect hit damage.",
-			"Enables the tower to lob electric pills that create an electric spark, arcing up to 4 gBalloons. Also enables the tower to pop Hidden gBallons.",
-			"Once every 80 seconds, shooting at this tower causes it to emit two pulses, dealing 2,000 layers of shock and sonic damage to all gBalloons within its radius.",
+			"Increases direct and indirect hit damage by 1 layer.",
+			"Increases direct hit damage by 3 layers and increases indirect hit damage by 4 layers.",
+			"Enables the tower to lob electric pills that create an electric spark, arcing up to 4 gBalloons.",
+			"Once every 80 seconds, shooting at this tower causes it to emit two pulses that deal shock and sonic damage, dealing 1,000 layers each to all gBalloons within its radius.",
+			"Causes the tower's ability to be on cooldown. Activating Shock N' Wave will destroy this tower to create two pulses that deal 100,000 layers each."
 		},
-		Prices = {350,1250,20000,100000},
+		Prices = {375,1500,7500,30000,750000},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 10
-				self.rotgb_SplashDamageModifier = self.rotgb_SplashDamageModifier - 10
 			end,
 			function(self)
 				self.AttackDamage = self.AttackDamage + 30
-				self.rotgb_SplashDamageModifier = self.rotgb_SplashDamageModifier + 20
+				self.rotgb_SplashDamageModifier = self.rotgb_SplashDamageModifier + 10
 			end,
 			function(self)
-				self.SeeCamo = true
 				table.insert(self.rotgb_PillTypes, 2)
 			end,
 			function(self)
 				self.HasAbility = true
 				self.rotgb_AbilityType = self.rotgb_AbilityType + 4
 			end,
+			function(self)
+				self.rotgb_AbilityType = self.rotgb_AbilityType + 16
+			end,
+		}
+	},
+	{
+		Names = {"Far Swings","Variably Accurate Targeting Systems","Conversion Pill Recipe","State-Changing Pills","First World Country Pills"},
+		Descs = {
+			"Increases the tower's range by a third.",
+			"Increases range to infinite, increases direct hit damage by 5 layers and enables the tower to pop Hidden gBalloons.",
+			"Enables the tower to lob conversion pills that instantly pop Gray gBalloons, and only Gray gBalloons. You gain an extra $25 for each gBalloon popped this way, quadrupled for each unlocked pill type.",
+			"Pills coat all gBalloon layers (but not gBlimps) in a chemical that permanently increases the gBalloon's cash drops by 100%. Note that cash drops induced by towers are not affected!",
+			"Pills can now coat gBlimps, and coatings increase cash drops by an additional 800%."
+		},
+		Prices = {125,1000,12500,25000,1e6},
+		Funcs = {
+			function(self)
+				self.DetectionRadius = self.DetectionRadius * 4/3
+			end,
+			function(self)
+				self.AttackDamage = self.AttackDamage + 50
+				self.rotgb_SplashDamageModifier = self.rotgb_SplashDamageModifier - 50
+				self.InfiniteRange = true
+				self.SeeCamo = true
+			end,
+			function(self)
+				table.insert(self.rotgb_PillTypes, 3)
+			end,
+			function(self)
+				self.rotgb_ExtraMul = 1
+			end,
+			function(self)
+				self.rotgb_ExtraBlimps = true
+				self.rotgb_ExtraMul = self.rotgb_ExtraMul * 9
+			end,
 		}
 	}
 }
-ENT.UpgradeLimits = {4,3,0}
+ENT.UpgradeLimits = {5,3,3,0}
 
-function ENT:GetZVelocity(heightDifference)
+function ENT:GetThrowVelocity(localVector)
 	local flyTime = self.rotgb_FlyTime
-	return (heightDifference-physenv.GetGravity().z*flyTime*flyTime/2)/flyTime
+	local tsd = flyTime*flyTime/2
+	local datsd = localVector-physenv.GetGravity()*tsd
+	datsd:Div(flyTime)
+	return datsd
 end
 
 function ENT:ROTGB_Initialize()
@@ -178,10 +228,12 @@ local function OnCollision(ent,coldata)
 		end
 		if ent.rotgb_PillType == 1 then
 			local poisonPos = coldata.HitPos+coldata.HitNormal
-			tower.rotgb_PoisonSpots[CurTime()+10] = poisonPos
+			tower.rotgb_PoisonSpots[CurTime()+tower.rotgb_PoisonDuration] = poisonPos
 			local effData = EffectData()
 			effData:SetOrigin(poisonPos)
 			effData:SetEntity(tower)
+			effData:SetMagnitude(tower.rotgb_PoisonDuration)
+			effData:SetScale(tower.rotgb_PoisonRange / 64)
 			util.Effect("gballoon_tower_17_poison", effData)
 		end
 	end
@@ -191,22 +243,48 @@ end
 
 function ENT:ApplyDirectDamage(bln,pill)
 	bln:ShowCritEffect()
+	local owner = self:GetTowerOwner()
 	pill:EmitSound("phx/epicmetal_hard"..math.random(7)..".wav",60,100,1,CHAN_WEAPON)
 	if pill.rotgb_PillType == 0 then
-		bln:RotgB_Ignite(10, self:GetTowerOwner(), self, 10)
+		bln:RotgB_Ignite(10, owner, self, 10)
+	elseif pill.rotgb_PillType == 3 and self.rotgb_ExtraMul > 0 and not bln:GetBalloonProperty("BalloonBlimp") or self.rotgb_ExtraBlimps then
+		bln:MultiplyValue("ROTGB_TOWER_17",self,self.rotgb_ExtraMul,99999)
+		local effData = EffectData()
+		effData:SetEntity(bln)
+		effData:SetOrigin(bln:GetPos())
+		util.Effect("gballoon_tower_17_morecash", effData)
 	end
 	local dmginfo = self:CreateDamageInfo()
-	dmginfo:SetDamage(self.rotgb_SplashDamageModifier > 0 and self.AttackDamage+self.rotgb_SplashDamageModifier or self.AttackDamage)
+	if pill.rotgb_PillType == 3 and bln:GetBalloonProperty("BalloonType")=="gballoon_gray" then
+		dmginfo:SetDamage(bln:GetRgBE()*1000)
+		dmginfo:SetDamageType(DMG_ACID)
+		self:AddCash(bit.lshift(25,2*#self.rotgb_PillTypes)*GetConVar("rotgb_cash_mul"):GetFloat(), owner)
+	else
+		dmginfo:SetDamage(self.rotgb_SplashDamageModifier > 0 and self.AttackDamage+self.rotgb_SplashDamageModifier or self.AttackDamage)
+	end
 	dmginfo:SetDamagePosition(bln:GetPos()+bln:OBBCenter())
 	bln:TakeDamageInfo(dmginfo)
 end
 
 function ENT:ApplyIndirectDamage(bln,pill)
+	local owner = self:GetTowerOwner()
 	if pill.rotgb_PillType == 0 then
-		bln:RotgB_Ignite(10, self:GetTowerOwner(), self, 10)
+		bln:RotgB_Ignite(10, owner, self, 10)
+	elseif pill.rotgb_PillType == 3 and self.rotgb_ExtraMul > 0 and not bln:GetBalloonProperty("BalloonBlimp") or self.rotgb_ExtraBlimps then
+		bln:MultiplyValue("ROTGB_TOWER_17",self,self.rotgb_ExtraMul,99999)
+		local effData = EffectData()
+		effData:SetEntity(bln)
+		effData:SetOrigin(bln:GetPos())
+		util.Effect("gballoon_tower_17_morecash", effData)
 	end
 	local dmginfo = self:CreateDamageInfo()
-	dmginfo:SetDamage(self.AttackDamage+self.rotgb_SplashDamageModifier)
+	if pill.rotgb_PillType == 3 and bln:GetBalloonProperty("BalloonGray") then
+		dmginfo:SetDamage(bln:GetRgBE()*1000)
+		dmginfo:SetDamageType(DMG_ACID)
+		self:AddCash(bit.lshift(25,2*#self.rotgb_PillTypes)*GetConVar("rotgb_cash_mul"):GetFloat(), owner)
+	else
+		dmginfo:SetDamage(self.AttackDamage+self.rotgb_SplashDamageModifier)
+	end
 	dmginfo:SetDamagePosition(bln:GetPos()+bln:OBBCenter())
 	bln:TakeDamageInfo(dmginfo)
 end
@@ -234,9 +312,11 @@ function ENT:LobPill(bln)
 		end
 		pill.rotgb_PillType = self.rotgb_PillTypes[self.rotgb_CurrentPill]
 		if pill.rotgb_PillType == 1 then
-			pill:SetColor(Color(0, 255, 127))
+			pill:SetColor(Color(0, 255, 0))
 		elseif pill.rotgb_PillType == 2 then
-			pill:SetColor(Color(127, 0, 255))
+			pill:SetColor(Color(0, 127, 255))
+		elseif pill.rotgb_PillType == 3 then
+			pill:SetColor(Color(255, 0, 255))
 		else
 			pill:SetColor(Color(255, 127, 0))
 		end
@@ -247,10 +327,10 @@ function ENT:LobPill(bln)
 	if IsValid(physobj) then
 		physobj:AddAngleVelocity(VectorRand(-1000,1000))
 		physobj:EnableDrag(false)
-		local ivel = bln:GetPos()+bln.loco:GetVelocity()*self.rotgb_FlyTime-self:GetShootPos()
-		ivel.x = ivel.x / self.rotgb_FlyTime
+		local ivel = self:GetThrowVelocity(bln:GetPos()+bln.loco:GetVelocity()*self.rotgb_FlyTime-self:GetShootPos())
+		--[[ivel.x = ivel.x / self.rotgb_FlyTime
 		ivel.y = ivel.y / self.rotgb_FlyTime
-		ivel.z = self:GetZVelocity(ivel.z)
+		ivel.z = self:GetZVelocity(ivel.z)]]
 		physobj:SetVelocity(ivel)
 	end
 end
@@ -276,7 +356,7 @@ function ENT:ROTGB_Think()
 			if k < CurTime() then
 				self.rotgb_PoisonSpots[k] = nil
 			else
-				for k2,v2 in pairs(ents.FindInSphere(v, 64)) do
+				for k2,v2 in pairs(ents.FindInSphere(v, self.rotgb_PoisonRange)) do
 					if self:ValidTargetIgnoreRange(v2) then
 						dmginfo:SetDamage(self.rotgb_PoisonDamage)
 						dmginfo:SetDamagePosition(v2:GetPos()+v2:OBBCenter())
@@ -303,19 +383,33 @@ end
 function ENT:TriggerAbility()
 	local gBalloonTable = baseclass.Get("gballoon_base")
 	if bit.band(self.rotgb_AbilityType, 1) ~= 0 then
-		self.FireRate = self.FireRate*3
-		self.rotgb_Pills = self.rotgb_Pills*2
-		timer.Simple(60, function()
-			if IsValid(self) then
-				self.FireRate = self.FireRate/3
-				self.rotgb_Pills = self.rotgb_Pills/2
-			end
-		end)
+		if bit.band(self.rotgb_AbilityType, 8) == 0 then
+			self.FireRate = self.FireRate*3
+			self.rotgb_Pills = self.rotgb_Pills*2
+			timer.Simple(60, function()
+				if IsValid(self) then
+					self.FireRate = self.FireRate/3
+					self.rotgb_Pills = self.rotgb_Pills/2
+				end
+			end)
+		else
+			self.FireRate = self.FireRate*15
+			self.rotgb_Pills = self.rotgb_Pills*6
+			timer.Simple(60, function()
+				if IsValid(self) then
+					self.FireRate = self.FireRate/15
+					self.rotgb_Pills = self.rotgb_Pills/6
+				end
+			end)
+		end
 	end
 	if bit.band(self.rotgb_AbilityType, 2) ~= 0 then
 		local effData = EffectData()
+		effData:SetMagnitude(90)
+		effData:SetScale(1)
 		for k,v in pairs(gBalloonTable:GetgBalloons()) do
 			effData:SetEntity(v)
+			effData:SetOrigin(v:GetPos())
 			util.Effect("gballoon_tower_17_poison", effData)
 			v.AcidicList = v.AcidicList or {}
 			v.AcidicList[self] = CurTime()+90
@@ -323,7 +417,11 @@ function ENT:TriggerAbility()
 	end
 	if bit.band(self.rotgb_AbilityType, 4) ~= 0 then
 		local dmginfo = self:CreateDamageInfo()
-		dmginfo:SetDamage(10000)
+		if bit.band(self.rotgb_AbilityType, 16) == 0 then
+			dmginfo:SetDamage(100000)
+		else
+			dmginfo:SetDamage(1000000)
+		end
 		for k,v in pairs(ents.FindInSphere(self:GetShootPos(), self.DetectionRadius)) do
 			if self:ValidTarget(v) then
 				dmginfo:SetDamagePosition(v:LocalToWorld(v:OBBCenter()))
@@ -333,15 +431,26 @@ function ENT:TriggerAbility()
 				v:TakeDamageInfo(dmginfo)
 			end
 		end
+		if bit.band(self.rotgb_AbilityType, 16) ~= 0 then
+			local effdata = EffectData()
+			effdata:SetMagnitude(1)
+			effdata:SetScale(1)
+			effdata:SetOrigin(self:GetPos())
+			effdata:SetStart(self:GetPos())
+			util.Effect("Explosion",effdata,true,true)
+			self.SellAmount = 0
+			self:Remove()
+		end
 	end
 end
 
 if CLIENT then
 	local EFFECT = {}
 	function EFFECT:Init(data)
-		self.KillTime = CurTime() + 10
+		self.KillTime = CurTime() + data:GetMagnitude()
 		self.emitter = ParticleEmitter(data:GetOrigin(), false)
 		self.tower = data:GetEntity()
+		self.velocity = data:GetScale() * 100
 	end
 	function EFFECT:Think()
 		if self.KillTime < CurTime() then
@@ -355,7 +464,7 @@ if CLIENT then
 			if self.emitter:GetNumActiveParticles() < 100 then
 				local particle = self.emitter:Add("particle/smokestack", self.tower:GetClass()=="gballoon_base" and self.tower:GetPos() or self.emitter:GetPos())
 				if particle then
-					particle:SetVelocity(VectorRand(-100,100))
+					particle:SetVelocity(VectorRand(-self.velocity,self.velocity))
 					particle:SetColor(0,math.random()*127,0)
 					particle:SetDieTime(1)
 					particle:SetStartSize(16)
@@ -369,4 +478,40 @@ if CLIENT then
 		end
 	end
 	effects.Register(EFFECT,"gballoon_tower_17_poison")
+	
+	EFFECT = {}
+	function EFFECT:Init(data)
+		self.emitter = ParticleEmitter(data:GetOrigin(), false)
+		self.entity = data:GetEntity()
+	end
+	function EFFECT:Think()
+		if not IsValid(self.entity) then
+			self.emitter:Finish()
+			return false
+		else return true
+		end
+	end
+	function EFFECT:Render()
+		if IsValid(self.emitter) and IsValid(self.entity) then
+			if self.emitter:GetNumActiveParticles() < 100 then
+				local startPos = VectorRand(self.entity:OBBMins(), self.entity:OBBMaxs())
+				startPos:Add(self.entity:GetPos())
+				local particle = self.emitter:Add("sprites/orangecore2_gmod", startPos)
+				if particle then
+					particle:SetColor(255,0,255)
+					particle:SetBounce(0.2)
+					particle:SetCollide(true)
+					particle:SetGravity(Vector(0,0,-600))
+					particle:SetDieTime(2)
+					particle:SetStartAlpha(32)
+					particle:SetEndAlpha(1024)
+					particle:SetStartSize(8)
+					particle:SetEndSize(0)
+					--particle:SetLighting(true)
+					particle:SetRoll(math.random()*math.pi*2)
+				end
+			end
+		end
+	end
+	effects.Register(EFFECT,"gballoon_tower_17_morecash")
 end

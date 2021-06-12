@@ -6,7 +6,7 @@ ENT.PrintName = "Electrostatic Barrel"
 ENT.Category = "RotgB: Towers"
 ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "Zap those gBalloons!"
+ENT.Purpose = "This tower fires electrical sparks that arc from one gBalloon to another, provided they are close enough to each other."
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -21,15 +21,15 @@ ENT.rotgb_Radius = 128
 ENT.rotgb_Bounces = 4
 ENT.UpgradeReference = {
 	{
-		Names = {"High Voltage","Faster Recharge","High Farad Capacitors","Recursive Zap","Extreme Voltage"},
+		Names = {"High Voltage","Faster Recharge","Instant Discharger","Recursive Zap","Extreme Voltage"},
 		Descs = {
 			"Considerably increases the number of electrostatic jumps.",
-			"Static electricity is generated faster.",
-			"Static electricity is generated even faster and deals more damage.",
+			"Static electricity is generated considerably faster.",
+			"Static electricity is generated tremendously faster and deals considerably more damage.",
 			"Static electricity can now hit multiple gBalloons and bounce on the same gBalloon multiple times, resulting in extremely large amounts of damage per hit.",
-			"Tremendously increases the number of electrostatic jumps.",
+			"Tremendously increases the number of electrostatic jumps. Enables the tower to pop Purple gBalloons.",
 		},
-		Prices = {400,700,4000,35000,300000},
+		Prices = {450,850,7500,125000,1200000},
 		Funcs = {
 			function(self)
 				self.rotgb_Bounces = self.rotgb_Bounces * 2
@@ -38,7 +38,7 @@ ENT.UpgradeReference = {
 				self.FireRate = self.FireRate*2
 			end,
 			function(self)
-				self.FireRate = self.FireRate*2
+				self.FireRate = self.FireRate*3
 				self.AttackDamage = self.AttackDamage + 10
 			end,
 			function(self)
@@ -46,19 +46,20 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.rotgb_Bounces = self.rotgb_Bounces * 3
+				self.rotgb_HitPurple = true
 			end,
 		}
 	},
 	{
-		Names = {"Long Spark","Wild Sparks","Heart Stopper","Electromagnetic Pulser","Thundercloud"},
+		Names = {"Long Spark","Wild Sparks","Heart Stopper","Electromagnetic Pulser","Supercell"},
 		Descs = {
 			"Considerably increases the travel distance of electrostatic jumps.",
 			"Electrostatic jumps can hit hidden gBalloons.",
 			"On hit, stuns gBalloons for 0.25s and Regen gBalloons may only regenerate up to their current tier.",
 			"This tower now radiates an electric field that shocks all gBalloons within its radius. Also considerably increases range and enables the tower to pop Purple gBalloons.",
-			"This tower emits electrostatic sparks again that can jump up to 99 times. Also tremendously increases the travel distance of electrostatic jumps and considerably increases attack damage."
+			"Tremendously increases attack damage, fire rate and range."
 		},
-		Prices = {250,1000,2000,15000,75000},
+		Prices = {450,1000,2000,25000,750000},
 		Funcs = {
 			function(self)
 				self.rotgb_Radius = self.rotgb_Radius * 2
@@ -73,12 +74,14 @@ ENT.UpgradeReference = {
 				self.rotgb_Bounces = 0
 				self.DetectionRadius = self.DetectionRadius * 2
 				self.UserTargeting = false
+				self.rotgb_HitPurple = true
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 10
-				self.rotgb_Bounces = 99
+				self.AttackDamage = self.AttackDamage + 20
+				--self.rotgb_Bounces = 99
+				self.FireRate = self.FireRate * 3
 				self.rotgb_Radius = self.rotgb_Radius * 3
-				self.UserTargeting = true
+				--self.UserTargeting = true
 			end
 		}
 	}
@@ -143,7 +146,7 @@ function ENT:FireFunction(gBalloons)
 			end]]
 			dmginfo:SetDamage(self.AttackDamage*(k.Recurse or 1)*(self.rotgb_Recursion or 1))
 			--dmginfo:SetMaxDamage(self.AttackDamage*(k.Recurse or 1)*(self.rotgb_Recursion or 1))
-			if k:GetBalloonProperty("BalloonPurple") and not self.UserTargeting then
+			if k:GetBalloonProperty("BalloonPurple") and self.rotgb_HitPurple then
 				dmginfo:SetDamageType(DMG_GENERIC)
 				k:TakeDamageInfo(dmginfo)
 				dmginfo:SetDamageType(DMG_SHOCK)

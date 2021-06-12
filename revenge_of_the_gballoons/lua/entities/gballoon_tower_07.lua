@@ -6,7 +6,7 @@ ENT.PrintName = "Ally Pawn"
 ENT.Category = "RotgB: Towers"
 ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "Shoot those gBalloons!"
+ENT.Purpose = "The most basic tower. This tower fires bullets at gBalloons."
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -68,9 +68,9 @@ ENT.UpgradeReference = {
 			"Allows the tower to see Hidden gBalloons.",
 			"Considerably increases tower range. This tower now fires two shots at once.",
 			"This tower fires an additional shot. Once every 60 seconds, shooting at this tower causes all Ally Pawns to turn into Ally Queens, increasing damage dealt by 10 layers for 20 seconds.",
-			"Once every 60 seconds, shooting at this tower causes all Ally Pawns to turn into Rainbow Beamer Prisms, increasing fire rate by 900% and damage dealt by 10 layers for 20 seconds."
+			"Once every 60 seconds, shooting at this tower causes all Ally Pawns to turn into Rainbow Beamer Prisms, increasing fire rate by 300%, simultaneous hits by 200% and damage dealt by 30 layers for 20 seconds."
 		},
-		Prices = {100,400,2000,40000,300000},
+		Prices = {100,400,2000,40000,350000},
 		Funcs = {
 			function(self)
 				self.DetectionRadius = self.DetectionRadius * 1.5
@@ -125,13 +125,15 @@ local function SnipeEntity()
 		else
 			local startEnt = ents.Create("info_target")
 			local laser = ents.Create("env_beam")
-			local oldEntName = ent:GetName()
-			local entityName = ent:GetName() ~= "" and ent:GetName() or "ROTGB07_"..self:GetCreationID()
+			local endEnt = ents.Create("info_target")
+			if IsValid(endEnt) then
+				endEnt:SetName("ROTGB07_"..endEnt:GetCreationID())
+				endEnt:SetPos(ent:GetPos()+ent.loco:GetVelocity()*0.1+ent:OBBCenter())
+			end
 			startEnt:SetName("ROTGB07_"..startEnt:GetCreationID())
 			startEnt:SetPos(startPos)
 			startEnt:Spawn()
 			laser:SetPos(startPos)
-			ent:SetName(entityName)
 			
 			laser:SetKeyValue("renderamt","63")
 			laser:SetKeyValue("rendercolor","255 255 255")
@@ -141,7 +143,7 @@ local function SnipeEntity()
 			laser:SetKeyValue("TextureScroll","0")
 			laser:SetKeyValue("damage",self.AttackDamage)
 			laser:SetKeyValue("LightningStart",startEnt:GetName())
-			laser:SetKeyValue("LightningEnd",entityName)
+			laser:SetKeyValue("LightningEnd",endEnt:GetName())
 			laser:SetKeyValue("HDRColorScale","0.7")
 			laser:SetKeyValue("decalname","decals/dark")
 			laser:SetKeyValue("spawnflags","97")
@@ -155,11 +157,11 @@ local function SnipeEntity()
 					self:DontDeleteOnRemove(laser)
 					laser:Remove()
 				end
-				if (IsValid(ent) and entityName == ent:GetName()) then
-					ent:SetName(oldEntName)
-				end
 				if IsValid(startEnt) then
 					startEnt:Remove()
+				end
+				if IsValid(endEnt) then
+					endEnt:Remove()
 				end
 			end)
 			self:DeleteOnRemove(laser)
@@ -221,20 +223,25 @@ function ENT:TriggerAbility()
 				effdata:SetRadius(1)
 				util.Effect("Sparks",effdata,true,true)
 				ent.rotgb_Transformed = self.rotgb_Transformation
-				ent.AttackDamage = ent.AttackDamage + 100
 				local oldMaterial = ent:GetMaterial()
 				
 				if self.rotgb_Transformation == 1 then
+					ent.AttackDamage = ent.AttackDamage + 100
 					ent:SetModel("models/props_phx/games/chess/white_queen.mdl")
 				else
-					ent:SetMaterial("models/shiny")
-					ent.FireRate = ent.FireRate * 10
+					ent.AttackDamage = ent.AttackDamage + 300
+					ent.FireRate = ent.FireRate * 4
+					ent.rotgb_Targets = ent.rotgb_Targets * 3
+					ent:SetMaterial("models/spawn_effect2")
 				end
 				timer.Simple(10, function()
 					if IsValid(ent) then
-						ent.AttackDamage = ent.AttackDamage - 100
-						if ent.rotgb_Transformed == 2 then
-							ent.FireRate = ent.FireRate / 10
+						if ent.rotgb_Transformed == 1 then
+							ent.AttackDamage = ent.AttackDamage - 100
+						else
+							ent.AttackDamage = ent.AttackDamage - 300
+							ent.FireRate = ent.FireRate / 4
+							ent.rotgb_Targets = ent.rotgb_Targets / 3
 						end
 						ent.rotgb_Transformed = nil
 						ent:SetMaterial(oldMaterial)

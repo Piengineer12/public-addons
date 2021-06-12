@@ -6,7 +6,7 @@ ENT.PrintName = "Sawblade Launcher"
 ENT.Category = "RotgB: Towers"
 ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "Shred those gBalloons!"
+ENT.Purpose = "This tower fires sawblades that can cut through multiple gBalloons, especially when placed on straight tracks."
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -21,18 +21,19 @@ ENT.LOSOffset = Vector(0,0,20)
 ENT.UserTargeting = true
 ENT.rotgb_MaxPierce = 3
 ENT.rotgb_Size = 2
-ENT.rotgb_Torque = 5e4
+ENT.rotgb_Torque = 80e3
 ENT.UpgradeReference = {
 	{
-		Names = {"BB Module","RF Module","TX Module","C4 Module","PB Module"},
+		Names = {"BB Module","RF Module","TX Module","C4 Module","PB Module","5X Module"},
 		Descs = {
-			"Slightly increases the sawblades' size and piercing power.",
+			"Slightly increases the sawblades' size and considerably increases the sawblades' pierce.",
 			"Enables the tower to see Hidden gBalloons.",
-			"Sawblades deal slightly more direct damage.",
-			"Sawblades explode when expiring!",
-			"Considerably increases the sawblades' size and damage dealt!",
+			"Sawblades deal considerably more damage.",
+			"Sawblades explode with triple damage when expiring!",
+			"Slightly increases the sawblades' size and tremendously increases damage dealt!",
+			"Considerably reduces fire rate, but explosions pop Black gBalloons and deal 5 times more damage! Also colossally increases damage dealt!",
 		},
-		Prices = {400,900,1500,2000,25000},
+		Prices = {400,1000,1750,5000,15000,500000},
 		Funcs = {
 			function(self)
 				self.rotgb_Size = self.rotgb_Size * 1.5
@@ -50,21 +51,27 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.rotgb_Size = self.rotgb_Size * 1.5
-				self.AttackDamage = self.AttackDamage + 20
+				self.AttackDamage = self.AttackDamage + 40
 				self.rotgb_Torque = self.rotgb_Torque * 3
+			end,
+			function(self)
+				self.FireRate = self.FireRate / 2
+				self.rotgb_GigaExplosive = true
+				self.AttackDamage = self.AttackDamage + 240
 			end,
 		}
 	},
 	{
-		Names = {"OD Module","OV Module","FX Module","EV Module","DX Module"},
+		Names = {"OD Module","OV Module","FX Module","EV Module","DX Module","8X Module"},
 		Descs = {
 			"Slightly increases fire rate. Once every 200 pops, the tower overdrives, causing 8 sawblades to be released at once.",
 			"Considerably increases fire rate. Reduces pops required to overdrive the tower by 100.",
 			"Sawblades pierce considerably more gBalloons before shattering.",
-			"Sawblades deal additional electrical damage upon impact!",
-			"Sawblades pierce tremendously more gBalloons before shattering!"
+			"Sawblades deal 300% electrical damage per impact!",
+			"Sawblades pierce tremendously more gBalloons before shattering!",
+			"This tower now always overdrives!"
 		},
-		Prices = {200,750,1250,2500,10000},
+		Prices = {200,750,1250,7500,20000,90000},
 		Funcs = {
 			function(self)
 				self.FireRate = self.FireRate * 1.5
@@ -83,6 +90,9 @@ ENT.UpgradeReference = {
 			function(self)
 				self.rotgb_MaxPierce = self.rotgb_MaxPierce * 3
 			end,
+			function(self)
+				self.rotgb_Count = 0
+			end,
 		}
 	}
 }
@@ -97,10 +107,15 @@ local function ExpirySaw(ent,tower)
 		local dmginfo = DamageInfo()
 		dmginfo:SetAmmoType(game.GetAmmoID("Grenade"))
 		dmginfo:SetAttacker(tower:GetTowerOwner())
-		dmginfo:SetInflictor(ent)
-		dmginfo:SetDamageType(DMG_BLAST)
-		dmginfo:SetDamage(10)
-		dmginfo:SetMaxDamage(10)
+		dmginfo:SetInflictor(tower)
+		if tower.rotgb_GigaExplosive then
+			dmginfo:SetDamageType(DMG_GENERIC)
+			dmginfo:SetDamage(tower.AttackDamage * 15)
+		else
+			dmginfo:SetDamageType(DMG_BLAST)
+			dmginfo:SetDamage(tower.AttackDamage * 3)
+		end
+		dmginfo:SetMaxDamage(dmginfo:GetDamage())
 		dmginfo:SetReportedPosition(pos)
 		local effdata = EffectData()
 		effdata:SetMagnitude(2)
@@ -109,12 +124,10 @@ local function ExpirySaw(ent,tower)
 		effdata:SetStart(pos)
 		util.Effect("Explosion",effdata,true,true)
 		for k,v in pairs(ents.FindInSphere(pos,256)) do
-			if tower:ValidTarget(v) then
+			if (tower:ValidTargetIgnoreRange(v) and not v:GetBalloonProperty("BalloonBlack")) then
 				dmginfo:SetDamagePosition(v:GetPos())
 				v:TakeDamageInfo(dmginfo)
-				if not v:GetBalloonProperty("BalloonBlack") then
-					tower.rotgb_Hits = tower.rotgb_Hits + 1
-				end
+				tower.rotgb_Hits = tower.rotgb_Hits + 1
 			end
 		end
 	end
@@ -128,7 +141,7 @@ local function OnCollision(ent,coldata)
 	if not IsValid(ent.Tower) then
 		SafeRemoveEntity(ent)
 	end
-	if math.abs(vector_up:Dot(coldata.HitNormal))<rosqrt2 then
+	if math.abs(vector_up:Dot(coldata.HitNormal))<rosqrt2 and coldata.HitEntity:GetClass()~="gballoon_base" then
 		ExpirySaw(ent,ent.Tower)
 	end
 end
@@ -143,32 +156,41 @@ end
 function ENT:ROTGB_Think()
 	for k,v in pairs(self.rotgb_Sawblades) do
 		if IsValid(v) then
+			local atLeastOne = false
 			for k2,v2 in pairs(ents.FindInSphere(v:GetPos(),v:GetModelScale()*24)) do
-				if self:ValidTarget(v2) then
-					local dmginfo = DamageInfo()
-					dmginfo:SetAttacker(self:GetTowerOwner())
-					dmginfo:SetInflictor(v)
-					dmginfo:SetDamageType(DMG_SLASH)
-					dmginfo:SetDamage(self.AttackDamage)
-					dmginfo:SetMaxDamage(self.AttackDamage)
-					dmginfo:SetReportedPosition(v:GetPos())
-					dmginfo:SetDamagePosition(v2:GetPos())
-					v2:TakeDamageInfo(dmginfo)
-					dmginfo:SetDamage(self.AttackDamage)
-					v.rotgb_MaxPierce = v.rotgb_MaxPierce - 1
-					self.rotgb_Hits = (self.rotgb_Hits or 0) + 1
-					if self.rotgb_Electric and not v2:GetBalloonProperty("BalloonPurple") then
-						dmginfo:SetDamageType(DMG_SHOCK)
+				if self:ValidTargetIgnoreRange(v2) and not (v.IgnoredgBalloons and v.IgnoredgBalloons[v2:GetCreationID()]) then
+					if v.SkipPoppables and v.IgnoredgBalloons then
+						v.IgnoredgBalloons[v2:GetCreationID()] = true
+					else
+						atLeastOne = true
+						local dmginfo = DamageInfo()
+						dmginfo:SetAttacker(self:GetTowerOwner())
+						dmginfo:SetInflictor(self)
+						dmginfo:SetDamageType(DMG_SLASH)
+						dmginfo:SetDamage(self.AttackDamage)
+						dmginfo:SetMaxDamage(self.AttackDamage)
+						dmginfo:SetReportedPosition(v:GetPos())
+						dmginfo:SetDamagePosition(v2:GetPos())
 						v2:TakeDamageInfo(dmginfo)
-					elseif v2:GetBalloonProperty("BalloonGray") then
-						v.rotgb_MaxPierce = 0
-						self.rotgb_Hits = self.rotgb_Hits - 1
+						dmginfo:SetDamage(self.AttackDamage)
+						v.rotgb_MaxPierce = v.rotgb_MaxPierce - 1
+						self.rotgb_Hits = (self.rotgb_Hits or 0) + 1
+						if self.rotgb_Electric and not v2:GetBalloonProperty("BalloonPurple") then
+							dmginfo:SetDamageType(DMG_SHOCK)
+							dmginfo:ScaleDamage(3)
+							v2:TakeDamageInfo(dmginfo)
+							dmginfo:ScaleDamage(1/3)
+						elseif v2:GetBalloonProperty("BalloonGray") then
+							v.rotgb_MaxPierce = 0
+							self.rotgb_Hits = self.rotgb_Hits - 1
+						end
 					end
 				end
 			end
 			if v.rotgb_MaxPierce<=0 then
 				ExpirySaw(v,self)
 			end
+			v.SkipPoppables = atLeastOne
 		else
 			self.rotgb_Sawblades[k] = nil
 		end
@@ -184,9 +206,13 @@ function ENT:FireFunction(tableOfBalloons)
 		saw:SetModel("models/props_junk/sawblade001a.mdl")
 		saw:SetModelScale(self.rotgb_Size)
 		saw:Spawn()
+		saw:Activate()
 		saw:SetCollisionGroup(COLLISION_GROUP_WORLD)
 		saw.Tower = self
 		saw.rotgb_MaxPierce = self.rotgb_MaxPierce
+		if i == 1 then
+			saw.IgnoredgBalloons = {}
+		end
 		if self.rotgb_Explosive then
 			local dbomb = ents.Create("prop_dynamic")
 			dbomb:SetModel("models/Combine_Helicopter/helicopter_bomb01.mdl")
@@ -204,11 +230,11 @@ function ENT:FireFunction(tableOfBalloons)
 		local physobj = saw:GetPhysicsObject()
 		if IsValid(physobj) then
 			physobj:SetMaterial("gmod_ice")
-			physobj:ApplyTorqueCenter(vector_up*self.rotgb_Torque*math.random())
+			physobj:ApplyTorqueCenter(Vector(0, 0, self.rotgb_Torque*(1+math.random())/2))
 			local ivel = tableOfBalloons[pind]:GetPos()-self:GetShootPos()
 			ivel.z = 0
 			ivel:Normalize()
-			ivel:Mul(500)
+			ivel:Mul(500+math.random()*50)
 			physobj:SetVelocity(ivel)
 			pind = pind + 1
 		end

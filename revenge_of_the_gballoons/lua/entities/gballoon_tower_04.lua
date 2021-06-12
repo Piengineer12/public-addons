@@ -6,7 +6,7 @@ ENT.PrintName = "Gatling Gun Knight"
 ENT.Category = "RotgB: Towers"
 ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "Gun those gBalloons!"
+ENT.Purpose = "This tower very quickly fires bullets, but the bullets tend to miss especially on smaller gBalloons."
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -21,27 +21,25 @@ ENT.UserTargeting = true
 ENT.AttackDamage = 10
 ENT.rotgb_Spread = 60--75
 ENT.rotgb_Shots = 1
+ENT.rotgb_LaserDamageMul = 1
 ENT.UpgradeReference = {
 	{
-		Names = {"Stabilized Barrel","Penetrating Bullets","Consistent Barrel Spinner","Computerized Targeting","Laser Shooter","Ray of Doom"},
+		Names = {"Stabilized Barrel","Consistent Barrel Spinner","Computerized Targeting","Laser Shooter","Ray of Doom","G.R.E.E.N. Beams"},
 		Descs = {
 			"Slightly reduces bullet spread.",
-			"Enables the tower to pop Gray gBalloons.",
 			"Considerably reduces bullet spread.",
-			"Deals slightly increased damage versus gBlimps. Also enables the tower to see hidden gBalloons.",
+			"Deals considerably increased damage versus gBlimps. Also enables the tower to see hidden gBalloons.",
 			"Fires a continuous, perfectly accurate focused laser that shreds gBalloons. However, the tower no longer pops Purple gBalloons.",
-			"Fires an even bigger beam that obliterates all gBalloons in its path, regardless of immunities."
+			"Fires an even bigger beam that obliterates all gBalloons in its path, regardless of immunities.",
+			"BLARGGGH!!!"
 		},
-		Prices = {500,1200,4000,12500,50000,400000},
+		Prices = {500,3000,10000,50000,400000,25e6},
 		Funcs = {
 			function(self)
 				self.rotgb_Spread = self.rotgb_Spread / 1.5
 			end,
 			function(self)
-				self.rotgb_CanPopGray = true
-			end,
-			function(self)
-				self.rotgb_Spread = self.rotgb_Spread * 0.5
+				self.rotgb_Spread = self.rotgb_Spread / 2
 			end,
 			function(self)
 				self.rotgb_ExtraVsCeramic = true
@@ -52,8 +50,12 @@ ENT.UpgradeReference = {
 				self.rotgb_UseLaser = 1
 			end,
 			function(self)
-				self.FireRate = self.FireRate / 3
+				self.rotgb_LaserDamageMul = self.rotgb_LaserDamageMul * 3
 				self.rotgb_UseLaser = 2
+			end,
+			function(self)
+				self.UserTargeting = false
+				self.rotgb_LaserDamageMul = self.rotgb_LaserDamageMul * 10
 			end
 		}
 	},
@@ -105,9 +107,14 @@ local function SnipeEntity()
 			for i=1,self.rotgb_Shots do
 				local laser = ents.Create(self.rotgb_UseLaser==1 and "env_laser" or "env_beam")
 				local startEnt = self.rotgb_UseLaser==2 and ents.Create("info_target") or NULL
+				--local endEnt = ents.Create("info_target")
 				laser:SetPos(startPos)
+				--[[if IsValid(endEnt) then
+					endEnt:SetName("ROTGB04_"..endEnt:GetCreationID())
+					endEnt:SetPos(ent:GetPos()+ent.loco:GetVelocity()*0.1+ent:OBBCenter())
+				end]]
 				local oldEntName = ent:GetName()
-				local entityName = ent:GetName() ~= "" and ent:GetName() or "ROTGB04_"..self:GetCreationID()
+				local entityName = ent:GetName() ~= "" and ent:GetName() or "ROTGB04_2_"..self:GetCreationID()
 				ent:SetName(entityName)
 				if IsValid(startEnt) then
 					startEnt:SetName("ROTGB04_"..self:GetCreationID())
@@ -116,18 +123,18 @@ local function SnipeEntity()
 				end
 				laser:SetKeyValue("LaserTarget",entityName)
 				laser:SetKeyValue("renderamt","255")
-				laser:SetKeyValue("rendercolor",self.rotgb_UseLaser==1 and "0 255 127" or "255 0 0")
+				laser:SetKeyValue("rendercolor",self.rotgb_UseLaser==1 and "0 255 127" or self.rotgb_LaserDamageMul > 10 and "0 255 0" or "255 0 0")
 				laser:SetKeyValue("width","3")
-				laser:SetKeyValue("BoltWidth","12")
+				laser:SetKeyValue("BoltWidth",2*self.rotgb_LaserDamageMul)
 				laser:SetKeyValue("NoiseAmplitude","0")
 				laser:SetKeyValue("texture","sprites/laserbeam.spr")
 				laser:SetKeyValue("TextureScroll","35")
-				laser:SetKeyValue("damage",self.AttackDamage*self.FireRate)
+				laser:SetKeyValue("damage",self.AttackDamage*self.rotgb_LaserDamageMul*30)
 				laser:SetKeyValue("LightningStart","ROTGB04_"..self:GetCreationID())
 				laser:SetKeyValue("LightningEnd",entityName)
 				laser:SetKeyValue("HDRColorScale","1")
 				laser:SetKeyValue("spawnflags","33")
-				laser:SetKeyValue("life",2/self.FireRate)
+				laser:SetKeyValue("life",0.2)
 				laser:Spawn()
 				laser:Activate()
 				laser.rotgb_Owner = self
@@ -143,6 +150,9 @@ local function SnipeEntity()
 					if IsValid(startEnt) then
 						startEnt:Remove()
 					end
+					--[[if IsValid(endEnt) then
+						endEnt:Remove()
+					end]]
 				end)
 			end
 		else
@@ -218,6 +228,13 @@ ENT.thread = coroutine.create(SnipeEntity)
 coroutine.resume(ENT.thread)
 
 function ENT:FireFunction(gBalloons)
-	local perf,str = coroutine.resume(self.thread,self,gBalloons[1])
-	if not perf then error(str) end
+	if self.UserTargeting then
+		local perf,str = coroutine.resume(self.thread,self,gBalloons[1])
+		if not perf then error(str) end
+	else
+		for k,v in pairs(gBalloons) do
+			local perf,str = coroutine.resume(self.thread,self,v)
+			if not perf then error(str) end
+		end
+	end
 end

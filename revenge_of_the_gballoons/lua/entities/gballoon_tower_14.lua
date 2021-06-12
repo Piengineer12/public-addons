@@ -6,7 +6,7 @@ ENT.PrintName = "Microwave Generator"
 ENT.Category = "RotgB: Towers"
 ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "Cook those gBalloons!"
+ENT.Purpose = "This tower very slowly creates microwave cones that can bypass most gBalloon immunities."
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -25,18 +25,19 @@ ENT.rotgb_Lighten = 0
 ENT.rotgb_FiresMade = {}
 ENT.UpgradeReference = {
 	{
-		Names = {"Concentrated Waves","Intense Waves","Thermal Detection","Super Intense Waves","Extreme Frequency Waves"},
+		Names = {"Unstoppable Waves","Intense Waves","Thermal Detection","Concentrated Waves","Extreme Frequency Waves","Extremely Concentrated Waves"},
 		Descs = {
-			"Slightly increases the tower's range.",
+			"Increases the tower's range to infinite.",
 			"Considerably increases microwave damage.",
 			"Enables the tower to see hidden gBalloons.",
-			"Tremendously increases microwave damage.",
-			"Colossally increases microwave damage. Once every 45 seconds, firing at this tower colossally increases fire rate and triples the width of microwaves for 10 seconds.",
+			"Tremendously increases microwave damage, but slightly decreases microwave width.",
+			"Colossally increases microwave damage. Once every 45 seconds, firing at this tower colossally increases fire rate and triples the width of microwaves for 15 seconds.",
+			"Colossally decreases the width of microwaves for vastly increased damage, enough to destroy Red gBlimps in a single hit."
 		},
-		Prices = {300,900,2000,7500,100000},
+		Prices = {650,1250,3000,5000,75000,850000},
 		Funcs = {
 			function(self)
-				self.DetectionRadius = self.DetectionRadius * 1.5
+				self.InfiniteRange = true
 			end,
 			function(self)
 				self.AttackDamage = self.AttackDamage + 10
@@ -46,24 +47,30 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.AttackDamage = self.AttackDamage + 40
+				self.rotgb_MicrowaveAngle = self.rotgb_MicrowaveAngle / 1.5
 			end,
 			function(self)
 				self.AttackDamage = self.AttackDamage + 240
 				self.HasAbility = true
 				self.rotgb_AbilityType = bit.bor(self.rotgb_AbilityType, 1)
+			end,
+			function(self)
+				self.rotgb_MicrowaveAngle = self.rotgb_MicrowaveAngle / 5
+				self.AttackDamage = self.AttackDamage + 14700
 			end
 		}
 	},
 	{
-		Names = {"Stronger Battery","Diffractional Waves","Open Fryer","20-Star Fryer","gBalloon S.E.A.R."},
+		Names = {"Stronger Battery","Diffractional Waves","Open Fryer","20-Star Fryer","gBalloon S.E.A.R.","Now That's Hot"},
 		Descs = {
 			"Increases the tower's fire rate.",
 			"Triples the width of microwaves.",
 			"Microwaves are now emitted in all directions.",
-			"Microwaves now have a 20% chance to set gBalloons on fire permanently. Every time the tower successfully does this, fires from this tower pop one extra layer for 10 seconds. This effect stacks.",
-			"Microwaves are now guaranteed to set gBalloons alight. Once every 45 seconds, firing at this tower massively increases damage dealt for 10 seconds.",
+			"Microwaves now have a 20% chance to set gBalloons on fire permanently. Every time the tower successfully does this, new fires from this tower pop one extra layer for 10 seconds. This effect stacks.",
+			"Microwaves are now guaranteed to set gBalloons alight. Once every 45 seconds, firing at this tower increases damage dealt for new fires by 95 layers for 15 seconds.",
+			"All fires deal 25 times more damage!"
 		},
-		Prices = {300,1000,2000,3000,50000},
+		Prices = {300,1750,5000,10000,50000,1.5e6},
 		Funcs = {
 			function(self)
 				self.FireRate = self.FireRate * 1.5
@@ -81,6 +88,9 @@ ENT.UpgradeReference = {
 				self.rotgb_Lighten = 1
 				self.HasAbility = true
 				self.rotgb_AbilityType = bit.bor(self.rotgb_AbilityType, 2)
+			end,
+			function(self)
+				self.rotgb_OmegaFires = true
 			end
 		}
 	}
@@ -102,7 +112,8 @@ function ENT:FireFunction(gBalloons)
 		if bpos:Dot(fireDir) >= anglecos then
 			v:TakeDamage(self.AttackDamage,self:GetTowerOwner(),self)
 			if not v.MicrowaveFire and self.rotgb_Lighten > math.random() then
-				v:RotgB_Ignite(10 + self:GetFireDamageBonus(), self:GetTowerOwner(), self, 1000000)
+				local damage = (10 + self:GetFireDamageBonus()) * (self.rotgb_OmegaFires and 25 or 1)
+				v:RotgB_Ignite(damage, self:GetTowerOwner(), self, 1000000)
 				v.MicrowaveFire = true
 				table.insert(self.rotgb_FiresMade, CurTime() + 10)
 			end
@@ -116,7 +127,7 @@ function ENT:GetFireDamageBonus()
 			self.rotgb_FiresMade[k] = nil
 		end
 	end
-	return #self.rotgb_FiresMade * 10
+	return table.Count(self.rotgb_FiresMade) * 10
 end
 
 local laserMat = Material("trails/laser")
@@ -154,11 +165,11 @@ function ENT:ROTGB_Draw()
 end
 
 function ENT:TriggerAbility()
-	self:SetNWFloat("rotgb_CC", CurTime()+10)
+	self:SetNWFloat("rotgb_CC", CurTime()+15)
 	if bit.band(self.rotgb_AbilityType, 1) == 1 then
 		self.FireRate = self.FireRate * 5
 		self.rotgb_MicrowaveAngle = self.rotgb_MicrowaveAngle * 3
-		timer.Simple(10,function()
+		timer.Simple(15,function()
 			if IsValid(self) then
 				self.FireRate = self.FireRate / 5
 				self.rotgb_MicrowaveAngle = self.rotgb_MicrowaveAngle / 3
@@ -167,7 +178,7 @@ function ENT:TriggerAbility()
 	end
 	if bit.band(self.rotgb_AbilityType, 2) == 2 then
 		self.AttackDamage = self.AttackDamage + 190
-		local timetoinsert = CurTime() + 10
+		local timetoinsert = CurTime() + 15
 		for i=1,95 do
 			table.insert(self.rotgb_FiresMade, timetoinsert)
 		end

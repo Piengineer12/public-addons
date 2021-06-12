@@ -6,7 +6,7 @@ ENT.PrintName = "Rainbow Beamer"
 ENT.Category = "RotgB: Towers"
 ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "Beam those gBalloons!"
+ENT.Purpose = "This tower shoots a rainbow beam that shreds gBalloons."
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -40,17 +40,17 @@ ENT.UpgradeReference = {
 				self.InfiniteRange = true
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 10
+				self.AttackDamage = self.AttackDamage + 20
 				self.rotgb_BeamWidth = self.rotgb_BeamWidth * 1.5
 				self.rotgb_UseAltLaser = true
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 40
+				self.AttackDamage = self.AttackDamage + 80
 				self.rotgb_BeamWidth = self.rotgb_BeamWidth * 1.5
 				self.rotgb_BeamNoChildren = true
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 120
+				self.AttackDamage = self.AttackDamage + 240
 				self.rotgb_BeamWidth = self.rotgb_BeamWidth * 1.5
 				self.SeeCamo = true
 			end,

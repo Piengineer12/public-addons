@@ -6,13 +6,13 @@ ENT.PrintName = "Multipurpose Engine"
 ENT.Category = "RotgB: Towers"
 ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "Discourage those gBalloons!"
+ENT.Purpose = "This tower does nothing until upgraded. Most upgrades are focused on assisting other towers."
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/maxofs2d/hover_propeller.mdl")
-ENT.FireRate = 1
+ENT.FireRate = 0
 ENT.Cost = 600
 ENT.AbilityCooldown = 60
 ENT.LOSOffset = Vector(0,0,25)
@@ -31,7 +31,7 @@ ENT.UpgradeReference = {
 			"All Hidden gBalloons within this tower's radius become visible to all towers.",
 			"All Shielded gBalloons within this tower's radius take double damage from all sources.",
 			"All gBalloons within the tower's range lose all immunities. gBalloon armour is not affected.",
-			"Once every 60 seconds, shooting at this tower causes all towers to deal 15 extra layers of damage for 15 seconds.",
+			"Once every 60 seconds, shooting at this tower causes all towers within this tower's radius to deal 15 extra layers of damage for 15 seconds.",
 		},
 		Prices = {500,1000,2000,4000,30000,35000},
 		Funcs = {
@@ -58,32 +58,32 @@ ENT.UpgradeReference = {
 	{
 		Names = {"Violent Blades","Faster Blades","Heated Blades","Super Blades","Unstable Blades","Tyrant Blades"},
 		Descs = {
-			"This tower can now instantly pop Green gBalloons and lower, even if they are hidden.",
+			"This tower can now instantly pop Blue gBalloons and lower, regardless of immunities and properties.",
 			"This tower can now instantly pop Pink gBalloons and lower.",
-			"This tower can now instantly pop Gray, Zebra, Aqua and Error gBalloons.",
+			"This tower can now instantly pop Gray, Zebra, Aqua and Error gBalloons, as well as anything lower.",
 			"This tower can now instantly pop Ceramic gBalloons and anything lower!",
 			"This tower can now instantly pop Blue gBlimps, Marble gBalloons and anything lower!",
 			"This tower can now instantly pop Red gBlimps and anything lower!",
 		},
-		Prices = {3000,5000,20000,100000,600000,3000000},
+		Prices = {4000,5500,35000,150000,1000000,5000000},
 		Funcs = {
+			function(self)
+				self.AttackDamage = self.AttackDamage + 20
+			end,
 			function(self)
 				self.AttackDamage = self.AttackDamage + 30
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 50
+				self.AttackDamage = self.AttackDamage + 180
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 230
+				self.AttackDamage = self.AttackDamage + 800
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 1030
+				self.AttackDamage = self.AttackDamage + 5090
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 6120
-			end,
-			function(self)
-				self.AttackDamage = self.AttackDamage + 31480
+				self.AttackDamage = self.AttackDamage + 23560
 			end
 		}
 	},

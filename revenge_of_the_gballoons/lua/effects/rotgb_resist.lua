@@ -4,8 +4,8 @@ function EFFECT:DetermineColour(bits)
 	elseif bits==2 then return 0,0,0 -- explosion
 	elseif bits==3 then return 127,0,255 -- magic
 	elseif bits==4 then return 127,127,127 -- bullet
-	elseif bits==5 then return 255,255,0 -- glue (replaced the melee effect)
-	elseif bits==6 then return 0,255,255 -- melee (now unused)
+	elseif bits==5 then return 255,255,0 -- glue
+	elseif bits==6 then return 0,255,255 -- frozen
 	elseif bits==7 then return 255,0,255 -- armor
 	elseif bits==8 then return "rainbow" -- glass
 	else return 255,0,0 -- invalid

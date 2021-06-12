@@ -2354,15 +2354,19 @@ function ENT:Use(activator)
 								end]]
 								local nextTargs = {}
 								if bln:GetBalloonProperty("BalloonBlimp") then
+									self.rotgb_TimesBlimpSpawned = (self.rotgb_TimesBlimpSpawned or 0) + 1
 									for i=1,16 do
 										local gTarg = self["GetNextBlimpTarget"..i](self)
 										if IsValid(gTarg) then
 											table.insert(nextTargs,gTarg)
 										end
 									end
+								else
+									self.rotgb_TimesSpawned = (self.rotgb_TimesSpawned or 0) + 1
 								end
 								if next(nextTargs) then
-									bln:SetTarget(nextTargs[math.random(#nextTargs)])
+									--bln:SetTarget(nextTargs[math.random(#nextTargs)])
+									bln:SetTarget(bln:ChooseNextTargetWeighted(self.rotgb_TimesBlimpSpawned, nextTargs))
 								else
 									for i=1,16 do
 										local gTarg = self["GetNextTarget"..i](self)
@@ -2371,7 +2375,9 @@ function ENT:Use(activator)
 										end
 									end
 									if next(nextTargs) then
-										bln:SetTarget(nextTargs[math.random(#nextTargs)])
+										local times = bln:GetBalloonProperty("BalloonBlimp") and (self.rotgb_TimesSpawned or 0)+self.rotgb_TimesBlimpSpawned or self.rotgb_TimesSpawned
+										--bln:SetTarget(nextTargs[math.random(#nextTargs)])
+										bln:SetTarget(bln:ChooseNextTargetWeighted(times, nextTargs))
 									end
 								end
 								--timer.Simple(0,function()
@@ -2585,8 +2591,12 @@ function ENT:DrawTranslucent()
 	if not self:GetWaveTable()[self:GetWave()] and GetConVar("rotgb_freeplay"):GetBool() then
 		self:GenerateNextWave(self:GetWave())
 	end
+	local cwave = self:GetWave()
+	local reqang = (self:GetPos()-LocalPlayer():GetShootPos()):Angle()
+	reqang.p = 0
+	reqang.y = reqang.y-90
+	reqang.r = 90
 	if self:GetWaveTable()[self:GetWave()] then
-		local cwave = self:GetWave()
 		local text1 = "Next Wave: "..cwave
 		local text2 = "RgBE: "..self:GetWaveTable()[cwave].rbe
 		local text3 = "Press 'Use' on this entity to start the wave."
@@ -2596,10 +2606,6 @@ function ENT:DrawTranslucent()
 		local t3x,t3y = surface.GetTextSize(text3)
 		local panelw = math.max(t1x,t2x)
 		local panelh = t1y+t2y
-		local reqang = (self:GetPos()-LocalPlayer():GetShootPos()):Angle()
-		reqang.p = 0
-		reqang.y = reqang.y-90
-		reqang.r = 90
 		cam.Start3D2D(self:GetPos()+Vector(0,0,GetConVar("rotgb_hoverover_distance"):GetFloat()+panelh*0.2+self:OBBMaxs().z),reqang,0.2)
 			surface.SetDrawColor(0,0,0,127)
 			surface.DrawRect(panelw/-2,panelh/-2,panelw,panelh)

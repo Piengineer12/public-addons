@@ -277,9 +277,7 @@ end]]
 
 function ENT:ValidTarget(v)
 	--if v:GetClass()=="gballoon_base" then
-		return (IsValid(v) and v:GetClass()=="gballoon_base" and not v:GetBalloonProperty("BalloonVoid")
-		and (not v:GetBalloonProperty("BalloonHidden") or self.SeeCamo or v:HasRotgBStatusEffect("unhide"))
-		and (v:LocalToWorld(v:OBBCenter()):DistToSqr(self:GetShootPos()) <= self.DetectionRadius * self.DetectionRadius or self.InfiniteRange or self.InfiniteRange2))
+		return self:ValidTargetIgnoreRange(v) and (v:LocalToWorld(v:OBBCenter()):DistToSqr(self:GetShootPos()) <= self.DetectionRadius * self.DetectionRadius or self.InfiniteRange or self.InfiniteRange2)
 	--end
 	--return self:MaskFilter(GetConVar("rotgb_extratargets"):GetInt(),v) and (not v:IsFlagSet(FL_NOTARGET) or self.SeeCamo)
 end
@@ -564,7 +562,7 @@ local function UpgradeMenu(ent)
 			HoverButton:DockMargin(0,0,8,0)
 			HoverButton:Dock(LEFT)
 			function HoverButton:Paint(w,h)
-				draw.RoundedBox(8,0,0,w,h,i>UpgradeStatement.Tier and color_black_translucent or i==UpgradeStatement.Tier and (UpgradeStatement:IsEnabled() and color_yellow or color_red) or color_green)
+				draw.RoundedBox(8,0,0,w,h,i>UpgradeStatement.Tier and color_gray or i==UpgradeStatement.Tier and (UpgradeStatement:IsEnabled() and color_yellow or color_red) or color_green)
 			end
 		end
 		

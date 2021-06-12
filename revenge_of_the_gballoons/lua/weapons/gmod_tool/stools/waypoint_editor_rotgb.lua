@@ -14,6 +14,7 @@ TOOL.Information = {
 }
 TOOL.ClientConVar = {
 	teleport = "0",
+	weight = "0",
 	indicator_effect = "sprites/glow04_noz",
 	indicator_color = "6",
 	indicator_scale = "1",
@@ -47,6 +48,10 @@ end
 TOOL.BuildCPanel = function(form)
 	form:Help("#tool.waypoint_editor_rotgb.desc")
 	form:CheckBox("Teleport Instantly","waypoint_editor_rotgb_teleport")
+	form:NumSlider("Weight","waypoint_editor_rotgb_weight",0,100,0)
+	form:Help("gBalloon Targets with higher weights are targeted first if the gBalloons do not have a target.")
+	form:Help("If weighted targets are linked up, gBalloons are divided among the targets based on their weights.")
+	form:Help("If all linked targets have a weight of 0, gBalloons will randomly pick one of the targets.")
 	form:CheckBox("Always Show Paths","waypoint_editor_rotgb_indicator_always")
 	local choicelist = form:ComboBox("Path Sprite","waypoint_editor_rotgb_indicator_effect")
 	choicelist:SetSortItems(false)
@@ -142,6 +147,7 @@ TOOL.LeftClick = function(self,trace)
 					ent:Activate()
 					ent:SetIsBeacon(true)
 					ent:SetTeleport(tobool(self:GetClientInfo("teleport")))
+					ent:SetWeight(tonumber(self:GetClientInfo("weight")) or 0)
 				end
 				return true
 			end

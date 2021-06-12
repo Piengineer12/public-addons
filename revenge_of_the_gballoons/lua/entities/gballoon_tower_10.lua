@@ -6,13 +6,13 @@ ENT.PrintName = "Particle Charger"
 ENT.Category = "RotgB: Towers"
 ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "Bombard those gBalloons!"
+ENT.Purpose = "This tower fires particles at an incredible speed, but needs time to charge."
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/hunter/misc/cone1x1.mdl")
-ENT.FireRate = 10
+ENT.FireRate = 20
 ENT.Cost = 650
 ENT.DetectionRadius = 384
 ENT.AbilityCooldown = 30
@@ -21,20 +21,22 @@ ENT.AttackDamage = 10
 ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,70)
 ENT.UserTargeting = true
-ENT.rotgb_ChargeDelay = 4
+ENT.rotgb_ChargeDelay = 5
 ENT.rotgb_MultiShot = 1
 ENT.rotgb_MaxCharges = 250
+ENT.rotgb_AbilityDamage = 3000
 ENT.UpgradeReference = {
 	{
-		Names = {"Faster Production", "Erratic Spinner", "Omega Battery", "Infinity Chip", "Machine Gun Module"},
+		Names = {"Faster Production", "Erratic Spinner", "Omega Battery", "Infinity Chip", "Machine Gun Module", "Showdown Module"},
 		Descs = {
 			"Particle charges are accumulated considerably faster.",
 			"Slightly increases fire rate and considerably increases maximum charges.",
 			"Considerably increases fire rate and tremendously increases maximum charges.",
 			"This tower no longer loses charge!",
-			"Once every 60 seconds, firing at this tower massively increases fire rate and attack damage for 15 seconds!",
+			"Once every 60 seconds, firing at this tower increases attack damage by 300 layers for 15 seconds!",
+			"Machine Gun Module now increases damage by 6000 layers!",
 		},
-		Prices = {600,2000,15000,20000,100000},
+		Prices = {600,2000,15000,35000,250000,5e6},
 		Funcs = {
 			function(self)
 				self.rotgb_ChargeDelay = self.rotgb_ChargeDelay / 2
@@ -54,19 +56,23 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.HasAbility = true
+			end,
+			function(self)
+				self.rotgb_AbilityDamage = self.rotgb_AbilityDamage * 20
 			end
 		}
 	},
 	{
-		Names = {"Higher Speed Particles", "Magnetic Particles", "Antimatter Particles", ".99c Particles", "Exotic Particles"},
+		Names = {"Higher Speed Particles", "Magnetic Particles", "Antimatter Particles", ".99c Particles", "Exotic Particles", "Game Breaking Particles"},
 		Descs = {
 			"Considerably increases attack damage.",
 			"Allows the tower to see Hidden gBalloons.",
 			"Tremendously increases attack damage.",
 			"Colossally increases attack damage! Balloons popped by this tower do not spawn any children.",
 			"Considerably reduces maximum charges... but you won't need it.",
+			"This tower deals so much damage, Rainbow gBlimps are destroyed in 4 hits!"
 		},
-		Prices = {600,1500,5000,30000,300000},
+		Prices = {600,1500,5000,65000,650000,35e6},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 10
@@ -84,19 +90,23 @@ ENT.UpgradeReference = {
 			function(self)
 				self.rotgb_MaxCharges = self.rotgb_MaxCharges / 2
 				self.AttackDamage = self.AttackDamage + 5700
+			end,
+			function(self)
+				self.AttackDamage = self.AttackDamage + 294000
 			end
 		}
 	},
 	{
-		Names = {"Particle Splitter", "Long Range Sparks", "Transforming Particles", "Particle Pulverizer", "Terraforming Particles"},
+		Names = {"Particle Splitter", "Long Range Shots", "Transforming Particles", "Particle Pulverizer", "Terraforming Particles", "Armour-Sundering Particles"},
 		Descs = {
 			"The tower now pops up to three gBalloons per shot.",
 			"Considerably increases the tower's range.",
-			"Whenever a particle from this tower hits a gBalloon, gain $2.",
+			"Whenever a particle from this tower hits a gBalloon, gain $1.",
 			"The tower now hits all gBalloons within its radius each shot.",
-			"gBalloons hit by this tower's shots permanently lose all immunities."
+			"gBalloons hit by this tower's shots permanently lose all immunities.",
+			"gBalloons hit by this tower's shots permanently take 15 more layers of damage from all sources and lose all armour."
 		},
-		Prices = {600,1000,3500,20000,75000},
+		Prices = {600,1000,3500,20000,75000,300000},
 		Funcs = {
 			function(self)
 				self.rotgb_MultiShot = self.rotgb_MultiShot * 3
@@ -113,6 +123,9 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.rotgb_NoI = true
+			end,
+			function(self)
+				self.rotgb_NoA = true
 			end
 		}
 	}
@@ -178,10 +191,13 @@ local function SnipeEntity()
 			Src = startPos
 		}
 		if self.rotgb_HitCredit then
-			self:AddCash(2, self:GetTowerOwner())
+			self:AddCash(1, self:GetTowerOwner())
 		end
 		if self.rotgb_NoI then
 			ent:InflictRotgBStatusEffect("unimmune",999999)
+		end
+		if self.rotgb_NoA then
+			ent.Properties.BalloonArmor = -15
 		end
 		if self.rotgb_NoC and self.AttackDamage/10>=ent:Health() then
 			bullet.Damage = ent:GetRgBE() * 1000
@@ -250,14 +266,15 @@ function ENT:ROTGB_Draw()
 end
 
 function ENT:TriggerAbility()
-	self.FireRate = self.FireRate * 2
-	self.AttackDamage = self.AttackDamage + 380
+	--self.FireRate = self.FireRate * 2
+	local addDamage = self.rotgb_AbilityDamage
+	self.AttackDamage = self.AttackDamage + addDamage
 	--self.rotgb_PopAqua2 = true
 	self:SetNWFloat("rotgb_CC",CurTime()+15)
 	timer.Simple(15,function()
 		if IsValid(self) then
-			self.FireRate = self.FireRate / 2
-			self.AttackDamage = self.AttackDamage - 380
+			--self.FireRate = self.FireRate / 2
+			self.AttackDamage = self.AttackDamage - addDamage
 			--self.rotgb_PopAqua2 = nil
 		end
 	end)

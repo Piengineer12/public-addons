@@ -110,7 +110,7 @@ ConH = CreateClientConVar("rotgb_hoverover_distance","15",true,false,
 [[Determines the height of the text hovering above the gBalloon Spawner and gBalloon Targets.]])
 
 ConE = CreateClientConVar("rotgb_hud_enabled","1",true,false,
-[[Determines the visibility of the cash display.]])
+[[Determines the visibility of the cash and gBalloon Target health display.]])
 
 ConX = CreateClientConVar("rotgb_hud_x","0.1",true,false,
 [[Determines the horizontal position of the cash display.]])
@@ -119,7 +119,7 @@ ConY = CreateClientConVar("rotgb_hud_y","0.1",true,false,
 [[Determines the vertical position of the cash display.]])
 
 ConS = CreateClientConVar("rotgb_hud_size","32",true,false,
-[[Determines the size of the cash display. Requires restart to take effect.]])
+[[Determines the size of the cash display.]])
 
 ConF = CreateClientConVar("rotgb_freeze_effect","0",true,false,
 [[Shows the freezing effect when a gBalloon is frozen.
@@ -140,27 +140,71 @@ surface.CreateFont("RotgB_font",{
 })
 end
 
-CreateGBFont(nil,nil,ConS:GetFloat())
+CreateGBFont(nil,nil,32)
 
-hook.Add("InitPostEntity","RotgB",function()
-	CreateGBFont(nil,nil,ConS:GetFloat())
-end)
+local filtered = {}
+local function FilterSequentialTable(tab,func)
+	table.Empty(filtered)
+	for i,v in ipairs(tab) do
+		if func(i,v) then
+			table.insert(filtered, v)
+		end
+	end
+	return filtered
+end
+
+local function TableFilterWaypoints(k,v)
+	return IsValid(v) and v:GetClass()=="gballoon_target" and not v:GetIsBeacon()
+end
+
+local function WaypointSorter(a,b)
+	return a:GetWeight() > b:GetWeight()
+end
 
 local coinmat = Material("icon16/coins.png")
+local heartmat = Material("icon16/heart.png")
+local oldSize = 0
+local generateCooldown = 1
 hook.Add("HUDPaint","RotgB",function()
 	if ConE:GetBool() then
+		local targets = FilterSequentialTable(ents.GetAll(), TableFilterWaypoints)
+		table.sort(targets, WaypointSorter)
+		for k,v in pairs(targets) do
+			targets[k] = string.Comma(v:Health())
+		end
+		
+		local size = ConS:GetFloat()
+		if oldSize ~= size then
+			oldSize = size
+			generateCooldown = RealTime() + 1
+		end
+		if generateCooldown < RealTime() and generateCooldown >= 0 then
+			generateCooldown = -1
+			CreateGBFont(nil,nil,size)
+		end
+		local xPos = ConX:GetFloat()*ScrW()
+		local yPos = ConY:GetFloat()*ScrH()
 		surface.SetDrawColor(color_white)
+		surface.SetMaterial(heartmat)
+		surface.DrawTexturedRect(xPos,yPos,size,size)
 		surface.SetMaterial(coinmat)
-		surface.DrawTexturedRect(ConX:GetFloat()*ScrW(),ConY:GetFloat()*ScrH(),ConS:GetFloat(),ConS:GetFloat())
+		surface.DrawTexturedRect(xPos,yPos+size,size,size)
+		
+		if next(targets) then
+			draw.SimpleTextOutlined(table.concat(targets, " + "),"RotgB_font",xPos+size+2,yPos,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+		else
+			draw.SimpleTextOutlined("0","RotgB_font",xPos+size+2,yPos,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+		end
+		
 		local cash = ROTGB_GetCash(LocalPlayer())
 		if cash==math.huge then -- number is inf
-			draw.SimpleTextOutlined("$∞","RotgB_font",ConX:GetFloat()*ScrW()+ConS:GetFloat(),ConY:GetFloat()*ScrH(),color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+			draw.SimpleTextOutlined("$∞","RotgB_font",xPos+size+2,yPos+size,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 		elseif cash==-math.huge then -- number is negative inf
-			draw.SimpleTextOutlined("$-∞","RotgB_font",ConX:GetFloat()*ScrW()+ConS:GetFloat(),ConY:GetFloat()*ScrH(),color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+			draw.SimpleTextOutlined("$-∞","RotgB_font",xPos+size+2,yPos+size,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 		elseif cash<math.huge and cash>-math.huge then -- number is real
-			draw.SimpleTextOutlined("$"..string.Comma(math.floor(cash)),"RotgB_font",ConX:GetFloat()*ScrW()+ConS:GetFloat(),ConY:GetFloat()*ScrH(),color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+			draw.SimpleTextOutlined("$"..string.Comma(math.floor(cash)),"RotgB_font",xPos+size+2,yPos+size,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 		else -- number isn't a number. Caused by inf minus inf
-			draw.SimpleTextOutlined("$☠","RotgB_font",ConX:GetFloat()*ScrW()+ConS:GetFloat(),ConY:GetFloat()*ScrH(),color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+			draw.SimpleTextOutlined("$?","RotgB_font",xPos+size+2,yPos+size,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 		end
 	end
 end)
@@ -501,6 +545,10 @@ hook.Add("PopulateToolMenu","RotgB",function()
 	spawnmenu.AddToolMenuOption("Options","RotgB","RotgB_WaypointEditorTool","#tool.waypoint_editor_rotgb.name","gmod_tool waypoint_editor_rotgb","",function(form)
 		form:Help("#tool.waypoint_editor_rotgb.desc")
 		form:CheckBox("Teleport Instantly","waypoint_editor_rotgb_teleport")
+		form:NumSlider("Weight","waypoint_editor_rotgb_weight",0,100,0)
+		form:Help("gBalloon Targets with higher weights are targeted first if the gBalloons do not have a target.")
+		form:Help("If weighted targets are linked up, gBalloons are divided among the targets based on their weights.")
+		form:Help("If all linked targets have a weight of 0, gBalloons will randomly pick one of the targets.")
 		form:CheckBox("Always Show Paths","waypoint_editor_rotgb_indicator_always")
 		local choicelist = form:ComboBox("Path Sprite","waypoint_editor_rotgb_indicator_effect")
 		choicelist:SetSortItems(false)
@@ -553,6 +601,7 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Bool",0,"GBOnly",{KeyName="gballoon_damage_only",Edit={title="Only gBalloon Damage",type="Boolean"}})
 	self:NetworkVar("Bool",1,"IsBeacon",{KeyName="is_beacon",Edit={title="Is Waypoint",type="Boolean"}})
 	self:NetworkVar("Bool",2,"Teleport",{KeyName="teleport_to",Edit={title="Teleport Here",type="Boolean"}})
+	self:NetworkVar("Int",0,"Weight",{KeyName="weight",Edit={title="Weight (highest = first)",type="Int",min=0,max=100}})
 	self:NetworkVar("Entity",0,"NextTarget1")
 	self:NetworkVar("Entity",1,"NextTarget2")
 	self:NetworkVar("Entity",2,"NextTarget3")
@@ -609,6 +658,8 @@ function ENT:KeyValue(key,value)
 		self.TempIsHidden = not tobool(value)
 	elseif lkey=="teleport_to" then
 		self:SetTeleport(tobool(value))
+	elseif lkey=="weight" then
+		self:SetWeight(tonumber(value) or 0)
 	elseif lkey=="onbreak" then
 		self:StoreOutput(key,value)
 	elseif lkey=="onhealthchanged" then
@@ -618,6 +669,10 @@ function ENT:KeyValue(key,value)
 	elseif lkey=="ontakedamage" then
 		self:StoreOutput(key,value)
 	elseif lkey=="onwaypointed" then
+		self:StoreOutput(key,value)
+	elseif lkey=="onwaypointedblimp" then
+		self:StoreOutput(key,value)
+	elseif lkey=="onwaypointednonblimp" then
 		self:StoreOutput(key,value)
 	end
 end
@@ -666,6 +721,8 @@ function ENT:AcceptInput(input,activator,caller,data)
 	elseif string.sub(input,1,20) == "setnextblimpwaypoint" then
 		local num = (tonumber("0x"..string.sub(input,-1)) or 0) + 1
 		self["SetNextBlimpTarget"..num](self,data~="" and ents.FindByName(data)[1] or NULL)
+	elseif input=="setweight" then
+		self:SetWeight(tonumber(data) or 0)
 	end
 end
 
