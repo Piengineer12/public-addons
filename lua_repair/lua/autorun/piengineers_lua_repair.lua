@@ -7,8 +7,8 @@ Donate:			https://ko-fi.com/randomtnt12
 Links above are confirmed working as of 2021-04-14. All dates are in ISO 8601 format. 
 ]]
 
-LUA_REPAIR_VERSION = "1.2.1"
-LUA_REPAIR_VERSION_DATE = "2021-05-03"
+LUA_REPAIR_VERSION = "1.3.0"
+LUA_REPAIR_VERSION_DATE = "2021-06-19"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
@@ -26,6 +26,7 @@ local function FixAllErrors()
 	local NIL = getmetatable(nil) or {}
 	local STRING = getmetatable("")
 	local VECTOR = FindMetaTable("Vector")
+	local CLUAEMITTER = FindMetaTable("CLuaEmitter")
 	local NULL_META = getmetatable(NULL)
 	local newNilMeta = {
 		__add = function(a,b)
@@ -120,6 +121,12 @@ local function FixAllErrors()
 		else return oldindex(ent,key)
 		end
 	end]]
+	if CLUAEMITTER then
+		local oldFinish = CLUAEMITTER.Finish
+		CLUAEMITTER.Finish = function(emitter,...)
+			if emitter:IsValid() then return oldFinish(emitter,...) end
+		end		
+	end
 	
 	debug.setmetatable(nil,NIL)
 	
