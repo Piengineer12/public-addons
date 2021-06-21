@@ -9,11 +9,13 @@ ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Items that touch this are put into a connected inventory if possible."
 ENT.Instructions = "Link this Importer to something."
 ENT.Spawnable = true
+ENT.Editable = true
 
 AddCSLuaFile()
 
 function ENT:SetupDataTables()
 	self:NetworkVar("Int",0,"OwnerAccountID")
+	self:NetworkVar("Int",1,"ContainerHealth",{KeyName="isawc_health",Edit={type="Int",title="Importer Health",min=0,max=1000}})
 	self:NetworkVar("Entity",0,"StorageEntity")
 	self:NetworkVar("String",0,"FileID")
 end
@@ -43,6 +45,9 @@ function ENT:Initialize()
 		if IsValid(physobj) then
 			physobj:SetMass(100)
 			physobj:Wake()
+			if ISAWC.ConImporterAutoHealth:GetFloat() > 0 and self:GetContainerHealth()==0 then
+				self:SetContainerHealth(math.max(math.Round(physobj:GetVolume()*0.001*ISAWC.ConImporterAutoHealth:GetFloat(),-1),10))
+			end
 		end
 	end
 	if SERVER and (IsValid(self:GetCreator()) and self:GetCreator():IsPlayer()) then
@@ -126,6 +131,31 @@ function ENT:StartTouch(ent)
 			end
 		elseif ent.Base == "isawc_container_base" --[[or ent:IsPlayer()]] then
 			self:LinkEntity(ent)
+		end
+	end
+end
+
+ENT.OnTakeDamage = baseclass.Get("isawc_container_base").OnTakeDamage
+
+function ENT:Think()
+	if SERVER then
+		if self.CHealth~=self:GetContainerHealth() then
+			self.CHealth = self:GetContainerHealth()
+			self:SetHealth(self.CHealth)
+			self:SetMaxHealth(self.CHealth)
+		end
+		if not self.NextRegenThink then
+			self.NextRegenThink = CurTime()
+		end
+		if self.NextRegenThink <= CurTime() and ISAWC.ConImporterRegen:GetFloat() ~= 0 then
+			while self.NextRegenThink <= CurTime() do
+				self.NextRegenThink = self.NextRegenThink + math.abs(1/ISAWC.ConImporterRegen:GetFloat())
+				if ISAWC.ConImporterRegen:GetFloat() > 0 and self:Health() < self:GetMaxHealth() then
+					self:SetHealth(self:Health()+1)
+				elseif ISAWC.ConImporterRegen:GetFloat() < 0 then
+					self:TakeDamage(1,self,self)
+				end
+			end
 		end
 	end
 end

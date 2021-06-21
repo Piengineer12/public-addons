@@ -8,6 +8,7 @@ ENT.Purpose = "Ejects items out of an inventory, spawning them inside itself."
 ENT.Instructions = "Link this Exporter to something."
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Spawnable = true
+ENT.Editable = true
 
 AddCSLuaFile()
 
@@ -37,6 +38,7 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Int",0,"OwnerAccountID")
 	self:NetworkVar("Int",1,"ActiFlags")
 	self:NetworkVar("Int",2,"CurrentFileIDs")
+	self:NetworkVar("Int",3,"ContainerHealth",{KeyName="isawc_health",Edit={type="Int",title="Exporter Health",min=0,max=1000}})
 	for i=1,32 do
 		self:NetworkVar("Entity",i-1,string.format("StorageEntity%u",i))
 	end
@@ -99,6 +101,9 @@ function ENT:Initialize()
 		if IsValid(physobj) then
 			physobj:SetMass(100)
 			physobj:Wake()
+			if ISAWC.ConExporterAutoHealth:GetFloat() > 0 and self:GetContainerHealth()==0 then
+				self:SetContainerHealth(math.max(math.Round(physobj:GetVolume()*0.001*ISAWC.ConExporterAutoHealth:GetFloat(),-1),10))
+			end
 		end
 		if WireLib then
 			self.Inputs = WireLib.CreateSpecialInputs(self,
@@ -493,7 +498,29 @@ function ENT:SpawnProp(forcedSpawn)
 	end
 end
 
+ENT.OnTakeDamage = baseclass.Get("isawc_container_base").OnTakeDamage
+
 function ENT:Think()
+	if SERVER then
+		if self.CHealth~=self:GetContainerHealth() then
+			self.CHealth = self:GetContainerHealth()
+			self:SetHealth(self.CHealth)
+			self:SetMaxHealth(self.CHealth)
+		end
+		if not self.NextRegenThink then
+			self.NextRegenThink = CurTime()
+		end
+		if self.NextRegenThink <= CurTime() and ISAWC.ConExporterRegen:GetFloat() ~= 0 then
+			while self.NextRegenThink <= CurTime() do
+				self.NextRegenThink = self.NextRegenThink + math.abs(1/ISAWC.ConExporterRegen:GetFloat())
+				if ISAWC.ConExporterRegen:GetFloat() > 0 and self:Health() < self:GetMaxHealth() then
+					self:SetHealth(self:Health()+1)
+				elseif ISAWC.ConExporterRegen:GetFloat() < 0 then
+					self:TakeDamage(1,self,self)
+				end
+			end
+		end
+	end
 	if self.LastCacheUpdate < CurTime() then
 		table.Empty(self.CachedEntities)
 		for k,v in pairs(ents.GetAll()) do

@@ -2,14 +2,14 @@
 Workshop:		https://steamcommunity.com/sharedfiles/filedetails/?id=1673039990
 Profile Page:	https://steamcommunity.com/id/Piengineer12
 GitHub Page:	https://github.com/Piengineer12/public-addons/tree/master/isawc
-Donate:			https://ko-fi.com/randomtnt12
+Donate:			https://ko-fi.com/piengineer12
 
-Links above are confirmed working as of 2021-04-14. All dates are in ISO 8601 format. 
+Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format. 
 ]]
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "3.3.1"
-ISAWC._VERSIONDATE = "2021-06-09"
+ISAWC._VERSION = "3.4.0"
+ISAWC._VERSIONDATE = "2021-06-21"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -280,7 +280,7 @@ regardless of the other ConVars.")
 
 ISAWC.ConUseExportWhitelist = CreateConVar("isawc_use_exportwhitelist","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "If set, only entity classes that are in the whitelist can be exported by Inventory Exporters.\
-See the ConCommand \"isawc_export_whitelist\" to manipulate the list.")
+See the ConCommand \"isawc_exporter_whitelist\" to manipulate the list.")
 
 ISAWC.ConUseMagnetWhitelist = CreateConVar("isawc_use_magnetwhitelist","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "If set, only entity classes that are in the whitelist can be magnetized by containers.\
@@ -323,7 +323,7 @@ ISAWC:CreateListConCommand("isawc_whitelist", {
 })
 
 ISAWC.WhiteExtractList = ISAWC.WhiteExtractList or {}
-ISAWC:CreateListConCommand("isawc_export_whitelist", {
+ISAWC:CreateListConCommand("isawc_exporter_whitelist", {
 	display = "The Inventory Exporter whitelist is as follows: ",
 	display_table = ISAWC.WhiteExtractList,
 	display_function = function(k,v)
@@ -331,11 +331,11 @@ ISAWC:CreateListConCommand("isawc_export_whitelist", {
 	end,
 	purpose = "Adds or removes entity classes from the Inventory Exporter whitelist. See the ConVar \"isawc_use_exportwhitelist\" for more information.",
 	help = {
-		"Use \"isawc_export_whitelist <class1> <class2> ...\" to add/remove an entity class into/from the list.",
+		"Use \"isawc_exporter_whitelist <class1> <class2> ...\" to add/remove an entity class into/from the list.",
 		"* and ? wildcards are supported.",
-		"Use \"isawc_export_whitelist *\" to clear the list.",
+		"Use \"isawc_exporter_whitelist *\" to clear the list.",
 	},
-	help_small = "Usage: isawc_export_whitelist <class1> <class2> ...",
+	help_small = "Usage: isawc_exporter_whitelist <class1> <class2> ...",
 	exe = function(args)
 		for k,v in pairs(args) do
 			v = v:lower()
@@ -806,6 +806,14 @@ ISAWC.ConAutoHealth = CreateConVar("isawc_container_healthmul","0",FCVAR_ARCHIVE
 "If above 0, ALL containers spawned will have a limited amount of health depending on their volume multiplied by this ConVar.\
 This feature is in beta - use it at your own risk.")
 
+ISAWC.ConImporterAutoHealth = CreateConVar("isawc_importer_healthmul","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+"If above 0, ALL Inventory Importers spawned will have a limited amount of health depending on their volume multiplied by this ConVar.\
+This feature is in beta - use it at your own risk.")
+
+ISAWC.ConExporterAutoHealth = CreateConVar("isawc_exporter_healthmul","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+"If above 0, ALL Inventory Exporters will have a limited amount of health depending on their volume multiplied by this ConVar.\
+This feature is in beta - use it at your own risk.")
+
 ISAWC.ConSaveTable = CreateConVar("isawc_use_enginesavetables","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "If set, entities will have their engine save tables stored as well.\
 This feature is EXPERIMENTAL - use it at your own risk.")
@@ -815,6 +823,14 @@ ISAWC.ConPickupDenyLogs = CreateConVar("isawc_hide_pickuplogdenies","1",FCVAR_AR
 
 ISAWC.ConContainerRegen = CreateConVar("isawc_container_regen","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "Containers will regenerate this amount of health per second.\
+Negative values are allowed.")
+
+ISAWC.ConImporterRegen = CreateConVar("isawc_importer_regen","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+"Inventory Importers will regenerate this amount of health per second.\
+Negative values are allowed.")
+
+ISAWC.ConExporterRegen = CreateConVar("isawc_exporter_regen","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+"Inventory Exporters will regenerate this amount of health per second.\
 Negative values are allowed.")
 
 ISAWC.ConMassMul3 = CreateConVar("isawc_pickup_massmul","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
@@ -850,7 +866,7 @@ ISAWC.ConAllowInterConnection = CreateConVar("isawc_allow_interownerconnections"
 "If set to 1, Inventory Importers, Exporters and Viewers may be connected to a container owned by someone else.\
 If set to 2, connections are only allowed to containers owned by the same team.")
 
-ISAWC.ConMinExportDelay = CreateConVar("isawc_export_mindelay", "0.05", FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConMinExportDelay = CreateConVar("isawc_exporter_mindelay", "0.05", FCVAR_ARCHIVE+FCVAR_REPLICATED,
 "Minimum delay between items exported by Inventory Exporters.")
 
 ISAWC.ConDoSaveDelay = CreateConVar("isawc_player_savedelay", "300", FCVAR_ARCHIVE+FCVAR_REPLICATED,
@@ -1321,6 +1337,17 @@ ISAWC.PopulateDFormOthers = function(DForm)
 	DForm:Help(" - "..ISAWC.ConSaveIntoFile:GetHelpText().."\n")
 	DForm:Button("Clear Save Cache (Admin Only)","isawc_container_clearcache")
 	DForm:Help(" - "..clearcachemessage.."\n")
+	
+	DForm:Help("") --whitespace
+	DForm:ControlHelp("Inventory Importer / Exporter Options")
+	DForm:NumSlider("Importer Health Multiplier",ISAWC.ConImporterAutoHealth:GetName(),0,10,3)
+	DForm:Help(" - "..ISAWC.ConImporterAutoHealth:GetHelpText().."\n")
+	DForm:NumSlider("Importer Health Regen",ISAWC.ConImporterRegen:GetName(),-100,100,2)
+	DForm:Help(" - "..ISAWC.ConImporterRegen:GetHelpText().."\n")
+	DForm:NumSlider("Exporter Health Multiplier",ISAWC.ConExporterAutoHealth:GetName(),0,10,3)
+	DForm:Help(" - "..ISAWC.ConExporterAutoHealth:GetHelpText().."\n")
+	DForm:NumSlider("Exporter Health Regen",ISAWC.ConExporterRegen:GetName(),-100,100,2)
+	DForm:Help(" - "..ISAWC.ConExporterRegen:GetHelpText().."\n")
 	
 	DForm:Help("") --whitespace
 	DForm:ControlHelp("Miscellaneous")
