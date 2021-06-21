@@ -19,7 +19,7 @@ However, I will take a lot of time to examine whether your code is efficient, ro
 so please be patient as it may take up to one month for me to respond to your pull request.
 
 ## 3. Donating and Spreading the Word
-You can donate to me via Ko-Fi using the donation link in README.md. Please note that for now there are no exclusive rewards for donating.
+You can donate to me via [Ko-Fi](https://ko-fi.com/piengineer12). Please note that for now there are no exclusive rewards for donating.
 (If you have a suggestion for a reward, feel free to comment!)
 
 You can also just tell other players about my addons that you like.
