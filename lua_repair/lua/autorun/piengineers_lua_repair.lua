@@ -2,13 +2,13 @@
 Workshop:		https://steamcommunity.com/sharedfiles/filedetails/?id=2403043112
 Profile Page:	https://steamcommunity.com/id/Piengineer12
 GitHub Page:	https://github.com/Piengineer12/public-addons/tree/master/lua_repair
-Donate:			https://ko-fi.com/randomtnt12
+Donate:			https://ko-fi.com/piengineer12
 
-Links above are confirmed working as of 2021-04-14. All dates are in ISO 8601 format. 
+Links above are confirmed working as of 2021-06-23. All dates are in ISO 8601 format. 
 ]]
 
-LUA_REPAIR_VERSION = "1.3.0"
-LUA_REPAIR_VERSION_DATE = "2021-06-19"
+LUA_REPAIR_VERSION = "1.3.1"
+LUA_REPAIR_VERSION_DATE = "2021-06-23"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
@@ -194,14 +194,14 @@ local function FixAllErrors()
 				end]]
 			end
 		end
-	
+		
 		ErrorNoHalt = function(...)
-			Log("ErrorNoHalt: ", ...)
+			--Log("ErrorNoHalt: ", ...)
 		end
 		Error = function(...)
-			Log("Error: ", ...)
+			--Log("Error: ", ...)
 		end
-
+		
 		if SERVER then
 			Log("Replaced server console command functions!")
 		end
