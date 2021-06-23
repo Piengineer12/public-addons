@@ -240,7 +240,7 @@ local function DrawLinks(exporter, active)
 	containerPosTable[1] = selfPos:ToScreen()
 	
 	if isContainer then
-		if exporter:GetEnderInvName()~='' then
+		if (exporter.GetEnderInvName and exporter:GetEnderInvName()~='') then
 			for k,v in pairs(allEnts) do
 				if (v.Base=="isawc_container_base" and v:GetEnderInvName()==exporter:GetEnderInvName()) then
 					table.insert(containerPosTable, v:WorldSpaceCenter():ToScreen())

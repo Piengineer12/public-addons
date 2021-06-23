@@ -8,8 +8,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 ]]
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "3.4.0"
-ISAWC._VERSIONDATE = "2021-06-21"
+ISAWC._VERSION = "3.4.1"
+ISAWC._VERSIONDATE = "2021-06-23"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
