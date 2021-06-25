@@ -285,6 +285,7 @@ function ENT:Think()
 end
 
 function ENT:FindMagnetablesInSphere()
+	self.MagnetScale = self.MagnetScale or self:BoundingRadius()
 	for k,v in pairs(ents.FindInSphere(self:LocalToWorld(self:OBBCenter()), ISAWC.ConMagnet:GetFloat()*self.MagnetScale)) do
 		if v ~= self then
 			if ISAWC.ConUseMagnetWhitelist:GetBool() then

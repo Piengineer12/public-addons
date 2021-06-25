@@ -88,6 +88,7 @@ function ENT:SpawnFunction(ply,trace,classname)
 end
 
 function ENT:Initialize()
+	self.OnTakeDamage = scripted_ents.Get("isawc_container_base").OnTakeDamage
 	if self:GetSpawnDelay()==0 then
 		self:SetSpawnDelay(1)
 	end
@@ -129,7 +130,7 @@ function ENT:Initialize()
 	if SERVER and (IsValid(self:GetCreator()) and self:GetCreator():IsPlayer()) then
 		self:SetOwnerAccountID(self:GetCreator():AccountID() or 0)
 	end
-	self.CachedEntities = {}
+	self.ISAWC_CachedEntities = {}
 	self.LastCacheUpdate = 0
 end
 
@@ -183,13 +184,22 @@ end]]
 
 function ENT:GetContainer(index)
 	if not IsValid(self["GetStorageEntity"..index](self)) and self:GetFileID(index)~='' then
-		for k,v in pairs(self.CachedEntities) do
+		for k,v in pairs(self.ISAWC_CachedEntities) do
 			if (IsValid(v) and v:GetFileID() == self:GetFileID(index)) then
 				self["SetStorageEntity"..index](self, v) break
 			end
 		end
 	end
-	return self["GetStorageEntity"..index](self)
+	local returnValue = self["GetStorageEntity"..index](self)
+	if IsValid(returnValue) then
+		if returnValue.Base=="isawc_container_base" then
+			return returnValue
+		else
+			ISAWC:Log(string.format("Tried to set DT#%u for %s to %s... wtf? Abandoning the current cache and trying again.", index, tostring(self), tostring(returnValue)))
+			table.Empty(self.ISAWC_CachedEntities)
+			return nil
+		end
+	end
 end
 
 function ENT:HasContainer(container)
@@ -498,8 +508,6 @@ function ENT:SpawnProp(forcedSpawn)
 	end
 end
 
-ENT.OnTakeDamage = baseclass.Get("isawc_container_base").OnTakeDamage
-
 function ENT:Think()
 	if SERVER then
 		if self.CHealth~=self:GetContainerHealth() then
@@ -522,10 +530,10 @@ function ENT:Think()
 		end
 	end
 	if self.LastCacheUpdate < CurTime() then
-		table.Empty(self.CachedEntities)
+		table.Empty(self.ISAWC_CachedEntities)
 		for k,v in pairs(ents.GetAll()) do
 			if v.Base == "isawc_container_base" then
-				table.insert(self.CachedEntities, v)
+				table.insert(self.ISAWC_CachedEntities, v)
 			end
 		end
 		self.LastCacheUpdate = CurTime() + 0.5

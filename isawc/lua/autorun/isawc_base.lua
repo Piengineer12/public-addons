@@ -8,8 +8,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 ]]
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "3.4.1"
-ISAWC._VERSIONDATE = "2021-06-23"
+ISAWC._VERSION = "3.4.2"
+ISAWC._VERSIONDATE = "2021-06-25"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -2705,11 +2705,13 @@ ISAWC.PlayerDeath = function(ply)
 			briefcase:SetVolumeMul(0)
 			briefcase:SetCountMul(0)
 			ISAWC:SetSuppressUndo(true)
-			for i=1,#ply.ISAWC_Inventory do
-				local dupe = ply.ISAWC_Inventory[i]
-				if dupe then
-					table.insert(briefcase.ISAWC_Inventory,dupe)
-					--ISAWC:SpawnDupe(dupe,true,true,i,ply)
+			if ply.ISAWC_Inventory then
+				for i=1,#ply.ISAWC_Inventory do
+					local dupe = ply.ISAWC_Inventory[i]
+					if dupe then
+						table.insert(briefcase.ISAWC_Inventory,dupe)
+						--ISAWC:SpawnDupe(dupe,true,true,i,ply)
+					end
 				end
 			end
 			for k,v in pairs(ply:GetWeapons()) do
