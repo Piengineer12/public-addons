@@ -8,8 +8,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 ]]
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "3.4.2"
-ISAWC._VERSIONDATE = "2021-06-25"
+ISAWC._VERSION = "3.4.3"
+ISAWC._VERSIONDATE = "2021-06-26"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -2696,6 +2696,7 @@ ISAWC.PlayerDeath = function(ply)
 			ISAWC:Log("Failed to create invalid model "..modelOverride..'!')
 			ISAWC:Log("Failed to remove items owned by "..ply:Nick().." as the dropped container was invalid!")
 		else
+			ply.ISAWC_Inventory = ply.ISAWC_Inventory or {}
 			briefcase:SetPos(ply:GetPos() + ply:OBBCenter())
 			if modelOverride ~= "" then
 				briefcase.ContainerModel = modelOverride
@@ -2705,13 +2706,11 @@ ISAWC.PlayerDeath = function(ply)
 			briefcase:SetVolumeMul(0)
 			briefcase:SetCountMul(0)
 			ISAWC:SetSuppressUndo(true)
-			if ply.ISAWC_Inventory then
-				for i=1,#ply.ISAWC_Inventory do
-					local dupe = ply.ISAWC_Inventory[i]
-					if dupe then
-						table.insert(briefcase.ISAWC_Inventory,dupe)
-						--ISAWC:SpawnDupe(dupe,true,true,i,ply)
-					end
+			for i=1,#ply.ISAWC_Inventory do
+				local dupe = ply.ISAWC_Inventory[i]
+				if dupe then
+					table.insert(briefcase.ISAWC_Inventory,dupe)
+					--ISAWC:SpawnDupe(dupe,true,true,i,ply)
 				end
 			end
 			for k,v in pairs(ply:GetWeapons()) do
