@@ -8,8 +8,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 ]]
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "3.4.3"
-ISAWC._VERSIONDATE = "2021-06-26"
+ISAWC._VERSION = "3.4.4"
+ISAWC._VERSIONDATE = "2021-06-27"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -2396,10 +2396,10 @@ ISAWC.WriteModelFromDupeTable = function(self,dupe)
 	for k,v in pairs(ent.BodyG or {}) do
 		bodyGroups = string.SetChar(bodyGroups,k,v)
 	end
-	net.WriteString(ent.Model)
+	net.WriteString(ent.Model or "models/error.mdl")
 	net.WriteString(ent.EntityMods and ent.EntityMods.WireName and ent.EntityMods.WireName.name~="" and ent.EntityMods.WireName.name
 	or ent.Name~="" and ent.Name or ent.name~="" and ent.name or ent.PrintName~="" and ent.PrintName~="Scripted Weapon" and ent.PrintName
-	or ent.Class)
+	or ent.Class or "worldspawn")
 	net.WriteUInt(ent.Skin or 0, 16)
 	net.WriteString(bodyGroups)
 	net.WriteInt(ent.SavedClip1 or -1, 32)
