@@ -59,7 +59,7 @@ end
 
 function ENT:Initialize()
 	if SERVER then
-		ISAWC:SQL([[CREATE TABLE IF NOT EXISTS isawc_container_blobs (
+		ISAWC:SQL([[CREATE TABLE IF NOT EXISTS isawc_container_data (
 			containerID TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
 			data BLOB NOT NULL
 		);]])
@@ -126,7 +126,7 @@ function ENT:Initialize()
 		local invalid = true
 		while invalid do
 			local chosenFileID = GenStringFile()
-			local result = ISAWC:SQL("SELECT containerID FROM isawc_container_blobs WHERE containerID = %s;", chosenFileID)
+			local result = ISAWC:SQL("SELECT containerID FROM isawc_container_data WHERE containerID = %s;", chosenFileID)
 			invalid = file.Exists("isawc_containers/"..chosenFileID..".dat","DATA") or container_ents[chosenFileID] or (result and next(result))
 			if not invalid then
 				self:SetFileID(chosenFileID)
@@ -135,11 +135,11 @@ function ENT:Initialize()
 	end
 	if ISAWC.ConSaveIntoFile:GetBool() then
 		local chosenFileID = self:GetFileID()
-		local result = ISAWC:SQL("SELECT containerID, data FROM isawc_container_blobs WHERE containerID = %s;", chosenFileID)
+		local result = ISAWC:SQL("SELECT containerID, data FROM isawc_container_data WHERE containerID = %s;", chosenFileID)
 		if (result and result[1]) then
 			self.ISAWC_Inventory = util.JSONToTable(result[1].data)
 		elseif file.Exists("isawc_containers/"..chosenFileID..".dat","DATA") then
-			self.ISAWC_Inventory = util.JSONToTable(file.Read("isawc_containers/"..chosenFileID..".dat"))
+			self.ISAWC_Inventory = util.JSONToTable(util.Decompress(file.Read("isawc_containers/"..chosenFileID..".dat") or "") or "")
 		end
 	end
 	self.MagnetScale = self:BoundingRadius()

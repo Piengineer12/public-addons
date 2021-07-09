@@ -8,7 +8,7 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 ]]
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.0.0-beta.1"
+ISAWC._VERSION = "4.0.0-beta.2"
 ISAWC._VERSIONDATE = "2021-07-09"
 
 if SERVER then util.AddNetworkString("isawc_general") end
@@ -913,7 +913,7 @@ if SERVER then
 					file.Delete("isawc_containers/"..v)
 				end
 				file.Delete("isawc_containers")
-				ISAWC:SQL("BEGIN; DELETE FROM isawc_container_blobs;")
+				ISAWC:SQL("BEGIN; DELETE FROM isawc_container_data;")
 				for k,v in pairs(ents.GetAll()) do
 					if (IsValid(v) and v.Base=="isawc_container_base") then
 						ISAWC:SaveContainerInventory(v)
@@ -2602,6 +2602,9 @@ end
 
 ISAWC.SaveData = function(self)
 	local data = util.JSONToTable(file.Read("isawc_data.dat") or "") or {}
+	if table.IsEmpty(data) then
+		data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "")) or {}
+	end
 	data.Blacklist = self.Blacklist or {}
 	data.BlackContainerMagnetList = self.BlackContainerMagnetList or {}
 	data.Whitelist = self.Whitelist or {}
@@ -2621,7 +2624,7 @@ end
 ISAWC.SaveInventory = function(self,ply)
 	self:SaveData()
 	local steamid
-	self:SQL([[CREATE TABLE IF NOT EXISTS isawc_player_blobs (
+	self:SQL([[CREATE TABLE IF NOT EXISTS isawc_player_data (
 		steamID TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
 		data TEXT NOT NULL
 	);]])
@@ -2640,9 +2643,9 @@ ISAWC.SaveInventory = function(self,ply)
 				end
 				if (inv and next(inv)) then
 					local data = util.TableToJSON(inv) -- util.Compress is BROKEN as of 2021-10-06!
-					self:SQL("INSERT INTO isawc_player_blobs (steamID, data) VALUES (%s, %s);", steamid, data)
+					self:SQL("INSERT INTO isawc_player_data (steamID, data) VALUES (%s, %s);", steamid, data)
 				else
-					self:SQL("DELETE FROM isawc_player_blobs WHERE steamID = %s;", steamid)
+					self:SQL("DELETE FROM isawc_player_data WHERE steamID = %s;", steamid)
 				end
 			end
 		end
@@ -2656,9 +2659,9 @@ ISAWC.SaveInventory = function(self,ply)
 			end
 			if (inv and next(inv)) then
 				local data = util.TableToJSON(inv)
-				self:SQL("INSERT INTO isawc_player_blobs (steamID, data) VALUES (%s, %s);", steamid, data)
+				self:SQL("INSERT INTO isawc_player_data (steamID, data) VALUES (%s, %s);", steamid, data)
 			else
-				self:SQL("DELETE FROM isawc_player_blobs WHERE steamID = %s;", steamid)
+				self:SQL("DELETE FROM isawc_player_data WHERE steamID = %s;", steamid)
 			end
 		end
 	end
@@ -2685,11 +2688,11 @@ ISAWC.SaveContainerInventory = function(self,container)
 			file.CreateDir("isawc_containers")
 		end
 		file.Write("isawc_containers/"..container:GetFileID()..".dat",util.Compress(util.TableToJSON(data)))]]
-		self:SQL([[CREATE TABLE IF NOT EXISTS isawc_container_blobs (
+		self:SQL([[CREATE TABLE IF NOT EXISTS isawc_container_data (
 			containerID TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
 			data TEXT NOT NULL
 		);]])
-		self:SQL("INSERT INTO isawc_container_blobs (containerID, data) VALUES (%s, %s);", container:GetFileID(), util.TableToJSON(inv))
+		self:SQL("INSERT INTO isawc_container_data (containerID, data) VALUES (%s, %s);", container:GetFileID(), util.TableToJSON(inv))
 	end
 end
 
@@ -2698,6 +2701,9 @@ ISAWC.PlayerSpawn = function(ply)
 	timer.Simple(0.5,function()
 		if not next(ISAWC.LastLoadedData) then
 			local data = util.JSONToTable(file.Read("isawc_data.dat") or "") or {}
+			if table.IsEmpty(data) then
+				data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "")) or {}
+			end
 			ISAWC.Blacklist = data.Blacklist or ISAWC.Blacklist
 			ISAWC.BlackContainerMagnetList = data.BlackContainerMagnetList or ISAWC.BlackContainerMagnetList
 			ISAWC.Whitelist = data.Whitelist or ISAWC.Whitelist
@@ -2719,7 +2725,7 @@ ISAWC.PlayerSpawn = function(ply)
 				ISAWC.LastLoadedData[steamID] = nil
 			elseif ISAWC.ConDoSave:GetInt() > 0 then
 				if steamID ~= "" then
-					local results = ISAWC:SQL("SELECT steamID, data FROM isawc_player_blobs WHERE steamID = %s;", steamID)
+					local results = ISAWC:SQL("SELECT steamID, data FROM isawc_player_data WHERE steamID = %s;", steamID)
 					if (results and results[1]) then
 						ply.ISAWC_Inventory = util.JSONToTable(results[1].data)
 					end
