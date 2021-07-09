@@ -8,8 +8,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 ]]
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "3.4.4"
-ISAWC._VERSIONDATE = "2021-06-27"
+ISAWC._VERSION = "4.0.0-beta.1"
+ISAWC._VERSIONDATE = "2021-07-09"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -912,11 +912,14 @@ if SERVER then
 				for k,v in pairs(file.Find("isawc_containers/*.dat","DATA")) do
 					file.Delete("isawc_containers/"..v)
 				end
+				file.Delete("isawc_containers")
+				ISAWC:SQL("BEGIN; DELETE FROM isawc_container_blobs;")
 				for k,v in pairs(ents.GetAll()) do
 					if (IsValid(v) and v.Base=="isawc_container_base") then
 						ISAWC:SaveContainerInventory(v)
 					end
 				end
+				ISAWC:SQL("COMMIT;")
 			end
 		end,
 		help = clearcachemessage
@@ -2577,9 +2580,28 @@ ISAWC.RemoveRecursions = function(self,tab,done)
 	return recursive
 end
 
-ISAWC.SaveInventory = function(self,ply)
-	local data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "")) or {}
-	local steamid
+ISAWC.SQL = function(self,query,...)
+	local params = {...}
+	for k,v in pairs(params) do
+		params[k] = sql.SQLStr(v)
+	end
+	local result = false
+	if next(params) then
+		result = sql.Query(string.format(query, unpack(params)))
+	else
+		sql.Query(query)
+	end
+	if result == false then
+		local err = sql.LastError()
+		if err then
+			error(err, 2)
+		end
+	else return result
+	end
+end
+
+ISAWC.SaveData = function(self)
+	local data = util.JSONToTable(file.Read("isawc_data.dat") or "") or {}
 	data.Blacklist = self.Blacklist or {}
 	data.BlackContainerMagnetList = self.BlackContainerMagnetList or {}
 	data.Whitelist = self.Whitelist or {}
@@ -2593,60 +2615,81 @@ ISAWC.SaveInventory = function(self,ply)
 	data.MassMultiList = self.MassMultiList or {}
 	data.VolumeMultiList = self.VolumeMultiList or {}
 	data.CountMultiList = self.CountMultiList or {}
+	file.Write("isawc_data.dat",util.TableToJSON(data))
+end
+
+ISAWC.SaveInventory = function(self,ply)
+	self:SaveData()
+	local steamid
+	self:SQL([[CREATE TABLE IF NOT EXISTS isawc_player_blobs (
+		steamID TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
+		data TEXT NOT NULL
+	);]])
 	if isstring(ply) then
 		steamid = ply
 		ply = player.GetBySteamID(ply)
 	end
-	if (IsValid(ply) and ply:IsPlayer()) then
-		steamid = steamid or ply:SteamID()
-		if steamid then
-			if self.ConDoSave:GetInt() > 0 then
-				if not isstring(ply) and self:RemoveRecursions(ply.ISAWC_Inventory) then
-					self:Log("Warning! " .. (isstring(ply) and ply or ply:Nick()) .. " had an item with recursive tables! This may cause errors to occur!")
-				end
-				data[steamid] = ply.ISAWC_Inventory or {}
-			else
-				data[steamid] = nil
-			end
-		end
-	elseif istable(ply) then
+	if istable(ply) then
+		self:SQL("BEGIN;")
 		for k,v in pairs(ply) do
 			steamid = v:SteamID()
-			if steamid then
-				if self.ConDoSave:GetInt() > 0 then
-					if self:RemoveRecursions(v.ISAWC_Inventory) then
-						self:Log("Warning! " .. v:Nick() .. " had an item with recursive tables! This may cause errors to occur!")
-					end
-					data[steamid] = v.ISAWC_Inventory or {}
-				else
-					data[steamid] = nil
+			if steamid and self.ConDoSave:GetInt() > 0 then
+				local inv = v.ISAWC_Inventory
+				if self:RemoveRecursions(inv) then
+					self:Log("Warning! " .. v:Nick() .. " had an item with recursive tables! This may cause errors to occur!")
 				end
+				if (inv and next(inv)) then
+					local data = util.TableToJSON(inv) -- util.Compress is BROKEN as of 2021-10-06!
+					self:SQL("INSERT INTO isawc_player_blobs (steamID, data) VALUES (%s, %s);", steamid, data)
+				else
+					self:SQL("DELETE FROM isawc_player_blobs WHERE steamID = %s;", steamid)
+				end
+			end
+		end
+		self:SQL("COMMIT;")
+	elseif ply:IsPlayer() then
+		steamid = steamid or ply:SteamID()
+		if steamid and self.ConDoSave:GetInt() > 0 then
+			local inv = ply.ISAWC_Inventory
+			if self:RemoveRecursions(inv) then
+				self:Log("Warning! " .. ply:Nick() .. " had an item with recursive tables! This may cause errors to occur!")
+			end
+			if (inv and next(inv)) then
+				local data = util.TableToJSON(inv)
+				self:SQL("INSERT INTO isawc_player_blobs (steamID, data) VALUES (%s, %s);", steamid, data)
+			else
+				self:SQL("DELETE FROM isawc_player_blobs WHERE steamID = %s;", steamid)
 			end
 		end
 	end
-	file.Write("isawc_data.dat",util.Compress(util.TableToJSON(data)))
 end
 
 ISAWC.SaveContainerInventory = function(self,container)
 	container:SendInventoryUpdate()
+	local inv = container.ISAWC_Inventory
 	local endername = container:GetEnderInvName()
 	if (endername or "")~="" then
 		for k,v in pairs(ents.GetAll()) do
 			if (IsValid(v) and v.Base=="isawc_container_base" and v:GetEnderInvName()==endername) then
-				v.ISAWC_Inventory = container.ISAWC_Inventory
+				v.ISAWC_Inventory = inv
 				v:SendInventoryUpdate()
 			end
 		end
 	end
-	if self:RemoveRecursions(container.ISAWC_Inventory) then
+	if self:RemoveRecursions(inv) then
 		self:Log("Warning! " .. tostring(container) .. " had an item with recursive tables! This may cause errors to occur!")
 	end
 	if self.ConSaveIntoFile:GetBool() then
-		local data = container.ISAWC_Inventory
+		--[[local data = inv
 		if not file.IsDir("isawc_containers","DATA") then
 			file.CreateDir("isawc_containers")
 		end
-		file.Write("isawc_containers/"..container:GetFileID()..".dat",util.Compress(util.TableToJSON(data)))
+		file.Write("isawc_containers/"..container:GetFileID()..".dat",util.Compress(util.TableToJSON(data)))]]
+		self:SQL([[CREATE TABLE IF NOT EXISTS isawc_container_blobs (
+			containerID TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
+			data TEXT NOT NULL
+		);]])
+		self:SQL("INSERT INTO isawc_container_blobs (containerID, data) VALUES (%s, %s);", container:GetFileID(), util.TableToJSON(inv))
 	end
 end
 
@@ -2654,7 +2697,7 @@ ISAWC.LastLoadedData = {}
 ISAWC.PlayerSpawn = function(ply)
 	timer.Simple(0.5,function()
 		if not next(ISAWC.LastLoadedData) then
-			local data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "")) or {}
+			local data = util.JSONToTable(file.Read("isawc_data.dat") or "") or {}
 			ISAWC.Blacklist = data.Blacklist or ISAWC.Blacklist
 			ISAWC.BlackContainerMagnetList = data.BlackContainerMagnetList or ISAWC.BlackContainerMagnetList
 			ISAWC.Whitelist = data.Whitelist or ISAWC.Whitelist
@@ -2671,11 +2714,18 @@ ISAWC.PlayerSpawn = function(ply)
 			ISAWC.LastLoadedData = data
 		end
 		if IsValid(ply) then
+			local steamID = ply:SteamID() or ""
 			if (ply.ISAWC_Inventory and next(ply.ISAWC_Inventory)) then
-				ISAWC.LastLoadedData[ply:SteamID() or ""] = nil
-			else
-				if ISAWC.LastLoadedData[ply:SteamID()] and ISAWC.ConDoSave:GetInt() > 0 then
-					ply.ISAWC_Inventory = ISAWC.LastLoadedData[ply:SteamID()]
+				ISAWC.LastLoadedData[steamID] = nil
+			elseif ISAWC.ConDoSave:GetInt() > 0 then
+				if steamID ~= "" then
+					local results = ISAWC:SQL("SELECT steamID, data FROM isawc_player_blobs WHERE steamID = %s;", steamID)
+					if (results and results[1]) then
+						ply.ISAWC_Inventory = util.JSONToTable(results[1].data)
+					end
+				end
+				if not (ply.ISAWC_Inventory and next(ply.ISAWC_Inventory)) and ISAWC.LastLoadedData[steamID] then
+					ply.ISAWC_Inventory = ISAWC.LastLoadedData[steamID]
 				end
 			end
 			ISAWC:SendInventory(ply)
@@ -3456,7 +3506,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 				self.reliantwindow:Close()
 			else
 				--[[local bytes = net.ReadUInt(32)
-				self.reliantwindow:ReceiveInventory(util.JSONToTable(util.Decompress(net.ReadData(bytes))))]]
+				self.reliantwindow:ReceiveInventory(util.JSONToTable(net.ReadData(bytes)))]]
 				local data = {}
 				for i=1,net.ReadUInt(16) do
 					data[i] = {Model=net.ReadString(), Class=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
@@ -3495,8 +3545,8 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 		elseif func == "inv2" and IsValid(self.reliantwindow) then
 			if self.reliantwindow.IsDouble then
 				--[[local bytes1,bytes2 = net.ReadUInt(32),net.ReadUInt(32)
-				local data1 = util.JSONToTable(util.Decompress(net.ReadData(bytes1)))
-				local data2 = util.JSONToTable(util.Decompress(net.ReadData(bytes2)))]]
+				local data1 = util.JSONToTable(net.ReadData(bytes1))
+				local data2 = util.JSONToTable(net.ReadData(bytes2))]]
 				local nt1, nt2 = {}, {}
 				for i=1,net.ReadUInt(16) do
 					nt1[i] = {Model=net.ReadString(), Class=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
