@@ -133,13 +133,13 @@ function ENT:Initialize()
 			end
 		end
 	end
-	if ISAWC.ConSaveIntoFile:GetBool() then
+	if SERVER and ISAWC.ConSaveIntoFile:GetBool() then
 		local chosenFileID = self:GetFileID()
 		local result = ISAWC:SQL("SELECT containerID, data FROM isawc_container_data WHERE containerID = %s;", chosenFileID)
 		if (result and result[1]) then
 			self.ISAWC_Inventory = util.JSONToTable(result[1].data)
 		elseif file.Exists("isawc_containers/"..chosenFileID..".dat","DATA") then
-			self.ISAWC_Inventory = util.JSONToTable(util.Decompress(file.Read("isawc_containers/"..chosenFileID..".dat") or "") or "")
+			self.ISAWC_Inventory = util.JSONToTable(util.Decompress(file.Read("isawc_containers/"..chosenFileID..".dat") or ""))
 		end
 	end
 	self.MagnetScale = self:BoundingRadius()
@@ -151,7 +151,7 @@ function ENT:Touch(ent)
 	if ISAWC.ConDragAndDropOntoContainer:GetInt()==1 and not self.ISAWC_Disabled then
 		if ISAWC:CanProperty(self,ent) then
 			ISAWC:PropPickup(self,ent)
-			self:SendInventoryUpdate()
+			ISAWC:SaveContainerInventory(self)
 		end
 	end
 end
@@ -160,7 +160,7 @@ function ENT:StartTouch(ent)
 	if ISAWC.ConDragAndDropOntoContainer:GetInt()==2 and not self.ISAWC_Disabled then
 		if ISAWC:CanProperty(self,ent) then
 			ISAWC:PropPickup(self,ent)
-			self:SendInventoryUpdate()
+			ISAWC:SaveContainerInventory(self)
 		end
 	end
 end

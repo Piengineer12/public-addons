@@ -8,8 +8,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 ]]
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.0.0-beta.2"
-ISAWC._VERSIONDATE = "2021-07-09"
+ISAWC._VERSION = "4.0.0-beta.3"
+ISAWC._VERSIONDATE = "2021-07-10"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -150,25 +150,26 @@ ISAWC.ConVPhysicsOnly = CreateConVar("isawc_use_strictvphysics","1",FCVAR_ARCHIV
 Turning off this option is not recommended as players might pick up normally immovable props.")
 
 ISAWC.CreateListConCommand = function(self, name, data)
-	ISAWC:AddConCommand(name, {
+	self:AddConCommand(name, {
 		exec = function(ply,cmd,args)
 			if IsValid(ply) and not ply:IsAdmin() then
-				ISAWC:Log("Access denied.")
+				self:Log("Access denied.")
 			else
-				if #args==0 then
-					ISAWC:Log(data.display..'{')
-					for k,v in pairs(data.display_table) do
+				if next(args) then
+					data.exe(args)
+					if self.ConDoSave:GetInt() > 1 then
+						self:SaveInventory(ply)
+					end
+					self:SaveData()
+				else
+					self:Log(data.display..'{')
+					for k,v in pairs(self[data.display_table]) do
 						data.display_function(k,v)
 					end
-					ISAWC:Log("}")
-					ISAWC:Log("")
+					self:Log("}")
+					self:Log("")
 					for i,v in ipairs(data.help) do
-						ISAWC:Log(v)
-					end
-				else
-					data.exe(args)
-					if ISAWC.ConDoSave:GetInt() > 1 then
-						ISAWC:SaveInventory(ply)
+						self:Log(v)
 					end
 				end
 			end
@@ -181,7 +182,7 @@ end
 ISAWC.Blacklist = ISAWC.Blacklist or {}
 ISAWC:CreateListConCommand("isawc_blacklist", {
 	display = "The blacklist is as follows: ",
-	display_table = ISAWC.Blacklist,
+	display_table = "Blacklist",
 	display_function = function(k,v)
 		ISAWC:Log("\t"..string.format('%q',k)..",")
 	end,
@@ -212,7 +213,7 @@ ISAWC:CreateListConCommand("isawc_blacklist", {
 ISAWC.BlackContainerMagnetList = ISAWC.BlackContainerMagnetList or {}
 ISAWC:CreateListConCommand("isawc_container_magnetcontainerblacklist", {
 	display = "The container magnetization container blacklist is as follows: ",
-	display_table = ISAWC.BlackContainerMagnetList,
+	display_table = "BlackContainerMagnetList",
 	display_function = function(k,v)
 		ISAWC:Log("\t"..string.format('%q',k)..",")
 	end,
@@ -243,7 +244,7 @@ ISAWC:CreateListConCommand("isawc_container_magnetcontainerblacklist", {
 ISAWC.BlackDeathBoxList = ISAWC.BlackDeathBoxList or {}
 ISAWC:CreateListConCommand("isawc_player_dropondeathblacklist", {
 	display = "The player death box blacklist is as follows: ",
-	display_table = ISAWC.BlackDeathBoxList,
+	display_table = "BlackDeathBoxList",
 	display_function = function(k,v)
 		ISAWC:Log("\t"..string.format('%q',k)..",")
 	end,
@@ -293,7 +294,7 @@ See the ConCommand \"isawc_player_dropondeathwhitelist\" to manipulate the list.
 ISAWC.Whitelist = ISAWC.Whitelist or {}
 ISAWC:CreateListConCommand("isawc_whitelist", {
 	display = "The whitelist is as follows: ",
-	display_table = ISAWC.Whitelist,
+	display_table = "Whitelist",
 	display_function = function(k,v)
 		ISAWC:Log("\t"..string.format('%q',k)..",")
 	end,
@@ -325,7 +326,7 @@ ISAWC:CreateListConCommand("isawc_whitelist", {
 ISAWC.WhiteExtractList = ISAWC.WhiteExtractList or {}
 ISAWC:CreateListConCommand("isawc_exporter_whitelist", {
 	display = "The Inventory Exporter whitelist is as follows: ",
-	display_table = ISAWC.WhiteExtractList,
+	display_table = "WhiteExtractList",
 	display_function = function(k,v)
 		ISAWC:Log("\t"..string.format('%q',k)..",")
 	end,
@@ -356,7 +357,7 @@ ISAWC:CreateListConCommand("isawc_exporter_whitelist", {
 ISAWC.WhiteMagnetList = ISAWC.WhiteMagnetList or {}
 ISAWC:CreateListConCommand("isawc_container_magnetwhitelist", {
 	display = "The container magnetization whitelist is as follows: ",
-	display_table = ISAWC.WhiteMagnetList,
+	display_table = "WhiteMagnetList",
 	display_function = function(k,v)
 		ISAWC:Log("\t"..string.format('%q',k)..",")
 	end,
@@ -387,7 +388,7 @@ ISAWC:CreateListConCommand("isawc_container_magnetwhitelist", {
 ISAWC.WhiteDeathBoxList = ISAWC.WhiteDeathBoxList or {}
 ISAWC:CreateListConCommand("isawc_player_dropondeathwhitelist", {
 	display = "The player death box whitelist is as follows: ",
-	display_table = ISAWC.WhiteDeathBoxList,
+	display_table = "WhiteDeathBoxList",
 	display_function = function(k,v)
 		ISAWC:Log("\t"..string.format('%q',k)..",")
 	end,
@@ -418,7 +419,7 @@ ISAWC:CreateListConCommand("isawc_player_dropondeathwhitelist", {
 ISAWC.Stacklist = ISAWC.Stacklist or {}
 ISAWC:CreateListConCommand("isawc_stacklist", {
 	display = "The stacking list is as follows: ",
-	display_table = ISAWC.Stacklist,
+	display_table = "Stacklist",
 	display_function = function(k,v)
 		ISAWC:Log(string.format("\t%s={player=%u,container=%u}",k,v[1],v[2]))
 	end,
@@ -469,7 +470,7 @@ ISAWC:CreateListConCommand("isawc_stacklist", {
 ISAWC.Masslist = ISAWC.Masslist or {}
 ISAWC:CreateListConCommand("isawc_masslist", {
 	display = "The custom mass list is as follows: ",
-	display_table = ISAWC.Masslist,
+	display_table = "Masslist",
 	display_function = function(k,v)
 		ISAWC:Log("\t"..string.format("%q=%g",k,v)..",")
 	end,
@@ -512,7 +513,7 @@ ISAWC:CreateListConCommand("isawc_masslist", {
 ISAWC.MassMultiList = ISAWC.MassMultiList or {}
 ISAWC:CreateListConCommand("isawc_player_usergroupmassmullist", {
 	display = "The usergroup mass multiplier list is as follows: ",
-	display_table = ISAWC.MassMultiList,
+	display_table = "MassMultiList",
 	display_function = function(k,v)
 		if v == 0 then v = math.huge end
 		ISAWC:Log("\t"..string.format("%q=%g",k,v)..",")
@@ -556,7 +557,7 @@ ISAWC:CreateListConCommand("isawc_player_usergroupmassmullist", {
 ISAWC.Volumelist = ISAWC.Volumelist or {}
 ISAWC:CreateListConCommand("isawc_volumelist", {
 	display = "The custom volume list is as follows: ",
-	display_table = ISAWC.Volumelist,
+	display_table = "Volumelist",
 	display_function = function(k,v)
 		ISAWC:Log("\t"..string.format("%q=%g",k,v)..",")
 	end,
@@ -599,7 +600,7 @@ ISAWC:CreateListConCommand("isawc_volumelist", {
 ISAWC.VolumeMultiList = ISAWC.VolumeMultiList or {}
 ISAWC:CreateListConCommand("isawc_player_usergroupvolumemullist", {
 	display = "The usergroup volume multiplier list is as follows: ",
-	display_table = ISAWC.VolumeMultiList,
+	display_table = "VolumeMultiList",
 	display_function = function(k,v)
 		if v == 0 then v = math.huge end
 		ISAWC:Log("\t"..string.format("%q=%g",k,v)..",")
@@ -643,7 +644,7 @@ ISAWC:CreateListConCommand("isawc_player_usergroupvolumemullist", {
 ISAWC.Countlist = ISAWC.Countlist or {}
 ISAWC:CreateListConCommand("isawc_countlist", {
 	display = "The custom count list is as follows: ",
-	display_table = ISAWC.Countlist,
+	display_table = "Countlist",
 	display_function = function(k,v)
 		ISAWC:Log("\t"..string.format("%q=%u",k,v)..",")
 	end,
@@ -686,7 +687,7 @@ ISAWC:CreateListConCommand("isawc_countlist", {
 ISAWC.CountMultiList = ISAWC.CountMultiList or {}
 ISAWC:CreateListConCommand("isawc_player_usergroupcountmullist", {
 	display = "The usergroup count multiplier list is as follows: ",
-	display_table = ISAWC.CountMultiList,
+	display_table = "CountMultiList",
 	display_function = function(k,v)
 		if v == 0 then v = math.huge end
 		ISAWC:Log("\t"..string.format("%q=%g",k,v)..",")
@@ -730,7 +731,7 @@ ISAWC:CreateListConCommand("isawc_player_usergroupcountmullist", {
 ISAWC.Remaplist = ISAWC.Remaplist or {}
 ISAWC:CreateListConCommand("isawc_remaplist", {
 	display = "The class remapping list is as follows: ",
-	display_table = ISAWC.Remaplist,
+	display_table = "Remaplist",
 	display_function = function(k,v)
 		ISAWC:Log("\t"..string.format("%q=%q",k,v)..",")
 	end,
@@ -2601,28 +2602,29 @@ ISAWC.SQL = function(self,query,...)
 end
 
 ISAWC.SaveData = function(self)
-	local data = util.JSONToTable(file.Read("isawc_data.dat") or "") or {}
-	if table.IsEmpty(data) then
-		data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "")) or {}
+	if next(ISAWC.LastLoadedData) then
+		local data = util.JSONToTable(file.Read("isawc_data.dat", "DATA") or "") or {}
+		if table.IsEmpty(data) then
+			data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat", "DATA") or "")) or {}
+		end
+		data.Blacklist = self.Blacklist or {}
+		data.BlackContainerMagnetList = self.BlackContainerMagnetList or {}
+		data.Whitelist = self.Whitelist or {}
+		data.WhiteExtractList = self.WhiteExtractList or {}
+		data.WhiteMagnetList = self.WhiteMagnetList or {}
+		data.Stacklist = self.Stacklist or {}
+		data.Masslist = self.Masslist or {}
+		data.Volumelist = self.Volumelist or {}
+		data.Countlist = self.Countlist or {}
+		data.Remaplist = self.Remaplist or {}
+		data.MassMultiList = self.MassMultiList or {}
+		data.VolumeMultiList = self.VolumeMultiList or {}
+		data.CountMultiList = self.CountMultiList or {}
+		file.Write("isawc_data.dat",util.TableToJSON(data))
 	end
-	data.Blacklist = self.Blacklist or {}
-	data.BlackContainerMagnetList = self.BlackContainerMagnetList or {}
-	data.Whitelist = self.Whitelist or {}
-	data.WhiteExtractList = self.WhiteExtractList or {}
-	data.WhiteMagnetList = self.WhiteMagnetList or {}
-	data.Stacklist = self.Stacklist or {}
-	data.Masslist = self.Masslist or {}
-	data.Volumelist = self.Volumelist or {}
-	data.Countlist = self.Countlist or {}
-	data.Remaplist = self.Remaplist or {}
-	data.MassMultiList = self.MassMultiList or {}
-	data.VolumeMultiList = self.VolumeMultiList or {}
-	data.CountMultiList = self.CountMultiList or {}
-	file.Write("isawc_data.dat",util.TableToJSON(data))
 end
 
 ISAWC.SaveInventory = function(self,ply)
-	self:SaveData()
 	local steamid
 	self:SQL([[CREATE TABLE IF NOT EXISTS isawc_player_data (
 		steamID TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
@@ -2696,10 +2698,10 @@ ISAWC.SaveContainerInventory = function(self,container)
 	end
 end
 
-ISAWC.LastLoadedData = {}
+ISAWC.LastLoadedData = ISAWC.LastLoadedData or {}
 ISAWC.PlayerSpawn = function(ply)
 	timer.Simple(0.5,function()
-		if not next(ISAWC.LastLoadedData) then
+		if table.IsEmpty(ISAWC.LastLoadedData) then
 			local data = util.JSONToTable(file.Read("isawc_data.dat") or "") or {}
 			if table.IsEmpty(data) then
 				data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "")) or {}
@@ -3107,6 +3109,7 @@ end
 
 ISAWC.ReceiveMessage = function(self,length,ply,func)
 	if SERVER and IsValid(ply) then
+		ply.ISAWC_Inventory = ply.ISAWC_Inventory or {}
 		if func == "pickup" then
 			local ent = net.ReadEntity()
 			if self:CanProperty(ply,ent) then
@@ -3742,12 +3745,10 @@ local invcooldown = 0
 local nextsave = 0
 ISAWC.Tick = function()
 	if SERVER then
-		if nextsave < RealTime() then
+		if nextsave < RealTime() and ISAWC.ConDoSave:GetInt() > 0 then
 			nextsave = RealTime() + ISAWC.ConDoSaveDelay:GetFloat()
-			if ISAWC.ConDoSave:GetInt() > 0 then
-				ISAWC:SaveInventory(player.GetAll())
-				ISAWC:Log("Player inventories saved!")
-			end
+			ISAWC:SaveInventory(player.GetAll())
+			ISAWC:Log("Player inventories saved!")
 		end
 	end
 	if CLIENT then
