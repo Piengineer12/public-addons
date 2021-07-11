@@ -8,8 +8,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 ]]
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.0.0-beta.3"
-ISAWC._VERSIONDATE = "2021-07-10"
+ISAWC._VERSION = "4.0.0-beta.4"
+ISAWC._VERSIONDATE = "2021-07-11"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -2699,27 +2699,33 @@ ISAWC.SaveContainerInventory = function(self,container)
 end
 
 ISAWC.LastLoadedData = ISAWC.LastLoadedData or {}
+ISAWC.Initialize = function()
+	if table.IsEmpty(ISAWC.LastLoadedData) then
+		local data = util.JSONToTable(file.Read("isawc_data.dat") or "") or {}
+		if table.IsEmpty(data) then
+			data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "")) or {}
+		end
+		ISAWC.Blacklist = data.Blacklist or ISAWC.Blacklist
+		ISAWC.BlackContainerMagnetList = data.BlackContainerMagnetList or ISAWC.BlackContainerMagnetList
+		ISAWC.Whitelist = data.Whitelist or ISAWC.Whitelist
+		ISAWC.WhiteExtractList = data.WhiteExtractList or ISAWC.WhiteExtractList
+		ISAWC.WhiteMagnetList = data.WhiteMagnetList or ISAWC.WhiteMagnetList
+		ISAWC.Stacklist = data.Stacklist or ISAWC.Stacklist
+		ISAWC.Masslist = data.Masslist or ISAWC.Masslist
+		ISAWC.Volumelist = data.Volumelist or ISAWC.Volumelist
+		ISAWC.Countlist = data.Countlist or ISAWC.Countlist
+		ISAWC.Remaplist = data.Remaplist or ISAWC.Remaplist
+		ISAWC.MassMultiList = data.MassMultiList or ISAWC.MassMultiList
+		ISAWC.VolumeMultiList = data.VolumeMultiList or ISAWC.VolumeMultiList
+		ISAWC.CountMultiList = data.CountMultiList or ISAWC.CountMultiList
+		ISAWC.LastLoadedData = data
+	end
+end
+
 ISAWC.PlayerSpawn = function(ply)
 	timer.Simple(0.5,function()
 		if table.IsEmpty(ISAWC.LastLoadedData) then
-			local data = util.JSONToTable(file.Read("isawc_data.dat") or "") or {}
-			if table.IsEmpty(data) then
-				data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "")) or {}
-			end
-			ISAWC.Blacklist = data.Blacklist or ISAWC.Blacklist
-			ISAWC.BlackContainerMagnetList = data.BlackContainerMagnetList or ISAWC.BlackContainerMagnetList
-			ISAWC.Whitelist = data.Whitelist or ISAWC.Whitelist
-			ISAWC.WhiteExtractList = data.WhiteExtractList or ISAWC.WhiteExtractList
-			ISAWC.WhiteMagnetList = data.WhiteMagnetList or ISAWC.WhiteMagnetList
-			ISAWC.Stacklist = data.Stacklist or ISAWC.Stacklist
-			ISAWC.Masslist = data.Masslist or ISAWC.Masslist
-			ISAWC.Volumelist = data.Volumelist or ISAWC.Volumelist
-			ISAWC.Countlist = data.Countlist or ISAWC.Countlist
-			ISAWC.Remaplist = data.Remaplist or ISAWC.Remaplist
-			ISAWC.MassMultiList = data.MassMultiList or ISAWC.MassMultiList
-			ISAWC.VolumeMultiList = data.VolumeMultiList or ISAWC.VolumeMultiList
-			ISAWC.CountMultiList = data.CountMultiList or ISAWC.CountMultiList
-			ISAWC.LastLoadedData = data
+			ISAWC:Initialize()
 		end
 		if IsValid(ply) then
 			local steamID = ply:SteamID() or ""
@@ -3943,6 +3949,7 @@ properties.Add("isawc_pickup",ISAWC.PropertyTable)
 hook.Add("AddToolMenuTabs","ISAWC",ISAWC.AddToolMenuTabs)
 hook.Add("AddToolMenuCategories","ISAWC",ISAWC.AddToolMenuCategories)
 hook.Add("PopulateToolMenu","ISAWC",ISAWC.PopulateToolMenu)
+hook.Add("Initialize","ISAWC",ISAWC.Initialize)
 hook.Add("PhysgunPickup","ISAWC",ISAWC.PhysgunPickup)
 hook.Add("PhysgunDrop","ISAWC",ISAWC.PhysgunDrop)
 hook.Add("PlayerSpawn","ISAWC",ISAWC.PlayerSpawn)
