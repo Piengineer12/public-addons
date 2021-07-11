@@ -1,3 +1,12 @@
+--[[
+Workshop:		https://steamcommunity.com/sharedfiles/filedetails/?id=1673039990
+Profile Page:	https://steamcommunity.com/id/Piengineer12
+GitHub Page:	https://github.com/Piengineer12/public-addons/tree/master/isawc
+Donate:			https://ko-fi.com/piengineer12
+
+Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format. 
+]]
+
 AddCSLuaFile()
 
 ENT.Model 			= "models/props_c17/cashregister01a.mdl"
@@ -11,6 +20,8 @@ ENT.Instructions	= "Press 'Use' to open up the menu."
 ENT.Category		= "Currency Exchanger"
 ENT.Spawnable		= true
 ENT.AdminOnly		= true
+
+ENT.Version			= "2.0.0"
 
 if SERVER then
 	util.AddNetworkString("OpenCurrencyOptionMenu")
@@ -27,7 +38,7 @@ local SetGetTypeText = [[Defines how the functions work:
 5 : CashFunction(var,ply,cash)
 6 : CashFunction(var,cash,ply)
 7 : var:CashFunction(ply,cash)
-8 : ply:CashFunction(cash)
+8 : var.CashFunction = cash
 9 : CashFunction(ply,var,cash)
 10 : CashFunction(cash,var,ply)
 11 : var.CashFunction(cash,ply)
@@ -140,6 +151,36 @@ local currencylib = {
 		Getter = "YRPGetMoneyBank",
 		Canner = "canAffordBank",
 		Adder = "addMoneyBank"
+	},
+	["nMoney"]={
+		RequiredGlobalVariable = "hook.GetTable().AddToolMenuCategories and hook.GetTable().AddToolMenuCategories.AddMoneyOption", -- this is a bit stupid ngl, but there aren't much better ways
+		CurrencySuffix = "$",
+		SetGetType = 8,
+		SetGetTypeOverride={
+			Getter = 16
+		},
+		Setter = "Money",
+		SetterVar = "PLAYER",
+		Getter = "Money",
+		GetterVar = "PLAYER"
+	},
+	["nMoney2"]={
+		RequiredGlobalVariable = "NMONEY2_MAXVALUE",
+		CurrencySuffix = "$",
+		SetGetType = 4,
+		Setter = "SetNWString",
+		SetterVar = "WalletMoney",
+		Getter = "GetNWString",
+		GetterVar = "WalletMoney"
+	},
+	["nMoney2 (Bank)"]={
+		RequiredGlobalVariable = "NMONEY2_MAXVALUE",
+		CurrencySuffix = "$",
+		SetGetType = 4,
+		Setter = "SetNWString",
+		SetterVar = "BankMoney",
+		Getter = "GetNWString",
+		GetterVar = "BankMoney"
 	}
 }
 table.Merge(currencylib,util.JSONToTable(file.Read("currency_definitions.txt") or "") or {})
@@ -192,42 +233,44 @@ function PLAYER:InternalUniversalCurrencyFunction(name,func,amount,var)
 		var = TEMP_VAR
 	end
 	local typ = curlib.SetGetTypeOverride and curlib.SetGetTypeOverride[func] or curlib.SetGetType
+	local returnValue
 	if typ==0x0 then
-		return self[curlib[func]](self,amount)
+		returnValue = self[curlib[func]](self,amount)
 	elseif typ==0x1 then
-		return _G[curlib[func]](self,amount)
+		returnValue = _G[curlib[func]](self,amount)
 	elseif typ==0x2 then
-		return _G[curlib[func]](amount,self)
+		returnValue = _G[curlib[func]](amount,self)
 	elseif typ==0x3 then
-		return TEMP_VAR[curlib[func]](TEMP_VAR,amount,self)
+		returnValue = TEMP_VAR[curlib[func]](TEMP_VAR,amount,self)
 	elseif typ==0x4 then
-		return self[curlib[func]](self,var,amount)
+		returnValue = self[curlib[func]](self,var,amount)
 	elseif typ==0x5 then
-		return _G[curlib[func]](var,self,amount)
+		returnValue = _G[curlib[func]](var,self,amount)
 	elseif typ==0x6 then
-		return _G[curlib[func]](var,amount,self)
+		returnValue = _G[curlib[func]](var,amount,self)
 	elseif typ==0x7 then
-		return TEMP_VAR[curlib[func]](TEMP_VAR,self,amount)
+		returnValue = TEMP_VAR[curlib[func]](TEMP_VAR,self,amount)
 	elseif typ==0x8 then
-		return self[curlib[func]](self,amount)
+		TEMP_VAR[curlib[func]] = amount
+		returnValue = 0
 	elseif typ==0x9 then
-		return _G[curlib[func]](self,var,amount)
+		returnValue = _G[curlib[func]](self,var,amount)
 	elseif typ==0xA then
-		return _G[curlib[func]](amount,var,self)
+		returnValue = _G[curlib[func]](amount,var,self)
 	elseif typ==0xB then
-		return TEMP_VAR[curlib[func]](self,amount)
+		returnValue = TEMP_VAR[curlib[func]](self,amount)
 	elseif typ==0xC then
-		return self[curlib[func]](self,amount,var)
+		returnValue = self[curlib[func]](self,amount,var)
 	elseif typ==0xD then
-		return _G[curlib[func]](self,amount,var)
+		returnValue = _G[curlib[func]](self,amount,var)
 	elseif typ==0xE then
-		return _G[curlib[func]](amount,self,var)
+		returnValue = _G[curlib[func]](amount,self,var)
 	elseif typ==0xF then
-		return TEMP_VAR[curlib[func]](amount,self)
+		returnValue = TEMP_VAR[curlib[func]](amount,self)
 	elseif typ==0x10 then
-		return TEMP_VAR[curlib[func]]
-	else return 0
+		returnValue = TEMP_VAR[curlib[func]]
 	end
+	return returnValue or 0
 end
 
 function PLAYER:UniversalCurrencyFunction(name,func,amount,var)
@@ -895,7 +938,8 @@ net.Receive("OpenCurrencyOptionMenu",function(length,ply)
 				FirstCurrency:Dock(TOP)
 				FirstCurrency:SetValue("Choose a currency system...")
 				for k,v in pairs(currencylib) do
-					RunString("TEMP_VAR = nil;TEMP_VAR = "..tostring(v.RequiredGlobalVariable))
+					TEMP_VAR = nil
+					RunString("TEMP_VAR = "..tostring(v.RequiredGlobalVariable))
 					if TEMP_VAR then
 						FirstCurrency:AddChoice(k)
 					end
@@ -955,7 +999,7 @@ net.Receive("OpenCurrencyOptionMenu",function(length,ply)
 				
 				local ToText = vgui.Create("DLabel",TransactionPanel)
 				ToText:SetSize(-1,40)
-				ToText:SetText("Note: It is better to use a value ratio (e.g. 5:12) as the player can purchase in bulk.\nThe currency systems shown are based on your currently mounted add-ons.")
+				ToText:SetText("Note: It is better to use a value ratio (e.g. 5:12) as the player can purchase in bulk.\nThe currency systems shown are based on your currently mounted addons.")
 				ToText:SetTextColor(color_white)
 				ToText:Dock(TOP)
 				ToText:SetContentAlignment(8)
