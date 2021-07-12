@@ -21,7 +21,7 @@ ENT.Category		= "Currency Exchanger"
 ENT.Spawnable		= true
 ENT.AdminOnly		= true
 
-ENT.Version			= "2.0.0"
+ENT.Version			= "2.0.1"
 
 if SERVER then
 	util.AddNetworkString("OpenCurrencyOptionMenu")
@@ -285,9 +285,9 @@ function PLAYER:UniversalCurrencyFunction(name,func,amount,var)
 	end
 	if func == "Get" or func == "Getter" then
 		if libi.GetterClient and CLIENT then
-			return self:InternalUniversalCurrencyFunction(name,"GetterClient",amount,var)
+			return tonumber(self:InternalUniversalCurrencyFunction(name,"GetterClient",amount,var))
 		elseif libi.Getter then
-			return self:InternalUniversalCurrencyFunction(name,"Getter",amount,var)
+			return tonumber(self:InternalUniversalCurrencyFunction(name,"Getter",amount,var))
 		end
 		error("bad argument #2 to 'UniversalCurrencyFunction' (string rejected, function unavailable)")
 	elseif func == "Can" or func == "Canner" then
@@ -296,9 +296,9 @@ function PLAYER:UniversalCurrencyFunction(name,func,amount,var)
 		elseif libi.Canner then
 			return self:InternalUniversalCurrencyFunction(name,"Canner",amount,var)
 		elseif libi.GetterClient and CLIENT then
-			return self:InternalUniversalCurrencyFunction(name,"GetterClient",amount,var)>=amount
+			return tonumber(self:InternalUniversalCurrencyFunction(name,"GetterClient",amount,var))>=amount
 		elseif libi.Getter then
-			return self:InternalUniversalCurrencyFunction(name,"Getter",amount,var)>=amount
+			return tonumber(self:InternalUniversalCurrencyFunction(name,"Getter",amount,var))>=amount
 		end
 		error("bad argument #2 to 'UniversalCurrencyFunction' (string rejected, function unavailable)")
 	elseif func == "Set" or func == "Setter" then
