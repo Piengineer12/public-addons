@@ -10,7 +10,7 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.0.0-beta.5"
+ISAWC._VERSION = "4.0.0-beta.6"
 ISAWC._VERSIONDATE = "2021-07-12"
 
 if SERVER then util.AddNetworkString("isawc_general") end
@@ -122,11 +122,11 @@ Please note that carrying capacities of containers are still defined in their re
 Additionally, the ConVars \"isawc_container_massmul\" and \"isawc_container_volumemul\" will still be obeyed.")
 
 ISAWC.ConConstMass = CreateConVar("isawc_player_massconstant","15",FCVAR_REPLICATED,
-"Sets the maximum mass, in kg, that all players are allowed to carry at once.\
+"Sets the maximum mass, in kg, that all players are allowed to carry at once when the isawc_use_constants ConVar is enabled.\
 If this is 0, the mass limit will not be enforced.")
 
 ISAWC.ConConstVol = CreateConVar("isawc_player_volumeconstant","100",FCVAR_REPLICATED,
-"Sets the maximum volume, in dm³, that all players are allowed to carry at once.\
+"Sets the maximum volume, in dm³, that all players are allowed to carry at once when the isawc_use_constants ConVar is enabled.\
 If this is 0, the volume limit will not be enforced.")
 
 ISAWC.ConDistance = CreateConVar("isawc_pickup_maxdistance","128",FCVAR_REPLICATED,
@@ -801,7 +801,7 @@ ISAWC.ConDistBefore = CreateConVar("isawc_spawn_bumpdist","4",FCVAR_REPLICATED,
 This ignores Max Pickup Distance!")
 
 ISAWC.ConSaveIntoFile = CreateConVar("isawc_container_save","0",FCVAR_REPLICATED,
-"Causes containers to save/load their inventories into/from files instead of its own entity table.\
+"Causes containers to save/load their inventories into/from the database instead of its own entity table.\
 This feature is in beta - use it at your own risk.\
 WARNING: Make sure to Clear the Save Cache periodically!")
 
@@ -870,7 +870,7 @@ ISAWC.ConNoAmmo = CreateConVar("isawc_spawn_emptyweapons", "0", FCVAR_REPLICATED
 "If set, all weapons spawned from inventories will not have any ammo in their clip.")
 
 ISAWC.ConAllowInterConnection = CreateConVar("isawc_allow_interownerconnections", "0", FCVAR_REPLICATED,
-"If set to 1, Inventory Importers, Exporters and Viewers may be connected to a container owned by someone else.\
+"If set to 1, Inventory Importers and Exporters may be connected to a container owned by someone else.\
 If set to 2, connections are only allowed to containers owned by the same team.")
 
 ISAWC.ConMinExportDelay = CreateConVar("isawc_exporter_mindelay", "0.05", FCVAR_REPLICATED,
@@ -1187,8 +1187,11 @@ end
 ISAWC.PopulateToolMenu = function()
 	spawnmenu.AddToolMenuOption("ISAWC","client","isawc_client","General","","",ISAWC.PopulateDFormClient)
 	spawnmenu.AddToolMenuOption("ISAWC","server","isawc_general","General","","",ISAWC.PopulateDFormGeneral)
-	spawnmenu.AddToolMenuOption("ISAWC","server","isawc_multipliers","Scaling","","",ISAWC.PopulateDFormMultipliers)
-	spawnmenu.AddToolMenuOption("ISAWC","server","isawc_others","Various Others","","",ISAWC.PopulateDFormOthers)
+	spawnmenu.AddToolMenuOption("ISAWC","server","isawc_pickup","Pickups","","",ISAWC.PopulateDFormPickup)
+	spawnmenu.AddToolMenuOption("ISAWC","server","isawc_drop","Drops","","",ISAWC.PopulateDFormDrop)
+	spawnmenu.AddToolMenuOption("ISAWC","server","isawc_player","Players","","",ISAWC.PopulateDFormPlayer)
+	spawnmenu.AddToolMenuOption("ISAWC","server","isawc_container","Containers","","",ISAWC.PopulateDFormContainer)
+	spawnmenu.AddToolMenuOption("ISAWC","server","isawc_importexport","Imports & Exports","","",ISAWC.PopulateDFormImportExport)
 end
 
 ISAWC.PopulateDFormClient = function(DForm)
@@ -1206,7 +1209,7 @@ ISAWC.PopulateDFormClient = function(DForm)
 	Binder:Dock(RIGHT)
 	DLabel:SizeToContentsX()
 	DForm:Help(" - "..ISAWC.ConUseBind:GetHelpText().."\n")
-	DForm:NumSlider("Pickup Delay",ISAWC.ConUseDelay:GetName(),-1,10,3)
+	DForm:NumSlider("Pickup Delay",ISAWC.ConUseDelay:GetName(),-1,10,2)
 	DForm:Help(" - "..ISAWC.ConUseDelay:GetHelpText().."\n")
 	
 	--[[DLabel = Label("Inventory Key (RMB to clear)")
@@ -1231,160 +1234,156 @@ ISAWC.PopulateDFormClient = function(DForm)
 end
 
 ISAWC.PopulateDFormGeneral = function(DForm)
-	DForm:Help("") --whitespace
-	DForm:ControlHelp("General Settings")
-	local combox = DForm:ComboBox("Use Realistic Volumes",ISAWC.ConReal:GetName())
-	combox:AddChoice("0 - Don't", 0)
+	DForm:NumSlider("Mass Multiplier",ISAWC.ConMassMul3:GetName(),0,10,2)
+	DForm:Help(" - "..ISAWC.ConMassMul3:GetHelpText().."\n")
+	DForm:NumSlider("Volume Multiplier",ISAWC.ConVolMul3:GetName(),0,10,2)
+	DForm:Help(" - "..ISAWC.ConVolMul3:GetHelpText().."\n")
+	DForm:NumSlider("Amount Multiplier",ISAWC.ConCount3:GetName(),0,10,2)
+	DForm:Help(" - "..ISAWC.ConCount3:GetHelpText().."\n")
+	local combox = DForm:ComboBox("Volume Calculation",ISAWC.ConReal:GetName())
+	combox:AddChoice("0 - Mesh Volume", 0)
 	combox:AddChoice("1 - Outer Box", 1)
 	combox:AddChoice("2 - Outer Sphere", 2)
 	DForm:Help(" - "..ISAWC.ConReal:GetHelpText().."\n")
-	DForm:CheckBox("Allow Item Deletion",ISAWC.ConAllowDelete:GetName())
-	DForm:Help(" - "..ISAWC.ConAllowDelete:GetHelpText().."\n")
+	DForm:CheckBox("Use Constants",ISAWC.ConConstEnabled:GetName())
+	DForm:Help(" - "..ISAWC.ConConstEnabled:GetHelpText().."\n")
+	DForm:CheckBox("Suppress All Notifications (Global)",ISAWC.ConHideNotifsG:GetName())
+	DForm:Help(" - "..ISAWC.ConHideNotifsG:GetHelpText().."\n")
+	DForm:CheckBox("Hide Pickup Fail Events",ISAWC.ConPickupDenyLogs:GetName())
+	DForm:Help(" - "..ISAWC.ConPickupDenyLogs:GetHelpText().."\n")
 	DForm:CheckBox("Allow Constrained Entities",ISAWC.ConAllowConstrained:GetName())
 	DForm:Help(" - "..ISAWC.ConAllowConstrained:GetHelpText().."\n")
 	DForm:CheckBox("Allow PhysGunned Entities",ISAWC.ConAllowPickupOnPhysgun:GetName())
 	DForm:Help(" - "..ISAWC.ConAllowPickupOnPhysgun:GetHelpText().."\n")
+	DForm:CheckBox("Allow Non-VPhysics Entities",ISAWC.ConNonVPhysics:GetName())
+	DForm:Help(" - "..ISAWC.ConNonVPhysics:GetHelpText().."\n")
+	DForm:CheckBox("Allow Item Deletion",ISAWC.ConAllowDelete:GetName())
+	DForm:Help(" - "..ISAWC.ConAllowDelete:GetHelpText().."\n")
 	DForm:CheckBox("Undo Puts Items Into Inventory",ISAWC.ConUndoIntoContain:GetName())
 	DForm:Help(" - "..ISAWC.ConUndoIntoContain:GetHelpText().."\n")
-	DForm:CheckBox("Empty Weapon Clips",ISAWC.ConNoAmmo:GetName())
-	DForm:Help(" - "..ISAWC.ConNoAmmo:GetHelpText().."\n")
-	DForm:NumSlider("Allow UP'd Inventory Connections",ISAWC.ConAllowInterConnection:GetName(),0,2,0)
-	DForm:Help(" - "..ISAWC.ConAllowInterConnection:GetHelpText().."\n")
-	DForm:NumSlider("Minimum Export Delay",ISAWC.ConMinExportDelay:GetName(),0.01,10,2)
-	DForm:Help(" - "..ISAWC.ConMinExportDelay:GetHelpText().."\n")
-	DForm:CheckBox("Use Alternate Storing Method",ISAWC.ConAltSave:GetName())
+	DForm:CheckBox("Use Alternate Storage Method",ISAWC.ConAltSave:GetName())
 	DForm:Help(" - "..ISAWC.ConAltSave:GetHelpText().."\n")
 	DForm:CheckBox("[EXPERIMENTAL] Save Engine Tables",ISAWC.ConSaveTable:GetName())
 	DForm:Help(" - "..ISAWC.ConSaveTable:GetHelpText().."\n")
-	DForm:CheckBox("Use Item Whitelist",ISAWC.ConUseWhitelist:GetName())
-	DForm:Help(" - "..ISAWC.ConUseWhitelist:GetHelpText().."\n")
-	DForm:CheckBox("Use Inventory Exporter Whitelist",ISAWC.ConUseExportWhitelist:GetName())
-	DForm:Help(" - "..ISAWC.ConUseExportWhitelist:GetHelpText().."\n")
-	DForm:CheckBox("Allow Non-VPhysics Entities",ISAWC.ConNonVPhysics:GetName())
-	DForm:Help(" - "..ISAWC.ConNonVPhysics:GetHelpText().."\n")
-	DForm:CheckBox("Suppress All Notifications (Global)",ISAWC.ConHideNotifsG:GetName())
-	DForm:Help(" - "..ISAWC.ConHideNotifsG:GetHelpText().."\n")
+	local dangerbutton = DForm:Button("Set All To Default","isawc_reset_convars")
+	dangerbutton:SetTextColor(Color(255,0,0))
+end
+
+ISAWC.PopulateDFormPickup = function(DForm)
 	DForm:CheckBox("Override Hooks",ISAWC.ConOverride:GetName())
 	DForm:Help(" - "..ISAWC.ConOverride:GetHelpText().."\n")
-	DForm:CheckBox("Hide Pickup Fail Events",ISAWC.ConPickupDenyLogs:GetName())
-	DForm:Help(" - "..ISAWC.ConPickupDenyLogs:GetHelpText().."\n")
-end
-
-ISAWC.PopulateDFormMultipliers = function(DForm)
-	DForm:Help("") --whitespace
-	DForm:ControlHelp("Pickup Multipliers")
-	DForm:NumSlider("Mass Multiplier",ISAWC.ConMassMul3:GetName(),0,10,3)
-	DForm:Help(" - "..ISAWC.ConMassMul3:GetHelpText().."\n")
-	DForm:NumSlider("Volume Multiplier",ISAWC.ConVolMul3:GetName(),0,10,3)
-	DForm:Help(" - "..ISAWC.ConVolMul3:GetHelpText().."\n")
-	DForm:NumSlider("Amount Multiplier",ISAWC.ConCount3:GetName(),0,10,3)
-	DForm:Help(" - "..ISAWC.ConCount3:GetHelpText().."\n")
-	
-	DForm:Help("") --whitespace
-	DForm:ControlHelp("Player Multipliers")
-	DForm:NumSlider("Mass Carrying Multiplier",ISAWC.ConMassMul:GetName(),0,10,3)
-	DForm:Help(" - "..ISAWC.ConMassMul:GetHelpText().."\n")
-	DForm:NumSlider("Volume Carrying Multiplier",ISAWC.ConVolMul:GetName(),0,10,3)
-	DForm:Help(" - "..ISAWC.ConVolMul:GetHelpText().."\n")
-	DForm:NumSlider("Max Items",ISAWC.ConCount:GetName(),0,1024,0)
-	DForm:Help(" - "..ISAWC.ConCount:GetHelpText().."\n")
-	--DForm:NumSlider("Max Items per Stack",ISAWC.ConStackLimit:GetName(),0,1024,0)
-	--DForm:Help(" - "..ISAWC.ConStackLimit:GetHelpText().."\n")
-	
-	DForm:Help("") --whitespace
-	DForm:ControlHelp("Containers' Multipliers")
-	DForm:NumSlider("Mass Carrying Multiplier",ISAWC.ConMassMul2:GetName(),0,10,3)
-	DForm:Help(" - "..ISAWC.ConMassMul2:GetHelpText().."\n")
-	DForm:NumSlider("Volume Carrying Multiplier",ISAWC.ConVolMul2:GetName(),0,10,3)
-	DForm:Help(" - "..ISAWC.ConVolMul2:GetHelpText().."\n")
-	DForm:NumSlider("Max Items",ISAWC.ConCount2:GetName(),0,1024,0)
-	DForm:Help(" - "..ISAWC.ConCount2:GetHelpText().."\n")
-	--DForm:NumSlider("Max Items per Stack",ISAWC.ConStackLimit2:GetName(),0,1024,0)
-	--DForm:Help(" - "..ISAWC.ConStackLimit2:GetHelpText().."\n")
-	
-	DForm:Help("") --whitespace
-	DForm:ControlHelp("Constants")
-	DForm:CheckBox("Use Constants",ISAWC.ConConstEnabled:GetName())
-	DForm:Help(" - "..ISAWC.ConConstEnabled:GetHelpText().."\n")
-	DForm:NumSlider("Player Max Mass (kg)",ISAWC.ConConstMass:GetName(),0,1024,1)
-	DForm:Help(" - "..ISAWC.ConConstMass:GetHelpText().."\n")
-	DForm:NumSlider("Player Max Volume (dm³)",ISAWC.ConConstVol:GetName(),0,1024,1)
-	DForm:Help(" - "..ISAWC.ConConstVol:GetHelpText().."\n")
-end
-
-ISAWC.PopulateDFormOthers = function(DForm)
-	DForm:Help("") --whitespace
-	DForm:ControlHelp("Player Options")
-	
-	DForm:TextEntry("Pickup Key Override",ISAWC.ConUseBindOverride:GetName())
+	DForm:TextEntry("Key Override",ISAWC.ConUseBindOverride:GetName())
 	DForm:Help(" - "..ISAWC.ConUseBindOverride:GetHelpText().."\n")
-	DForm:NumSlider("Pickup Delay",ISAWC.ConDelay:GetName(),0,100,2)
+	DForm:NumSlider("Delay",ISAWC.ConDelay:GetName(),0,10,2)
 	DForm:Help(" - "..ISAWC.ConDelay:GetHelpText().."\n")
-	DForm:NumSlider("Drop Delay",ISAWC.ConSpawnDelay:GetName(),0,100,2)
-	DForm:Help(" - "..ISAWC.ConSpawnDelay:GetHelpText().."\n")
-	DForm:NumSlider("Max Pickup Distance",ISAWC.ConDistance:GetName(),0,1024,1)
+	DForm:NumSlider("Max Distance",ISAWC.ConDistance:GetName(),0,1024,0)
 	DForm:Help(" - "..ISAWC.ConDistance:GetHelpText().."\n")
-	DForm:NumSlider("Distance from Obstructions",ISAWC.ConDistBefore:GetName(),0,1024,1)
+	DForm:CheckBox("Use Whitelist",ISAWC.ConUseWhitelist:GetName())
+	DForm:Help(" - "..ISAWC.ConUseWhitelist:GetHelpText().."\n")
+end
+
+ISAWC.PopulateDFormDrop = function(DForm)
+	DForm:NumSlider("Delay",ISAWC.ConSpawnDelay:GetName(),0,10,2)
+	DForm:Help(" - "..ISAWC.ConSpawnDelay:GetHelpText().."\n")
+	DForm:NumSlider("Distance from Obstructions",ISAWC.ConDistBefore:GetName(),0,128,0)
 	DForm:Help(" - "..ISAWC.ConDistBefore:GetHelpText().."\n")
-	DForm:CheckBox("Drop Inventory On Death",ISAWC.ConDropOnDeath:GetName())
-	DForm:Help(" - "..ISAWC.ConDropOnDeath:GetHelpText().."\n")
-	DForm:TextEntry("Class of Dropped Container",ISAWC.ConDropOnDeathClass:GetName())
-	DForm:Help(" - "..ISAWC.ConDropOnDeathClass:GetHelpText().."\n")
-	DForm:TextEntry("Model of Dropped Container",ISAWC.ConDropOnDeathModel:GetName())
-	DForm:Help(" - "..ISAWC.ConDropOnDeathModel:GetHelpText().."\n")
-	DForm:NumSlider("Max Dropped Containers",ISAWC.ConDropOnDeathAmount:GetName(),-1,100,0)
-	DForm:Help(" - "..ISAWC.ConDropOnDeathAmount:GetHelpText().."\n")
-	DForm:CheckBox("Use Dropped Container Whitelist",ISAWC.ConUseDeathBoxWhitelist:GetName())
-	DForm:Help(" - "..ISAWC.ConUseDeathBoxWhitelist:GetHelpText().."\n")
-	local combox = DForm:ComboBox("Save Player Inventories",ISAWC.ConDoSave:GetName())
-	combox:AddChoice("0 - Don't", 0)
-	combox:AddChoice("1 - Occasionally", 1)
-	combox:AddChoice("2 - Frequently", 2)
-	DForm:Help(" - "..ISAWC.ConDoSave:GetHelpText().."\n")
-	DForm:NumSlider("Auto Save Delay",ISAWC.ConDoSaveDelay:GetName(),1,600,1)
-	DForm:Help(" - "..ISAWC.ConDoSaveDelay:GetHelpText().."\n")
+	DForm:CheckBox("Empty Weapon Clips",ISAWC.ConNoAmmo:GetName())
+	DForm:Help(" - "..ISAWC.ConNoAmmo:GetHelpText().."\n")
+	DForm:CheckBox("Allow Dropboxes",ISAWC.ConDropAllAllowed:GetName())
+	DForm:Help(" - "..ISAWC.ConDropAllAllowed:GetHelpText().."\n")
+	DForm:NumSlider("Dropbox Remove Time",ISAWC.ConDropAllTime:GetName(),0,100,1)
+	DForm:Help(" - "..ISAWC.ConDropAllTime:GetHelpText().."\n")
+	DForm:NumSlider("Max Dropboxes",ISAWC.ConDropAllLimit:GetName(),-1,100,0)
+	DForm:Help(" - "..ISAWC.ConDropAllLimit:GetHelpText().."\n")
+	DForm:TextEntry("Dropbox Class",ISAWC.ConDropAllClass:GetName())
+	DForm:Help(" - "..ISAWC.ConDropAllClass:GetHelpText().."\n")
+	DForm:TextEntry("Dropbox Model",ISAWC.ConDropAllModel:GetName())
+	DForm:Help(" - "..ISAWC.ConDropAllModel:GetHelpText().."\n")
+end
+
+ISAWC.PopulateDFormPlayer = function(DForm)
+	DForm:NumSlider("Mass Carrying Multiplier",ISAWC.ConMassMul:GetName(),0,10,2)
+	DForm:Help(" - "..ISAWC.ConMassMul:GetHelpText().."\n")
+	DForm:NumSlider("Volume Carrying Multiplier",ISAWC.ConVolMul:GetName(),0,10,2)
+	DForm:Help(" - "..ISAWC.ConVolMul:GetHelpText().."\n")
+	DForm:NumSlider("Max Items",ISAWC.ConCount:GetName(),0,1000,0)
+	DForm:Help(" - "..ISAWC.ConCount:GetHelpText().."\n")
+	--DForm:NumSlider("Max Items per Stack",ISAWC.ConStackLimit:GetName(),0,1000,0)
+	--DForm:Help(" - "..ISAWC.ConStackLimit:GetHelpText().."\n")
+	DForm:NumSlider("Constant Mass (kg)",ISAWC.ConConstMass:GetName(),0,1000,0)
+	DForm:Help(" - "..ISAWC.ConConstMass:GetHelpText().."\n")
+	DForm:NumSlider("Constant Volume (dm³)",ISAWC.ConConstVol:GetName(),0,1000,0)
+	DForm:Help(" - "..ISAWC.ConConstVol:GetHelpText().."\n")
 	DForm:CheckBox("Admin Can Pickup Any",ISAWC.ConAdminOverride:GetName())
 	DForm:Help(" - "..ISAWC.ConAdminOverride:GetHelpText().."\n")
-	
-	DForm:Help("") --whitespace
-	DForm:ControlHelp("Container Options")
-	local combox = DForm:ComboBox("Hyperactive Containers",ISAWC.ConDragAndDropOntoContainer:GetName())
+	local combox = DForm:ComboBox("Save Inventories",ISAWC.ConDoSave:GetName())
+	combox:AddChoice("0 - Don't", 0)
+	combox:AddChoice("1 - Periodically", 1)
+	combox:AddChoice("2 - Frequently", 2)
+	DForm:Help(" - "..ISAWC.ConDoSave:GetHelpText().."\n")
+	DForm:NumSlider("Periodic Saving Delay",ISAWC.ConDoSaveDelay:GetName(),1,600,0)
+	DForm:Help(" - "..ISAWC.ConDoSaveDelay:GetHelpText().."\n")
+	DForm:CheckBox("Drop Inventory On Death",ISAWC.ConDropOnDeath:GetName())
+	DForm:Help(" - "..ISAWC.ConDropOnDeath:GetHelpText().."\n")
+	DForm:CheckBox("Use Death Drop Whitelist",ISAWC.ConUseDeathBoxWhitelist:GetName())
+	DForm:Help(" - "..ISAWC.ConUseDeathBoxWhitelist:GetHelpText().."\n")
+	DForm:NumSlider("Death Drop Remove Time",ISAWC.ConDeathRemoveDelay:GetName(),0,100,1)
+	DForm:Help(" - "..ISAWC.ConDeathRemoveDelay:GetHelpText().."\n")
+	DForm:NumSlider("Max Death Drops",ISAWC.ConDropOnDeathAmount:GetName(),-1,100,0)
+	DForm:Help(" - "..ISAWC.ConDropOnDeathAmount:GetHelpText().."\n")
+	DForm:TextEntry("Death Drop Class",ISAWC.ConDropOnDeathClass:GetName())
+	DForm:Help(" - "..ISAWC.ConDropOnDeathClass:GetHelpText().."\n")
+	DForm:TextEntry("Death Drop Model",ISAWC.ConDropOnDeathModel:GetName())
+	DForm:Help(" - "..ISAWC.ConDropOnDeathModel:GetHelpText().."\n")
+end
+
+ISAWC.PopulateDFormContainer = function(DForm)
+	DForm:NumSlider("Mass Carrying Multiplier",ISAWC.ConMassMul2:GetName(),0,10,2)
+	DForm:Help(" - "..ISAWC.ConMassMul2:GetHelpText().."\n")
+	DForm:NumSlider("Volume Carrying Multiplier",ISAWC.ConVolMul2:GetName(),0,10,2)
+	DForm:Help(" - "..ISAWC.ConVolMul2:GetHelpText().."\n")
+	DForm:NumSlider("Max Items",ISAWC.ConCount2:GetName(),0,1000,0)
+	DForm:Help(" - "..ISAWC.ConCount2:GetHelpText().."\n")
+	--DForm:NumSlider("Max Items per Stack",ISAWC.ConStackLimit2:GetName(),0,1000,0)
+	--DForm:Help(" - "..ISAWC.ConStackLimit2:GetHelpText().."\n")
+	local combox = DForm:ComboBox("Auto Pickup on Touch",ISAWC.ConDragAndDropOntoContainer:GetName())
 	combox:AddChoice("0 - Don't", 0)
 	combox:AddChoice("1 - Use Touch", 1)
 	combox:AddChoice("2 - Use StartTouch", 2)
 	DForm:Help(" - "..ISAWC.ConDragAndDropOntoContainer:GetHelpText().."\n")
 	DForm:NumSlider("Always Openable By Everyone",ISAWC.ConAlwaysPublic:GetName(),0,2,0)
 	DForm:Help(" - "..ISAWC.ConAlwaysPublic:GetHelpText().."\n")
-	DForm:NumSlider("Magnet Range",ISAWC.ConMagnet:GetName(),0,10,3)
+	DForm:CheckBox("Drop Inventory On Remove",ISAWC.ConDropOnDeathContainer:GetName())
+	DForm:Help(" - "..ISAWC.ConDropOnDeathContainer:GetHelpText().."\n")
+	DForm:CheckBox("Use Database Saving",ISAWC.ConSaveIntoFile:GetName())
+	DForm:Help(" - "..ISAWC.ConSaveIntoFile:GetHelpText().."\n")
+	DForm:Button("Clear Database Cache (Admin Only)","isawc_container_clearcache")
+	DForm:Help(" - "..clearcachemessage.."\n")
+	DForm:NumSlider("Health Multiplier",ISAWC.ConAutoHealth:GetName(),0,10,2)
+	DForm:Help(" - "..ISAWC.ConAutoHealth:GetHelpText().."\n")
+	DForm:NumSlider("Health Regen",ISAWC.ConContainerRegen:GetName(),-100,100,1)
+	DForm:Help(" - "..ISAWC.ConContainerRegen:GetHelpText().."\n")
+	DForm:NumSlider("Magnet Range",ISAWC.ConMagnet:GetName(),0,10,2)
 	DForm:Help(" - "..ISAWC.ConMagnet:GetHelpText().."\n")
 	DForm:CheckBox("Use Magnet Whitelist",ISAWC.ConUseMagnetWhitelist:GetName())
 	DForm:Help(" - "..ISAWC.ConUseMagnetWhitelist:GetHelpText().."\n")
-	DForm:CheckBox("Drop Inventory On Remove",ISAWC.ConDropOnDeathContainer:GetName())
-	DForm:Help(" - "..ISAWC.ConDropOnDeathContainer:GetHelpText().."\n")
-	DForm:NumSlider("Health Multiplier",ISAWC.ConAutoHealth:GetName(),0,10,3)
-	DForm:Help(" - "..ISAWC.ConAutoHealth:GetHelpText().."\n")
-	DForm:NumSlider("Health Regen",ISAWC.ConContainerRegen:GetName(),-100,100,2)
-	DForm:Help(" - "..ISAWC.ConContainerRegen:GetHelpText().."\n")
-	DForm:CheckBox("Use Alternate Saving",ISAWC.ConSaveIntoFile:GetName())
-	DForm:Help(" - "..ISAWC.ConSaveIntoFile:GetHelpText().."\n")
-	DForm:Button("Clear Save Cache (Admin Only)","isawc_container_clearcache")
-	DForm:Help(" - "..clearcachemessage.."\n")
-	
-	DForm:Help("") --whitespace
-	DForm:ControlHelp("Inventory Importer / Exporter Options")
-	DForm:NumSlider("Importer Health Multiplier",ISAWC.ConImporterAutoHealth:GetName(),0,10,3)
+end
+
+ISAWC.PopulateDFormImportExport = function(DForm)
+	DForm:NumSlider("Allow UP'd Container Connections",ISAWC.ConAllowInterConnection:GetName(),0,2,0)
+	DForm:Help(" - "..ISAWC.ConAllowInterConnection:GetHelpText().."\n")
+	DForm:NumSlider("Importer Health Multiplier",ISAWC.ConImporterAutoHealth:GetName(),0,10,2)
 	DForm:Help(" - "..ISAWC.ConImporterAutoHealth:GetHelpText().."\n")
-	DForm:NumSlider("Importer Health Regen",ISAWC.ConImporterRegen:GetName(),-100,100,2)
+	DForm:NumSlider("Importer Health Regen",ISAWC.ConImporterRegen:GetName(),-100,100,1)
 	DForm:Help(" - "..ISAWC.ConImporterRegen:GetHelpText().."\n")
-	DForm:NumSlider("Exporter Health Multiplier",ISAWC.ConExporterAutoHealth:GetName(),0,10,3)
+	DForm:NumSlider("Minimum Exporter Delay",ISAWC.ConMinExportDelay:GetName(),0.01,10,2)
+	DForm:Help(" - "..ISAWC.ConMinExportDelay:GetHelpText().."\n")
+	DForm:CheckBox("Use Exporter Whitelist",ISAWC.ConUseExportWhitelist:GetName())
+	DForm:Help(" - "..ISAWC.ConUseExportWhitelist:GetHelpText().."\n")
+	DForm:NumSlider("Exporter Health Multiplier",ISAWC.ConExporterAutoHealth:GetName(),0,10,2)
 	DForm:Help(" - "..ISAWC.ConExporterAutoHealth:GetHelpText().."\n")
-	DForm:NumSlider("Exporter Health Regen",ISAWC.ConExporterRegen:GetName(),-100,100,2)
+	DForm:NumSlider("Exporter Health Regen",ISAWC.ConExporterRegen:GetName(),-100,100,1)
 	DForm:Help(" - "..ISAWC.ConExporterRegen:GetHelpText().."\n")
-	
-	DForm:Help("") --whitespace
-	DForm:ControlHelp("Miscellaneous")
-	local dangerbutton = DForm:Button("Set All To Default","isawc_reset_convars")
-	dangerbutton:SetTextColor(Color(255,0,0))
 end
 
 ISAWC.BuildClientVars = function(self)
