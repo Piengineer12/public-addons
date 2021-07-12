@@ -7,9 +7,11 @@ Donate:			https://ko-fi.com/piengineer12
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format. 
 ]]
 
+local startLoadTime = SysTime()
+
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.0.0-beta.4"
-ISAWC._VERSIONDATE = "2021-07-11"
+ISAWC._VERSION = "4.0.0-beta.5"
+ISAWC._VERSIONDATE = "2021-07-12"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -50,6 +52,10 @@ ISAWC.FilterSequentialTable = function(self,tab,func)
 	return filtered
 end
 
+ISAWC.FilterIsValid = function(k,v)
+	return IsValid(v)
+end
+
 ISAWC.ConCommands = {}
 
 ISAWC.AddConCommand = function(self, name, data)
@@ -57,97 +63,97 @@ ISAWC.AddConCommand = function(self, name, data)
 	self.ConCommands[name] = data.help
 end
 
-ISAWC.ConAllowConstrained = CreateConVar("isawc_allow_constrained","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConAllowConstrained = CreateConVar("isawc_allow_constrained","0",FCVAR_REPLICATED,
 "Allows constrained props to be picked up.\
 This feature is in beta - use it at your own risk.")
 
-ISAWC.ConDelay = CreateConVar("isawc_pickup_delay","0.5",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConDelay = CreateConVar("isawc_pickup_delay","0.5",FCVAR_REPLICATED,
 "How long should a player wait before picking up another prop.")
 
-ISAWC.ConDragAndDropOntoContainer = CreateConVar("isawc_container_autointo","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConDragAndDropOntoContainer = CreateConVar("isawc_container_autointo","1",FCVAR_REPLICATED,
 "If 1, objects that come in contact with a container are automatically put into it.\
 If 2, containers will use StartTouch detection methods instead of Touch detection methods. Both methods have their own pros and cons.")
 
-ISAWC.ConReal = CreateConVar("isawc_use_realistic_volumes","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConReal = CreateConVar("isawc_use_realisticvolumes","0",FCVAR_REPLICATED,
 "Sets how realistic volumes should be calculated:\
 0: Take the object's total volume only. Hollow spaces within the object are ignored.\
 1: Calculate a box surrounding the object, then take the box's volume.\
 2: Calculate a sphere surrounding the object, then take the sphere's volume.")
 
-ISAWC.ConMassMul = CreateConVar("isawc_player_massmul","0.2",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConMassMul = CreateConVar("isawc_player_massmul","0.2",FCVAR_REPLICATED,
 "Sets the player inventory maximum mass multiplier.\
 Note that the maximum inventory mass is affected by the player's playermodel.\
 If this is 0, the mass limit will not be enforced.")
 
-ISAWC.ConVolMul = CreateConVar("isawc_player_volumemul","0.8",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConVolMul = CreateConVar("isawc_player_volumemul","0.8",FCVAR_REPLICATED,
 "Sets the player inventory maximum volume multiplier.\
 Note that the maximum inventory volume is affected by the player's playermodel.\
 If this is 0, the volume limit will not be enforced.")
 
-ISAWC.ConCount = CreateConVar("isawc_player_maxcount","10",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConCount = CreateConVar("isawc_player_maxcount","10",FCVAR_REPLICATED,
 "Sets the maximum number of items players are allowed to carry at once.\
 If this is 0, 65536 items (the maximum the addon can handle properly) will be the limit.")
 
-ISAWC.ConStackLimit = CreateConVar("isawc_player_stacklimit","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConStackLimit = CreateConVar("isawc_player_stacklimit","1",FCVAR_REPLICATED,
 "Sets how much items can occupy one unit of space in a player's inventory.\
 See the \"isawc_stacklist\" ConCommand to set maximum stacks individually.")
 
-ISAWC.ConMassMul2 = CreateConVar("isawc_container_massmul","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConMassMul2 = CreateConVar("isawc_container_massmul","1",FCVAR_REPLICATED,
 "Sets the container inventory maximum mass multiplier.\
 Note that the maximum inventory mass is affected by the container's model.\
 If this is 0, the mass limit will not be enforced.")
 
-ISAWC.ConVolMul2 = CreateConVar("isawc_container_volumemul","0.9",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConVolMul2 = CreateConVar("isawc_container_volumemul","0.9",FCVAR_REPLICATED,
 "Sets the container inventory maximum volume multiplier.\
 Note that the maximum inventory volume is affected by the container's model.\
 If this is 0, the volume limit will not be enforced.")
 
-ISAWC.ConCount2 = CreateConVar("isawc_container_maxcount","100",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConCount2 = CreateConVar("isawc_container_maxcount","100",FCVAR_REPLICATED,
 "Sets the maximum number of items containers are allowed to carry at once.\
 If this is 0, 65536 items (the maximum the addon can handle properly) will be the limit.")
 
-ISAWC.ConStackLimit2 = CreateConVar("isawc_container_stacklimit","100",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConStackLimit2 = CreateConVar("isawc_container_stacklimit","100",FCVAR_REPLICATED,
 "Sets how much items can occupy one unit of space in a container's inventory.\
 See the \"isawc_stacklist\" ConCommand to set maximum stacks individually.")
 
-ISAWC.ConConstEnabled = CreateConVar("isawc_use_constants","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConConstEnabled = CreateConVar("isawc_use_constants","0",FCVAR_REPLICATED,
 "Causes all maximum mass and volume calculations to be based on constants instead of deriving it from the playermodel.\
 Please note that carrying capacities of containers are still defined in their respective files (though you can change their properties by the right-click menu).\
 Additionally, the ConVars \"isawc_container_massmul\" and \"isawc_container_volumemul\" will still be obeyed.")
 
-ISAWC.ConConstMass = CreateConVar("isawc_player_constant_mass","15",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConConstMass = CreateConVar("isawc_player_massconstant","15",FCVAR_REPLICATED,
 "Sets the maximum mass, in kg, that all players are allowed to carry at once.\
 If this is 0, the mass limit will not be enforced.")
 
-ISAWC.ConConstVol = CreateConVar("isawc_player_constant_volume","100",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConConstVol = CreateConVar("isawc_player_volumeconstant","100",FCVAR_REPLICATED,
 "Sets the maximum volume, in dm³, that all players are allowed to carry at once.\
 If this is 0, the volume limit will not be enforced.")
 
-ISAWC.ConDistance = CreateConVar("isawc_pickup_maxdistance","128",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConDistance = CreateConVar("isawc_pickup_maxdistance","128",FCVAR_REPLICATED,
 "Sets the maximum pickup distance when grabbing or dropping objects.\
 If this is 0, the distance limit will not be enforced.")
 
-ISAWC.ConDoSave = CreateConVar("isawc_player_save","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConDoSave = CreateConVar("isawc_player_save","1",FCVAR_REPLICATED,
 "Sets whether players' inventories are saved or not.\
 1: Saves players' inventories periodically (see \"isawc_player_savedelay\") or when they disconnect or die.\
 2: Saves players' inventories whenever their inventory is changed (may cause tremendous lag!)")
 
-ISAWC.ConUndoIntoContain = CreateConVar("isawc_undo_into_container","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConUndoIntoContain = CreateConVar("isawc_undo_into_container","1",FCVAR_REPLICATED,
 "If set, undone spawn groups will be put back into the container it came from, instead of being deleted entirely.")
 
 AccessorFunc(ISAWC,"SuppressUndo","SuppressUndo",FORCE_BOOL)
 AccessorFunc(ISAWC,"SuppressUndoHeaders","SuppressUndoHeaders",FORCE_BOOL)
 
-ISAWC.ConAltSave = CreateConVar("isawc_use_altsave","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConAltSave = CreateConVar("isawc_use_altsave","0",FCVAR_REPLICATED,
 "If set, entities that are put into containers are stored and retrieved somewhere safe rather than being deleted and recreated.\
 This feature is in beta - use it at your own risk.")
 
-ISAWC.ConDropOnDeath = CreateConVar("isawc_player_dropondeath","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConDropOnDeath = CreateConVar("isawc_dropondeath_enabled","1",FCVAR_REPLICATED,
 "If set, players drop a box containing their inventory on death.")
 
-ISAWC.ConVPhysicsOnly = CreateConVar("isawc_use_strictvphysics","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
-"If set, only entities with MOVETYPE_VPHYSICS can be picked up (anything that is a prop, basically).\
-Turning off this option is not recommended as players might pick up normally immovable props.")
+ISAWC.ConNonVPhysics = CreateConVar("isawc_allow_nonvphysics","0",FCVAR_REPLICATED,
+"If set, entities can be picked up even if they do not have VPhysics movement.\
+Turning on this option is not recommended as players might pick up normally immovable props.")
 
 ISAWC.CreateListConCommand = function(self, name, data)
 	self:AddConCommand(name, {
@@ -211,50 +217,50 @@ ISAWC:CreateListConCommand("isawc_blacklist", {
 })
 
 ISAWC.BlackContainerMagnetList = ISAWC.BlackContainerMagnetList or {}
-ISAWC:CreateListConCommand("isawc_container_magnetcontainerblacklist", {
-	display = "The container magnetization container blacklist is as follows: ",
+ISAWC:CreateListConCommand("isawc_magnet_blacklist", {
+	display = "The container magnetization blacklist is as follows: ",
 	display_table = "BlackContainerMagnetList",
 	display_function = function(k,v)
 		ISAWC:Log("\t"..string.format('%q',k)..",")
 	end,
-	purpose = "Adds or removes entity classes from the container magnetization container blacklist. Classes in the blacklist will not be magnetic containers.",
+	purpose = "Adds or removes entity classes from the container magnetization blacklist. Classes in the blacklist will not be magnetic containers.",
 	help = {
-		"Use \"isawc_container_magnetcontainerblacklist <class1> <class2> ...\" to add/remove entity classes into/from the list.",
+		"Use \"isawc_magnet_blacklist <class1> <class2> ...\" to add/remove entity classes into/from the list.",
 		"* and ? wildcards are supported.",
-		"Use \"isawc_container_magnetcontainerblacklist *\" to clear the list.",
+		"Use \"isawc_magnet_blacklist *\" to clear the list.",
 	},
-	help_small = "Usage: isawc_container_magnetcontainerblacklist <class1> <class2> ...",
+	help_small = "Usage: isawc_magnet_blacklist <class1> <class2> ...",
 	exe = function(args)
 		for k,v in pairs(args) do
 			v = v:lower()
 			if v=="*" then
 				table.Empty(ISAWC.BlackContainerMagnetList)
-				ISAWC:Log("Removed everything from the container magnetization container blacklist.") break
+				ISAWC:Log("Removed everything from the container magnetization blacklist.") break
 			elseif ISAWC.BlackContainerMagnetList[v] then
 				ISAWC.BlackContainerMagnetList[v] = nil
-				ISAWC:Log("Removed \""..v.."\" from the container magnetization container blacklist.")
+				ISAWC:Log("Removed \""..v.."\" from the container magnetization blacklist.")
 			else
 				ISAWC.BlackContainerMagnetList[v] = true
-				ISAWC:Log("Added \""..v.."\" into the container magnetization container blacklist.")
+				ISAWC:Log("Added \""..v.."\" into the container magnetization blacklist.")
 			end
 		end
 	end
 })
 
 ISAWC.BlackDeathBoxList = ISAWC.BlackDeathBoxList or {}
-ISAWC:CreateListConCommand("isawc_player_dropondeathblacklist", {
+ISAWC:CreateListConCommand("isawc_dropondeath_blacklist", {
 	display = "The player death box blacklist is as follows: ",
 	display_table = "BlackDeathBoxList",
 	display_function = function(k,v)
 		ISAWC:Log("\t"..string.format('%q',k)..",")
 	end,
-	purpose = "Adds or removes entity classes from the player death box blacklist. Classes in the blacklist will not be transferred to player death boxes if isawc_player_dropondeath is enabled.",
+	purpose = "Adds or removes entity classes from the player death box blacklist. Classes in the blacklist will not be transferred to player death boxes if isawc_dropondeath_enabled is enabled.",
 	help = {
-		"Use \"isawc_player_dropondeathblacklist <class1> <class2> ...\" to add/remove entity classes into/from the list.",
+		"Use \"isawc_dropondeath_blacklist <class1> <class2> ...\" to add/remove entity classes into/from the list.",
 		"* and ? wildcards are supported.",
-		"Use \"isawc_player_dropondeathblacklist *\" to clear the list.",
+		"Use \"isawc_dropondeath_blacklist *\" to clear the list.",
 	},
-	help_small = "Usage: isawc_player_dropondeathblacklist <class1> <class2> ...",
+	help_small = "Usage: isawc_dropondeath_blacklist <class1> <class2> ...",
 	exe = function(args)
 		for k,v in pairs(args) do
 			v = v:lower()
@@ -272,24 +278,24 @@ ISAWC:CreateListConCommand("isawc_player_dropondeathblacklist", {
 	end
 })
 
-ISAWC.ConUseWhitelist = CreateConVar("isawc_use_whitelist","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConUseWhitelist = CreateConVar("isawc_use_whitelist","0",FCVAR_REPLICATED,
 "If set, only entity classes that are in the whitelist can be picked up.\
 Otherwise, entity classes that aren't in the blacklist or are in the whitelist can be picked up.\
 Use the ConCommands \"isawc_blacklist\" and \"isawc_whitelist\" to manipulate the lists.\
 Tip: Even if this is not set, non-solid and non-VPhysics entities can still be specified in the whitelist to make them able to be picked up,\
 regardless of the other ConVars.")
 
-ISAWC.ConUseExportWhitelist = CreateConVar("isawc_use_exportwhitelist","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConUseExportWhitelist = CreateConVar("isawc_use_exportwhitelist","0",FCVAR_REPLICATED,
 "If set, only entity classes that are in the whitelist can be exported by Inventory Exporters.\
 See the ConCommand \"isawc_exporter_whitelist\" to manipulate the list.")
 
-ISAWC.ConUseMagnetWhitelist = CreateConVar("isawc_use_magnetwhitelist","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConUseMagnetWhitelist = CreateConVar("isawc_magnet_whitelistenabled","0",FCVAR_REPLICATED,
 "If set, only entity classes that are in the whitelist can be magnetized by containers.\
-See the ConCommand \"isawc_container_magnetwhitelist\" to manipulate the list.")
+See the ConCommand \"isawc_magnet_whitelist\" to manipulate the list.")
 
-ISAWC.ConUseDeathBoxWhitelist = CreateConVar("isawc_use_dropondeathwhitelist","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
-"If set, only entity classes that are in the whitelist can be transferred to player death boxes if isawc_player_dropondeath is enabled.\
-See the ConCommand \"isawc_player_dropondeathwhitelist\" to manipulate the list.")
+ISAWC.ConUseDeathBoxWhitelist = CreateConVar("isawc_dropondeath_whitelistenabled","0",FCVAR_REPLICATED,
+"If set, only entity classes that are in the whitelist can be transferred to player death boxes if isawc_dropondeath_enabled is enabled.\
+See the ConCommand \"isawc_dropondeath_whitelist\" to manipulate the list.")
 
 ISAWC.Whitelist = ISAWC.Whitelist or {}
 ISAWC:CreateListConCommand("isawc_whitelist", {
@@ -355,7 +361,7 @@ ISAWC:CreateListConCommand("isawc_exporter_whitelist", {
 })
 
 ISAWC.WhiteMagnetList = ISAWC.WhiteMagnetList or {}
-ISAWC:CreateListConCommand("isawc_container_magnetwhitelist", {
+ISAWC:CreateListConCommand("isawc_magnet_whitelist", {
 	display = "The container magnetization whitelist is as follows: ",
 	display_table = "WhiteMagnetList",
 	display_function = function(k,v)
@@ -363,11 +369,11 @@ ISAWC:CreateListConCommand("isawc_container_magnetwhitelist", {
 	end,
 	purpose = "Adds or removes entity classes from the container magnetization whitelist. See the ConVar \"isawc_use_magnetwhitelist\" for more information.",
 	help = {
-		"Use \"isawc_container_magnetwhitelist <class1> <class2> ...\" to add/remove an entity class into/from the list.",
+		"Use \"isawc_magnet_whitelist <class1> <class2> ...\" to add/remove an entity class into/from the list.",
 		"* and ? wildcards are supported.",
-		"Use \"isawc_container_magnetwhitelist *\" to clear the list."
+		"Use \"isawc_magnet_whitelist *\" to clear the list."
 	},
-	help_small = "Usage: isawc_container_magnetwhitelist <class1> <class2> ...",
+	help_small = "Usage: isawc_magnet_whitelist <class1> <class2> ...",
 	exe = function(args)
 		for k,v in pairs(args) do
 			v = v:lower()
@@ -386,19 +392,19 @@ ISAWC:CreateListConCommand("isawc_container_magnetwhitelist", {
 })
 
 ISAWC.WhiteDeathBoxList = ISAWC.WhiteDeathBoxList or {}
-ISAWC:CreateListConCommand("isawc_player_dropondeathwhitelist", {
+ISAWC:CreateListConCommand("isawc_dropondeath_whitelist", {
 	display = "The player death box whitelist is as follows: ",
 	display_table = "WhiteDeathBoxList",
 	display_function = function(k,v)
 		ISAWC:Log("\t"..string.format('%q',k)..",")
 	end,
-	purpose = "Adds or removes entity classes from the player death box whitelist. See the ConVar \"isawc_use_dropondeathwhitelist\" for more information.",
+	purpose = "Adds or removes entity classes from the player death box whitelist. See the ConVar \"isawc_dropondeath_whitelistenabled\" for more information.",
 	help = {
-		"Use \"isawc_player_dropondeathwhitelist <class1> <class2> ...\" to add/remove an entity class into/from the list.",
+		"Use \"isawc_dropondeath_whitelist <class1> <class2> ...\" to add/remove an entity class into/from the list.",
 		"* and ? wildcards are supported.",
-		"Use \"isawc_player_dropondeathwhitelist *\" to clear the list."
+		"Use \"isawc_dropondeath_whitelist *\" to clear the list."
 	},
-	help_small = "Usage: isawc_player_dropondeathwhitelist <class1> <class2> ...",
+	help_small = "Usage: isawc_dropondeath_whitelist <class1> <class2> ...",
 	exe = function(args)
 		for k,v in pairs(args) do
 			v = v:lower()
@@ -770,127 +776,145 @@ ISAWC:CreateListConCommand("isawc_remaplist", {
 	end
 })
 
-ISAWC.ConAllowDelete = CreateConVar("isawc_allow_delete","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConAllowDelete = CreateConVar("isawc_allow_delete","1",FCVAR_REPLICATED,
 "Enables players to delete props that they've picked up.")
 
-ISAWC.ConOverride = CreateConVar("isawc_use_forcepickup","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConOverride = CreateConVar("isawc_pickup_force","1",FCVAR_REPLICATED,
 "Ignores other potential return values from hooks it calls.\
 Tick this option if you can't pick up items in other gamemodes.")
 
-ISAWC.ConAlwaysPublic = CreateConVar("isawc_container_alwayspublic","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConAlwaysPublic = CreateConVar("isawc_container_alwayspublic","0",FCVAR_REPLICATED,
 "If set to 1, all containers are always openable by anyone.\
 If set to 2, containers may be opened by another player in the same team.\
 This overrides the \"always public\" option in the \"Edit Properties...\" menu.")
 	
-ISAWC.ConHideNotifsG = CreateConVar("isawc_hide_notifications_global","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConHideNotifsG = CreateConVar("isawc_hide_notificationsglobal","0",FCVAR_REPLICATED,
 "Same as Hide All Notifications (isawc_hide_notifications) on client, but affects the whole server.\
 Does nothing on client - use the mentioned ConVar instead.")
 
-ISAWC.ConAllowPickupOnPhysgun = CreateConVar("isawc_allow_pickupwhilephysgunned","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConAllowPickupOnPhysgun = CreateConVar("isawc_allow_pickupwhilephysgunned","0",FCVAR_REPLICATED,
 "If set, entities being picked up by the Physics Gun can still be picked up and put into any inventory.\
 This feature is in beta - use it at your own risk.")
 
-ISAWC.ConDistBefore = CreateConVar("isawc_spawnbeforedist","4",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConDistBefore = CreateConVar("isawc_spawn_bumpdist","4",FCVAR_REPLICATED,
 "When an entity is taken out of a container via Spawn At Crosshair, it will be spawned this far away from any obstructions.\
 This ignores Max Pickup Distance!")
 
-ISAWC.ConSaveIntoFile = CreateConVar("isawc_container_save","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConSaveIntoFile = CreateConVar("isawc_container_save","0",FCVAR_REPLICATED,
 "Causes containers to save/load their inventories into/from files instead of its own entity table.\
 This feature is in beta - use it at your own risk.\
 WARNING: Make sure to Clear the Save Cache periodically!")
 
-ISAWC.ConDropOnDeathContainer = CreateConVar("isawc_container_dropondeath","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConDropOnDeathContainer = CreateConVar("isawc_container_dropondeath","0",FCVAR_REPLICATED,
 "If set, containers' inventories are dropped upon removal.\
 This feature is in beta - use it at your own risk.")
 
-ISAWC.ConAutoHealth = CreateConVar("isawc_container_healthmul","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConAutoHealth = CreateConVar("isawc_container_healthmul","0",FCVAR_REPLICATED,
 "If above 0, ALL containers spawned will have a limited amount of health depending on their volume multiplied by this ConVar.\
 This feature is in beta - use it at your own risk.")
 
-ISAWC.ConImporterAutoHealth = CreateConVar("isawc_importer_healthmul","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConImporterAutoHealth = CreateConVar("isawc_importer_healthmul","0",FCVAR_REPLICATED,
 "If above 0, ALL Inventory Importers spawned will have a limited amount of health depending on their volume multiplied by this ConVar.\
 This feature is in beta - use it at your own risk.")
 
-ISAWC.ConExporterAutoHealth = CreateConVar("isawc_exporter_healthmul","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConExporterAutoHealth = CreateConVar("isawc_exporter_healthmul","0",FCVAR_REPLICATED,
 "If above 0, ALL Inventory Exporters will have a limited amount of health depending on their volume multiplied by this ConVar.\
 This feature is in beta - use it at your own risk.")
 
-ISAWC.ConSaveTable = CreateConVar("isawc_use_enginesavetables","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConSaveTable = CreateConVar("isawc_use_enginesavetables","0",FCVAR_REPLICATED,
 "If set, entities will have their engine save tables stored as well.\
 This feature is EXPERIMENTAL - use it at your own risk.")
 
-ISAWC.ConPickupDenyLogs = CreateConVar("isawc_hide_pickuplogdenies","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConPickupDenyLogs = CreateConVar("isawc_hide_pickuplogdenies","1",FCVAR_REPLICATED,
 "If unset, when a player / container fails to pick up an item, a message is shown in console with the reason.")
 
-ISAWC.ConContainerRegen = CreateConVar("isawc_container_regen","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConContainerRegen = CreateConVar("isawc_container_regen","0",FCVAR_REPLICATED,
 "Containers will regenerate this amount of health per second.\
 Negative values are allowed.")
 
-ISAWC.ConImporterRegen = CreateConVar("isawc_importer_regen","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConImporterRegen = CreateConVar("isawc_importer_regen","0",FCVAR_REPLICATED,
 "Inventory Importers will regenerate this amount of health per second.\
 Negative values are allowed.")
 
-ISAWC.ConExporterRegen = CreateConVar("isawc_exporter_regen","0",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConExporterRegen = CreateConVar("isawc_exporter_regen","0",FCVAR_REPLICATED,
 "Inventory Exporters will regenerate this amount of health per second.\
 Negative values are allowed.")
 
-ISAWC.ConMassMul3 = CreateConVar("isawc_pickup_massmul","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConMassMul3 = CreateConVar("isawc_pickup_massmul","1",FCVAR_REPLICATED,
 "Sets the mass multiplier for all picked up items.\
 If you want to set the mass of individual items, see the isawc_masslist ConCommand.")
 
-ISAWC.ConVolMul3 = CreateConVar("isawc_pickup_volumemul","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConVolMul3 = CreateConVar("isawc_pickup_volumemul","1",FCVAR_REPLICATED,
 "Sets the volume multiplier for all picked up items.\
 If you want to set the volume of individual items, see the isawc_volumelist ConCommand.")
 
-ISAWC.ConCount3 = CreateConVar("isawc_pickup_countmul","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConCount3 = CreateConVar("isawc_pickup_countmul","1",FCVAR_REPLICATED,
 "Sets the amount multiplier for all picked up items.\
 If you want to set the amount for individual items, see the isawc_countlist ConCommand.\
 Note that decimal values are rounded down within inventories, which can lead to confusion.")
 
-ISAWC.ConDeathRemoveDelay = CreateConVar("isawc_player_dropondeathtime","10",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConDeathRemoveDelay = CreateConVar("isawc_dropondeath_time","10",FCVAR_REPLICATED,
 "Sets the amount of time to wait before removing the container players drop upon death, after being emptied.")
 
-ISAWC.ConDropOnDeathAmount = CreateConVar("isawc_player_dropondeathmax","-1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConDropOnDeathAmount = CreateConVar("isawc_dropondeath_max","-1",FCVAR_REPLICATED,
 "Sets the maximum number of the containers players drop upon death, per player. If another is created when the player is at its limit, the oldest one is removed.\
 A value of -1 indicates no limit.")
 
-ISAWC.ConSpawnDelay = CreateConVar("isawc_spawn_delay","1",FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConSpawnDelay = CreateConVar("isawc_spawn_delay","1",FCVAR_REPLICATED,
 "Sets the minimum delay between inventory item spawns by players.")
 
-ISAWC.ConAdminOverride = CreateConVar("isawc_allow_adminpickupanything", "0", FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConAdminOverride = CreateConVar("isawc_allow_adminpickupanything", "0", FCVAR_REPLICATED,
 "Allows admins to pick up anything regardless of ConVars (except for players and the map, as those can crash the game).")
 
-ISAWC.ConNoAmmo = CreateConVar("isawc_empty_weapons", "0", FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConNoAmmo = CreateConVar("isawc_spawn_emptyweapons", "0", FCVAR_REPLICATED,
 "If set, all weapons spawned from inventories will not have any ammo in their clip.")
 
-ISAWC.ConAllowInterConnection = CreateConVar("isawc_allow_interownerconnections", "0", FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConAllowInterConnection = CreateConVar("isawc_allow_interownerconnections", "0", FCVAR_REPLICATED,
 "If set to 1, Inventory Importers, Exporters and Viewers may be connected to a container owned by someone else.\
 If set to 2, connections are only allowed to containers owned by the same team.")
 
-ISAWC.ConMinExportDelay = CreateConVar("isawc_exporter_mindelay", "0.05", FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConMinExportDelay = CreateConVar("isawc_exporter_mindelay", "0.05", FCVAR_REPLICATED,
 "Minimum delay between items exported by Inventory Exporters.")
 
-ISAWC.ConDoSaveDelay = CreateConVar("isawc_player_savedelay", "300", FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConDoSaveDelay = CreateConVar("isawc_player_savedelay", "300", FCVAR_REPLICATED,
 "Sets the delay between automatic saves for player inventories. No effect when Save Player Inventories (isawc_player_save) is disabled.\
 Note that low values may severely impact performance!")
 
-ISAWC.ConMagnet = CreateConVar("isawc_container_magnetradius", "0", FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConMagnet = CreateConVar("isawc_magnet_radius", "0", FCVAR_REPLICATED,
 "Sets the range of containers to instantly pick up an item. Note that the radius is multiplied with the size of the container - a range of 3 on a box will allow the box to pick up items 3 boxes away from it.\
 A range of 0 disables this feature.")
 
-ISAWC.ConDropOnDeathClass = CreateConVar("isawc_player_dropondeathclass", "isawc_container_cbbox_07", FCVAR_ARCHIVE+FCVAR_REPLICATED,
-"Sets the classname of dropped containers on player deaths when the isawc_player_dropondeath ConVar is enabled. Useful for causing custom Lua containers to be dropped.\
-Note that invalid classes will cause the addon to default back to isawc_container_cbbox_07 - a small box.\
-If you just want to set the model, see the isawc_player_dropondeathmodel ConVar.")
+ISAWC.ConDropOnDeathClass = CreateConVar("isawc_dropondeath_class", "isawc_container_cbbox_07", FCVAR_REPLICATED,
+"Sets the classname of dropped containers on player deaths when the isawc_dropondeath_enabled ConVar is enabled. Useful for causing custom Lua containers to be dropped.\
+If you just want to set the model, see the isawc_dropondeath_model ConVar.")
 
-ISAWC.ConDropOnDeathModel = CreateConVar("isawc_player_dropondeathmodel", "", FCVAR_ARCHIVE+FCVAR_REPLICATED,
-"Overrides the model of dropped containers on player deaths when the isawc_player_dropondeath ConVar is enabled.\
+ISAWC.ConDropOnDeathModel = CreateConVar("isawc_dropondeath_model", "", FCVAR_REPLICATED,
+"Overrides the model of dropped containers on player deaths when the isawc_dropondeath_enabled ConVar is enabled.\
 Set the ConVar to \"\" to remove the model override.\
-If you want to set the class, see the isawc_player_dropondeathclass ConVar.")
+If you want to set the class, see the isawc_dropondeath_class ConVar.")
 
-ISAWC.ConUseBindOverride = CreateConVar("isawc_use_bindoverride", "", FCVAR_ARCHIVE+FCVAR_REPLICATED,
+ISAWC.ConUseBindOverride = CreateConVar("isawc_use_bindoverride", "", FCVAR_REPLICATED,
 "Sets the binding used to pick up items. This value overrides the value defined in the isawc_use_bind ConVar for all clients.\
 Set the ConVar to \"\" to remove the override.")
+
+ISAWC.ConDropAllAllowed = CreateConVar("isawc_dropall_enabled", "1", FCVAR_REPLICATED,
+"Enables players to drop their entire inventory, or a container's inventory, into a small container for easy pickup. The container does not accept items.")
+
+ISAWC.ConDropAllTime = CreateConVar("isawc_dropall_time", "10", FCVAR_REPLICATED,
+"Sets the amount of time to wait before removing \"drop-all\" containers, after being emptied.")
+
+ISAWC.ConDropAllLimit = CreateConVar("isawc_dropall_max", "-1", FCVAR_REPLICATED,
+"Sets the maximum number of \"drop-all\" containers per player. If another is created when the player is at its limit, the oldest one is removed.\
+A value of -1 indicates no limit.")
+
+ISAWC.ConDropAllClass = CreateConVar("isawc_dropall_class", "isawc_container_cbbox_07", FCVAR_REPLICATED,
+"Sets the classname of \"drop-all\" containers when the isawc_dropall_enabled ConVar is enabled. Useful for causing custom Lua containers to be dropped.\
+If you just want to set the model, see the isawc_dropall_model ConVar.")
+
+ISAWC.ConDropAllModel = CreateConVar("isawc_dropall_model", "", FCVAR_REPLICATED,
+"Overrides the model of \"drop-all\" containers when the isawc_dropall_enabled ConVar is enabled.\
+Set the ConVar to \"\" to remove the model override.\
+If you want to set the class, see the isawc_dropall_class ConVar.")
 
 local function BasicAutoComplete(cmd, argStr)
 	local possibilities = {}
@@ -1027,19 +1051,7 @@ ISAWC:AddConCommand("isawc_help", {
 			ISAWC:NoPickup(string.format("You need to wait for %.2f seconds before calling this command again!", ply.ISAWC_HelpCooldown - RealTime()), ply)
 		else
 			ply.ISAWC_HelpCooldown = RealTime() + 10
-			if #args==0 then
-				ISAWC:Log("The list of ConVars is as follows: {")
-				for k,v in SortedPairs(ISAWC:GetConVarList()) do
-					ISAWC:Log(string.format("\t%q = %s,",k,v:GetString()))
-				end
-				ISAWC:Log("}")
-				ISAWC:Log("The list of ConCommands is as follows: {")
-				for k,v in SortedPairs(ISAWC.ConCommands) do
-					ISAWC:Log(string.format("\t%q,",k))
-				end
-				ISAWC:Log("}")
-				ISAWC:Log("Usage: isawc_help <command>")
-			else
+			if next(args) then
 				argStr = string.Trim(argStr)
 				local success = false
 				for k,v in SortedPairs(ISAWC:GetConVarList()) do
@@ -1063,6 +1075,22 @@ ISAWC:AddConCommand("isawc_help", {
 				if not success then
 					ISAWC:Log("The ConVar / ConCommand \""..argStr.."\" does not exist within ISAWC.")
 				end
+			else
+				ISAWC:Log("The list of ConVars is as follows: {")
+				for k,v in SortedPairs(ISAWC:GetConVarList()) do
+					if v:GetString() == v:GetDefault() or tonumber(v:GetString()) == tonumber(v:GetDefault()) and tonumber(v:GetDefault()) then
+						ISAWC:Log(string.format("\t%q = %s,",k,v:GetString()))
+					else
+						ISAWC:Log(string.format("\t%q = %s (default = %s),",k,v:GetString(),v:GetDefault()))
+					end
+				end
+				ISAWC:Log("}")
+				ISAWC:Log("The list of ConCommands is as follows: {")
+				for k,v in SortedPairs(ISAWC.ConCommands) do
+					ISAWC:Log(string.format("\t%q,",k))
+				end
+				ISAWC:Log("}")
+				ISAWC:Log("Usage: isawc_help <command>")
 			end
 		end
 	end,
@@ -1232,8 +1260,8 @@ ISAWC.PopulateDFormGeneral = function(DForm)
 	DForm:Help(" - "..ISAWC.ConUseWhitelist:GetHelpText().."\n")
 	DForm:CheckBox("Use Inventory Exporter Whitelist",ISAWC.ConUseExportWhitelist:GetName())
 	DForm:Help(" - "..ISAWC.ConUseExportWhitelist:GetHelpText().."\n")
-	DForm:CheckBox("Strictly VPhysics Props",ISAWC.ConVPhysicsOnly:GetName())
-	DForm:Help(" - "..ISAWC.ConVPhysicsOnly:GetHelpText().."\n")
+	DForm:CheckBox("Allow Non-VPhysics Entities",ISAWC.ConNonVPhysics:GetName())
+	DForm:Help(" - "..ISAWC.ConNonVPhysics:GetHelpText().."\n")
 	DForm:CheckBox("Suppress All Notifications (Global)",ISAWC.ConHideNotifsG:GetName())
 	DForm:Help(" - "..ISAWC.ConHideNotifsG:GetHelpText().."\n")
 	DForm:CheckBox("Override Hooks",ISAWC.ConOverride:GetName())
@@ -2602,7 +2630,7 @@ ISAWC.SQL = function(self,query,...)
 end
 
 ISAWC.SaveData = function(self)
-	if next(ISAWC.LastLoadedData) then
+	if next(self.LastLoadedData) then
 		local data = util.JSONToTable(file.Read("isawc_data.dat", "DATA") or "") or {}
 		if table.IsEmpty(data) then
 			data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat", "DATA") or "")) or {}
@@ -2620,6 +2648,13 @@ ISAWC.SaveData = function(self)
 		data.MassMultiList = self.MassMultiList or {}
 		data.VolumeMultiList = self.VolumeMultiList or {}
 		data.CountMultiList = self.CountMultiList or {}
+		
+		for k,v in pairs(self) do
+			if TypeID(v) == TYPE_CONVAR then
+				data[k] = v:GetString()
+			end
+		end
+		
 		file.Write("isawc_data.dat",util.TableToJSON(data))
 	end
 end
@@ -2698,9 +2733,50 @@ ISAWC.SaveContainerInventory = function(self,container)
 	end
 end
 
+ISAWC.DropAll = function(self,container,ply)
+	if self.ConDropAllAllowed:GetBool() then
+		local briefcase = ents.Create(self.ConDropAllClass:GetString())
+		local modelOverride = self.ConDropAllModel:GetString()
+		if not (IsValid(briefcase) and briefcase.Base == "isawc_container_base") then
+			SafeRemoveEntity(briefcase)
+			self:Log("Failed to create invalid container class "..self.ConDropAllClass:GetString()..'!')
+			self:Log("Failed to remove items owned by "..tostring(container).." as the dropped container was invalid!")
+		elseif not (modelOverride == "" or util.IsValidModel(modelOverride)) then
+			briefcase:Remove()
+			self:Log("Failed to create invalid model "..modelOverride..'!')
+			self:Log("Failed to remove items owned by "..tostring(container).." as the dropped container was invalid!")
+		else
+			briefcase:SetPos(ply:GetShootPos())
+			if modelOverride ~= "" then
+				briefcase.ContainerModel = modelOverride
+			end
+			briefcase:Spawn()
+			briefcase:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
+			briefcase:GetPhysicsObject():SetVelocity(ply:GetAimVector() * 200)
+			briefcase.ISAWC_IsDeathDrop = true
+			briefcase.ISAWC_IsDropAll = true
+			for i=1,#container.ISAWC_Inventory do
+				local dupe = container.ISAWC_Inventory[i]
+				if dupe then
+					table.insert(briefcase.ISAWC_Inventory,dupe)
+				end
+			end
+			table.Empty(container.ISAWC_Inventory)
+			
+			ply.ISAWC_DropAllContainers = self:FilterSequentialTable(ply.ISAWC_DropAllContainers or {}, self.FilterIsValid)
+			table.insert(ply.ISAWC_DropAllContainers, briefcase)
+			if self.ConDropAllLimit:GetInt() > 0 then
+				for i=1,#ply.ISAWC_DropAllContainers-self.ConDropAllLimit:GetInt() do
+					ply.ISAWC_DropAllContainers[i]:Remove()
+				end
+			end
+		end
+	end
+end
+
 ISAWC.LastLoadedData = ISAWC.LastLoadedData or {}
 ISAWC.Initialize = function()
-	if table.IsEmpty(ISAWC.LastLoadedData) then
+	if table.IsEmpty(ISAWC.LastLoadedData) and SERVER then
 		local data = util.JSONToTable(file.Read("isawc_data.dat") or "") or {}
 		if table.IsEmpty(data) then
 			data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "")) or {}
@@ -2718,6 +2794,20 @@ ISAWC.Initialize = function()
 		ISAWC.MassMultiList = data.MassMultiList or ISAWC.MassMultiList
 		ISAWC.VolumeMultiList = data.VolumeMultiList or ISAWC.VolumeMultiList
 		ISAWC.CountMultiList = data.CountMultiList or ISAWC.CountMultiList
+		
+		local replacements = 0
+		for k,v in pairs(ISAWC) do
+			if (TypeID(v) == TYPE_CONVAR and data[k] ~= v:GetString()) and data[k] then
+				RunConsoleCommand(v:GetName(), data[k])
+				replacements = replacements + 1
+			end
+		end
+		if replacements > 1 then
+			ISAWC:Log(string.format("ConVar file loaded, %u ConVar values updated.", replacements))
+		else
+			ISAWC:Log("ConVar file loaded, 1 ConVar value updated.")
+		end
+		
 		ISAWC.LastLoadedData = data
 	end
 end
@@ -2769,7 +2859,6 @@ ISAWC.PlayerDeath = function(ply)
 			briefcase:SetMassMul(0)
 			briefcase:SetVolumeMul(0)
 			briefcase:SetCountMul(0)
-			ISAWC:SetSuppressUndo(true)
 			for i=1,#ply.ISAWC_Inventory do
 				local dupe = ply.ISAWC_Inventory[i]
 				if dupe then
@@ -2777,6 +2866,7 @@ ISAWC.PlayerDeath = function(ply)
 					--ISAWC:SpawnDupe(dupe,true,true,i,ply)
 				end
 			end
+			ISAWC:SetSuppressUndo(true)
 			for k,v in pairs(ply:GetWeapons()) do
 				local passesblist = ISAWC:StringMatchParams(v:GetClass(), ISAWC.BlackDeathBoxList)
 				local passeswlist = not ISAWC.ConUseDeathBoxWhitelist:GetBool() or ISAWC:StringMatchParams(v:GetClass(), ISAWC.WhiteDeathBoxList)
@@ -2813,6 +2903,7 @@ end
 
 ISAWC.PlayerDisconnect = function(data)
 	if SERVER then
+		ISAWC:SaveData()
 		if data then
 			ISAWC:SaveInventory(data.networkid)
 		else
@@ -2844,7 +2935,8 @@ ISAWC.IsLegalContainer = function(self,ent,ply,ignoreDist)
 		if cond3 then
 			vioCode = bit.bor(vioCode, 4)
 		end
-		self:Log(string.format("Rejected %s's attempt to use container \"%s\" (expected 7, got %u)", ply:Nick(), tostring(ent), vioCode))
+		self:Log(string.format("Rejected %s's attempt to use container \"%s\"!", ply:Nick(), tostring(ent)))
+		self:Log(string.format("Technical details: expected 7 passes, got only %u passes", vioCode))
 	end
 	return legal
 end
@@ -3206,22 +3298,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			end
 		elseif func == "drop_all" or func == "drop_all_in_container" then
 			if (ply.ISAWC_Inventory and next(ply.ISAWC_Inventory)) then
-				local briefcase = ents.Create("isawc_container_cbbox_07")
-				briefcase:SetPos(ply:GetShootPos())
-				briefcase:Spawn()
-				briefcase:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
-				briefcase:GetPhysicsObject():SetVelocity(ply:GetAimVector() * 200)
-				briefcase.ISAWC_IsDeathDrop = true
-				self:SetSuppressUndo(true)
-				for i=1,#ply.ISAWC_Inventory do
-					local dupe = ply.ISAWC_Inventory[i]
-					if dupe then
-						table.insert(briefcase.ISAWC_Inventory,dupe)
-						--self:SpawnDupe(dupe,true,true,i,ply)
-					end
-				end
-				self:SetSuppressUndo(false)
-				table.Empty(ply.ISAWC_Inventory)
+				self:DropAll(ply,ply)
 				if func == "drop_all" then
 					self:SendInventory(ply)
 				else
@@ -3300,21 +3377,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			local container = net.ReadEntity()
 			if self:IsLegalContainer(container,ply) then
 				if (container.ISAWC_Inventory and next(container.ISAWC_Inventory)) then
-					local briefcase = ents.Create("isawc_container_cbbox_07")
-					briefcase:SetPos(ply:GetShootPos())
-					briefcase:Spawn()
-					briefcase:GetPhysicsObject():SetVelocity(ply:GetAimVector() * 200)
-					briefcase.ISAWC_IsDeathDrop = true
-					self:SetSuppressUndo(true)
-					for i=1,#container.ISAWC_Inventory do
-						local dupe = container.ISAWC_Inventory[i]
-						if dupe then
-							table.insert(briefcase.ISAWC_Inventory,dupe)
-							--self:SpawnDupe(dupe,true,true,i,ply)
-						end
-					end
-					self:SetSuppressUndo(false)
-					table.Empty(container.ISAWC_Inventory)
+					self:DropAll(container,ply)
 					self:SendInventory2(ply,container)
 				end
 			end
@@ -3709,7 +3772,7 @@ ISAWC.CanPickup = function(self,ply,ent,speculative)
 			end
 			if ply:GetPos():Distance(ent:GetPos())-ent:BoundingRadius()-ply:BoundingRadius()>self.ConDistance:GetFloat() and ply:IsPlayer() then self:NoPickup("You need to be closer to the object!",ply) return false end
 			if not (ent:IsSolid() or passeswlist or ent:IsWeapon()) then self:NoPickup("You can't pick up non-solid entities!",ply) return false end
-			if ent:GetMoveType()~=MOVETYPE_VPHYSICS and self.ConVPhysicsOnly:GetBool() and not (passeswlist or ent:IsWeapon()) then self:NoPickup("You can't pick up non-VPhysics entities!",ply) return false end
+			if ent:GetMoveType()~=MOVETYPE_VPHYSICS and not self.ConNonVPhysics:GetBool() and not (passeswlist or ent:IsWeapon()) then self:NoPickup("You can't pick up non-VPhysics entities!",ply) return false end
 			if constraint.HasConstraints(ent) and not self.ConAllowConstrained:GetBool() then self:NoPickup("You can't pick up constrained entities!",ply) return false end
 			local TotalMass, TotalVolume, TotalCount = self:CalculateEntitySpace(ent)
 			local data = self:GetClientStats(ply)
@@ -3960,3 +4023,10 @@ hook.Add("CanProperty","ISAWC",ISAWC.OldCanProperty)
 hook.Add("Tick","ISAWC",ISAWC.Tick)
 
 list.Set("DesktopWindows","Open Inventory",ISAWC.DesktopTable)
+
+if SERVER then
+	ISAWC:Log(string.format("All server code successfully initialized in %.2f ms!", (SysTime()-startLoadTime)*1e3))
+end
+if CLIENT then
+	ISAWC:Log(string.format("All client code successfully initialized in %.2f ms!", (SysTime()-startLoadTime)*1e3))
+end

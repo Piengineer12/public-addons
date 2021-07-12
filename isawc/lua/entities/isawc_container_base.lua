@@ -269,7 +269,8 @@ function ENT:Think()
 		if ISAWC.ConMagnet:GetFloat() > 0 and not ISAWC:StringMatchParams(self:GetClass(), ISAWC.BlackContainerMagnetList) and not self.ISAWC_IsDeathDrop then
 			self:FindMagnetablesInSphere()
 		elseif self.ISAWC_IsDeathDrop and not self.ISAWC_Inventory[1] then
-			timer.Simple(ISAWC.ConDeathRemoveDelay:GetFloat()-4.24, function()
+			local delay = self.ISAWC_IsDropAll and ISAWC.ConDropAllTime:GetFloat() or ISAWC.ConDeathRemoveDelay:GetFloat()
+			timer.Simple(delay-4.24, function()
 				if IsValid(self) then
 					self:SetRenderMode(RENDERMODE_GLOW)
 					self:SetRenderFX(kRenderFxFadeSlow)
