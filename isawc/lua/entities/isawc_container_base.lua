@@ -59,6 +59,10 @@ end
 
 function ENT:Initialize()
 	if SERVER then
+		ISAWC:SQL([[CREATE TABLE IF NOT EXISTS isawc_container_data (
+			containerID TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
+			data BLOB NOT NULL
+		);]])
 		self:SetModel(self.ContainerModel)
 		self:SetTrigger(true)
 		self:PhysicsInit(SOLID_VPHYSICS)
@@ -119,13 +123,23 @@ function ENT:Initialize()
 			end
 			return str
 		end
-		while self:GetFileID()=="" or file.Exists("isawc_containers/"..self:GetFileID()..".dat","DATA") or container_ents[self:GetFileID()] do
-			self:SetFileID(GenStringFile())
+		local invalid = true
+		while invalid do
+			local chosenFileID = GenStringFile()
+			local result = ISAWC:SQL("SELECT containerID FROM isawc_container_data WHERE containerID = %s;", chosenFileID)
+			invalid = file.Exists("isawc_containers/"..chosenFileID..".dat","DATA") or container_ents[chosenFileID] or (result and next(result))
+			if not invalid then
+				self:SetFileID(chosenFileID)
+			end
 		end
 	end
-	if ISAWC.ConSaveIntoFile:GetBool() then
-		if file.Exists("isawc_containers/"..self:GetFileID()..".dat","DATA") then
-			self.ISAWC_Inventory = table.DeSanitise(util.JSONToTable(util.Decompress(file.Read("isawc_containers/"..self:GetFileID()..".dat"))))
+	if SERVER and ISAWC.ConSaveIntoFile:GetBool() then
+		local chosenFileID = self:GetFileID()
+		local result = ISAWC:SQL("SELECT containerID, data FROM isawc_container_data WHERE containerID = %s;", chosenFileID)
+		if (result and result[1]) then
+			self.ISAWC_Inventory = util.JSONToTable(result[1].data)
+		elseif file.Exists("isawc_containers/"..chosenFileID..".dat","DATA") then
+			self.ISAWC_Inventory = util.JSONToTable(util.Decompress(file.Read("isawc_containers/"..chosenFileID..".dat") or ""))
 		end
 	end
 	self.MagnetScale = self:BoundingRadius()
@@ -137,7 +151,7 @@ function ENT:Touch(ent)
 	if ISAWC.ConDragAndDropOntoContainer:GetInt()==1 and not self.ISAWC_Disabled then
 		if ISAWC:CanProperty(self,ent) then
 			ISAWC:PropPickup(self,ent)
-			self:SendInventoryUpdate()
+			ISAWC:SaveContainerInventory(self)
 		end
 	end
 end
@@ -146,7 +160,7 @@ function ENT:StartTouch(ent)
 	if ISAWC.ConDragAndDropOntoContainer:GetInt()==2 and not self.ISAWC_Disabled then
 		if ISAWC:CanProperty(self,ent) then
 			ISAWC:PropPickup(self,ent)
-			self:SendInventoryUpdate()
+			ISAWC:SaveContainerInventory(self)
 		end
 	end
 end
@@ -255,7 +269,8 @@ function ENT:Think()
 		if ISAWC.ConMagnet:GetFloat() > 0 and not ISAWC:StringMatchParams(self:GetClass(), ISAWC.BlackContainerMagnetList) and not self.ISAWC_IsDeathDrop then
 			self:FindMagnetablesInSphere()
 		elseif self.ISAWC_IsDeathDrop and not self.ISAWC_Inventory[1] then
-			timer.Simple(ISAWC.ConDeathRemoveDelay:GetFloat()-4.24, function()
+			local delay = self.ISAWC_IsDropAll and ISAWC.ConDropAllTime:GetFloat() or ISAWC.ConDeathRemoveDelay:GetFloat()
+			timer.Simple(delay-4.24, function()
 				if IsValid(self) then
 					self:SetRenderMode(RENDERMODE_GLOW)
 					self:SetRenderFX(kRenderFxFadeSlow)
