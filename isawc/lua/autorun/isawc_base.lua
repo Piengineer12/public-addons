@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.0.0-beta.6"
-ISAWC._VERSIONDATE = "2021-07-12"
+ISAWC._VERSION = "4.0.0"
+ISAWC._VERSIONDATE = "2021-07-14"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -146,6 +146,7 @@ AccessorFunc(ISAWC,"SuppressUndoHeaders","SuppressUndoHeaders",FORCE_BOOL)
 
 ISAWC.ConAltSave = CreateConVar("isawc_use_altsave","0",FCVAR_REPLICATED,
 "If set, entities that are put into containers are stored and retrieved somewhere safe rather than being deleted and recreated.\
+Enabling this option can fix many bugs relating to items not being stored properly, however it might cause other issues.\
 This feature is in beta - use it at your own risk.")
 
 ISAWC.ConDropOnDeath = CreateConVar("isawc_dropondeath_enabled","1",FCVAR_REPLICATED,
@@ -2879,9 +2880,7 @@ ISAWC.PlayerDeath = function(ply)
 			ISAWC:SetSuppressUndo(false)
 			if briefcase.ISAWC_Inventory[1] then
 				briefcase.ISAWC_IsDeathDrop = true
-				ply.ISAWC_DropOnDeathContainers = ISAWC:FilterSequentialTable(ply.ISAWC_DropOnDeathContainers or {}, function(k,v)
-					return IsValid(v)
-				end)
+				ply.ISAWC_DropOnDeathContainers = ISAWC:FilterSequentialTable(ply.ISAWC_DropOnDeathContainers or {}, ISAWC.FilterIsValid)
 				
 				table.insert(ply.ISAWC_DropOnDeathContainers, briefcase)
 				
@@ -2975,6 +2974,7 @@ ISAWC.RecursiveToNumbering = function(self,tab,done)
 	end
 end
 
+ISAWC.StoredInAltSaveProps = ISAWC.StoredInAltSaveProps or {}
 ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 	local canDel = self.ConAllowDelete:GetBool()
 	local trace = util.QuickTrace(ply:EyePos(),isSpawn and ply:GetAimVector()*self.ConDistance:GetFloat() or vector_origin,ply)
@@ -2994,6 +2994,7 @@ ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 					ent:SetSaveValue(k,v)
 				end
 			end
+			self.StoredInAltSaveProps[ent] = nil
 			ent:SetNoDraw(ent.ISAWC_OldNoDraw or false)
 			ent:SetNotSolid(not ent.ISAWC_OldSolid or false)
 			ent:SetMoveType(ent.ISAWC_OldMoveType or MOVETYPE_VPHYSICS)
@@ -3084,6 +3085,7 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 					ent:SetSaveValue(k,v)
 				end
 			end
+			self.StoredInAltSaveProps[ent] = nil
 			ent:SetNoDraw(ent.ISAWC_OldNoDraw or false)
 			ent:SetNotSolid(not ent.ISAWC_OldSolid or false)
 			ent:SetMoveType(ent.ISAWC_OldMoveType or MOVETYPE_VPHYSICS)
@@ -3162,6 +3164,7 @@ ISAWC.SpawnDupeWeak = function(self,dupe,spawnpos,spawnangles,ply)
 					ent:SetSaveValue(k,v)
 				end
 			end
+			self.StoredInAltSaveProps[ent] = nil
 			ent:SetNoDraw(ent.ISAWC_OldNoDraw or false)
 			ent:SetNotSolid(not ent.ISAWC_OldSolid or false)
 			ent:SetMoveType(ent.ISAWC_OldMoveType or MOVETYPE_VPHYSICS)
@@ -3811,12 +3814,27 @@ end
 
 local invcooldown = 0
 local nextsave = 0
+local nextAltSaveCheck = 0
 ISAWC.Tick = function()
 	if SERVER then
 		if nextsave < RealTime() and ISAWC.ConDoSave:GetInt() > 0 then
 			nextsave = RealTime() + ISAWC.ConDoSaveDelay:GetFloat()
 			ISAWC:SaveInventory(player.GetAll())
 			ISAWC:Log("Player inventories saved!")
+		end
+		-- the following is needed to make sure the stashed props don't just walk off the map!
+		if nextAltSaveCheck < RealTime() then
+			nextAltSaveCheck = RealTime() + 1
+			for k,v in pairs(ISAWC.StoredInAltSaveProps) do
+				if IsValid(k) and not k:IsPlayer() then
+					k:SetPos(Vector(16000,16000,16000))
+					k:SetNoDraw(true)
+					k:SetNotSolid(true)
+					k:SetMoveType(MOVETYPE_NONE)
+				else
+					ISAWC.StoredInAltSaveProps[k] = nil
+				end
+			end
 		end
 	end
 	if CLIENT then
@@ -3919,6 +3937,16 @@ ISAWC.PropPickup = function(self,ply,ent,container)
 				end
 			end,"Data")
 		end
+		if ent:GetClass() == "keycard" and GlobalDoorTable then
+			-- needed for https://steamcommunity.com/sharedfiles/filedetails/?id=2045159940
+			-- this creates a timer to put the door ID back into the global table
+			-- this is needed to fix a problem with keycards being unpaired when stored
+			local entID = ent.DoorID
+			local dorID = GlobalDoorTable[entID]
+			timer.Simple(0.05, function()
+				GlobalDoorTable[entID] = dorID
+			end)
+		end
 		if v:IsWeapon() then
 			v.SavedClip1 = v:Clip1()
 			v.SavedClip2 = v:Clip2()
@@ -3945,6 +3973,7 @@ ISAWC.PropPickup = function(self,ply,ent,container)
 			v:SetNoDraw(true)
 			v:SetNotSolid(true)
 			v:SetMoveType(MOVETYPE_NONE)
+			self.StoredInAltSaveProps[v] = true
 		else
 			v:Fire("Kill")
 		end
