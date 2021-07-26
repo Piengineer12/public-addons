@@ -55,11 +55,12 @@ local function ConfigureBits(input, cfgMask, cfgSet)
 end
 
 -- these assume file name length is always 8!
-
 function ENT:SetFileID(index, id)
 	if string.len(id)==8 then
 		local oldFileIDComp = self:GetFileIDComposite()
+		-- FileIDComposite is a long string, 8 characters per file
 		self:SetFileIDComposite(oldFileIDComp:sub(1, index*8-8)..id..oldFileIDComp:sub(index*8+1))
+		-- CurrentFileIDs is how we know what parts of the FileIDComposite have been filled with data
 		self:SetCurrentFileIDs(bit.bor(self:GetCurrentFileIDs(), bit.lshift(1, index-1)))
 	else
 		self:SetCurrentFileIDs(ConfigureBits(self:GetCurrentFileIDs(), bit.lshift(1, index-1), 0))
@@ -195,7 +196,7 @@ function ENT:GetContainer(index)
 		if returnValue.Base=="isawc_container_base" then
 			return returnValue
 		else
-			ISAWC:Log(string.format("Tried to set DT#%u for %s to %s... wtf? Abandoning the current cache and trying again.", index, tostring(self), tostring(returnValue)))
+			ISAWC:Log(string.format("Tried to set Entity DT %u for %s to %s... wtf? Abandoning the current cache and trying again.", index, tostring(self), tostring(returnValue)))
 			table.Empty(self.ISAWC_CachedEntities)
 			return nil
 		end

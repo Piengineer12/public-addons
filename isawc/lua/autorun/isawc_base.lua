@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.0.0"
-ISAWC._VERSIONDATE = "2021-07-14"
+ISAWC._VERSION = "4.0.1"
+ISAWC._VERSIONDATE = "2021-07-21"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -939,7 +939,7 @@ if SERVER then
 					file.Delete("isawc_containers/"..v)
 				end
 				file.Delete("isawc_containers")
-				ISAWC:SQL("BEGIN; DELETE FROM isawc_container_data;")
+				ISAWC:SQL("BEGIN; DELETE FROM \"isawc_container_data\";")
 				for k,v in pairs(ents.GetAll()) do
 					if (IsValid(v) and v.Base=="isawc_container_base") then
 						ISAWC:SaveContainerInventory(v)
@@ -2615,11 +2615,13 @@ ISAWC.SQL = function(self,query,...)
 		params[k] = sql.SQLStr(v)
 	end
 	local result = false
-	if next(params) then
-		result = sql.Query(string.format(query, unpack(params)))
-	else
-		sql.Query(query)
-	end
+	local queryString = next(params) and string.format(query, unpack(params)) or query
+	--print(queryString)
+	result = sql.Query(queryString)
+	--print(result)
+	--if istable(result) then
+		--PrintTable(result)
+	--end
 	if result == false then
 		local err = sql.LastError()
 		if err then
@@ -2661,9 +2663,9 @@ end
 
 ISAWC.SaveInventory = function(self,ply)
 	local steamid
-	self:SQL([[CREATE TABLE IF NOT EXISTS isawc_player_data (
-		steamID TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
-		data TEXT NOT NULL
+	self:SQL([[CREATE TABLE IF NOT EXISTS "isawc_player_data" (
+		"steamID" TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
+		"data" TEXT NOT NULL
 	);]])
 	if isstring(ply) then
 		steamid = ply
@@ -2680,9 +2682,9 @@ ISAWC.SaveInventory = function(self,ply)
 				end
 				if (inv and next(inv)) then
 					local data = util.TableToJSON(inv) -- util.Compress is BROKEN as of 2021-10-06!
-					self:SQL("INSERT INTO isawc_player_data (steamID, data) VALUES (%s, %s);", steamid, data)
+					self:SQL("INSERT INTO \"isawc_player_data\" (\"steamID\", \"data\") VALUES (%s, %s);", steamid, data)
 				else
-					self:SQL("DELETE FROM isawc_player_data WHERE steamID = %s;", steamid)
+					self:SQL("DELETE FROM \"isawc_player_data\" WHERE \"steamID\" = %s;", steamid)
 				end
 			end
 		end
@@ -2696,9 +2698,9 @@ ISAWC.SaveInventory = function(self,ply)
 			end
 			if (inv and next(inv)) then
 				local data = util.TableToJSON(inv)
-				self:SQL("INSERT INTO isawc_player_data (steamID, data) VALUES (%s, %s);", steamid, data)
+				self:SQL("INSERT INTO \"isawc_player_data\" (\"steamID\", \"data\") VALUES (%s, %s);", steamid, data)
 			else
-				self:SQL("DELETE FROM isawc_player_data WHERE steamID = %s;", steamid)
+				self:SQL("DELETE FROM \"isawc_player_data\" WHERE \"steamID\" = %s;", steamid)
 			end
 		end
 	end
@@ -2725,11 +2727,11 @@ ISAWC.SaveContainerInventory = function(self,container)
 			file.CreateDir("isawc_containers")
 		end
 		file.Write("isawc_containers/"..container:GetFileID()..".dat",util.Compress(util.TableToJSON(data)))]]
-		self:SQL([[CREATE TABLE IF NOT EXISTS isawc_container_data (
-			containerID TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
-			data TEXT NOT NULL
+		self:SQL([[CREATE TABLE IF NOT EXISTS "isawc_container_data" (
+			"containerID" TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
+			"data" TEXT NOT NULL
 		);]])
-		self:SQL("INSERT INTO isawc_container_data (containerID, data) VALUES (%s, %s);", container:GetFileID(), util.TableToJSON(inv))
+		self:SQL("INSERT INTO \"isawc_container_data\" (\"containerID\", \"data\") VALUES (%s, %s);", container:GetFileID(), util.TableToJSON(inv))
 	end
 end
 
@@ -2823,7 +2825,7 @@ ISAWC.PlayerSpawn = function(ply)
 				ISAWC.LastLoadedData[steamID] = nil
 			elseif ISAWC.ConDoSave:GetInt() > 0 then
 				if steamID ~= "" then
-					local results = ISAWC:SQL("SELECT steamID, data FROM isawc_player_data WHERE steamID = %s;", steamID)
+					local results = ISAWC:SQL("SELECT \"steamID\", \"data\" FROM \"isawc_player_data\" WHERE \"steamID\" = %s;", steamID)
 					if (results and results[1]) then
 						ply.ISAWC_Inventory = util.JSONToTable(results[1].data)
 					end
@@ -3824,7 +3826,7 @@ ISAWC.Tick = function()
 		end
 		-- the following is needed to make sure the stashed props don't just walk off the map!
 		if nextAltSaveCheck < RealTime() then
-			nextAltSaveCheck = RealTime() + 1
+			nextAltSaveCheck = RealTime() + 2
 			for k,v in pairs(ISAWC.StoredInAltSaveProps) do
 				if IsValid(k) and not k:IsPlayer() then
 					k:SetPos(Vector(16000,16000,16000))
@@ -3936,16 +3938,6 @@ ISAWC.PropPickup = function(self,ply,ent,container)
 					return ent
 				end
 			end,"Data")
-		end
-		if ent:GetClass() == "keycard" and GlobalDoorTable then
-			-- needed for https://steamcommunity.com/sharedfiles/filedetails/?id=2045159940
-			-- this creates a timer to put the door ID back into the global table
-			-- this is needed to fix a problem with keycards being unpaired when stored
-			local entID = ent.DoorID
-			local dorID = GlobalDoorTable[entID]
-			timer.Simple(0.05, function()
-				GlobalDoorTable[entID] = dorID
-			end)
 		end
 		if v:IsWeapon() then
 			v.SavedClip1 = v:Clip1()
