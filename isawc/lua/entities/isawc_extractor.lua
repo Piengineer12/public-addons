@@ -39,6 +39,7 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Int",1,"ActiFlags")
 	self:NetworkVar("Int",2,"CurrentFileIDs")
 	self:NetworkVar("Int",3,"ContainerHealth",{KeyName="isawc_health",Edit={type="Int",title="Exporter Health",min=0,max=1000}})
+	self:NetworkVar("Int",4,"Team")
 	for i=1,32 do
 		self:NetworkVar("Entity",i-1,string.format("StorageEntity%u",i))
 	end
@@ -130,6 +131,7 @@ function ENT:Initialize()
 	end
 	if SERVER and (IsValid(self:GetCreator()) and self:GetCreator():IsPlayer()) then
 		self:SetOwnerAccountID(self:GetCreator():AccountID() or 0)
+		self:SetTeam(self:GetCreator():Team())
 	end
 	self.ISAWC_CachedEntities = {}
 	self.LastCacheUpdate = 0
@@ -193,7 +195,7 @@ function ENT:GetContainer(index)
 	end
 	local returnValue = self["GetStorageEntity"..index](self)
 	if IsValid(returnValue) then
-		if returnValue.Base=="isawc_container_base" then
+		if returnValue.Base=="isawc_container_base" or returnValue:IsPlayer() then
 			return returnValue
 		else
 			ISAWC:Log(string.format("Tried to set Entity DT %u for %s to %s... wtf? Abandoning the current cache and trying again.", index, tostring(self), tostring(returnValue)))
@@ -214,6 +216,7 @@ function ENT:Use(activator, caller)
 	if (IsValid(activator) and activator:IsPlayer()) then
 		if self:GetOwnerAccountID()==0 then
 			self:SetOwnerAccountID(activator:AccountID() or 0)
+			self:SetTeam(activator:Team())
 		end
 		if self:GetOwnerAccountID() == activator:AccountID() or activator:IsAdmin() then
 			net.Start("isawc_general")
@@ -253,18 +256,42 @@ function ENT:LinkEntity(ent)
 	if not alreadyConnected then
 		local message = "Device linked to "..tostring(ent).."!"
 		local message2 = nil
-		if not availableSpace then
-			message = "This exporter can't be connected to any more containers!"
-		elseif ISAWC.ConAllowInterConnection:GetBool() or self:GetOwnerAccountID() == ent:GetOwnerAccountID() then
-			self["SetStorageEntity"..availableSpace](self, ent)
-			self:SetFileID(availableSpace, ent:GetFileID())
-			if self:GetCollisionGroup()==COLLISION_GROUP_NONE then
-				self:SetCollisionGroup(COLLISION_GROUP_WORLD)
-				message2 = "Be careful! The Inventory Exporter's collisions have been disabled to allow it to spawn big props."
+		
+		if availableSpace then
+			local allowed = ISAWC.ConAllowInterConnection:GetInt() == 1
+			
+			if not allowed then
+				if ent:IsPlayer() then
+					if ISAWC.ConAllowInterConnection:GetInt() > 1 then
+						allowed = ent:Team()==self:GetTeam()
+					else
+						allowed = ent:AccountID()==self:GetOwnerAccountID()
+					end
+				else -- then it must be a container
+					if ISAWC.ConAllowInterConnection:GetInt() > 1 then
+						local requestedPlayer = player.GetByAccountID(ent:GetOwnerAccountID())
+						allowed = not IsValid(requestedPlayer) or requestedPlayer:Team()==self:GetTeam()
+					else
+						allowed = ent:GetOwnerAccountID()==self:GetOwnerAccountID()
+					end
+				end
 			end
-			--self:UpdateWireOutputs()
+			
+			if allowed then
+				self[string.format("SetStorageEntity%u", availableSpace)](self, ent)
+				if not ent:IsPlayer() then
+					self:SetFileID(availableSpace, ent:GetFileID())
+				end
+				if self:GetCollisionGroup()==COLLISION_GROUP_NONE then
+					self:SetCollisionGroup(COLLISION_GROUP_WORLD)
+					message2 = "Be careful! The Inventory Exporter's collisions have been disabled to allow it to spawn big props."
+				end
+				--self:UpdateWireOutputs()
+			else
+				message = "That container does not belong to you!"
+			end
 		else
-			message = "That container does not belong to you!"
+			message = "This exporter can't be connected to any more containers!"
 		end
 		
 		local plyToMessage = self:GetFuzzyCreator()
@@ -341,6 +368,10 @@ end
 
 function ENT:IsExtractableContainer(container)
 	if IsValid(container) then
+		if not container.ISAWC_Inventory then return false end
+		if container:IsPlayer() then
+			if not tobool(container:GetInfo("isawc_allow_selflinks")) then return false end
+		end
 		if ISAWC.ConUseExportWhitelist:GetBool() then
 			for k,v in pairs(container.ISAWC_Inventory) do
 				if self:WhitelistedDupe(v) then return true end
@@ -676,7 +707,7 @@ function ENT:BuildConfigGUI()
 	else
 		local ConnectionText = vgui.Create("DLabel", Main)
 		ConnectionText:SetTall(UIHeight)
-		ConnectionText:SetText("Collide this entity with another container to link, or use the ISAWC MultiConnector SWEP. This GUI will not be visible for other players, except admins.")
+		ConnectionText:SetText("Collide this entity with another container to link, or use the ISAWC MultiConnector SWEP. This GUI will not be visible for players other than you, except admins.")
 		ConnectionText:SetWrap(true)
 		ConnectionText:Dock(TOP)
 	end

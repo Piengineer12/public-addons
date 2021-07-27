@@ -35,8 +35,9 @@ function ENT:SpawnFunction(ply,trace,classname)
 end
 
 function ENT:Initialize()
+	self.OnTakeDamage = scripted_ents.Get("isawc_container_base").OnTakeDamage
 	self:SetModel("models/hunter/blocks/cube1x1x1.mdl")
-	self:SetMaterial("models/block_phantomface")
+	self:SetMaterial("phoenix_storms/cube")
 	if SERVER then
 		self:SetTrigger(true)
 		self:PhysicsInit(SOLID_VPHYSICS)
@@ -134,8 +135,6 @@ function ENT:StartTouch(ent)
 		end
 	end
 end
-
-ENT.OnTakeDamage = baseclass.Get("isawc_container_base").OnTakeDamage
 
 function ENT:Think()
 	if SERVER then

@@ -84,7 +84,7 @@ function SWEP:LeftClickEntity(ent)
 			if ent:GetOwnerAccountID()==0 then
 				ent:SetOwnerAccountID(accountID)
 			end
-			if ent:GetOwnerAccountID() == (accountID) then
+			if ent:GetOwnerAccountID() == accountID then
 				self:SetExporter(ent)
 				self:UpdateConnectionDisplays()
 				self:SetState(EXPORTER_SELECTED)
@@ -93,12 +93,18 @@ function SWEP:LeftClickEntity(ent)
 				self:EmitSound("items/medshotno1.wav")
 				ply:PrintMessage(HUD_PRINTTALK, "Only the owner can interact with this!")
 			end
-		elseif self:GetState()==EXPORTER_SELECTED and IsValid(self:GetExporter()) and ent.Base=="isawc_container_base" then
+		elseif self:GetState()==EXPORTER_SELECTED and IsValid(self:GetExporter()) then
 			local target = self:GetExporter()
-			if target:GetClass()=="isawc_extractor" then
-				target:LinkEntity(ent)
-				self:UpdateConnectionDisplays()
-			else
+			local isContainer = ent.Base=="isawc_container_base"
+			local actionDone = false
+			
+			if target:GetClass()=="isawc_extractor" and (isContainer or ent:IsPlayer()) then
+				if not target:HasContainer(ent) then
+					target:LinkEntity(ent)
+					self:UpdateConnectionDisplays()
+					actionDone = true
+				end
+			elseif isContainer then
 				if ent:GetEnderInvName()~=target:GetEnderInvName() or target:GetEnderInvName()=='' then
 					if ent:GetEnderInvName()==target:GetEnderInvName() then
 						target:SetEnderInvName(accountID.."'s "..ent:GetCreationID())
@@ -109,12 +115,15 @@ function SWEP:LeftClickEntity(ent)
 						ent:SetEnderInvName(target:GetEnderInvName())
 					end
 					ply:PrintMessage(HUD_PRINTTALK, "Container is now synced with "..tostring(ent).."!")
+					actionDone = true
 				end
 			end
-			if not ply:Crouching() then
-				self:SetState(DEFAULT)
+			if actionDone then
+				self:EmitSound("buttons/button17.wav")
+				if not ply:Crouching() then
+					self:SetState(DEFAULT)
+				end
 			end
-			self:EmitSound("buttons/button17.wav")
 		else
 			self:EmitSound("items/medshotno1.wav")
 		end
@@ -130,7 +139,7 @@ function SWEP:RightClickEntity(ent)
 			self:EmitSound("buttons/button17.wav")
 		elseif IsValid(ent) then
 			local ply = self:GetOwner()
-			if self:GetState()==DEFAULT and ent.Base=="isawc_container_base" then
+			if self:GetState()==DEFAULT and ent.Base=="isawc_container_base" then 
 				local accountID = ply:AccountID() or 0
 				if ent:GetOwnerAccountID()==0 then
 					ent:SetOwnerAccountID(accountID)
@@ -145,7 +154,7 @@ function SWEP:RightClickEntity(ent)
 					ply:PrintMessage(HUD_PRINTTALK, "Only the owner can interact with this!")
 					self:EmitSound("items/medshotno1.wav")
 				end
-			elseif self:GetState()==EXPORTER_SELECTED and ent.Base=="isawc_container_base" then
+			elseif self:GetState()==EXPORTER_SELECTED then
 				if self:GetExporter():HasContainer(ent) then
 					self:GetExporter():UnlinkEntity(ent)
 					self:UpdateConnectionDisplays()
@@ -154,6 +163,8 @@ function SWEP:RightClickEntity(ent)
 					if not ply:Crouching() then
 						self:SetState(DEFAULT)
 					end
+				else
+					self:EmitSound("items/medshotno1.wav")
 				end
 			else
 				self:EmitSound("items/medshotno1.wav")
@@ -191,7 +202,12 @@ function SWEP:DoFunctionByEntity(func)
 			for k,v in pairs(ents.FindInSphere(hitpos,16)) do
 				tracedata[v] = -v:GetPos():DistToSqr(hitpos)
 			end
-			func(self, table.GetWinningKey(tracedata))
+			
+			local hitEntity = table.GetWinningKey(tracedata)
+			if (IsValid(hitEntity) and hitEntity:GetParent():IsPlayer()) then
+				hitEntity = hitEntity:GetParent()
+			end
+			func(self, hitEntity)
 		else
 			func(self, traceresult.Entity)
 		end

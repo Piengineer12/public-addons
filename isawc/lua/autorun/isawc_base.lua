@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.0.1"
-ISAWC._VERSIONDATE = "2021-07-21"
+ISAWC._VERSION = "4.1.0"
+ISAWC._VERSIONDATE = "2021-07-27"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -164,9 +164,6 @@ ISAWC.CreateListConCommand = function(self, name, data)
 			else
 				if next(args) then
 					data.exe(args)
-					if self.ConDoSave:GetInt() > 1 then
-						self:SaveInventory(ply)
-					end
 					self:SaveData()
 				else
 					self:Log(data.display..'{')
@@ -1138,6 +1135,9 @@ if CLIENT then
 	ISAWC.ConPermaConnectorHUD = CreateClientConVar("isawc_always_showconnectorhud","0",true,false,
 	"Shows links between containers and Inventory Exporters to other containers you own, even if the ISAWC MultiConnector SWEP is not equipped.")
 	
+	ISAWC.ConAllowSelflinks = CreateClientConVar("isawc_allow_selflinks","1",true,true,
+	"Allows Inventory Importers and Inventory Exporters to put and pull items in and out of your inventory as long as you are linked to them via the ISAWC MultiConnector SWEP.")
+	
 	local inventoryOpenTable = {
 		exec = function(ply,cmd,args)
 			if IsValid(ISAWC.TempWindow2) then
@@ -1456,81 +1456,90 @@ ISAWC.InstallSortFunctions = function(self,panel,InvPanel,delname,wepstorename,d
 		end):SetIcon("icon16/gun.png")
 		local sortOptions,sortOption = sOptions:AddSubMenu("Sort Items")
 		sortOption:SetIcon("icon16/book.png")
-		sortOptions:AddOption("Sort By Class (Ascending)",function()
-			if IsValid(InvPanel) then
-				local temptab,displ = {},0
-				for i,v in ipairs(InvPanel:GetChildren()) do
-					if v.MdlInfo then
-						temptab[v.ID] = v.MdlInfo.Class .. '_' .. v.MdlInfo.Model .. '_' .. v.MdlInfo.Skin
+		do
+			sortOptions:AddOption("Sort By Class (Ascending)",function()
+				if IsValid(InvPanel) then
+					local temptab,displ = {},0
+					for i,v in ipairs(InvPanel:GetChildren()) do
+						if v.MdlInfo then
+							temptab[v.ID] = v.MdlInfo.Class .. '_' .. v.MdlInfo.Model .. '_' .. v.MdlInfo.Skin
+						end
 					end
-				end
-				for k,v in SortedPairsByValue(temptab) do
-					displ = displ + 1
-					InvPanel.IDOrder[displ]=k
-				end
-				InvPanel.WaitForSend = true
-			end
-		end):SetIcon("icon16/textfield_add.png")
-		sortOptions:AddOption("Sort By Class (Descending)",function()
-			if IsValid(InvPanel) then
-				local temptab,displ = {},0
-				for i,v in ipairs(InvPanel:GetChildren()) do
-					if v.MdlInfo then
-						temptab[v.ID] = v.MdlInfo.Class .. '_' .. v.MdlInfo.Model .. '_' .. v.MdlInfo.Skin
+					for k,v in SortedPairsByValue(temptab) do
+						displ = displ + 1
+						InvPanel.IDOrder[displ]=k
 					end
+					InvPanel.WaitForSend = true
 				end
-				for k,v in SortedPairsByValue(temptab,true) do
-					displ = displ + 1
-					InvPanel.IDOrder[displ]=k
-				end
-				InvPanel.WaitForSend = true
-			end
-		end):SetIcon("icon16/textfield_delete.png")
-		sortOptions:AddOption("Sort By Model (Ascending)",function()
-			if IsValid(InvPanel) then
-				local temptab,displ = {},0
-				for i,v in ipairs(InvPanel:GetChildren()) do
-					if v.MdlInfo then
-						temptab[v.ID] = v.MdlInfo.Model .. '_' .. v.MdlInfo.Skin .. v.MdlInfo.Class
+			end):SetIcon("icon16/textfield_add.png")
+			sortOptions:AddOption("Sort By Class (Descending)",function()
+				if IsValid(InvPanel) then
+					local temptab,displ = {},0
+					for i,v in ipairs(InvPanel:GetChildren()) do
+						if v.MdlInfo then
+							temptab[v.ID] = v.MdlInfo.Class .. '_' .. v.MdlInfo.Model .. '_' .. v.MdlInfo.Skin
+						end
 					end
-				end
-				for k,v in SortedPairsByValue(temptab) do
-					displ = displ + 1
-					InvPanel.IDOrder[displ]=k
-				end
-				InvPanel.WaitForSend = true
-			end
-		end):SetIcon("icon16/brick_add.png")
-		sortOptions:AddOption("Sort By Model (Descending)",function()
-			if IsValid(InvPanel) then
-				local temptab,displ = {},0
-				for i,v in ipairs(InvPanel:GetChildren()) do
-					if v.MdlInfo then
-						temptab[v.ID] = v.MdlInfo.Model .. '_' .. v.MdlInfo.Skin .. v.MdlInfo.Class
+					for k,v in SortedPairsByValue(temptab,true) do
+						displ = displ + 1
+						InvPanel.IDOrder[displ]=k
 					end
+					InvPanel.WaitForSend = true
 				end
-				for k,v in SortedPairsByValue(temptab,true) do
-					displ = displ + 1
-					InvPanel.IDOrder[displ]=k
-				end
-				InvPanel.WaitForSend = true
-			end
-		end):SetIcon("icon16/brick_delete.png")
-		sortOptions:AddOption("Sort Randomly",function()
-			if IsValid(InvPanel) then
-				local temptab,displ = {},0
-				for i,v in ipairs(InvPanel:GetChildren()) do
-					if v.MdlInfo then
-						table.insert(temptab, v.ID)
+			end):SetIcon("icon16/textfield_delete.png")
+			sortOptions:AddOption("Sort By Model (Ascending)",function()
+				if IsValid(InvPanel) then
+					local temptab,displ = {},0
+					for i,v in ipairs(InvPanel:GetChildren()) do
+						if v.MdlInfo then
+							temptab[v.ID] = v.MdlInfo.Model .. '_' .. v.MdlInfo.Skin .. v.MdlInfo.Class
+						end
 					end
+					for k,v in SortedPairsByValue(temptab) do
+						displ = displ + 1
+						InvPanel.IDOrder[displ]=k
+					end
+					InvPanel.WaitForSend = true
 				end
-				for k,v in RandomPairs(temptab) do
-					displ = displ + 1
-					InvPanel.IDOrder[displ]=v
+			end):SetIcon("icon16/brick_add.png")
+			sortOptions:AddOption("Sort By Model (Descending)",function()
+				if IsValid(InvPanel) then
+					local temptab,displ = {},0
+					for i,v in ipairs(InvPanel:GetChildren()) do
+						if v.MdlInfo then
+							temptab[v.ID] = v.MdlInfo.Model .. '_' .. v.MdlInfo.Skin .. v.MdlInfo.Class
+						end
+					end
+					for k,v in SortedPairsByValue(temptab,true) do
+						displ = displ + 1
+						InvPanel.IDOrder[displ]=k
+					end
+					InvPanel.WaitForSend = true
 				end
-				InvPanel.WaitForSend = true
+			end):SetIcon("icon16/brick_delete.png")
+			sortOptions:AddOption("Sort Randomly",function()
+				if IsValid(InvPanel) then
+					local temptab,displ = {},0
+					for i,v in ipairs(InvPanel:GetChildren()) do
+						if v.MdlInfo then
+							table.insert(temptab, v.ID)
+						end
+					end
+					for k,v in RandomPairs(temptab) do
+						displ = displ + 1
+						InvPanel.IDOrder[displ]=v
+					end
+					InvPanel.WaitForSend = true
+				end
+			end):SetIcon("icon16/arrow_switch.png")
+		end
+		do
+			if ISAWC.ConAllowSelflinks:GetBool() then
+				sOptions:AddCVar("Disallow Inventory Links", "isawc_allow_selflinks", "1", "0"):SetIcon("icon16/link_delete.png")
+			else
+				sOptions:AddCVar("Allow Inventory Links", "isawc_allow_selflinks", "1", "0"):SetIcon("icon16/link_add.png")
 			end
-		end):SetIcon("icon16/arrow_switch.png")
+		end
 		sOptions:AddOption("Drop All Items",function()
 			net.Start("isawc_general")
 			net.WriteString(dropname)
@@ -1549,7 +1558,7 @@ ISAWC.InstallSortFunctions = function(self,panel,InvPanel,delname,wepstorename,d
 				end
 				net.SendToServer()
 			end)
-			SubOption:SetIcon("icon16/delete.png")
+			SubOption:SetIcon("icon16/bin.png")
 			Option:SetIcon("icon16/accept.png")
 		end
 		sOptions:Open()
@@ -1842,9 +1851,9 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 		net.SendToServer()
 	end
 	function Main:Think()
-		if not LocalPlayer():Alive() then self:Close() end
+		if not ISAWC.LP:Alive() then self:Close() end
 		if not IsValid(container) then self:Close() return ISAWC:NoPickup("The container is missing!") end
-		if LocalPlayer():GetPos():Distance(container:GetPos())-container:BoundingRadius()>ISAWC.ConDistance:GetFloat() then self:Close() end
+		if ISAWC.LP:GetPos():Distance(container:GetPos())-container:BoundingRadius()>ISAWC.ConDistance:GetFloat() then self:Close() end
 	end
 	Main.IsDouble = true
 	ISAWC.reliantwindow = Main
@@ -2689,7 +2698,7 @@ ISAWC.SaveInventory = function(self,ply)
 			end
 		end
 		self:SQL("COMMIT;")
-	elseif ply:IsPlayer() then
+	elseif (isentity(ply) and ply:IsPlayer()) then
 		steamid = steamid or ply:SteamID()
 		if steamid and self.ConDoSave:GetInt() > 0 then
 			local inv = ply.ISAWC_Inventory
@@ -2944,12 +2953,12 @@ end
 ISAWC.EmptyWeaponClipsToPlayer = function(self,dupe,ply)
 	local success = false
 	for k,v in pairs(dupe.Entities) do
-		if v.SavedClip1 > 0 then
+		if (v.SavedClip1 and v.SavedClip1 > 0) then
 			ply:GiveAmmo(v.SavedClip1, v.SavedAmmoType1)
 			v.SavedClip1 = 0
 			success = true
 		end
-		if v.SavedClip2 > 0 then
+		if (v.SavedClip2 and v.SavedClip2 > 0) then
 			ply:GiveAmmo(v.SavedClip2, v.SavedAmmoType2)
 			v.SavedClip2 = 0
 			success = true
@@ -3843,7 +3852,8 @@ ISAWC.Tick = function()
 		local ply = LocalPlayer()
 		local overrideKey = input.GetKeyCode(ISAWC.ConUseBindOverride:GetString())
 		local useKey = overrideKey > 0 and overrideKey or input.GetKeyCode(ISAWC.ConUseBind:GetString())
-		if input.IsKeyDown(useKey) and not IsValid(vgui.GetKeyboardFocus()) then
+		local noOtherUIs = not (gui.IsGameUIVisible() or gui.IsConsoleVisible() or IsValid(vgui.GetKeyboardFocus()))
+		if input.IsKeyDown(useKey) and noOtherUIs then
 			local probent = ply:GetEyeTrace().Entity
 			if not IsValid(probent) then
 				local tracedata = {
@@ -3881,7 +3891,7 @@ ISAWC.Tick = function()
 					end
 				end
 			end
-		elseif input.IsKeyDown(input.GetKeyCode(ISAWC.ConInventoryBind:GetString())) and not IsValid(vgui.GetKeyboardFocus()) and invcooldown < RealTime() then
+		elseif input.IsKeyDown(input.GetKeyCode(ISAWC.ConInventoryBind:GetString())) and noOtherUIs and invcooldown < RealTime() then
 			invcooldown = RealTime() + 1
 			if not (ply:GetActiveWeapon().CW20Weapon and ply:GetActiveWeapon().dt.State == CW_CUSTOMIZE and CW_CUSTOMIZE) then
 				if IsValid(ISAWC.reliantwindow) then

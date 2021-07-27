@@ -179,7 +179,7 @@ function SWEP:OpenMakerMenu()
 	CountSlider:SetDefaultValue(1)
 	CountSlider:SetValue(countMul)
 	CountSlider:Dock(TOP)
-	function VolumeSlider:OnValueChanged(value)
+	function CountSlider:OnValueChanged(value)
 		countMul = value
 	end
 	
