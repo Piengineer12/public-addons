@@ -266,7 +266,7 @@ function ENT:Think()
 				self.ISAWC_Inventory = util.JSONToTable(util.Decompress(file.Read("isawc_containers/"..chosenFileID..".dat") or ""))
 			end
 		end
-		if ISAWC.ConMagnet:GetFloat() > 0 and not ISAWC:StringMatchParams(self:GetClass(), ISAWC.BlackContainerMagnetList) and not self.ISAWC_IsDeathDrop then
+		if ISAWC.ConMagnet:GetFloat() > 0 and ISAWC:SatisfiesBWLists(self:GetClass(), "ContainerMagnetContainer") and not self.ISAWC_IsDeathDrop then
 			self:FindMagnetablesInSphere()
 		elseif self.ISAWC_IsDeathDrop and not self.ISAWC_Inventory[1] then
 			local delay = self.ISAWC_IsDropAll and ISAWC.ConDropAllTime:GetFloat() or ISAWC.ConDeathRemoveDelay:GetFloat()
@@ -303,11 +303,7 @@ function ENT:FindMagnetablesInSphere()
 	self.MagnetScale = self.MagnetScale or self:BoundingRadius()
 	for k,v in pairs(ents.FindInSphere(self:LocalToWorld(self:OBBCenter()), ISAWC.ConMagnet:GetFloat()*self.MagnetScale)) do
 		if v ~= self then
-			if ISAWC.ConUseMagnetWhitelist:GetBool() then
-				if ISAWC:StringMatchParams(v:GetClass(), ISAWC.WhiteMagnetList) then
-					self:Magnetize(v)
-				end
-			else
+			if ISAWC:SatisfiesBWLists(v:GetClass(), "ContainerMagnet") then
 				self:Magnetize(v)
 			end
 		end

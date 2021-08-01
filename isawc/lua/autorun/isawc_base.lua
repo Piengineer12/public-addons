@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.1.0"
-ISAWC._VERSIONDATE = "2021-07-27"
+ISAWC._VERSION = "4.2.0"
+ISAWC._VERSIONDATE = "2021-07-31"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -143,6 +143,7 @@ ISAWC.ConUndoIntoContain = CreateConVar("isawc_undo_into_container","1",FCVAR_RE
 
 AccessorFunc(ISAWC,"SuppressUndo","SuppressUndo",FORCE_BOOL)
 AccessorFunc(ISAWC,"SuppressUndoHeaders","SuppressUndoHeaders",FORCE_BOOL)
+AccessorFunc(ISAWC,"SuppressNoPickup","SuppressNoPickup",FORCE_BOOL)
 
 ISAWC.ConAltSave = CreateConVar("isawc_use_altsave","0",FCVAR_REPLICATED,
 "If set, entities that are put into containers are stored and retrieved somewhere safe rather than being deleted and recreated.\
@@ -166,7 +167,7 @@ ISAWC.CreateListConCommand = function(self, name, data)
 					data.exe(args)
 					self:SaveData()
 				else
-					self:Log(data.display..'{')
+					self:Log(data.display.."{")
 					for k,v in pairs(self[data.display_table]) do
 						data.display_function(k,v)
 					end
@@ -183,241 +184,166 @@ ISAWC.CreateListConCommand = function(self, name, data)
 	})
 end
 
-ISAWC.Blacklist = ISAWC.Blacklist or {}
-ISAWC:CreateListConCommand("isawc_blacklist", {
-	display = "The blacklist is as follows: ",
-	display_table = "Blacklist",
-	display_function = function(k,v)
-		ISAWC:Log("\t"..string.format('%q',k)..",")
-	end,
-	purpose = "Adds or removes entity classes from the blacklist. Classes in the blacklist cannot be picked up.",
-	help = {
-		"Use \"isawc_blacklist <class1> <class2> ...\" to add/remove entity classes into/from the list.",
+ISAWC.BWLists = ISAWC.BWLists or {}
+ISAWC.CreateBWListPair = function(self, name, commandPrefix, displayName, data)
+	self.BWLists[name] = self.BWLists[name] or {Blacklist = {}, Whitelist = {}}
+	self.BWLists[name].DisplayName = displayName
+	
+	local blacklistConCommand = "isawc_"..commandPrefix.."blacklist"
+	local blacklistDisplayName = displayName.." blacklist"
+	local blacklistHelp = {
+		"Use \""..blacklistConCommand.." <class1> <class2> ...\" to add/remove entity classes into/from the list.",
 		"* and ? wildcards are supported.",
-		"Use \"isawc_blacklist *\" to clear the list.",
-	},
-	help_small = "Usage: isawc_blacklist <class1> <class2> ...",
-	exe = function(args)
+		"Use \""..blacklistConCommand.." *\" to clear the list.",
+	}
+	local blacklistExe = function(args, blacklistTable)
 		for k,v in pairs(args) do
 			v = v:lower()
 			if v=="*" then
-				table.Empty(ISAWC.Blacklist)
-				ISAWC:Log("Removed everything from the blacklist.") break
-			elseif ISAWC.Blacklist[v] then
-				ISAWC.Blacklist[v] = nil
-				ISAWC:Log("Removed \""..v.."\" from the blacklist.")
+				table.Empty(blacklistTable)
+				self:Log("Removed everything from the "..blacklistDisplayName..".")
+			elseif blacklistTable[v] then
+				blacklistTable[v] = nil
+				self:Log("Removed \""..v.."\" from the "..blacklistDisplayName..".")
 			else
-				ISAWC.Blacklist[v] = true
-				ISAWC:Log("Added \""..v.."\" into the blacklist.")
+				blacklistTable[v] = true
+				self:Log("Added \""..v.."\" into the "..blacklistDisplayName..".")
 			end
 		end
 	end
+	self:AddConCommand(blacklistConCommand, {
+		exec = function(ply,cmd,args)
+			local blacklistTable = self.BWLists[name].Blacklist
+			if IsValid(ply) and not ply:IsAdmin() then
+				self:Log("Access denied.")
+			else
+				if next(args) then
+					blacklistExe(args, blacklistTable)
+					self:SaveData()
+				else
+					self:Log("The "..blacklistDisplayName.." is as follows: {")
+					for k,v in pairs(blacklistTable) do
+						self:Log("\t"..string.format('%q',k)..",")
+					end
+					self:Log("}")
+					self:Log("")
+					for i,v in ipairs(blacklistHelp) do
+						self:Log(v)
+					end
+				end
+			end
+		end,
+		help_small = "Usage: "..blacklistConCommand.." <class1> <class2> ...",
+		help = "Adds or removes entity classes from the "..blacklistDisplayName..". "..data.blacklistDesc,
+	})
+	
+	local whitelistConCommand = "isawc_"..commandPrefix.."whitelist"
+	local whitelistDisplayName = displayName.." whitelist"
+	local whitelistHelp = {
+		"Use \""..whitelistConCommand.." <class1> <class2> ...\" to add/remove entity classes into/from the list.",
+		"* and ? wildcards are supported.",
+		"Use \""..whitelistConCommand.." *\" to clear the list.",
+	}
+	local whitelistExe = function(args, whitelistTable)
+		for k,v in pairs(args) do
+			v = v:lower()
+			if v=="*" then
+				table.Empty(whitelistTable)
+				self:Log("Removed everything from the "..whitelistDisplayName..".")
+			elseif whitelistTable[v] then
+				whitelistTable[v] = nil
+				self:Log("Removed \""..v.."\" from the "..whitelistDisplayName..".")
+			else
+				whitelistTable[v] = true
+				self:Log("Added \""..v.."\" into the "..whitelistDisplayName..".")
+			end
+		end
+	end
+	local whitelistConVarName = "Con"..name.."WhitelistEnabled"
+	local whitelistConVar = "isawc_"..commandPrefix.."whitelistenabled"
+	self:AddConCommand(whitelistConCommand, {
+		exec = function(ply,cmd,args)
+			local whitelistTable = self.BWLists[name].Whitelist
+			if IsValid(ply) and not ply:IsAdmin() then
+				self:Log("Access denied.")
+			else
+				if next(args) then
+					whitelistExe(args, whitelistTable)
+					self:SaveData()
+				else
+					self:Log("The "..whitelistDisplayName.." is as follows: {")
+					for k,v in pairs(whitelistTable) do
+						self:Log("\t"..string.format('%q',k)..",")
+					end
+					self:Log("}")
+					self:Log("")
+					for i,v in ipairs(whitelistHelp) do
+						self:Log(v)
+					end
+				end
+			end
+		end,
+		help_small = "Usage: "..whitelistConCommand.." <class1> <class2> ...",
+		help = "Adds or removes entity classes from the "..whitelistDisplayName..". See the ConVar \""..whitelistConVarName.."\" for more information.",
+	})
+	
+	local whitelistConVarDesc = data.whitelistConVarDesc
+	if not data.excludeWhitelistConCommandFromDesc then
+		whitelistConVarDesc = whitelistConVarDesc.."\nSee the ConCommand \""..whitelistConCommand.."\" to manipulate the list."
+	end
+	self[whitelistConVarName] = CreateConVar(whitelistConVar, "0", FCVAR_REPLICATED, data.whitelistConVarDesc)
+	self.BWLists[name].WhitelistConVar = self[whitelistConVarName]
+end
+
+ISAWC.SatisfiesBWLists = function(self, class, name)
+	local lists = self.BWLists[name]
+	if self:StringMatchParams(class, lists.Whitelist) then
+		return true
+	elseif self:StringMatchParams(class, lists.Blacklist) then
+		return false
+	else
+		return not lists.WhitelistConVar:GetBool()
+	end
+end
+
+ISAWC.SatisfiesWhitelist = function(self, class, name)
+	local lists = self.BWLists[name]
+	return self:StringMatchParams(class, lists.Whitelist)
+end
+
+ISAWC:CreateBWListPair("General", "", "pickup", {
+	blacklistDesc = "Classes in the blacklist cannot be picked up.",
+	whitelistConVarDesc = "If set, only entity classes that are in the whitelist can be picked up.\n\z
+	Otherwise, entity classes that aren't in the blacklist or are in the whitelist can be picked up.\n\z
+	Use the ConCommands \"isawc_blacklist\" and \"isawc_whitelist\" to manipulate the lists.\n\z
+	Tip: Even if this is not set, non-solid and non-VPhysics entities can still be specified in the whitelist to make them able to be picked up,\n\z
+	regardless of the other ConVars.",
+	excludeWhitelistConCommandFromDesc = true
 })
 
-ISAWC.BlackContainerMagnetList = ISAWC.BlackContainerMagnetList or {}
-ISAWC:CreateListConCommand("isawc_magnet_blacklist", {
-	display = "The container magnetization blacklist is as follows: ",
-	display_table = "BlackContainerMagnetList",
-	display_function = function(k,v)
-		ISAWC:Log("\t"..string.format('%q',k)..",")
-	end,
-	purpose = "Adds or removes entity classes from the container magnetization blacklist. Classes in the blacklist will not be magnetic containers.",
-	help = {
-		"Use \"isawc_magnet_blacklist <class1> <class2> ...\" to add/remove entity classes into/from the list.",
-		"* and ? wildcards are supported.",
-		"Use \"isawc_magnet_blacklist *\" to clear the list.",
-	},
-	help_small = "Usage: isawc_magnet_blacklist <class1> <class2> ...",
-	exe = function(args)
-		for k,v in pairs(args) do
-			v = v:lower()
-			if v=="*" then
-				table.Empty(ISAWC.BlackContainerMagnetList)
-				ISAWC:Log("Removed everything from the container magnetization blacklist.") break
-			elseif ISAWC.BlackContainerMagnetList[v] then
-				ISAWC.BlackContainerMagnetList[v] = nil
-				ISAWC:Log("Removed \""..v.."\" from the container magnetization blacklist.")
-			else
-				ISAWC.BlackContainerMagnetList[v] = true
-				ISAWC:Log("Added \""..v.."\" into the container magnetization blacklist.")
-			end
-		end
-	end
+ISAWC:CreateBWListPair("Exporter", "export_", "exporter", {
+	blacklistDesc = "Classes in the blacklist will not be exported by Inventory Exporters.",
+	whitelistConVarDesc = "If set, only entity classes that are in the whitelist can be exported by Inventory Exporters."
 })
 
-ISAWC.BlackDeathBoxList = ISAWC.BlackDeathBoxList or {}
-ISAWC:CreateListConCommand("isawc_dropondeath_blacklist", {
-	display = "The player death box blacklist is as follows: ",
-	display_table = "BlackDeathBoxList",
-	display_function = function(k,v)
-		ISAWC:Log("\t"..string.format('%q',k)..",")
-	end,
-	purpose = "Adds or removes entity classes from the player death box blacklist. Classes in the blacklist will not be transferred to player death boxes if isawc_dropondeath_enabled is enabled.",
-	help = {
-		"Use \"isawc_dropondeath_blacklist <class1> <class2> ...\" to add/remove entity classes into/from the list.",
-		"* and ? wildcards are supported.",
-		"Use \"isawc_dropondeath_blacklist *\" to clear the list.",
-	},
-	help_small = "Usage: isawc_dropondeath_blacklist <class1> <class2> ...",
-	exe = function(args)
-		for k,v in pairs(args) do
-			v = v:lower()
-			if v=="*" then
-				table.Empty(ISAWC.BlackDeathBoxList)
-				ISAWC:Log("Removed everything from the player death box blacklist.") break
-			elseif ISAWC.BlackDeathBoxList[v] then
-				ISAWC.BlackDeathBoxList[v] = nil
-				ISAWC:Log("Removed \""..v.."\" from the player death box blacklist.")
-			else
-				ISAWC.BlackDeathBoxList[v] = true
-				ISAWC:Log("Added \""..v.."\" into the player death box blacklist.")
-			end
-		end
-	end
+ISAWC:CreateBWListPair("ContainerMagnet", "container_magnet_", "container magnetization", {
+	blacklistDesc = "Classes in the blacklist will not be magnetized by containers.",
+	whitelistConVarDesc = "If set, only entity classes that are in the whitelist can be magnetized by containers."
 })
 
-ISAWC.ConUseWhitelist = CreateConVar("isawc_use_whitelist","0",FCVAR_REPLICATED,
-"If set, only entity classes that are in the whitelist can be picked up.\
-Otherwise, entity classes that aren't in the blacklist or are in the whitelist can be picked up.\
-Use the ConCommands \"isawc_blacklist\" and \"isawc_whitelist\" to manipulate the lists.\
-Tip: Even if this is not set, non-solid and non-VPhysics entities can still be specified in the whitelist to make them able to be picked up,\
-regardless of the other ConVars.")
-
-ISAWC.ConUseExportWhitelist = CreateConVar("isawc_use_exportwhitelist","0",FCVAR_REPLICATED,
-"If set, only entity classes that are in the whitelist can be exported by Inventory Exporters.\
-See the ConCommand \"isawc_exporter_whitelist\" to manipulate the list.")
-
-ISAWC.ConUseMagnetWhitelist = CreateConVar("isawc_magnet_whitelistenabled","0",FCVAR_REPLICATED,
-"If set, only entity classes that are in the whitelist can be magnetized by containers.\
-See the ConCommand \"isawc_magnet_whitelist\" to manipulate the list.")
-
-ISAWC.ConUseDeathBoxWhitelist = CreateConVar("isawc_dropondeath_whitelistenabled","0",FCVAR_REPLICATED,
-"If set, only entity classes that are in the whitelist can be transferred to player death boxes if isawc_dropondeath_enabled is enabled.\
-See the ConCommand \"isawc_dropondeath_whitelist\" to manipulate the list.")
-
-ISAWC.Whitelist = ISAWC.Whitelist or {}
-ISAWC:CreateListConCommand("isawc_whitelist", {
-	display = "The whitelist is as follows: ",
-	display_table = "Whitelist",
-	display_function = function(k,v)
-		ISAWC:Log("\t"..string.format('%q',k)..",")
-	end,
-	purpose = "Adds or removes entity classes from the whitelist. See the ConVar \"isawc_use_whitelist\" for more information.",
-	help = {
-		"Use \"isawc_whitelist <class1> <class2> ...\" to add/remove an entity class into/from the list.",
-		"* and ? wildcards are supported.",
-		"Use \"isawc_whitelist *\" to clear the list.",
-		"Tip: Non-solid and Non-VPhysics entities can be specified here to make them able to be picked up regardless of the other ConVars."
-	},
-	help_small = "Usage: isawc_whitelist <class1> <class2> ...",
-	exe = function(args)
-		for k,v in pairs(args) do
-			v = v:lower()
-			if v=="*" then
-				table.Empty(ISAWC.Whitelist)
-				ISAWC:Log("Removed everything from the whitelist.") break
-			elseif ISAWC.Whitelist[v] then
-				ISAWC.Whitelist[v] = nil
-				ISAWC:Log("Removed \""..v.."\" from the whitelist.")
-			else
-				ISAWC.Whitelist[v] = true
-				ISAWC:Log("Added \""..v.."\" into the whitelist.")
-			end
-		end
-	end
+ISAWC:CreateBWListPair("ContainerMagnetContainer", "container_magnet_container", "container magnetization container", {
+	blacklistDesc = "Classes in the blacklist will not be magnetic containers.",
+	whitelistConVarDesc = "If set, only entity classes that are in the whitelist are magnetic containers."
 })
 
-ISAWC.WhiteExtractList = ISAWC.WhiteExtractList or {}
-ISAWC:CreateListConCommand("isawc_exporter_whitelist", {
-	display = "The Inventory Exporter whitelist is as follows: ",
-	display_table = "WhiteExtractList",
-	display_function = function(k,v)
-		ISAWC:Log("\t"..string.format('%q',k)..",")
-	end,
-	purpose = "Adds or removes entity classes from the Inventory Exporter whitelist. See the ConVar \"isawc_use_exportwhitelist\" for more information.",
-	help = {
-		"Use \"isawc_exporter_whitelist <class1> <class2> ...\" to add/remove an entity class into/from the list.",
-		"* and ? wildcards are supported.",
-		"Use \"isawc_exporter_whitelist *\" to clear the list.",
-	},
-	help_small = "Usage: isawc_exporter_whitelist <class1> <class2> ...",
-	exe = function(args)
-		for k,v in pairs(args) do
-			v = v:lower()
-			if v=="*" then
-				table.Empty(ISAWC.WhiteExtractList)
-				ISAWC:Log("Removed everything from the Inventory Exporter whitelist.") break
-			elseif ISAWC.WhiteExtractList[v] then
-				ISAWC.WhiteExtractList[v] = nil
-				ISAWC:Log("Removed \""..v.."\" from the Inventory Exporter whitelist.")
-			else
-				ISAWC.WhiteExtractList[v] = true
-				ISAWC:Log("Added \""..v.."\" into the Inventory Exporter whitelist.")
-			end
-		end
-	end
+ISAWC:CreateBWListPair("PlayerMagnet", "player_magnet_", "player magnetization", {
+	blacklistDesc = "Classes in the blacklist will not be magnetized by players.",
+	whitelistConVarDesc = "If set, only entity classes that are in the whitelist can be magnetized by players."
 })
 
-ISAWC.WhiteMagnetList = ISAWC.WhiteMagnetList or {}
-ISAWC:CreateListConCommand("isawc_magnet_whitelist", {
-	display = "The container magnetization whitelist is as follows: ",
-	display_table = "WhiteMagnetList",
-	display_function = function(k,v)
-		ISAWC:Log("\t"..string.format('%q',k)..",")
-	end,
-	purpose = "Adds or removes entity classes from the container magnetization whitelist. See the ConVar \"isawc_use_magnetwhitelist\" for more information.",
-	help = {
-		"Use \"isawc_magnet_whitelist <class1> <class2> ...\" to add/remove an entity class into/from the list.",
-		"* and ? wildcards are supported.",
-		"Use \"isawc_magnet_whitelist *\" to clear the list."
-	},
-	help_small = "Usage: isawc_magnet_whitelist <class1> <class2> ...",
-	exe = function(args)
-		for k,v in pairs(args) do
-			v = v:lower()
-			if v=="*" then
-				table.Empty(ISAWC.WhiteMagnetList)
-				ISAWC:Log("Removed everything from the container magnetization whitelist.") break
-			elseif ISAWC.WhiteMagnetList[v] then
-				ISAWC.WhiteMagnetList[v] = nil
-				ISAWC:Log("Removed \""..v.."\" from the container magnetization whitelist.")
-			else
-				ISAWC.WhiteMagnetList[v] = true
-				ISAWC:Log("Added \""..v.."\" into the container magnetization whitelist.")
-			end
-		end
-	end
-})
-
-ISAWC.WhiteDeathBoxList = ISAWC.WhiteDeathBoxList or {}
-ISAWC:CreateListConCommand("isawc_dropondeath_whitelist", {
-	display = "The player death box whitelist is as follows: ",
-	display_table = "WhiteDeathBoxList",
-	display_function = function(k,v)
-		ISAWC:Log("\t"..string.format('%q',k)..",")
-	end,
-	purpose = "Adds or removes entity classes from the player death box whitelist. See the ConVar \"isawc_dropondeath_whitelistenabled\" for more information.",
-	help = {
-		"Use \"isawc_dropondeath_whitelist <class1> <class2> ...\" to add/remove an entity class into/from the list.",
-		"* and ? wildcards are supported.",
-		"Use \"isawc_dropondeath_whitelist *\" to clear the list."
-	},
-	help_small = "Usage: isawc_dropondeath_whitelist <class1> <class2> ...",
-	exe = function(args)
-		for k,v in pairs(args) do
-			v = v:lower()
-			if v=="*" then
-				table.Empty(ISAWC.WhiteDeathBoxList)
-				ISAWC:Log("Removed everything from the player death box whitelist.") break
-			elseif ISAWC.WhiteDeathBoxList[v] then
-				ISAWC.WhiteDeathBoxList[v] = nil
-				ISAWC:Log("Removed \""..v.."\" from the player death box whitelist.")
-			else
-				ISAWC.WhiteDeathBoxList[v] = true
-				ISAWC:Log("Added \""..v.."\" into the player death box whitelist.")
-			end
-		end
-	end
+ISAWC:CreateBWListPair("DropOnDeath", "dropondeath_", "player death box", {
+	blacklistDesc = "Classes in the blacklist will not be transferred to player death boxes if isawc_dropondeath_enabled is enabled.",
+	whitelistConVarDesc = "If set, only entity classes that are in the whitelist can be transferred to player death boxes if isawc_dropondeath_enabled is enabled."
 })
 
 ISAWC.Stacklist = ISAWC.Stacklist or {}
@@ -878,8 +804,8 @@ ISAWC.ConDoSaveDelay = CreateConVar("isawc_player_savedelay", "300", FCVAR_REPLI
 "Sets the delay between automatic saves for player inventories. No effect when Save Player Inventories (isawc_player_save) is disabled.\
 Note that low values may severely impact performance!")
 
-ISAWC.ConMagnet = CreateConVar("isawc_magnet_radius", "0", FCVAR_REPLICATED,
-"Sets the range of containers to instantly pick up an item. Note that the radius is multiplied with the size of the container - a range of 3 on a box will allow the box to pick up items 3 boxes away from it.\
+ISAWC.ConMagnet = CreateConVar("isawc_container_magnet_radius", "0", FCVAR_REPLICATED,
+"Sets the range of containers to attract items. Note that the radius is multiplied with the size of the container - a range of 3 on a box will allow the box to pick up items 3 boxes away from it.\
 A range of 0 disables this feature.")
 
 ISAWC.ConDropOnDeathClass = CreateConVar("isawc_dropondeath_class", "isawc_container_cbbox_07", FCVAR_REPLICATED,
@@ -891,8 +817,8 @@ ISAWC.ConDropOnDeathModel = CreateConVar("isawc_dropondeath_model", "", FCVAR_RE
 Set the ConVar to \"\" to remove the model override.\
 If you want to set the class, see the isawc_dropondeath_class ConVar.")
 
-ISAWC.ConUseBindOverride = CreateConVar("isawc_use_bindoverride", "", FCVAR_REPLICATED,
-"Sets the binding used to pick up items. This value overrides the value defined in the isawc_use_bind ConVar for all clients.\
+ISAWC.ConUseBindOverride = CreateConVar("isawc_pickup_bindoverride", "", FCVAR_REPLICATED,
+"Sets the binding used to pick up items. This value overrides the value defined in the isawc_pickup_bind ConVar for all clients.\
 Set the ConVar to \"\" to remove the override.")
 
 ISAWC.ConDropAllAllowed = CreateConVar("isawc_dropall_enabled", "1", FCVAR_REPLICATED,
@@ -913,6 +839,13 @@ ISAWC.ConDropAllModel = CreateConVar("isawc_dropall_model", "", FCVAR_REPLICATED
 "Overrides the model of \"drop-all\" containers when the isawc_dropall_enabled ConVar is enabled.\
 Set the ConVar to \"\" to remove the model override.\
 If you want to set the class, see the isawc_dropall_class ConVar.")
+
+ISAWC.ConPlayerPickupOnCollide = CreateConVar("isawc_pickup_playercollide", "0", FCVAR_REPLICATED,
+"If set, players will automatically pick up any entities they collide with, if able.")
+
+ISAWC.ConPlayerMagnet = CreateConVar("isawc_player_magnet_radius", "0", FCVAR_REPLICATED,
+"Sets the range of players to attract items. Note that the radius is multiplied with the size of the player - a range of 3 on a player with a dinosaur model will allow the player to pick up items 3 dinosaurs away from it.\
+A range of 0 disables this feature.")
 
 local function BasicAutoComplete(cmd, argStr)
 	local possibilities = {}
@@ -1113,11 +1046,11 @@ ISAWC:AddConCommand("isawc_help", {
 
 if CLIENT then
 
-	ISAWC.ConUseDelay = CreateClientConVar("isawc_use_delay","0",true,false,
+	ISAWC.ConUseDelay = CreateClientConVar("isawc_pickup_binddelay","0",true,false,
 	"How long an item must be held with the Pickup Key before being picked up.\n\z
 	A value of -1 disables this feature.")
 
-	ISAWC.ConUseBind = CreateClientConVar("isawc_use_bind","",true,false,
+	ISAWC.ConUseBind = CreateClientConVar("isawc_pickup_bind","",true,false,
 	"Sets the binding used to pick up items.")
 
 	ISAWC.ConInventoryBind = CreateClientConVar("isawc_player_bind","",true,false,
@@ -1275,12 +1208,16 @@ ISAWC.PopulateDFormPickup = function(DForm)
 	DForm:Help(" - "..ISAWC.ConOverride:GetHelpText().."\n")
 	DForm:TextEntry("Key Override",ISAWC.ConUseBindOverride:GetName())
 	DForm:Help(" - "..ISAWC.ConUseBindOverride:GetHelpText().."\n")
-	DForm:NumSlider("Delay",ISAWC.ConDelay:GetName(),0,10,2)
+	DForm:NumSlider("Pickup Delay",ISAWC.ConDelay:GetName(),0,10,2)
 	DForm:Help(" - "..ISAWC.ConDelay:GetHelpText().."\n")
 	DForm:NumSlider("Max Distance",ISAWC.ConDistance:GetName(),0,1024,0)
 	DForm:Help(" - "..ISAWC.ConDistance:GetHelpText().."\n")
-	DForm:CheckBox("Use Whitelist",ISAWC.ConUseWhitelist:GetName())
-	DForm:Help(" - "..ISAWC.ConUseWhitelist:GetHelpText().."\n")
+	DForm:CheckBox("Use Whitelist",ISAWC.ConGeneralWhitelistEnabled:GetName())
+	DForm:Help(" - "..ISAWC.ConGeneralWhitelistEnabled:GetHelpText().."\n")
+	DForm:CheckBox("Pickup on Touch",ISAWC.ConPlayerPickupOnCollide:GetName())
+	DForm:Help(" - "..ISAWC.ConPlayerPickupOnCollide:GetHelpText().."\n")
+	DForm:NumSlider("Magnet Range",ISAWC.ConPlayerMagnet:GetName(),0,10,2)
+	DForm:Help(" - "..ISAWC.ConPlayerMagnet:GetHelpText().."\n")
 end
 
 ISAWC.PopulateDFormDrop = function(DForm)
@@ -1326,8 +1263,8 @@ ISAWC.PopulateDFormPlayer = function(DForm)
 	DForm:Help(" - "..ISAWC.ConDoSaveDelay:GetHelpText().."\n")
 	DForm:CheckBox("Drop Inventory On Death",ISAWC.ConDropOnDeath:GetName())
 	DForm:Help(" - "..ISAWC.ConDropOnDeath:GetHelpText().."\n")
-	DForm:CheckBox("Use Death Drop Whitelist",ISAWC.ConUseDeathBoxWhitelist:GetName())
-	DForm:Help(" - "..ISAWC.ConUseDeathBoxWhitelist:GetHelpText().."\n")
+	DForm:CheckBox("Use Death Drop Whitelist",ISAWC.ConDropOnDeathWhitelistEnabled:GetName())
+	DForm:Help(" - "..ISAWC.ConDropOnDeathWhitelistEnabled:GetHelpText().."\n")
 	DForm:NumSlider("Death Drop Remove Time",ISAWC.ConDeathRemoveDelay:GetName(),0,100,1)
 	DForm:Help(" - "..ISAWC.ConDeathRemoveDelay:GetHelpText().."\n")
 	DForm:NumSlider("Max Death Drops",ISAWC.ConDropOnDeathAmount:GetName(),-1,100,0)
@@ -1366,8 +1303,10 @@ ISAWC.PopulateDFormContainer = function(DForm)
 	DForm:Help(" - "..ISAWC.ConContainerRegen:GetHelpText().."\n")
 	DForm:NumSlider("Magnet Range",ISAWC.ConMagnet:GetName(),0,10,2)
 	DForm:Help(" - "..ISAWC.ConMagnet:GetHelpText().."\n")
-	DForm:CheckBox("Use Magnet Whitelist",ISAWC.ConUseMagnetWhitelist:GetName())
-	DForm:Help(" - "..ISAWC.ConUseMagnetWhitelist:GetHelpText().."\n")
+	DForm:CheckBox("Use Magnet Whitelist",ISAWC.ConContainerMagnetWhitelistEnabled:GetName())
+	DForm:Help(" - "..ISAWC.ConContainerMagnetWhitelistEnabled:GetHelpText().."\n")
+	DForm:CheckBox("Use Container Magnet Whitelist",ISAWC.ConContainerMagnetContainerWhitelistEnabled:GetName())
+	DForm:Help(" - "..ISAWC.ConContainerMagnetContainerWhitelistEnabled:GetHelpText().."\n")
 end
 
 ISAWC.PopulateDFormImportExport = function(DForm)
@@ -1379,8 +1318,8 @@ ISAWC.PopulateDFormImportExport = function(DForm)
 	DForm:Help(" - "..ISAWC.ConImporterRegen:GetHelpText().."\n")
 	DForm:NumSlider("Minimum Exporter Delay",ISAWC.ConMinExportDelay:GetName(),0.01,10,2)
 	DForm:Help(" - "..ISAWC.ConMinExportDelay:GetHelpText().."\n")
-	DForm:CheckBox("Use Exporter Whitelist",ISAWC.ConUseExportWhitelist:GetName())
-	DForm:Help(" - "..ISAWC.ConUseExportWhitelist:GetHelpText().."\n")
+	DForm:CheckBox("Use Exporter Whitelist",ISAWC.ConExporterWhitelistEnabled:GetName())
+	DForm:Help(" - "..ISAWC.ConExporterWhitelistEnabled:GetHelpText().."\n")
 	DForm:NumSlider("Exporter Health Multiplier",ISAWC.ConExporterAutoHealth:GetName(),0,10,2)
 	DForm:Help(" - "..ISAWC.ConExporterAutoHealth:GetHelpText().."\n")
 	DForm:NumSlider("Exporter Health Regen",ISAWC.ConExporterRegen:GetName(),-100,100,1)
@@ -2577,16 +2516,18 @@ ISAWC.NoPickup = function(self,msg,ply)
 	if not self.ConPickupDenyLogs:GetBool() and SERVER then
 		self:Log(tostring(ply)..': '..msg)
 	end
-	if (SERVER and ply and ply:IsPlayer() and not self.ConHideNotifsG:GetBool()) then
-		net.Start("isawc_general")
-		net.WriteString("no_pickup")
-		net.WriteString(msg)
-		net.Send(ply)
-	end
-	if (CLIENT and not self.ConHideNotifs:GetBool()) then
-		notification.AddLegacy(msg,NOTIFY_ERROR,2+#msg/20)
-		if not self.ConHideNotifSound:GetBool() then
-			surface.PlaySound("buttons/button10.wav")
+	if not self:GetSuppressNoPickup() then
+		if (SERVER and ply and ply:IsPlayer() and not self.ConHideNotifsG:GetBool()) then
+			net.Start("isawc_general")
+			net.WriteString("no_pickup")
+			net.WriteString(msg)
+			net.Send(ply)
+		end
+		if (CLIENT and not self.ConHideNotifs:GetBool()) then
+			notification.AddLegacy(msg,NOTIFY_ERROR,2+#msg/20)
+			if not self.ConHideNotifSound:GetBool() then
+				surface.PlaySound("buttons/button10.wav")
+			end
 		end
 	end
 end
@@ -2646,11 +2587,6 @@ ISAWC.SaveData = function(self)
 		if table.IsEmpty(data) then
 			data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat", "DATA") or "")) or {}
 		end
-		data.Blacklist = self.Blacklist or {}
-		data.BlackContainerMagnetList = self.BlackContainerMagnetList or {}
-		data.Whitelist = self.Whitelist or {}
-		data.WhiteExtractList = self.WhiteExtractList or {}
-		data.WhiteMagnetList = self.WhiteMagnetList or {}
 		data.Stacklist = self.Stacklist or {}
 		data.Masslist = self.Masslist or {}
 		data.Volumelist = self.Volumelist or {}
@@ -2659,6 +2595,14 @@ ISAWC.SaveData = function(self)
 		data.MassMultiList = self.MassMultiList or {}
 		data.VolumeMultiList = self.VolumeMultiList or {}
 		data.CountMultiList = self.CountMultiList or {}
+		
+		data.BWLists = {}
+		for k,v in pairs(self.BWLists) do
+			data.BWLists[k] = {
+				Blacklist = v.Blacklist,
+				Whitelist = v.Whitelist
+			}
+		end
 		
 		for k,v in pairs(self) do
 			if TypeID(v) == TYPE_CONVAR then
@@ -2785,6 +2729,38 @@ ISAWC.DropAll = function(self,container,ply)
 	end
 end
 
+ISAWC.PerformCompatibilityLoad = function(self, data)
+	do -- compatibility for 4.0.0 to 4.1.0 versions, remove this in a 5.X.X release
+		ISAWC.BWLists.General.Blacklist = data.Blacklist or ISAWC.BWLists.General.Blacklist
+		ISAWC.BWLists.ContainerMagnetContainer.Blacklist = data.BlackContainerMagnetList or ISAWC.BWLists.ContainerMagnetContainer.Blacklist
+		ISAWC.BWLists.DropOnDeath.Blacklist = data.BlackDeathBoxList or ISAWC.BWLists.DropOnDeath.Blacklist
+		
+		ISAWC.BWLists.General.Whitelist = data.Whitelist or ISAWC.BWLists.General.Whitelist
+		ISAWC.BWLists.Exporter.Whitelist = data.WhiteExtractList or ISAWC.BWLists.Exporter.Whitelist
+		ISAWC.BWLists.ContainerMagnet.Whitelist = data.WhiteMagnetList or ISAWC.BWLists.ContainerMagnet.Whitelist
+		ISAWC.BWLists.DropOnDeath.Whitelist = data.WhiteDeathBoxList or ISAWC.BWLists.DropOnDeath.Whitelist
+		
+		if data.ConUseWhitelist then
+			ISAWC.ConGeneralWhitelistEnabled:SetString(data.ConUseWhitelist)
+		end
+		if data.ConUseExportWhitelist then
+			ISAWC.ConExporterWhitelistEnabled:SetString(data.ConUseExportWhitelist)
+		end
+		if data.ConUseMagnetWhitelist then
+			ISAWC.ConContainerMagnetWhitelistEnabled:SetString(data.ConUseMagnetWhitelist)
+		end
+		if data.ConUseDeathBoxWhitelist then
+			ISAWC.ConDropOnDeathWhitelistEnabled:SetString(data.ConUseDeathBoxWhitelist)
+		end
+	end
+end
+
+ISAWC.PlayerCollisionCallback = function(ply, data)
+	if ISAWC.ConPlayerPickupOnCollide:GetBool() and IsValid(data.HitEntity) then
+		ISAWC:PlayerCollisionPickup(ply, data.HitEntity)
+	end
+end
+
 ISAWC.LastLoadedData = ISAWC.LastLoadedData or {}
 ISAWC.Initialize = function()
 	if table.IsEmpty(ISAWC.LastLoadedData) and SERVER then
@@ -2792,11 +2768,8 @@ ISAWC.Initialize = function()
 		if table.IsEmpty(data) then
 			data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "")) or {}
 		end
-		ISAWC.Blacklist = data.Blacklist or ISAWC.Blacklist
-		ISAWC.BlackContainerMagnetList = data.BlackContainerMagnetList or ISAWC.BlackContainerMagnetList
-		ISAWC.Whitelist = data.Whitelist or ISAWC.Whitelist
-		ISAWC.WhiteExtractList = data.WhiteExtractList or ISAWC.WhiteExtractList
-		ISAWC.WhiteMagnetList = data.WhiteMagnetList or ISAWC.WhiteMagnetList
+		ISAWC:PerformCompatibilityLoad(data)
+		
 		ISAWC.Stacklist = data.Stacklist or ISAWC.Stacklist
 		ISAWC.Masslist = data.Masslist or ISAWC.Masslist
 		ISAWC.Volumelist = data.Volumelist or ISAWC.Volumelist
@@ -2805,11 +2778,17 @@ ISAWC.Initialize = function()
 		ISAWC.MassMultiList = data.MassMultiList or ISAWC.MassMultiList
 		ISAWC.VolumeMultiList = data.VolumeMultiList or ISAWC.VolumeMultiList
 		ISAWC.CountMultiList = data.CountMultiList or ISAWC.CountMultiList
+		for k,v in pairs(data.BWLists or {}) do
+			if ISAWC.BWLists[v] then
+				ISAWC.BWLists[v].Blacklist = data.BWLists.Blacklist
+				ISAWC.BWLists[v].Whitelist = data.BWLists.Whitelist
+			end
+		end
 		
 		local replacements = 0
 		for k,v in pairs(ISAWC) do
 			if (TypeID(v) == TYPE_CONVAR and data[k] ~= v:GetString()) and data[k] then
-				RunConsoleCommand(v:GetName(), data[k])
+				v:SetString(data[k])
 				replacements = replacements + 1
 			end
 		end
@@ -2842,6 +2821,9 @@ ISAWC.PlayerSpawn = function(ply)
 				if not (ply.ISAWC_Inventory and next(ply.ISAWC_Inventory)) and ISAWC.LastLoadedData[steamID] then
 					ply.ISAWC_Inventory = ISAWC.LastLoadedData[steamID]
 				end
+			end
+			if not ply.ISAWC_AttachedCollisionInterface then
+				ply.ISAWC_AttachedCollisionInterface = ply:AddCallback("PhysicsCollide", ISAWC.PlayerCollisionCallback)
 			end
 			ISAWC:SendInventory(ply)
 		end
@@ -2879,9 +2861,7 @@ ISAWC.PlayerDeath = function(ply)
 			end
 			ISAWC:SetSuppressUndo(true)
 			for k,v in pairs(ply:GetWeapons()) do
-				local passesblist = ISAWC:StringMatchParams(v:GetClass(), ISAWC.BlackDeathBoxList)
-				local passeswlist = not ISAWC.ConUseDeathBoxWhitelist:GetBool() or ISAWC:StringMatchParams(v:GetClass(), ISAWC.WhiteDeathBoxList)
-				if ISAWC:CanPickup(briefcase,v,true) and not passesblist and passeswlist then
+				if ISAWC:CanPickup(briefcase,v,true) and ISAWC:SatisfiesBWLists(v:GetClass(), "DropOnDeath") then
 					ply:DropWeapon(v)
 					if ISAWC:CanProperty(briefcase,v) then
 						ISAWC:PropPickup(briefcase,v,ply)
@@ -2990,16 +2970,23 @@ ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 	local canDel = self.ConAllowDelete:GetBool()
 	local trace = util.QuickTrace(ply:EyePos(),isSpawn and ply:GetAimVector()*self.ConDistance:GetFloat() or vector_origin,ply)
 	local spawnpos = trace.HitPos - Vector(0,0,dupe.Mins.z) + trace.HitNormal * self.ConDistBefore:GetFloat()
+	local altSaveSpawnable = true
 	for k,v in pairs(dupe.Entities) do
 		local ent = Entity(k)
-		if not sSpawn then
-			if canDel then
-				SafeRemoveEntity(ent)
-			else
-				table.insert(ply.ISAWC_Inventory,invnum,dupe)
-				self:NoPickup("You can't delete inventory items!",ply)
+		if sSpawn then
+			if not (IsValid(ent) and self.StoredInAltSaveProps[ent]) then
+				altSaveSpawnable = false
 			end
-		elseif IsValid(ent) and self.ConAltSave:GetBool() then
+		elseif canDel then
+			SafeRemoveEntity(ent)
+		else
+			table.insert(ply.ISAWC_Inventory,invnum,dupe)
+			self:NoPickup("You can't delete inventory items!",ply)
+		end
+	end
+	if self.ConAltSave:GetBool() and altSaveSpawnable then
+		for k,v in pairs(dupe.Entities) do
+			local ent = Entity(k)
 			if self.ConSaveTable:GetBool() then
 				for k,v in pairs(ent.ISAWC_SaveTable or {}) do
 					ent:SetSaveValue(k,v)
@@ -3017,8 +3004,7 @@ ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 				end
 			end)
 		end
-	end
-	if sSpawn and not self.ConAltSave:GetBool() then
+	elseif sSpawn then
 		duplicator.SetLocalPos(spawnpos)
 		duplicator.SetLocalAng(Angle(0,ply:EyeAngles().y,0))
 		local entTab,conTab = duplicator.Paste(ply,dupe.Entities,dupe.Constraints)
@@ -3079,18 +3065,23 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 	local canDel = self.ConAllowDelete:GetBool()
 	local trace = util.QuickTrace(ply:EyePos(),isSpawn and ply:GetAimVector()*self.ConDistance:GetFloat() or vector_origin,ply)
 	local spawnpos = trace.HitPos - Vector(0,0,dupe.Mins.z) + trace.HitNormal * self.ConDistBefore:GetFloat()
+	local altSaveSpawnable = true
 	for k,v in pairs(dupe.Entities) do
 		local ent = Entity(k)
-		if not sSpawn then
-			if canDel then
-				SafeRemoveEntity(ent)
-			else
-				if IsValid(container) then
-					table.insert(container.ISAWC_Inventory,invnum,dupe)
-				end
-				self:NoPickup("You can't delete inventory items!",ply)
+		if sSpawn then
+			if not (IsValid(ent) and self.StoredInAltSaveProps[ent]) then
+				altSaveSpawnable = false
 			end
-		elseif IsValid(ent) and self.ConAltSave:GetBool() then
+		elseif canDel then
+			SafeRemoveEntity(ent)
+		else
+			table.insert(container.ISAWC_Inventory,invnum,dupe)
+			self:NoPickup("You can't delete inventory items!",ply)
+		end
+	end
+	if self.ConAltSave:GetBool() and altSaveSpawnable then
+		for k,v in pairs(dupe.Entities) do
+			local ent = Entity(k)
 			if self.ConSaveTable:GetBool() then
 				for k,v in pairs(ent.ISAWC_SaveTable or {}) do
 					ent:SetSaveValue(k,v)
@@ -3108,8 +3099,7 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 				end
 			end)
 		end
-	end
-	if sSpawn and not self.ConAltSave:GetBool() then
+	elseif sSpawn then
 		duplicator.SetLocalPos(spawnpos)
 		duplicator.SetLocalAng(Angle(0,ply:EyeAngles().y,0))
 		local entTab,conTab = duplicator.Paste(ply,dupe.Entities,dupe.Constraints)
@@ -3167,9 +3157,16 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 end
 
 ISAWC.SpawnDupeWeak = function(self,dupe,spawnpos,spawnangles,ply)
+	local altSaveSpawnable = true
 	for k,v in pairs(dupe.Entities) do
 		local ent = Entity(k)
-		if IsValid(ent) and self.ConAltSave:GetBool() then
+		if not (IsValid(ent) and self.StoredInAltSaveProps[ent]) then
+			altSaveSpawnable = false
+		end
+	end
+	if self.ConAltSave:GetBool() and altSaveSpawnable then
+		for k,v in pairs(dupe.Entities) do
+			local ent = Entity(k)
 			if self.ConSaveTable:GetBool() then
 				for k,v in pairs(ent.ISAWC_SaveTable or {}) do
 					ent:SetSaveValue(k,v)
@@ -3187,8 +3184,7 @@ ISAWC.SpawnDupeWeak = function(self,dupe,spawnpos,spawnangles,ply)
 				end
 			end)
 		end
-	end
-	if not self.ConAltSave:GetBool() then
+	else
 		duplicator.SetLocalPos(spawnpos)
 		duplicator.SetLocalAng(Angle(0,spawnangles.y,0))
 		local entTab,conTab = duplicator.Paste(ply,dupe.Entities,dupe.Constraints)
@@ -3742,7 +3738,7 @@ ISAWC.CanPickup = function(self,ply,ent,speculative)
 	end
 	if ply.NextPickup2 == ent.NextPickup2 and not speculative then self:NoPickup("You can't pick up a container with the same NP time!",ply) return false end
 	if (ply:IsPlayer() and ply:IsAdmin()) and self.ConAdminOverride:GetBool() and SERVER then
-		local passeswlist = self:StringMatchParams(class, self.Whitelist)
+		local passeswlist = self:SatisfiesWhitelist(class, "General")
 		if ent:IsPlayer() and not passeswlist then self:NoPickup("You can't pick up players!",ply) return false end
 		if ent==game.GetWorld() and not passeswlist then self:NoPickup("You can't pick up worldspawn!",ply) return false end
 		if not speculative then
@@ -3756,9 +3752,16 @@ ISAWC.CanPickup = function(self,ply,ent,speculative)
 			ply.NextPickup = CurTime() + self.ConDelay:GetFloat()
 		end
 		local class = ent:GetClass():lower()
-		local passesblist = self:StringMatchParams(class, self.Blacklist)
-		local passeswlist = self:StringMatchParams(class, self.Whitelist)
-		if passesblist and not passeswlist then self:NoPickup("That entity is blacklisted from being picked up!",ply) return false end
+		local allowed = self:SatisfiesBWLists(class, "General")
+		local passeswlist = self:SatisfiesWhitelist(class, "General")
+		if not allowed then
+			if self.ConGeneralWhitelistEnabled:GetBool() then	
+				self:NoPickup("That entity isn't whitelisted for being picked up!", ply)
+			else
+				self:NoPickup("That entity is blacklisted from being picked up!", ply)
+			end
+			return false
+		end
 		if ent:IsPlayer() and not passeswlist then self:NoPickup("You can't pick up players!",ply) return false end
 		if ent==game.GetWorld() and not passeswlist then self:NoPickup("You can't pick up worldspawn!",ply) return false end
 		if not ply:IsPlayer() and (class=="isawc_phantomface" or class=="isawc_extractor" or class=="isawc_weighingscale") and not passeswlist then
@@ -3770,7 +3773,7 @@ ISAWC.CanPickup = function(self,ply,ent,speculative)
 				elseif ent:GetContainer()==ply then
 					self:NoPickup("You can't pick up Inventory Importers connected to you!",ply) return false
 				end
-			elseif class=="isawc_extractor" then
+			else
 				if not ent:HasContainer() then
 					self:NoPickup("You can't pick up unconnected Inventory Exporters!",ply) return false
 				elseif ent:HasContainer(ply) then
@@ -3779,13 +3782,12 @@ ISAWC.CanPickup = function(self,ply,ent,speculative)
 			end
 		end
 		if SERVER then
-			if self.ConUseWhitelist:GetBool() and not passeswlist then self:NoPickup("That entity isn't whitelisted from being picked up!",ply) return false end
 			if not speculative then
 				DropEntityIfHeld(ent)
 			end
 			if ply:GetPos():Distance(ent:GetPos())-ent:BoundingRadius()-ply:BoundingRadius()>self.ConDistance:GetFloat() and ply:IsPlayer() then self:NoPickup("You need to be closer to the object!",ply) return false end
-			if not (ent:IsSolid() or passeswlist or ent:IsWeapon()) then self:NoPickup("You can't pick up non-solid entities!",ply) return false end
-			if ent:GetMoveType()~=MOVETYPE_VPHYSICS and not self.ConNonVPhysics:GetBool() and not (passeswlist or ent:IsWeapon()) then self:NoPickup("You can't pick up non-VPhysics entities!",ply) return false end
+			if not (ent:IsSolid() or listCode==2 or ent:IsWeapon()) then self:NoPickup("You can't pick up non-solid entities!",ply) return false end
+			if ent:GetMoveType()~=MOVETYPE_VPHYSICS and not self.ConNonVPhysics:GetBool() and not (listCode==2 or ent:IsWeapon()) then self:NoPickup("You can't pick up non-VPhysics entities!",ply) return false end
 			if constraint.HasConstraints(ent) and not self.ConAllowConstrained:GetBool() then self:NoPickup("You can't pick up constrained entities!",ply) return false end
 			local TotalMass, TotalVolume, TotalCount = self:CalculateEntitySpace(ent)
 			local data = self:GetClientStats(ply)
@@ -3823,9 +3825,48 @@ ISAWC.CanDrop = function(self,ply)
 	return true
 end
 
+ISAWC.PlayerCollisionPickup = function(self, ply, ent)
+	self:SetSuppressNoPickup(true)
+	if self:CanProperty(ply, ent) then
+		self:PropPickup(ply, ent)
+	end
+	self:SetSuppressNoPickup(false)
+end
+
+ISAWC.PlayerMagnetize = function(self, ply, ent)
+	if not IsValid(ent:GetParent()) and self:CanPickup(ply,ent,true) then
+		ply.ISAWC_MagnetTraceResult = ply.ISAWC_MagnetTraceResult or {}
+		local trace = util.TraceLine({
+			start = ply:GetPos(),
+			endpos = ent:GetPos(),
+			filter = ply,
+			mask = MASK_SOLID,
+			output = ply.ISAWC_MagnetTraceResult
+		})
+		local result = ply.ISAWC_MagnetTraceResult
+		if not result.Hit or result.HitNonWorld and result.Entity == ent then
+			if IsValid(ent:GetPhysicsObject()) and ent:GetMoveType()==MOVETYPE_VPHYSICS then
+				local dir = ply:GetPos()-ent:GetPos()
+				local nDir = dir:GetNormalized()
+				nDir:Mul(math.min(ply.MagnetScale*5e4*self.ConPlayerMagnet:GetFloat()/dir:LengthSqr(), 1000))
+				ent:GetPhysicsObject():AddVelocity(nDir)
+			else
+				self:PlayerCollisionPickup(ply, ent)
+			end
+		end
+	end
+end
+
 local invcooldown = 0
 local nextsave = 0
 local nextAltSaveCheck = 0
+local allPlayers = player.GetAll()
+for k,v in pairs(allPlayers) do
+	if v.ISAWC_AttachedCollisionInterface then
+		v:RemoveCallback("PhysicsCollide", v.ISAWC_AttachedCollisionInterface)
+		v.ISAWC_AttachedCollisionInterface = v:AddCallback("PhysicsCollide", ISAWC.PlayerCollisionCallback)
+	end
+end
 ISAWC.Tick = function()
 	if SERVER then
 		if nextsave < RealTime() and ISAWC.ConDoSave:GetInt() > 0 then
@@ -3833,9 +3874,22 @@ ISAWC.Tick = function()
 			ISAWC:SaveInventory(player.GetAll())
 			ISAWC:Log("Player inventories saved!")
 		end
+		if ISAWC.ConPlayerMagnet:GetFloat() > 0 then
+			ISAWC:SetSuppressNoPickup(true)
+			for k,v in pairs(allPlayers) do
+				v.MagnetScale = v.MagnetScale or v:BoundingRadius()
+				for k2,v2 in pairs(ents.FindInSphere(v:LocalToWorld(v:OBBCenter()), ISAWC.ConPlayerMagnet:GetFloat()*v.MagnetScale)) do
+					if v2 ~= v and ISAWC:SatisfiesBWLists(v2:GetClass(), "PlayerMagnet") then
+						ISAWC:PlayerMagnetize(v, v2)
+					end
+				end
+			end
+			ISAWC:SetSuppressNoPickup(false)
+		end
 		-- the following is needed to make sure the stashed props don't just walk off the map!
 		if nextAltSaveCheck < RealTime() then
 			nextAltSaveCheck = RealTime() + 2
+			allPlayers = player.GetAll()
 			for k,v in pairs(ISAWC.StoredInAltSaveProps) do
 				if IsValid(k) and not k:IsPlayer() then
 					k:SetPos(Vector(16000,16000,16000))

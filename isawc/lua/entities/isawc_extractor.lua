@@ -355,11 +355,10 @@ function ENT:CheckThreshold(current, threshold, flags, bAnd)
 	end
 end
 
-function ENT:WhitelistedDupe(dupe)
-	if not ISAWC.ConUseExportWhitelist:GetBool() then return true end
+function ENT:AllowedDupe(dupe)
 	local allLegal = true
 	for k,v in pairs(dupe.Entities) do
-		if not ISAWC.WhiteExtractList[v.Class] then
+		if ISAWC:SatisfiesBWLists(v.Class, "Exporter") then
 			allLegal = false break
 		end
 	end
@@ -372,13 +371,10 @@ function ENT:IsExtractableContainer(container)
 		if container:IsPlayer() then
 			if not tobool(container:GetInfo("isawc_allow_selflinks")) then return false end
 		end
-		if ISAWC.ConUseExportWhitelist:GetBool() then
-			for k,v in pairs(container.ISAWC_Inventory) do
-				if self:WhitelistedDupe(v) then return true end
-			end
-			return false
-		else return tobool(container.ISAWC_Inventory[1])
+		for k,v in pairs(container.ISAWC_Inventory) do
+			if self:AllowedDupe(v) then return true end
 		end
+		return false
 	else return false
 	end
 end
@@ -444,29 +440,20 @@ function ENT:SpawnProp(forcedSpawn)
 						end
 					end
 					container = possibleContainers[math.random(#possibleContainers)]
-					if ISAWC.ConUseExportWhitelist:GetBool() then
-						for k,v in RandomPairs(container.ISAWC_Inventory) do
-							if self:WhitelistedDupe(v) then
-								invnum = k break
-							end
+					for k,v in RandomPairs(container.ISAWC_Inventory) do
+						if self:AllowedDupe(v) then
+							invnum = k break
 						end
-					else
-						invnum = math.random(#container.ISAWC_Inventory)
 					end
 				elseif sortFlags == ACTI_COUNT_FIRST then
 					for i=1,32 do
 						local possibleContainer = self:GetContainer(i)
 						if self:IsExtractableContainer(possibleContainer) then
-							if ISAWC.ConUseExportWhitelist:GetBool() then
-								for j,v in ipairs(possibleContainer.ISAWC_Inventory) do
-									if self:WhitelistedDupe(v) then
-										invnum = j
-										container = possibleContainer break
-									end
+							for j,v in ipairs(possibleContainer.ISAWC_Inventory) do
+								if self:AllowedDupe(v) then
+									invnum = j
+									container = possibleContainer break
 								end
-							else
-								invnum = 1
-								container = possibleContainer break
 							end
 						end
 						if container then break end
@@ -475,16 +462,11 @@ function ENT:SpawnProp(forcedSpawn)
 					for i=32,1,-1 do
 						local possibleContainer = self:GetContainer(i)
 						if self:IsExtractableContainer(possibleContainer) then
-							if ISAWC.ConUseExportWhitelist:GetBool() then
-								for j,v in SortedPairs(possibleContainer.ISAWC_Inventory, true) do
-									if self:WhitelistedDupe(v) then
-										invnum = j
-										container = possibleContainer break
-									end
+							for j,v in SortedPairs(possibleContainer.ISAWC_Inventory, true) do
+								if self:AllowedDupe(v) then
+									invnum = j
+									container = possibleContainer break
 								end
-							else
-								invnum = #possibleContainer.ISAWC_Inventory
-								container = possibleContainer break
 							end
 						end
 						if container then break end
@@ -495,7 +477,7 @@ function ENT:SpawnProp(forcedSpawn)
 						local checkContainer = self:GetContainer(i)
 						if self:IsExtractableContainer(checkContainer) then
 							for k,v in pairs(checkContainer.ISAWC_Inventory or {}) do
-								if not ISAWC.ConUseExportWhitelist:GetBool() or self:WhitelistedDupe(v) then
+								if self:AllowedDupe(v) then
 									local dm, dv, dc = ISAWC:GetStatsFromDupeTable(v)
 									local compareNum
 									
