@@ -64,7 +64,6 @@ function ENT:Initialize()
 			"data" BLOB NOT NULL
 		);]])
 		self:SetModel(self.ContainerModel)
-		self:SetTrigger(true)
 		self:PhysicsInit(SOLID_VPHYSICS)
 		self:SetUseType(SIMPLE_USE)
 		local physobj = self:GetPhysicsObject()
@@ -95,6 +94,7 @@ function ENT:Initialize()
 			self.OnDuplicated = baseClass.OnDuplicated
 			self.PostEntityPaste = baseClass.PostEntityPaste
 		end
+		self:SetTrigger(true)
 	end
 	self:ISAWC_Initialize()
 	if SERVER and (IsValid(self:GetCreator()) and self:GetCreator():IsPlayer()) then
@@ -123,8 +123,18 @@ function ENT:Touch(ent)
 	end
 end
 
-function ENT:StartTouch(ent)
+function ENT:StartTouch(ent) -- no longer works?
 	if ISAWC.ConDragAndDropOntoContainer:GetInt()==2 and not self.ISAWC_Disabled then
+		if ISAWC:CanProperty(self,ent) then
+			ISAWC:PropPickup(self,ent)
+			ISAWC:SaveContainerInventory(self)
+		end
+	end
+end
+
+function ENT:PhysicsCollide(data)
+	local ent = data.HitEntity
+	if ISAWC.ConDragAndDropOntoContainer:GetInt()==3 and not self.ISAWC_Disabled then
 		if ISAWC:CanProperty(self,ent) then
 			ISAWC:PropPickup(self,ent)
 			ISAWC:SaveContainerInventory(self)

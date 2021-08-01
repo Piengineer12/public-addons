@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.2.0"
-ISAWC._VERSIONDATE = "2021-07-31"
+ISAWC._VERSION = "4.3.0"
+ISAWC._VERSIONDATE = "2021-08-01"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -72,7 +72,9 @@ ISAWC.ConDelay = CreateConVar("isawc_pickup_delay","0.5",FCVAR_REPLICATED,
 
 ISAWC.ConDragAndDropOntoContainer = CreateConVar("isawc_container_autointo","1",FCVAR_REPLICATED,
 "If 1, objects that come in contact with a container are automatically put into it.\
-If 2, containers will use StartTouch detection methods instead of Touch detection methods. Both methods have their own pros and cons.")
+If 2, containers will use StartTouch detection methods instead of Touch detection methods. (Dev note: broken?)\
+If 3, containers will use PhysicsCollide detection methods instead of Touch detection methods.\
+All three methods have their own pros and cons.")
 
 ISAWC.ConReal = CreateConVar("isawc_use_realisticvolumes","0",FCVAR_REPLICATED,
 "Sets how realistic volumes should be calculated:\
@@ -1288,6 +1290,7 @@ ISAWC.PopulateDFormContainer = function(DForm)
 	combox:AddChoice("0 - Don't", 0)
 	combox:AddChoice("1 - Use Touch", 1)
 	combox:AddChoice("2 - Use StartTouch", 2)
+	combox:AddChoice("3 - Use PhysicsCollide", 3)
 	DForm:Help(" - "..ISAWC.ConDragAndDropOntoContainer:GetHelpText().."\n")
 	DForm:NumSlider("Always Openable By Everyone",ISAWC.ConAlwaysPublic:GetName(),0,2,0)
 	DForm:Help(" - "..ISAWC.ConAlwaysPublic:GetHelpText().."\n")
