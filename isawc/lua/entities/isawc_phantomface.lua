@@ -136,6 +136,21 @@ function ENT:StartTouch(ent)
 	end
 end
 
+function ENT:PhysicsCollide(data)
+	local ent = data.HitEntity
+	local container = self:GetContainer()
+	if ISAWC.ConDragAndDropOntoContainer:GetInt()==3 then
+		if IsValid(container) then
+			if ISAWC:CanProperty(container,ent) then
+				ISAWC:PropPickup(container,ent)
+				--container:SendInventoryUpdate()
+			end
+		elseif ent.Base == "isawc_container_base" --[[or ent:IsPlayer()]] then
+			self:LinkEntity(ent)
+		end
+	end
+end
+
 function ENT:Think()
 	if SERVER then
 		if self.CHealth~=self:GetContainerHealth() then

@@ -207,7 +207,11 @@ end
 
 function ENT:HasContainer(container)
 	for i=1,32 do
-		if self:GetContainer(i)==container or not container and IsValid(self:GetContainer(i)) then return true end
+		if container then
+			if self:GetContainer(i)==container then return true end
+		else
+			if IsValid(self:GetContainer(i)) then return true end
+		end
 	end
 	return false
 end
@@ -283,7 +287,9 @@ function ENT:LinkEntity(ent)
 					self:SetFileID(availableSpace, ent:GetFileID())
 				end
 				if self:GetCollisionGroup()==COLLISION_GROUP_NONE then
-					self:SetCollisionGroup(COLLISION_GROUP_WORLD)
+					timer.Simple(0, function()
+						self:SetCollisionGroup(COLLISION_GROUP_WORLD)
+					end)
 					message2 = "Be careful! The Inventory Exporter's collisions have been disabled to allow it to spawn big props."
 				end
 				--self:UpdateWireOutputs()
@@ -340,6 +346,15 @@ function ENT:StartTouch(ent)
 	end
 end
 
+function ENT:PhysicsCollide(data)
+	local ent = data.HitEntity
+	if ISAWC.ConDragAndDropOntoContainer:GetInt()==3 then
+		if ent.Base == "isawc_container_base" then
+			self:LinkEntity(ent)
+		end
+	end
+end
+
 local function BitAndWithOffset(input, mask, maskOffset)
 	return bit.rshift( bit.band(input, bit.lshift(mask, maskOffset)), maskOffset)
 end
@@ -358,7 +373,7 @@ end
 function ENT:AllowedDupe(dupe)
 	local allLegal = true
 	for k,v in pairs(dupe.Entities) do
-		if ISAWC:SatisfiesBWLists(v.Class, "Exporter") then
+		if not ISAWC:SatisfiesBWLists(v.Class, "Exporter") then
 			allLegal = false break
 		end
 	end
@@ -367,6 +382,7 @@ end
 
 function ENT:IsExtractableContainer(container)
 	if IsValid(container) then
+		
 		if not container.ISAWC_Inventory then return false end
 		if container:IsPlayer() then
 			if not tobool(container:GetInfo("isawc_allow_selflinks")) then return false end
@@ -542,6 +558,9 @@ function ENT:Think()
 				end
 			end
 		end
+		if (self.ISAWC_NextSpawn or 0) < CurTime() then
+			self:SpawnProp()
+		end
 	end
 	if self.LastCacheUpdate < CurTime() then
 		table.Empty(self.ISAWC_CachedEntities)
@@ -551,13 +570,6 @@ function ENT:Think()
 			end
 		end
 		self.LastCacheUpdate = CurTime() + 0.5
-	end
-	if (self.ISAWC_NextSpawn or 0) < CurTime() then
-		self:SpawnProp()
-	end
-	if (self.ISAWC_NextInventoryCheck or 0) < CurTime() then
-		self.ISAWC_NextInventoryCheck = CurTime() + 1
-		--self:UpdateWireOutputs()
 	end
 	self:NextThink(CurTime())
 	return true

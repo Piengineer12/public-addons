@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.3.0"
-ISAWC._VERSIONDATE = "2021-08-01"
+ISAWC._VERSION = "4.3.1"
+ISAWC._VERSIONDATE = "2021-08-02"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
