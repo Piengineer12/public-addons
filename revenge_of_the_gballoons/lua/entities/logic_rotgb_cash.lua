@@ -6,71 +6,70 @@ ENT.Purpose = "Sets or gets the current cash amount. Can also detect if a player
 ENT.Instructions = "Hook this entity's inputs and outputs to something."
 
 function ENT:KeyValue(key,value)
-	if key:lower()=="fire_on_changed" then
+	key = key:lower()
+	if key=="fire_on_changed" then
 		self.AlwaysThink = tobool(value)
-	elseif key:lower()=="oncanafford" then
+	elseif key=="oncanafford" then
 		self.OnCanAfford = key
 		self:StoreOutput(key,value)
-	elseif key:lower()=="oncantafford" then
+	elseif key=="oncantafford" then
 		self.OnCantAfford = key
 		self:StoreOutput(key,value)
-	elseif key:lower()=="ongetcash" then
+	elseif key=="ongetcash" then
 		self.OnTestCash = key
 		self:StoreOutput(key,value)
-	elseif key:lower()=="ongetcashmin" then
+	elseif key=="ongetcashmin" then
 		self.OnTestCashMin = key
 		self:StoreOutput(key,value)
-	elseif key:lower()=="ongetcashmax" then
+	elseif key=="ongetcashmax" then
 		self.OnTestCashMax = key
 		self:StoreOutput(key,value)
-	elseif key:lower()=="onprecashchanged" then
+	elseif key=="onprecashchanged" then
 		self.OnPreCashChanged = key
 		self:StoreOutput(key,value)
-	elseif key:lower()=="onpostcashchanged" then
+	elseif key=="onpostcashchanged" then
 		self.OnPostCashChanged = key
 		self:StoreOutput(key,value)
-	elseif key:lower()=="altermode" then
+	elseif key=="altermode" then
 		self.SetMode = tonumber(value)
-	--[[elseif key:lower()=="setmode" then
-		self.SetMode = self.SetMode or value]]
-	elseif key:lower()=="onaltercash" then
+	elseif key=="onaltercash" then
 		self.OnCashSet = key
 		self:StoreOutput(key,value)
-	--[[elseif key:lower()=="onsetcash" then
-		self.OnCashSet = self.OnCashSet or key
-		self:StoreOutput(key,value)]]
 	end
 end
 
 function ENT:AcceptInput(input,activator,caller,data)
-	if input:lower()=="setfireonchanged" then
+	input = input:lower()
+	if input=="setfireonchanged" then
 		self.AlwaysThink = tobool(data)
 	else
 		data = tonumber(data) or 0
-		if input:lower()=="altermode" --[[or input:lower()=="setmode"]] then
+		if input=="altermode" then
 			self.SetMode = data
-		elseif input:lower()=="canafford" then
+		elseif input=="canafford" then
 			local cash = ROTGB_GetCash(activator)
 			if cash < data then
 				self:TriggerOutput(self.OnCantAfford,activator,data-cash)
 			else
 				self:TriggerOutput(self.OnCanAfford,activator,cash-data)
 			end
-		elseif input:lower()=="getcash" then
+		elseif input=="getcash" then
 			self:TriggerOutput(self.OnTestCash,activator,ROTGB_GetCash(activator))
-		elseif input:lower()=="getcashmin" or input:lower()=="getcashmax" then
-			local cashtable,isMin = {},input:lower()=="getcashmin"
+		elseif input=="getcashmin" or input=="getcashmax" then
+			local cashtable,isMax = {},input=="getcashmax"
 			for k,v in pairs(player.GetAll()) do
-				table.insert(cashtable,{v,ROTGB_GetCash(v)})
+				table.insert(cashtable,ROTGB_GetCash(v))
 			end
-			table.SortByMember(cashtable,2,isMin)
+			table.sort(cashtable, function(a,b)
+				return isMax == a > b
+			end)
 			local amt = cashtable[math.Clamp(data or 1,1,#cashtable)]
-			if isMin then
-				self:TriggerOutput(self.OnTestCashMin,activator,amt)
-			else
+			if isMax then
 				self:TriggerOutput(self.OnTestCashMax,activator,amt)
+			else
+				self:TriggerOutput(self.OnTestCashMin,activator,amt)
 			end
-		elseif input:lower()=="altercash" --[[or input:lower()=="setcash"]] then
+		elseif input=="altercash" then
 			if self.SetMode == 0 then
 				ROTGB_SetCash(data,activator)
 				self:TriggerOutput(self.OnCashSet,activator,ROTGB_GetCash(activator))

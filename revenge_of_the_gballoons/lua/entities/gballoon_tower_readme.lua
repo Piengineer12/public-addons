@@ -5,11 +5,11 @@
 AddCSLuaFile() 													// don't touch this.
 ENT.Base = "gballoon_tower_base"								// don't touch this.
 ENT.Type = "anim"												// don't touch this.
-ENT.PrintName = "Custom Tower ($100)"							// specify a string as the tower name.
+ENT.PrintName = "Custom Tower"									// specify a string as the tower name.
 ENT.Category = "RotgB: Towers"									// optional: specify a string as the custom category.
 ENT.Author = "Piengineer"										// replace "Piengineer" with yourself.
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"		// replace this string with your own contact link.
-ENT.Purpose = ""												// optional: specify a string as the purpose.
+ENT.Purpose = "This tower does something towards gBalloons."	// replace this string with what your tower does, displayed in the RotgB Game SWEP.
 ENT.Instructions = ""											// optional: specify a string as the instructions.
 ENT.Spawnable = false											// don't touch this, the addon will add your entity to the spawnmenu automatically.
 ENT.AdminOnly = false											// don't touch this.
@@ -46,9 +46,9 @@ ENT.UpgradeReference = {
 	{
 		Names = {"Speed Up","Damage Up","Good Eyes"},			// make sure #Names == #Descs == #Prices == #Functions!
 		Descs = {
-			"Increases the tower's fire rate.",					// one for each upgrade in the path.
-			"Increases damage dealt the by tower.",
-			"Allows the tower to see Hidden gBalloons."
+			"Considerably increases the tower's fire rate.",	// one for each upgrade in the path.
+			"Considerably increases damage dealt.",
+			"Allows the tower to target Hidden gBalloons."
 		},
 		Prices = {300,500,600},
 		Funcs = {
@@ -56,7 +56,7 @@ ENT.UpgradeReference = {
 				self.FireRate = self.FireRate*2
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage*2
+				self.AttackDamage = self.AttackDamage + 10
 			end,
 			function(self)
 				self.SeeCamo = true
@@ -64,10 +64,10 @@ ENT.UpgradeReference = {
 		}
 	}
 }
-ENT.UpgradeLimits = {2,0}										// upgrade limit ({4,2} in BTD5 and {5,2,0} in BTD6). {2,0} means that only one path can be upgraded up to twice. Make sure to sort from highest to lowest!
+ENT.UpgradeLimits = {3,0}										// upgrade limit ({4,2} in BTD5 and {5,2,0} in BTD6). {3,0} means that only one path can be upgraded up to three times. Make sure to sort from highest to lowest!
 
 function ENT:FireFunction(tableOfBalloons)						// since self.SeeCamo is false, only non-hidden gBalloons will be passed here, unless the tower is an X-3.
 	tableOfBalloons[1]:TakeDamage(self.AttackDamage,self,self)	// edit the body of the function however you want.
-end																// tableOfBalloons is all balloons in its radius, sorted by the player.
+end																// tableOfBalloons is all gBalloons in its radius, order of entries is determined by the player.
 
 ]]																// delete this line.

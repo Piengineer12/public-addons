@@ -95,7 +95,7 @@ ENT.UpgradeReference = {
 		}
 	}
 }
-ENT.UpgradeLimits = {5,2}
+ENT.UpgradeLimits = {6,2}
 
 function ENT:FireFunction(gBalloons)
 	self:SetNWFloat("LastFireTime",CurTime())

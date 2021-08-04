@@ -15,7 +15,7 @@ SWEP.ViewModelFOV = 30
 --SWEP.ViewModelFlip2 = false
 SWEP.Spawnable = true
 --SWEP.AdminOnly = false
-SWEP.Slot = 1
+SWEP.Slot = 5
 --SWEP.SlotPos = 10
 --SWEP.BounceWeaponIcon = true
 --SWEP.DrawAmmo = true
@@ -32,9 +32,9 @@ SWEP.AutoSwitchTo = false
 --SWEP.BobScale = 1
 --SWEP.SwayScale = 1
 SWEP.UseHands = true
-SWEP.m_WeaponDeploySpeed = 1
+--SWEP.m_WeaponDeploySpeed = 1
 --SWEP.m_bPlayPickupSound = true
-SWEP.RenderGroup = RENDERGROUP_BOTH
+--SWEP.RenderGroup = RENDERGROUP_OPAQUE
 --SWEP.ScriptedEntityType = "weapon"
 --SWEP.IconOverride = "materials/entities/base.png"
 --SWEP.DisableDuplicator = false
@@ -55,15 +55,11 @@ local ROTGB_SETTOWER = 2
 local ROTGB_SPEED = 3
 local ROTGB_PLAY = 4
 local ROTGB_AUTOSTART = 5
+local ROTGB_KICK = 6
 
 if SERVER then
 	util.AddNetworkString("rotgb_controller")
 end
-
-local ConR = GetConVar("rotgb_range_enable_indicators")
-local ConH = GetConVar("rotgb_range_hold_time")
-local ConT = GetConVar("rotgb_range_fade_time")
-local ConA = GetConVar("rotgb_range_alpha")
 
 local color_black_semiopaque = Color(0, 0, 0, 191)
 local color_gray = Color(127, 127, 127)
@@ -88,7 +84,8 @@ end
 
 function SWEP:PrimaryAttack()
 	if not IsFirstTimePredicted() then return end
-	if IsValid(self:GetOwner()) and self:GetCurrentTower() ~= 0 then
+	if IsValid(self:GetOwner()) and self:GetCurrentTower() ~= 0 and SERVER then
+		self:SetNextPrimaryFire(CurTime()+0.2)
 		local ply = self:GetOwner()
 		local trace = self:BuildTraceData(ply)
 		if trace.Hit then
@@ -123,8 +120,12 @@ function SWEP:CanSecondaryAttack()
 end
 
 function SWEP:SecondaryAttack()
-	if game.SinglePlayer() then self:CallOnClient("SecondaryAttack") end
+	if game.SinglePlayer() then
+		self:CallOnClient("SecondaryAttack")
+	elseif not IsFirstTimePredicted() then return
+	end
 	if self:CanSecondaryAttack() then
+		self:SetNextSecondaryFire(CurTime()+0.2)
 		if IsValid(self.TowerMenu) then
 			if self.TowerMenu:IsVisible() then
 				self.TowerMenu:Hide()
@@ -190,10 +191,11 @@ function SWEP:Think()
 				self.ClientsideModel.TowerType = self:GetCurrentTower()
 				self.ClientsideModel.RenderOverride = function(self)
 					self:DrawModel()
-					if tower.range < 16384 and ConR:GetBool() then
-						local fadeout = ConT:GetFloat()
-						self.DrawFadeNext = RealTime()+fadeout+ConH:GetFloat()
+					if tower.range < 16384 and GetConVar("rotgb_range_enable_indicators"):GetBool() then
+						local fadeout = GetConVar("rotgb_range_fade_time"):GetFloat()
+						self.DrawFadeNext = RealTime()+fadeout+GetConVar("rotgb_range_hold_time"):GetFloat()
 						if (self.DrawFadeNext or 0)>RealTime() then
+							local ConA = GetConVar("rotgb_range_alpha")
 							local scol = self:GetColor() == color_aqua and tower.infinite and color_blue or self:GetColor()
 							local alpha = math.Clamp(math.Remap(self.DrawFadeNext-RealTime(),fadeout,0,ConA:GetFloat(),0),0,ConA:GetFloat())
 							scol = Color(scol.r,scol.g,scol.b,alpha)
@@ -246,69 +248,65 @@ end
 
 if SERVER then
 	net.Receive("rotgb_controller", function(length, ply)
-		local wep = ply:GetActiveWeapon()
-		if IsValid(wep) and wep:GetClass()=="rotgb_control" then
-			local func = net.ReadUInt(8)
-			if func == ROTGB_TRANSFER then
-				local ply2 = net.ReadEntity()
-				if IsValid(ply2) and ply2:IsPlayer() and ply ~= ply2 then
-					local cash = ROTGB_GetCash(ply)
-					local transferAmount = math.floor(math.max(0, cash / 5, math.min(cash, 100)))
-					ROTGB_AddCash(transferAmount, ply2)
-					ROTGB_RemoveCash(transferAmount, ply)
+		local func = net.ReadUInt(8)
+		if func == ROTGB_TRANSFER then
+			local ply2 = net.ReadEntity()
+			if IsValid(ply2) and ply2:IsPlayer() and ply ~= ply2 then
+				local transferAmount = ROTGB_GetTransferAmount(ply)
+				ROTGB_AddCash(transferAmount, ply2)
+				ROTGB_RemoveCash(transferAmount, ply)
+			end
+		else
+			local wep = ply:GetActiveWeapon()
+			if IsValid(wep) then
+				if wep:GetClass()=="rotgb_control" and func == ROTGB_SETTOWER then
+					local desiredtower = net.ReadUInt(8)
+					if wep.TowerTable[desiredtower] or desiredtower == 0 then
+						--[[if desiredtower == 0 then
+							wep:SendWeaponAnim(ACT_VM_DRAW)
+						elseif wep:GetCurrentTower() == 0 then
+							wep:SendWeaponAnim(ACT_VM_PRIMARYATTACK)
+						end]]
+						wep:SetCurrentTower(desiredtower)
+					end
 				end
-			elseif func == ROTGB_SETTOWER then
-				local desiredtower = net.ReadUInt(8)
-				if wep.TowerTable[desiredtower] or desiredtower == 0 then
-					--[[if desiredtower == 0 then
-						wep:SendWeaponAnim(ACT_VM_DRAW)
-					elseif wep:GetCurrentTower() == 0 then
-						wep:SendWeaponAnim(ACT_VM_PRIMARYATTACK)
-					end]]
-					wep:SetCurrentTower(desiredtower)
+				if wep:GetClass()=="rotgb_control" or wep:GetClass()=="rotgb_shooter" then
+					if func == ROTGB_SPEED then
+						local shouldGoFaster = net.ReadBool()
+						local newSpeed = math.Clamp(game.GetTimeScale() * (shouldGoFaster and 2 or 0.5), 1, 8)
+						game.SetTimeScale(newSpeed)
+						if shouldGoFaster then
+							ply:EmitSound("buttons/combine_button5.wav",60,80+math.log(game.GetTimeScale(),2)*20,1,CHAN_WEAPON)
+						else
+							ply:EmitSound("buttons/combine_button3.wav",60,100+math.log(game.GetTimeScale(),2)*20,1,CHAN_WEAPON)
+						end
+					elseif func == ROTGB_PLAY then
+						local spawners = ents.FindByClass("gballoon_spawner")
+						if table.IsEmpty(spawners) then
+							ply:EmitSound("buttons/button18.wav",60,100,1,CHAN_WEAPON)
+							return ply:PrintMessage(HUD_PRINTTALK, "Place one gBalloon Spawner first!")
+						end
+						for k,v in pairs(spawners) do
+							v:Fire("Use")
+						end
+						ply:EmitSound("buttons/button14.wav",60,100,1,CHAN_WEAPON)
+					elseif func == ROTGB_AUTOSTART then
+						local shouldAutoStart = net.ReadBool()
+						
+						local spawners = ents.FindByClass("gballoon_spawner")
+						if table.IsEmpty(spawners) then
+							ply:EmitSound("buttons/button18.wav",60,100,1,CHAN_WEAPON)
+							return ply:PrintMessage(HUD_PRINTTALK, "Place one gBalloon Spawner first!")
+						end
+						for k,v in pairs(spawners) do
+							v:SetAutoStart(shouldAutoStart)
+						end
+						ply:EmitSound(shouldAutoStart and "buttons/button17.wav" or "buttons/button16.wav",60,100,1,CHAN_WEAPON)
+					end
 				end
-			elseif func == ROTGB_SPEED then
-				local shouldGoFaster = net.ReadBool()
-				local newSpeed = math.Clamp(game.GetTimeScale() * (shouldGoFaster and 2 or 0.5), 1, 8)
-				game.SetTimeScale(newSpeed)
-				if shouldGoFaster then
-					ply:EmitSound("buttons/combine_button5.wav",60,80+math.log(game.GetTimeScale(),2)*20,1,CHAN_WEAPON)
-				else
-					ply:EmitSound("buttons/combine_button3.wav",60,100+math.log(game.GetTimeScale(),2)*20,1,CHAN_WEAPON)
-				end
-			elseif func == ROTGB_PLAY then
-				local spawners = ents.FindByClass("gballoon_spawner")
-				if table.IsEmpty(spawners) then
-					ply:EmitSound("buttons/button18.wav",60,100,1,CHAN_WEAPON)
-					return ply:PrintMessage(HUD_PRINTTALK, "Place one gBalloon Spawner first!")
-				end
-				for k,v in pairs(spawners) do
-					v:Fire("Use")
-				end
-				ply:EmitSound("buttons/button14.wav",60,100,1,CHAN_WEAPON)
-			elseif func == ROTGB_AUTOSTART then
-				local shouldAutoStart = net.ReadBool()
-				
-				local spawners = ents.FindByClass("gballoon_spawner")
-				if table.IsEmpty(spawners) then
-					ply:EmitSound("buttons/button18.wav",60,100,1,CHAN_WEAPON)
-					return ply:PrintMessage(HUD_PRINTTALK, "Place one gBalloon Spawner first!")
-				end
-				for k,v in pairs(spawners) do
-					v:SetAutoStart(shouldAutoStart)
-				end
-				ply:EmitSound(shouldAutoStart and "buttons/button17.wav" or "buttons/button16.wav",60,100,1,CHAN_WEAPON)
 			end
 		end
 	end)
-end
-
-function SWEP:GetCashText(amount)
-	if amount == math.huge then return "$∞"
-	elseif amount == -math.huge then return "$-∞"
-	elseif not (amount < 0 or amount >= 0) then return "$?"
-	else return '$'..string.Comma(math.floor(amount,0))
-	end
 end
 
 function SWEP:BuildTowerTable()
@@ -398,22 +396,6 @@ function SWEP:CreateTowerMenu()
 		
 		return TextEntry
 	end
-	function Main:DrawTriangle(centerX, centerY, radius, angle)
-		angle = math.rad(angle)
-		local deg120 = math.pi*2/3
-		local points = {}
-		
-		draw.NoTexture()
-		surface.SetDrawColor(color_black)
-		for i=0,2 do
-			table.insert(points, {
-				x = centerX + radius * math.sin(angle+i*deg120),
-				y = centerY + radius * -math.cos(angle+i*deg120) -- y is down, not up
-			})
-		end
-		
-		surface.DrawPoly(points)
-	end
 	
 	local LeftDivider = vgui.Create("DHorizontalDivider", Main)
 	LeftDivider:Dock(FILL)
@@ -478,7 +460,7 @@ function SWEP:CreateLeftPanel(Main)
 	local LeftPanel = vgui.Create("DPanel")
 	LeftPanel.Paint = PaintBackground
 	LeftPanel:DockPadding(padding,padding,padding,padding)
-	local TransferHeader = Main:AddHeader("Transfer $0 To...", LeftPanel)
+	local TransferHeader = Main:AddHeader("Transfer $? To...", LeftPanel)
 	
 	local RefreshButton = Main:CreateButton("Refresh List", LeftPanel, color_green, color_light_green, color_white)
 	RefreshButton:DockMargin(0,0,0,padding)
@@ -517,10 +499,11 @@ function SWEP:CreateLeftPanel(Main)
 						end
 					end
 					function NameButton:PaintOver(w,h)
-						draw.SimpleText(v:Nick().." ("..wep:GetCashText(ROTGB_GetCash(v))..")", "Trebuchet24", w/2, h/2, color_black, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+						draw.SimpleText(v:Nick().." ("..ROTGB_FormatCash(ROTGB_GetCash(v))..")", "Trebuchet24", w/2, h/2, color_black, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 					end
 					
 					if v == LocalPlayer() then
+						NameButton:SetCursor("no")
 						NameButton:SetEnabled(false)
 					end
 				end
@@ -533,10 +516,9 @@ function SWEP:CreateLeftPanel(Main)
 	function TransferHeader:Think()
 		local newCash = ROTGB_GetCash()
 		local oldCash = self.cash
-		if newCash ~= oldCash and (oldCash == oldCash or newCash == newCash) then -- needed to weed out NaNs
+		if newCash ~= oldCash and (oldCash == oldCash or newCash == newCash) then -- needed to weed out NaNs, otherwise this will try to change the text EVERY FRAME
 			self.cash = newCash
-			local transferAmount = newCash == newCash and math.max(0, self.cash / 5, math.min(self.cash, 100)) or 0/0
-			self:SetText(string.format("Transfer %s To...", wep:GetCashText(transferAmount)))
+			self:SetText(string.format("Transfer %s To...", ROTGB_FormatCash(ROTGB_GetTransferAmount(LocalPlayer())))) -- this many brackets might be confusing
 		end
 	end
 	ScrollPanel:Refresh()
@@ -607,6 +589,16 @@ function SWEP:CreateRightPanel(Main)
 	TowersPanel:SetSpaceX(padding)
 	TowersPanel:SetSpaceY(padding)
 	TowersPanel:Dock(FILL)
+	local oldThink = ScrollPanel.Think
+	function ScrollPanel:Think(...)
+		if self.Difficulty ~= GetConVar("rotgb_difficulty"):GetFloat() then
+			self.Difficulty = GetConVar("rotgb_difficulty"):GetFloat()
+			self:Refresh()
+		end
+		if oldThink then
+			oldThink(self, ...)
+		end
+	end
 	function ScrollPanel:Refresh()
 		TowersPanel:Clear()
 		
@@ -616,12 +608,12 @@ function SWEP:CreateRightPanel(Main)
 			TowerPanel:SetSize(ScrW()/16, ScrW()/16)
 			TowerPanel:SetColor(color_gray)
 			TowerPanel.affordable = false
-			TowerPanel.cashText = wep:GetCashText(v.cost)
+			TowerPanel.cashText = ROTGB_FormatCash(ROTGB_ScaleBuyCost(v.cost), true)
 			TowerPanel:SetTooltip(v.name)
 			
 			function TowerPanel:PaintOver(w, h)
 				local drawColor = color_white
-				if ROTGB_GetCash() < v.cost then
+				if ROTGB_GetCash() < ROTGB_ScaleBuyCost(v.cost) then
 					drawColor = color_red
 					if self.affordable then
 						self.affordable = false
@@ -647,8 +639,30 @@ function SWEP:CreateRightPanel(Main)
 	end
 	ScrollPanel:Refresh()
 	
+	RightDivider:SetBottom(self:CreateBottomRightPanel(Main))
+	
+	return RightDivider
+end
+
+function SWEP:CreateBottomRightPanel(Main)
+	local function DrawTriangle(centerX, centerY, radius, angle)
+		angle = math.rad(angle)
+		local deg120 = math.pi*2/3
+		local points = {}
+		
+		draw.NoTexture()
+		surface.SetDrawColor(color_black)
+		for i=0,2 do
+			table.insert(points, {
+				x = centerX + radius * math.sin(angle+i*deg120),
+				y = centerY + radius * -math.cos(angle+i*deg120) -- y is down, not up
+			})
+		end
+		
+		surface.DrawPoly(points)
+	end
+	
 	local BottomPanel = vgui.Create("DPanel")
-	RightDivider:SetBottom(BottomPanel)
 	BottomPanel.Paint = PaintBackground
 	BottomPanel:DockPadding(padding,padding,padding,padding)
 	
@@ -685,8 +699,8 @@ function SWEP:CreateRightPanel(Main)
 	function FastButton:PaintOver(w,h)
 		local y = h/2
 		local size = math.min(w/8,h/4)
-		Main:DrawTriangle(w/2-size*0.75, y, size, 90)
-		Main:DrawTriangle(w/2+size*0.75, y, size, 90)
+		DrawTriangle(w/2-size*0.75, y, size, 90)
+		DrawTriangle(w/2+size*0.75, y, size, 90)
 	end
 	function SpeedPanel:PerformLayout()
 		FastButton:SetTall((self:GetTall()-padding)/2)
@@ -697,37 +711,34 @@ function SWEP:CreateRightPanel(Main)
 	function SlowButton:PaintOver(w,h)
 		local y = h/2
 		local size = math.min(w/8,h/4)
-		Main:DrawTriangle(w/2-size*0.75, y, size, -90)
-		Main:DrawTriangle(w/2+size*0.75, y, size, -90)
+		DrawTriangle(w/2-size*0.75, y, size, -90)
+		DrawTriangle(w/2+size*0.75, y, size, -90)
+	end
+	function SpeedPanel:Think()
+		if self.CurrentSpeed ~= game.GetTimeScale() then
+			self.CurrentSpeed = game.GetTimeScale()
+			FastButton:SetEnabled(self.CurrentSpeed < 8)
+			SlowButton:SetEnabled(self.CurrentSpeed > 1)
+		end
 	end
 	function FastButton:DoClick()
-		net.Start("rotgb_controller")
+		net.Start("rotgb_controller", true)
 		net.WriteUInt(ROTGB_SPEED, 8)
 		net.WriteBool(true)
 		net.SendToServer()
-		
-		if game.GetTimeScale() * 2 >= 8 then
-			self:SetEnabled(false)
-		end
-		SlowButton:SetEnabled(true)
 	end
 	function SlowButton:DoClick()
-		net.Start("rotgb_controller")
+		net.Start("rotgb_controller", true)
 		net.WriteUInt(ROTGB_SPEED, 8)
 		net.WriteBool(false)
 		net.SendToServer()
-		
-		if game.GetTimeScale() / 2 <= 1 then
-			self:SetEnabled(false)
-		end
-		FastButton:SetEnabled(true)
 	end
 	
 	local PlayButton = Main:CreateButton("", BottomPanel, color_green, color_light_green, color_white)
 	ButtonDivider:SetRight(PlayButton)
 	--PlayButton:NoClipping(true)
 	function PlayButton:PaintOver(w,h)
-		Main:DrawTriangle(w/2, h/2, math.min(w/4,h/4), 90)
+		DrawTriangle(w/2, h/2, math.min(w/4,h/4), 90)
 	end
 	function PlayButton:DoClick()
 		net.Start("rotgb_controller")
@@ -735,5 +746,5 @@ function SWEP:CreateRightPanel(Main)
 		net.SendToServer()
 	end
 	
-	return RightDivider
+	return BottomPanel
 end

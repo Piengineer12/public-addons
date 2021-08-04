@@ -325,10 +325,9 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 		RichText:InsertColorChange(255,127,255,255)
 		RichText:AppendText("Extra Properties")
 		RichText:InsertColorChange(255,255,255,255)
-		RichText:AppendText(". It should be noted that the statistics shown in the Bestiary are only accurate \z
+		RichText:AppendText(". It should be noted that the gBalloons' statistics shown in the Bestiary are only accurate \z
 		if the gBalloon server settings are set to their defaults (see Options > RotgB > Server Settings). \z
-		With this book, it is hoped that its readers will have a better understanding on how to defeat each type of gBalloon, \z
-		should they start to stir up harm.\n\n")
+		I hope this book helps!\n\n")
 		RichText:InsertColorChange(127,127,127,255)
 		RichText:AppendText("- Piengineer")
 		function RichText:PerformLayout()
@@ -343,7 +342,7 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 		RichText:InsertColorChange(255,255,255,255)
 		RichText:AppendText(addonoffers)
 		RichText:InsertColorChange(127,127,127,255)
-		RichText:AppendText("-- if one or more features listed here are not available in this addon, please contact the customer service department of where you received this addon --")
+		RichText:AppendText("\n-- if one or more features listed here are not available in this addon, please contact the customer service department of where you received this addon --")
 		function RichText:PerformLayout()
 			self:SetBGColor(0,0,0,191)
 			self:SetFontInternal("Trebuchet24")

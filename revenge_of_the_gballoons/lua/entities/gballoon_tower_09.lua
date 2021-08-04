@@ -1,5 +1,7 @@
 AddCSLuaFile()
 
+-- TODO: nerf this
+
 ENT.Base = "gballoon_tower_base"
 ENT.Type = "anim"
 ENT.PrintName = "Bishop of Glue"

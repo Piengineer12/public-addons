@@ -1,5 +1,7 @@
 AddCSLuaFile()
 
+-- TODO: Music???
+
 ENT.Type = "nextbot"
 ENT.Base = "base_nextbot"
 ENT.PrintName = "Rouge gBalloon"
@@ -97,7 +99,7 @@ local ConD = CreateConVar("rotgb_path_delay","20",FCVAR_ARCHIVE,
 [[Pathway re-computation delay modifier.
  - Increase this value if you experience constant lag with far away gBalloons.]])
 
-local ConX = CreateConVar("rotgb_debug","",FCVAR_ARCHIVE+FCVAR_NOTIFY,
+local ConX = CreateConVar("rotgb_debug","",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
 [[Shows verbose developer debug messages. Available arguments:
  - ]]..table.concat(ENT.DebugArgs,", ")..'\n'..
 [[ - You can seperate arguments with spaces.]])
@@ -120,12 +122,12 @@ local ConX = CreateConVar("rotgb_debug","",FCVAR_ARCHIVE+FCVAR_NOTIFY,
 
 local ConH = CreateConVar("rotgb_max_to_exist","64",FCVAR_ARCHIVE,
 [[Maximum amount of gBalloons to exist at once.
- - Note that this is loosely enforced - actual limit is sometimes slightly higher than this.]])
+ - Note that this is only enforced when gBalloons are popped, not when they are spawned.]])
 -- This is only considered if damage taken by a gBalloon is about to be cut off.
 -- If there are too many gBalloons, the popping process continues until this amount is reached, or no more damage is queued.
 -- Reduce this number if you lag after successfully popping big gBalloons.
 
-local ConI = CreateConVar("rotgb_ignore_damage_resistances","0",FCVAR_ARCHIVE+FCVAR_NOTIFY,
+local ConI = CreateConVar("rotgb_ignore_damage_resistances","0",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
 [[Causes all gBalloons to lose all damage resistances, including armored gBalloons.]])
 
 local ConP = CreateConVar("rotgb_damage_multiplier","1",FCVAR_ARCHIVE,
@@ -141,7 +143,7 @@ local ConV = CreateConVar("rotgb_visual_scale","1",FCVAR_ARCHIVE,
 [[Visually modifies the scale of newer gBalloons.
  - This will not modify their hitbox.]])
 
---[=[local ConA = CreateConVar("rotgb_targetable_by_npc","0",FCVAR_ARCHIVE+FCVAR_NOTIFY,
+--[=[local ConA = CreateConVar("rotgb_targetable_by_npc","0",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
 [[THIS CONVAR IS HIGHLY EXPERIMENTAL!
 
  - Causes gBalloons to be intialized in a different way.
@@ -167,7 +169,7 @@ local ConN = CreateConVar("rotgb_target_choice","3",FCVAR_ARCHIVE,
  - Note: gBalloons will always target the gBalloon target whenever possible.
  - The ConVar ai_ignoreplayers will also modify player targeting and may cause this value to be silently subtracted by 1 if its odd.]])
 
-local ConQ = CreateConVar("rotgb_target_sort","0",FCVAR_ARCHIVE+FCVAR_NOTIFY,
+local ConQ = CreateConVar("rotgb_target_sort","0",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
 [[Causes gBalloons to target:
 
  - 0 : the nearest enemy.
@@ -187,12 +189,12 @@ local ConY = CreateConVar("rotgb_target_tolerance","25",FCVAR_ARCHIVE,
 local ConZ = CreateConVar("rotgb_setminlookaheaddistance","10",FCVAR_ARCHIVE,
 [[I don't know what this does. See PathFollower:SetMinLookAheadDistance(number).]])
 
-local Con7 = CreateConVar("rotgb_cash_param","0",FCVAR_ARCHIVE+FCVAR_NOTIFY,
+local Con7 = CreateConVar("rotgb_cash_param","0",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
 [[Sets the cash value for rotgb_*cash commands.]])
 
 concommand.Add("rotgb_cash_param_internal",function(ply,cmd,args,argStr) if (not IsValid(ply) or ply:IsAdmin()) then Con7:SetFloat(tonumber(args[1]) or 0) end end,nil,nil,FCVAR_UNREGISTERED)
 
-local Con11 = CreateConVar("rotgb_individualcash","0",FCVAR_ARCHIVE+FCVAR_NOTIFY,
+local Con11 = CreateConVar("rotgb_individualcash","0",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_REPLICATED),
 [[Sets whether cash is shared or split among players.]])
 
 local function CreateCfunction(fname,vname)
@@ -249,7 +251,7 @@ local ConO = CreateConVar("rotgb_cash_mul","1",FCVAR_ARCHIVE,
 local ConC = CreateConVar("rotgb_speed_mul","1",FCVAR_ARCHIVE,
 [[Sets the speed multiplier.]])
 
---[=[local ConU = CreateConVar("rotgb_popsave","1",FCVAR_ARCHIVE+FCVAR_NOTIFY,
+--[=[local ConU = CreateConVar("rotgb_popsave","1",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
 [[Sets whether or not pop results are saved in memory.
  - This can save time when popping large groups of the same type of gBalloon at once.
  - This memory is kept even after the server shuts down.
@@ -285,18 +287,18 @@ local ConW = CreateConVar("rotgb_pop_on_contact","0",FCVAR_ARCHIVE,
  - -1 means any potential targets (see the 'rotgb_target_choice' ConVar).
  - -2 means Pop On Contact with All Entities That Have Health.]])
 
-local Con0 = CreateConVar("rotgb_use_custom_pathfinding","1",FCVAR_ARCHIVE+FCVAR_NOTIFY,
+local Con0 = CreateConVar("rotgb_use_custom_pathfinding","1",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
 [[Causes gBalloons to use the custom pathfinding algorithm.
  - Disabling this option may drastically improve performance, but gBalloons will not obey func_nav_* entities and may cross over areas that were marked to be avoided.]])
 
-local Con1 = CreateConVar("rotgb_legacy_gballoons","0",FCVAR_ARCHIVE+FCVAR_NOTIFY,
+local Con1 = CreateConVar("rotgb_legacy_gballoons","0",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
 [[Causes gBalloons to use old models instead, as seen in the screenshots of the addon.]])
 
-local Con2 = CreateConVar("rotgb_pertain_effects","0",FCVAR_ARCHIVE+FCVAR_NOTIFY,
+local Con2 = CreateConVar("rotgb_pertain_effects","0",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
 [[Only functional when Legacy Models are enabled (see the 'rotgb_legacy_gballoons' ConVar).
  - gBalloons will pertain rendering effects from the newer models.]])
 
-local Con3 = CreateConVar("rotgb_freeplay","1",FCVAR_ARCHIVE+FCVAR_NOTIFY,
+local Con3 = CreateConVar("rotgb_freeplay","1",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_REPLICATED),
 [[Enables gBalloon Spawners to keep generating waves after wave 120 is beaten.]])
 
 local Con4 = CreateConVar("rotgb_rainbow_gblimp_regen_rate","3",FCVAR_ARCHIVE,
@@ -308,7 +310,7 @@ local Con5 = CreateConVar("rotgb_afflicted_damage_multiplier","1",FCVAR_ARCHIVE,
 local Con6 = CreateConVar("rotgb_tower_range_multiplier","1",FCVAR_ARCHIVE,
 [[Multiplier for the towers' ranges.]])
 
-local Con8 = CreateConVar("rotgb_ignore_upgrade_limits","0",FCVAR_ARCHIVE+FCVAR_NOTIFY,
+local Con8 = CreateConVar("rotgb_ignore_upgrade_limits","0",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
 [[Causes towers to be fully upgradable on all paths.]])
 
 local Con9 = CreateConVar("rotgb_resist_effect_delay","1",FCVAR_ARCHIVE,
@@ -334,11 +336,11 @@ local Con12 = CreateConVar("rotgb_bloodtype","-1",FCVAR_ARCHIVE,
  - 15 : VVV  CUSTOM  VVV
  - 16 : Custom, based on rotgb_blooddecal]])
 
-local ConA = CreateConVar("rotgb_blooddecal","",FCVAR_ARCHIVE+FCVAR_NOTIFY,
+local ConA = CreateConVar("rotgb_blooddecal","",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
 [[If rotgb_bloodtype is 16, this sets the decal material to leave. Possible types:
  - ]] .. table.concat(list.Get("PaintMaterials"),", ") .. ".")
 
---[=[local Con10 = CreateConVar("rotgb_blacklist","",FCVAR_ARCHIVE+FCVAR_NOTIFY,
+--[=[local Con10 = CreateConVar("rotgb_blacklist","",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
 [[Disallows certain types of towers / gBalloons to be spawned.
  - Only accepts ClassNames. To copy the ClassName of a tower / gBalloon, right click on it in the spawnmenu and hit "Copy to Clipboard".
  - For gBalloons, only the Basic version (AKA without modifiers) needs to be specified to disallow all of the same type (including modifiers).
@@ -369,7 +371,7 @@ local Con14 = CreateConVar("rotgb_init_rate","-1",FCVAR_ARCHIVE,
 
  - Note: Anti-gBalloon Towers will always target gBalloons.]])]=]
 
-local Con15 = CreateConVar("rotgb_notrails","0",FCVAR_ARCHIVE+FCVAR_NOTIFY,
+local Con15 = CreateConVar("rotgb_notrails","0",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
 [[Enabling this option will cause fast gBalloons to not have trails.]])
  
 local ConL = CreateConVar("rotgb_use_custom_ai","0",FCVAR_ARCHIVE,
@@ -390,7 +392,32 @@ local ConF = CreateConVar("rotgb_use_kill_handler","0",FCVAR_ARCHIVE,
 
 local ConU = CreateConVar("rotgb_use_achievement_handler","1",FCVAR_ARCHIVE,
 [[Enabling this option will cause popping gBalloons to count towards the Popper achievement.
-If 2 and above, the achievement is incremented for each pop. Otherwise multiple pops on the same gBalloon will only increment the achievement counter once.]])
+ - If 2 and above, the achievement is incremented for each pop (which can cause massive lag). Otherwise multiple pops on the same gBalloon will only increment the achievement counter once.]])
+
+local Con16 = CreateConVar("rotgb_difficulty","1",FCVAR_ARCHIVE,
+[[Sets the difficulty of RotgB.
+ - Available values:
+ - 0: Easy (x0.8 tower costs)
+ - 1: Normal (x1.0 tower costs)
+ - 2: Hard (x1.2 tower costs)
+ - 3: Insane (x1.4 tower costs)
+ 
+ - Note: The prices displayed in the spawn menu are always the Normal difficulty prices due to the spawn menu being static (name changes are not shown).]])
+
+local Con17 = CreateConVar("rotgb_tower_income_mul","1",FCVAR_ARCHIVE,
+[[Similar to the 'rotgb_cash_mul' ConVar, but only affects tower-generated income.]])
+
+local Con18 = CreateConVar("rotgb_default_wave_preset","",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
+[[Newly-spawned gBalloon Spawners will have this wave preset. Default is "" which are the default waves.]])
+
+local Con19 = CreateConVar("rotgb_default_last_wave","120",FCVAR_ARCHIVE,
+[[Newly-spawned gBalloon Spawners will stop spawning more gBalloons after this wave, unless the rotgb_freeplay ConVar is enabled.]])
+
+local Con20 = CreateConVar("rotgb_default_first_wave","1",FCVAR_ARCHIVE,
+[[Newly-spawned gBalloon Spawners will start from this wave.]])
+
+local Con21 = CreateConVar("rotgb_target_health_override","0",FCVAR_ARCHIVE,
+[[If above 0, all newly-spawned gBalloon Targets will start at this much health regardless of settings.]])
 
 concommand.Add("rotgb_reset_convars",function(ply,cmd,args,argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
@@ -414,7 +441,7 @@ concommand.Add("rotgb_reset_convars",function(ply,cmd,args,argStr)
 		ConR:Revert()
 		ConS:Revert()
 		ConT:Revert()
-		--ConU:Revert()
+		ConU:Revert()
 		ConV:Revert()
 		ConW:Revert()
 		ConX:Revert()
@@ -436,6 +463,12 @@ concommand.Add("rotgb_reset_convars",function(ply,cmd,args,argStr)
 		Con13:Revert()
 		Con14:Revert()
 		Con15:Revert()
+		Con16:Revert()
+		Con17:Revert()
+		Con18:Revert()
+		Con19:Revert()
+		Con20:Revert()
+		Con21:Revert()
 	end
 end,nil,
 [[Admin only command.
@@ -543,7 +576,7 @@ if SERVER then
 			end
 		elseif operation == "settower" then
 			local wep = ply:GetActiveWeapon()
-			if IsValid(wep) and wep:GetClass()=="rotgb_multitool" and wep:GetMode()==1 then
+			if (IsValid(wep) and wep:GetClass()=="rotgb_multitool" and wep:GetMode()==1) then
 				local desiredtower = net.ReadUInt(8)
 				if wep.TowerTable[desiredtower+1] then
 					wep:SetCurrentTower(desiredtower)
@@ -1900,10 +1933,10 @@ function ENT:PerformPops()
 				inkproj:SetNoDraw(true)
 				inkproj:Setscale(Vector(1,1,1))
 				inkproj:SetModel("models/spitball_small.mdl")
-				inkproj:SetPos(self:GetPos()+self:OBBCenter())
+				inkproj:SetPos(self:WorldSpaceCenter())
 				inkproj:SetOwner(attacker)
 				inkproj:SetPhysicsAttacker(attacker)
-				inkproj:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
+				inkproj:SetCollisionGroup(COLLISION_GROUP_PUSHAWAY)
 				inkproj.InkColor = CNames[Con12:GetInt()-8]
 				inkproj.Dmg = 0
 				inkproj:Spawn()
@@ -1955,9 +1988,10 @@ function ENT:OnInjured(dmginfo)
 		local addDamageThisLayer = self:Health()-math.max(newhealth, 0)-1
 		self:SetHealth(newhealth)
 		self:Log("Took "..dmginfo:GetDamage().." damage! We are now at "..newhealth.." health.","damage")
-		if (IsValid(self.LastInflictor) and self.LastInflictor.Base == "gballoon_tower_base") and addDamageThisLayer > 0 then
+		if (IsValid(self.LastInflictor) and (self.LastInflictor.Base == "gballoon_tower_base" or self.LastInflictor:GetClass()=="rotgb_shooter")) and addDamageThisLayer > 0 then
 			self.LastInflictor:AddPops(addDamageThisLayer)
 			self:Log("Credited "..tostring(self.LastInflictor).." "..addDamageThisLayer.." pop(s).","damage")
+			hook.Run("gBalloonDamaged", self, self.LastAttacker, self.LastInflictor, addDamageThisLayer, false)
 		end
 		if self:GetBalloonProperty("BalloonShielded") and self:Health()*2>self:GetMaxHealth() and (not Con1:GetBool() or Con2:GetBool()) then
 			self:SetNWBool("RenderShield",true)
@@ -2163,16 +2197,26 @@ function ENT:Pop(damage,target,dmgbits)
 	end
 	if IsValid(target) then
 		local damage = (pops+math.max(self:Health(), 1)-1)*Con5:GetFloat()
-		target:TakeDamage(damage,self,self)
+		local dmginfo = DamageInfo()
+		local dir = target:WorldSpaceCenter() - self:GetPos()
+		dir:Normalize()
+		dir:Mul(damage)
+		dmginfo:SetDamage(damage)
+		dmginfo:SetReportedPosition(self:GetPos())
+		dmginfo:SetDamageForce(dir)
+		dmginfo:SetAttacker(self)
+		dmginfo:SetInflictor(self)
+		target:TakeDamageInfo(dmginfo)
 		self:Log("Hurting "..tostring(target).." for "..damage.." damage...","damage")
 	else
 		local newcash = self:GetAndApplyValueMultipliers(cash)
 		self:Log("Awarding "..cash*ConO:GetFloat().." cash (x"..newcash/cash..") after "..pops.." pops...","damage")
 		cash = newcash
 		ROTGB_AddCash(cash*ConO:GetFloat())
-		if (IsValid(self.LastInflictor) and self.LastInflictor.Base == "gballoon_tower_base") and pops > 0 then
+		if (IsValid(self.LastInflictor) and (self.LastInflictor.Base == "gballoon_tower_base" or self.LastInflictor:GetClass()=="rotgb_shooter")) and pops > 0 then
 			self.LastInflictor:AddPops(pops)
 			self:Log("Credited "..tostring(self.LastInflictor).." "..pops.." pop(s).","damage")
+			hook.Run("gBalloonDamaged", self, self.LastAttacker, self.LastInflictor, pops, true)
 		end
 	end
 	--for i=1,pops do
@@ -2453,251 +2497,6 @@ if CLIENT then
 	local color_gray = Color(127,127,127)
 	local color_gray_translucent = Color(127,127,127,223)
 	local color_black_translucent = Color(0,0,0,223)
-	--[[local scrW,scrH = ScrW(),ScrH()
-	local navmeshpanel,starttime
-	local texts = {
-		"The map will automatically restart once the generator is done.",
-		"Why don't you make a cup of coffee for yourself, hmm?",
-		"This process can take a really long time.",
-		"Sanic-based NextBots have basically the same generator as this one.",
-		"The NavMesh Auto-Generation process can take hours to finish.",
-		"This is quite a fancy wrapper for nav_generate, no?",
-		"That's weird. It usually doesn't take this long.",
-		"Bigger and more complex maps take more time to process.",
-		"If you were preparing coffee, it is probably done by now.",
-		"Try doing something else while waiting for this process to finish.",
-		"Wow, this is taking quite the while!",
-		"How big is the map, anyway? Players could easily get lost!",
-		"12 minutes have passed! I could watch a whole meme compilation.",
-		"You can close Garry's Mod to cancel the NavMesh Auto-Generation.",
-		"You can't cancel the NavMesh Auto-Generation to close Garry's Mod.",
-		"I'm running out of witty messages.",
-		"If you have the patience to wait until now, congratulations.",
-		"How's your "..os.date("%A")..", by the way?",
-		tonumber(os.date("%w"))==1 and "At least it isn't Mon-... Wait... It's Monday, isn't it?" or "At least it isn't Monday.",
-		"God, this is taking a while!",
-		"This isn't gm_bigcity, is it?",
-		"Okay, wow, I don't think the generator can handle this job.",
-		"Right, well, take a jog or two until this process finishes.",
-		"My goodness... Just close GMod. I don't want to care anymore.",
-		"Have you checked the application priority settings?",
-		"You must be very resilient to even read this message! Well done!",
-		"I, on the other hand, would have long closed the program.",
-		"I don't know if you're very patient, or very foolish...",
-		"VDC stands for the Valve Developer Community, by the way.",
-		"NextBots are a dead meme because of Sanic.",
-		"Half an hour has passed! I'd be surprised if you are still reading this.",
-		"I'd rather watch an episode of MLP:FiM than wait for this crap.",
-		"I will admit it though, determination is an unstoppable force.",
-		"No Sandbox like Garry's Mod! (until S&box comes out)",
-		"Right, I'm out of messages. Best of luck, goodbye and piss off.",
-	}
-	local function EncodeText(panel,text,color)
-		if color=="white" then
-			panel:InsertColorChange(255,255,255,255)
-			panel:AppendText(text)
-		elseif color=="green" then
-			panel:InsertColorChange(0,255,0,255)
-			panel:AppendText(text)
-		elseif color=="aqua" then
-			panel:InsertColorChange(0,255,255,255)
-			panel:AppendText(text)
-		elseif color=="red" then
-			panel:InsertColorChange(255,0,0,255)
-			panel:AppendText(text)
-		end
-	end
-	local function NavMeshOverlay(oldpanel,oldbutton)
-		oldbutton:SetEnabled(false)
-		scrW,scrH = ScrW(),ScrH()
-		local Main = vgui.Create("DFrame")
-		Main:SetPos(scrW*0.25,scrH*0.25)
-		Main:SetSize(scrW*0.5,scrH*0.5)
-		Main:SetTitle("")
-		Main:SetSizable(false)
-		Main:ShowCloseButton(false)
-		Main:DockPadding(32,32,32,32)
-		Main:MakePopup()
-		navmeshpanel = Main
-		function Main:Paint(w,h)
-			draw.RoundedBox(16,0,0,w,h,color_white)
-			draw.RoundedBox(8,8,8,w-16,h-16,color_black)
-			local timeelapsed = 0
-			if starttime then
-				timeelapsed = SysTime()-starttime
-			elseif timer.Exists("GEN_DELAY") then
-				timeelapsed = -timer.TimeLeft("GEN_DELAY")
-			end
-			if timeelapsed<0 then
-				draw.SimpleText("Did you read ALL the text?","DermaLarge",w/2,h/2-32,color_red,TEXT_ALIGN_CENTER,TEXT_ALIGN_CENTER)
-				draw.SimpleText("Generation will start in "..math.Round(-timeelapsed,1).." seconds...","DermaLarge",w/2,h/2,color_white,TEXT_ALIGN_CENTER,TEXT_ALIGN_CENTER)
-			else
-				local hue = math.Clamp(math.Remap(timeelapsed,0,1200,120,0),0,120)
-				local drawdoncolor = HSVToColor(hue,1,1)
-				local curtext = math.max(math.ceil(timeelapsed/60),1)
-				draw.SimpleText("Time Elapsed: "..string.FormattedTime(timeelapsed,"%02i:%02i.%02i"),"DermaLarge",w/2,h/2,drawdoncolor,TEXT_ALIGN_CENTER,TEXT_ALIGN_CENTER)
-				if curtext<=#texts then
-					draw.SimpleText(texts[curtext],"DermaLarge",w/2,h/2+32,drawdoncolor,TEXT_ALIGN_CENTER,TEXT_ALIGN_CENTER)
-				end
-			end
-		end
-		function Main:OnClose()
-			oldbutton:SetEnabled(true)
-		end
-		
-		local Cancel = vgui.Create("DButton",Main)
-		Cancel:SetSize(-1,32)
-		Cancel:Dock(BOTTOM)
-		Cancel:SetFont("DermaLarge")
-		Cancel:SetTextColor(color_red)
-		Cancel:SetText("Cancel")
-		function Cancel:Paint(w,h)
-			draw.RoundedBox(8,0,0,w,h,self:IsHovered() and color_gray_translucent or self:IsDown() and color_white_translucent or color_black_translucent)
-		end
-		function Cancel:DoClick()
-			Main:Close()
-		end
-		
-		timer.Create("GEN_DELAY",10,1,function()
-			if IsValid(Main) then
-				Cancel:SetEnabled(false)
-				Cancel:Remove()
-				starttime = SysTime()
-				net.Start("NavmeshMissing")
-				net.SendToServer()
-			end
-		end)
-	end
-	local function DevelopPanelDesc(AnimData,Main)
-		local sizeX,sizeY = Main:GetSize()
-		Main:MakePopup()
-		function Main:Paint(w,h)
-			draw.RoundedBox(16,0,0,w,h,color_black_translucent)
-			draw.SimpleText("No Navigation Mesh Found!","DermaLarge",w/2,5,color_red,TEXT_ALIGN_CENTER)
-		end
-
-		local CloseButton = vgui.Create("DImageButton",Main)
-		CloseButton:SetPos(sizeX-5-32,5)
-		CloseButton:SetSize(32,32)
-		CloseButton:SetImage("icon16/cross.png")
-		function CloseButton:DoClick()
-			Main:Close()
-		end
-
-		local NavImg = vgui.Create("DImage",Main)
-		NavImg:SetPos(5,5)
-		NavImg:SetSize(32,32)
-		NavImg:SetImage("icon16/chart_line_error.png")
-
-		local BottomButtonControl = vgui.Create("DPanel",Main)
-		BottomButtonControl:SetSize(-1,32)
-		BottomButtonControl:DockMargin(0,5,0,0)
-		BottomButtonControl:DockPadding(0,0,0,0)
-		BottomButtonControl:Dock(BOTTOM)
-		function BottomButtonControl:Paint() end
-
-		local NavGen = vgui.Create("DButton",BottomButtonControl)
-		NavGen:SetSize(sizeX/3,-1)
-		NavGen:DockMargin(0,0,5,0)
-		NavGen:Dock(LEFT)
-		NavGen:SetFont("DermaLarge")
-		NavGen:SetTextColor(color_green)
-		NavGen:SetText("Generate NavMesh")
-		function NavGen:Paint(w,h)
-			draw.RoundedBox(8,0,0,w,h,self:IsHovered() and color_gray_translucent or self:IsDown() and color_white_translucent or color_black_translucent)
-		end
-		function NavGen:DoClick()
-			NavMeshOverlay(Main,self)
-		end
-
-		local Cancel = vgui.Create("DButton",BottomButtonControl)
-		Cancel:SetSize(sizeX/3,-1)
-		Cancel:DockMargin(5,0,0,0)
-		Cancel:Dock(RIGHT)
-		Cancel:SetFont("DermaLarge")
-		Cancel:SetTextColor(color_red)
-		Cancel:SetText("Cancel")
-		function Cancel:Paint(w,h)
-			draw.RoundedBox(8,0,0,w,h,self:IsHovered() and color_gray_translucent or self:IsDown() and color_white_translucent or color_black_translucent)
-		end
-		function Cancel:DoClick()
-			Main:Close()
-		end
-
-		local LearnMore = vgui.Create("DButton",BottomButtonControl)
-		LearnMore:SetSize(sizeX/3,-1)
-		LearnMore:Dock(FILL)
-		LearnMore:SetFont("DermaLarge")
-		LearnMore:SetTextColor(color_aqua)
-		LearnMore:SetText("Learn More (VDC)")
-		function LearnMore:Paint(w,h)
-			draw.RoundedBox(8,0,0,w,h,self:IsHovered() and color_gray_translucent or self:IsDown() and color_white_translucent or color_black_translucent)
-		end
-		function LearnMore:DoClick()
-			gui.OpenURL("https://developer.valvesoftware.com/wiki/NextBot")
-		end
-
-		local TextPanel = vgui.Create("RichText",Main)
-		TextPanel:Dock(FILL)
-		EncodeText(TextPanel,"Unfortunately, a ","white")
-		EncodeText(TextPanel,"Navigation Mesh (NavMesh)","aqua")
-		EncodeText(TextPanel," is required for these gBalloons (and other ","white")
-		EncodeText(TextPanel,"Nextbots","aqua")
-		EncodeText(TextPanel,") to navigate across the map. Luckily, the Source Engine is capable of performing ","white")
-		EncodeText(TextPanel,"NavMesh Auto-Generation","green")
-		EncodeText(TextPanel,". This process, however, is ","white")
-		EncodeText(TextPanel,"very time consuming","red")
-		EncodeText(TextPanel," and may take anywhere between ","white")
-		EncodeText(TextPanel,"5 to 100 minutes","red")
-		EncodeText(TextPanel," to generate. The NavMesh Auto-Generation process also ","white")
-		EncodeText(TextPanel,"cannot be canceled","red")
-		EncodeText(TextPanel," once it starts. Additionally, while the NavMesh is generating, Garry's Mod will ","white")
-		EncodeText(TextPanel,"run very slowly","red")
-		EncodeText(TextPanel," and ","white")
-		EncodeText(TextPanel,"will become unplayable","red")
-		EncodeText(TextPanel," until generation is finished. Moreover, after the generation is complete, the map will be restarted and ","white")
-		EncodeText(TextPanel,"all placed objects will be deleted","red")
-		EncodeText(TextPanel,". To start the generation, simply press the button labeled ","white")
-		EncodeText(TextPanel,"Generate NavMesh","green")
-		EncodeText(TextPanel,". If you do not wish to generate the NavMesh, press the button labeled ","white")
-		EncodeText(TextPanel,"Cancel","red")
-		EncodeText(TextPanel,". The gBalloons ","white")
-		EncodeText(TextPanel,"will not move","red")
-		EncodeText(TextPanel," as long as there is not an available NavMesh for the map.","white")
-		function TextPanel:Paint(w,h)
-			draw.RoundedBox(8,0,0,w,h,color_black_translucent)
-		end
-		function TextPanel:PerformLayout()
-			self:SetFontInternal("Trebuchet24")
-			--self:SetBGColor(color_black_translucent)
-		end
-	end
-	local function DoAnimation2(AnimData,Main)
-		Main:MoveTo(scrW/4,scrH/4,0.1,0,-1)
-		Main:SizeTo(scrW/2,scrH/2,0.1,0,-1,DevelopPanelDesc)
-	end
-	local function CreateMainPanel()
-		if net.ReadBool() then
-			if IsValid(navmeshpanel) then
-				navmeshpanel:Remove()
-			end
-		else
-			scrW,scrH = ScrW(),ScrH()
-			local Main = vgui.Create("DFrame")
-			Main:SetPos(scrW/2,scrH/2)
-			Main:SetSize(0,0)
-			Main:SetTitle("")
-			Main:SetSizable(false)
-			Main:ShowCloseButton(false)
-			Main:MoveTo(scrW*0.45/2,scrH*0.45/2,0.25,0,0.5)
-			Main:SizeTo(scrW*0.55,scrH*0.55,0.25,0,0.5,DoAnimation2)
-			Main:DockPadding(5,32+5+5,5,5)
-			function Main:Paint(w,h)
-				draw.RoundedBox(16,0,0,w,h,color_black_translucent)
-			end
-		end
-	end
-	net.Receive("NavmeshMissing",CreateMainPanel)]]
 
 	local classes = {
 		"gballoon_red",
@@ -3319,7 +3118,7 @@ if CLIENT then
 				end
 				WaveComponents.first = false
 			end,"#GameUI_No")
-		end
+		end 
 		
 		--[[local upbutton = vgui.Create("DImageButton", buttonpanel)
 		upbutton:SetImage("icon16/arrow_up.png")

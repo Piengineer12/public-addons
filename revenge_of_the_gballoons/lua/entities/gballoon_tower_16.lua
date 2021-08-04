@@ -91,7 +91,7 @@ ENT.UpgradeReference = {
 			"This tower now generates interest up to $250,000 per second!",
 			"This tower no longer has a maximum interest rate! Once every 60 seconds, shooting at this tower doubles everyone's current cash!"
 		},
-		Prices = {450,1300,4000,20000,400000,10e6,100e6},
+		Prices = {450,1300,4000,20000,400000,10e6,1e9},
 		Funcs = {
 			function(self)
 				self.rotgb_HoverballLife = self.rotgb_HoverballLife * 3
@@ -168,7 +168,7 @@ function ENT:FireFunction(gBalloons)
 				effdata:SetEntity(self)
 				util.Effect("entity_remove",effdata,true,true)
 			else
-				local hoverball = ents.Create("gmod_hoverball")
+				local hoverball = ents.Create("gballoon_tower_16_hoverball")
 				hoverball:SetPos(self:LocalToWorld(self.LOSOffset*2))
 				hoverball:SetModel(self.rotgb_HoverballModel)
 				if self.rotgb_10Chance then
@@ -206,7 +206,7 @@ function ENT:FireFunction(gBalloons)
 					if IsValid(self) then
 						self:AddCash(hoverball.rotgb_Value*cmul, self:GetTowerOwner())
 					else
-						ROTGB_AddCash(hoverball.rotgb_Value*cmul)
+						ROTGB_AddCash(hoverball.rotgb_Value*cmul*GetConVar("rotgb_tower_income_mul"):GetFloat())
 					end
 				end)
 				timer.Simple(self.rotgb_HoverballLife,function()

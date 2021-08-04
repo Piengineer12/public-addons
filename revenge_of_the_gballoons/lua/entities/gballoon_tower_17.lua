@@ -418,7 +418,7 @@ function ENT:TriggerAbility()
 	if bit.band(self.rotgb_AbilityType, 4) ~= 0 then
 		local dmginfo = self:CreateDamageInfo()
 		if bit.band(self.rotgb_AbilityType, 16) == 0 then
-			dmginfo:SetDamage(100000)
+			dmginfo:SetDamage(10000)
 		else
 			dmginfo:SetDamage(1000000)
 		end

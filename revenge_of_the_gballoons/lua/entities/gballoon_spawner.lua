@@ -1,5 +1,7 @@
 AddCSLuaFile()
 
+-- TODO: Deny instant-startup on last wave + don't delete self until last wave elapsed unless in RotgB: The Gamemode
+
 ENT.Base = "base_anim"
 ENT.Type = "anim"
 ENT.PrintName = "gBalloon Spawner"
@@ -2128,62 +2130,87 @@ function ENT:GetWaveDuration(wave)
 end
 
 function ENT:SetupDataTables()
-	self:NetworkVar("Int",0,"Wave",{KeyName="start_wave",Edit={title="Wave To Spawn",type="Int",min=1,max=120,order=1}})
-	self:NetworkVar("Bool",0,"AutoStart",{KeyName="auto_start",Edit={title="Auto-Start",type="Boolean",order=3}})
-	self:NetworkVar("Bool",1,"ForceNextWave",{KeyName="force_next",Edit={title="Force Auto-Start",type="Boolean",order=5}})
-	self:NetworkVar("Bool",2,"StartAll",{KeyName="start_all",Edit={title="Start All Others",type="Boolean",order=6}})
-	self:NetworkVar("Float",0,"AutoStartDelay",{KeyName="auto_start_delay",Edit={title="Auto-Start Delay",type="Float",min=0,max=60,order=4}})
-	self:NetworkVar("Float",1,"SpeedMul",{KeyName="spawn_speed_mul",Edit={title="Spawn Rate",type="Float",min=0.1,max=10,order=2}})
-	self:NetworkVar("Float",2,"NextWaveTime")
-	self:NetworkVar("String",0,"WaveFile",{KeyName="wave_file",Edit={title="Custom Wave Name",type="Generic",order=7}})
-	self:NetworkVar("Entity",0,"NextTarget1")
-	self:NetworkVar("Entity",1,"NextTarget2")
-	self:NetworkVar("Entity",2,"NextTarget3")
-	self:NetworkVar("Entity",3,"NextTarget4")
-	self:NetworkVar("Entity",4,"NextTarget5")
-	self:NetworkVar("Entity",5,"NextTarget6")
-	self:NetworkVar("Entity",6,"NextTarget7")
-	self:NetworkVar("Entity",7,"NextTarget8")
-	self:NetworkVar("Entity",8,"NextTarget9")
-	self:NetworkVar("Entity",9,"NextTarget10")
-	self:NetworkVar("Entity",10,"NextTarget11")
-	self:NetworkVar("Entity",11,"NextTarget12")
-	self:NetworkVar("Entity",12,"NextTarget13")
-	self:NetworkVar("Entity",13,"NextTarget14")
-	self:NetworkVar("Entity",14,"NextTarget15")
-	self:NetworkVar("Entity",15,"NextTarget16")
-	self:NetworkVar("Entity",16,"NextBlimpTarget1")
-	self:NetworkVar("Entity",17,"NextBlimpTarget2")
-	self:NetworkVar("Entity",18,"NextBlimpTarget3")
-	self:NetworkVar("Entity",19,"NextBlimpTarget4")
-	self:NetworkVar("Entity",20,"NextBlimpTarget5")
-	self:NetworkVar("Entity",21,"NextBlimpTarget6")
-	self:NetworkVar("Entity",22,"NextBlimpTarget7")
-	self:NetworkVar("Entity",23,"NextBlimpTarget8")
-	self:NetworkVar("Entity",24,"NextBlimpTarget9")
-	self:NetworkVar("Entity",25,"NextBlimpTarget10")
-	self:NetworkVar("Entity",26,"NextBlimpTarget11")
-	self:NetworkVar("Entity",27,"NextBlimpTarget12")
-	self:NetworkVar("Entity",28,"NextBlimpTarget13")
-	self:NetworkVar("Entity",29,"NextBlimpTarget14")
-	self:NetworkVar("Entity",30,"NextBlimpTarget15")
-	self:NetworkVar("Entity",31,"NextBlimpTarget16")
+	self:NetworkVar("Int", 0, "Wave", {KeyName="start_wave", Edit={title="Wave To Spawn", type="Int", min=1, max=1000, order=1}})
+	self:NetworkVar("Int", 1, "SpawnDivider", {KeyName="spawn_divider", Edit={title="Spawn Divider", type="Int", min=1, max=100, order=4}})
+	self:NetworkVar("Int", 2, "DividerDelay", {KeyName="divider_delay", Edit={title="Divider Delay", type="Int", min=0, max=100, order=5}})
+	self:NetworkVar("Int", 3, "LastWave", {KeyName="end_wave", Edit={title="Last Wave", type="int", min=1, max=1000, order=2}})
+	self:NetworkVar("Bool", 0, "AutoStart", {KeyName="auto_start", Edit={title="Auto-Start", type="Boolean", order=6}})
+	self:NetworkVar("Bool", 1, "ForceNextWave", {KeyName="force_next", Edit={title="Force Auto-Start", type="Boolean", order=8}})
+	self:NetworkVar("Bool", 2, "StartAll", {KeyName="start_all", Edit={title="Start All Others", type="Boolean", order=9}})
+	self:NetworkVar("Bool", 3, "UnSpectatable")
+	self:NetworkVar("Float", 0, "AutoStartDelay", {KeyName="auto_start_delay", Edit={title="Auto-Start Delay", type="Float", min=0, max=60, order=7}})
+	self:NetworkVar("Float", 1, "SpeedMul", {KeyName="spawn_speed_mul", Edit={title="Spawn Rate", type="Float", min=0.1, max=10, order=3}})
+	self:NetworkVar("Float", 2, "NextWaveTime")
+	self:NetworkVar("String", 0, "WaveFile", {KeyName="wave_preset", Edit={title="Wave Preset", type="Generic", order=10}})
+	self:NetworkVar("Entity", 0, "NextTarget1")
+	self:NetworkVar("Entity", 1, "NextTarget2")
+	self:NetworkVar("Entity", 2, "NextTarget3")
+	self:NetworkVar("Entity", 3, "NextTarget4")
+	self:NetworkVar("Entity", 4, "NextTarget5")
+	self:NetworkVar("Entity", 5, "NextTarget6")
+	self:NetworkVar("Entity", 6, "NextTarget7")
+	self:NetworkVar("Entity", 7, "NextTarget8")
+	self:NetworkVar("Entity", 8, "NextTarget9")
+	self:NetworkVar("Entity", 9, "NextTarget10")
+	self:NetworkVar("Entity", 10, "NextTarget11")
+	self:NetworkVar("Entity", 11, "NextTarget12")
+	self:NetworkVar("Entity", 12, "NextTarget13")
+	self:NetworkVar("Entity", 13, "NextTarget14")
+	self:NetworkVar("Entity", 14, "NextTarget15")
+	self:NetworkVar("Entity", 15, "NextTarget16")
+	self:NetworkVar("Entity", 16, "NextBlimpTarget1")
+	self:NetworkVar("Entity", 17, "NextBlimpTarget2")
+	self:NetworkVar("Entity", 18, "NextBlimpTarget3")
+	self:NetworkVar("Entity", 19, "NextBlimpTarget4")
+	self:NetworkVar("Entity", 20, "NextBlimpTarget5")
+	self:NetworkVar("Entity", 21, "NextBlimpTarget6")
+	self:NetworkVar("Entity", 22, "NextBlimpTarget7")
+	self:NetworkVar("Entity", 23, "NextBlimpTarget8")
+	self:NetworkVar("Entity", 24, "NextBlimpTarget9")
+	self:NetworkVar("Entity", 25, "NextBlimpTarget10")
+	self:NetworkVar("Entity", 26, "NextBlimpTarget11")
+	self:NetworkVar("Entity", 27, "NextBlimpTarget12")
+	self:NetworkVar("Entity", 28, "NextBlimpTarget13")
+	self:NetworkVar("Entity", 29, "NextBlimpTarget14")
+	self:NetworkVar("Entity", 30, "NextBlimpTarget15")
+	self:NetworkVar("Entity", 31, "NextBlimpTarget16")
 end
 
 function ENT:KeyValue(key,value)
 	local lkey = key:lower()
 	if lkey=="start_wave" then
-		self:SetWave(tonumber(value) or 1)
+		value = tonumber(value) or 0
+		if value ~= 0 then
+			self:SetWave(value)
+		else
+			self:SetWave(GetConVar("rotgb_default_first_wave"):GetInt())
+		end
+	elseif lkey=="end_wave" then
+		value = tonumber(value) or 0
+		if value ~= 0 then
+			self:SetLastWave(value)
+		else
+			self:SetLastWave(GetConVar("rotgb_default_last_wave"):GetInt())
+		end
 	--[[elseif lkey=="auto_start" then
 		self:SetAutoStart(tobool(value))]]
 	elseif lkey=="no_auto_start" then
 		self.NoAutoStart = true
+	elseif lkey=="start_all" then
+		self:SetStartAll(tobool(value))
+	elseif lkey=="unspectatable" then
+		self:SetUnSpectatable(tobool(value))
+		scripted_ents.GetMember("point_rotgb_spectator", "TransmitChangeToSpectatingPlayers")(self)
 	elseif lkey=="force_next" then
 		self:SetForceNextWave(tobool(value))
 	elseif lkey=="auto_start_delay" then
 		self:SetAutoStartDelay(tonumber(value) or 0)
 	elseif lkey=="spawn_speed_mul" then
 		self:SetSpeedMul(tonumber(value) or 1)
+	elseif lkey=="spawn_divider" then
+		self:SetSpawnDivider(tonumber(value) or 1)
+	elseif lkey=="divider_delay" then
+		self:SetDividerDelay(tonumber(value) or 1)
 	elseif string.sub(lkey,1,11) == "next_target" then
 		local num = (tonumber("0x"..string.sub(lkey,-1)) or 0) + 1
 		self.TempNextTargets = self.TempNextTargets or {}
@@ -2198,6 +2225,8 @@ function ENT:KeyValue(key,value)
 		self.Skin = value
 	elseif lkey=="finished_shortly_threshold" then
 		self.OutputShortlyThreshold = value
+	elseif lkey=="wave_preset" then
+		self:SetWaveFile(value)
 	elseif lkey=="onwavestart" then
 		self:StoreOutput(key,value)
 	elseif lkey=="onwavefinished" then
@@ -2213,8 +2242,24 @@ end
 
 function ENT:AcceptInput(input,activator,caller,data)
 	input = input:lower()
-	if input=="setautostart" then
+	if input=="setnextwave" then
+		local value = tonumber(data) or 0
+		if value > 0 then
+			self:SetWave(value)
+		else
+			self:SetWave(GetConVar("rotgb_default_first_wave"):GetInt())
+		end
+	elseif input=="setlastwave" then
+		local value = tonumber(data) or 0
+		if value > 0 then
+			self:SetLastWave(value)
+		else
+			self:SetLastWave(GetConVar("rotgb_default_last_wave"):GetInt())
+		end
+	elseif input=="setautostart" then
 		self:SetAutoStart(tobool(data))
+	elseif input=="setstartall" then
+		self:SetStartAll(tobool(data))
 	elseif input=="setforcenext" then
 		self:SetForceNextWave(tobool(data))
 	elseif string.sub(input,1,15) == "setnextwaypoint" then
@@ -2223,6 +2268,20 @@ function ENT:AcceptInput(input,activator,caller,data)
 	elseif string.sub(input,1,20) == "setnextblimpwaypoint" then
 		local num = (tonumber("0x"..string.sub(input,-1)) or 0) + 1
 		self["SetNextBlimpTarget"..num](self,data~="" and ents.FindByName(data)[1] or NULL)
+	elseif input=="setspawndivider" then
+		self:SetSpawnDivider(tonumber(data) or 1)
+	elseif input=="setdividerdelay" then
+		self:SetDividerDelay(tonumber(data) or 1)
+	elseif input=="setwavepreset" then
+		self:SetWaveFile(data)
+	elseif input=="enablespectating" then
+		self:SetUnSpectatable(false)
+	elseif input=="disablespectating" then
+		self:SetUnSpectatable(true)
+		scripted_ents.GetMember("point_rotgb_spectator", "TransmitChangeToSpectatingPlayers")(self)
+	elseif input=="togglespectating" then
+		self:SetUnSpectatable(not self:GetUnSpectatable())
+		scripted_ents.GetMember("point_rotgb_spectator", "TransmitChangeToSpectatingPlayers")(self)
 	end
 end
 
@@ -2250,9 +2309,18 @@ function ENT:Initialize()
 			notifshown = true
 		end
 		self.OutputShortlyThreshold = tonumber(self.OutputShortlyThreshold) or 7.5
-		self:SetWave(self:GetWave()>0 and self:GetWave() or 1)
+		if self:GetWave()<=0 then
+			self:SetWave(GetConVar("rotgb_default_first_wave"):GetInt())
+		end
+		if self:GetLastWave()<=0 then
+			self:SetLastWave(GetConVar("rotgb_default_last_wave"):GetInt())
+		end
 		self:SetSpeedMul(self:GetSpeedMul()>0 and self:GetSpeedMul() or 1)
+		self:SetSpawnDivider(self:GetSpawnDivider()>0 and self:GetSpawnDivider() or 1)
 		self:SetModel(self.Model or "models/props_c17/streetsign004e.mdl")
+		if self:GetWaveFile() == "" then
+			self:SetWaveFile(GetConVar("rotgb_default_wave_preset"):GetString())
+		end
 		if self.Skin then
 			self:SetSkin(self.Skin)
 		end
@@ -2286,17 +2354,18 @@ end
 
 function ENT:Use(activator)
 	--if input:lower()=="balloon_start_wave" then
-		if (IsValid(activator) and activator:GetClass()~="gballoon_spawner" and self:GetStartAll()) then
+		local cwave = self:GetWave() or 1
+		if ((IsValid(activator) and activator:GetClass()~="gballoon_spawner" or activator == self) and self:GetStartAll() and not self.LoopPrevent) then
+			self.LoopPrevent = true
 			for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
-				v:Use(self,self,USE_ON,1)
+				if v ~= self and v:GetWave() == cwave then
+					v:Use(self,self,USE_ON,1)
+				end
 			end
-		end
-		if self:GetNextWaveTime()>CurTime() or not self:GetForceNextWave() and gBalloonTable:GetgBalloonCount()>0 then
-			ROTGB_AddCash(100*GetConVar("rotgb_cash_mul"):GetFloat())
+			self.LoopPrevent = false
 		end
 		self:SetNWBool("HasShownUsage",true)
-		local cwave = self:GetWave() or 1
-		if not self:GetWaveTable()[cwave] and GetConVar("rotgb_freeplay"):GetBool() then
+		if not self:GetWaveTable()[cwave] then
 			self:GenerateNextWave(cwave)
 		end
 		self:SetNextWaveTime(CurTime()+self:GetWaveDuration(cwave)/self:GetSpeedMul())
@@ -2305,7 +2374,7 @@ function ENT:Use(activator)
 			if not trigent.RotgB_HasFired then
 				trigent:Fire("Trigger")
 				trigent.RotgB_HasFired = true
-			elseif trigent.RotgB_HasFired and not self:GetWaveTable()[cwave] then
+			elseif trigent.RotgB_HasFired then -- FIXME: this may have been the best method then, but definitely not now!
 				trigent.RotgB_HasFired = nil
 				trigent = ents.FindByName("wave_finished_relay")[1]
 				if IsValid(trigent) then
@@ -2313,21 +2382,13 @@ function ENT:Use(activator)
 				end
 			end
 		end
+		if self:GetNextWaveTime()>CurTime() or not self:GetForceNextWave() and gBalloonTable:GetgBalloonCount()>0 then
+			if self:TriggerWaveEnded() then return self:Remove() end
+		end
 		self:TriggerOutput("OnWaveStart",activator,cwave)
 		if not self.NoMessages then
-			if (not self:GetWaveTable()[cwave] or self:GetWaveTable()[cwave].unnatural) and not self.WinMessage then
-				self.WinMessage = true
-				PrintMessage(HUD_PRINTTALK,"All standard waves cleared! Congratulations, you win!")
-				PrintMessage(HUD_PRINTTALK,"If you want a harder challenge, try doubling the gBalloons' health, spawn rate or halving the cash multiplier.")
-				if GetConVar("rotgb_freeplay"):GetBool() then
-					PrintMessage(HUD_PRINTTALK,"BEWARE! The gBalloons become exponentially faster and faster after each wave!")
-				end
-			end
-			if (self:GetWaveTable()[cwave] and not self:GetWaveTable()[cwave].unnatural) or GetConVar("rotgb_freeplay"):GetBool() then
-				PrintMessage(HUD_PRINTTALK,"Wave "..cwave.." started!")
-			end
+			PrintMessage(HUD_PRINTTALK,"Wave "..cwave.." started!")
 		end
-		if not (self:GetWaveTable()[cwave] and not self:GetWaveTable()[cwave].unnatural) and not GetConVar("rotgb_freeplay"):GetBool() then return self:Remove() end
 		local creaid = self:GetCreationID()
 		for k,v in pairs(self:GetWaveTable()[cwave] or {}) do
 			if k=="rbe" and not self.NoMessages then
@@ -2338,7 +2399,8 @@ function ENT:Use(activator)
 				timeframe = (timeframe or 0) / self:GetSpeedMul()
 				local function layer1()
 					if IsValid(self) then
-						--if gBalloonTable:GetgBalloonCount() < GetConVar("rotgb_max_to_exist"):GetInt() then
+						self.TimesSpawned = (self.TimesSpawned or -1) + 1
+						if (self.TimesSpawned - self:GetDividerDelay()) % self:GetSpawnDivider() == 0 then
 							local SpawnPos = self:GetPos()+Vector(0,0,10)
 							local bln = ents.Create("gballoon_base")
 							if IsValid(bln) then
@@ -2348,10 +2410,6 @@ function ENT:Use(activator)
 								end
 								bln:Spawn()
 								bln:Activate()
-								--[[if IsValid(self:GetNextTarget()) then
-									self:SetNextTarget1(self:GetNextTarget())
-									self:SetNextTarget(NULL)
-								end]]
 								local nextTargs = {}
 								if bln:GetBalloonProperty("BalloonBlimp") then
 									self.rotgb_TimesBlimpSpawned = (self.rotgb_TimesBlimpSpawned or 0) + 1
@@ -2365,7 +2423,6 @@ function ENT:Use(activator)
 									self.rotgb_TimesSpawned = (self.rotgb_TimesSpawned or 0) + 1
 								end
 								if next(nextTargs) then
-									--bln:SetTarget(nextTargs[math.random(#nextTargs)])
 									bln:SetTarget(bln:ChooseNextTargetWeighted(self.rotgb_TimesBlimpSpawned, nextTargs))
 								else
 									for i=1,16 do
@@ -2376,23 +2433,16 @@ function ENT:Use(activator)
 									end
 									if next(nextTargs) then
 										local times = bln:GetBalloonProperty("BalloonBlimp") and (self.rotgb_TimesSpawned or 0)+self.rotgb_TimesBlimpSpawned or self.rotgb_TimesSpawned
-										--bln:SetTarget(nextTargs[math.random(#nextTargs)])
 										bln:SetTarget(bln:ChooseNextTargetWeighted(times, nextTargs))
 									end
 								end
 								--timer.Simple(0,function()
 									if bln.loco then
-										bln.loco:SetAcceleration(bln.loco:GetAcceleration()*1.02^math.max(0,cwave-120))
+										bln.loco:SetAcceleration(bln.loco:GetAcceleration()*1.02^math.max(0,cwave-(self.WinWave or math.huge)))
 									end
 								--end)
 							end
-						--[[else
-							self:SetNextWaveTime(self:GetNextWaveTime()+1)
-							timer.Pause(timername)
-							timer.Simple(1,function()
-								timer.UnPause(timername)
-							end)
-						end]]
+						end
 					else
 						timer.Remove(timername)
 					end
@@ -2436,8 +2486,26 @@ function ENT:GenerateNextWave(cwave)
 	end
 	wavetab.rbe = math.Round(trbe)
 	wavetab.duration = 60
-	wavetab.unnatural = true
+	--wavetab.unnatural = true
 	self:GetWaveTable()[cwave] = wavetab
+end
+
+function ENT:TriggerWaveEnded()
+	local cwave = self:GetWave() or 1
+	local inFreeplay = cwave > self:GetLastWave()
+	ROTGB_AddCash(100/self:GetSpawnDivider()*GetConVar("rotgb_cash_mul"):GetFloat())
+	if not self.NoMessages then
+		if inFreeplay and not self.WinWave then
+			self.WinWave = cwave
+			hook.Run("AllBalloonsDestroyed")
+			PrintMessage(HUD_PRINTTALK,"All standard waves cleared! Congratulations, you win!")
+			PrintMessage(HUD_PRINTTALK,"If you want a harder challenge, try doubling the gBalloons' health, spawn rate or halving the cash multiplier.")
+			if GetConVar("rotgb_freeplay"):GetBool() then
+				PrintMessage(HUD_PRINTTALK,"BEWARE! The gBalloons become exponentially faster and faster after each wave!")
+			end
+		end
+	end
+	return inFreeplay and not GetConVar("rotgb_freeplay"):GetBool()
 end
 
 function ENT:TriggerWaveFinished()
@@ -2472,7 +2540,7 @@ function ENT:SpawnNextWave()
 	else
 		self:TriggerWaveFinishedShortly()
 	end
-	ROTGB_AddCash(100*GetConVar("rotgb_cash_mul"):GetFloat())
+	if self:TriggerWaveEnded() then return self:Remove() end
 	if self:GetAutoStartDelay()>0 then
 		timer.Simple(self:GetAutoStartDelay(),function()
 			if (IsValid(self) and self:GetAutoStart()) then
@@ -2586,9 +2654,9 @@ local function DrawCircle(x,y,r,percent,...)
 end
 
 function ENT:DrawTranslucent()
-	self:Draw()
+	--self:Draw()
 	--self:DrawModel()
-	if not self:GetWaveTable()[self:GetWave()] and GetConVar("rotgb_freeplay"):GetBool() then
+	if not self:GetWaveTable()[self:GetWave()] then
 		self:GenerateNextWave(self:GetWave())
 	end
 	local cwave = self:GetWave()
@@ -2596,7 +2664,7 @@ function ENT:DrawTranslucent()
 	reqang.p = 0
 	reqang.y = reqang.y-90
 	reqang.r = 90
-	if self:GetWaveTable()[self:GetWave()] then
+	if cwave <= self:GetLastWave() or GetConVar("rotgb_freeplay"):GetBool() then
 		local text1 = "Next Wave: "..cwave
 		local text2 = "RgBE: "..self:GetWaveTable()[cwave].rbe
 		local text3 = "Press 'Use' on this entity to start the wave."

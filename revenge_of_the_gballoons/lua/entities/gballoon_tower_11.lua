@@ -107,7 +107,7 @@ ENT.UpgradeReference = {
 		}
 	}
 }
-ENT.UpgradeLimits = {5,2}
+ENT.UpgradeLimits = {6,2}
 
 function ENT:ROTGB_Initialize()
 	self:SetMaterial("phoenix_storms/metalset_1-2")
