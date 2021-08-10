@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.3.1"
-ISAWC._VERSIONDATE = "2021-08-02"
+ISAWC._VERSION = "4.4.0"
+ISAWC._VERSIONDATE = "2021-08-10"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -849,6 +849,9 @@ ISAWC.ConPlayerMagnet = CreateConVar("isawc_player_magnet_radius", "0", FCVAR_RE
 "Sets the range of players to attract items. Note that the radius is multiplied with the size of the player - a range of 3 on a player with a dinosaur model will allow the player to pick up items 3 dinosaurs away from it.\
 A range of 0 disables this feature.")
 
+ISAWC.ConUseBindDelayOverride = CreateConVar("isawc_pickup_binddelayoverride", "0", FCVAR_REPLICATED,
+"If non-zero, overwrites the value of the \"isawc_pickup_binddelay\" ConVar for all clients. See the mentioned ConVar for more information.")
+
 local function BasicAutoComplete(cmd, argStr)
 	local possibilities = {}
 	local namesearch = argStr:Trim():lower()
@@ -1048,9 +1051,10 @@ ISAWC:AddConCommand("isawc_help", {
 
 if CLIENT then
 
-	ISAWC.ConUseDelay = CreateClientConVar("isawc_pickup_binddelay","0",true,false,
+	ISAWC.ConUseDelay = CreateClientConVar("isawc_pickup_binddelay","-2",true,false,
 	"How long an item must be held with the Pickup Key before being picked up.\n\z
-	A value of -1 disables this feature.")
+	A value of -1 disables this feature.\n\z
+	A value of -2 will cause it to be the same as the \"isawc_pickup_delay\" ConVar.")
 
 	ISAWC.ConUseBind = CreateClientConVar("isawc_pickup_bind","",true,false,
 	"Sets the binding used to pick up items.")
@@ -1210,6 +1214,8 @@ ISAWC.PopulateDFormPickup = function(DForm)
 	DForm:Help(" - "..ISAWC.ConOverride:GetHelpText().."\n")
 	DForm:TextEntry("Key Override",ISAWC.ConUseBindOverride:GetName())
 	DForm:Help(" - "..ISAWC.ConUseBindOverride:GetHelpText().."\n")
+	DForm:TextEntry("Key Delay Override",ISAWC.ConUseBindDelayOverride:GetName())
+	DForm:Help(" - "..ISAWC.ConUseBindDelayOverride:GetHelpText().."\n")
 	DForm:NumSlider("Pickup Delay",ISAWC.ConDelay:GetName(),0,10,2)
 	DForm:Help(" - "..ISAWC.ConDelay:GetHelpText().."\n")
 	DForm:NumSlider("Max Distance",ISAWC.ConDistance:GetName(),0,1024,0)
@@ -3938,7 +3944,9 @@ ISAWC.Tick = function()
 				end
 				ent.ISAWC_UseStreak = ent.ISAWC_UseStreak + 1
 				ent.ISAWC_ResetUseTime = CurTime() + 0.1
-				if ent.ISAWC_UseStreak >= ISAWC.ConUseDelay:GetFloat()/engine.TickInterval() and ISAWC.ConUseDelay:GetFloat()>=0 then
+				local effectiveUseDelay = ISAWC.ConUseBindDelayOverride:GetFloat() ~= 0 and ISAWC.ConUseBindDelayOverride:GetFloat() or ISAWC.ConUseDelay:GetFloat()
+				effectiveUseDelay = effectiveUseDelay == -2 and ISAWC.ConDelay:GetFloat() or effectiveUseDelay
+				if ent.ISAWC_UseStreak >= effectiveUseDelay/engine.TickInterval() and effectiveUseDelay>=0 then
 					ent.ISAWC_UseStreak = 0
 					if ISAWC:CanProperty(ply,ent) then
 						net.Start("isawc_general")

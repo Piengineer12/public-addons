@@ -134,7 +134,7 @@ function ENT:Initialize()
 		self:SetTeam(self:GetCreator():Team())
 	end
 	self.ISAWC_CachedEntities = {}
-	self.LastCacheUpdate = 0
+	self.NextCacheUpdate = 0
 end
 
 function ENT:TriggerInput(input, value)
@@ -186,14 +186,14 @@ end
 end]]
 
 function ENT:GetContainer(index)
-	if not IsValid(self["GetStorageEntity"..index](self)) and self:GetFileID(index)~='' then
+	if not IsValid(self[string.format("GetStorageEntity%u", index)](self)) and self:GetFileID(index)~='' then
 		for k,v in pairs(self.ISAWC_CachedEntities) do
 			if (IsValid(v) and v:GetFileID() == self:GetFileID(index)) then
-				self["SetStorageEntity"..index](self, v) break
+				self[string.format("SetStorageEntity%u", index)](self, v) break
 			end
 		end
 	end
-	local returnValue = self["GetStorageEntity"..index](self)
+	local returnValue = self[string.format("GetStorageEntity%u", index)](self)
 	if IsValid(returnValue) then
 		if returnValue.Base=="isawc_container_base" or returnValue:IsPlayer() then
 			return returnValue
@@ -253,7 +253,7 @@ function ENT:LinkEntity(ent)
 		if storageEntity == ent then
 			alreadyConnected = true break
 		elseif not IsValid(storageEntity) then
-			availableSpace = math.min(availableSpace or 99, i)
+			availableSpace = math.min(availableSpace or 32, i)
 		end
 	end
 	
@@ -562,14 +562,14 @@ function ENT:Think()
 			self:SpawnProp()
 		end
 	end
-	if self.LastCacheUpdate < CurTime() then
+	if self.NextCacheUpdate < CurTime() then
 		table.Empty(self.ISAWC_CachedEntities)
 		for k,v in pairs(ents.GetAll()) do
 			if v.Base == "isawc_container_base" then
 				table.insert(self.ISAWC_CachedEntities, v)
 			end
 		end
-		self.LastCacheUpdate = CurTime() + 0.5
+		self.NextCacheUpdate = CurTime() + 1
 	end
 	self:NextThink(CurTime())
 	return true
@@ -602,6 +602,16 @@ function ENT:DrawTranslucent()
 		cam.End2D()
 	end
 end
+
+hook.Add("PlayerChangedTeam", "ISAWC", function(ply, old, new)
+	if ISAWC.ConAllowInterConnection:GetInt() > 1 then -- oh boy...
+		for k,v in pairs(ents.FindByClass("isawc_extractor")) do
+			if v:HasContainer(ply) and new~=v:GetTeam() then
+				v:UnlinkEntity(ply)
+			end
+		end
+	end
+end)
 
 -- UI stuff
 
