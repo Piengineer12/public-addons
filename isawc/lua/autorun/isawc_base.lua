@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.4.0"
-ISAWC._VERSIONDATE = "2021-08-10"
+ISAWC._VERSION = "4.5.0"
+ISAWC._VERSIONDATE = "2021-08-14"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -63,7 +63,7 @@ ISAWC.AddConCommand = function(self, name, data)
 	self.ConCommands[name] = data.help
 end
 
-ISAWC.ConAllowConstrained = CreateConVar("isawc_allow_constrained","0",FCVAR_REPLICATED,
+ISAWC.ConAllowConstrained = CreateConVar("isawc_pickup_constrained","0",FCVAR_REPLICATED,
 "Allows constrained props to be picked up.\
 This feature is in beta - use it at your own risk.")
 
@@ -155,7 +155,7 @@ This feature is in beta - use it at your own risk.")
 ISAWC.ConDropOnDeath = CreateConVar("isawc_dropondeath_enabled","1",FCVAR_REPLICATED,
 "If set, players drop a box containing their inventory on death.")
 
-ISAWC.ConNonVPhysics = CreateConVar("isawc_allow_nonvphysics","0",FCVAR_REPLICATED,
+ISAWC.ConNonVPhysics = CreateConVar("isawc_pickup_nonvphysics","0",FCVAR_REPLICATED,
 "If set, entities can be picked up even if they do not have VPhysics movement.\
 Turning on this option is not recommended as players might pick up normally immovable props.")
 
@@ -323,7 +323,7 @@ ISAWC:CreateBWListPair("General", "", "pickup", {
 	excludeWhitelistConCommandFromDesc = true
 })
 
-ISAWC:CreateBWListPair("Exporter", "export_", "exporter", {
+ISAWC:CreateBWListPair("Exporter", "exporter_", "exporter", {
 	blacklistDesc = "Classes in the blacklist will not be exported by Inventory Exporters.",
 	whitelistConVarDesc = "If set, only entity classes that are in the whitelist can be exported by Inventory Exporters."
 })
@@ -718,7 +718,7 @@ ISAWC.ConHideNotifsG = CreateConVar("isawc_hide_notificationsglobal","0",FCVAR_R
 "Same as Hide All Notifications (isawc_hide_notifications) on client, but affects the whole server.\
 Does nothing on client - use the mentioned ConVar instead.")
 
-ISAWC.ConAllowPickupOnPhysgun = CreateConVar("isawc_allow_pickupwhilephysgunned","0",FCVAR_REPLICATED,
+ISAWC.ConAllowPickupOnPhysgun = CreateConVar("isawc_pickup_physgunned","0",FCVAR_REPLICATED,
 "If set, entities being picked up by the Physics Gun can still be picked up and put into any inventory.\
 This feature is in beta - use it at your own risk.")
 
@@ -789,7 +789,7 @@ A value of -1 indicates no limit.")
 ISAWC.ConSpawnDelay = CreateConVar("isawc_spawn_delay","1",FCVAR_REPLICATED,
 "Sets the minimum delay between inventory item spawns by players.")
 
-ISAWC.ConAdminOverride = CreateConVar("isawc_allow_adminpickupanything", "0", FCVAR_REPLICATED,
+ISAWC.ConAdminOverride = CreateConVar("isawc_pickup_adminpower", "0", FCVAR_REPLICATED,
 "Allows admins to pick up anything regardless of ConVars (except for players and the map, as those can crash the game).")
 
 ISAWC.ConNoAmmo = CreateConVar("isawc_spawn_emptyweapons", "0", FCVAR_REPLICATED,
@@ -842,11 +842,12 @@ ISAWC.ConDropAllModel = CreateConVar("isawc_dropall_model", "", FCVAR_REPLICATED
 Set the ConVar to \"\" to remove the model override.\
 If you want to set the class, see the isawc_dropall_class ConVar.")
 
-ISAWC.ConPlayerPickupOnCollide = CreateConVar("isawc_pickup_playercollide", "0", FCVAR_REPLICATED,
+ISAWC.ConPlayerPickupOnCollide = CreateConVar("isawc_player_autointo", "0", FCVAR_REPLICATED,
 "If set, players will automatically pick up any entities they collide with, if able.")
 
 ISAWC.ConPlayerMagnet = CreateConVar("isawc_player_magnet_radius", "0", FCVAR_REPLICATED,
-"Sets the range of players to attract items. Note that the radius is multiplied with the size of the player - a range of 3 on a player with a dinosaur model will allow the player to pick up items 3 dinosaurs away from it.\
+"Sets the range of players to attract items. It is highly recommended to set isawc_player_autointo to 1 first!\
+Note that the radius is multiplied with the size of the player - a range of 3 on a player with a dinosaur model will allow the player to pick up items 3 dinosaurs away from it.\
 A range of 0 disables this feature.")
 
 ISAWC.ConUseBindDelayOverride = CreateConVar("isawc_pickup_binddelayoverride", "0", FCVAR_REPLICATED,
@@ -888,10 +889,15 @@ if SERVER then
 	
 	ISAWC:AddConCommand("isawc_reset_convars", {
 		exec = function(ply,cmd,args,argStr)
-			for k,v in pairs(ISAWC) do
-				if TypeID(v)==TYPE_CONVAR then
-					v:Revert()
+			if IsValid(ply) and not ply:IsAdmin() then
+				ISAWC:Log("Access denied.")
+			else
+				for k,v in pairs(ISAWC) do
+					if TypeID(v)==TYPE_CONVAR then
+						v:Revert()
+					end
 				end
+				ISAWC:Log("All ConVars reset!")
 			end
 		end,
 		help = "Sets all ConVars to their default values."
@@ -965,6 +971,17 @@ if SERVER then
 		autocomplete = BasicAutoComplete,
 		help = "Pastes your inventory into another player's inventory.",
 		help_small = "Usage: isawc_paste <player>"
+	})
+	
+	ISAWC:AddConCommand("isawc_save_options", {
+		exec = function(ply,cmd,args,argStr)
+			if IsValid(ply) and not ply:IsAdmin() then
+				ISAWC:Log("Access denied.")
+			else
+				ISAWC:SaveData()
+			end
+		end,
+		help = "Saves all ISAWC ConVars and lists."
 	})
 end
 
@@ -1076,6 +1093,9 @@ if CLIENT then
 	
 	ISAWC.ConAllowSelflinks = CreateClientConVar("isawc_allow_selflinks","1",true,true,
 	"Allows Inventory Importers and Inventory Exporters to put and pull items in and out of your inventory as long as you are linked to them via the ISAWC MultiConnector SWEP.")
+	
+	ISAWC.ConAllowPlayerMagnetization = CreateClientConVar("isawc_player_magnet_enabled","1",true,true,
+	"If disabled, items will not be magnetized to you.")
 	
 	local inventoryOpenTable = {
 		exec = function(ply,cmd,args)
@@ -1189,14 +1209,6 @@ ISAWC.PopulateDFormGeneral = function(DForm)
 	DForm:Help(" - "..ISAWC.ConConstEnabled:GetHelpText().."\n")
 	DForm:CheckBox("Suppress All Notifications (Global)",ISAWC.ConHideNotifsG:GetName())
 	DForm:Help(" - "..ISAWC.ConHideNotifsG:GetHelpText().."\n")
-	DForm:CheckBox("Hide Pickup Fail Events",ISAWC.ConPickupDenyLogs:GetName())
-	DForm:Help(" - "..ISAWC.ConPickupDenyLogs:GetHelpText().."\n")
-	DForm:CheckBox("Allow Constrained Entities",ISAWC.ConAllowConstrained:GetName())
-	DForm:Help(" - "..ISAWC.ConAllowConstrained:GetHelpText().."\n")
-	DForm:CheckBox("Allow PhysGunned Entities",ISAWC.ConAllowPickupOnPhysgun:GetName())
-	DForm:Help(" - "..ISAWC.ConAllowPickupOnPhysgun:GetHelpText().."\n")
-	DForm:CheckBox("Allow Non-VPhysics Entities",ISAWC.ConNonVPhysics:GetName())
-	DForm:Help(" - "..ISAWC.ConNonVPhysics:GetHelpText().."\n")
 	DForm:CheckBox("Allow Item Deletion",ISAWC.ConAllowDelete:GetName())
 	DForm:Help(" - "..ISAWC.ConAllowDelete:GetHelpText().."\n")
 	DForm:CheckBox("Undo Puts Items Into Inventory",ISAWC.ConUndoIntoContain:GetName())
@@ -1212,6 +1224,14 @@ end
 ISAWC.PopulateDFormPickup = function(DForm)
 	DForm:CheckBox("Override Hooks",ISAWC.ConOverride:GetName())
 	DForm:Help(" - "..ISAWC.ConOverride:GetHelpText().."\n")
+	DForm:CheckBox("Hide Pickup Fail Events",ISAWC.ConPickupDenyLogs:GetName())
+	DForm:Help(" - "..ISAWC.ConPickupDenyLogs:GetHelpText().."\n")
+	DForm:CheckBox("Allow Constrained Entities",ISAWC.ConAllowConstrained:GetName())
+	DForm:Help(" - "..ISAWC.ConAllowConstrained:GetHelpText().."\n")
+	DForm:CheckBox("Allow PhysGunned Entities",ISAWC.ConAllowPickupOnPhysgun:GetName())
+	DForm:Help(" - "..ISAWC.ConAllowPickupOnPhysgun:GetHelpText().."\n")
+	DForm:CheckBox("Allow Non-VPhysics Entities",ISAWC.ConNonVPhysics:GetName())
+	DForm:Help(" - "..ISAWC.ConNonVPhysics:GetHelpText().."\n")
 	DForm:TextEntry("Key Override",ISAWC.ConUseBindOverride:GetName())
 	DForm:Help(" - "..ISAWC.ConUseBindOverride:GetHelpText().."\n")
 	DForm:TextEntry("Key Delay Override",ISAWC.ConUseBindDelayOverride:GetName())
@@ -1222,10 +1242,6 @@ ISAWC.PopulateDFormPickup = function(DForm)
 	DForm:Help(" - "..ISAWC.ConDistance:GetHelpText().."\n")
 	DForm:CheckBox("Use Whitelist",ISAWC.ConGeneralWhitelistEnabled:GetName())
 	DForm:Help(" - "..ISAWC.ConGeneralWhitelistEnabled:GetHelpText().."\n")
-	DForm:CheckBox("Pickup on Touch",ISAWC.ConPlayerPickupOnCollide:GetName())
-	DForm:Help(" - "..ISAWC.ConPlayerPickupOnCollide:GetHelpText().."\n")
-	DForm:NumSlider("Magnet Range",ISAWC.ConPlayerMagnet:GetName(),0,10,2)
-	DForm:Help(" - "..ISAWC.ConPlayerMagnet:GetHelpText().."\n")
 end
 
 ISAWC.PopulateDFormDrop = function(DForm)
@@ -1260,6 +1276,10 @@ ISAWC.PopulateDFormPlayer = function(DForm)
 	DForm:Help(" - "..ISAWC.ConConstMass:GetHelpText().."\n")
 	DForm:NumSlider("Constant Volume (dm³)",ISAWC.ConConstVol:GetName(),0,1000,0)
 	DForm:Help(" - "..ISAWC.ConConstVol:GetHelpText().."\n")
+	DForm:CheckBox("Pickup on Touch",ISAWC.ConPlayerPickupOnCollide:GetName())
+	DForm:Help(" - "..ISAWC.ConPlayerPickupOnCollide:GetHelpText().."\n")
+	DForm:NumSlider("Magnet Range",ISAWC.ConPlayerMagnet:GetName(),0,10,2)
+	DForm:Help(" - "..ISAWC.ConPlayerMagnet:GetHelpText().."\n")
 	DForm:CheckBox("Admin Can Pickup Any",ISAWC.ConAdminOverride:GetName())
 	DForm:Help(" - "..ISAWC.ConAdminOverride:GetHelpText().."\n")
 	local combox = DForm:ComboBox("Save Inventories",ISAWC.ConDoSave:GetName())
@@ -1486,6 +1506,11 @@ ISAWC.InstallSortFunctions = function(self,panel,InvPanel,delname,wepstorename,d
 				sOptions:AddCVar("Disallow Inventory Links", "isawc_allow_selflinks", "1", "0"):SetIcon("icon16/link_delete.png")
 			else
 				sOptions:AddCVar("Allow Inventory Links", "isawc_allow_selflinks", "1", "0"):SetIcon("icon16/link_add.png")
+			end
+			if ISAWC.ConAllowPlayerMagnetization:GetBool() then
+				sOptions:AddCVar("Disallow Self-Magnetization", "isawc_player_magnet_enabled", "1", "0"):SetIcon("icon16/basket_delete.png")
+			else
+				sOptions:AddCVar("Allow Self-Magnetization", "isawc_player_magnet_enabled", "1", "0"):SetIcon("icon16/basket_add.png")
 			end
 		end
 		sOptions:AddOption("Drop All Items",function()
@@ -3886,10 +3911,15 @@ ISAWC.Tick = function()
 		if ISAWC.ConPlayerMagnet:GetFloat() > 0 then
 			ISAWC:SetSuppressNoPickup(true)
 			for k,v in pairs(allPlayers) do
-				v.MagnetScale = v.MagnetScale or v:BoundingRadius()
-				for k2,v2 in pairs(ents.FindInSphere(v:LocalToWorld(v:OBBCenter()), ISAWC.ConPlayerMagnet:GetFloat()*v.MagnetScale)) do
-					if v2 ~= v and ISAWC:SatisfiesBWLists(v2:GetClass(), "PlayerMagnet") then
-						ISAWC:PlayerMagnetize(v, v2)
+				if (IsValid(v) and tobool(v:GetInfo("isawc_player_magnet_enabled"))) then
+					if not v.MagnetScale or (v.ISAWC_LastMagnetScaleCalc or 0) + 1 < CurTime() then
+						v.ISAWC_LastMagnetScaleCalc = CurTime()
+						v.MagnetScale = v:BoundingRadius()
+					end
+					for k2,v2 in pairs(ents.FindInSphere(v:LocalToWorld(v:OBBCenter()), ISAWC.ConPlayerMagnet:GetFloat()*v.MagnetScale)) do
+						if v2 ~= v and ISAWC:SatisfiesBWLists(v2:GetClass(), "PlayerMagnet") then
+							ISAWC:PlayerMagnetize(v, v2)
+						end
 					end
 				end
 			end
