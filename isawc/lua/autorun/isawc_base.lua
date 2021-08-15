@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.5.0"
-ISAWC._VERSIONDATE = "2021-08-14"
+ISAWC._VERSION = "4.5.1"
+ISAWC._VERSIONDATE = "2021-08-15"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -2828,19 +2828,17 @@ ISAWC.Initialize = function()
 		end
 		if replacements > 1 then
 			ISAWC:Log(string.format("ConVar file loaded, %u ConVar values updated.", replacements))
-		else
+		elseif replacements > 0 then
 			ISAWC:Log("ConVar file loaded, 1 ConVar value updated.")
 		end
 		
 		ISAWC.LastLoadedData = data
+		ISAWC.LastLoadedData.init = true
 	end
 end
 
 ISAWC.PlayerSpawn = function(ply)
 	timer.Simple(0.5,function()
-		if table.IsEmpty(ISAWC.LastLoadedData) then
-			ISAWC:Initialize()
-		end
 		if IsValid(ply) then
 			local steamID = ply:SteamID() or ""
 			if (ply.ISAWC_Inventory and next(ply.ISAWC_Inventory)) then
@@ -3928,6 +3926,9 @@ ISAWC.Tick = function()
 		-- the following is needed to make sure the stashed props don't just walk off the map!
 		if nextAltSaveCheck < RealTime() then
 			nextAltSaveCheck = RealTime() + 2
+			if table.IsEmpty(ISAWC.LastLoadedData) then -- Initialize failed to be called for some reason
+				ISAWC:Initialize()
+			end
 			allPlayers = player.GetAll()
 			for k,v in pairs(ISAWC.StoredInAltSaveProps) do
 				if IsValid(k) and not k:IsPlayer() then

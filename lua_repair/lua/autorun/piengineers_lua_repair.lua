@@ -7,8 +7,8 @@ Donate:			https://ko-fi.com/piengineer12
 Links above are confirmed working as of 2021-06-23. All dates are in ISO 8601 format. 
 ]]
 
-LUA_REPAIR_VERSION = "1.3.1"
-LUA_REPAIR_VERSION_DATE = "2021-06-23"
+LUA_REPAIR_VERSION = "1.3.3"
+LUA_REPAIR_VERSION_DATE = "2021-08-14"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
@@ -177,21 +177,25 @@ local function FixAllErrors()
 				end]]
 			end
 		end
-		local PLAYER = FindMetaTable("Player")
-		local oldConCommand = PLAYER.ConCommand
-		PLAYER.ConCommand = function(self, cmdStr, ...)
-			local cmd = string.match(cmdStr, "^\"([^\"]+)\"")
-			if not cmd then
-				cmd = string.match(cmdStr, "^[^%s%c]+")
-			end
-			if shouldBlockCommands[cmd] then
-				ReportBlockedCommand(cmd)
-			else
-				oldConCommand(self, cmdStr, ...)
-				--[[local resultTab = {pcall(oldConCommand, cmdStr, ...)}
-				if not resultTab[1] then
-					ReportBlockedCommand(cmd)
-				end]]
+		if SERVER then -- the client's side is *very* different, better not touch it
+			local PLAYER = FindMetaTable("Player")
+			local oldConCommand = PLAYER.ConCommand
+			PLAYER.ConCommand = function(self, cmdStr, ...)
+				if IsValid(self) then
+					local cmd = string.match(cmdStr, "^\"([^\"]+)\"")
+					if not cmd then
+						cmd = string.match(cmdStr, "^[^%s%c]+")
+					end
+					if shouldBlockCommands[cmd] then
+						ReportBlockedCommand(cmd)
+					else
+						oldConCommand(self, cmdStr, ...)
+						--[[local resultTab = {pcall(oldConCommand, cmdStr, ...)}
+						if not resultTab[1] then
+							ReportBlockedCommand(cmd)
+						end]]
+					end
+				end
 			end
 		end
 		
