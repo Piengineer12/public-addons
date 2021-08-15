@@ -14,7 +14,7 @@ ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/hunter/misc/cone1x05.mdl")
 ENT.FireRate = 0.4
 ENT.Cost = 450
-ENT.DetectionRadius = 256
+ENT.DetectionRadius = 192
 ENT.AbilityCooldown = 60
 ENT.FireWhenNoEnemies = true
 ENT.UseLOS = true
@@ -237,7 +237,7 @@ function ENT:ROTGB_Think()
 	end]]
 	if self.rotgb_SpeedSlowdown then
 		if self.rotgb_Wonderland then
-			for index,ent in pairs(ents.FindByClass("gballoon_base")) do
+			for index,ent in pairs(ROTGB_GetBalloons()) do
 				ent:Slowdown("ROTGB_ICE_TOWER_ARCTIC",0.25,999999)
 			end
 		else
@@ -262,7 +262,7 @@ function ENT:ROTGB_Draw()
 end
 
 function ENT:TriggerAbility()
-	local entities = ents.FindByClass("gballoon_base")
+	local entities = ROTGB_GetBalloons()
 	if not next(entities) then return true end
 	for index,ent in pairs(entities) do
 		ent:Slowdown("ROTGB_ICE_TOWER_ABILITY",0.25,15)

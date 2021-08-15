@@ -21,7 +21,7 @@ function GM:Think()
 				table.insert(playersToUpdate, v)
 			end
 		end
-		net.Start("rotgb_statchanged")
+		net.Start("rotgb_statchanged", true)
 		net.WriteUInt(ROTGB_STAT_POPS, 4)
 		net.WriteUInt(#playersToUpdate, 16)
 		for k,v in pairs(playersToUpdate) do
@@ -81,14 +81,14 @@ end
 -- non-base
 
 util.AddNetworkString("rotgb_statchanged")
-util.AddNetworkString("rotgb_gameend")
+util.AddNetworkString("rotgb_gamemode")
 
 net.Receive("rotgb_statchanged", function(length, ply)
 	local func = net.ReadUInt(4)
 	if func == ROTGB_STAT_INITEXP then
 		if (IsValid(ply) and not ply.rotgb_PreviousPops) then
 			ply.rotgb_PreviousPops = net.ReadDouble()
-			net.Start("rotgb_statchanged")
+			net.Start("rotgb_statchanged", true)
 			net.WriteUInt(ROTGB_STAT_INITEXP, 4)
 			net.WriteEntity(ply)
 			net.WriteDouble(ply.rotgb_PreviousPops)
@@ -97,13 +97,12 @@ net.Receive("rotgb_statchanged", function(length, ply)
 	end
 end)
 
-net.Receive("rotgb_gameend", function(length, ply)
-	if self.GameIsOver then
-		game.CleanUpMap(false, {
-			"env_fire",
-			"entityflame",
-			"_firesmoke" -- https://github.com/Facepunch/garrysmod-issues/issues/3637
-		})
+net.Receive("rotgb_gamemode", function(length, ply)
+	local operation = net.ReadUInt(8)
+	if operation == RTG_OPERATION_GAMEOVER and self.GameIsOver then
+		hook.Run("CleanUpMap")
+	elseif operation == RTG_OPERATION_SETDIFFICULTY and ply:IsAdmin() then
+		hook.Run("ChangeDifficulty", net.ReadString())
 	end
 end)
 
@@ -145,7 +144,7 @@ function GM:AllBalloonsDestroyed()
 end
 
 function GM:GameOver(success)
-	net.Start("rotgb_gameend")
+	net.Start("rotgb_gamemode")
 	net.WriteBool(success)
 	net.Broadcast()
 	self.GameIsOver = true
@@ -167,4 +166,22 @@ function GM:GameOver(success)
 			v:ScreenFade(SCREENFADE.IN, color_black, 5, 0)
 		end
 	end
+end
+
+function GM:ChangeDifficulty(difficulty)
+	-- set the current gamemode for the ShouldConVarOverride hook to refer to, then clean up the map
+	self.Difficulty = difficulty
+	net.Start("rotgb_gamemode")
+	net.WriteUInt(RTG_OPERATION_SETDIFFICULTY, 8)
+	net.WriteString(difficulty)
+	net.Broadcast()
+	hook.Run("CleanUpMap")
+end
+
+function GM:CleanUpMap()
+	game.CleanUpMap(false, {
+		"env_fire", -- https://github.com/Facepunch/garrysmod-issues/issues/3637
+		"entityflame",
+		"_firesmoke"
+	})
 end

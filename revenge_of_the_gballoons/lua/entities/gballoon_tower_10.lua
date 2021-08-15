@@ -14,7 +14,7 @@ ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/hunter/misc/cone1x1.mdl")
 ENT.FireRate = 20
 ENT.Cost = 650
-ENT.DetectionRadius = 384
+ENT.DetectionRadius = 256
 ENT.AbilityCooldown = 30
 ENT.FireWhenNoEnemies = true
 ENT.AttackDamage = 10
@@ -33,7 +33,7 @@ ENT.UpgradeReference = {
 			"Slightly increases fire rate and considerably increases maximum charges.",
 			"Considerably increases fire rate and tremendously increases maximum charges.",
 			"This tower no longer loses charge!",
-			"Once every 60 seconds, firing at this tower increases attack damage by 300 layers for 15 seconds!",
+			"Once every 60 seconds, shooting at this tower increases attack damage by 300 layers for 15 seconds!",
 			"Machine Gun Module now increases damage by 6000 layers!",
 		},
 		Prices = {600,2000,15000,35000,250000,5e6},

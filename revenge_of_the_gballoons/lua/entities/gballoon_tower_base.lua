@@ -18,8 +18,6 @@ ENT.LOSOffset = vector_origin
 local buttonlabs = {"First","Last","Strong","Weak","Close","Far","Fast","Slow"}
 local icns = {"shape_move_front","shape_move_back","award_star_gold_3","award_star_bronze_1","connect","disconnect","control_fastforward_blue","control_play"}
 
--- TO DO: one click to buy as much as possible
-
 local color_black_translucent = Color(0,0,0,127)
 local color_gray_translucent = Color(127,127,127,127)
 local color_red = Color(255,0,0)
@@ -28,23 +26,41 @@ local color_green = Color(0,255,0)
 local color_aqua = Color(0,255,255)
 local color_blue = Color(0,0,255)
 local color_gray = Color(127,127,127)
+local ConR,ConH,ConT,ConA
 
-local ConR = CreateClientConVar("rotgb_range_enable_indicators","1",true,false,
-[[Hovering over a tower shows its range.
- - An aqua range means that its range is finite.
- - A blue range means that its range is infinite.
- - A red range means that its placement is invalid.]])
+function ROTGB_GetAllTowers()
+	local towertable = {}
+	for k,v in pairs(scripted_ents.GetList()) do
+		if v.Base == "gballoon_tower_base" then
+			table.insert(towertable, v.t)
+		end
+	end
+	table.sort(towertable, function(a,b)
+		if a.Cost == b.Cost then
+			return a.PrintName < b.PrintName
+		else
+			return a.Cost < b.Cost
+		end
+	end)
+	return towertable
+end
 
-local ConH = CreateClientConVar("rotgb_range_hold_time","0.25",true,false,
-[[Time to hold the range indicator before it fades out.]])
+if CLIENT then
+	ConR = CreateClientConVar("rotgb_range_enable_indicators","1",true,false,
+	[[Hovering over a tower shows its range.
+	 - An aqua range means that its range is finite.
+	 - A blue range means that its range is infinite.
+	 - A red range means that its placement is invalid.]])
 
-local ConT = CreateClientConVar("rotgb_range_fade_time","0.25",true,false,
-[[Time to fade out the range indicator.]])
+	ConH = CreateClientConVar("rotgb_range_hold_time","0.25",true,false,
+	[[Time to hold the range indicator before it fades out.]])
 
-local ConA = CreateClientConVar("rotgb_range_alpha","15",true,false,
-[[Sets how visible the range indicator is, in the range of 0-255.]])
+	ConT = CreateClientConVar("rotgb_range_fade_time","0.25",true,false,
+	[[Time to fade out the range indicator.]])
 
-local gBalloonTable = baseclass.Get("gballoon_base")
+	ConA = CreateClientConVar("rotgb_range_alpha","15",true,false,
+	[[Sets how visible the range indicator is, in the range of 0-255.]])
+end
 
 if SERVER then
 	util.AddNetworkString("rotgb_openupgrademenu")
@@ -82,6 +98,7 @@ end
 
 function ENT:Initialize()
 	local cost = ROTGB_ScaleBuyCost(self.Cost or 0)
+	local maxCount = ROTGB_GetConVarValue("rotgb_tower_maxcount")
 	self:ROTGB_Initialize()
 	if not IsValid(self:GetTowerOwner()) then
 		self:SetTowerOwner(player.GetAll()[math.random(player.GetCount())])
@@ -96,14 +113,14 @@ function ENT:Initialize()
 			physobj:EnableMotion(false)
 		end
 		self:SetUseType(SIMPLE_USE)
-		if GetConVar("rotgb_tower_maxcount"):GetInt()>=0 then
+		if maxCount>=0 then
 			local count = 0
 			for k,v in pairs(ents.GetAll()) do
 				if v.Base=="gballoon_tower_base" then
 					count = count + 1
 				end
 			end
-			if count > GetConVar("rotgb_tower_maxcount"):GetInt() then
+			if count > maxCount then
 				self:SetNoDraw(true)
 			end
 		end
@@ -112,7 +129,7 @@ function ENT:Initialize()
 		end
 	end
 	self.LocalCost = cost
-	self.DetectionRadius = self.DetectionRadius * GetConVar("rotgb_tower_range_multiplier"):GetFloat()
+	self.DetectionRadius = self.DetectionRadius * ROTGB_GetConVarValue("rotgb_tower_range_multiplier")
 	if self:GetUpgradeStatus()>0 then
 		for i,v in ipairs(self.UpgradeReference) do
 			local tier = bit.rshift(self:GetUpgradeStatus(),(i-1)*4)%16
@@ -129,21 +146,58 @@ function ENT:Initialize()
 	end
 	if CLIENT and LocalPlayer()==self:GetTowerOwner() then
 		local localPlayer = LocalPlayer()
-		if self.LocalCost>ROTGB_GetCash(localPlayer) then
+		local levelLocked, towerIndex = false, 0
+		if engine.ActiveGamemode() == "rotgb" then
+			-- get a sorted-by-price list of all towers, then return our index from the list
+			local towers = ROTGB_GetAllTowers()
+			for k,v in pairs(towers) do
+				if v.ClassName == self:GetClass() then
+					towerIndex = k break
+				end
+			end
+			levelLocked = localPlayer:ROTGB_GetLevel() < towerIndex
+		end
+		if levelLocked then
+			CauseNotification("You need to be level "..string.Comma(towerIndex).." to buy this tower!")
+		elseif self.LocalCost>ROTGB_GetCash(localPlayer) then
 			CauseNotification("You need $"..string.Comma(math.ceil(self.LocalCost-ROTGB_GetCash(localPlayer))).." more to buy this tower!")
-		elseif GetConVar("rotgb_tower_maxcount"):GetInt()>=0 then
+		elseif maxCount>=0 then
 			local count = 0
 			for k,v in pairs(ents.GetAll()) do
 				if v.Base=="gballoon_tower_base" then
 					count = count + 1
 				end
 			end
-			if count > GetConVar("rotgb_tower_maxcount"):GetInt() then
+			if count > maxCount then
 				CauseNotification("You are not allowed to place any more towers!")
 			end
 		end
 	end
 end
+
+hook.Add("EntityTakeDamage","ROTGB_TOWERS",function(vic,dmginfo)
+	local laser = dmginfo:GetAttacker()
+	local inflictor = dmginfo:GetInflictor()
+	if (IsValid(laser) and laser.rotgb_UseLaser) then
+		if (IsValid(laser.rotgb_Owner) and laser.rotgb_Owner.Base == "gballoon_tower_base") then
+			dmginfo:SetAttacker(laser.rotgb_Owner:GetTowerOwner())
+			dmginfo:SetInflictor(laser.rotgb_Owner)
+		end
+		if laser.rotgb_UseLaser==2 then
+			dmginfo:SetDamageType(DMG_GENERIC)
+			if dmginfo:GetDamage()>=vic:Health() and vic:GetClass()=="gballoon_base" and laser.rotgb_NoChildren then
+				dmginfo:SetDamage(vic:GetRgBE() * 1000)
+			end
+		end
+	elseif (IsValid(inflictor) and inflictor.rotgb_Owner) then
+		dmginfo:SetInflictor(inflictor.rotgb_Owner)
+	end
+	if not ROTGB_GetConVarValue("rotgb_tower_damage_others") and vic:GetClass()~="gballoon_base" and IsValid(dmginfo:GetInflictor()) and dmginfo:GetInflictor().Base == "gballoon_tower_base" then return true end
+end)
+
+hook.Add("PhysgunPickup", "ROTGB_TOWERS", function(ply, ent)
+	if ent.Base == "gballoon_tower_base" and ROTGB_GetConVarValue("rotgb_tower_ignore_physgun") then return false end
+end)
 
 function ENT:PreEntityCopy()
 	self.IsEnabled = nil
@@ -210,18 +264,32 @@ function ENT:Think()
 					return SafeRemoveEntity(self)
 				end
 			end]] -- already done in func_rotgb_nobuild
+			if engine.ActiveGamemode() == "rotgb" and self:GetTowerOwner():IsPlayer() then
+				local towerIndex = 0
+				local towers = ROTGB_GetAllTowers()
+				for k,v in pairs(towers) do
+					if v.ClassName == self:GetClass() then
+						towerIndex = k break
+					end
+				end
+				if self:GetTowerOwner():ROTGB_GetLevel() < towerIndex then
+					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(self:GetTowerOwner()).." due to level requirement.", "towers")
+					return SafeRemoveEntity(self)
+				end
+			end
+			local maxCount = ROTGB_GetConVarValue("rotgb_tower_maxcount")
 			if towerCost>ROTGB_GetCash(self:GetTowerOwner()) then
-				ROTGB_Log("towers", "Removed tower "..tostring(self).." placed by "..tostring(self:GetTowerOwner()).." due to insufficient cash.")
+				ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(self:GetTowerOwner()).." due to insufficient cash.", "towers")
 				return SafeRemoveEntity(self)
-			elseif GetConVar("rotgb_tower_maxcount"):GetInt()>=0 then
+			elseif maxCount>=0 then
 				local count = 0
 				for k,v in pairs(ents.GetAll()) do
 					if v.Base=="gballoon_tower_base" then
 						count = count + 1
 					end
 				end
-				if count > GetConVar("rotgb_tower_maxcount"):GetInt() then
-					ROTGB_Log("towers", "Removed tower "..tostring(self).." placed by "..tostring(self:GetTowerOwner()).." due to excess towers.")
+				if count > maxCount then
+					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(self:GetTowerOwner()).." due to excess towers.", "towers")
 					return SafeRemoveEntity(self)
 				end
 			end
@@ -281,10 +349,7 @@ end
 end]]
 
 function ENT:ValidTarget(v)
-	--if v:GetClass()=="gballoon_base" then
-		return self:ValidTargetIgnoreRange(v) and (v:LocalToWorld(v:OBBCenter()):DistToSqr(self:GetShootPos()) <= self.DetectionRadius * self.DetectionRadius or self.InfiniteRange or self.InfiniteRange2)
-	--end
-	--return self:MaskFilter(GetConVar("rotgb_extratargets"):GetInt(),v) and (not v:IsFlagSet(FL_NOTARGET) or self.SeeCamo)
+	return self:ValidTargetIgnoreRange(v) and (v:LocalToWorld(v:OBBCenter()):DistToSqr(self:GetShootPos()) <= self.DetectionRadius * self.DetectionRadius or self.InfiniteRange or self.InfiniteRange2)
 end
 
 function ENT:ValidTargetIgnoreRange(v)
@@ -308,7 +373,7 @@ function ENT:ExpensiveThink(bool)
 	}
 	self.gBTraceData.start = selfpos
 	local mode = self:GetTargeting()
-	for k,v in pairs(gBalloonTable:GetgBalloons()) do
+	for k,v in pairs(ROTGB_GetBalloons()) do
 		if self:ValidTarget(v) then
 			local LosOK = not self.UseLOS
 			if not LosOK then
@@ -422,7 +487,7 @@ function ENT:AddPops(pops)
 end
 
 function ENT:AddCash(cash, ply)
-	local incomeCash = cash * GetConVar("rotgb_tower_income_mul"):GetFloat()
+	local incomeCash = cash * ROTGB_GetConVarValue("rotgb_tower_income_mul") * ROTGB_GetConVarValue("rotgb_cash_mul")
 	ROTGB_AddCash(incomeCash, ply)
 	self:SetCashGenerated(self:GetCashGenerated()+incomeCash)
 end
@@ -470,7 +535,7 @@ local function UpgradeMenu(ent)
 			local prevPathLevel, prevPathUpgrade = prevPath[1], prevPath[2]
 			local prevPathUpgradeEnabled = not prevPathUpgrade or prevPathUpgrade:IsEnabled()
 			local dontLock = pathLevel < ent.UpgradeLimits[i] or (prevPathUpgradeEnabled and prevPathLevel == pathLevel)
-			local enabled = dontLock or GetConVar("rotgb_ignore_upgrade_limits"):GetBool() or ent:GetNWFloat("rotgb_noupgradelimit") >= CurTime()
+			local enabled = dontLock or ROTGB_GetConVarValue("rotgb_ignore_upgrade_limits") or ent:GetNWFloat("rotgb_noupgradelimit") >= CurTime()
 			v[2]:SetEnabled(enabled)
 		end
 		if bool then
@@ -486,7 +551,7 @@ local function UpgradeMenu(ent)
 	local reference = ent.UpgradeReference
 	
 	local SellButton = vgui.Create("DButton",Main)
-	SellButton:SetText("Sell / Remove ($"..string.Comma(math.floor(ent.SellAmount*0.8*GetConVar("rotgb_cash_mul"):GetFloat()))..")")
+	SellButton:SetText("Sell / Remove ($"..string.Comma(math.floor(ent.SellAmount*0.8))..")")
 	SellButton:SetTextColor(color_red)
 	SellButton:SetFont("DermaLarge")
 	SellButton:SetTall(32)
@@ -532,7 +597,7 @@ local function UpgradeMenu(ent)
 			self:SetText(not reftab.Descs[self.Tier] and "\n\nThis path has been fully upgraded!" or not self:IsEnabled() and "\n\nThis path is locked due to the purchase of a certain upgrade!" or ("\n\n"..reftab.Descs[self.Tier]))
 			self:SetTextColor(not reftab.Descs[self.Tier] and color_green or not self:IsEnabled() and color_red or color_white)
 			Main:Refresh(bool)
-			SellButton:SetText("Sell / Remove ($"..string.Comma(math.floor(ent.SellAmount*0.8*GetConVar("rotgb_cash_mul"):GetFloat()))..")")
+			SellButton:SetText("Sell / Remove ($"..string.Comma(math.floor(ent.SellAmount*0.8))..")")
 		end
 		function UpgradeStatement:Paint(w,h)
 			curcash = ROTGB_GetCash(LocalPlayer())
@@ -677,7 +742,7 @@ ENT.ROTGB_OnRemove = ENT.ROTGB_Initialize
 function ENT:OnRemove()
 	self:ROTGB_OnRemove()
 	if SERVER then
-		ROTGB_AddCash((self.SellAmount or 0)*0.8*GetConVar("rotgb_cash_mul"):GetFloat(),self:GetTowerOwner())
+		ROTGB_AddCash((self.SellAmount or 0)*0.8,self:GetTowerOwner())
 	end
 end
 

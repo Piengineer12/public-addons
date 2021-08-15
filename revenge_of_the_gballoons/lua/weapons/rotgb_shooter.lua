@@ -474,14 +474,13 @@ function SWEP:DoDrawCrosshair(x, y)
 	surface.DrawRect(secondBarX+thickness, barY+barHeight-thickness-newHeight, barWidth-thickness*2, newHeight)
 end
 
-local gballoonTable = scripted_ents.Get("gballoon_base")
 function SWEP:GetgBalloonScores()
 	self.rotgb_balloonTable = self.rotgb_balloonTable or {}
 	table.Empty(self.rotgb_balloonTable)
 	gballoonTable = gballoonTable or scripted_ents.Get("gballoon_base")
 	local mode = self:GetTargeting()
 	local selfpos = IsValid(self:GetOwner()) and self:GetOwner():GetPos() or self:GetPos()
-	for k,v in pairs(gballoonTable:GetgBalloons()) do
+	for k,v in pairs(ROTGB_GetBalloons()) do
 		if mode==0 then
 			self.rotgb_balloonTable[v] = v:GetDistanceTravelled()
 		elseif mode==1 then
@@ -589,7 +588,7 @@ function SWEP:RedirectBullet(bullet)
 		-- scan through all gBalloons, see which one matches the vector the closest
 		self.rotgb_balloonTable = self.rotgb_balloonTable or {}
 		table.Empty(self.rotgb_balloonTable)
-		for k,v in pairs(gballoonTable:GetgBalloons()) do
+		for k,v in pairs(ROTGB_GetBalloons()) do
 			self.gBTraceData.endpos = v:GetPos()+v:OBBCenter()
 			util.TraceLine(self.gBTraceData)
 			if IsValid(self.lastBalloonTrace.Entity) and self.lastBalloonTrace.Entity:GetClass()=="gballoon_base" then

@@ -37,7 +37,7 @@ function GM:Think()
 		if not LocalPlayer().rotgb_PreviousPops and nextNetAttempt <= realTime then
 			nextNetAttempt = realTime + self.NetSendInterval
 			nextSave = realTime + self.DatabaseSaveInterval
-			net.Start("rotgb_statchanged", false)
+			net.Start("rotgb_statchanged")
 			net.WriteUInt(ROTGB_STAT_INITEXP, 4)
 			net.WriteDouble(hook.Run("LoadClientExperience"))
 			net.SendToServer()
@@ -86,9 +86,18 @@ net.Receive("rotgb_statchanged", function()
 	end
 end)
 
-net.Receive("rotgb_gameend", function()
-	hook.Run("GameOver", net.ReadBool())
+net.Receive("rotgb_gamemode", function()
+	local operation = net.ReadUInt(8)
+	if operation == RTG_OPERATION_GAMEOVER then
+		hook.Run("GameOver", net.ReadBool())
+	elseif operation == RTG_OPERATION_SETDIFFICULTY then
+		GAMEMODE.Difficulty = net.ReadString()
+	end
 end)
+
+concommand.Add("rotgb_tg_difficulty_menu", function()
+	hook.Run("CreateDifficultyMenu")
+end, nil, "Opens the Difficulty Selection Menu. Only works for admins.")
 
 function GM:LoadClientExperience()
 	--[[local result = hook.Run("DoSQLiteQuery", "SELECT xp FROM rotgb_data;")

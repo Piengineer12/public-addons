@@ -1,7 +1,5 @@
 AddCSLuaFile()
 
--- TODO: Music???
-
 ENT.Type = "nextbot"
 ENT.Base = "base_nextbot"
 ENT.PrintName = "Rouge gBalloon"
@@ -80,77 +78,140 @@ ENT.rotgb_spawns = {
 ENT.DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","towers"}
 
 ROTGB_GBALLOONS = {}
+ROTGB_CVARS = {}
+local R_INT = 1
+local R_FLOAT = 2
+local R_BOOL = 3
 
---local PopSaveCRC32 = util.CRC(file.Read("entities/gballoon_base.lua","LUA"))
+ROTGB_OPERATION_BLACKLIST = 1
+ROTGB_OPERATION_WAVE_TRANSFER = 2
+ROTGB_OPERATION_TRANSFER = 3
+ROTGB_OPERATION_ACHIEVEMENT = 4
+ROTGB_OPERATION_WAVE_EDIT = 5
 
-local ConE = CreateConVar("rotgb_max_effects_per_second","20",FCVAR_ARCHIVE,
+function ROTGB_Log(message,attrib)
+	if ROTGB_GetConVarValue("rotgb_debug"):find(attrib) then
+		MsgC(Color(0,255,0),"[RotgB] ",Color(255,255,0),string.FormattedTime(CurTime(),"[%02i:%02i.%02i]: "),Color(0,255,255),message,"\n")
+	end
+end
+
+function ROTGB_LogError(message,attrib)
+	if ROTGB_GetConVarValue("rotgb_debug"):find(attrib) then
+		MsgC(Color(0,255,0),"[RotgB] ",Color(255,255,0),string.FormattedTime(CurTime(),"[%02i:%02i.%02i]: "),Color(255,127,127),message,"\n")
+	end
+end
+
+function ROTGB_EntityLog(entity,message,attrib)
+	if ROTGB_GetConVarValue("rotgb_debug"):find(attrib) then
+		MsgC(Color(0,255,0),"[RotgB] ",Color(255,255,0),string.FormattedTime(CurTime(),"[%02i:%02i.%02i] "),color_white,tostring(entity)..": ",Color(0,255,255),message,"\n")
+	end
+end
+
+function ROTGB_EntityLogError(entity,message,attrib)
+	if ROTGB_GetConVarValue("rotgb_debug"):find(attrib) then
+		MsgC(Color(0,255,0),"[RotgB] ",Color(255,255,0),string.FormattedTime(CurTime(),"[%02i:%02i.%02i] "),color_white,tostring(entity)..": ",Color(255,127,127),message,"\n")
+	end
+end
+
+function ENT:Log(message,attrib)
+	ROTGB_EntityLog(self,message,attrib)
+end
+
+function ENT:LogError(message,attrib)
+	ROTGB_EntityLogError(self,message,attrib)
+end
+
+local function RegisterConVar(cvarName, default, retrieveType, description)
+	if ROTGB_CVARS[cvarName] then
+		ROTGB_LogError("The ConVar "..cvarName.." was already registered, expect side effects!","")
+	end
+	ROTGB_CVARS[cvarName] = {}
+	ROTGB_CVARS[cvarName][1] = CreateConVar(cvarName, default, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_REPLICATED), description)
+	ROTGB_CVARS[cvarName][2] = retrieveType
+end
+
+local function ConvertToAppropriateRetrieveType(value, cvar)
+	local retrieveType = ROTGB_CVARS[cvar][2]
+	if retrieveType == R_INT then
+		return math.floor(tonumber(value) or 0)
+	elseif retrieveType == R_FLOAT then
+		return tonumber(value) or 0
+	elseif retrieveType == R_BOOL then
+		return tobool(value)
+	else return value
+	end
+end
+
+function ROTGB_GetConVarValue(cvar)
+	if engine.ActiveGamemode() == "rotgb" then
+		local returnValue = hook.Run("ShouldConVarOverride", cvar)--GAMEMODE.Modes[hook.Run("GetCurrentMode")].convars[cvar] or GAMEMODE.Modes.__common.convars[cvar]
+		if returnValue then
+			if returnValue == true then
+				return ConvertToAppropriateRetrieveType(ROTGB_CVARS[cvar][1]:GetDefault(), cvar)
+			else
+				return ConvertToAppropriateRetrieveType(returnValue, cvar)
+			end
+		end
+	end
+	if ROTGB_CVARS[cvar] then
+		local conVar = ROTGB_CVARS[cvar][1]
+		local retrieveType = ROTGB_CVARS[cvar][2]
+		if retrieveType == R_INT then
+			return conVar:GetInt()
+		elseif retrieveType == R_FLOAT then
+			return conVar:GetFloat()
+		elseif retrieveType == R_BOOL then
+			return conVar:GetBool()
+		else return conVar:GetString()
+		end
+	else
+		ROTGB_LogError("Tried to retrieve value of unregistered ConVar "..cvar.."!","")
+		return 0
+	end
+end
+
+RegisterConVar("rotgb_max_effects_per_second","20",R_FLOAT,
 [[Maximum effects to show per second.
  - May also be a decimal value.]])
 
-local ConR = CreateConVar("rotgb_regen_delay","2",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_regen_delay","2",R_FLOAT,
 [[Amount of time it takes for a Regen gBalloon to regenerate one layer.]])
 
-local ConB = CreateConVar("rotgb_func_nav_expand","10",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_func_nav_expand","10",R_FLOAT,
 [[Additional bounding box size for func_nav_* entities.
  - Requires map restart to take effect.
  - The effects of this ConVar are only visible on mvm_* maps.]])
 
-local ConD = CreateConVar("rotgb_path_delay","20",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_path_delay","20",R_FLOAT,
 [[Pathway re-computation delay modifier.
  - Increase this value if you experience constant lag with far away gBalloons.]])
 
-local ConX = CreateConVar("rotgb_debug","",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
+RegisterConVar("rotgb_debug","",R_STRING,
 [[Shows verbose developer debug messages. Available arguments:
  - ]]..table.concat(ENT.DebugArgs,", ")..'\n'..
 [[ - You can seperate arguments with spaces.]])
 
---[=[local ConL = CreateConVar("rotgb_max_pops_per_hit","10000",FCVAR_ARCHIVE,
-[[Maximum number of pops that gBalloons experience per hit.
- - Excess damage is cut off and ignored.
- - Reduce this number if you lag when big gBalloons are being popped.]])]=]
-
---[=[local ConT = CreateConVar("rotgb_max_pop_ms","200",FCVAR_ARCHIVE,
-[[Maximum amount of time to use to calculate pops taken by the gBalloons, in ms.
- - If popping takes more time than this time limit, the rest of the damage is cut off.
- - Reduce this number if you lag when big gBalloons are being popped.]])]=]
-
---[=[local ConM = CreateConVar("rotgb_max_spawn_per_hit","32",FCVAR_ARCHIVE,
-[[Maximum amount of gBalloons to spawn in a single hit.
- - This is only considered if damage taken by a gBalloon is about to be cut off.
- - If there are too many resulting gBalloons, the popping process continues until this amount is reached, or no more damage is queued.
- - Reduce this number if you lag after successfully popping big gBalloons.]])]=]
-
-local ConH = CreateConVar("rotgb_max_to_exist","64",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_max_to_exist","64",R_INT,
 [[Maximum amount of gBalloons to exist at once.
  - Note that this is only enforced when gBalloons are popped, not when they are spawned.]])
--- This is only considered if damage taken by a gBalloon is about to be cut off.
--- If there are too many gBalloons, the popping process continues until this amount is reached, or no more damage is queued.
--- Reduce this number if you lag after successfully popping big gBalloons.
 
-local ConI = CreateConVar("rotgb_ignore_damage_resistances","0",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
+RegisterConVar("rotgb_ignore_damage_resistances","0",R_BOOL,
 [[Causes all gBalloons to lose all damage resistances, including armored gBalloons.]])
 
-local ConP = CreateConVar("rotgb_damage_multiplier","1",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_damage_multiplier","1",R_FLOAT,
 [[Modifies damage taken by gBalloons from attacks.
  - The actual number of pops they undergo can be calculated with the formula
  - pop_count = ceil( damage * 0.1 * <this multiplier> )]])
 
-local ConS = CreateConVar("rotgb_scale","1",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_scale","1",R_FLOAT,
 [[Modifies the scale of newer gBalloons.
  - This will also increase their hitbox size.]])
 
-local ConV = CreateConVar("rotgb_visual_scale","1",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_visual_scale","1",R_FLOAT,
 [[Visually modifies the scale of newer gBalloons.
  - This will not modify their hitbox.]])
 
---[=[local ConA = CreateConVar("rotgb_targetable_by_npc","0",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
-[[THIS CONVAR IS HIGHLY EXPERIMENTAL!
-
- - Causes gBalloons to be intialized in a different way.
- - This causes NPCs to be able to target the gBalloons.
- - However, it appears that they won't seem to fire their weapons at them.]])]=]
-
-local ConN = CreateConVar("rotgb_target_choice","3",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_target_choice","3",R_INT,
 [[Causes gBalloons to target:
  - 0 : None except for the gBalloon targets.
  - 1 : Players.
@@ -169,7 +230,7 @@ local ConN = CreateConVar("rotgb_target_choice","3",FCVAR_ARCHIVE,
  - Note: gBalloons will always target the gBalloon target whenever possible.
  - The ConVar ai_ignoreplayers will also modify player targeting and may cause this value to be silently subtracted by 1 if its odd.]])
 
-local ConQ = CreateConVar("rotgb_target_sort","0",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
+RegisterConVar("rotgb_target_sort","0",R_INT,
 [[Causes gBalloons to target:
 
  - 0 : the nearest enemy.
@@ -179,35 +240,38 @@ local ConQ = CreateConVar("rotgb_target_sort","0",bit.bor(FCVAR_ARCHIVE, FCVAR_N
 
  - -1 means target randomly.]])
 
-local ConG = CreateConVar("rotgb_search_size","-1",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_search_size","-1",R_FLOAT,
 [[Determines radius to search for enemies.
  - -1 means no limit.]])
 
-local ConY = CreateConVar("rotgb_target_tolerance","25",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_target_tolerance","32",R_FLOAT,
 [[Determines how close the gBalloons should be to a target before popping.]])
 
-local ConZ = CreateConVar("rotgb_setminlookaheaddistance","10",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_setminlookaheaddistance","10",R_FLOAT,
 [[I don't know what this does. See PathFollower:SetMinLookAheadDistance(number).]])
 
-local Con7 = CreateConVar("rotgb_cash_param","0",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
-[[Sets the cash value for rotgb_*cash commands.]])
+RegisterConVar("rotgb_cash_param","0",R_FLOAT,
+[[Sets the cash value for the rotgb_*cash ConCommands.]])
 
-concommand.Add("rotgb_cash_param_internal",function(ply,cmd,args,argStr) if (not IsValid(ply) or ply:IsAdmin()) then Con7:SetFloat(tonumber(args[1]) or 0) end end,nil,nil,FCVAR_UNREGISTERED)
+concommand.Add("rotgb_cash_param_internal",function(ply,cmd,args,argStr) if (not IsValid(ply) or ply:IsAdmin()) then ROTGB_CVARS["rotgb_cash_param"][1]:SetFloat(tonumber(args[1]) or 0) end end,nil,nil,FCVAR_UNREGISTERED)
 
-local Con11 = CreateConVar("rotgb_individualcash","0",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_REPLICATED),
+RegisterConVar("rotgb_individualcash","0",R_BOOL,
 [[Sets whether cash is shared or split among players.]])
 
 local function CreateCfunction(fname,vname)
 	return function(ply,cmd,args,argStr)
+		if engine.ActiveGamemode() == "rotgb" then
+			ROTGB_Log("Access denied.","")
+		end
 		if (not IsValid(ply) or ply:IsAdmin()) then
-			if Con11:GetBool() then
+			if ROTGB_GetConVarValue("rotgb_individualcash") then
 				if table.IsEmpty(args) then
 					ROTGB_Log("Usage: ",vname," <amount> [player]\nOr: ",vname," * [player]","")
 				else
 					local num = table.remove(args,1)
 					if next(args) then
 						if args[1] == '*' then
-							_G[fname](tonumber(num) or Con7:GetFloat())
+							_G[fname](tonumber(num) or ROTGB_GetConVarValue("rotgb_cash_param"))
 						else
 							ply = nil
 							local name = table.concat(args," ")
@@ -219,11 +283,11 @@ local function CreateCfunction(fname,vname)
 							end
 						end
 					else
-						_G[fname](tonumber(num) or Con7:GetFloat(),ply)
+						_G[fname](tonumber(num) or ROTGB_GetConVarValue("rotgb_cash_param"),ply)
 					end
 				end
 			else
-				_G[fname](tonumber(num) or Con7:GetFloat())
+				_G[fname](tonumber(num) or ROTGB_GetConVarValue("rotgb_cash_param"))
 			end
 		end
 	end
@@ -245,32 +309,21 @@ concommand.Add("rotgb_subcash",CreateCfunction("ROTGB_RemoveCash","rotgb_subcash
 [[Admin only command.
  - Subtracts cash by input or the rotgb_cash_param ConVar.]])
 
-local ConO = CreateConVar("rotgb_cash_mul","1",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_cash_mul","1",R_FLOAT,
 [[Sets the cash multiplier.]])
 
-local ConC = CreateConVar("rotgb_speed_mul","1",FCVAR_ARCHIVE,
-[[Sets the speed multiplier.]])
+RegisterConVar("rotgb_speed_mul","1",R_FLOAT,
+[[Sets the gBalloon speed multiplier.]])
 
---[=[local ConU = CreateConVar("rotgb_popsave","1",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
-[[Sets whether or not pop results are saved in memory.
- - This can save time when popping large groups of the same type of gBalloon at once.
- - This memory is kept even after the server shuts down.
- - If this option is enabled, all Hit Optimization settings will not function.
- - However, this can help the game to run more smoothly.]])]=]
-
---[=[local ConF = CreateConVar("rotgb_popsave_autosave_interval","120",FCVAR_ARCHIVE,
-[[Seconds between autosaving of pop results.
- - Increase this value if you experience lag spikes.]])]=]
-
-local ConJ = CreateConVar("rotgb_health_multiplier","1",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_health_multiplier","1",R_FLOAT,
 [[Modifies health of gBalloons. This includes gBlimps.
  - See rotgb_blimp_health_multiplier to modify gBlimp health only.]])
 
-local ConK = CreateConVar("rotgb_blimp_health_multiplier","1",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_blimp_health_multiplier","1",R_FLOAT,
 [[Modifies health of gBlimps only.
  - See rotgb_health_multiplier to modify all gBalloons' health.]])
 
-local ConW = CreateConVar("rotgb_pop_on_contact","0",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_pop_on_contact","0",R_INT,
 [[While a gBalloon travels, it may hit other entities in its path.
  - This option causes gBalloons to pop when colliding with:
  - 1 : Players.
@@ -287,41 +340,41 @@ local ConW = CreateConVar("rotgb_pop_on_contact","0",FCVAR_ARCHIVE,
  - -1 means any potential targets (see the 'rotgb_target_choice' ConVar).
  - -2 means Pop On Contact with All Entities That Have Health.]])
 
-local Con0 = CreateConVar("rotgb_use_custom_pathfinding","1",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
+RegisterConVar("rotgb_use_custom_pathfinding","1",R_BOOL,
 [[Causes gBalloons to use the custom pathfinding algorithm.
  - Disabling this option may drastically improve performance, but gBalloons will not obey func_nav_* entities and may cross over areas that were marked to be avoided.]])
 
-local Con1 = CreateConVar("rotgb_legacy_gballoons","0",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
-[[Causes gBalloons to use old models instead, as seen in the screenshots of the addon.]])
+RegisterConVar("rotgb_legacy_gballoons","0",R_BOOL,
+[[Causes gBalloons to use the old no-effect models instead.]])
 
-local Con2 = CreateConVar("rotgb_pertain_effects","0",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
+RegisterConVar("rotgb_pertain_effects","0",R_BOOL,
 [[Only functional when Legacy Models are enabled (see the 'rotgb_legacy_gballoons' ConVar).
  - gBalloons will pertain rendering effects from the newer models.]])
 
-local Con3 = CreateConVar("rotgb_freeplay","1",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_REPLICATED),
-[[Enables gBalloon Spawners to keep generating waves after wave 120 is beaten.]])
+RegisterConVar("rotgb_freeplay","1",R_BOOL,
+[[Enables gBalloon Spawners to keep generating waves after the final wave is beaten.]])
 
-local Con4 = CreateConVar("rotgb_rainbow_gblimp_regen_rate","3",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_rainbow_gblimp_regen_rate","3",R_FLOAT,
 [[Health healed by the Rainbow gBlimp per tick. 200 ticks occur every 3 seconds.]])
 
-local Con5 = CreateConVar("rotgb_afflicted_damage_multiplier","1",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_afflicted_damage_multiplier","1",R_FLOAT,
 [[Multiplier of damage dealt by the gBalloons when they hit something.]])
 
-local Con6 = CreateConVar("rotgb_tower_range_multiplier","1",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_tower_range_multiplier","1",R_FLOAT,
 [[Multiplier for the towers' ranges.]])
 
-local Con8 = CreateConVar("rotgb_ignore_upgrade_limits","0",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
+RegisterConVar("rotgb_ignore_upgrade_limits","0",R_BOOL,
 [[Causes towers to be fully upgradable on all paths.]])
 
-local Con9 = CreateConVar("rotgb_resist_effect_delay","1",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_resist_effect_delay","1",R_FLOAT,
 [[Sets the delay between "Resist!" text effects shown by the gBalloons.
  - A value of -1 disables the effect altogether.]])
 
-local Con10 = CreateConVar("rotgb_tower_maxcount","-1",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_tower_maxcount","-1",R_INT,
 [[Sets the maximum number of towers allowed.
  - A value of -1 disables this restriction.]])
 
-local Con12 = CreateConVar("rotgb_bloodtype","-1",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_bloodtype","-1",R_INT,
 [[Sets the blood type that gBalloons spew when hurt / killed. Default is -1 which is none.
  - Available values (taken from developer notes, may be inaccurate):
  - 0 : Red
@@ -336,65 +389,41 @@ local Con12 = CreateConVar("rotgb_bloodtype","-1",FCVAR_ARCHIVE,
  - 15 : VVV  CUSTOM  VVV
  - 16 : Custom, based on rotgb_blooddecal]])
 
-local ConA = CreateConVar("rotgb_blooddecal","",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
+RegisterConVar("rotgb_blooddecal","",R_STRING,
 [[If rotgb_bloodtype is 16, this sets the decal material to leave. Possible types:
  - ]] .. table.concat(list.Get("PaintMaterials"),", ") .. ".")
 
---[=[local Con10 = CreateConVar("rotgb_blacklist","",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
-[[Disallows certain types of towers / gBalloons to be spawned.
- - Only accepts ClassNames. To copy the ClassName of a tower / gBalloon, right click on it in the spawnmenu and hit "Copy to Clipboard".
- - For gBalloons, only the Basic version (AKA without modifiers) needs to be specified to disallow all of the same type (including modifiers).
- - You can separate arguments with spaces.]])]=]
-
-local Con13 = CreateConVar("rotgb_fire_delay","1",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_fire_delay","1",R_FLOAT,
 [[Amount of time it takes for fire to damage a gBalloon.]])
 
-local Con14 = CreateConVar("rotgb_init_rate","-1",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_init_rate","-1",R_FLOAT,
 [[Maximum number of gBalloons to enable AI per second.
  - A value of -1 means that gBalloons will always have their AI enabled upon spawn.]])
 
---[=[local Con15 = CreateConVar("rotgb_extratargets","0",FCVAR_ARCHIVE,
-[[Causes Anti-gBalloon Towers to target:
- - 0 : Only gBalloons.
- - 1 : Players.
- - 2 : Citizens/Rebels.
- - 4 : Combine troops.
- - 8 : Zombies.
- - 16 : Antlions.
- - 32 : Other HL2 NPCs.
- - 64 : SNPCs.
- - 128 : All NextBots.
- - 256 : Props and destructibles that have health.
-
- - Note: You can combine the values above. "28" (4+8+16) will cause Anti-gBalloon Towers to target Combine troops, zombies and antlions.
- - -1 means Target All Entities That Have Health.
-
- - Note: Anti-gBalloon Towers will always target gBalloons.]])]=]
-
-local Con15 = CreateConVar("rotgb_notrails","0",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
+RegisterConVar("rotgb_notrails","0",R_BOOL,
 [[Enabling this option will cause fast gBalloons to not have trails.]])
  
-local ConL = CreateConVar("rotgb_use_custom_ai","0",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_use_custom_ai","0",R_BOOL,
 [[Only functional when Custom Pathfinding is enabled (see the 'rotgb_use_custom_pathfinding' ConVar).
  - Causes gBalloons to use a completely custom AI for navigation.
- - This may increase performance but is otherwise experimental. Use at your own risk.]])
+ - This may increase performance but is otherwise EXPERIMENTAL. Use at your own risk.]])
 
-local ConM = CreateConVar("rotgb_starting_cash","850",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_starting_cash","850",R_FLOAT,
 [[Amount of starting cash every player gets.
  - Cash is reset upon leaving the server.]])
 
-local ConT = CreateConVar("rotgb_crit_effect_delay","0",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_crit_effect_delay","0",R_FLOAT,
 [[Sets the delay between "Crit!" text effects shown by the gBalloons.
  - A value of -1 disables the effect altogether.]])
 
-local ConF = CreateConVar("rotgb_use_kill_handler","0",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_use_kill_handler","0",R_BOOL,
 [[Enabling this option will cause gBalloons to trigger on-kill effects when popped.]])
 
-local ConU = CreateConVar("rotgb_use_achievement_handler","1",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_use_achievement_handler","1",R_INT,
 [[Enabling this option will cause popping gBalloons to count towards the Popper achievement.
  - If 2 and above, the achievement is incremented for each pop (which can cause massive lag). Otherwise multiple pops on the same gBalloon will only increment the achievement counter once.]])
 
-local Con16 = CreateConVar("rotgb_difficulty","1",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_difficulty","1",R_FLOAT,
 [[Sets the difficulty of RotgB.
  - Available values:
  - 0: Easy (x0.8 tower costs)
@@ -402,73 +431,37 @@ local Con16 = CreateConVar("rotgb_difficulty","1",FCVAR_ARCHIVE,
  - 2: Hard (x1.2 tower costs)
  - 3: Insane (x1.4 tower costs)
  
- - Note: The prices displayed in the spawn menu are always the Normal difficulty prices due to the spawn menu being static (name changes are not shown).]])
+ - Note: The prices displayed in the spawnmenu are always the Normal difficulty prices due to the spawnmenu being static (names cannot be changed).]])
 
-local Con17 = CreateConVar("rotgb_tower_income_mul","1",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_tower_income_mul","1",R_FLOAT,
 [[Similar to the 'rotgb_cash_mul' ConVar, but only affects tower-generated income.]])
 
-local Con18 = CreateConVar("rotgb_default_wave_preset","",bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY),
+RegisterConVar("rotgb_default_wave_preset","",R_STRING,
 [[Newly-spawned gBalloon Spawners will have this wave preset. Default is "" which are the default waves.]])
 
-local Con19 = CreateConVar("rotgb_default_last_wave","120",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_default_last_wave","120",R_INT,
 [[Newly-spawned gBalloon Spawners will stop spawning more gBalloons after this wave, unless the rotgb_freeplay ConVar is enabled.]])
 
-local Con20 = CreateConVar("rotgb_default_first_wave","1",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_default_first_wave","1",R_INT,
 [[Newly-spawned gBalloon Spawners will start from this wave.]])
 
-local Con21 = CreateConVar("rotgb_target_health_override","0",FCVAR_ARCHIVE,
+RegisterConVar("rotgb_target_health_override","0",R_FLOAT,
 [[If above 0, all newly-spawned gBalloon Targets will start at this much health regardless of settings.]])
+
+RegisterConVar("rotgb_tower_damage_others","0",R_BOOL,
+[[If set, all towers will be able to damage non-gBalloon entities.]])
+
+RegisterConVar("rotgb_target_natural_health","100",R_FLOAT,
+[[Sets the "natural" health of gBalloon Targets. Only works if it isn't overridden by the map.]])
+
+RegisterConVar("rotgb_tower_ignore_physgun","0",R_BOOL,
+[[If set, towers cannot be moved by the Physics Gun.]])
 
 concommand.Add("rotgb_reset_convars",function(ply,cmd,args,argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
-		ConA:Revert()
-		ConB:Revert()
-		ConC:Revert()
-		ConD:Revert()
-		ConE:Revert()
-		ConF:Revert()
-		ConG:Revert()
-		ConH:Revert()
-		ConI:Revert()
-		ConJ:Revert()
-		ConK:Revert()
-		ConL:Revert()
-		ConM:Revert()
-		ConN:Revert()
-		ConO:Revert()
-		ConP:Revert()
-		ConQ:Revert()
-		ConR:Revert()
-		ConS:Revert()
-		ConT:Revert()
-		ConU:Revert()
-		ConV:Revert()
-		ConW:Revert()
-		ConX:Revert()
-		ConY:Revert()
-		ConZ:Revert()
-		Con0:Revert()
-		Con1:Revert()
-		Con2:Revert()
-		Con3:Revert()
-		Con4:Revert()
-		Con5:Revert()
-		Con6:Revert()
-		Con7:Revert()
-		Con8:Revert()
-		Con9:Revert()
-		Con10:Revert()
-		Con11:Revert()
-		Con12:Revert()
-		Con13:Revert()
-		Con14:Revert()
-		Con15:Revert()
-		Con16:Revert()
-		Con17:Revert()
-		Con18:Revert()
-		Con19:Revert()
-		Con20:Revert()
-		Con21:Revert()
+		for k,v in pairs(ROTGB_CVARS) do
+			v[1]:Revert()
+		end
 	end
 end,nil,
 [[Admin only command.
@@ -503,7 +496,7 @@ ROTGB_WHITELIST = ROTGB_WHITELIST or {}
 concommand.Add("rotgb_blacklist",function(ply,cmd,args,argStr)
 	if (IsValid(ply) and ply:IsAdmin()) and SERVER then
 		net.Start("rotgb_generic")
-		net.WriteString("blacklist_editor")
+		net.WriteUInt(ROTGB_OPERATION_BLACKLIST, 8)
 		net.WriteUInt(#ROTGB_BLACKLIST,32)
 		for k,v in pairs(ROTGB_BLACKLIST) do
 			net.WriteString(v[1])
@@ -523,7 +516,7 @@ end,nil,
 concommand.Add("rotgb_waveeditor",function(ply,cmd,args,argStr)
 	if IsValid(ply) and SERVER then
 		net.Start("rotgb_generic")
-		net.WriteString("wave_editor")
+		net.WriteUInt(ROTGB_OPERATION_WAVE_EDIT, 8)
 		net.Send(ply)
 	end
 end,nil,
@@ -532,6 +525,7 @@ end,nil,
 
 if SERVER then
 	local reqgen
+	local nextCashThink = 5
 	--util.AddNetworkString("NavmeshMissing")
 	util.AddNetworkString("rotgb_generic")
 	--[[net.Receive("NavmeshMissing",function()
@@ -551,8 +545,8 @@ if SERVER then
 		end
 	end)]]
 	net.Receive("rotgb_generic",function(length, ply)
-		local operation = net.ReadString()
-		if operation == "blacklist_editor" and ply:IsAdmin() then
+		local operation = net.ReadUInt(8)
+		if operation == ROTGB_OPERATION_BLACKLIST and ply:IsAdmin() then
 			ROTGB_BLACKLIST, ROTGB_WHITELIST = {}, {}
 			for i=1, net.ReadUInt(32) do
 				table.insert(ROTGB_BLACKLIST, {net.ReadString(), net.ReadUInt(8)})
@@ -564,7 +558,7 @@ if SERVER then
 			other_data.blacklist = ROTGB_BLACKLIST
 			other_data.whitelist = ROTGB_WHITELIST
 			file.Write("rotgb_data.txt",util.TableToJSON(other_data))
-		elseif operation == "wave_transfer" and ply:IsAdmin() then
+		elseif operation == ROTGB_OPERATION_WAVE_TRANSFER and ply:IsAdmin() then
 			ROTGB_WAVEPARTS = ROTGB_WAVEPARTS or {}
 			local wavename, totalpackets, currentpacket, bytes = net.ReadString(), net.ReadUInt(16), net.ReadUInt(16), net.ReadUInt(16)
 			local datachunk = net.ReadData(bytes)
@@ -574,49 +568,39 @@ if SERVER then
 				file.Write("rotgb_wavedata/"..wavename..".dat",table.concat(ROTGB_WAVEPARTS[wavename]))
 				PrintMessage(HUD_PRINTTALK, "\""..wavename.."\" assembled successfully.")
 			end
-		elseif operation == "settower" then
-			local wep = ply:GetActiveWeapon()
-			if (IsValid(wep) and wep:GetClass()=="rotgb_multitool" and wep:GetMode()==1) then
-				local desiredtower = net.ReadUInt(8)
-				if wep.TowerTable[desiredtower+1] then
-					wep:SetCurrentTower(desiredtower)
-				end
+		elseif operation == ROTGB_OPERATION_TRANSFER then
+			local ply2 = net.ReadEntity()
+			if IsValid(ply2) and ply2:IsPlayer() and ply ~= ply2 then
+				local transferAmount = ROTGB_GetTransferAmount(ply)
+				ROTGB_AddCash(transferAmount, ply2)
+				ROTGB_RemoveCash(transferAmount, ply)
 			end
 		end
 	end)
 	hook.Add("Think","RotgB",function()
-		--[[if reqgen and not navmesh.IsGenerating() then
-			reqgen = nil
-			net.Start("NavmeshMissing")
-			net.WriteBool(true)
-			net.Broadcast()
-		end]]
-		--[[if ticktime < CurTime() then
-			ticktime = CurTime() + ConF:GetFloat()
-			if ConU:GetBool() then
-				local data = util.Compress(util.TableToJSON(POP_PREDICTIONS))
-				file.Write("rotgb_pop_memory.dat",data)
-				ROTGB_Log("Saved PopSave data. Size: "..string.NiceSize(#data),"popping")
-			end
-		end]]
-		if Con14:GetFloat()>=0 and ticktime2 < CurTime() then
-			ticktime2 = CurTime() + 1/Con14:GetFloat()
+		local initRate = ROTGB_GetConVarValue("rotgb_init_rate")
+		if initRate>=0 and ticktime2 < CurTime() then
+			ticktime2 = CurTime() + 1/initRate
 			for k,v in pairs(ROTGB_GBALLOONS) do
 				if IsValid(v) and not v.AIEnabled then
 					v.AIEnabled = true
 				end
 			end
 		end
+		if nextCashThink < CurTime() then
+			nextCashThink = CurTime() + 5
+			if not ROTGB_CASH then
+				ROTGB_SetCash(ROTGB_GetConVarValue("rotgb_starting_cash"))
+			else
+				for k,v in pairs(player.GetAll()) do
+					if not v.ROTGB_CASH then
+						ROTGB_SetCash(ROTGB_GetConVarValue("rotgb_starting_cash"), v)
+					end
+				end
+			end
+		end
 	end)
 	hook.Add("InitPostEntity","RotgB",function()
-		--[[PopSaveCRC32 = util.CRC(file.Read("entities/gballoon_base.lua","LUA"))
-		POP_PREDICTIONS = util.JSONToTable(util.Decompress(file.Read("rotgb_pop_memory.dat","DATA") or "") or "") or POP_PREDICTIONS or {}
-		if POP_PREDICTIONS.SCRIPT_CRC32~=PopSaveCRC32 then
-			ROTGB_Log("PopSave CRC mismatch! (Expected "..tostring(POP_PREDICTIONS.SCRIPT_CRC32)..", Got "..PopSaveCRC32..")","popping")
-			ROTGB_Log("The script must've been updated. Clearing PopSave cache.","popping")
-			table.Empty(POP_PREDICTIONS)
-			POP_PREDICTIONS.SCRIPT_CRC32=PopSaveCRC32
-		end]]
 		local other_data = util.JSONToTable(file.Read("rotgb_data.txt","DATA") or "") or {}
 		if other_data.blacklist then
 			ROTGB_BLACKLIST = other_data.blacklist
@@ -632,8 +616,6 @@ local entitiestoconsider = {}
 function ENT:KeyValue(key,value)
 	self.Properties = self.Properties or {}
 	self.Properties[key] = value
-	-- self:Log("NEW KEY")
-	-- PrintTable(self.Properties)
 end
 
 function ENT:AcceptInput(input,activator,caller,data)
@@ -653,7 +635,8 @@ end
 function ENT:GetBalloonProperty(key)
 	self.Properties = self.Properties or {}
 	if not self.PropertyConverted then
-		self.PropertyConverted = true
+		local useLegacy = ROTGB_GetConVarValue("rotgb_legacy_gballoons")
+		local noTrails = ROTGB_GetConVarValue("rotgb_notrails")
 		self.Properties.BalloonFast = tobool(self.Properties.BalloonFast)
 		self.Properties.BalloonMoveSpeed = self.Properties.BalloonMoveSpeed or 100
 		self.Properties.BalloonScale = self.Properties.BalloonScale or 1
@@ -662,9 +645,17 @@ function ENT:GetBalloonProperty(key)
 		self.Properties.BalloonHealth = self.Properties.BalloonHealth or 1
 		self.Properties.BalloonRainbow = tobool(self.Properties.BalloonRainbow)
 		self.Properties.BalloonHidden = tobool(self.Properties.BalloonHidden)
-		self.Properties.BalloonColor = self.Properties.BalloonRainbow and string.FromColor(HSVToColor(math.random(0,360),1,1)) or self.Properties.BalloonColor or "255 0 0 255"
-		self.Properties.BalloonMaterial = self.Properties.BalloonMaterial or Con1:GetBool() and self.Properties.BalloonShielded and "models/balloon/balloon_star" or self.Properties.BalloonDoRegen and "models/balloon/balloon_classicheart" or (Con1:GetBool() or Con15:GetBool()) and self.Properties.BalloonFast and "models/balloon/balloon_dog" or "models/balloon/balloon"
-		self.Properties.BalloonModel = self.Properties.BalloonModel or Con1:GetBool() and self.Properties.BalloonShielded and "models/balloons/balloon_star.mdl" or self.Properties.BalloonDoRegen and "models/balloons/balloon_classicheart.mdl" or (Con1:GetBool() or Con15:GetBool()) and self.Properties.BalloonFast and "models/balloons/balloon_dog.mdl" or "models/maxofs2d/balloon_classic.mdl"
+		self.Properties.BalloonColor = self.Properties.BalloonColor or "255 255 255 127"
+		self.Properties.BalloonMaterial = self.Properties.BalloonMaterial
+			or useLegacy and self.Properties.BalloonShielded and "models/balloon/balloon_star"
+			or self.Properties.BalloonRegen and "models/balloon/balloon_classicheart"
+			or (useLegacy or noTrails) and self.Properties.BalloonFast and "models/balloon/balloon_dog"
+			or "models/balloon/balloon"
+		self.Properties.BalloonModel = self.Properties.BalloonModel
+			or useLegacy and self.Properties.BalloonShielded and "models/balloons/balloon_star.mdl"
+			or self.Properties.BalloonRegen and "models/balloons/balloon_classicheart.mdl"
+			or (useLegacy or noTrails) and self.Properties.BalloonFast and "models/balloons/balloon_dog.mdl"
+			or "models/maxofs2d/balloon_classic.mdl"
 		self.Properties.BalloonPopSound = self.Properties.BalloonPopSound or "garrysmod/balloon_pop_cute.wav"
 		self.Properties.BalloonType = self.Properties.BalloonType or "gballoon_red"
 		self.Properties.BalloonBlack = tobool(self.Properties.BalloonBlack)
@@ -673,9 +664,10 @@ function ENT:GetBalloonProperty(key)
 		self.Properties.BalloonGray = tobool(self.Properties.BalloonGray)
 		self.Properties.BalloonAqua = tobool(self.Properties.BalloonAqua)
 		self.Properties.BalloonBlimp = tobool(self.Properties.BalloonBlimp)
-		self.Properties.BalloonDoRegen = tobool(self.Properties.BalloonDoRegen)
+		self.Properties.BalloonRegen = tobool(self.Properties.BalloonRegen)
 		self.Properties.BalloonVoid = tobool(self.Properties.BalloonVoid)
 		self.Properties.BalloonGlass = tobool(self.Properties.BalloonGlass)
+		self.PropertyConverted = true
 	end
 	return tonumber(self.Properties[key]) or self.Properties[key]
 end
@@ -696,19 +688,17 @@ function ENT:RegistergBalloon()
 	ROTGB_GBALLOONS[self:EntIndex()] = self
 end
 
-function ENT:CleangBalloonTable()
+function ROTGB_GetBalloons()
 	for k,v in pairs(ROTGB_GBALLOONS) do
 		if not IsValid(v) then ROTGB_GBALLOONS[k] = nil end
 	end
-end
-
-function ENT:GetgBalloons()
-	self:CleangBalloonTable()
 	return table.ClearKeys(ROTGB_GBALLOONS)
 end
 
-function ENT:GetgBalloonCount()
-	self:CleangBalloonTable()
+function ROTGB_GetBalloonCount()
+	for k,v in pairs(ROTGB_GBALLOONS) do
+		if not IsValid(v) then ROTGB_GBALLOONS[k] = nil end
+	end
 	return table.Count(ROTGB_GBALLOONS)
 end
 
@@ -719,13 +709,14 @@ end
 local notifshown
 
 function ENT:Initialize()
+	self:RegistergBalloon()
 	if SERVER then
 		local failslist
 		for k,v in pairs(ROTGB_BLACKLIST) do
 			if v[1] == "gballoon_*" or self:GetBalloonProperty("BalloonBlimp") and v[1] == "gballoon_blimp_*" or self:GetBalloonProperty("BalloonType") == v[1] then
 				local bitcondition = Either(self:GetBalloonProperty("BalloonFast"), HasAllBits(v[2],1), HasAllBits(v[2],2))
 				bitcondition = bitcondition or Either(self:GetBalloonProperty("BalloonHidden"), HasAllBits(v[2],4), HasAllBits(v[2],8))
-				bitcondition = bitcondition or Either(self:GetBalloonProperty("BalloonDoRegen"), HasAllBits(v[2],16), HasAllBits(v[2],32))
+				bitcondition = bitcondition or Either(self:GetBalloonProperty("BalloonRegen"), HasAllBits(v[2],16), HasAllBits(v[2],32))
 				bitcondition = bitcondition or Either(self:GetBalloonProperty("BalloonShielded"), HasAllBits(v[2],64), HasAllBits(v[2],128))
 				
 				if bitcondition then
@@ -738,7 +729,7 @@ function ENT:Initialize()
 				if v[1] == "gballoon_*" or self:GetBalloonProperty("BalloonBlimp") and v[1] == "gballoon_blimp_*" or self:GetBalloonProperty("BalloonType") == v[1] then
 					local bitcondition = Either(self:GetBalloonProperty("BalloonFast"), HasAllBits(v[2],1), HasAllBits(v[2],2))
 					bitcondition = bitcondition or Either(self:GetBalloonProperty("BalloonHidden"), HasAllBits(v[2],4), HasAllBits(v[2],8))
-					bitcondition = bitcondition or Either(self:GetBalloonProperty("BalloonDoRegen"), HasAllBits(v[2],16), HasAllBits(v[2],32))
+					bitcondition = bitcondition or Either(self:GetBalloonProperty("BalloonRegen"), HasAllBits(v[2],16), HasAllBits(v[2],32))
 					bitcondition = bitcondition or Either(self:GetBalloonProperty("BalloonShielded"), HasAllBits(v[2],64), HasAllBits(v[2],128))
 					
 					if bitcondition then
@@ -750,7 +741,6 @@ function ENT:Initialize()
 				return self:Remove()
 			end
 		end
-		self:RegistergBalloon()
 		if not (navmesh.IsLoaded() or notifshown) and game.SinglePlayer() then
 			PrintMessage(HUD_PRINTTALK, "No NavMesh found! Please generate one first!")
 			notifshown = true
@@ -762,7 +752,7 @@ function ENT:Initialize()
 			model = self:GetBalloonProperty("BalloonModel")
 		end
 		self:SetModel(model)
-		self:SetModelScale(self:GetBalloonProperty("BalloonScale")*ConS:GetFloat())
+		self:SetModelScale(self:GetBalloonProperty("BalloonScale")*ROTGB_GetConVarValue("rotgb_scale"))
 		local desiredCol = self:GetBalloonProperty("BalloonRainbow") and Color(255,255,255) or string.ToColor(self:GetBalloonProperty("BalloonColor"))
 		if self:GetBalloonProperty("BalloonHidden") then
 			self:SetNWBool("BalloonHidden",true)
@@ -771,7 +761,12 @@ function ENT:Initialize()
 		end
 		self:SetColor(desiredCol)
 		self:SetMaterial(self:GetBalloonProperty("BalloonMaterial"))
-		local hp = math.Round(self:GetBalloonProperty("BalloonHealth")*(self:GetBalloonProperty("BalloonShielded") and 2 or 1)*(self:GetBalloonProperty("BalloonBlimp") and ConK:GetFloat() or 1)*ConJ:GetFloat())
+		local hp = math.Round(
+			self:GetBalloonProperty("BalloonHealth")
+			*(self:GetBalloonProperty("BalloonShielded") and 2 or 1)
+			*(self:GetBalloonProperty("BalloonBlimp") and ROTGB_GetConVarValue("rotgb_blimp_health_multiplier") or 1)
+			*ROTGB_GetConVarValue("rotgb_health_multiplier")
+		)
 		if self.SetHealth then
 			self:SetMaxHealth(hp)
 			self:SetHealth(hp)
@@ -779,13 +774,13 @@ function ENT:Initialize()
 			self:LogError("gBalloon health is bugged out!","damage")
 		end
 		self:SetCollisionGroup(COLLISION_GROUP_INTERACTIVE_DEBRIS)
-		self:SetBloodColor(Con12:GetInt()<7 and Con12:GetInt() or DONT_BLEED)
-		--[=[if not IsValid(self.Attractor) and ConA:GetFloat()>0 then
+		self:SetBloodColor(ROTGB_GetConVarValue("rotgb_bloodtype")<7 and ROTGB_GetConVarValue("rotgb_bloodtype") or DONT_BLEED)
+		--[=[if not IsValid(self.Attractor) then
 			local filterbits = 0
 			self.Attractor = ents.Create("npc_bullseye")
 			self.Attractor:SetPos(self:GetPos())
 			self.Attractor:SetParent(self)
-			self.Attractor:SetModelScale(self:GetModelScale()*ConA:GetFloat())
+			self.Attractor:SetModelScale(self:GetModelScale())
 			self.Attractor:SetHealth(self:Health()*10)
 			self.Attractor:SetMaxHealth(self:GetMaxHealth()*10)
 			if self:GetBalloonProperty("BalloonBlack") then filterbits = filterbits+DMG_BLAST+DMG_BLAST_SURFACE end
@@ -793,7 +788,7 @@ function ENT:Initialize()
 			if self:GetBalloonProperty("BalloonPurple") then filterbits = filterbits+DMG_BURN+DMG_SHOCK+DMG_ENERGYBEAM+DMG_REMOVENORAGDOLL+DMG_PLASMA+DMG_DISSOLVE end
 			if self:GetBalloonProperty("BalloonGray") then filterbits = filterbits+DMG_BULLET+DMG_SLASH+DMG_BUCKSHOT end
 			if self:GetBalloonProperty("BalloonAqua") then filterbits = filterbits+DMG_CRUSH+DMG_VEHICLE+DMG_FALL+DMG_CLUB+DMG_PHYSGUN end
-			if filterbits > 0 and not (ConI:GetBool() or self:HasRotgBStatusEffect("unimmune")) then
+			if filterbits > 0 and not (ROTGB_GetConVarValue("rotgb_ignore_damage_resistances") or self:HasRotgBStatusEffect("unimmune")) then
 				self.Attractor.Filter = ents.Create("filter_damage_type")
 				self.Attractor.Filter:SetKeyValue("damagetype",filterbits)
 				self.Attractor.Filter:SetKeyValue("Negated",1)
@@ -821,20 +816,22 @@ function ENT:Initialize()
 				end
 			end)]]
 		end]=]
-		if self:GetBalloonProperty("BalloonPurple") and not (self:GetBalloonProperty("BalloonHidden") or Con1:GetBool() and not Con2:GetBool()) then
+		local pertainEffects = ROTGB_GetConVarValue("rotgb_pertain_effects")
+		local useLegacy = ROTGB_GetConVarValue("rotgb_legacy_gballoons")
+		if self:GetBalloonProperty("BalloonPurple") and not (self:GetBalloonProperty("BalloonHidden") or useLegacy and not pertainEffects) then
 			self:SetNWBool("BalloonPurple",true)
 		end
-		if self:GetBalloonProperty("BalloonShielded") and self:Health()*2>self:GetMaxHealth() and (not Con1:GetBool() or Con2:GetBool()) then
+		if self:GetBalloonProperty("BalloonShielded") and self:Health()*2>self:GetMaxHealth() and (not useLegacy or pertainEffects) then
 			self:SetNWBool("RenderShield",true)
 		end
-		if self:GetBalloonProperty("BalloonFast") and not (Con1:GetBool() and not Con2:GetBool() or Con15:GetBool()) then
+		if self:GetBalloonProperty("BalloonFast") and not (useLegacy and not pertainEffects or ROTGB_GetConVarValue("rotgb_notrails")) then
 			if IsValid(self.FastTrail) then self.FastTrail:Remove() end
 			local col = self:GetBalloonProperty("BalloonRainbow") and Color(255,255,255) or string.ToColor(self:GetBalloonProperty("BalloonColor"))
 			col.a = self:GetBalloonProperty("BalloonHidden") and col.a/4 or col.a
 			self.FastTrail = util.SpriteTrail(self,0,col,false,self:BoundingRadius()*2,0,1,0.125,self:GetBalloonProperty("BalloonRainbow") and "beams/rainbow1.vmt" or "effects/beam_generic01.vmt")
 		end
 		--self:AddRelationship("player D_HT 30")
-		local mask = ConN:GetInt()
+		local mask = ROTGB_GetConVarValue("rotgb_target_choice")
 		for k,v in pairs(ents.GetAll()) do
 			if v:IsNPC() then
 				if mask<0 and v:Health()>0 and v:GetClass()~="gballoon_base" then
@@ -856,7 +853,7 @@ function ENT:Initialize()
 	if CLIENT then
 		local matrix = Matrix()
 		self.VModelScale = Vector(1,1,1)
-		self.VModelScale:Mul(ConV:GetFloat())
+		self.VModelScale:Mul(ROTGB_GetConVarValue("rotgb_visual_scale"))
 		matrix:Scale(self.VModelScale)
 		self:EnableMatrix("RenderMultiply",matrix)
 	end
@@ -880,30 +877,6 @@ end
 function ENT:Health(num)
 	self:GetNWInt("Health",0)
 end]]
-
-function ROTGB_Log(message,attrib)
-	if ConX:GetString():find(attrib) then
-		MsgC(Color(0,255,0),"[RotgB] ",Color(255,255,0),string.FormattedTime(CurTime(),"[%02i:%02i.%02i]: "),Color(0,255,255),message,"\n")
-	end
-end
-
-function ROTGB_LogError(message,attrib)
-	if ConX:GetString():find(attrib) then
-		MsgC(Color(0,255,0),"[RotgB] ",Color(255,255,0),string.FormattedTime(CurTime(),"[%02i:%02i.%02i]: "),Color(255,127,127),message,"\n")
-	end
-end
-
-function ENT:Log(message,attrib)
-	if ConX:GetString():find(attrib) then
-		MsgC(Color(0,255,0),"[RotgB] ",Color(255,255,0),string.FormattedTime(CurTime(),"[%02i:%02i.%02i] "),color_white,tostring(self)..": ",Color(0,255,255),message,"\n")
-	end
-end
-
-function ENT:LogError(message,attrib)
-	if ConX:GetString():find(attrib) then
-		MsgC(Color(0,255,0),"[RotgB] ",Color(255,255,0),string.FormattedTime(CurTime(),"[%02i:%02i.%02i] "),color_white,tostring(self)..": ",Color(255,127,127),message,"\n")
-	end
-end
 
 --start of custom pathfinding
 
@@ -1204,11 +1177,11 @@ function ENT:InchCloser()
 end
 
 function ENT:MoveToTargetNew()
-	--coroutine.wait(0.05*ConD:GetFloat()*#ents.FindByClass("gballoon_base"))
+	--coroutine.wait(0.05*ROTGB_GetConVarValue("rotgb_path_delay")*ROTGB_GetBalloonCount())
 	--[[local path = Path("Chase")
 	local position = self:GetTarget():GetPos()
-	path:SetGoalTolerance(ConY:GetFloat())
-	path:SetMinLookAheadDistance(ConZ:GetFloat())]]
+	path:SetGoalTolerance(ROTGB_GetConVarValue("rotgb_target_tolerance"))
+	path:SetMinLookAheadDistance(ROTGB_GetConVarValue("rotgb_setminlookaheaddistance"))]]
 	if not ROTGB_DOT_MESH then
 		local waitamt = SysTime()
 		ROTGB_DOT_MESH = self:BuildDotMesh()
@@ -1218,7 +1191,7 @@ function ENT:MoveToTargetNew()
 	local waitamt = SysTime()
 	self:GeneratePath(ROTGB_DOT_MESH,self:GetPos(),position)
 	waitamt = SysTime()-waitamt
-	waitamt = math.max(waitamt*self:GetgBalloonCount()*ConD:GetFloat(),0.5)
+	waitamt = math.max(waitamt*ROTGB_GetBalloonCount()*ROTGB_GetConVarValue("rotgb_path_delay"),0.5)
 	self:Log("Regenerated pathway. Recomputing in "..waitamt.." seconds...","pathfinding")
 	--self.RecheckPath = true
 	if not self.GeneratedPath then return "Failed to find a path." end
@@ -1239,16 +1212,16 @@ function ENT:MoveToTargetNew()
 		end
 	end]]
 	while self.GeneratedPath and IsValid(self:GetTarget()) and not GetConVar("ai_disabled"):GetBool() do
-		--[[if self:GetTarget():GetPos():DistToSqr(position)>ConY:GetFloat()^2 or CurTime()-self.GeneratedPathTimestamp>waitamt then
+		--[[if self:GetTarget():GetPos():DistToSqr(position)>ROTGB_GetConVarValue("rotgb_target_tolerance")^2 or CurTime()-self.GeneratedPathTimestamp>waitamt then
 			self.RecheckPath = nil
 			position = self:GetTarget():GetPos()
 			waitamt = SysTime()
 			self:ComputePathWrapper(path,position)
 			waitamt = SysTime()-waitamt
-			waitamt = math.max(waitamt*self:GetgBalloonCount()*ConD:GetFloat(),0.5)
+			waitamt = math.max(waitamt*ROTGB_GetBalloonCount()*ROTGB_GetConVarValue("rotgb_path_delay"),0.5)
 			self:Log("Regenerated pathway. Recomputing in "..waitamt.." seconds...","pathfinding")
 		end]]
-		if string.find(ConX:GetString(),"pathfinding") then
+		if string.find(ROTGB_GetConVarValue("rotgb_debug"),"pathfinding") then
 			--path:Draw()
 		end
 		local firstPos = self:GetPos()
@@ -1256,12 +1229,12 @@ function ENT:MoveToTargetNew()
 			self:InchCloser()
 			--path:Chase(self,self:GetTarget())
 		end
-		--[[if not self.GeneratedPath and (IsValid(self:GetTarget()) and not navmesh.GetNearestNavArea(self:GetPos()):HasAttributes(NAV_MESH_STOP) and self:GetTarget():GetPos():DistToSqr(self:GetPos()) > ConY:GetFloat()^2*2.25) then
+		--[[if not self.GeneratedPath and (IsValid(self:GetTarget()) and not navmesh.GetNearestNavArea(self:GetPos()):HasAttributes(NAV_MESH_STOP) and self:GetTarget():GetPos():DistToSqr(self:GetPos()) > ROTGB_GetConVarValue("rotgb_target_tolerance")^2*2.25) then
 			self:LogError("Temporarily lost track! Using stock pathfinding...","pathfinding")
 			self.correcting = true
 			path = Path("Chase")
-			path:SetGoalTolerance(ConY:GetFloat())
-			path:SetMinLookAheadDistance(ConZ:GetFloat())
+			path:SetGoalTolerance(ROTGB_GetConVarValue("rotgb_target_tolerance"))
+			path:SetMinLookAheadDistance(ROTGB_GetConVarValue("rotgb_setminlookaheaddistance"))
 			path:Compute(self,self:GetTarget():GetPos())
 			path:Chase(self,self:GetTarget())
 		end]]
@@ -1340,7 +1313,7 @@ function ENT:MaskFilter(mask,ent)
 		elseif HasAllBits(mask,32) and (entclass==CLASS_BARNACLE or entclass==CLASS_BULLSEYE or entclass==CLASS_CONSCRIPT or entclass==CLASS_MISSILE or entclass==CLASS_FLARE or entclass==CLASS_EARTH_FAUNA or entclass>25) then return true
 		elseif HasAllBits(mask,64) and ent:IsScripted() then return true
 		end
-	elseif HasAllBits(mask,1) and ent:IsPlayer() and (ent:OnGround() or math.abs(ent:GetPos().z - (navmesh.GetGroundHeight(ent:GetPos()) or math.huge))<ConY:GetFloat()*0.9) and not GetConVar("ai_ignoreplayers"):GetBool() then return true
+	elseif HasAllBits(mask,1) and ent:IsPlayer() and (ent:OnGround() or math.abs(ent:GetPos().z - (navmesh.GetGroundHeight(ent:GetPos()) or math.huge))<ROTGB_GetConVarValue("rotgb_target_tolerance")*0.9) and not GetConVar("ai_ignoreplayers"):GetBool() then return true
 	elseif HasAllBits(mask,128) and ent:Health()>0 and ent.RunBehaviour and ent:GetClass()~="gballoon_base" then return true
 	elseif HasAllBits(mask,256) and ent:Health()>0 and not ent.RunBehaviour then return true
 	end
@@ -1350,14 +1323,15 @@ end
 function ENT:CanTarget(ent)
 	if not (isentity(ent) and IsValid(ent)) then return false end
 	if ent:GetClass()=="gballoon_target" then return not (ent:GetIsBeacon() and self.LastBeacon == ent) end
-	local mask = ConN:GetInt()
+	local mask = ROTGB_GetConVarValue("rotgb_target_choice")
 	if mask<0 and ent:Health()>0 and ent:GetClass()~="gballoon_base" then return true end
 	return self:MaskFilter(mask,ent)
 end
 
 function ENT:FindTarget()
 	local ourPos = self:GetPos()
-	local entis = ConG:GetFloat()<0 and ents.GetAll() or ents.FindInSphere(ourPos,ConG:GetFloat())
+	local searchSize = ROTGB_GetConVarValue("rotgb_search_size")
+	local entis = searchSize<0 and ents.GetAll() or ents.FindInSphere(ourPos,searchSize)
 	local resulttabs = {}
 	self:Log("We are considering the following: "..util.TableToJSON(table.Sanitise(entis),true),"targeting")
 	for k,v in pairs(entis) do
@@ -1365,29 +1339,30 @@ function ENT:FindTarget()
 			self:Log("We can target "..tostring(v)..". Attempting to build a path...","targeting")
 			local path = Path("Chase")
 			local position = v:GetPos()
-			path:SetGoalTolerance(ConY:GetFloat())
-			path:SetMinLookAheadDistance(ConZ:GetFloat())
-			if Con0:GetBool() then
+			path:SetGoalTolerance(ROTGB_GetConVarValue("rotgb_target_tolerance"))
+			path:SetMinLookAheadDistance(ROTGB_GetConVarValue("rotgb_setminlookaheaddistance"))
+			if ROTGB_GetConVarValue("rotgb_use_custom_pathfinding") then
 				self:ComputePathWrapper(path,position)
 			else
 				path:Compute(self,position)
 			end
 			if IsValid(path) then
 				local isTarget = v:GetClass()=="gballoon_target"
+				local targetSorting = ROTGB_GetConVarValue("rotgb_target_sort")
 				--[[if IsValid(self.Attractor) and v:IsNPC() then
 					self.Attractor:AddEntityRelationship(v,D_HT,4)
 					v:AddEntityRelationship(self.Attractor,D_HT,4)
 					v:AddEntityRelationship(self,D_HT,4)
 				end]]
-				if ConQ:GetInt()==-1 then
+				if targetSorting==-1 then
 					resulttabs[v] = math.random()
-				elseif ConQ:GetInt()==0 then
+				elseif targetSorting==0 then
 					resulttabs[v] = -v:GetPos():DistToSqr(ourPos)+math.random()
-				elseif ConQ:GetInt()==1 then
+				elseif targetSorting==1 then
 					resulttabs[v] = v:GetPos():DistToSqr(ourPos)+math.random()
-				elseif ConQ:GetInt()==2 then
+				elseif targetSorting==2 then
 					resulttabs[v] = v:Health()+math.random()
-				elseif ConQ:GetInt()==3 then
+				elseif targetSorting==3 then
 					resulttabs[v] = -v:Health()+math.random()
 				end
 				if isTarget then resulttabs[v] = resulttabs[v] + 1e10 * (v:GetWeight() + 1) end
@@ -1517,7 +1492,7 @@ function ENT:ComputePathWrapper(path,pos)
 			return (prevArea:GetCostSoFar()+dist)
 		end
 	end
-	if Con0:GetBool() then
+	if ROTGB_GetConVarValue("rotgb_use_custom_pathfinding") then
 		path:Compute(self,pos,ComputePath)
 	else
 		path:Compute(self,pos)
@@ -1529,15 +1504,15 @@ function ENT:MoveToTarget()
 	if (self:GetTarget():GetClass()=="gballoon_target" and self:GetTarget():GetTeleport()) then
 		self:SetPos(self:GetTarget():GetPos())
 	else
-		--coroutine.wait(0.05*ConD:GetFloat()*#ents.FindByClass("gballoon_base"))
+		--coroutine.wait(0.05*ROTGB_GetConVarValue("rotgb_path_delay")*ROTGB_GetBalloonCount())
 		local path = Path("Chase")
 		local position = self:GetTarget():GetPos()
-		path:SetGoalTolerance(ConY:GetFloat())
-		path:SetMinLookAheadDistance(ConZ:GetFloat())
+		path:SetGoalTolerance(ROTGB_GetConVarValue("rotgb_target_tolerance"))
+		path:SetMinLookAheadDistance(ROTGB_GetConVarValue("rotgb_setminlookaheaddistance"))
 		local waitamt = SysTime()
 		self:ComputePathWrapper(path,position)
 		waitamt = SysTime()-waitamt
-		waitamt = math.max(waitamt*self:GetgBalloonCount()*ConD:GetFloat(),0.5)
+		waitamt = math.max(waitamt*ROTGB_GetBalloonCount()*ROTGB_GetConVarValue("rotgb_path_delay"),0.5)
 		self:Log("Regenerated pathway. Recomputing in "..waitamt.." seconds...","pathfinding")
 		self.RecheckPath = true
 		if not IsValid(path) then return "Failed to find a path." end
@@ -1558,23 +1533,23 @@ function ENT:MoveToTarget()
 			end
 		end]]
 		while IsValid(path) and IsValid(self:GetTarget()) and not GetConVar("ai_disabled"):GetBool() do
-			if self:GetTarget():GetPos():DistToSqr(position)>ConY:GetFloat()^2 or path:GetAge()>(self.RecheckPath and 0.5 or waitamt) then
+			if self:GetTarget():GetPos():DistToSqr(position)>ROTGB_GetConVarValue("rotgb_target_tolerance")^2 or path:GetAge()>(self.RecheckPath and 0.5 or waitamt) then
 				self.RecheckPath = nil
 				position = self:GetTarget():GetPos()
 				waitamt = SysTime()
 				self:ComputePathWrapper(path,position)
 				waitamt = SysTime()-waitamt
-				waitamt = math.max(waitamt*self:GetgBalloonCount()*ConD:GetFloat(),0.5)
+				waitamt = math.max(waitamt*ROTGB_GetBalloonCount()*ROTGB_GetConVarValue("rotgb_path_delay"),0.5)
 				self:Log("Regenerated pathway. Recomputing in "..waitamt.." seconds...","pathfinding")
 			end
-			if string.find(ConX:GetString(),"pathfinding") then
+			if string.find(ROTGB_GetConVarValue("rotgb_debug"),"pathfinding") then
 				path:Draw()
 			end
 			local firstPos = self:GetPos()
 			if not self:IsStunned() then
 				path:Chase(self,self:GetTarget())
 			end
-			if not IsValid(path) and (IsValid(self:GetTarget()) and not navmesh.GetNearestNavArea(self:GetPos()):HasAttributes(NAV_MESH_STOP) and self:GetTarget():GetPos():DistToSqr(self:GetPos()) > ConY:GetFloat()^2*2.25) then
+			if not IsValid(path) and (IsValid(self:GetTarget()) and not navmesh.GetNearestNavArea(self:GetPos()):HasAttributes(NAV_MESH_STOP) and self:GetTarget():GetPos():DistToSqr(self:GetPos()) > ROTGB_GetConVarValue("rotgb_target_tolerance")^2*2.25) then
 				self:LogError("Temporarily lost track! Using stock pathfinding...","pathfinding")
 				self.correcting = true
 				path:Compute(self,self:GetTarget():GetPos())
@@ -1666,20 +1641,20 @@ function ENT:RunBehaviour()
 		if GetConVar("ai_disabled"):GetBool() then
 			self:Log("ai_disabled is set, waiting...","pathfinding")
 			coroutine.wait(1)
-		elseif Con14:GetFloat()>=0 and not self.AIEnabled then
+		elseif ROTGB_GetConVarValue("rotgb_init_rate")>=0 and not self.AIEnabled then
 			self:Log("AI disabled, waiting...","pathfinding")
 			coroutine.wait(1)
 		else
 			if IsValid(self:GetTarget()) then
-				self.loco:SetAcceleration(self:GetBalloonProperty("BalloonMoveSpeed")*(self:GetBalloonProperty("BalloonFast") and 2 or 1)*ConC:GetFloat()*5)
+				self.loco:SetAcceleration(self:GetBalloonProperty("BalloonMoveSpeed")*(self:GetBalloonProperty("BalloonFast") and 2 or 1)*ROTGB_GetConVarValue("rotgb_speed_mul")*5)
 				self.DesiredSpeed = self.loco:GetAcceleration()*0.2
 				self.loco:SetDesiredSpeed(self.DesiredSpeed)
 				self.loco:SetDeceleration(self.loco:GetAcceleration())
 				self.loco:SetJumpHeight(58)
 				self.loco:SetStepHeight(18)
-				local result = Con0:GetBool() and ConL:GetBool() and self:MoveToTargetNew() or self:MoveToTarget()
+				local result = ROTGB_GetConVarValue("rotgb_use_custom_pathfinding") and ROTGB_GetConVarValue("rotgb_use_custom_ai") and self:MoveToTargetNew() or self:MoveToTarget()
 				local selftarg = self:GetTarget()
-				if (IsValid(selftarg) and not GetConVar("ai_disabled"):GetBool() and selftarg:GetPos():DistToSqr(self:GetPos()) <= ConY:GetFloat()^2*2.25) then
+				if (IsValid(selftarg) and not GetConVar("ai_disabled"):GetBool() and selftarg:GetPos():DistToSqr(self:GetPos()) <= ROTGB_GetConVarValue("rotgb_target_tolerance")^2*2.25) then
 					if (selftarg:GetClass()=="gballoon_target" and selftarg:GetIsBeacon()) and self.LastBeacon ~= selftarg then
 						self.LastBeacon = selftarg
 						local nextTargs = {}
@@ -1772,9 +1747,6 @@ function ENT:CheckForSpeedMods()
 		if v[1] > CurTime() then
 			mul = mul * v[2]
 		else
-			if k=="ROTGB_GLUE_TOWER" then
-				self:RemoveAllDecals()
-			end
 			self.rotgb_SpeedMods[k] = nil
 		end
 	end
@@ -1866,6 +1838,10 @@ function ENT:HasRotgBStatusEffect(typ)
 	return (self["rotgb_SE_"..typ] or 0) >= CurTime()
 end
 
+function ENT:GetRotgBStatusEffectDuration(typ)
+	return (self["rotgb_SE_"..typ] or 0) - CurTime()
+end
+
 function ENT:GetRgBE()
 	return self.rotgb_rbetab[self:GetBalloonProperty("BalloonType")]*(self:GetBalloonProperty("BalloonShielded") and 2 or 1)+math.max(self:Health(), 1)-self:GetMaxHealth()
 end
@@ -1876,7 +1852,7 @@ end
 
 function ENT:GetBitflagPropertyState(fast, hidden, regen, shielded)
 	return bit.bor(
-		(regen or self:GetBalloonProperty("BalloonDoRegen")) and 1 or 0,
+		(regen or self:GetBalloonProperty("BalloonRegen")) and 1 or 0,
 		(fast or self:GetBalloonProperty("BalloonFast")) and 2 or 0,
 		(shielded or self:GetBalloonProperty("BalloonShielded")) and 4 or 0,
 		(hidden or self:GetBalloonProperty("BalloonHidden")) and 8 or 0
@@ -1888,27 +1864,29 @@ local function HasAnyBits(dmgbits,...)
 end
 
 function ENT:ShowResistEffect(typ)
-	if Con9:GetFloat()>=0 and (ROTGB_NEXTSHOW or 0)<=CurTime() then
+	local effectDelay = ROTGB_GetConVarValue("rotgb_resist_effect_delay")
+	if effectDelay>=0 and (ROTGB_LASTSHOW or 0) + effectDelay<=CurTime() then
 		local effdata = EffectData()
 		effdata:SetOrigin(self:GetPos())
 		effdata:SetColor(typ)
 		util.Effect("rotgb_resist",effdata)
-		ROTGB_NEXTSHOW = CurTime() + Con9:GetFloat()
+		ROTGB_LASTSHOW = CurTime()
 	end
 end
 
 function ENT:ShowCritEffect()
-	if ConT:GetFloat()>=0 and (ROTGB_NEXTSHOW2 or 0)<=CurTime() then
+	local effectDelay = ROTGB_GetConVarValue("rotgb_crit_effect_delay")
+	if effectDelay>=0 and (ROTGB_LASTSHOW2 or 0) + effectDelay<=CurTime() then
 		local effdata = EffectData()
 		effdata:SetOrigin(self:GetPos())
 		util.Effect("rotgb_crit",effdata)
-		ROTGB_NEXTSHOW2 = CurTime() + ConT:GetFloat()
+		ROTGB_LASTSHOW2 = CurTime()
 	end
 end
 
 local function TestDamageResistances(properties,dmgbits,frozen)
 	if properties.BalloonGlass and dmgbits then return 8
-	elseif ConI:GetBool() then return
+	elseif ROTGB_GetConVarValue("rotgb_ignore_damage_resistances") then return
 	elseif frozen and HasAnyBits(dmgbits,DMG_BULLET+DMG_SLASH+DMG_BUCKSHOT) then return 6
 	elseif properties.BalloonBlack and HasAnyBits(dmgbits,DMG_BLAST,DMG_BLAST_SURFACE) then return 2
 	elseif properties.BalloonWhite and HasAnyBits(dmgbits,DMG_VEHICLE,DMG_DROWN,DMG_DROWNRECOVER) then return 1
@@ -1923,9 +1901,10 @@ function ENT:PerformPops()
 	local health = self:Health()
 	if health<=0 then
 		local attacker = self.LastAttacker
-		if Con12:GetInt()>=16 then
-			util.Decal(ConA:GetString(),self:GetPos()+vector_up,self:GetPos()-vector_up*self:BoundingRadius()*self:GetModelScale(),self)
-		elseif Con12:GetInt()>=8 then
+		local bloodType = ROTGB_GetConVarValue("rotgb_bloodtype")
+		if bloodType>=16 then
+			util.Decal(ROTGB_GetConVarValue("rotgb_blooddecal"),self:GetPos()+vector_up,self:GetPos()-vector_up*self:BoundingRadius()*self:GetModelScale(),self)
+		elseif bloodType>=8 then
 			local inkproj = ents.Create("splashootee")
 			if IsValid(inkproj) then
 				local CNames = {"Orange","Pink","Purple","Blue","Cyan","Green",[0]="White"}
@@ -1937,7 +1916,7 @@ function ENT:PerformPops()
 				inkproj:SetOwner(attacker)
 				inkproj:SetPhysicsAttacker(attacker)
 				inkproj:SetCollisionGroup(COLLISION_GROUP_PUSHAWAY)
-				inkproj.InkColor = CNames[Con12:GetInt()-8]
+				inkproj.InkColor = CNames[bloodType-8]
 				inkproj.Dmg = 0
 				inkproj:Spawn()
 				inkproj:GetPhysicsObject():ApplyForceCenter(Vector(0,0,-600))
@@ -1950,18 +1929,19 @@ end
 
 function ENT:OnInjured(dmginfo)
 	if dmginfo:GetInflictor():GetClass()~="env_fire" then
-		self.BalloonRegenTime = CurTime()+ConR:GetFloat()
+		self.BalloonRegenTime = CurTime()+ROTGB_GetConVarValue("rotgb_regen_delay")
 		self.LastAttacker = dmginfo:GetAttacker()
 		self.LastInflictor = dmginfo:GetInflictor()
 		self.LastDamageType = dmginfo:GetDamageType()
-		dmginfo:SetDamage(math.ceil(dmginfo:GetDamage()*0.1*ConP:GetFloat()))
+		dmginfo:SetDamage(math.ceil(dmginfo:GetDamage()*0.1*ROTGB_GetConVarValue("rotgb_damage_multiplier")))
 		self:Log("About to take "..dmginfo:GetDamage().." damage at "..self:Health().." health!","damage")
 		local resistresults = TestDamageResistances(self.Properties,self.LastDamageType,(self.FreezeUntil or 0)>CurTime() or (self.FreezeUntil2 or 0)>CurTime())
+		local ignoreResistances = ROTGB_GetConVarValue("rotgb_ignore_damage_resistances")
 		if resistresults and not self:HasRotgBStatusEffect("unimmune") then
 			dmginfo:SetDamage(0)
 			self:ShowResistEffect(resistresults)
 		end
-		if self:GetBalloonProperty("BalloonArmor") and not ConI:GetBool() then
+		if self:GetBalloonProperty("BalloonArmor") and not ignoreResistances then
 			if self:GetBalloonProperty("BalloonArmor") < 0 then
 				dmginfo:AddDamage(-self:GetBalloonProperty("BalloonArmor"))
 			else
@@ -1971,7 +1951,7 @@ function ENT:OnInjured(dmginfo)
 				self:ShowResistEffect(7)
 			end
 		end
-		if self:GetBalloonProperty("BalloonMaxDamage") and not ConI:GetBool() then
+		if self:GetBalloonProperty("BalloonMaxDamage") and not ignoreResistances then
 			if dmginfo:GetDamage() > self:GetBalloonProperty("BalloonMaxDamage") then
 				local remainingdamage = dmginfo:GetDamage() - self:GetBalloonProperty("BalloonMaxDamage")
 				dmginfo:SetDamage(self:GetBalloonProperty("BalloonMaxDamage")+math.floor(remainingdamage*0.9))
@@ -1993,7 +1973,7 @@ function ENT:OnInjured(dmginfo)
 			self:Log("Credited "..tostring(self.LastInflictor).." "..addDamageThisLayer.." pop(s).","damage")
 			hook.Run("gBalloonDamaged", self, self.LastAttacker, self.LastInflictor, addDamageThisLayer, false)
 		end
-		if self:GetBalloonProperty("BalloonShielded") and self:Health()*2>self:GetMaxHealth() and (not Con1:GetBool() or Con2:GetBool()) then
+		if self:GetBalloonProperty("BalloonShielded") and self:Health()*2>self:GetMaxHealth() and (not ROTGB_GetConVarValue("rotgb_legacy_gballoons") or ROTGB_GetConVarValue("rotgb_pertain_effects")) then
 			self:SetNWBool("RenderShield",true)
 		else
 			self:SetNWBool("RenderShield",false)
@@ -2004,7 +1984,7 @@ end
 
 function ENT:ShouldPopOnContact(ent)
 	if (ent:GetClass()=="gballoon_target" and ent:GetIsBeacon()) then return false end
-	local mask = ConW:GetInt()
+	local mask = ROTGB_GetConVarValue("rotgb_pop_on_contact")
 	if mask==-1 and self:CanTarget(ent) then return true
 	elseif mask<-1 and ent:Health()>0 and ent:GetClass()~="gballoon_base" then return true end
 	return self:MaskFilter(mask,ent)
@@ -2024,7 +2004,7 @@ end
 
 local baseNextbotClass = baseclass.Get("base_nextbot")
 function ENT:OnKilled(dmginfo)
-	if ConF:GetBool() then
+	if ROTGB_GetConVarValue("rotgb_use_kill_handler") then
 		baseNextbotClass.OnKilled(self, dmginfo)
 	end
 	-- self.Attractor:Remove()
@@ -2033,13 +2013,6 @@ end
 
 local lastEffectRender = 0
 
---[[function ENT:GetPopSaveString(bln,damage,dmgbits)
-	local PID = bit.bor(bln.DoRegen and 1 or 0,bln.Fast and 2 or 0,bln.Shield and 4 or 0,bln.Hidden and 8 or 0,bln.IsBlimp and 16 or 0,
-	(ConI:GetBool() or self:HasRotgBStatusEffect("unimmune")) and 32 or 0)
-	return string.format("%s__%i_%i_%u_%i_%i_%f_%f_%s",
-	bln.Type or bln,damage,dmgbits,self.DeductCash or 0,bln.Health or 1,PID,ConJ:GetFloat(),ConK:GetFloat(),util.TableToJSON(bln.PrevBalloons or {}))
-end]]
-
 function ENT:DetermineNextBalloons(blns,dmgbits,instant)
 	local pluses = 0
 	local pops = 0
@@ -2047,70 +2020,50 @@ function ENT:DetermineNextBalloons(blns,dmgbits,instant)
 	local oldnv,opls,opop = 0,0,0
 	for k,v in pairs(blns) do
 		if istable(v) then
-			--[[local nextsasstring = self:GetPopSaveString(v,0,dmgbits or 0)
-			if ConU:GetBool() and POP_PREDICTIONS[nextsasstring] then
-				local cash,pp,prod = unpack(POP_PREDICTIONS[nextsasstring])
-				pluses = pluses + cash
-				pops = pops + pp
-				for k,v in pairs(prod) do
-					table.insert(newspawns,v)
-				end
-			else]]
-				--[[if ConU:GetBool() then
-					oldnv,opls,opop = #newspawns,pluses,pops
-				end]]
-				local class = v.Type
-				--local DoRegen = v.DoRegen
-				--local Fast = v.Fast
-				local Shield = v.Shield
-				local Hidden = v.Hidden
-				local keyvals = list.GetForEdit("NPC")[class].KeyValues
-				local blockbymaxdamage = (v.InternalPops or 0) >= (tonumber(keyvals.BalloonMaxDamage) or math.huge)
-				local unitshift = blockbymaxdamage and 0.1 or 1
-				if TestDamageResistances(keyvals,dmgbits,v.Frozen) and not self:HasRotgBStatusEffect("unimmune") then
-					table.insert(newspawns,v)
-				elseif (istable(v) and (v.Health or 1)>unitshift) and not instant then
-				--elseif (istable(v) and v.Health > 1) and (not instant or blockbymaxdamage) then
-					--if not blockbymaxdamage then
-						v.InternalPops = (v.InternalPops or 0) + 1
-						v.Health = v.Health - unitshift
-						pops = pops + v.Amount * unitshift
-					--end
-					table.insert(newspawns,v)
-				elseif self.rotgb_spawns[class] then
-					for k2,v2 in pairs(self.rotgb_spawns[class]) do
-						local keyvals2 = list.GetForEdit("NPC")[k2].KeyValues
-						local crt = {
-							Type=k2,
-							Amount=v2*v.Amount,
-							Health=math.Round(
-								(keyvals2.BalloonHealth or 1)*(keyvals2.BalloonShielded or HasAllBits(v.Properties, 4) and 2 or 1)
-								*(keyvals2.BalloonBlimp and ConK:GetFloat() or 1)*ConJ:GetFloat()
-							),
-							Properties=v.Properties
-							--Frozen=(self.FreezeUntil2 or 0)>CurTime()
-						}
-						if HasAllBits(v.Properties, 1) and not v.Blimp then
-							crt.PrevBalloons=table.Copy(v.PrevBalloons or {})
-							table.insert(crt.PrevBalloons,class)
-							self:Log("A gBalloon will regenerate, to a maximum of: "..util.TableToJSON(crt.PrevBalloons,true),"regeneration")
-						end
-						table.insert(newspawns,crt)
+			local class = v.Type
+			--local DoRegen = v.DoRegen
+			--local Fast = v.Fast
+			local Shield = v.Shield
+			local Hidden = v.Hidden
+			local keyvals = list.GetForEdit("NPC")[class].KeyValues
+			local blockbymaxdamage = (v.InternalPops or 0) >= (tonumber(keyvals.BalloonMaxDamage) or math.huge)
+			local unitshift = blockbymaxdamage and 0.1 or 1
+			if TestDamageResistances(keyvals,dmgbits,v.Frozen) and not self:HasRotgBStatusEffect("unimmune") then
+				table.insert(newspawns,v)
+			elseif (istable(v) and (v.Health or 1)>unitshift) and not instant then
+			--elseif (istable(v) and v.Health > 1) and (not instant or blockbymaxdamage) then
+				--if not blockbymaxdamage then
+					v.InternalPops = (v.InternalPops or 0) + 1
+					v.Health = v.Health - unitshift
+					pops = pops + v.Amount * unitshift
+				--end
+				table.insert(newspawns,v)
+			elseif self.rotgb_spawns[class] then
+				for k2,v2 in pairs(self.rotgb_spawns[class]) do
+					local keyvals2 = list.GetForEdit("NPC")[k2].KeyValues
+					local crt = {
+						Type=k2,
+						Amount=v2*v.Amount,
+						Health=math.Round(
+							(keyvals2.BalloonHealth or 1)*(keyvals2.BalloonShielded or HasAllBits(v.Properties, 4) and 2 or 1)
+							*(keyvals2.BalloonBlimp and ROTGB_GetConVarValue("rotgb_blimp_health_multiplier") or 1)*ROTGB_GetConVarValue("rotgb_health_multiplier")
+						),
+						Properties=v.Properties
+						--Frozen=(self.FreezeUntil2 or 0)>CurTime()
+					}
+					if HasAllBits(v.Properties, 1) and not v.Blimp then
+						crt.PrevBalloons=table.Copy(v.PrevBalloons or {})
+						table.insert(crt.PrevBalloons,class)
+						self:Log("A gBalloon will regenerate, to a maximum of: "..util.TableToJSON(crt.PrevBalloons,true),"regeneration")
 					end
-					pluses = pluses + v.Amount
-					pops = pops + v.Amount * v.Health
-				else
-					pluses = pluses + v.Amount
-					pops = pops + v.Amount * v.Health
+					table.insert(newspawns,crt)
 				end
-				--[[if ConU:GetBool() then
-					local prod = {}
-					for i=oldnv+1,#newspawns do
-						table.insert(prod,newspawns[i])
-					end
-					POP_PREDICTIONS[nextsasstring] = {pluses-opls,pops-opop,prod}
-				end]]
-			--end
+				pluses = pluses + v.Amount
+				pops = pops + v.Amount * v.Health
+			else
+				pluses = pluses + v.Amount
+				pops = pops + v.Amount * v.Health
+			end
 		end
 	end
 	return newspawns,pluses,pops
@@ -2120,83 +2073,58 @@ function ENT:Pop(damage,target,dmgbits)
 	damage = damage or -1--math.ceil(math.Clamp(damage or -1,-999999999,999999999))
 	self:Log("Popping for "..damage.." damage...","damage")
 	-- self:SetNWBool("BalloonPurple",false)
+	local maxToExist = ROTGB_GetConVarValue("rotgb_max_to_exist")
+	local doAchievement = ROTGB_GetConVarValue("rotgb_use_achievement_handler")
 	local selftype = self:GetBalloonProperty("BalloonType")
 	local selfblmp = self:GetBalloonProperty("BalloonBlimp")
 	local nexts = {{Type=selftype,Amount=1,Health=1,Properties=self:GetBitflagPropertyState(),PrevBalloons=self.PrevBalloons,Blimp=selfblmp,Frozen=(self.FreezeUntil2 or 0)>CurTime()}}
 	local cash = 0
 	local pops = 0
-	local balloonnum = self:GetgBalloonCount()
+	local balloonnum = ROTGB_GetBalloonCount()
 	--local nextsasstring = self:GetPopSaveString(nexts[1],damage,dmgbits or 0)
-	if damage < 0 or damage>self:GetRgBE()*10 --[[or balloonnum>ConH:GetInt()]] then damage = math.huge end
+	if damage < 0 or damage>self:GetRgBE()*10 then damage = math.huge end
 	self:Log("Before Popping: "..util.TableToJSON(nexts,true),"damage")
 	local ctime = SysTime()
-	--local shouldsave = ConU:GetBool()
-	--[[if shouldsave and POP_PREDICTIONS[nextsasstring] then
-		cash,pops,nexts = unpack(POP_PREDICTIONS[nextsasstring])
-	else]]
-		--local stime = SysTime()+ConT:GetFloat()*0.001/self:GetgBalloonCount()
-		--local toAdd,nextsasstring2,nxttab = {}
-		local i = 1
-		local spawnedBalloonCount = 1
-		while i <= damage+1 or spawnedBalloonCount+balloonnum > ConH:GetInt() do
-			local addcash,addpops = 0,0
-			local overspawned = spawnedBalloonCount+balloonnum > ConH:GetInt()
-			nexts,addcash,addpops = self:DetermineNextBalloons(nexts,overspawned and 0 or dmgbits,damage==math.huge or overspawned)
-			self:Log("Pop #"..i.." of #"..damage+1 ..":"..util.TableToJSON(nexts,true),"damage")
-			if (self.DeductCash or 0)>0 then
-				self.DeductCash = self.DeductCash - 1
-			else
-				cash = cash + addcash
-			end
-			i = i + 1
-			pops = pops + addpops
-			--[[if shouldsave and i~=damage+1 then
-				for k,v in pairs(nexts) do
-					nextsasstring2 = self:GetPopSaveString(v,damage-i,dmgbits or 0)
-					if POP_PREDICTIONS[nextsasstring2] then
-						addcash,addpops,nxttab = unpack(POP_PREDICTIONS[nextsasstring2])
-						self:Log("Optimization found. Switching from "..nextsasstring2..":"..util.TableToJSON(v,true),"popping")
-						self:Log("Optimization found. After "..damage+1-i.." damage, it switches to:"..util.TableToJSON(nxttab,true),"popping")
-						cash = cash + addcash
-						pops = pops + addpops
-						if next(nxttab) then
-							table.insert(toAdd,nxttab)
-						end
-						table.Empty(v)
-					end
-				end
-			end]]
-			spawnedBalloonCount = 0
-			for k,v in pairs(nexts) do
-				spawnedBalloonCount = spawnedBalloonCount + (v.Amount or 1)
-			end
-			if spawnedBalloonCount==0 or addpops==0 --[[or (i>=ConL:GetInt() or stime<=SysTime()) and #nexts<=ConM:GetInt() and #nexts+balloonnum<=ConH:GetInt() and not shouldsave]] then break end
+	local i = 1
+	local spawnedBalloonCount = 1
+	while i <= damage+1 or spawnedBalloonCount+balloonnum > maxToExist do
+		local addcash,addpops = 0,0
+		local overspawned = spawnedBalloonCount+balloonnum > maxToExist
+		nexts,addcash,addpops = self:DetermineNextBalloons(nexts,overspawned and 0 or dmgbits,damage==math.huge or overspawned)
+		self:Log("Pop #"..i.." of #"..damage+1 ..":"..util.TableToJSON(nexts,true),"damage")
+		if (self.DeductCash or 0)>0 then
+			self.DeductCash = self.DeductCash - 1
+		else
+			cash = cash + addcash
 		end
-		--[[if next(toAdd) then
-			self:Log("Values to push:"..util.TableToJSON(toAdd,true),"popping")
-			for k,v in pairs(toAdd) do
-				table.Add(nexts,v)
-			end
-		end]]
-		--[[if shouldsave then
-			POP_PREDICTIONS[nextsasstring] = {cash,pops,nexts}
-			self:Log("Added PopSave entry "..nextsasstring..":"..util.TableToJSON(POP_PREDICTIONS[nextsasstring],true),"popping")
-		end]]
-	--end
+		i = i + 1
+		pops = pops + addpops
+		spawnedBalloonCount = 0
+		for k,v in pairs(nexts) do
+			spawnedBalloonCount = spawnedBalloonCount + (v.Amount or 1)
+		end
+		if spawnedBalloonCount==0 or addpops==0 then break end
+	end
+	--[[if next(toAdd) then
+		self:Log("Values to push:"..util.TableToJSON(toAdd,true),"popping")
+		for k,v in pairs(toAdd) do
+			table.Add(nexts,v)
+		end
+	end]]
 	self:Log("After Popping: "..util.TableToJSON(nexts,true),"damage")
 	self:Log("Time taken: "..(SysTime()-ctime)*1000 .." ms","damage")
 	if (IsValid(self.LastAttacker) and self.LastAttacker:IsPlayer()) then
-		if ConU:GetInt() == 1 then
+		if doAchievement == 1 then
 			self.LastAttacker:SendLua("achievements.BalloonPopped()") -- What? It's a balloon, right?
-		elseif ConU:GetInt() > 1 then
+		elseif doAchievement > 1 then
 			net.Start("rotgb_generic")
-			net.WriteString("achievement")
+			net.WriteUInt(ROTGB_OPERATION_ACHIEVEMENT, 8)
 			net.WriteUInt(cash, 32)
 			net.Send(self.LastAttacker)
 		end
 	end
 	if IsValid(target) then
-		local damage = (pops+math.max(self:Health(), 1)-1)*Con5:GetFloat()
+		local damage = (pops+math.max(self:Health(), 1)-1)*ROTGB_GetConVarValue("rotgb_afflicted_damage_multiplier")
 		local dmginfo = DamageInfo()
 		local dir = target:WorldSpaceCenter() - self:GetPos()
 		dir:Normalize()
@@ -2209,10 +2137,11 @@ function ENT:Pop(damage,target,dmgbits)
 		target:TakeDamageInfo(dmginfo)
 		self:Log("Hurting "..tostring(target).." for "..damage.." damage...","damage")
 	else
+		local baseMul = ROTGB_GetConVarValue("rotgb_cash_mul")
 		local newcash = self:GetAndApplyValueMultipliers(cash)
-		self:Log("Awarding "..cash*ConO:GetFloat().." cash (x"..newcash/cash..") after "..pops.." pops...","damage")
+		self:Log("Awarding "..cash*baseMul.." cash (x"..newcash/cash..") after "..pops.." pops...","damage")
 		cash = newcash
-		ROTGB_AddCash(cash*ConO:GetFloat())
+		ROTGB_AddCash(cash*baseMul)
 		if (IsValid(self.LastInflictor) and (self.LastInflictor.Base == "gballoon_tower_base" or self.LastInflictor:GetClass()=="rotgb_shooter")) and pops > 0 then
 			self.LastInflictor:AddPops(pops)
 			self:Log("Credited "..tostring(self.LastInflictor).." "..pops.." pop(s).","damage")
@@ -2226,7 +2155,7 @@ function ENT:Pop(damage,target,dmgbits)
 		if lastEffectRender+1<CurTime() then
 			lastEffectRender = CurTime() - 1
 		end
-		lastEffectRender = lastEffectRender+1/ConE:GetFloat()
+		lastEffectRender = lastEffectRender+1/ROTGB_GetConVarValue("rotgb_max_effects_per_second")
 		local effdata = EffectData()
 		effdata:SetStart(string.ToColor(self:GetBalloonProperty("BalloonColor")):ToVector()*255)
 		effdata:SetEntity(self)
@@ -2236,66 +2165,70 @@ function ENT:Pop(damage,target,dmgbits)
 		effdata:SetOrigin(self:GetPos())
 		util.Effect("balloon_pop",effdata)
 	end
-	--if #nexts+balloonnum<ConH:GetInt() then
-		for i,v in ipairs(nexts) do
-			if --[[i+balloonnum<ConH:GetInt() and]] istable(v) then
-				for j=1,v.Amount do
-					self:Log("To Spawn: "..util.TableToJSON(v,true),"damage")
-					local tospawn = v.Type
-					local spe = ents.Create("gballoon_base")
-					spe:SetPos(self:GetPos()+VectorRand()+vector_up)
-					spe.Properties = list.Get("NPC")[tospawn].KeyValues
-					if istable(v) then
-						spe.Properties.BalloonDoRegen = spe.Properties.BalloonDoRegen or HasAllBits(v.Properties, 1)
-						spe.Properties.BalloonFast = spe.Properties.BalloonFast or HasAllBits(v.Properties, 2)
-						spe.Properties.BalloonShielded = spe.Properties.BalloonShielded or HasAllBits(v.Properties, 4)
-						spe.Properties.BalloonHidden = spe.Properties.BalloonHidden or HasAllBits(v.Properties, 8)
-					end
-					spe:Spawn()
-					spe:Activate()
-					spe.StunUntil = self.StunUntil
-					spe.FreezeUntil2 = self.FreezeUntil2
-					spe.AcidicList = self.AcidicList
-					spe.TravelledDistance = self.TravelledDistance
-					spe.rotgb_SpeedMods = self.rotgb_SpeedMods
-					spe.rotgb_ValueMultipliers = self.rotgb_ValueMultipliers
-					if spe.rotgb_ValueMultipliers and spe.rotgb_ValueMultipliers.ROTGB_TOWER_17 then
-						local effData = EffectData()
-						effData:SetEntity(spe)
-						effData:SetOrigin(spe:GetPos())
-						util.Effect("gballoon_tower_17_morecash", effData)
-					end
-					if not self:HasRotgBStatusEffect("glue_soak") and spe.rotgb_SpeedMods then
-						spe.rotgb_SpeedMods.ROTGB_GLUE_TOWER = nil
-					end
-					spe.DeductCash = self.DeductCash
-					--spe.BeaconsReached = table.Copy(self.BeaconsReached)
-					spe.LastBeacon = self.LastBeacon
-					if IsValid(self.RotgBFireEnt) then
-						spe:CreateFire(self.RotgBFireEnt.damage, self.RotgBFireEnt.attacker, self.RotgBFireEnt.inflictor, self.RotgBFireEnt.dietime-CurTime())
-						spe.LastBurn = CurTime() + Con13:GetFloat()
-					end
-					--[[if (self.BurnTime or 0)-0.5 >= CurTime() then
-						local cBurnTime = self.BurnTime
-						timer.Simple(0.5,function()
-							if IsValid(spe) then
-								spe.BurnTime = cBurnTime
-								spe:RotgB_Ignite(spe.BurnTime-CurTime())
-							end
-						end)
-					end]]
-					spe:SetTarget(self:GetTarget())
-					if istable(v) and SERVER then
-						spe.PrevBalloons = v.PrevBalloons
-						spe:SetHealth(math.max(v.Health or 1, 1))
-					end
-					--[[timer.Simple(0,function()
-						if (IsValid(spe) and spe:Health()<=0) then spe:Pop(-spe:Health()) end
-					end)]]
+	for i,v in ipairs(nexts) do
+		if --[[i+balloonnum<ROTGB_GetConVarValue("rotgb_max_to_exist") and]] istable(v) then
+			for j=1,v.Amount do
+				self:Log("To Spawn: "..util.TableToJSON(v,true),"damage")
+				local tospawn = v.Type
+				local spe = ents.Create("gballoon_base")
+				spe:SetPos(self:GetPos()+VectorRand()+vector_up)
+				spe.Properties = list.Get("NPC")[tospawn].KeyValues
+				if istable(v) then
+					spe.Properties.BalloonRegen = spe.Properties.BalloonRegen or HasAllBits(v.Properties, 1)
+					spe.Properties.BalloonFast = spe.Properties.BalloonFast or HasAllBits(v.Properties, 2)
+					spe.Properties.BalloonShielded = spe.Properties.BalloonShielded or HasAllBits(v.Properties, 4)
+					spe.Properties.BalloonHidden = spe.Properties.BalloonHidden or HasAllBits(v.Properties, 8)
 				end
+				spe:Spawn()
+				spe:Activate()
+				spe.StunUntil = self.StunUntil
+				spe.FreezeUntil2 = self.FreezeUntil2
+				spe.AcidicList = self.AcidicList
+				spe.TravelledDistance = self.TravelledDistance
+				spe.rotgb_SpeedMods = self.rotgb_SpeedMods
+				spe.rotgb_ValueMultipliers = self.rotgb_ValueMultipliers
+				if spe.rotgb_ValueMultipliers and spe.rotgb_ValueMultipliers.ROTGB_TOWER_17 then
+					local effData = EffectData()
+					effData:SetEntity(spe)
+					util.Effect("gballoon_tower_17_morecash", effData)
+				end
+				if not self:HasRotgBStatusEffect("glue_soak") and spe.rotgb_SpeedMods then
+					spe.rotgb_SpeedMods.ROTGB_GLUE_TOWER = nil
+				elseif spe.rotgb_SpeedMods and spe.rotgb_SpeedMods.ROTGB_GLUE_TOWER then
+					local effData = EffectData()
+					effData:SetEntity(spe)
+					effData:SetFlags(next(spe.AcidicList) and 1 or 0)
+					effData:SetHitBox(self:GetRotgBStatusEffectDuration("glue_soak")*10)
+					util.Effect("gballoon_tower_9_glued", effData)
+					spe:InflictRotgBStatusEffect("glue_soak", self:GetRotgBStatusEffectDuration("glue_soak"))
+				end
+				spe.DeductCash = self.DeductCash
+				--spe.BeaconsReached = table.Copy(self.BeaconsReached)
+				spe.LastBeacon = self.LastBeacon
+				if IsValid(self.RotgBFireEnt) then
+					spe:CreateFire(self.RotgBFireEnt.damage, self.RotgBFireEnt.attacker, self.RotgBFireEnt.inflictor, self.RotgBFireEnt.dietime-CurTime())
+					spe.LastBurn = CurTime()
+				end
+				--[[if (self.BurnTime or 0)-0.5 >= CurTime() then
+					local cBurnTime = self.BurnTime
+					timer.Simple(0.5,function()
+						if IsValid(spe) then
+							spe.BurnTime = cBurnTime
+							spe:RotgB_Ignite(spe.BurnTime-CurTime())
+						end
+					end)
+				end]]
+				spe:SetTarget(self:GetTarget())
+				if istable(v) and SERVER then
+					spe.PrevBalloons = v.PrevBalloons
+					spe:SetHealth(math.max(v.Health or 1, 1))
+				end
+				--[[timer.Simple(0,function()
+					if (IsValid(spe) and spe:Health()<=0) then spe:Pop(-spe:Health()) end
+				end)]]
 			end
 		end
-	--end
+	end
 	SafeRemoveEntity(self.RotgBFireEnt)
 	SafeRemoveEntity(self.FastTrail)
 	self:Remove()
@@ -2323,9 +2256,9 @@ function ENT:CheckForRegenAndFire()
 			if not (IsValid(self.RotgBFireEnt.attacker) and IsValid(self.RotgBFireEnt.inflictor)) then
 				self.RotgBFireEnt:Remove()
 			elseif not self.LastBurn then
-				self.LastBurn = CurTime() + Con13:GetFloat()
-			elseif self.LastBurn < CurTime() --[[and next(self.FireBurns)]] then
-				self.LastBurn = CurTime() + Con13:GetFloat()
+				self.LastBurn = CurTime()
+			elseif (self.LastBurn + ROTGB_GetConVarValue("rotgb_fire_delay")) < CurTime() --[[and next(self.FireBurns)]] then
+				self.LastBurn = CurTime()
 				local dmginfo = DamageInfo()
 				dmginfo:SetDamagePosition(self:GetPos())
 				dmginfo:SetDamageType(bit.bor(DMG_BURN,DMG_DIRECT))
@@ -2339,11 +2272,12 @@ function ENT:CheckForRegenAndFire()
 				--end
 			end
 		end
-		if self:GetBalloonProperty("BalloonDoRegen") and (self.PrevBalloons and next(self.PrevBalloons)) then
+		if self:GetBalloonProperty("BalloonRegen") and (self.PrevBalloons and next(self.PrevBalloons)) then
 			local curtime = CurTime()
-			self.BalloonRegenTime = self.BalloonRegenTime or curtime+ConR:GetFloat()
+			local regenDelay = ROTGB_GetConVarValue("rotgb_regen_delay")
+			self.BalloonRegenTime = self.BalloonRegenTime or curtime+regenDelay
 			if self.BalloonRegenTime <= curtime then
-				self.BalloonRegenTime = curtime+ConR:GetFloat()
+				self.BalloonRegenTime = curtime+regenDelay
 				local prevballoon = table.remove(self.PrevBalloons)
 				self:Log("Regenerating to: "..prevballoon,"regeneration")
 				local bits = self:GetBitflagPropertyState()
@@ -2359,7 +2293,7 @@ function ENT:CheckForRegenAndFire()
 				end
 				self:SetNWBool("BalloonPurple",false)
 				self:SetNWBool("RenderShield",false)
-				self.Properties.BalloonDoRegen = true
+				self.Properties.BalloonRegen = true
 				self:Spawn()
 				self:Activate()
 				self.DeductCash = (self.DeductCash or 0) + 1
@@ -2368,8 +2302,10 @@ function ENT:CheckForRegenAndFire()
 			end
 		end
 		if self:GetBalloonProperty("BalloonType")=="gballoon_blimp_rainbow" then
-			self:Log("Regenerated "..Con4:GetFloat().." health.","regeneration")
-			self:SetHealth(math.min(self:Health()+Con4:GetFloat(),self:GetMaxHealth()))
+			local oldHealth = self:Health()
+			local rainbowRegen = ROTGB_GetConVarValue("rotgb_rainbow_gblimp_regen_rate")
+			self:SetHealth(math.min(oldHealth+rainbowRegen,self:GetMaxHealth()))
+			self:Log("Regenerated "..self:Health()-oldHealth.." health.","regeneration")
 		end
 	end
 end
@@ -2385,7 +2321,7 @@ end
 
 function ENT:GetRelationship(ent)
 	if SERVER then
-		local mask = ConN:GetInt()
+		local mask = ROTGB_GetConVarValue("rotgb_target_choice")
 		for k,v in pairs(ents.GetAll()) do
 			if v:IsNPC() then
 				if mask<0 and v:Health()>0 and v:GetClass()~="gballoon_base" then
@@ -2421,7 +2357,7 @@ hook.Add("EntityKeyValue","RotgB",function(ent,key,value)
 end)
 
 hook.Add("AcceptInput","RotgB",function(ent,inputname)
-	local FNT = ConB:GetFloat()
+	local FNT = ROTGB_GetConVarValue("rotgb_func_nav_expand")
 	if ent:GetClass()=="func_nav_avoid" or ent:GetClass()=="func_nav_prefer" then
 		if inputname:lower()=="enable" then
 			entitiestoconsider[ent] = {ent:GetPos()+ent:OBBMins()+Vector(-FNT,-FNT,-FNT),ent:GetPos()+ent:OBBMaxs()+Vector(FNT,FNT,FNT)}
@@ -2448,7 +2384,7 @@ hook.Add("PreDrawHalos","RotgB",function()
 	if not GetConVar("rotgb_no_glow"):GetBool() then
 		local showfrozen = GetConVar("rotgb_freeze_effect"):GetBool()
 		if nextsee < CurTime() then
-			visibles = ents.FindByClass("gballoon_base")
+			visibles = ROTGB_GetBalloons()
 			nextsee = CurTime() + 0.2
 		end
 		table.Empty(drawtable)
@@ -2712,7 +2648,7 @@ if CLIENT then
 		Main.Whitelist = whitelist
 		function Main:SendToServer()
 			net.Start("rotgb_generic")
-			net.WriteString("blacklist_editor")
+			net.WriteUInt(ROTGB_OPERATION_BLACKLIST, 8)
 			net.WriteUInt(#self.Blacklist,32)
 			for k,v in pairs(self.Blacklist) do
 				net.WriteString(v[1])
@@ -2844,7 +2780,7 @@ if CLIENT then
 			else
 				bits = bits - 4
 			end
-			if tobool(KVs.BalloonDoRegen) then
+			if tobool(KVs.BalloonRegen) then
 				bits = bits - 32
 			else
 				bits = bits - 16
@@ -3008,7 +2944,7 @@ if CLIENT then
 			if tobool(KVs.BalloonShielded) then
 				name = "Shielded " .. name
 			end
-			if tobool(KVs.BalloonDoRegen) then
+			if tobool(KVs.BalloonRegen) then
 				name = "Regen " .. name
 			end
 			if tobool(KVs.BalloonHidden) then
@@ -3067,7 +3003,7 @@ if CLIENT then
 							end
 							if bit.band(bits,48)==16 then
 								name = name.."regen_"
-							elseif bit.band(bits,48)==48 and tobool(KVs.BalloonDoRegen) then
+							elseif bit.band(bits,48)==48 and tobool(KVs.BalloonRegen) then
 								name = name.."regen_"
 							end
 							if bit.band(bits,192)==64 then
@@ -3381,7 +3317,7 @@ if CLIENT then
 						local datablocks = math.ceil(#rawdata/packetlength)
 						for i=1,datablocks do
 							net.Start("rotgb_generic")
-							net.WriteString("wave_transfer")
+							net.WriteUInt(ROTGB_OPERATION_WAVE_TRANSFER, 8)
 							net.WriteString(string.gsub(path, "^rotgb_wavedata/(.*)%.dat$", "%1"))
 							net.WriteUInt(datablocks, 16)
 							net.WriteUInt(i, 16)
@@ -3418,9 +3354,7 @@ if CLIENT then
 		
 		function ScrollPanel:Populate()
 			self:Clear()
-			
 			local rbelist = scripted_ents.GetStored("gballoon_base").t.rotgb_rbetab
-			
 			for i,v in ipairs(localWaves) do
 				local controlpanel = vgui.Create("DPanel", self)
 				controlpanel:SetTall(128)
@@ -3618,7 +3552,7 @@ if CLIENT then
 					if tobool(KVs.BalloonHidden) then
 						wavecontents:AppendText("Hidden ")
 					end
-					if tobool(KVs.BalloonDoRegen) then
+					if tobool(KVs.BalloonRegen) then
 						wavecontents:AppendText("Regen ")
 					end
 					if tobool(KVs.BalloonShielded) then
@@ -3635,8 +3569,8 @@ if CLIENT then
 	ROTGB_CLIENTWAVES = {}
 	
 	net.Receive("rotgb_generic",function()
-		local operation = net.ReadString()
-		if operation == "blacklist_editor" then
+		local operation = net.ReadUInt(8)
+		if operation == ROTGB_OPERATION_BLACKLIST then
 			local blacklist, whitelist = {}, {}
 			for i=1, net.ReadUInt(32) do
 				table.insert(blacklist, {net.ReadString(), net.ReadUInt(8)})
@@ -3645,9 +3579,9 @@ if CLIENT then
 				table.insert(whitelist, {net.ReadString(), net.ReadUInt(8)})
 			end
 			CreateBlacklistPanel(blacklist, whitelist)
-		elseif operation == "wave_editor" then
+		elseif operation == ROTGB_OPERATION_WAVE_EDIT then
 			CreateWavePanel()
-		elseif operation == "wave_transfer" then
+		elseif operation == ROTGB_OPERATION_WAVE_TRANSFER then
 			local wavename, totalpackets, currentpacket, bytes = net.ReadString(), net.ReadUInt(16), net.ReadUInt(16), net.ReadUInt(16)
 			local datachunk = net.ReadData(bytes)
 			ROTGB_CLIENTWAVES[wavename] = ROTGB_CLIENTWAVES[wavename] or {}
@@ -3660,7 +3594,7 @@ if CLIENT then
 				table.Empty(ROTGB_CLIENTWAVES[wavename])
 				ROTGB_CLIENTWAVES[wavename] = wavedata
 			end
-		elseif operation == "achievement" then
+		elseif operation == ROTGB_OPERATION_ACHIEVEMENT then
 			for i=1, net.ReadUInt(32) do
 				achievements.BalloonPopped()
 			end
@@ -3841,7 +3775,7 @@ local registerkeys = {
 	brick = {
 		Name = "Brick gBalloon",
 		KeyValues = {
-			BalloonMoveSpeed = "125",
+			BalloonMoveSpeed = "150",
 			BalloonScale = "2",
 			BalloonColor = "255 63 63 255",
 			BalloonType = "gballoon_brick",
@@ -3853,7 +3787,7 @@ local registerkeys = {
 	marble = {
 		Name = "Marble gBalloon",
 		KeyValues = {
-			BalloonMoveSpeed = "75",
+			BalloonMoveSpeed = "125",
 			BalloonScale = "2.25",
 			BalloonColor = "255 255 255 255",
 			BalloonType = "gballoon_marble",
@@ -3865,7 +3799,7 @@ local registerkeys = {
 	blimp_blue = {
 		Name = "Blue gBlimp",
 		KeyValues = {
-			BalloonMoveSpeed = "100",
+			BalloonMoveSpeed = "175",
 			BalloonScale = "2",
 			BalloonColor = "0 127 255 255",
 			BalloonType = "gballoon_blimp_blue",
@@ -3879,7 +3813,7 @@ local registerkeys = {
 	blimp_red = {
 		Name = "Red gBlimp",
 		KeyValues = {
-			BalloonMoveSpeed = "75",
+			BalloonMoveSpeed = "150",
 			BalloonScale = "2.25",
 			BalloonColor = "255 0 0 255",
 			BalloonType = "gballoon_blimp_red",
@@ -3893,7 +3827,7 @@ local registerkeys = {
 	blimp_green = {
 		Name = "Green gBlimp",
 		KeyValues = {
-			BalloonMoveSpeed = "56",
+			BalloonMoveSpeed = "125",
 			BalloonScale = "2.5",
 			BalloonColor = "0 255 0 255",
 			BalloonType = "gballoon_blimp_green",
@@ -3907,7 +3841,7 @@ local registerkeys = {
 	blimp_gray = {
 		Name = "Monochrome gBlimp",
 		KeyValues = {
-			BalloonMoveSpeed = "100",
+			BalloonMoveSpeed = "150",
 			BalloonScale = "2",
 			BalloonColor = "127 127 127 255",
 			BalloonType = "gballoon_blimp_gray",
@@ -3923,7 +3857,7 @@ local registerkeys = {
 	blimp_purple = {
 		Name = "Purple gBlimp",
 		KeyValues = {
-			BalloonMoveSpeed = "42",
+			BalloonMoveSpeed = "100",
 			BalloonScale = "2.75",
 			BalloonColor = "127 0 255 255",
 			BalloonType = "gballoon_blimp_purple",
@@ -3952,7 +3886,7 @@ local registerkeys = {
 	blimp_rainbow = {
 		Name = "Rainbow gBlimp",
 		KeyValues = {
-			BalloonMoveSpeed = "42",
+			BalloonMoveSpeed = "100",
 			BalloonScale = "3",
 			BalloonColor = "255 255 255 255",
 			BalloonType = "gballoon_blimp_rainbow",
@@ -3984,7 +3918,7 @@ for i=0,15 do
 			prefix = prefix.."hidden_"
 		end
 		if bit.band(i,4)==4 then
-			v.KeyValues.BalloonDoRegen = "1"
+			v.KeyValues.BalloonRegen = "1"
 			cat = cat.." Regen"
 			prefix = prefix.."regen_"
 		end

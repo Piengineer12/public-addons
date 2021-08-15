@@ -14,7 +14,7 @@ ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/props_phx/facepunch_barrel.mdl")
 ENT.FireRate = 1
 ENT.Cost = 500
-ENT.DetectionRadius = 384
+ENT.DetectionRadius = 192
 ENT.AttackDamage = 10
 ENT.UserTargeting = true
 ENT.rotgb_Radius = 128
@@ -29,7 +29,7 @@ ENT.UpgradeReference = {
 			"Static electricity can now hit multiple gBalloons and bounce on the same gBalloon multiple times, resulting in extremely large amounts of damage per hit.",
 			"Tremendously increases the number of electrostatic jumps. Enables the tower to pop Purple gBalloons.",
 		},
-		Prices = {450,850,7500,125000,1200000},
+		Prices = {450,850,7500,125000,1.2e6},
 		Funcs = {
 			function(self)
 				self.rotgb_Bounces = self.rotgb_Bounces * 2

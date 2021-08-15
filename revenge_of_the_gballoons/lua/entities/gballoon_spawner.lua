@@ -1,7 +1,5 @@
 AddCSLuaFile()
 
--- TODO: Deny instant-startup on last wave + don't delete self until last wave elapsed unless in RotgB: The Gamemode
-
 ENT.Base = "base_anim"
 ENT.Type = "anim"
 ENT.PrintName = "gBalloon Spawner"
@@ -2120,13 +2118,6 @@ ROTGB_CUSTOM_WAVES = {["?RAMP"]=ROTGB_WAVES_RAMP, ["?10S"]=ROTGB_WAVES_10S}
 
 function ENT:GetWaveDuration(wave)
 	return (self:GetWaveTable()[wave] or {}).duration or 0
-	--[[if wave>120 then return 60
-	elseif wave < 40 then return math.ceil(wave/4)*5+5
-	elseif wave==120 then return 300
-	elseif wave==119 then return 120
-	elseif wave%20==0 then return 0
-	else return 60
-	end]]
 end
 
 function ENT:SetupDataTables()
@@ -2183,14 +2174,14 @@ function ENT:KeyValue(key,value)
 		if value ~= 0 then
 			self:SetWave(value)
 		else
-			self:SetWave(GetConVar("rotgb_default_first_wave"):GetInt())
+			self:SetWave(ROTGB_GetConVarValue("rotgb_default_first_wave"))
 		end
 	elseif lkey=="end_wave" then
 		value = tonumber(value) or 0
 		if value ~= 0 then
 			self:SetLastWave(value)
 		else
-			self:SetLastWave(GetConVar("rotgb_default_last_wave"):GetInt())
+			self:SetLastWave(ROTGB_GetConVarValue("rotgb_default_last_wave"))
 		end
 	--[[elseif lkey=="auto_start" then
 		self:SetAutoStart(tobool(value))]]
@@ -2247,14 +2238,14 @@ function ENT:AcceptInput(input,activator,caller,data)
 		if value > 0 then
 			self:SetWave(value)
 		else
-			self:SetWave(GetConVar("rotgb_default_first_wave"):GetInt())
+			self:SetWave(ROTGB_GetConVarValue("rotgb_default_first_wave"))
 		end
 	elseif input=="setlastwave" then
 		local value = tonumber(data) or 0
 		if value > 0 then
 			self:SetLastWave(value)
 		else
-			self:SetLastWave(GetConVar("rotgb_default_last_wave"):GetInt())
+			self:SetLastWave(ROTGB_GetConVarValue("rotgb_default_last_wave"))
 		end
 	elseif input=="setautostart" then
 		self:SetAutoStart(tobool(data))
@@ -2297,7 +2288,6 @@ function ENT:SpawnFunction(ply,trace,classname)
 end
 
 local notifshown
-local gBalloonTable = baseclass.Get("gballoon_base")
 
 function ENT:Initialize()
 	if SERVER then
@@ -2310,16 +2300,16 @@ function ENT:Initialize()
 		end
 		self.OutputShortlyThreshold = tonumber(self.OutputShortlyThreshold) or 7.5
 		if self:GetWave()<=0 then
-			self:SetWave(GetConVar("rotgb_default_first_wave"):GetInt())
+			self:SetWave(ROTGB_GetConVarValue("rotgb_default_first_wave"))
 		end
 		if self:GetLastWave()<=0 then
-			self:SetLastWave(GetConVar("rotgb_default_last_wave"):GetInt())
+			self:SetLastWave(ROTGB_GetConVarValue("rotgb_default_last_wave"))
 		end
 		self:SetSpeedMul(self:GetSpeedMul()>0 and self:GetSpeedMul() or 1)
 		self:SetSpawnDivider(self:GetSpawnDivider()>0 and self:GetSpawnDivider() or 1)
 		self:SetModel(self.Model or "models/props_c17/streetsign004e.mdl")
 		if self:GetWaveFile() == "" then
-			self:SetWaveFile(GetConVar("rotgb_default_wave_preset"):GetString())
+			self:SetWaveFile(ROTGB_GetConVarValue("rotgb_default_wave_preset"))
 		end
 		if self.Skin then
 			self:SetSkin(self.Skin)
@@ -2354,7 +2344,8 @@ end
 
 function ENT:Use(activator)
 	--if input:lower()=="balloon_start_wave" then
-		local cwave = self:GetWave() or 1
+		local cwave = self:GetWave()
+		if cwave == self:GetLastWave() + 1 and (self.EnableBalloonChecking or self:GetNextWaveTime() <= CurTime()) then return end
 		if ((IsValid(activator) and activator:GetClass()~="gballoon_spawner" or activator == self) and self:GetStartAll() and not self.LoopPrevent) then
 			self.LoopPrevent = true
 			for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
@@ -2374,15 +2365,9 @@ function ENT:Use(activator)
 			if not trigent.RotgB_HasFired then
 				trigent:Fire("Trigger")
 				trigent.RotgB_HasFired = true
-			elseif trigent.RotgB_HasFired then -- FIXME: this may have been the best method then, but definitely not now!
-				trigent.RotgB_HasFired = nil
-				trigent = ents.FindByName("wave_finished_relay")[1]
-				if IsValid(trigent) then
-					trigent:Fire("Trigger")
-				end
 			end
 		end
-		if self:GetNextWaveTime()>CurTime() or not self:GetForceNextWave() and gBalloonTable:GetgBalloonCount()>0 then
+		if self:GetNextWaveTime()>CurTime() or not self:GetForceNextWave() and ROTGB_GetBalloonCount()>0 then
 			if self:TriggerWaveEnded() then return self:Remove() end
 		end
 		self:TriggerOutput("OnWaveStart",activator,cwave)
@@ -2469,14 +2454,13 @@ function ENT:GenerateNextWave(cwave)
 	local erbe = self:GetWaveTable()[cwave-1].assumerbe and self:GetWaveTable()[cwave-1].assumerbe*1.1 or self:GetWaveTable()[cwave-1].rbe*1.1
 	local trbe = 0
 	local wavetab = {}
-	local gballoon_base = baseclass.Get("gballoon_base")
 	local choices = {"gballoon_blimp_blue","gballoon_blimp_red","gballoon_blimp_green","gballoon_fast_hidden_regen_shielded_blimp_gray","gballoon_blimp_purple","gballoon_fast_blimp_magenta","gballoon_blimp_rainbow"}
 	local factors = {120,60,40,30,24,20,15,12,10,8,6,5,4,3,2,1}
 	while true do
 		if trbe > (self:GetWaveTable()[cwave-1].assumerbe or self:GetWaveTable()[cwave-1].rbe) then break end
 		local genval = util.SharedRandom("ROTGB_WAVEGEN_"..self:GetWaveFile().."_"..cwave,0,7,trbe)
 		local choice = choices[math.floor(genval)+1]
-		local crbe = gballoon_base.rotgb_rbetab[choice]
+		local crbe = scripted_ents.GetStored("gballoon_base").t.rotgb_rbetab[choice]
 		local amount = math.Clamp((erbe-trbe)/crbe,1,120)
 		for i,v in ipairs(factors) do
 			if amount>=v then amount=v break end
@@ -2491,21 +2475,21 @@ function ENT:GenerateNextWave(cwave)
 end
 
 function ENT:TriggerWaveEnded()
-	local cwave = self:GetWave() or 1
+	local cwave = self:GetWave()
 	local inFreeplay = cwave > self:GetLastWave()
-	ROTGB_AddCash(100/self:GetSpawnDivider()*GetConVar("rotgb_cash_mul"):GetFloat())
+	ROTGB_AddCash(100/self:GetSpawnDivider()*ROTGB_GetConVarValue("rotgb_cash_mul"))
 	if not self.NoMessages then
 		if inFreeplay and not self.WinWave then
 			self.WinWave = cwave
 			hook.Run("AllBalloonsDestroyed")
 			PrintMessage(HUD_PRINTTALK,"All standard waves cleared! Congratulations, you win!")
 			PrintMessage(HUD_PRINTTALK,"If you want a harder challenge, try doubling the gBalloons' health, spawn rate or halving the cash multiplier.")
-			if GetConVar("rotgb_freeplay"):GetBool() then
+			if ROTGB_GetConVarValue("rotgb_freeplay") then
 				PrintMessage(HUD_PRINTTALK,"BEWARE! The gBalloons become exponentially faster and faster after each wave!")
 			end
 		end
 	end
-	return inFreeplay and not GetConVar("rotgb_freeplay"):GetBool()
+	return inFreeplay and not ROTGB_GetConVarValue("rotgb_freeplay")
 end
 
 function ENT:TriggerWaveFinished()
@@ -2541,6 +2525,7 @@ function ENT:SpawnNextWave()
 		self:TriggerWaveFinishedShortly()
 	end
 	if self:TriggerWaveEnded() then return self:Remove() end
+	if self:GetWave() == self:GetLastWave() + 1 then return end
 	if self:GetAutoStartDelay()>0 then
 		timer.Simple(self:GetAutoStartDelay(),function()
 			if (IsValid(self) and self:GetAutoStart()) then
@@ -2558,7 +2543,7 @@ function ENT:Think()
 			self.EnableBalloonChecking = nil
 			self:SpawnNextWave()
 		else
-			if gBalloonTable:GetgBalloonCount()==0 then
+			if ROTGB_GetBalloonCount()==0 then
 				self.EnableBalloonChecking = nil
 				self:SpawnNextWave()
 			end
@@ -2580,7 +2565,7 @@ function ENT:Think()
 				local datablocks = math.ceil(#textdata/packetlength)
 				for i=1,datablocks do
 					net.Start("rotgb_generic")
-					net.WriteString("wave_transfer")
+					net.WriteUInt(ROTGB_OPERATION_WAVE_TRANSFER, 8)
 					net.WriteString(self:GetWaveFile())
 					net.WriteUInt(datablocks, 16)
 					net.WriteUInt(i, 16)
@@ -2595,7 +2580,6 @@ function ENT:Think()
 		end
 	end
 	if CLIENT and self:GetNWString("rotgb_validwave")~=self.CustomWaveName then
-		--PrintTable(ROTGB_CLIENTWAVES[self:GetWaveFile()])
 		if ROTGB_CUSTOM_WAVES[self:GetNWString("rotgb_validwave")] then
 			self.CustomWaveName = self:GetNWString("rotgb_validwave")
 		elseif ((ROTGB_CLIENTWAVES[self:GetWaveFile()] or {})[1] or {}).rbe then
@@ -2605,8 +2589,9 @@ function ENT:Think()
 	end
 end
 
-hook.Add("PlayerSpawn","RotgB",function(ply)
-	ply.ROTGB_CASH = GetConVar("rotgb_starting_cash"):GetFloat()
+-- what is the point of this?
+--[[hook.Add("PlayerInitialSpawn","RotgB",function(ply)
+	ROTGB_SetCash(ROTGB_GetConVarValue("rotgb_starting_cash"), ply)
 	for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
 		if file.Exists("rotgb_wavedata/"..v:GetWaveFile()..".dat", "DATA") then
 			local rawdata = util.JSONToTable(util.Decompress(file.Read("rotgb_wavedata/"..v:GetWaveFile()..".dat","DATA") or ""))
@@ -2616,7 +2601,7 @@ hook.Add("PlayerSpawn","RotgB",function(ply)
 				local datablocks = math.ceil(#textdata/packetlength)
 				for i=1,datablocks do
 					net.Start("rotgb_generic")
-					net.WriteString("wave_transfer")
+					net.WriteUInt(ROTGB_OPERATION_WAVE_TRANSFER, 8)
 					net.WriteString(v:GetWaveFile())
 					net.WriteUInt(datablocks, 16)
 					net.WriteUInt(i, 16)
@@ -2628,7 +2613,7 @@ hook.Add("PlayerSpawn","RotgB",function(ply)
 			end
 		end
 	end
-end)
+end)]]
 
 local function DrawCircle(x,y,r,percent,...)
 	local SEGMENTS = GetConVar("rotgb_circle_segments"):GetInt()
@@ -2654,8 +2639,6 @@ local function DrawCircle(x,y,r,percent,...)
 end
 
 function ENT:DrawTranslucent()
-	--self:Draw()
-	--self:DrawModel()
 	if not self:GetWaveTable()[self:GetWave()] then
 		self:GenerateNextWave(self:GetWave())
 	end
@@ -2664,7 +2647,7 @@ function ENT:DrawTranslucent()
 	reqang.p = 0
 	reqang.y = reqang.y-90
 	reqang.r = 90
-	if cwave <= self:GetLastWave() or GetConVar("rotgb_freeplay"):GetBool() then
+	--if cwave <= self:GetLastWave() or ROTGB_GetConVarValue("rotgb_freeplay") then
 		local text1 = "Next Wave: "..cwave
 		local text2 = "RgBE: "..self:GetWaveTable()[cwave].rbe
 		local text3 = "Press 'Use' on this entity to start the wave."
@@ -2690,7 +2673,7 @@ function ENT:DrawTranslucent()
 			local percent = math.Clamp((self:GetNextWaveTime()-CurTime())/self:GetWaveDuration(cwave-1)*self:GetSpeedMul()+0.02,0,1)
 			DrawCircle(0,panelh/-2-32,16,percent,HSVToColor(percent*120,1,1))
 		cam.End3D2D()
-	elseif self:GetNextWaveTime()>CurTime() then
+	--[[else]]if self:GetNextWaveTime()>CurTime() then
 		local percent = math.Clamp((self:GetNextWaveTime()-CurTime())/self:GetWaveDuration(cwave-1)*self:GetSpeedMul()+0.02,0,1)
 		cam.Start3D2D(self:GetPos()+Vector(0,0,GetConVar("rotgb_hoverover_distance"):GetFloat()+draw.GetFontHeight("DermaLarge")*0.4+self:OBBMaxs().z),reqang,0.2)
 			DrawCircle(0,-draw.GetFontHeight("DermaLarge")-32,16,percent,HSVToColor(percent*120,1,1))

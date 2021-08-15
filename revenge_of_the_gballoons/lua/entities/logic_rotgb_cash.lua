@@ -105,7 +105,7 @@ end
 function ENT:Think()
 	if self.AlwaysThink then
 		local cash = 0
-		if GetConVar("rotgb_individualcash"):GetBool() then -- why are we still here, just to suffer?
+		if ROTGB_GetConVarValue("rotgb_individualcash") then -- this is really, really bad imo
 			if (self.LastPlayerRefresh or 0) <= CurTime() then
 				self.LastPlayerRefresh = CurTime() + 3
 				self.CurrentPlayers = player.GetAll()

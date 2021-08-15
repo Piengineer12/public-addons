@@ -8,9 +8,117 @@ GM.SpawnDelay					= 2
 GM.NetSendInterval				= 0.2 -- this is also the scoreboard refresh rate, but if this is too low, messages might be sent to the client so fast that the client might crash!
 GM.DatabaseFormatVersion		= 1
 GM.DatabaseSaveInterval			= 60
+GM.ModeCategories				= {Easy = 1, Medium = 2, Hard = 3}
+GM.Modes						= {
+	__common = {
+		convars = {
+			rotgb_regen_delay = true,
+			rotgb_func_nav_expand = true,
+			rotgb_max_to_exist = true,
+			rotgb_ignore_damage_resistances = true,
+			rotgb_damage_multiplier = true,
+			rotgb_scale = true,
+			rotgb_target_choice = true,
+			rotgb_target_sort = true,
+			rotgb_search_size = true,
+			rotgb_target_tolerance = true,
+			rotgb_cash_mul = true,
+			rotgb_speed_mul = true,
+			rotgb_health_multiplier = true,
+			rotgb_blimp_health_multiplier = true,
+			rotgb_pop_on_contact = true,
+			rotgb_use_custom_pathfinding = true,
+			rotgb_freeplay = true,
+			rotgb_rainbow_gblimp_regen_rate = true,
+			rotgb_afflicted_damage_multiplier = true,
+			rotgb_tower_range_multiplier = true,
+			rotgb_ignore_upgrade_limits = true,
+			rotgb_fire_delay = true,
+			rotgb_init_rate = true,
+			rotgb_starting_cash = true,
+			rotgb_tower_income_mul = true,
+			rotgb_target_health_override = true,
+			rotgb_default_first_wave = true,
+			rotgb_tower_ignore_physgun = true,
+			
+			rotgb_difficulty = true,
+			rotgb_default_wave_preset = true,
+			rotgb_default_last_wave = true,
+			rotgb_target_natural_health = true
+		}
+	},
+	easy_regular = {
+		name = "Regular",
+		category = "Easy",
+		place = 1,
+		convars = {
+			rotgb_difficulty = -1,
+			rotgb_default_last_wave = 40,
+			rotgb_target_natural_health = 200
+		}
+	},
+	medium_regular = {
+		name = "Regular",
+		category = "Medium",
+		place = 1,
+		convars = {
+			rotgb_difficulty = 0,
+			rotgb_default_last_wave = 60,
+			rotgb_target_natural_health = 150
+		}
+	},
+	hard_regular = {
+		name = "Regular",
+		category = "Hard",
+		place = 1,
+		convars = {
+			rotgb_difficulty = 1,
+			rotgb_default_last_wave = 80,
+			rotgb_target_natural_health = 100
+		}
+	},
+	hard_insane = {
+		name = "Insane",
+		category = "Hard",
+		place = 2,
+		convars = {
+			rotgb_difficulty = 2,
+			rotgb_default_last_wave = 100,
+			rotgb_target_natural_health = 50
+		}
+	},
+	hard_impossible = {
+		name = "Impossible",
+		category = "Hard",
+		place = 3,
+		convars = {
+			rotgb_difficulty = 3,
+			rotgb_default_wave_preset = "",
+			rotgb_default_last_wave = 120,
+			rotgb_target_natural_health = 1
+		}
+	}
+}
+
+--[[
+TO DO LIST:
+
+sandbox saving
+remove water on rotgb_test1
+fix autostart on rotgb_heatwave
+sfx for upgrading and placing
+one click to buy as much as possible - low priority
+fix spectator bugs
+music?
+gamemode: game options GUI
+]]
 
 ROTGB_STAT_POPS = 1
 ROTGB_STAT_INITEXP = 2
+
+RTG_OPERATION_KICK = 1
+RTG_OPERATION_GAMEOVER = 2
+RTG_OPERATION_SETDIFFICULTY = 3
 
 AddCSLuaFile()
 include("player_class/builder.lua")
@@ -71,6 +179,10 @@ function GM:CanProperty(ply, property, ent)
 end
 
 -- non-base
+
+function GM:ShouldConVarOverride(cvar)
+	return self.Modes.Difficulty and self.Modes.Difficulty.convars[cvar] or self.Modes.__common.convars[cvar]
+end
 
 local experienceNeeded = {
 	1e3, 2.5e3, 5e3, 10e3, 20e3,

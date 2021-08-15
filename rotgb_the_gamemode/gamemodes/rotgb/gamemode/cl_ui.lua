@@ -7,6 +7,7 @@ local color_yellow = Color(255, 255, 0)
 local color_green = Color(0, 255, 0)
 local color_light_green = Color(127, 255, 127)
 local color_aqua = Color(0, 255, 255)
+local color_purple = Color(127, 0, 255)
 local SCOREBOARD_CELL_WIDTH_MULTIPLIERS = {1, 6, 6, 2, 2, 6, {1, 3, 2}, 4}
 local SCOREBOARD_PADDING = 2
 local SCOREBOARD_CELL_SPACE = 1
@@ -22,6 +23,17 @@ local SCOREBOARD_FUNCS = {
 		return string.Comma(ply:Ping())
 	end
 }
+local VOTE_INFO = {
+	{
+		name = "Kick",
+		entries = function()
+			local entries = {}
+			for k,v in pairs(player.GetAll()) do
+				entries[v:UserID()] = v:Nick()
+			end
+		end
+	}
+}
 
 local ROTGB_TRANSFER = 1
 local ROTGB_KICK = 6
@@ -31,7 +43,7 @@ local FONT_BODY_HEIGHT = ScreenScale(12)
 local FONT_SCOREBOARD_HEADER_HEIGHT = ScreenScale(8)
 local FONT_SCOREBOARD_BODY_HEIGHT = ScreenScale(8)
 local FONT_LEVEL_SMALL_HEIGHT = ScreenScale(6)
-local indentX = ScrW()*0.2
+local indentX = ScrW()*0.1
 local indentY = ScrH()*0.1
 
 surface.CreateFont("rotgb_header", {
@@ -282,8 +294,8 @@ local function CreateScoreboardTransferCell(parent, ply)
 		-- the code for this is defined in weapons/rotgb_control.lua in the main RotgB addon, not in this gamemode
 		-- also ROTGB_GetTransferAmount is in the main RotgB addon under entities/gballoon_target.lua 
 		-- the code is all over the place because I don't want to break older worlds
-		net.Start("rotgb_controller")
-		net.WriteUInt(ROTGB_TRANSFER, 8)
+		net.Start("rotgb_generic")
+		net.WriteUInt(ROTGB_OPERATION_TRANSFER, 8)
 		net.WriteEntity(v)
 		net.SendToServer()
 	end)
@@ -666,7 +678,7 @@ local function RestartButtonFunction(button)
 	Derma_Query("Are you sure you want to start a new game?", "#new_game", "#GameUI_Yes", function()
 		net.Start("rotgb_gameend")
 		net.SendToServer()
-	end, "GameUI_No")
+	end, "#GameUI_No")
 end
 
 local function CreateGameOverButtons(parent, canContinue)
@@ -685,6 +697,46 @@ local function CreateGameOverButtons(parent, canContinue)
 		ContinueButton:SetZPos(3)
 		ContinueButton:Dock(BOTTOM)
 	end
+end
+
+local function CreateDifficultySelectionPanel(parent)
+	local DTree = vgui.Create("DTree", parent)
+	DTree:Dock(FILL)
+	AccessorFunc(DTree, "difficulty", "Difficulty", FORCE_STRING)
+	
+	for i,v in ipairs(hook.Run("GetGamemodeDifficultyNodes")) do
+		local node = DTree:AddNode(v.name, "icon16/bricks.png")
+		for i2,v2 in ipairs(v.subnodes) do
+			local subnode = node:AddNode(v2.name, "icon16/brick.png")
+			subnode.internalName = v2.internalName
+			function subnode:DoClick()
+				DTree:DifficultySelected(self.internalName)
+			end
+		end
+	end
+	
+	return DTree
+end
+
+local function CreateDifficultyConfirmButton(parent, newDifficulty)
+	local button = CreateButton(parent, "Select Difficulty >", color_green, function()
+		net.Start("rotgb_gamemode")
+		net.WriteString(newDifficulty)
+		net.SendToServer()
+		parent:Close()
+	end)
+	button:SetPos(parent:GetWide()/2-button:GetWide()/2, parent:GetTall()-indentY-button:GetTall())
+	button:SetEnabled(false)
+	
+	function selectionPanel:DifficultySelected(difficulty)
+		button:SetEnabled(true)
+	end
+end
+
+local function CreateVoteLeftPanel()
+	local Panel = vgui.Create("DPanel")
+	
+	return Panel
 end
 
 
@@ -793,6 +845,68 @@ function GM:CreateFailureMenu()
 	return Menu
 end
 
+function GM:CreateDifficultyMenu()
+	if LocalPlayer():IsAdmin() then
+		local Menu = CreateMenu()
+		local DifficultySelectionPanel = CreateDifficultySelectionPanel(Menu)
+		local ConfirmButton = CreateDifficultyConfirmButton(Menu, DifficultySelectionPanel)
+	else
+		ROTGB_LogError("This concommand is only available to admins.","")
+	end
+end
+
+function GM:CreateVoteMenu(data)
+	local Menu = CreateMenu()
+	
+	local VoteLeftPanel = CreateVoteLeftPanel(data)
+	local VoteRightPanel = CreateVoteRightPanel(VoteLeftPanel, data)
+	local VoteReasonPanel = CreateVoteReasonPanel()
+	local VoteStartPanel = CreateVoteButtonPanel(VoteRightPanel, VoteReasonPanel)
+	
+	local ButtonDivider = vgui.Create("DVerticalDivider")
+	local ReasonDivider = vgui.Create("DVerticalDivider")
+	local LeftRightDivider = vgui.Create("DHorizontalDivider")
+	
+	local buttonDividerTopHeight = Menu:GetTall()-indentY*2-VoteStartPanel:GetTall()-FONT_BODY_HEIGHT
+	local reasonDividerTopHeight = buttonDividerTopHeight-VoteReasonPanel:GetTall()-FONT_BODY_HEIGHT
+	local leftRightDividerLeftWidth = (Menu:GetWide()-FONT_BODY_HEIGHT)/2-indentX
+	
+	ButtonDivider:SetDividerWidth(FONT_BODY_HEIGHT)
+	ButtonDivider:Dock(FILL)
+	ButtonDivider:SetTop(ReasonDivider)
+	ButtonDivider:SetBottom(VoteStartPanel)
+	ButtonDivider:SetTopHeight(buttonDividerTopHeight)
+	
+	ReasonDivider:SetDividerWidth(FONT_BODY_HEIGHT)
+	ReasonDivider:SetTop(LeftRightDivider)
+	ReasonDivider:SetBottom(VoteReasonPanel)
+	ReasonDivider:SetTopHeight(reasonDividerTopHeight)
+	
+	LeftRightDivider:SetDividerWidth(FONT_BODY_HEIGHT)
+	LeftRightDivider:SetLeft(VoteLeftPanel)
+	LeftRightDivider:SetRight(VoteRightPanel)
+	LeftRightDivider:SetLeftWidth(leftRightDividerLeftWidth)
+end
+
+function GM:HUDDrawXP()
+	local ply = LocalPlayer()
+	local barHeight = FONT_HEADER_HEIGHT/4
+	local barWidth = barHeight * 50
+	
+	local barX = (ScrW() - barWidth)/2
+	local barY = ScrH() - barHeight*2
+	
+	surface.SetDrawColor(0,0,0)
+	surface.DrawRect(barX-2, barY-2, barWidth+4, barHeight+4)
+	surface.SetDrawColor(63,0,127)
+	surface.DrawRect(barX, barY, barWidth, barHeight)
+	surface.SetDrawColor(127,0,255)
+	surface.DrawRect(barX, barY, barWidth * ply:ROTGB_GetLevelFraction(), barHeight)
+	
+	draw.SimpleTextOutlined("Level "..string.Comma(ply:ROTGB_GetLevel()), "rotgb_header", barX, barY, color_purple, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
+	draw.SimpleTextOutlined(string.Comma(ply:ROTGB_GetExperience()).." / "..string.Comma(ply:ROTGB_GetExperienceNeeded()), "Trebuchet24", barX+barWidth, barY, color_purple, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
+end
+
 
 
 function GM:ShowHelp()
@@ -855,6 +969,7 @@ end
 function GM:HUDPaint()
 	hook.Run("HUDDrawTargetID")
 	hook.Run("DrawDeathNotice", 0.85, 0.04)
+	hook.Run("HUDDrawXP")
 end
 
 function GM:GameOver(success)
@@ -863,4 +978,34 @@ function GM:GameOver(success)
 	else
 		self.GameOverMenu = hook.Run("CreateFailureMenu")
 	end
+end
+
+function GM:GetGamemodeDifficultyNodes()
+	local nodesByCategory = {}
+	for k,v in pairs(self.Modes) do
+		if v.name then
+			local subnode = {
+				name = v.name
+				internalName = k
+			}
+			nodesByCategory[v.category] = nodesByCategory[v.category] or {}
+			table.insert(nodesByCategory[v.category], subnode)
+		end
+	end
+	
+	for k,v in pairs(nodesByCategory) do
+		table.SortByMember(v, "place", true)
+	end
+	
+	local nodes = {}
+	for k,v in pairs(nodesByCategory) do
+		local node = {
+			name = k,
+			place = self.ModeCategories[k]
+			subnodes = nodesByCategory[k]
+		}
+	end
+	
+	table.SortByMember(nodes, "place")
+	return nodes
 end

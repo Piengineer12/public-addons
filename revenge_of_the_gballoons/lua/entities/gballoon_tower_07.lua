@@ -14,7 +14,7 @@ ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/props_phx/games/chess/white_pawn.mdl")
 ENT.FireRate = 2
 ENT.Cost = 250
-ENT.DetectionRadius = 384
+ENT.DetectionRadius = 256
 ENT.AbilityCooldown = 30
 ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,25)
@@ -106,9 +106,6 @@ local function SnipeEntity()
 				Attacker = self:GetTowerOwner(),
 				Callback = function(attacker,tracer,dmginfo)
 					dmginfo:SetDamageType(self.rotgb_CanPopGray and DMG_SNIPER or DMG_BULLET)
-					--[[if (IsValid(tracer.Entity) and tracer.Entity:GetClass() == "gballoon_base" and tracer.Entity:GetBalloonProperty("BalloonGray")) then
-						tracer.Entity:TakeDamage(self.AttackDamage,self,self)
-					end]]
 					if IsValid(ent) and self.rotgb_DoFire then
 						ent:RotgB_Ignite(10, self:GetTowerOwner(), self, self.rotgb_DoFireAura and 10 or 5)
 					end
@@ -197,7 +194,7 @@ end
 
 function ENT:TriggerAbility()
 	if self.rotgb_AbilityDamage > 0 then
-		local entities = ents.FindByClass("gballoon_base")
+		local entities = ROTGB_GetBalloons()
 		if not next(entities) and not self.rotgb_Transformation then return true end
 		for index,ent in pairs(entities) do
 			local effdata = EffectData()
@@ -212,8 +209,10 @@ function ENT:TriggerAbility()
 	end
 	if self.rotgb_Transformation then
 		local entities = ents.FindByClass("gballoon_tower_07")
-		for index,ent in pairs(entities) do
-			if not ent.rotgb_Transformed then
+		local success = false
+		for index,ent in pairs(ents.FindInSphere(self:GetShootPos(), self.DetectionRadius)) do
+			if ent:GetClass()=="gballoon_tower_07" and not ent.rotgb_Transformed then
+				success = true
 				local effdata = EffectData()
 				effdata:SetOrigin(Vector(ent:GetPos()))
 				effdata:SetStart(Vector(ent:GetPos()))
@@ -250,5 +249,6 @@ function ENT:TriggerAbility()
 				end)
 			end
 		end
+		if not success then return true end
 	end
 end

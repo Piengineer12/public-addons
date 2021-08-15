@@ -33,19 +33,15 @@ function ENT:AcceptInput(input,activator,caller,data)
 	end
 end
 
-function ENT:XOR(bool1, bool2)
-	return (bool1 or bool2) and not (bool1 and bool2)
-end
-
 function ENT:PassesFilter(caller, ent)
 	if self:GetType()==2 then
 		if IsValid(ent) then
-			return self:XOR(ent:GetClass() == "gballoon_base", self:GetInverted())
+			return (ent:GetClass() == "gballoon_base") ~= self:GetInverted()
 		else return self:GetInverted()
 		end
 	elseif self:GetType()==3 then
 		if IsValid(ent) then
-			return self:XOR(ent.Base == "gballoon_tower_base", self:GetInverted())
+			return (ent.Base == "gballoon_tower_base") ~= self:GetInverted()
 		else return self:GetInverted()
 		end
 	else return not self:GetInverted() end
@@ -55,12 +51,12 @@ end
 function ENT:PassesDamageFilter(dmg)
 	if self:GetType()==0 then
 		if IsValid(dmg:GetInflictor()) then
-			return self:XOR(dmg:GetInflictor():GetClass() == "gballoon_base", self:GetInverted())
+			return (dmg:GetInflictor():GetClass() == "gballoon_base") ~= self:GetInverted()
 		else return self:GetInverted()
 		end
 	elseif self:GetType()==1 then
 		if IsValid(dmg:GetInflictor()) then
-			return self:XOR(dmg:GetInflictor().Base == "gballoon_tower_base", self:GetInverted())
+			return (dmg:GetInflictor().Base == "gballoon_tower_base") ~= self:GetInverted()
 		else return self:GetInverted()
 		end
 	else return not self:GetInverted() end

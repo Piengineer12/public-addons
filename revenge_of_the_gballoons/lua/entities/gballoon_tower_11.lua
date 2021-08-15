@@ -15,7 +15,7 @@ ENT.Model = Model("models/hunter/tubes/tube1x1x1.mdl")
 ENT.FireRate = 1
 ENT.ShellAmt = 1
 ENT.Cost = 500
-ENT.DetectionRadius = 512
+ENT.DetectionRadius = 384
 ENT.AttackDamage = 10
 ENT.UserTargeting = true
 ENT.AbilityCooldown = 30
@@ -144,35 +144,24 @@ function ENT:FireFunction(tableOfBalloons)
 				--util.Effect("Explosion",effdata,true,true)
 				util.Effect("HelicopterMegaBomb",effdata,true,true)
 				EmitSound("phx/kaboom.wav", pos, 0, CHAN_WEAPON, 0.5, 75, SND_SHOULDPAUSE, math.random(80,120))
-				--if self.rotgb_RespectPlayers then
-					for k,v in pairs(ents.FindInSphere(pos,self.rotgb_ExploRadius)) do
-						if self:ValidTargetIgnoreRange(v) then
-							dmginfo:SetDamagePosition(v:GetPos())
-							if self.rotgb_Stun then
-								v:Stun(1)
-							end
-							if self.rotgb_SetOnFire then
-								v:RotgB_Ignite(120, self:GetTowerOwner(), self, 5)
-							end
-							if self.rotgb_Heavy and v:GetBalloonProperty("BalloonBlimp") then
-								dmginfo:ScaleDamage(3)
-							end
-							v:TakeDamageInfo(dmginfo)
-							if self.rotgb_Heavy and v:GetBalloonProperty("BalloonBlimp") then
-								dmginfo:ScaleDamage(1/3)
-							end
+				for k,v in pairs(ents.FindInSphere(pos,self.rotgb_ExploRadius)) do
+					if self:ValidTargetIgnoreRange(v) then
+						dmginfo:SetDamagePosition(v:GetPos())
+						if self.rotgb_Stun then
+							v:Stun(1)
+						end
+						if self.rotgb_SetOnFire then
+							v:RotgB_Ignite(120, self:GetTowerOwner(), self, 5)
+						end
+						if self.rotgb_Heavy and v:GetBalloonProperty("BalloonBlimp") then
+							dmginfo:ScaleDamage(3)
+						end
+						v:TakeDamageInfo(dmginfo)
+						if self.rotgb_Heavy and v:GetBalloonProperty("BalloonBlimp") then
+							dmginfo:ScaleDamage(1/3)
 						end
 					end
-				--[[else
-					if self.rotgb_Stun then
-						for k,v in pairs(ents.FindInSphere(pos,self.rotgb_ExploRadius)) do
-							if v:GetClass()=="gballoon_base" then
-								v:Stun(1)
-							end
-						end
-					end
-					util.BlastDamageInfo(dmginfo,pos,self.rotgb_ExploRadius)
-				end]]
+				end
 			end
 		end
 	end)

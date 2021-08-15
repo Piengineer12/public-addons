@@ -14,7 +14,7 @@ ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/props_phx/games/chess/black_knight.mdl")
 ENT.FireRate = 10
 ENT.Cost = 550
-ENT.DetectionRadius = 512
+ENT.DetectionRadius = 256
 ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,40)
 ENT.UserTargeting = true
@@ -161,39 +161,12 @@ local function SnipeEntity()
 				Attacker = self:GetTowerOwner(),
 				Callback = function(attacker,tracer,dmginfo)
 					dmginfo:SetDamageType(self.rotgb_CanPopGray and DMG_SNIPER or DMG_BULLET)
-					--[[if self.rotgb_Explosive then -- no longer used
-						local dmginfo = DamageInfo()
-						dmginfo:SetAmmoType(game.GetAmmoID("Grenade"))
-						dmginfo:SetAttacker(self:GetTowerOwner())
-						dmginfo:SetInflictor(self)
-						dmginfo:SetDamageType(DMG_BLAST)
-						dmginfo:SetReportedPosition(tracer.HitPos)
-						local effdata = EffectData()
-						effdata:SetOrigin(tracer.HitPos)
-						effdata:SetMagnitude(6)
-						effdata:SetScale(6)
-						effdata:SetStart(tracer.HitPos)
-						effdata:SetEntity(self)
-						util.Effect("Explosion",effdata,true,true)
-						for k,v in pairs(ents.FindInSphere(tracer.HitPos,128)) do
-							if v:GetClass()=="gballoon_base" then
-								dmginfo:SetDamagePosition(tracer.HitPos)
-								dmginfo:SetDamage(self.rotgb_ExtraVsCeramic and v:GetMaxHealth()>1 and self.AttackDamage*2 or self.AttackDamage)
-								dmginfo:SetMaxDamage(dmginfo:GetDamage())
-								v:TakeDamageInfo(dmginfo)
-							end
-						end
-						dmginfo:SetDamagePosition(tracer.HitPos)
-						dmginfo:SetDamage(self.rotgb_ExtraVsCeramic and ent:GetMaxHealth()>(ent:GetBalloonProperty("BalloonShielded") and 2 or 1) and self.AttackDamage*5 or self.AttackDamage)
-						dmginfo:SetMaxDamage(dmginfo:GetDamage())
-						util.BlastDamageInfo(dmginfo,tracer.HitPos,128)
-					end]]
 				end,
 				Damage = self.rotgb_ExtraVsCeramic and ent:GetBalloonProperty("BalloonBlimp") and self.AttackDamage*2 or self.AttackDamage,
 				Distance = self.DetectionRadius*1.5,
 				HullSize = 1,
 				Num = self.rotgb_Shots,
-				Tracer = 2,
+				Tracer = math.floor(2*math.sqrt(self.rotgb_Shots)),
 				AmmoType = "SniperRound",
 				TracerName = "Tracer",
 				Dir = uDir,
@@ -204,25 +177,6 @@ local function SnipeEntity()
 		end
 	end
 end
-
-hook.Add("EntityTakeDamage","RotgB_Towers",function(vic,dmginfo)
-	local laser = dmginfo:GetAttacker()
-	local inflictor = dmginfo:GetInflictor()
-	if (IsValid(laser) and laser.rotgb_UseLaser) then
-		if (IsValid(laser.rotgb_Owner) and laser.rotgb_Owner.Base == "gballoon_tower_base") then
-			dmginfo:SetAttacker(laser.rotgb_Owner:GetTowerOwner())
-			dmginfo:SetInflictor(laser.rotgb_Owner)
-		end
-		if laser.rotgb_UseLaser==2 then
-			dmginfo:SetDamageType(DMG_GENERIC)
-			if dmginfo:GetDamage()>=vic:Health() and vic:GetClass()=="gballoon_base" and laser.rotgb_NoChildren then
-				dmginfo:SetDamage(vic:GetRgBE() * 1000)
-			end
-		end
-	elseif (IsValid(inflictor) and inflictor.rotgb_Owner) then
-		dmginfo:SetInflictor(inflictor.rotgb_Owner)
-	end
-end)
 
 ENT.thread = coroutine.create(SnipeEntity)
 coroutine.resume(ENT.thread)

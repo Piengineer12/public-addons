@@ -25,6 +25,37 @@ function ENT:Initialize()
 		self:StartMotionController()
 
 		self:SetTargetZ(self:GetPos().z)
+		self:SetTrigger(true)
+	end
+	self:UseTriggerBounds(true,64)
+end
+
+function ENT:StartTouch(ent)
+	if (IsValid(ent) and ent:IsPlayer()) then
+		self:SetTrigger(false)
+		self:SetNotSolid(true)
+		self:SetMoveType(MOVETYPE_NONE)
+		self:SetNoDraw(true)
+		local effdata = EffectData()
+		effdata:SetEntity(self)
+		util.Effect("entity_remove",effdata,true,true)
+		self:GiveCash()
+		SafeRemoveEntityDelayed(self,1)
+	end
+end
+
+function ENT:OnRemove()
+	self:GiveCash()
+end
+
+function ENT:GiveCash()
+	if self.rotgb_Value then
+		if IsValid(self.rotgb_Tower) then
+			self.rotgb_Tower:AddCash(self.rotgb_Value, self.rotgb_Tower:GetTowerOwner())
+		else
+			ROTGB_AddCash(self.rotgb_Value*ROTGB_GetConVarValue("rotgb_cash_mul")*ROTGB_GetConVarValue("rotgb_tower_income_mul"))
+		end
+		self.rotgb_Value = 0
 	end
 end
 

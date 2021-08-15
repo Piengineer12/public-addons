@@ -27,7 +27,7 @@ function ROTGB_UpdateCash(ply)
 end
 
 function ROTGB_SetCash(num,ply)
-	if GetConVar("rotgb_individualcash"):GetBool() then
+	if ROTGB_GetConVarValue("rotgb_individualcash") then
 		if ply then
 			ply.ROTGB_CASH = tonumber(num) or 0
 			ROTGB_UpdateCash(ply)
@@ -44,7 +44,7 @@ function ROTGB_SetCash(num,ply)
 end
 
 function ROTGB_GetCash(ply)
-	if GetConVar("rotgb_individualcash"):GetBool() then
+	if ROTGB_GetConVarValue("rotgb_individualcash") then
 		ply = ply or CLIENT and LocalPlayer()
 		if ply then return ply.ROTGB_CASH or 0
 		else
@@ -61,7 +61,7 @@ end
 
 function ROTGB_AddCash(num,ply)
 	num = tonumber(num) or 0
-	if GetConVar("rotgb_individualcash"):GetBool() then
+	if ROTGB_GetConVarValue("rotgb_individualcash") then
 		if ply then
 			ROTGB_SetCash(ROTGB_GetCash(ply)+num,ply)
 		else
@@ -77,7 +77,7 @@ end
 
 function ROTGB_RemoveCash(num,ply)
 	num = tonumber(num) or 0
-	if GetConVar("rotgb_individualcash"):GetBool() then
+	if ROTGB_GetConVarValue("rotgb_individualcash") then
 		if ply then
 			ROTGB_SetCash(ROTGB_GetCash(ply)-num,ply)
 		else
@@ -98,26 +98,12 @@ function ROTGB_GetTransferAmount(ply)
 end
 
 function ROTGB_ScaleBuyCost(num)
-	return num * (1 + (GetConVar("rotgb_difficulty"):GetFloat() - 1)/5)
+	return num * (1 + (ROTGB_GetConVarValue("rotgb_difficulty") - 1)/5)
 end
 
 local ConH,ConE,ConX,ConY,ConS,ConF,ConG,ConQ
 
 if SERVER then
-	hook.Add("Think","RotgB2",function()
-		if ROTGB_GetCash()==0 and GetConVar("rotgb_starting_cash"):GetFloat()~=0 then
-			ROTGB_SetCash(GetConVar("rotgb_starting_cash"):GetFloat())
-		elseif player.GetCount() > 0 then
-			hook.Remove("Think","RotgB2")
-		end
-	end)
-	
-	hook.Add("PlayerSpawn","RotgB2",function(ply)
-		if GetConVar("rotgb_individualcash"):GetBool() and GetConVar("rotgb_starting_cash"):GetFloat()~=0 then
-			ROTGB_SetCash(GetConVar("rotgb_starting_cash"):GetFloat(), ply)
-		end
-	end)
-	
 	util.AddNetworkString("rotgb_target_received_damage")
 	util.AddNetworkString("rotgb_cash")
 end
@@ -372,116 +358,6 @@ hook.Add("AddToolMenuCategories","RotgB",function()
 	spawnmenu.AddToolCategory("RotgB","Server","Server")
 end)
 
---[[local order = {
-	"gballoon_red",
-	"gballoon_blue",
-	"gballoon_green",
-	"gballoon_yellow",
-	"gballoon_pink",
-	"gballoon_white",
-	"gballoon_black",
-	"gballoon_purple",
-	"gballoon_orange",
-	"gballoon_gray",
-	"gballoon_zebra",
-	"gballoon_aqua",
-	"gballoon_error",
-	"gballoon_rainbow",
-	"gballoon_ceramic",
-	"gballoon_blimp_blue",
-	"gballoon_brick",
-	"gballoon_blimp_red",
-	"gballoon_marble",
-	"gballoon_blimp_green",
-	"gballoon_blimp_gray",
-	"gballoon_blimp_purple",
-	"gballoon_blimp_magenta",
-	"gballoon_blimp_rainbow",
-}
-
-local function AddBalloon(CategoryList,class)
-	local npcprops = list.GetForEdit("NPC")[class]
-	local cvals = npcprops.KeyValues
-	local Category = CategoryList:Add(npcprops.Name)
-	Category:SetHeight(256)
-	local Label = vgui.Create("RichText",Category)
-	local hasimms,haspops
-	Label:Dock(FILL)
-	Label:SetText("")
-	Label:InsertColorChange(255,127,127,255)
-	Label:AppendText("Health: "..(cvals.BalloonHealth or 1))
-	Label:InsertColorChange(255,255,127,255)
-	Label:AppendText("\nRgBE: "..baseclass.Get("gballoon_base").rotgb_rbetab[class])
-	Label:InsertColorChange(127,255,127,255)
-	Label:AppendText("\nSize: "..(cvals.BalloonScale or 1))
-	Label:InsertColorChange(127,255,255,255)
-	Label:AppendText("\nSpeed: "..(cvals.BalloonMoveSpeed or 100))
-	Label:InsertColorChange(127,127,255,255)
-	Label:AppendText("\nOn pop, spawns the following:")
-	for k,v in pairs(baseclass.Get("gballoon_base").rotgb_spawns[class] or {}) do
-		local npcprops2 = list.GetForEdit("NPC")[v]
-		local h1,s1,v1 = ColorToHSV(string.ToColor(npcprops2.KeyValues.BalloonColor))
-		if s1 == 1 then v1 = 1 end
-		s1 = s1 / 2
-		v1 = (v1 + 1) / 2
-		local col2 = HSVToColor(h1,s1,v1)
-		Label:InsertColorChange(col2.r,col2.g,col2.b,col2.a)
-		Label:AppendText("\n\t"..npcprops2.Name)
-		haspops = true
-	end
-	if not haspops then
-		Label:InsertColorChange(255,127,127,255)
-		Label:AppendText("\n\tNone")
-	end
-	Label:InsertColorChange(255,127,255,255)
-	Label:AppendText("\nExtra Properties: ")
-	if cvals.BalloonWhite then
-		Label:InsertColorChange(255,255,255,255)
-		Label:AppendText("\n\tFrost Immunity")
-		hasimms = true
-	end
-	if cvals.BalloonBlimp then
-		Label:InsertColorChange(255,255,255,255)
-		Label:AppendText("\n\tFrost Immunity")
-		Label:InsertColorChange(255,255,127,255)
-		Label:AppendText("\n\tGlue Immunity")
-		hasimms = true
-	end
-	if cvals.BalloonBlack then
-		Label:InsertColorChange(127,127,127,255)
-		Label:AppendText("\n\tExplosion Immunity")
-		hasimms = true
-	end
-	if cvals.BalloonPurple then
-		Label:InsertColorChange(191,127,255,255)
-		Label:AppendText("\n\tMagic Immunity")
-		hasimms = true
-	end
-	if cvals.BalloonGray then
-		Label:InsertColorChange(191,191,191,255)
-		Label:AppendText("\n\tBullet Immunity")
-		hasimms = true
-	end
-	if cvals.BalloonAqua then
-		Label:InsertColorChange(127,255,255,255)
-		Label:AppendText("\n\tMelee Immunity")
-		hasimms = true
-	end
-	if cvals.BalloonArmor then
-		Label:InsertColorChange(255,127,255,255)
-		Label:AppendText("\n\tIgnores damage < "..cvals.BalloonArmor.." layers")
-		hasimms = true
-	end
-	if not hasimms then
-		Label:InsertColorChange(255,127,127,255)
-		Label:AppendText("\n\tNone")
-	end
-	function Label:PerformLayout()
-		self:SetBGColor(63,63,63,255)
-	end
-	Category:DoExpansion(false)
-end]]
-
 hook.Add("PopulateToolMenu","RotgB",function()
 	spawnmenu.AddToolMenuOption("RotgB","Server","RotgB_Server1","Cash","","",function(DForm)
 		DForm:TextEntry("Cash Value","rotgb_cash_param")
@@ -570,8 +446,12 @@ hook.Add("PopulateToolMenu","RotgB",function()
 		DForm:Help(" - "..GetConVar("rotgb_func_nav_expand"):GetHelpText().."\n")
 	end)
 	spawnmenu.AddToolMenuOption("RotgB","Server","RotgB_Server5","Towers","","",function(DForm)
+		DForm:CheckBox("Hurt Non-gBalloons","rotgb_tower_damage_others")
+		DForm:Help(" - "..GetConVar("rotgb_tower_damage_others"):GetHelpText().."\n")
 		DForm:CheckBox("Ignore Upgrade Limits","rotgb_ignore_upgrade_limits")
 		DForm:Help(" - "..GetConVar("rotgb_ignore_upgrade_limits"):GetHelpText().."\n")
+		DForm:CheckBox("Ignore Physics Gun","rotgb_tower_ignore_physgun")
+		DForm:Help(" - "..GetConVar("rotgb_tower_ignore_physgun"):GetHelpText().."\n")
 		DForm:NumSlider("Difficulty","rotgb_difficulty",0,3,0)
 		DForm:Help(" - "..GetConVar("rotgb_difficulty"):GetHelpText().."\n")
 		DForm:NumSlider("Damage Multiplier","rotgb_damage_multiplier",0,10,3)
@@ -607,7 +487,7 @@ hook.Add("PopulateToolMenu","RotgB",function()
 		dangerbutton:SetTextColor(Color(255,0,0))
 		local DTextEntry = DForm:TextEntry("Debug Parameters","rotgb_debug")
 		function DTextEntry:GetAutoComplete(text)
-			local dbags = baseclass.Get("gballoon_base").DebugArgs
+			local dbags = scripted_ents.GetStored("gballoon_base").t.DebugArgs
 			local last = string.match(text,"[%w_]+$") or ""
 			if last==text then
 				text=""
@@ -742,6 +622,7 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Bool",4,"NonVital")
 	self:NetworkVar("Bool",5,"HideHealth")
 	self:NetworkVar("Int",0,"Weight",{KeyName="weight",Edit={title="Weight (highest = first)",type="Int",min=0,max=100}})
+	self:NetworkVar("Float",0,"NaturalHealthMultiplier")
 	self:NetworkVar("Entity",0,"NextTarget1")
 	self:NetworkVar("Entity",1,"NextTarget2")
 	self:NetworkVar("Entity",2,"NextTarget3")
@@ -807,6 +688,8 @@ function ENT:KeyValue(key,value)
 		self:SetHideHealth(tobool(value))
 	elseif lkey=="weight" then
 		self:SetWeight(tonumber(value) or 0)
+	elseif lkey=="natural_health_multiplier" then
+		self:SetNaturalHealthMultiplier(tonumber(value) or 0)
 	elseif lkey=="onbreak" then
 		self:StoreOutput(key,value)
 	elseif lkey=="onhealthchanged" then
@@ -896,6 +779,20 @@ function ENT:AcceptInput(input,activator,caller,data)
 		self:SetHideHealth(false)
 	elseif input=="togglehealthhide" then
 		self:SetHideHealth(not self:GetHideHealth())
+	elseif input=="setnaturalhealthmultiplier" then
+		local newMul = tonumber(data) or 0
+		if self:GetNaturalHealthMultiplier() == 0 then
+			local naturalHealth = ROTGB_GetConVarValue("rotgb_target_natural_health") * newMul
+			self:SetMaxHealth(naturalHealth)
+			self:SetHealth(naturalHealth)
+		else
+			local multiplier = newMul / self:GetNaturalHealthMultiplier()
+			self:SetMaxHealth(self:GetMaxHealth() * multiplier)
+			self:SetHealth(self:Health() * multiplier)
+		end
+		self:SetNaturalHealthMultiplier(newMul)
+	elseif input=="resethealth" then
+		self:SetHealth(self:GetMaxHealth())
 	end
 end
 
@@ -921,13 +818,17 @@ function ENT:Initialize()
 		if IsValid(physobj) then
 			physobj:Wake()
 		end
-		local healthOverride = GetConVar("rotgb_target_health_override"):GetInt()
+		local healthOverride = ROTGB_GetConVarValue("rotgb_target_health_override")
 		if healthOverride > 0 then
 			self:SetHealth(healthOverride)
 			self:SetMaxHealth(healthOverride)
 		elseif self.CurHealth then
 			self:SetHealth(self.CurHealth)
 			self:SetMaxHealth(self.CurMaxHealth)
+		elseif self:GetNaturalHealthMultiplier() ~= 0 then
+			local naturalHealth = ROTGB_GetConVarValue("rotgb_target_natural_health") * self:GetNaturalHealthMultiplier()
+			self:SetHealth(naturalHealth)
+			self:SetMaxHealth(naturalHealth)
 		end
 		--[[if self.TmepNextTarget then
 			self:SetNextTarget(ents.FindByName(self.TmepNextTarget)[1] or NULL)
@@ -982,7 +883,7 @@ function ENT:OnTakeDamage(dmginfo)
 					flags,
 					attacker:GetBalloonProperty("BalloonFast") and 4 or 0,
 					attacker:GetBalloonProperty("BalloonHidden") and 8 or 0,
-					attacker:GetBalloonProperty("BalloonDoRegen") and 16 or 0,
+					attacker:GetBalloonProperty("BalloonRegen") and 16 or 0,
 					attacker:GetBalloonProperty("BalloonShielded") and 32 or 0
 				)
 			end
@@ -1033,40 +934,12 @@ function ENT:DrawTranslucent()
 	end
 end
 
-list.Set("NPC","gballoon_target_100",{
-	Name = "100HP gBalloon Target",
+list.Set("NPC","gballoon_target_natural",{
+	Name = "gBalloon Target",
 	Class = "gballoon_target",
 	Category = "RotgB: Miscellaneous",
 	KeyValues = {
-		health = "100",
-		max_health = "100"
-	}
-})
-list.Set("NPC","gballoon_target_150",{
-	Name = "150HP gBalloon Target",
-	Class = "gballoon_target",
-	Category = "RotgB: Miscellaneous",
-	KeyValues = {
-		health = "150",
-		max_health = "150"
-	}
-})
-list.Set("NPC","gballoon_target_200",{
-	Name = "200HP gBalloon Target",
-	Class = "gballoon_target",
-	Category = "RotgB: Miscellaneous",
-	KeyValues = {
-		health = "200",
-		max_health = "200"
-	}
-})
-list.Set("NPC","gballoon_target_050",{
-	Name = "50HP gBalloon Target",
-	Class = "gballoon_target",
-	Category = "RotgB: Miscellaneous",
-	KeyValues = {
-		health = "50",
-		max_health = "50"
+		natural_health_multiplier = "1"
 	}
 })
 list.Set("NPC","gballoon_target_op",{
@@ -1078,40 +951,12 @@ list.Set("NPC","gballoon_target_op",{
 		max_health = "999999999"
 	}
 })
-list.Set("SpawnableEntities","gballoon_target_100",{
-	PrintName = "100HP gBalloon Target",
+list.Set("SpawnableEntities","gballoon_target_natural",{
+	PrintName = "gBalloon Target",
 	ClassName = "gballoon_target",
 	Category = "RotgB: Miscellaneous",
 	KeyValues = {
-		health = "100",
-		max_health = "100"
-	}
-})
-list.Set("SpawnableEntities","gballoon_target_150",{
-	PrintName = "150HP gBalloon Target",
-	ClassName = "gballoon_target",
-	Category = "RotgB: Miscellaneous",
-	KeyValues = {
-		health = "150",
-		max_health = "150"
-	}
-})
-list.Set("SpawnableEntities","gballoon_target_200",{
-	PrintName = "200HP gBalloon Target",
-	ClassName = "gballoon_target",
-	Category = "RotgB: Miscellaneous",
-	KeyValues = {
-		health = "200",
-		max_health = "200"
-	}
-})
-list.Set("SpawnableEntities","gballoon_target_050",{
-	PrintName = "50HP gBalloon Target",
-	ClassName = "gballoon_target",
-	Category = "RotgB: Miscellaneous",
-	KeyValues = {
-		health = "50",
-		max_health = "50"
+		natural_health_multiplier = "1"
 	}
 })
 list.Set("SpawnableEntities","gballoon_target_op",{

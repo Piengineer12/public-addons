@@ -197,7 +197,7 @@ local function AddBalloon(ColumnSheet,class)
 	end
 	if class == "gballoon_blimp_rainbow" then
 		Label:AppendText("\n\t")
-		local text = "Regenerates "..math.Round(GetConVar("rotgb_rainbow_gblimp_regen_rate"):GetFloat()*200/3,2).." Health Per Second"
+		local text = "Regenerates "..math.Round(ROTGB_GetConVarValue("rotgb_rainbow_gblimp_regen_rate")*200/3,2).." Health Per Second"
 		for i=1,#text do
 			local hue = math.Remap(i,1,#text,0,720)
 			local color = HSVToColor(hue,0.5,1)
@@ -422,7 +422,7 @@ function ENT:DrawTranslucent()
 	reqang.p = 0
 	reqang.y = reqang.y-90
 	reqang.r = 90
-	cam.Start3D2D(self:GetPos()+Vector(0,0,GetConVar("rotgb_hoverover_distance"):GetFloat()+t1y*0.1+self:OBBMaxs().z),reqang,0.2)
+	cam.Start3D2D(self:GetPos()+Vector(0,0,ROTGB_GetConVarValue("rotgb_hoverover_distance")+t1y*0.1+self:OBBMaxs().z),reqang,0.2)
 		surface.SetDrawColor(0,0,0,127)
 		surface.DrawRect(t1x/-2,t1y/-2,t1x,t1y)
 		surface.SetTextColor(0,255,0)
