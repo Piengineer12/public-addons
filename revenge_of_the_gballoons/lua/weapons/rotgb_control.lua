@@ -97,7 +97,7 @@ function SWEP:PrimaryAttack()
 			if ply:IsNPC() then
 				self:SetCurrentTower(math.random(#self.TowerTable))
 			end
-			local tower = ents.Create(self.TowerTable[self:GetCurrentTower()].class)
+			local tower = ents.Create(self.TowerTable[self:GetCurrentTower()].ClassName)
 			tower:SetPos(trace.HitPos)
 			tower:SetAngles(tempang)
 			tower:SetTowerOwner(ply)
@@ -321,16 +321,7 @@ local function PaintBackground(self, w, h)
 	draw.RoundedBox(8, 0, 0, w, h, color_black_semiopaque)
 end
 
-function SWEP:CreateTowerMenu()
-	local wep = self
-	
-	local Main = vgui.Create("DFrame")
-	Main:SetPos(0,0)
-	Main:SetSize(ScrW(),ScrH())
-	Main:DockPadding(padding,padding,padding,padding)
-	Main.Paint = nil
-	Main:MakePopup()
-	self.TowerMenu = Main
+function SWEP:InstallMenuFunctions(Main)
 	function Main:CreateButton(text, parent, color1, color2, color3)
 		local Button = vgui.Create("DButton", parent)
 		Button:SetFont("Trebuchet24")
@@ -364,6 +355,19 @@ function SWEP:CreateTowerMenu()
 		
 		return TextEntry
 	end
+end
+
+function SWEP:CreateTowerMenu()
+	local wep = self
+	
+	local Main = vgui.Create("DFrame")
+	Main:SetPos(0,0)
+	Main:SetSize(ScrW(),ScrH())
+	Main:DockPadding(padding,padding,padding,padding)
+	Main.Paint = nil
+	Main:MakePopup()
+	self:InstallMenuFunctions(Main)
+	self.TowerMenu = Main
 	
 	local LeftDivider = vgui.Create("DHorizontalDivider", Main)
 	LeftDivider:Dock(FILL)
@@ -576,7 +580,7 @@ function SWEP:CreateRightPanel(Main)
 			TowerPanel:SetSize(ScrW()/16, ScrW()/16)
 			TowerPanel:SetColor(color_gray)
 			TowerPanel.affordable = false
-			TowerPanel.minimumLevel = engine.ActiveGamemode() == "rotgb" and 0 or i
+			TowerPanel.minimumLevel = engine.ActiveGamemode() == "rotgb" and i or 0
 			TowerPanel.levelLocked = false
 			TowerPanel.cashText = ROTGB_FormatCash(ROTGB_ScaleBuyCost(v.Cost), true)
 			TowerPanel:SetTooltip(v.PrintName)
@@ -617,7 +621,7 @@ function SWEP:CreateRightPanel(Main)
 			end
 			
 			function TowerPanel:DoClick()
-				wep:DoTowerSelector(k)
+				wep:DoTowerSelector(i)
 			end
 		end
 	end

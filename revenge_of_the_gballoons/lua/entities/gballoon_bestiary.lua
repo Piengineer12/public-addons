@@ -2,8 +2,8 @@ AddCSLuaFile()
 
 ENT.Type 				= "anim"
 ENT.Base 				= "base_anim"
-ENT.PrintName			= "gBalloon Bestiary"
-ENT.Purpose				= "The compendium of knowledge all about Rouge gBalloons."
+ENT.PrintName			= "RotgB Guide Book"
+ENT.Purpose				= "The compendium of knowledge all about RotgB."
 ENT.Instructions		= ""
 ENT.Category			= "RotgB: Miscellaneous"
 ENT.Author				= "Piengineer"
@@ -257,7 +257,7 @@ local credits = {
 	{"zorich_michael", "76561198196764081", "Suggested the waypoint system (2019-01-16)."},
 	{"Sergius", "76561198293518598", "Suggested the Ally Pawn (2019-01-19)."},
 	{"Fifu the Random Tribal Idiot", "76561198102225296", "Suggested the Orb of Cold (2019-01-28) and Microwave Tower (2019-02-10)."},
-	{"Famis_The_Wendigo", "76561198348095161", "Suggested the Ally Pawn (2019-02-07) and waypoint system (2019-03-03)."},
+	{"Obsidian_The_Tempered", "76561198348095161", "Suggested the Ally Pawn (2019-02-07) and waypoint system (2019-03-03)."},
 	{"Platless", "76561198822619008", "Suggested the Rainbow Beamer (2019-02-13)."},
 	{"Sir. Vapenation", "76561198143774099", "Suggested the waypoint system (2019-03-18), Hoverball Factory (2019-03-18) and Turret Factory (2019-03-18)."},
 	{"mushroom", "76561198337193083", "Suggested the Bishop of Glue (2019-05-06)."},
@@ -267,7 +267,7 @@ local credits = {
 	{"Conga Dispenser", "76561198361428640", "Suggested the Mortar Tower (2019-07-17), waypoint multi-path system (2019-09-01), individual cash system (2019-09-01), custom wave editor (2019-09-24) and gBalloon Target instant teleportation (2020-10-29)."},
 	{"SkyanUltra", "76561198147466564", "Suggested option to bypass upgrade path restrictions (2019-07-21)."},
 	{"BFR2005", "76561198089249743", "Suggested the Fire Cube (2019-07-30)."},
-	{"Pooie Stewie", "76561198274942231", "Suggested the custom wave editor (2019-09-24)."},
+	{"PoopStomp9000", "76561198274942231", "Suggested the custom wave editor (2019-09-24)."},
 	{"fansided", "76561198117057248", "Suggested multi-gBalloon Spawner activation (2020-03-03)."},
 	{"PuggleLeDog", "76561198120548061", "Suggested BTD4 Camo gBalloon (2020-10-04) and gBlimps with attributes (2020-10-04)."},
 	{"Ryankz11", "76561198004803429", "Suggested removal of annoying NavMesh missing message (2020-10-04)."},
@@ -275,10 +275,11 @@ local credits = {
 }
 
 local creditsUnimplemented = {
-	{"Egg", "76561198853380897", "Suggested a crowbar / melee tower (2019-01-28)."},
+	{"Xtrah962", "76561198853380897", "Suggested a crowbar / melee tower (2019-01-28)."},
 	{"SarnieMuncher", "76561198154658331", "Suggested for holdable gBalloons (2019-08-29)."},
+	{"[WLS] Ziggy Gaming", "id/ziggyevolved", "Suggested many, many more gBalloon types (2020-04-21)."},
 	{"dogethedoggo", "76561198857378000", "Suggested the Gravity Blaster (2020-08-11)."},
-	{"Hans", "76561199014467773", "Suggested for gBalloons to be availble for the Balloon tool (2020-12-12)."},
+	{"Goat Child", "76561199014467773", "Suggested for gBalloons to be availble for the Balloon tool (2020-12-12)."},
 	{"<various people>", nil, "Many other suggestions that ultimately did not make it."}
 }
 
@@ -300,34 +301,12 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 		RichText:InsertColorChange(127,127,127,255)
 		RichText:AppendText("Introduction\n\n")
 		RichText:InsertColorChange(255,255,255,255)
-		RichText:AppendText("The RotgB Bestiary functions to tell about how to use the addon effectively, as well as listing the gBalloons statistics, \z
-		immunities and weaknesses. Each gBalloon page describes about a gBalloon as well as its ")
-		RichText:InsertColorChange(255,127,127,255)
-		RichText:AppendText("Hit Points")
-		RichText:InsertColorChange(255,255,255,255)
-		RichText:AppendText(", ")
-		RichText:InsertColorChange(255,255,127,255)
-		RichText:AppendText("Red gBalloon Equivalent (RgBE)")
-		RichText:InsertColorChange(255,255,255,255)
-		RichText:AppendText(", ")
-		RichText:InsertColorChange(127,255,127,255)
-		RichText:AppendText("Size")
-		RichText:InsertColorChange(255,255,255,255)
-		RichText:AppendText(", ")
-		RichText:InsertColorChange(127,255,255,255)
-		RichText:AppendText("Speed")
-		RichText:InsertColorChange(255,255,255,255)
-		RichText:AppendText(", ")
-		RichText:InsertColorChange(127,127,255,255)
-		RichText:AppendText("Pop Products")
-		RichText:InsertColorChange(255,255,255,255)
-		RichText:AppendText(" and ")
-		RichText:InsertColorChange(255,127,255,255)
-		RichText:AppendText("Extra Properties")
-		RichText:InsertColorChange(255,255,255,255)
-		RichText:AppendText(". It should be noted that the gBalloons' statistics shown in the Bestiary are only accurate \z
-		if the gBalloon server settings are set to their defaults (see Options > RotgB > Server Settings). \z
-		I hope this book helps!\n\n")
+		RichText:AppendText("This is the guide book for RotgB, which aims to tell about how to use the addon effectively,\z
+		as well as listing the gBalloons statistics, immunities and weaknesses.\n\n\z
+		Each gBalloon page describes about a gBalloon as well as its Hit Points, Red gBalloon Equivalent (RgBE), Size, Speed, Pop Products and Extra Properties. \z
+		It should be noted that the gBalloons' statistics shown in the Bestiary are only accurate \z
+		if the gBalloon server settings are set to their defaults (see Options > RotgB > Server Settings).\n\n\z
+		More information will be added to this book if deemed neccessary.\n\n")
 		RichText:InsertColorChange(127,127,127,255)
 		RichText:AppendText("- Piengineer")
 		function RichText:PerformLayout()
@@ -369,7 +348,11 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 			AuthorButton:SetText(tab[1])
 			function AuthorButton:DoClick()
 				if tab[2] then
-					gui.OpenURL("https://steamcommunity.com/profiles/"..tab[2])
+					if tab[2]:StartWith("id/") then
+						gui.OpenURL("https://steamcommunity.com/"..tab[2])
+					else
+						gui.OpenURL("https://steamcommunity.com/profiles/"..tab[2])
+					end
 				end
 			end
 			AuthorButton:Dock(LEFT)

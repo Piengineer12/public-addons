@@ -2,6 +2,7 @@ include("sh_init.lua")
 include("sv_spawndeath.lua")
 include("sv_spectators.lua")
 include("sv_teams.lua")
+include("sv_voting.lua")
 
 local nextUpdate = 0
 local shouldUpdate = false
@@ -35,6 +36,10 @@ end
 function GM:PostCleanupMap()
 	self.Defeated = false
 	self.GameIsOver = false
+	for k,v in pairs(player.GetAll()) do
+		v:UnSpectate()
+		v:Spawn()
+	end
 end
 
 function GM:ShowHelp(ply)
@@ -101,8 +106,12 @@ net.Receive("rotgb_gamemode", function(length, ply)
 	local operation = net.ReadUInt(8)
 	if operation == RTG_OPERATION_GAMEOVER and self.GameIsOver then
 		hook.Run("CleanUpMap")
-	elseif operation == RTG_OPERATION_SETDIFFICULTY and ply:IsAdmin() then
+	elseif operation == RTG_OPERATION_DIFFICULTY and ply:IsAdmin() then
 		hook.Run("ChangeDifficulty", net.ReadString())
+	elseif operation == RTG_OPERATION_VOTE then
+		local typ = net.ReadUInt(8)
+		local target = net.ReadInt(16)
+		hook.Run("StartVote", ply, typ, target)
 	end
 end)
 
@@ -152,7 +161,6 @@ function GM:GameOver(success)
 		self.Defeated = true
 		game.SetTimeScale(1)
 		for k,v in pairs(player.GetAll()) do
-			hook.Run("PlayerJoinTeam", v, TEAM_SPECTATOR)
 			v:Spectate(OBS_MODE_IN_EYE)
 			local possibleEntities = hook.Run("GetSpectatableEntities", v)
 			local targetEntity = game.GetWorld()
@@ -170,9 +178,9 @@ end
 
 function GM:ChangeDifficulty(difficulty)
 	-- set the current gamemode for the ShouldConVarOverride hook to refer to, then clean up the map
-	self.Difficulty = difficulty
+	self:SetDifficulty(difficulty)
 	net.Start("rotgb_gamemode")
-	net.WriteUInt(RTG_OPERATION_SETDIFFICULTY, 8)
+	net.WriteUInt(RTG_OPERATION_DIFFICULTY, 8)
 	net.WriteString(difficulty)
 	net.Broadcast()
 	hook.Run("CleanUpMap")

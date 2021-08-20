@@ -69,6 +69,7 @@ SWEP.rotgb_CritChance = 0
 SWEP.rotgb_CritMul = 2
 SWEP.rotgb_FireRate = 1
 SWEP.rotgb_HomingBullets = 0
+SWEP.rotgb_HomingDamageMultiplier = 1
 SWEP.PartOrder = {"case", "ammo", "grip"}
 SWEP.TargetingOptions = {"First","Last","Strong","Weak","Close","Far","Fast","Slow"}
 SWEP.TargetingIcons = {"shape_move_front","shape_move_back","award_star_gold_3","award_star_bronze_1","connect","disconnect","control_fastforward_blue","control_play"}
@@ -78,7 +79,7 @@ SWEP.UpgradeReference = {
 		desc = {
 			"+1% movement speed",
 			"x2 fire rate",
-			"x2 fire rate",
+			"x2 damage",
 			"+1 auto-pop target",
 			"x2 auto-pop targets",
 			"x2 auto-pop targets",
@@ -92,7 +93,7 @@ SWEP.UpgradeReference = {
 				self.rotgb_FireRate = self.rotgb_FireRate * 2
 			end,
 			function(self)
-				self.rotgb_FireRate = self.rotgb_FireRate * 2
+				self.AttackDamage = self.AttackDamage * 2
 			end,
 			function(self)
 				self.rotgb_AutoTargets = self.rotgb_AutoTargets + 1
@@ -106,8 +107,8 @@ SWEP.UpgradeReference = {
 			function(self)
 				self.SpeedMultiplier = 1
 				self.rotgb_AutoTargets = self.rotgb_AutoTargets / 4 - 1
-				self.rotgb_FireRate = self.rotgb_FireRate / 4
-				self.AttackDamage = self.AttackDamage * 4
+				self.rotgb_FireRate = self.rotgb_FireRate / 2
+				self.AttackDamage = self.AttackDamage * 2
 			end
 		}
 	},
@@ -143,6 +144,7 @@ SWEP.UpgradeReference = {
 			function(self)
 				self.FireRate = 4
 				self.rotgb_GrayPop = false
+				self.AttackDamage = self.AttackDamage / 2
 				self.rotgb_BulletPairs = self.rotgb_BulletPairs - 4
 				self.rotgb_BulletPairHoming = false
 				self.rotgb_BlimpMul = self.rotgb_BlimpMul * 4
@@ -152,11 +154,11 @@ SWEP.UpgradeReference = {
 	grip = {
 		desc = {
 			"+1% crit chance",
-			"x2 crit damage",
+			"x2 fire rate",
 			"x2 crit damage",
 			"+1 homing bullet",
-			"x2 homing bullets",
-			"x2 homing bullets",
+			"x2 homing bullet damage",
+			"x2 homing bullet damage",
 			"x4 crit damage"
 		},
 		func = {
@@ -164,7 +166,7 @@ SWEP.UpgradeReference = {
 				self.rotgb_CritChance = level/100
 			end,
 			function(self)
-				self.rotgb_CritMul = self.rotgb_CritMul * 2
+				self.rotgb_FireRate = self.rotgb_FireRate * 2
 			end,
 			function(self)
 				self.rotgb_CritMul = self.rotgb_CritMul * 2
@@ -173,14 +175,17 @@ SWEP.UpgradeReference = {
 				self.rotgb_HomingBullets = self.rotgb_HomingBullets + 1
 			end,
 			function(self)
-				self.rotgb_HomingBullets = self.rotgb_HomingBullets * 2
+				self.rotgb_HomingDamageMultiplier = self.rotgb_HomingDamageMultiplier * 2
 			end,
 			function(self)
-				self.rotgb_HomingBullets = self.rotgb_HomingBullets * 2
+				self.rotgb_HomingDamageMultiplier = self.rotgb_HomingDamageMultiplier * 2
 			end,
 			function(self)
 				self.rotgb_CritChance = 0
-				self.rotgb_HomingBullets = self.rotgb_HomingBullets / 4 - 1
+				self.rotgb_FireRate = self.rotgb_FireRate / 2
+				self.rotgb_HomingBullets = self.rotgb_HomingBullets - 1
+				self.rotgb_HomingDamageMultiplier = self.rotgb_HomingDamageMultiplier / 4
+				self.rotgb_CritMul = self.rotgb_CritMul * 2
 			end
 		}
 	}
@@ -199,24 +204,26 @@ if SERVER then
 				local part = wep.PartOrder[net.ReadUInt(2)]
 				if part then
 					local reftab = wep.UpgradeReference
-					local level = wep:GetPartLevel(part)
-					local cost = wep:GetCost(level)
-					if ROTGB_GetCash(ply) < cost then return end
-					wep.SellAmount = (wep.SellAmount or 0) + cost
-					
-					local effectiveNextLevel = level % 100 + 1
-					local majorLevel = reftab.majorLevels[effectiveNextLevel]
-					if majorLevel then
-						reftab[part].func[majorLevel+1](wep)
-						if effectiveNextLevel~=100 then
+					for i=0, net.ReadUInt(8) do
+						local level = wep:GetPartLevel(part)
+						local cost = wep:GetCost(level)
+						if ROTGB_GetCash(ply) < cost then return end
+						wep.SellAmount = (wep.SellAmount or 0) + cost
+						
+						local effectiveNextLevel = level % 100 + 1
+						local majorLevel = reftab.majorLevels[effectiveNextLevel]
+						if majorLevel then
+							reftab[part].func[majorLevel+1](wep)
+							if effectiveNextLevel~=100 then
+								reftab[part].func[1](wep, effectiveNextLevel)
+							end
+						else
 							reftab[part].func[1](wep, effectiveNextLevel)
 						end
-					else
-						reftab[part].func[1](wep, effectiveNextLevel)
+						
+						ROTGB_RemoveCash(cost, ply)
+						wep:AddPartLevel(part)
 					end
-					
-					ROTGB_RemoveCash(cost, ply)
-					wep:AddPartLevel(part)
 				end
 			elseif operation == ROTGB_TARGETING then
 				local mode = net.ReadUInt(2)
@@ -273,15 +280,16 @@ function SWEP:PrimaryAttack()
 					if IsValid(self) then 
 						dmginfo:SetInflictor(self)
 						local ent = trace.Entity
+						local entityIsgBalloon = IsValid(ent) and ent:GetClass()=="gballoon_base"
 						if ent:IsPlayer() then
 							dmginfo:ScaleDamage(0)
-						elseif (IsValid(ent) and ent:GetClass()=="gballoon_base" and ent:GetBalloonProperty("BalloonBlimp")) then
+						elseif (entityIsgBalloon and ent:GetBalloonProperty("BalloonBlimp")) then
 							dmginfo:ScaleDamage(self.rotgb_BlimpMul)
 						end
 						if self.rotgb_GrayPop then
 							dmginfo:SetDamageType(DMG_GENERIC)
 						end
-						if trace.Hit then
+						if trace.Hit and entityIsgBalloon then
 							self:TriggerHitEffects(trace.HitPos, isCrit)
 						end
 					end
@@ -548,6 +556,7 @@ end
 
 function SWEP:DoHomingShot(bullet)
 	local ply = self:GetOwner()
+	bullet.Damage = bullet.Damage * self.rotgb_HomingDamageMultiplier
 	self.lastBalloonTrace = self.lastBalloonTrace or {}
 	self.gBTraceData = self.gBTraceData or {
 		filter = ply,
@@ -673,7 +682,7 @@ end
 function SWEP:GetCost(level)
 	local resets, localLevel = math.modf(level/100)
 	localLevel = math.Round(localLevel*100 + 1)
-	local cost = localLevel*5*10^resets
+	local cost = localLevel*10*10^resets
 	if self.UpgradeReference.majorLevels[localLevel] then
 		cost = cost * 10
 	end
@@ -695,6 +704,7 @@ local color_red = Color(255,0,0)
 local color_light_red = Color(255,127,127)
 local color_yellow = Color(255,255,0)
 local color_green = Color(0,255,0)
+local color_light_green = Color(127,255,127)
 
 local function PaintUpgradeBackground(self, w, h)
 	draw.RoundedBox(8, 0, 0, w, h, color_black_translucent)
@@ -714,6 +724,7 @@ end
 
 function SWEP:CreateUpgradeMenu()
 	self.Levels = {case = self:GetCaseLevel(), ammo = self:GetAmmoLevel(), grip = self:GetGripLevel()}
+	local rotgb_control = weapons.Get("rotgb_control")
 	
 	local Main = vgui.Create("DFrame")
 	Main:SetPos(0,0)
@@ -723,19 +734,7 @@ function SWEP:CreateUpgradeMenu()
 	Main:SetSizable(false)
 	Main:SetDraggable(false)
 	Main:MakePopup()
-	function Main:CreateButton(text, parent, color1, color2, color3)
-		local Button = vgui.Create("DButton", parent)
-		Button:SetFont("Trebuchet24")
-		Button:SetText(text)
-		Button:SetColor(color_black)
-		Button:SetTall(buttonHeight)
-		
-		function Button:Paint(w, h)
-			draw.RoundedBox(8, 0, 0, w, h, not self:IsEnabled() and color_gray or self:IsDown() and color3 or self:IsHovered() and color2 or color1)
-		end
-		
-		return Button
-	end
+	rotgb_control.InstallMenuFunctions(self, Main)
 	self.UpgradeMenu = Main
 	
 	local LeftDivider = vgui.Create("DHorizontalDivider", Main)
@@ -748,9 +747,9 @@ function SWEP:CreateUpgradeMenu()
 	RightDivider:SetDividerWidth(padding)
 	RightDivider:SetLeftWidth(ScrW()*0.6-padding/2)
 	
-	local InfoPanel, RightPanel = self:CreateRightPanel(Main)
+	local RightPanel = self:CreateRightPanel(Main)
 	RightDivider:SetRight(RightPanel)
-	LeftDivider:SetLeft(self:CreateLeftPanel(Main, InfoPanel))
+	LeftDivider:SetLeft(self:CreateLeftPanel(Main, RightPanel))
 	
 	local MiddlePanel = vgui.Create("DPanel")
 	RightDivider:SetLeft(MiddlePanel)
@@ -770,7 +769,7 @@ function SWEP:CreateUpgradeMenu()
 	Main:ShowCloseButton(false)
 end
 
-function SWEP:CreateLeftPanel(Main, InfoPanel)
+function SWEP:CreateLeftPanel(Main, RightDivider)
 	local wep = self
 	local LeftPanel = vgui.Create("DPanel")
 	LeftPanel.Paint = PaintUpgradeBackground
@@ -865,13 +864,16 @@ function SWEP:CreateLeftPanel(Main, InfoPanel)
 			net.Start("rotgb_shooter")
 			net.WriteUInt(ROTGB_UPGRADE,4)
 			net.WriteUInt(i,2)
+			net.WriteUInt(0,8)
 			net.SendToServer()
 			wep.SellAmount = (wep.SellAmount or 0) + cost
 			wep:AddPartLevel(part)
 			level = level + 1
 			self:Refresh()
-			InfoPanel:Refresh()
 			OtherPanel:Refresh()
+			if RightDivider:GetTop().Refresh then
+				RightDivider:GetTop():Refresh()
+			end
 		end
 		UpgradeButton:Refresh()
 		
@@ -880,20 +882,67 @@ function SWEP:CreateLeftPanel(Main, InfoPanel)
 		UpgradeIndicatorPanel.Paint = self.DoNothing
 		UpgradeIndicatorPanel.HoverPanels = {}
 		for j=1,6 do
-			local minorLevel = level % 100 + 1
-			local resets = math.floor(level/100)
-			local majorLevel = table.KeyFromValue(reftab.majorLevels, j)
-			local title = string.format("Level %u %s", majorLevel + resets*100, partNiceName)
-			local upgradeCost = self:GetCost(majorLevel - 1 + resets*100)
-			local desc = Main:GetUpgradeDescription(part, majorLevel)
-			local HoverButton = UpgradeIndicatorPanel:Add("DPanel")
+			local HoverButton = UpgradeIndicatorPanel:Add("DButton")
 			HoverButton:SetWide(24)
-			HoverButton:SetTooltip(string.format("%s (%s)\n%s", title, ROTGB_FormatCash(upgradeCost, true), desc))
+			HoverButton:SetText("")
 			HoverButton:DockMargin(0,0,8,0)
 			HoverButton:Dock(LEFT)
-			HoverButton.DrawColor = j <= UpgradeButton.Tier and color_green or reftab.majorLevels[minorLevel] == j and color_yellow or color_gray
 			function HoverButton:Paint(w,h)
-				draw.RoundedBox(8,0,0,w,h,self.DrawColor)
+				local drawColor
+				local pulser = math.sin(CurTime()*math.pi*2)/2+0.5
+				if j <= UpgradeButton.Tier then
+					drawColor = color_green
+				elseif reftab.majorLevels[self.minorLevel] == j then
+					drawColor = curcash < self.RequiredAmount and color_yellow or HSVToColor(60, 1-pulser, 1)
+				else
+					drawColor = curcash < self.RequiredAmount and color_gray or HSVToColor(0, 0, pulser/2+0.5)
+				end
+				draw.RoundedBox(8,0,0,w,h,drawColor)
+			end
+			function HoverButton:GetRequiredAmount(majorLevel, resets)
+				local startLevel = level
+				local endLevel = majorLevel - 1 + resets * 100
+				local cost = 0
+				for i=level, endLevel do
+					cost = cost + wep:GetCost(i)
+				end
+				return cost
+			end
+			function HoverButton:DoClick()
+				if not IsValid(wep) then
+					Main:Close()
+					return CauseNotification("Shooter is invalid!")
+				end
+				if curcash<self.RequiredAmount then return CauseNotification("You need "..ROTGB_FormatCash(self.RequiredAmount-curcash, true).." more to buy this upgrade!") end
+				
+				local startLevel = level
+				local endLevel = table.KeyFromValue(reftab.majorLevels, j) - 1 + math.floor(level/100) * 100
+				for k=startLevel, endLevel do
+					local majorLevelTrigger = reftab.majorLevels[k+1]
+					if majorLevelTrigger then
+						reftab[part].func[majorLevelTrigger+1](wep)
+						UpgradeButton.Tier = UpgradeButton.Tier + 1
+					end
+					local minorLevel = k % 100 + 1
+					if minorLevel == 100 then
+						UpgradeButton.Tier = 0
+					else
+						reftab[part].func[1](wep, minorLevel)
+					end
+					wep.SellAmount = (wep.SellAmount or 0) + cost
+					wep:AddPartLevel(part)
+					level = level + 1
+				end
+				net.Start("rotgb_shooter")
+				net.WriteUInt(ROTGB_UPGRADE,4)
+				net.WriteUInt(i,2)
+				net.WriteUInt(endLevel-startLevel,8)
+				net.SendToServer()
+				UpgradeButton:Refresh()
+				OtherPanel:Refresh()
+				if RightDivider:GetTop().Refresh then
+					RightDivider:GetTop():Refresh()
+				end
 			end
 			UpgradeIndicatorPanel.HoverPanels[j] = HoverButton
 		end
@@ -907,7 +956,8 @@ function SWEP:CreateLeftPanel(Main, InfoPanel)
 				local upgradeCost = wep:GetCost(majorLevel - 1 + resets*100)
 				local desc = Main:GetUpgradeDescription(part, majorLevel)
 				v:SetTooltip(string.format("%s (%s)\n%s", title, ROTGB_FormatCash(upgradeCost, true), desc))
-				v.DrawColor = j <= UpgradeButton.Tier and color_green or reftab.majorLevels[minorLevel] == j and color_yellow or color_gray
+				v.minorLevel = minorLevel
+				v.RequiredAmount = v:GetRequiredAmount(majorLevel, resets)
 			end
 		end
 		UpgradeIndicatorPanel:Refresh()
@@ -1024,16 +1074,37 @@ function SWEP:CreateLeftPanel(Main, InfoPanel)
 end
 
 function SWEP:CreateRightPanel(Main)
-	local rotgb_control = weapons.Get("rotgb_control")
 	local wep = self
+	local rotgb_control = weapons.Get("rotgb_control")
 	local RightDivider = vgui.Create("DVerticalDivider")
 	RightDivider:SetDividerHeight(padding)
 	RightDivider:SetTopHeight(ScrH()*0.8)
 	
+	RightDivider:SetTop(self:CreateTopRightPanel(Main, RightDivider))
+	RightDivider.ShowStat = true
+	function RightDivider:SwapTopRightPanel()
+		self:GetTop():Remove()
+		self.ShowStat = not self.ShowStat
+		if self.ShowStat then
+			self:SetTop(wep:CreateTopRightPanel(Main, RightDivider))
+		else
+			self:SetTop(wep:CreateTopRightTransferPanel(Main, RightDivider))
+		end
+	end
+	
+	-- just use what we already defined in rotgb_control, no need to copy and paste code
+	RightDivider:SetBottom(rotgb_control.CreateBottomRightPanel(self, Main))
+	
+	return RightDivider
+end
+
+function SWEP:CreateTopRightPanel(Main, RightDivider)
+	local wep = self
 	local InfoPanel = vgui.Create("DPanel")
 	local InfoLabel = vgui.Create("DLabel", InfoPanel)
-	RightDivider:SetTop(InfoPanel)
-	InfoPanel:DockPadding(0,0,0,padding)
+	local TransferButton = Main:CreateButton("Transfer...", InfoPanel, color_green, color_light_green, color_white)
+	Main:AddHeader("Current Bonuses:", InfoPanel)
+	InfoPanel:DockPadding(padding,padding,padding,padding)
 	InfoPanel.AttributeInfo = {
 		{"SpeedMultiplier", function(value)
 			if value > 1 then
@@ -1100,6 +1171,11 @@ function SWEP:CreateRightPanel(Main)
 				else return "+1 homing bullet"
 				end
 			end
+		end},
+		{"rotgb_HomingDamageMultiplier", function(value)
+			if value > 1 then
+				return string.format("x%u homing bullet damage", value)
+			end
 		end}
 	}
 	function InfoPanel:Paint(w, h)
@@ -1108,18 +1184,17 @@ function SWEP:CreateRightPanel(Main)
 			return CauseNotification("Shooter is invalid!")
 		end
 		PaintBackground(self, w, h)
-		draw.SimpleText("Current Bonuses","DermaLarge",0,0,color_white)
 	end
 	function InfoPanel:Refresh()
 		if not IsValid(wep) then
 			Main:Close()
 			return CauseNotification("Shooter is invalid!")
 		end
-		local text = '\n'
+		local text = ""
 		for i,v in ipairs(self.AttributeInfo) do
 			local appendText = v[2](wep[v[1]])
 			if appendText then
-				text = text..'\n'..appendText
+				text = text..appendText.."\n"
 			end
 		end
 		
@@ -1131,8 +1206,23 @@ function SWEP:CreateRightPanel(Main)
 	InfoLabel:SetTextColor(color_white)
 	InfoLabel:Dock(FILL)
 	
-	-- just use what we already defined in rotgb_control, no need to copy and paste code
-	RightDivider:SetBottom(rotgb_control.CreateBottomRightPanel(self, Main))
+	TransferButton:Dock(BOTTOM)
+	function TransferButton:DoClick()
+		RightDivider:SwapTopRightPanel()
+	end
 	
-	return InfoPanel, RightDivider
+	return InfoPanel
+end
+
+function SWEP:CreateTopRightTransferPanel(Main, RightDivider)
+	local rotgb_control = weapons.Get("rotgb_control")
+	
+	local TransferPanel = rotgb_control.CreateLeftPanel(self, Main)
+	local BackButton = Main:CreateButton("Statistics...", TransferPanel, color_red, color_light_red, color_white)
+	BackButton:Dock(BOTTOM)
+	function BackButton:DoClick()
+		RightDivider:SwapTopRightPanel()
+	end
+	
+	return TransferPanel
 end

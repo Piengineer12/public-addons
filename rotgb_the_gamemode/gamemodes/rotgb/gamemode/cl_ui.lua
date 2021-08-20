@@ -23,20 +23,6 @@ local SCOREBOARD_FUNCS = {
 		return string.Comma(ply:Ping())
 	end
 }
-local VOTE_INFO = {
-	{
-		name = "Kick",
-		entries = function()
-			local entries = {}
-			for k,v in pairs(player.GetAll()) do
-				entries[v:UserID()] = v:Nick()
-			end
-		end
-	}
-}
-
-local ROTGB_TRANSFER = 1
-local ROTGB_KICK = 6
 
 local FONT_HEADER_HEIGHT = ScreenScale(24)
 local FONT_BODY_HEIGHT = ScreenScale(12)
@@ -71,13 +57,15 @@ surface.CreateFont("rotgb_level_small", {
 	size = FONT_LEVEL_SMALL_HEIGHT
 })
 
-local function DoNothing()
-	-- does nothing
-end
-
 local function DrawDarkBackground(panel, w, h)
 	surface.SetDrawColor(0,0,0,191)
 	surface.DrawRect(0,0,w,h)
+end
+
+local function DrawDebugBackground(panel, w, h)
+	surface.SetDrawColor(255,255,255)
+	surface.DrawOutlinedRect(0,0,w,h,1)
+	surface.DrawLine(0,0,w,h)
 end
 
 local function CreateMenu()
@@ -170,6 +158,7 @@ end
 local function CreateTeamLeftPanel()
 	local Panel = vgui.Create("DPanel")
 	Panel.CurrentTeam = 0
+	Panel.Paint = nil
 	
 	local AllTeams = team.GetAllTeams()
 	for k,v in pairs(AllTeams) do
@@ -214,6 +203,7 @@ local function CreateTeamRightPanel()
 	local DescriptionPanels = {}
 	local teamID = LocalPlayer():Team()
 	
+	Panel.Paint = nil
 	function Panel:OnTeamHovered(teamID)
 		for k,v in pairs(DescriptionPanels) do
 			v:Remove()
@@ -232,7 +222,7 @@ local function CreateScoreboardNameCell(parent, ply)
 	local PFPPanel = vgui.Create("DPanel", parent)
 	PFPPanel:SetWide(FONT_SCOREBOARD_BODY_HEIGHT)
 	PFPPanel:Dock(LEFT)
-	PFPPanel.Paint = DoNothing
+	PFPPanel.Paint = nil
 	
 	local avatarSize = FONT_SCOREBOARD_BODY_HEIGHT
 	if avatarSize < 184 then
@@ -364,7 +354,7 @@ local function CreateScoreboardVoiceCell(parent, ply)
 			VoiceTextEntry:SetCursorColor(team.GetColor(ply:Team()))
 		end
 	end
-	VoiceCell.Paint = DoNothing
+	VoiceCell.Paint = nil
 	
 	VoiceButton:SetWide(baseWidth*cellWidths[1])
 	VoiceButton:Dock(LEFT)
@@ -387,7 +377,7 @@ local function CreateScoreboardVoiceCell(parent, ply)
 	end
 	
 	VoiceSlider:SetWide(baseWidth*cellWidths[2])
-	VoiceSlider:SetTrapInside(true) -- """appears to be non-functioning""" ~GMod Wiki
+	VoiceSlider:SetTrapInside(true) -- the GMod Wiki SAYS this doesn't do anything, but it actually does. "appears to be non-functioning" my ass
 	VoiceSlider:Dock(FILL)
 	VoiceSlider:SetLockY(0.5)
 	VoiceSlider.Paint = DrawVolumeBackground
@@ -456,7 +446,7 @@ local function CreateScoreboardHeader(parent, zPos)
 	Panel:SetZPos(zPos)
 	Panel:Dock(TOP)
 	Panel:DockPadding(SCOREBOARD_PADDING, SCOREBOARD_PADDING, SCOREBOARD_PADDING, SCOREBOARD_PADDING)
-	Panel.Paint = DoNothing
+	Panel.Paint = nil
 	--Panel._Color = teamColor
 	
 	-- attach the panels in reverse of the SCOREBOARD_FIELDS table
@@ -647,16 +637,16 @@ local function CreateMVPPanel(parent, zPos)
 	Panel:SetSortable(false)
 	Panel:SetHeaderHeight(FONT_HEADER_HEIGHT)
 	Panel:SetDataHeight(FONT_BODY_HEIGHT)
-	Panel.Paint = DoNothing
+	Panel.Paint = nil
 	
 	local Column1 = Panel:AddColumn("Most Valued Players", 1)
 	Column1.Header:SetTextColor(color_white)
 	Column1.Header:SetFont("rotgb_header")
-	Column1.Header.Paint = DoNothing
+	Column1.Header.Paint = nil
 	local Column2 = Panel:AddColumn("Damage", 2)
 	Column2.Header:SetTextColor(color_white)
 	Column2.Header:SetFont("rotgb_header")
-	Column2.Header.Paint = DoNothing
+	Column2.Header.Paint = nil
 	
 	for i,v in ipairs(plys) do
 		local PlayerRow = Panel:AddLine(v:Nick(), v.rotgb_gBalloonPops or 0)
@@ -699,16 +689,103 @@ local function CreateGameOverButtons(parent, canContinue)
 	end
 end
 
+local function DrawTreeNode(panel, w, h)
+	-- Garry's method doesn't account for panel:GetLineHeight()
+	-- which is why it needs to be overwritten
+	if not panel.m_bDrawLines then return end
+	local halfLineHeight = panel:GetLineHeight()/2
+	surface.SetDrawColor(255, 255, 255)
+	
+	if panel.m_bLastChild then
+		surface.DrawRect(halfLineHeight, 0, 1, halfLineHeight)
+		surface.DrawRect(halfLineHeight, halfLineHeight, halfLineHeight, 1)
+	else
+		surface.DrawRect(halfLineHeight, 0, 1, halfLineHeight*2)
+		surface.DrawRect(halfLineHeight, halfLineHeight, halfLineHeight, 1)
+	end
+end
+
+local function LayoutTreeNode(panel)
+	if panel:IsRootNode() then
+		return panel:PerformRootNodeLayout()
+	end
+	if panel.animSlide:Active() then return end
+	
+	local LineHeight = panel:GetLineHeight()
+	if panel.m_bHideExpander then
+		panel.Expander:SetPos(-LineHeight, 0)
+		panel.Expander:SetSize(LineHeight, LineHeight)
+		panel.Expander:SetVisible(false)
+	else
+		panel.Expander:SetPos(0, 0)
+		panel.Expander:SetSize(LineHeight, LineHeight)
+		panel.Expander:SetVisible(panel:HasChildren() or panel:GetForceShowExpander())
+		panel.Expander:SetZPos(10)
+	end
+	
+	panel.Label:StretchToParent(0, nil, 0, nil)
+	panel.Label:SetTall(LineHeight)
+	if panel:ShowIcons() then
+		panel.Icon:SetVisible(true)
+		panel.Icon:SetPos(panel.Expander.x + panel.Expander:GetWide() + 4, (LineHeight - panel.Icon:GetTall())/2)
+		panel.Label:SetTextInset(panel.Icon.x + panel.Icon:GetWide() + 4, 0)
+	else
+		panel.Icon:SetVisible(false)
+		panel.Label:SetTextInset(panel.Expander.x + panel.Expander:GetWide() + 4, 0)
+	end
+	
+	if not IsValid(panel.ChildNodes) or not panel.ChildNodes:IsVisible() then
+		panel:SetTall(LineHeight)
+		return
+	end
+	
+	panel.ChildNodes:SizeToContents()
+	panel:SetTall(LineHeight + panel.ChildNodes:GetTall())
+	panel.ChildNodes:StretchToParent(LineHeight, LineHeight, 0, 0)
+	panel:DoChildrenOrder()
+end
+
+--[[local function DrawExpanderButton(panel, w, h)
+	
+end]]
+
+local function DrawNodeLabel(panel, w, h)
+	if not panel.m_bSelected then return end
+	local parent = panel:GetParent()
+	local color = Color(255, 255, 255, TimedSin(1, 63, 127, 0))
+	draw.RoundedBox(4, parent:GetLineHeight(), 0, panel:GetTextSize()+panel:GetTextInset()-parent:GetLineHeight(), h, color)
+end
+
 local function CreateDifficultySelectionPanel(parent)
 	local DTree = vgui.Create("DTree", parent)
 	DTree:Dock(FILL)
-	AccessorFunc(DTree, "difficulty", "Difficulty", FORCE_STRING)
+	DTree:SetLineHeight(FONT_BODY_HEIGHT)
+	DTree.Paint = nil
 	
 	for i,v in ipairs(hook.Run("GetGamemodeDifficultyNodes")) do
 		local node = DTree:AddNode(v.name, "icon16/bricks.png")
+		node:SetExpanded(true, true)
+		node.Label:SetFont("rotgb_body")
+		node.Label:SetTextColor(color_white)
+		node.Label.Paint = DrawNodeLabel
+		node.Expander:SetSize(node:GetLineHeight(), node:GetLineHeight())
+		--node.Expander.Paint = DrawExpanderButton
+		node.Paint = DrawTreeNode
+		node.PerformLayout = LayoutTreeNode
+		function node:DoClick()
+			DTree:DifficultySelected(nil)
+		end
+		
 		for i2,v2 in ipairs(v.subnodes) do
 			local subnode = node:AddNode(v2.name, "icon16/brick.png")
+			subnode.Label:SetFont("rotgb_body")
+			subnode.Label:SetTextColor(color_white)
+			subnode.Label.Paint = DrawNodeLabel
+			subnode.Expander:SetSize(subnode:GetLineHeight(), subnode:GetLineHeight())
+			--subnode.Expander.Paint = DrawExpanderButton
 			subnode.internalName = v2.internalName
+			subnode.Paint = DrawTreeNode
+			subnode.PerformLayout = LayoutTreeNode
 			function subnode:DoClick()
 				DTree:DifficultySelected(self.internalName)
 			end
@@ -718,25 +795,136 @@ local function CreateDifficultySelectionPanel(parent)
 	return DTree
 end
 
-local function CreateDifficultyConfirmButton(parent, newDifficulty)
-	local button = CreateButton(parent, "Select Difficulty >", color_green, function()
+local function CreateDifficultyConfirmButtonPanel(parent, DifficultySelectionPanel, zPos)
+	local Panel = vgui.Create("DPanel", parent)
+	local newDifficulty = nil
+	local button = CreateButton(Panel, "Select Difficulty >", color_green, function()
 		net.Start("rotgb_gamemode")
+		net.WriteUInt(RTG_OPERATION_DIFFICULTY, 8)
 		net.WriteString(newDifficulty)
 		net.SendToServer()
-		parent:Close()
+		hook.Run("HideDifficultySelection")
 	end)
-	button:SetPos(parent:GetWide()/2-button:GetWide()/2, parent:GetTall()-indentY-button:GetTall())
+	
+	Panel:SetTall(button:GetTall())
+	Panel:SetZPos(zPos)
+	Panel:Dock(BOTTOM)
+	Panel.Paint = nil
 	button:SetEnabled(false)
 	
-	function selectionPanel:DifficultySelected(difficulty)
-		button:SetEnabled(true)
+	function Panel:PerformLayout(w, h)
+		button:SetPos((w-button:GetWide())/2, 0)
 	end
-end
-
-local function CreateVoteLeftPanel()
-	local Panel = vgui.Create("DPanel")
+	function DifficultySelectionPanel:DifficultySelected(difficulty)
+		if difficulty then
+			newDifficulty = difficulty
+			button:SetCursor("hand")
+			button:SetEnabled(true)
+		else
+			button:SetCursor("no")
+			button:SetEnabled(false)
+		end
+	end
 	
 	return Panel
+end
+
+local function CreateDifficultyCancelButtonPanel(parent, zPos)
+	local Panel = vgui.Create("DPanel", parent)
+	local button = CreateButton(Panel, "Cancel >", color_red, function()
+		hook.Run("HideDifficultySelection")
+	end)
+	
+	Panel:SetTall(button:GetTall())
+	Panel:SetZPos(zPos)
+	Panel:Dock(BOTTOM)
+	Panel.Paint = nil
+	function Panel:PerformLayout(w, h)
+		button:SetPos((w-button:GetWide())/2, 0)
+	end
+	
+	return Panel
+end
+
+local function CreateVoteLeftPanel(data)
+	local Panel = vgui.Create("DScrollPanel")
+	
+	local KickButton = CreateButton(Panel, "Kick", color_red, function()
+		Panel:UpdateRightPanel(RTG_VOTE_KICK)
+	end)
+	KickButton:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
+	KickButton:Dock(TOP)
+	
+	return Panel
+end
+
+local function CreateVoteRightPanel(VoteLeftPanel, data)
+	local Panel = vgui.Create("DScrollPanel")
+	
+	function VoteLeftPanel:UpdateRightPanel(voteType)
+		Panel:Clear()
+		if voteType == RTG_VOTE_KICK then
+			local plys = player.GetAll()
+			local nicknames = {}
+			for k,v in pairs(plys) do
+				table.insert(nicknames, v:Nick())
+			end
+			local nickFreq = table.GetValuesCount(nicknames)
+			local playerTable = {}
+			for k,v in pairs(plys) do
+				table.insert(playerTable, {joinTime = v:GetCreationTime(), name = v:Nick(), duped = nickFreq > 1, userid = v:UserID(), team = v:Team()})
+			end
+			table.sort(playerTable, function(a,b)
+				if a.name == b.name then return a.jointime < b.jointime
+				else return a.name < b.name
+				end
+			end)
+			-- so now we have a sorted player table, now actually make the buttons
+			for i,v in ipairs(playerTable) do
+				local button = CreateButton(Panel, v.name, team.GetColor(v.team), function()
+					Panel:SetVote(RTG_VOTE_KICK, v.userid)
+				end)
+				button:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
+				button:Dock(TOP)
+			end
+		end
+	end
+	
+	return Panel
+end
+
+local function CreateVoteReasonPanel()
+	local Panel = vgui.Create("DTextEntry")
+	Panel:SetFont("rotgb_body")
+	Panel:SetTall(FONT_BODY_HEIGHT*5)
+	Panel:SetPlaceholderText("Reason (Optional)")
+	Panel:SetPaintBackground(false)
+	Panel:SetTextColor(color_white)
+	return Panel
+end
+
+local function CreateVoteButtonPanel(VoteRightPanel, VoteReasonPanel)
+	local VoteButtonPanel = vgui.Create("DPanel")
+	local VoteButton = CreateButton(VoteButtonPanel, "Vote >", color_green, function()
+		net.Start("rotgb_gamemode")
+		net.WriteUInt(RTG_OPERATION_VOTE, 8)
+		net.WriteUInt(VoteButtonPanel.VoteType, 8)
+		net.WriteInt(VoteButtonPanel.VoteTarget, 16)
+		net.SendToServer()
+	end)
+	
+	VoteButtonPanel:SetTall(VoteButton:GetTall())
+	VoteButton:SetEnabled(false)
+	function VoteButtonPanel:PerformLayout(w, h)
+		VoteButton:SetPos((w-VoteButton:GetWide())/2, 0)
+	end
+	function VoteRightPanel:SetVote(typ, target)
+		VoteButtonPanel.VoteType = typ
+		VoteButtonPanel.VoteTarget = target
+		VoteButton:SetEnabled(true)
+	end
+	
+	return VoteButtonPanel
 end
 
 
@@ -845,11 +1033,17 @@ function GM:CreateFailureMenu()
 	return Menu
 end
 
-function GM:CreateDifficultyMenu()
+function GM:CreateDifficultyMenu(disableCancel)
 	if LocalPlayer():IsAdmin() then
 		local Menu = CreateMenu()
+		CreateHeader(Menu, 0, "Select Difficulty:")
 		local DifficultySelectionPanel = CreateDifficultySelectionPanel(Menu)
-		local ConfirmButton = CreateDifficultyConfirmButton(Menu, DifficultySelectionPanel)
+		local ConfirmButtonPanel = CreateDifficultyConfirmButtonPanel(Menu, DifficultySelectionPanel, 2)
+		if not disableCancel then
+			local CancelButton = CreateDifficultyCancelButtonPanel(Menu, 1)
+		end
+		
+		return Menu
 	else
 		ROTGB_LogError("This concommand is only available to admins.","")
 	end
@@ -863,7 +1057,7 @@ function GM:CreateVoteMenu(data)
 	local VoteReasonPanel = CreateVoteReasonPanel()
 	local VoteStartPanel = CreateVoteButtonPanel(VoteRightPanel, VoteReasonPanel)
 	
-	local ButtonDivider = vgui.Create("DVerticalDivider")
+	local ButtonDivider = vgui.Create("DVerticalDivider", Menu)
 	local ReasonDivider = vgui.Create("DVerticalDivider")
 	local LeftRightDivider = vgui.Create("DHorizontalDivider")
 	
@@ -907,6 +1101,12 @@ function GM:HUDDrawXP()
 	draw.SimpleTextOutlined(string.Comma(ply:ROTGB_GetExperience()).." / "..string.Comma(ply:ROTGB_GetExperienceNeeded()), "Trebuchet24", barX+barWidth, barY, color_purple, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
 end
 
+function GM:HUDDrawVote()
+	if self.CurrentVote == RTG_VOTE_KICK then
+		-- TODO
+	end
+end
+
 
 
 function GM:ShowHelp()
@@ -914,15 +1114,13 @@ function GM:ShowHelp()
 		self.StartupMenu:Close()
 		self.HasReadHelp = true
 	else
-		self.StartupMenu = self:CreateStartupMenu()
+		self.StartupMenu = hook.Run("CreateStartupMenu")
 	end
 end
 
 function GM:ShowTeam()
-	if IsValid(self.TeamSelectFrame) then
-		self.TeamSelectFrame:Close()
-	end
-	self.TeamSelectFrame = self:CreateTeamSelectMenu()
+	hook.Run("HideTeam")
+	self.TeamSelectFrame = hook.Run("CreateTeamSelectMenu")
 end
 
 function GM:HideTeam()
@@ -933,15 +1131,56 @@ function GM:HideTeam()
 end
 
 function GM:ScoreboardShow()
-	if IsValid(self.ScoreboardFrame) then
-		self.ScoreboardFrame:Close()
-	end
-	self.ScoreboardFrame = self:CreateScoreboard()
+	hook.Run("ScoreboardHide")
+	self.ScoreboardFrame = hook.Run("CreateScoreboard")
 end
 
 function GM:ScoreboardHide()
 	if IsValid(self.ScoreboardFrame) then
 		self.ScoreboardFrame:Close()
+	end
+end
+
+function GM:GetGamemodeDifficultyNodes()
+	local nodesByCategory = {}
+	for k,v in pairs(self.Modes) do
+		if v.name then
+			local subnode = {
+				name = v.name,
+				internalName = k
+			}
+			nodesByCategory[v.category] = nodesByCategory[v.category] or {}
+			table.insert(nodesByCategory[v.category], subnode)
+		end
+	end
+	
+	for k,v in pairs(nodesByCategory) do
+		table.SortByMember(v, "place", true)
+	end
+	
+	local nodes = {}
+	for k,v in pairs(nodesByCategory) do
+		local node = {
+			name = k,
+			place = self.ModeCategories[k],
+			subnodes = nodesByCategory[k]
+		}
+		table.insert(nodes, node)
+	end
+	
+	table.SortByMember(nodes, "place", true)
+	return nodes
+end
+
+function GM:ShowDifficultySelection(disableCancel)
+	hook.Run("HideDifficultySelection")
+	self.DifficultyMenu = hook.Run("CreateDifficultyMenu", false)
+end
+
+function GM:HideDifficultySelection()
+	if IsValid(self.DifficultyMenu) then
+		self.DifficultyMenu:Close()
+		self.HasSeenDifficulty = true
 	end
 end
 
@@ -978,34 +1217,4 @@ function GM:GameOver(success)
 	else
 		self.GameOverMenu = hook.Run("CreateFailureMenu")
 	end
-end
-
-function GM:GetGamemodeDifficultyNodes()
-	local nodesByCategory = {}
-	for k,v in pairs(self.Modes) do
-		if v.name then
-			local subnode = {
-				name = v.name
-				internalName = k
-			}
-			nodesByCategory[v.category] = nodesByCategory[v.category] or {}
-			table.insert(nodesByCategory[v.category], subnode)
-		end
-	end
-	
-	for k,v in pairs(nodesByCategory) do
-		table.SortByMember(v, "place", true)
-	end
-	
-	local nodes = {}
-	for k,v in pairs(nodesByCategory) do
-		local node = {
-			name = k,
-			place = self.ModeCategories[k]
-			subnodes = nodesByCategory[k]
-		}
-	end
-	
-	table.SortByMember(nodes, "place")
-	return nodes
 end

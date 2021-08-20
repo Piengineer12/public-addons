@@ -32,9 +32,10 @@ end
 local nextNetAttempt = 0
 local nextSave = -1
 function GM:Think()
-	if IsValid(LocalPlayer()) then
+	local localPlayer = LocalPlayer()
+	if IsValid(localPlayer) then
 		local realTime = RealTime()
-		if not LocalPlayer().rotgb_PreviousPops and nextNetAttempt <= realTime then
+		if not localPlayer.rotgb_PreviousPops and nextNetAttempt <= realTime then
 			nextNetAttempt = realTime + self.NetSendInterval
 			nextSave = realTime + self.DatabaseSaveInterval
 			net.Start("rotgb_statchanged")
@@ -48,10 +49,14 @@ function GM:Think()
 		end
 		if not self.HasReadHelp then
 			if not IsValid(self.StartupMenu) then
-				self:ShowHelp()
+				hook.Run("ShowHelp")
+			end
+		elseif localPlayer:IsAdmin() and (self:GetDifficulty() or "") == "" and not self.HasSeenDifficulty then
+			if not IsValid(self.DifficultyMenu) then
+				hook.Run("ShowDifficultySelection", true)
 			end
 		elseif not (self.HasSeenTeams or IsValid(self.TeamSelectFrame)) then
-			self:ShowTeam()
+			hook.Run("ShowTeam")
 		end
 	end
 end
@@ -64,7 +69,6 @@ function GM:PostCleanupMap()
 	if IsValid(self.GameOverMenu) then
 		self.GameOverMenu:Close()
 	end
-	self.HasSeenTeams = false
 end
 
 -- non-base
@@ -90,13 +94,13 @@ net.Receive("rotgb_gamemode", function()
 	local operation = net.ReadUInt(8)
 	if operation == RTG_OPERATION_GAMEOVER then
 		hook.Run("GameOver", net.ReadBool())
-	elseif operation == RTG_OPERATION_SETDIFFICULTY then
-		GAMEMODE.Difficulty = net.ReadString()
+	elseif operation == RTG_OPERATION_DIFFICULTY then
+		GAMEMODE:SetDifficulty(net.ReadString())
 	end
 end)
 
 concommand.Add("rotgb_tg_difficulty_menu", function()
-	hook.Run("CreateDifficultyMenu")
+	hook.Run("ShowDifficultySelection")
 end, nil, "Opens the Difficulty Selection Menu. Only works for admins.")
 
 function GM:LoadClientExperience()

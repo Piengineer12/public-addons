@@ -52,7 +52,7 @@ GM.Modes						= {
 		category = "Easy",
 		place = 1,
 		convars = {
-			rotgb_difficulty = -1,
+			rotgb_difficulty = 0,
 			rotgb_default_last_wave = 40,
 			rotgb_target_natural_health = 200
 		}
@@ -62,7 +62,7 @@ GM.Modes						= {
 		category = "Medium",
 		place = 1,
 		convars = {
-			rotgb_difficulty = 0,
+			rotgb_difficulty = 1,
 			rotgb_default_last_wave = 60,
 			rotgb_target_natural_health = 150
 		}
@@ -72,7 +72,7 @@ GM.Modes						= {
 		category = "Hard",
 		place = 1,
 		convars = {
-			rotgb_difficulty = 1,
+			rotgb_difficulty = 2,
 			rotgb_default_last_wave = 80,
 			rotgb_target_natural_health = 100
 		}
@@ -82,7 +82,7 @@ GM.Modes						= {
 		category = "Hard",
 		place = 2,
 		convars = {
-			rotgb_difficulty = 2,
+			rotgb_difficulty = 3,
 			rotgb_default_last_wave = 100,
 			rotgb_target_natural_health = 50
 		}
@@ -92,7 +92,7 @@ GM.Modes						= {
 		category = "Hard",
 		place = 3,
 		convars = {
-			rotgb_difficulty = 3,
+			rotgb_difficulty = 4,
 			rotgb_default_wave_preset = "",
 			rotgb_default_last_wave = 120,
 			rotgb_target_natural_health = 1
@@ -107,10 +107,10 @@ sandbox saving
 remove water on rotgb_test1
 fix autostart on rotgb_heatwave
 sfx for upgrading and placing
-one click to buy as much as possible - low priority
-fix spectator bugs
+test point_rotgb_spectator entity
 music?
-gamemode: game options GUI
+gamemode: voting: kicking + difficulty setting
+gamemode: voting: how to identify players with same names - deferred
 ]]
 
 ROTGB_STAT_POPS = 1
@@ -118,9 +118,16 @@ ROTGB_STAT_INITEXP = 2
 
 RTG_OPERATION_KICK = 1
 RTG_OPERATION_GAMEOVER = 2
-RTG_OPERATION_SETDIFFICULTY = 3
+RTG_OPERATION_DIFFICULTY = 3
+RTG_OPERATION_VOTE = 4
+
+RTG_VOTE_KICK = 1
+
+RTG_VOTERESULT_NOTARGET = 1
+RTG_VOTERESULT_COOLDOWN = 2
 
 AddCSLuaFile()
+include("sh_common_functions.lua")
 include("player_class/builder.lua")
 include("player_class/hunter.lua")
 
@@ -180,8 +187,11 @@ end
 
 -- non-base
 
+AccessorFunc(GM, "Difficulty", "Difficulty", FORCE_STRING)
+
 function GM:ShouldConVarOverride(cvar)
-	return self.Modes.Difficulty and self.Modes.Difficulty.convars[cvar] or self.Modes.__common.convars[cvar]
+	local currentDifficulty = self:GetDifficulty()
+	return self.Modes[currentDifficulty] and self.Modes[currentDifficulty].convars[cvar] or self.Modes.__common.convars[cvar]
 end
 
 local experienceNeeded = {

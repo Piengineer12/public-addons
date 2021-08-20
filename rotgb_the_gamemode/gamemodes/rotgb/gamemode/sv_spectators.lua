@@ -63,7 +63,7 @@ function GM:GetSpectatableEntities(ply)
 end
 
 function GM:ApplyEntitySpectateProperties(ply, ent, modChange)
-	if IsValid(ent) then
+	if IsValid(ent) or ent==game.GetWorld() then
 		local class = ent:GetClass()
 		if class == "point_rotgb_spectator" then
 			ply:SetFOV(ent:GetFOV(), 0, ent)
@@ -77,7 +77,7 @@ function GM:ApplyEntitySpectateProperties(ply, ent, modChange)
 				local newObsMode = ply:IsFirstPersonPlayerSpectating() and OBS_MODE_IN_EYE or OBS_MODE_CHASE
 				ply:SetObserverMode(newObsMode)
 			elseif class == "worldspawn" then
-				ply:SetObserverMode(OBS_MODE_ROAMING)
+				ply:Spectate(OBS_MODE_ROAMING)
 			else
 				ply:SetObserverMode(OBS_MODE_CHASE)
 			end

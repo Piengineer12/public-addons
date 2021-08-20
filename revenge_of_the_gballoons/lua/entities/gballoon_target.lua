@@ -172,8 +172,8 @@ local function TableFilterWaypoints(k,v)
 	return IsValid(v) and v:GetClass()=="gballoon_target" and not v:GetIsBeacon() and not v:GetHideHealth()
 end
 
-local function TableFilterNonSpawners(k,v)
-	return IsValid(v) and v:GetClass()=="gballoon_spawner"
+local function TableFilterSpawners(k,v)
+	return IsValid(v) and v:GetClass()=="gballoon_spawner" and not v:GetHideWave()
 end
 
 local function WaypointSorter(a,b)
@@ -264,7 +264,7 @@ local oldSize = 0
 local generateCooldown = 1
 hook.Add("HUDPaint","RotgB",function()
 	if ConE:GetBool() then
-		local spawners = FilterSequentialTable(ents.GetAll(), TableFilterNonSpawners)
+		local spawners = FilterSequentialTable(ents.GetAll(), TableFilterSpawners)
 		table.sort(spawners, SpawnerSorter)
 		for k,v in pairs(spawners) do
 			spawners[k] = string.Comma(v:GetWave()-1).." / "..string.Comma(v:GetLastWave())
@@ -665,7 +665,9 @@ function ENT:KeyValue(key,value)
 		self.Model = value
 	elseif lkey=="skin" then
 		self.Skin = value
-	elseif lkey=="is_beacon" then
+	elseif lkey=="is_beacon" then -- TODO: DEPRECATED
+		self:SetIsBeacon(tobool(value))
+	elseif lkey=="is_waypoint" then
 		self:SetIsBeacon(tobool(value))
 	elseif string.sub(lkey,1,11) == "next_target" then
 		local num = (tonumber("0x"..string.sub(lkey,-1)) or 0) + 1
@@ -675,8 +677,10 @@ function ENT:KeyValue(key,value)
 		local num = (tonumber("0x"..string.sub(lkey,-1)) or 0) + 1
 		self.TempNextBlimpTargets = self.TempNextBlimpTargets or {}
 		self.TempNextBlimpTargets[num] = value
-	elseif lkey=="is_visible" then
+	elseif lkey=="is_visible" then -- TODO: DEPRECATED
 		self.TempIsHidden = not tobool(value)
+	elseif lkey=="is_hidden" then
+		self.TempIsHidden = tobool(value)
 	elseif lkey=="teleport_to" then
 		self:SetTeleport(tobool(value))
 	elseif lkey=="unspectatable" then
@@ -749,8 +753,14 @@ function ENT:AcceptInput(input,activator,caller,data)
 		end
 		self:TriggerOutput("OnBreak",activator)
 		self:Input("Kill",activator,self,data)
-	elseif input=="setiswaypoint" then
+	elseif input=="setiswaypoint" then -- TODO: DEPRECATED
 		self:SetIsBeacon(tobool(data))
+	elseif input=="enablewaypointing" then
+		self:SetIsBeacon(false)
+	elseif input=="disablewaypointing" then
+		self:SetIsBeacon(true)
+	elseif input=="togglewaypointing" then
+		self:SetIsBeacon(not self:GetIsBeacon())
 	elseif string.sub(input,1,15) == "setnextwaypoint" then
 		local num = (tonumber("0x"..string.sub(input,-1)) or 0) + 1
 		self["SetNextTarget"..num](self,data~="" and ents.FindByName(data)[1] or NULL)
@@ -793,6 +803,24 @@ function ENT:AcceptInput(input,activator,caller,data)
 		self:SetNaturalHealthMultiplier(newMul)
 	elseif input=="resethealth" then
 		self:SetHealth(self:GetMaxHealth())
+	elseif input=="hide" then
+		self:SetNotSolid(true)
+		self:SetNoDraw(true)
+		self:SetMoveType(MOVETYPE_NOCLIP)
+	elseif input=="unhide" then
+		self:SetNotSolid(false)
+		self:SetNoDraw(false)
+		self:SetMoveType(MOVETYPE_VPHYSICS)
+	elseif input=="togglehide" then
+		if self:GetNoDraw() then
+			self:SetNotSolid(false)
+			self:SetNoDraw(false)
+			self:SetMoveType(MOVETYPE_VPHYSICS)
+		else
+			self:SetNotSolid(true)
+			self:SetNoDraw(true)
+			self:SetMoveType(MOVETYPE_NOCLIP)
+		end
 	end
 end
 
@@ -934,7 +962,7 @@ function ENT:DrawTranslucent()
 	end
 end
 
-list.Set("NPC","gballoon_target_natural",{
+list.Set("NPC","gballoon_target_100",{
 	Name = "gBalloon Target",
 	Class = "gballoon_target",
 	Category = "RotgB: Miscellaneous",
@@ -943,7 +971,7 @@ list.Set("NPC","gballoon_target_natural",{
 	}
 })
 list.Set("NPC","gballoon_target_op",{
-	Name = "999999999HP gBalloon Target",
+	Name = "Sandbox gBalloon Target",
 	Class = "gballoon_target",
 	Category = "RotgB: Miscellaneous",
 	KeyValues = {
@@ -951,7 +979,7 @@ list.Set("NPC","gballoon_target_op",{
 		max_health = "999999999"
 	}
 })
-list.Set("SpawnableEntities","gballoon_target_natural",{
+list.Set("SpawnableEntities","gballoon_target_100",{
 	PrintName = "gBalloon Target",
 	ClassName = "gballoon_target",
 	Category = "RotgB: Miscellaneous",
@@ -960,7 +988,7 @@ list.Set("SpawnableEntities","gballoon_target_natural",{
 	}
 })
 list.Set("SpawnableEntities","gballoon_target_op",{
-	PrintName = "999999999HP gBalloon Target",
+	PrintName = "Sandbox gBalloon Target",
 	ClassName = "gballoon_target",
 	Category = "RotgB: Miscellaneous",
 	KeyValues = {

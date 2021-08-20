@@ -260,9 +260,6 @@ RegisterConVar("rotgb_individualcash","0",R_BOOL,
 
 local function CreateCfunction(fname,vname)
 	return function(ply,cmd,args,argStr)
-		if engine.ActiveGamemode() == "rotgb" then
-			ROTGB_Log("Access denied.","")
-		end
 		if (not IsValid(ply) or ply:IsAdmin()) then
 			if ROTGB_GetConVarValue("rotgb_individualcash") then
 				if table.IsEmpty(args) then
@@ -462,6 +459,7 @@ concommand.Add("rotgb_reset_convars",function(ply,cmd,args,argStr)
 		for k,v in pairs(ROTGB_CVARS) do
 			v[1]:Revert()
 		end
+		ROTGB_Log("All ConVars reset.", "")
 	end
 end,nil,
 [[Admin only command.

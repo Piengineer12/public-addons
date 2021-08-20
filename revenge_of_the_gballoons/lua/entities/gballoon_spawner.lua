@@ -2124,11 +2124,12 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Int", 0, "Wave", {KeyName="start_wave", Edit={title="Wave To Spawn", type="Int", min=1, max=1000, order=1}})
 	self:NetworkVar("Int", 1, "SpawnDivider", {KeyName="spawn_divider", Edit={title="Spawn Divider", type="Int", min=1, max=100, order=4}})
 	self:NetworkVar("Int", 2, "DividerDelay", {KeyName="divider_delay", Edit={title="Divider Delay", type="Int", min=0, max=100, order=5}})
-	self:NetworkVar("Int", 3, "LastWave", {KeyName="end_wave", Edit={title="Last Wave", type="int", min=1, max=1000, order=2}})
+	self:NetworkVar("Int", 3, "LastWave", {KeyName="end_wave", Edit={title="Last Wave", type="Int", min=1, max=1000, order=2}})
 	self:NetworkVar("Bool", 0, "AutoStart", {KeyName="auto_start", Edit={title="Auto-Start", type="Boolean", order=6}})
 	self:NetworkVar("Bool", 1, "ForceNextWave", {KeyName="force_next", Edit={title="Force Auto-Start", type="Boolean", order=8}})
 	self:NetworkVar("Bool", 2, "StartAll", {KeyName="start_all", Edit={title="Start All Others", type="Boolean", order=9}})
 	self:NetworkVar("Bool", 3, "UnSpectatable")
+	self:NetworkVar("Bool", 4, "HideWave", {KeyName="hide_wave", Edit={title="Don't Show In HUD", type="Boolean", order=11}})
 	self:NetworkVar("Float", 0, "AutoStartDelay", {KeyName="auto_start_delay", Edit={title="Auto-Start Delay", type="Float", min=0, max=60, order=7}})
 	self:NetworkVar("Float", 1, "SpeedMul", {KeyName="spawn_speed_mul", Edit={title="Spawn Rate", type="Float", min=0.1, max=10, order=3}})
 	self:NetworkVar("Float", 2, "NextWaveTime")
@@ -2218,6 +2219,10 @@ function ENT:KeyValue(key,value)
 		self.OutputShortlyThreshold = value
 	elseif lkey=="wave_preset" then
 		self:SetWaveFile(value)
+	elseif lkey=="is_hidden" then
+		self.TempIsHidden = tobool(value)
+	elseif lkey=="hide_wave" then
+		self:SetHideWave(tobool(value))
 	elseif lkey=="onwavestart" then
 		self:StoreOutput(key,value)
 	elseif lkey=="onwavefinished" then
@@ -2273,6 +2278,30 @@ function ENT:AcceptInput(input,activator,caller,data)
 	elseif input=="togglespectating" then
 		self:SetUnSpectatable(not self:GetUnSpectatable())
 		scripted_ents.GetMember("point_rotgb_spectator", "TransmitChangeToSpectatingPlayers")(self)
+	elseif input=="enablewavehiding" then
+		self:SetHideWave(true)
+	elseif input=="disablewavehiding" then
+		self:SetHideWave(false)
+	elseif input=="togglewavehiding" then
+		self:SetHideWave(not self:GetHideWave())
+	elseif input=="hide" then
+		self:SetNotSolid(true)
+		self:SetNoDraw(true)
+		self:SetMoveType(MOVETYPE_NOCLIP)
+	elseif input=="unhide" then
+		self:SetNotSolid(false)
+		self:SetNoDraw(false)
+		self:SetMoveType(MOVETYPE_VPHYSICS)
+	elseif input=="togglehide" then
+		if self:GetNoDraw() then
+			self:SetNotSolid(false)
+			self:SetNoDraw(false)
+			self:SetMoveType(MOVETYPE_VPHYSICS)
+		else
+			self:SetNotSolid(true)
+			self:SetNoDraw(true)
+			self:SetMoveType(MOVETYPE_NOCLIP)
+		end
 	end
 end
 
@@ -2334,6 +2363,11 @@ function ENT:Initialize()
 			self.NoAutoStart = true
 			self:SetAutoStart(true)
 		end
+		if self.TempIsHidden then
+			self:SetNotSolid(true)
+			self:SetNoDraw(true)
+			self:SetMoveType(MOVETYPE_NOCLIP)
+		end
 	end
 end
 
@@ -2359,7 +2393,6 @@ function ENT:Use(activator)
 		if not self:GetWaveTable()[cwave] then
 			self:GenerateNextWave(cwave)
 		end
-		self:SetNextWaveTime(CurTime()+self:GetWaveDuration(cwave)/self:GetSpeedMul())
 		local trigent = ents.FindByName("wave_start_relay")[1]
 		if IsValid(trigent) and not tobool(self.DontTriggerWaveRelays) then
 			if not trigent.RotgB_HasFired then
@@ -2367,9 +2400,8 @@ function ENT:Use(activator)
 				trigent.RotgB_HasFired = true
 			end
 		end
-		if self:GetNextWaveTime()>CurTime() or not self:GetForceNextWave() and ROTGB_GetBalloonCount()>0 then
-			if self:TriggerWaveEnded() then return self:Remove() end
-		end
+		if self:TriggerWaveEnded() then return self:Remove() end
+		self:SetNextWaveTime(CurTime()+self:GetWaveDuration(cwave)/self:GetSpeedMul())
 		self:TriggerOutput("OnWaveStart",activator,cwave)
 		if not self.NoMessages then
 			PrintMessage(HUD_PRINTTALK,"Wave "..cwave.." started!")
@@ -2477,15 +2509,18 @@ end
 function ENT:TriggerWaveEnded()
 	local cwave = self:GetWave()
 	local inFreeplay = cwave > self:GetLastWave()
-	ROTGB_AddCash(100/self:GetSpawnDivider()*ROTGB_GetConVarValue("rotgb_cash_mul"))
-	if not self.NoMessages then
-		if inFreeplay and not self.WinWave then
-			self.WinWave = cwave
-			hook.Run("AllBalloonsDestroyed")
-			PrintMessage(HUD_PRINTTALK,"All standard waves cleared! Congratulations, you win!")
-			PrintMessage(HUD_PRINTTALK,"If you want a harder challenge, try doubling the gBalloons' health, spawn rate or halving the cash multiplier.")
-			if ROTGB_GetConVarValue("rotgb_freeplay") then
-				PrintMessage(HUD_PRINTTALK,"BEWARE! The gBalloons become exponentially faster and faster after each wave!")
+	if (self.lastEndWaveTriggered or 1) ~= cwave then
+		self.lastEndWaveTriggered = cwave
+		ROTGB_AddCash(100/self:GetSpawnDivider()*ROTGB_GetConVarValue("rotgb_cash_mul"))
+		if not self.NoMessages then
+			if inFreeplay and not self.WinWave then
+				self.WinWave = cwave
+				hook.Run("AllBalloonsDestroyed")
+				PrintMessage(HUD_PRINTTALK,"All standard waves cleared! Congratulations, you win!")
+				PrintMessage(HUD_PRINTTALK,"If you want a harder challenge, try doubling the gBalloons' health, spawn rate or halving the cash multiplier.")
+				if ROTGB_GetConVarValue("rotgb_freeplay") then
+					PrintMessage(HUD_PRINTTALK,"BEWARE! The gBalloons become exponentially faster and faster after each wave!")
+				end
 			end
 		end
 	end
@@ -2589,7 +2624,7 @@ function ENT:Think()
 	end
 end
 
--- what is the point of this?
+-- this is disabled now, what was the point of this?
 --[[hook.Add("PlayerInitialSpawn","RotgB",function(ply)
 	ROTGB_SetCash(ROTGB_GetConVarValue("rotgb_starting_cash"), ply)
 	for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
