@@ -918,12 +918,12 @@ function SWEP:CreateLeftPanel(Main, RightDivider)
 				local startLevel = level
 				local endLevel = table.KeyFromValue(reftab.majorLevels, j) - 1 + math.floor(level/100) * 100
 				for k=startLevel, endLevel do
-					local majorLevelTrigger = reftab.majorLevels[k+1]
+					local minorLevel = k % 100 + 1
+					local majorLevelTrigger = reftab.majorLevels[minorLevel]
 					if majorLevelTrigger then
 						reftab[part].func[majorLevelTrigger+1](wep)
 						UpgradeButton.Tier = UpgradeButton.Tier + 1
 					end
-					local minorLevel = k % 100 + 1
 					if minorLevel == 100 then
 						UpgradeButton.Tier = 0
 					else

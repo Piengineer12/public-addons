@@ -2195,7 +2195,7 @@ function ENT:Pop(damage,target,dmgbits)
 				elseif spe.rotgb_SpeedMods and spe.rotgb_SpeedMods.ROTGB_GLUE_TOWER then
 					local effData = EffectData()
 					effData:SetEntity(spe)
-					effData:SetFlags(next(spe.AcidicList) and 1 or 0)
+					effData:SetFlags(spe.AcidicList and next(spe.AcidicList) and 1 or 0)
 					effData:SetHitBox(self:GetRotgBStatusEffectDuration("glue_soak")*10)
 					util.Effect("gballoon_tower_9_glued", effData)
 					spe:InflictRotgBStatusEffect("glue_soak", self:GetRotgBStatusEffectDuration("glue_soak"))

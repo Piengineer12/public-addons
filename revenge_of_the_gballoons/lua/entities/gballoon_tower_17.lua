@@ -486,11 +486,15 @@ if CLIENT then
 	EFFECT = {}
 	function EFFECT:Init(data)
 		self.entity = data:GetEntity()
-		self.emitter = ParticleEmitter(self.entity:GetPos(), false)
+		if IsValid(self.entity) then
+			self.emitter = ParticleEmitter(self.entity:GetPos(), false)
+		end
 	end
 	function EFFECT:Think()
 		if not IsValid(self.entity) then
-			self.emitter:Finish()
+			if self.emitter then
+				self.emitter:Finish()
+			end
 			return false
 		else
 			self.emitter:SetPos(self.entity:GetPos())

@@ -230,13 +230,17 @@ if CLIENT then
 	local EFFECT = {}
 	function EFFECT:Init(data)
 		self.entity = data:GetEntity()
-		self.emitter = ParticleEmitter(self.entity:GetPos(), false)
+		if IsValid(self.entity) then
+			self.emitter = ParticleEmitter(self.entity:GetPos(), false)
+		end
 		self.expiryTime = CurTime() + data:GetHitBox()/10
 		self.alternateColor = data:GetFlags() == 1
 	end
 	function EFFECT:Think()
 		if not IsValid(self.entity) or self.expiryTime < CurTime() then
-			self.emitter:Finish()
+			if self.emitter then
+				self.emitter:Finish()
+			end
 			return false
 		else
 			self.emitter:SetPos(self.entity:GetPos())

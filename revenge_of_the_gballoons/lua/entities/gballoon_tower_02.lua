@@ -117,7 +117,7 @@ ENT.UpgradeReference = {
 		}
 	}
 }
-ENT.UpgradeLimits = {5,2,0}
+ENT.UpgradeLimits = {6,2,0}
 
 function ENT:FireFunction(gBalloons)
 	self:EmitSound("phx/kaboom.wav", 75, math.random(80,120), 0.5)

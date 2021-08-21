@@ -96,7 +96,7 @@ ENT.UpgradeReference = {
 		}
 	}
 }
-ENT.UpgradeLimits = {5,2}
+ENT.UpgradeLimits = {6,2}
 
 local rosqrt2 = 1/math.sqrt(2)
 
