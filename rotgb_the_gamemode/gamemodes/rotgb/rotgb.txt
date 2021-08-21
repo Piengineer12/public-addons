@@ -1,7 +1,0 @@
-"rotgb"
-{
-	"base"			"base"
-	"title"			"RotgB: The Gamemode!"
-	"category"		"pve"
-	"menusystem"	"1"
-}

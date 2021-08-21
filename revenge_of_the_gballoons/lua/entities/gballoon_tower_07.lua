@@ -67,8 +67,8 @@ ENT.UpgradeReference = {
 			"Slightly increases tower range.",
 			"Allows the tower to see Hidden gBalloons.",
 			"Considerably increases tower range. This tower now fires two shots at once.",
-			"This tower fires an additional shot. Once every 60 seconds, shooting at this tower causes all Ally Pawns to turn into Ally Queens, increasing damage dealt by 10 layers for 20 seconds.",
-			"Once every 60 seconds, shooting at this tower causes all Ally Pawns to turn into Rainbow Beamer Prisms, increasing fire rate by 300%, simultaneous hits by 200% and damage dealt by 30 layers for 20 seconds."
+			"This tower fires an additional shot. Once every 60 seconds, shooting at this tower causes all Ally Pawns within its range to turn into Ally Queens, increasing damage dealt by 10 layers for 20 seconds.",
+			"Once every 60 seconds, shooting at this tower causes all Ally Pawns within its range to turn into Rainbow Beamer Prisms, increasing fire rate by 300%, simultaneous hits by 200% and damage dealt by 30 layers for 20 seconds."
 		},
 		Prices = {100,400,2000,40000,350000},
 		Funcs = {
@@ -193,23 +193,24 @@ function ENT:FireFunction(gBalloons)
 end
 
 function ENT:TriggerAbility()
+	local success = false
 	if self.rotgb_AbilityDamage > 0 then
 		local entities = ROTGB_GetBalloons()
-		if not next(entities) and not self.rotgb_Transformation then return true end
-		for index,ent in pairs(entities) do
-			local effdata = EffectData()
-			effdata:SetOrigin(Vector(ent:GetPos()))
-			effdata:SetStart(Vector(ent:GetPos()))
-			effdata:SetEntity(ent)
-			util.Effect("Explosion",effdata,true,true)
-			ent:TakeDamage(64,self:GetTowerOwner(),self)
-			--ent.FireSusceptibility = (ent.FireSusceptibility or 0) + 99
-			ent:RotgB_Ignite(self.rotgb_AbilityDamage, self:GetTowerOwner(), self, 10)
-		end
+		if next(entities) then
+			success = true
+			for index,ent in pairs(entities) do
+				local effdata = EffectData()
+				effdata:SetOrigin(Vector(ent:GetPos()))
+				effdata:SetStart(Vector(ent:GetPos()))
+				effdata:SetEntity(ent)
+				util.Effect("Explosion",effdata,true,true)
+				ent:TakeDamage(64,self:GetTowerOwner(),self)
+				--ent.FireSusceptibility = (ent.FireSusceptibility or 0) + 99
+				ent:RotgB_Ignite(self.rotgb_AbilityDamage, self:GetTowerOwner(), self, 10)
+			end
+		elseif not self.rotgb_Transformation then return true end
 	end
 	if self.rotgb_Transformation then
-		local entities = ents.FindByClass("gballoon_tower_07")
-		local success = false
 		for index,ent in pairs(ents.FindInSphere(self:GetShootPos(), self.DetectionRadius)) do
 			if ent:GetClass()=="gballoon_tower_07" and not ent.rotgb_Transformed then
 				success = true

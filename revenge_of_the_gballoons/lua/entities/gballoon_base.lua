@@ -405,7 +405,7 @@ RegisterConVar("rotgb_use_custom_ai","0",R_BOOL,
  - Causes gBalloons to use a completely custom AI for navigation.
  - This may increase performance but is otherwise EXPERIMENTAL. Use at your own risk.]])
 
-RegisterConVar("rotgb_starting_cash","850",R_FLOAT,
+RegisterConVar("rotgb_starting_cash","650",R_FLOAT,
 [[Amount of starting cash every player gets.
  - Cash is reset upon leaving the server.]])
 

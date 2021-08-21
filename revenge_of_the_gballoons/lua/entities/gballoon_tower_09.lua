@@ -115,7 +115,7 @@ ENT.UpgradeReference = {
 		}
 	}
 }
-ENT.UpgradeLimits = {5,5,0}
+ENT.UpgradeLimits = {5,2,0}
 
 local function SnipeEntity()
 	while true do

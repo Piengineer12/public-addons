@@ -696,7 +696,7 @@ local function UpgradeMenu(ent)
 				end
 				if UpgradeStatement.MaxTier < j then return end
 				local moreCashNeeded = self.RequiredAmount - curcash
-				if moreCashNeeded>0 then return CauseNotification("You need "..ROTGB_FormatCash(moreCashNeeded, true).." more to buy these upgrades!") end
+				if moreCashNeeded>0 then return CauseNotification("You need "..ROTGB_FormatCash(moreCashNeeded, true).." more to buy this upgrade!") end
 				for k=self.Tier,j do
 					if (reftab.Funcs and reftab.Funcs[k]) then
 						reftab.Funcs[k](ent)
