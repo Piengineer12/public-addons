@@ -1,7 +1,6 @@
 AddCSLuaFile()
 
-ENT.Base = "base_anim"
-ENT.Type = "anim"
+local gballoon_pob = baseclass.Get("gballoon_path_object_base") -- internally sets ENT.Base and ENT.Type too
 ENT.PrintName = "gBalloon Spawner"
 ENT.Category = "RotgB: Miscellaneous"
 ENT.ScriptedEntityType = "entity"
@@ -14,7 +13,6 @@ ENT.AdminOnly = false
 ENT.Editable = true
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.DisableDuplicator = false
---ENT.CustomWaveData = {}
 ENT.CustomWaveName = ""
 
 ROTGB_WAVES_RAMP = {
@@ -1109,9 +1107,9 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Bool", 1, "ForceNextWave", {KeyName="force_next", Edit={title="Force Auto-Start", type="Boolean", order=8}})
 	self:NetworkVar("Bool", 2, "StartAll", {KeyName="start_all", Edit={title="Start All Others", type="Boolean", order=9}})
 	self:NetworkVar("Bool", 3, "UnSpectatable")
-	self:NetworkVar("Bool", 4, "HideWave", {KeyName="hide_wave", Edit={title="Don't Show In HUD", type="Boolean", order=11}})
+	self:NetworkVar("Bool", 4, "HideWave", {KeyName="hide_wave", Edit={title="Hide Wave", type="Boolean", order=11}})
 	self:NetworkVar("Float", 0, "AutoStartDelay", {KeyName="auto_start_delay", Edit={title="Auto-Start Delay", type="Float", min=0, max=60, order=7}})
-	self:NetworkVar("Float", 1, "SpeedMul", {KeyName="spawn_speed_mul", Edit={title="Spawn Rate", type="Float", min=0.1, max=10, order=3}})
+	self:NetworkVar("Float", 1, "SpeedMul", {KeyName="spawn_rate_mul", Edit={title="Spawn Rate", type="Float", min=0.1, max=10, order=3}})
 	self:NetworkVar("Float", 2, "NextWaveTime")
 	self:NetworkVar("String", 0, "WaveFile", {KeyName="wave_preset", Edit={title="Wave Preset", type="Generic", order=10}})
 	self:NetworkVar("Entity", 0, "NextTarget1")
@@ -1164,56 +1162,40 @@ function ENT:KeyValue(key,value)
 		else
 			self:SetLastWave(ROTGB_GetConVarValue("rotgb_default_last_wave"))
 		end
-	--[[elseif lkey=="auto_start" then
-		self:SetAutoStart(tobool(value))]]
-	elseif lkey=="no_auto_start" then
-		self.NoAutoStart = true
+	elseif lkey=="wave_preset" then
+		self:SetWaveFile(value)
+	elseif lkey=="hide_wave" then
+		self:SetHideWave(tobool(value))
 	elseif lkey=="start_all" then
 		self:SetStartAll(tobool(value))
-	elseif lkey=="unspectatable" then
-		self:SetUnSpectatable(tobool(value))
-		scripted_ents.GetMember("point_rotgb_spectator", "TransmitChangeToSpectatingPlayers")(self)
-	elseif lkey=="force_next" then
-		self:SetForceNextWave(tobool(value))
-	elseif lkey=="auto_start_delay" then
-		self:SetAutoStartDelay(tonumber(value) or 0)
-	elseif lkey=="spawn_speed_mul" then
+	elseif lkey=="spawn_speed_mul" then -- TODO: DEPRECATED
+		self:SetSpeedMul(tonumber(value) or 1)
+	elseif lkey=="spawn_rate_mul" then
 		self:SetSpeedMul(tonumber(value) or 1)
 	elseif lkey=="spawn_divider" then
 		self:SetSpawnDivider(tonumber(value) or 1)
 	elseif lkey=="divider_delay" then
 		self:SetDividerDelay(tonumber(value) or 1)
-	elseif string.sub(lkey,1,11) == "next_target" then
-		local num = (tonumber("0x"..string.sub(lkey,-1)) or 0) + 1
-		self.TempNextTargets = self.TempNextTargets or {}
-		self.TempNextTargets[num] = value
-	elseif string.sub(lkey,1,17) == "next_blimp_target" then
-		local num = (tonumber("0x"..string.sub(lkey,-1)) or 0) + 1
-		self.TempNextBlimpTargets = self.TempNextBlimpTargets or {}
-		self.TempNextBlimpTargets[num] = value
-	elseif lkey=="model" then
-		self.Model = value
-	elseif lkey=="skin" then
-		self.Skin = value
+	elseif lkey=="no_auto_start" then
+		self.NoAutoStart = tobool(value)
+	elseif lkey=="auto_start_delay" then
+		self:SetAutoStartDelay(tonumber(value) or 0)
+	elseif lkey=="force_next" then
+		self:SetForceNextWave(tobool(value))
 	elseif lkey=="finished_shortly_threshold" then
 		self.OutputShortlyThreshold = value
-	elseif lkey=="wave_preset" then
-		self:SetWaveFile(value)
-	elseif lkey=="is_hidden" then
-		self.TempIsHidden = tobool(value)
-	elseif lkey=="hide_wave" then
-		self:SetHideWave(tobool(value))
+	elseif lkey=="dont_trigger_wave_relays" then
+		self.DontTriggerWaveRelays = value
+	elseif lkey=="no_messages" then
+		self.NoMessages = tobool(value)
 	elseif lkey=="onwavestart" then
 		self:StoreOutput(key,value)
 	elseif lkey=="onwavefinished" then
 		self:StoreOutput(key,value)
 	elseif lkey=="onwavefinishedshortly" then
 		self:StoreOutput(key,value)
-	elseif lkey=="dont_trigger_wave_relays" then
-		self.DontTriggerWaveRelays = value
-	elseif lkey=="no_messages" then
-		self.NoMessages = tobool(value)
 	end
+	return gballoon_pob.KeyValue(self,lkey,value)
 end
 
 function ENT:AcceptInput(input,activator,caller,data)
@@ -1232,57 +1214,36 @@ function ENT:AcceptInput(input,activator,caller,data)
 		else
 			self:SetLastWave(ROTGB_GetConVarValue("rotgb_default_last_wave"))
 		end
-	elseif input=="setautostart" then
-		self:SetAutoStart(tobool(data))
-	elseif input=="setstartall" then
+	elseif input=="setwavepreset" then
+		self:SetWaveFile(data)
+	elseif input=="setstartall" then -- TO DO: DEPRECATED
 		self:SetStartAll(tobool(data))
-	elseif input=="setforcenext" then
-		self:SetForceNextWave(tobool(data))
-	elseif string.sub(input,1,15) == "setnextwaypoint" then
-		local num = (tonumber("0x"..string.sub(input,-1)) or 0) + 1
-		self["SetNextTarget"..num](self,data~="" and ents.FindByName(data)[1] or NULL)
-	elseif string.sub(input,1,20) == "setnextblimpwaypoint" then
-		local num = (tonumber("0x"..string.sub(input,-1)) or 0) + 1
-		self["SetNextBlimpTarget"..num](self,data~="" and ents.FindByName(data)[1] or NULL)
+	elseif input=="setspawnratemultiplier" then
+		self:SetSpeedMul(tonumber(data) or 1)
 	elseif input=="setspawndivider" then
 		self:SetSpawnDivider(tonumber(data) or 1)
 	elseif input=="setdividerdelay" then
 		self:SetDividerDelay(tonumber(data) or 1)
-	elseif input=="setwavepreset" then
-		self:SetWaveFile(data)
-	elseif input=="enablespectating" then
-		self:SetUnSpectatable(false)
-	elseif input=="disablespectating" then
-		self:SetUnSpectatable(true)
-		scripted_ents.GetMember("point_rotgb_spectator", "TransmitChangeToSpectatingPlayers")(self)
-	elseif input=="togglespectating" then
-		self:SetUnSpectatable(not self:GetUnSpectatable())
-		scripted_ents.GetMember("point_rotgb_spectator", "TransmitChangeToSpectatingPlayers")(self)
-	elseif input=="enablewavehiding" then
-		self:SetHideWave(true)
-	elseif input=="disablewavehiding" then
-		self:SetHideWave(false)
-	elseif input=="togglewavehiding" then
-		self:SetHideWave(not self:GetHideWave())
-	elseif input=="hide" then
-		self:SetNotSolid(true)
-		self:SetNoDraw(true)
-		self:SetMoveType(MOVETYPE_NOCLIP)
-	elseif input=="unhide" then
-		self:SetNotSolid(false)
-		self:SetNoDraw(false)
-		self:SetMoveType(MOVETYPE_VPHYSICS)
-	elseif input=="togglehide" then
-		if self:GetNoDraw() then
-			self:SetNotSolid(false)
-			self:SetNoDraw(false)
-			self:SetMoveType(MOVETYPE_VPHYSICS)
-		else
-			self:SetNotSolid(true)
-			self:SetNoDraw(true)
-			self:SetMoveType(MOVETYPE_NOCLIP)
-		end
+	elseif input=="setautostart" then -- TO DO: DEPRECATED
+		self:SetAutoStart(tobool(data))
+	elseif input=="setautostartdelay" then
+		self:SetAutoStartDelay(tonumber(data) or 0)
+	elseif input=="setforcenext" then -- TO DO: DEPRECATED
+		self:SetForceNextWave(tobool(data))
+	elseif input=="setshortnessthreshold" then
+		self.OutputShortlyThreshold = tonumber(data) or 0
+	elseif input=="enablenomessages" then
+		self.NoMessages = true
+	elseif input=="disablenomessages" then
+		self.NoMessages = false
+	elseif input=="togglenomessages" then
+		self.NoMessages = not self.NoMessages
 	end
+	self:CheckBoolEDTInput(input, "hidewave", "HideWave")
+	self:CheckBoolEDTInput(input, "startall", "StartAll")
+	self:CheckBoolEDTInput(input, "autostart", "AutoStart")
+	self:CheckBoolEDTInput(input, "forceautostart", "ForceNextWave")
+	return gballoon_pob.AcceptInput(self,input,activator,caller,data)
 end
 
 function ENT:SpawnFunction(ply,trace,classname)
@@ -1316,38 +1277,15 @@ function ENT:Initialize()
 		end
 		self:SetSpeedMul(self:GetSpeedMul()>0 and self:GetSpeedMul() or 1)
 		self:SetSpawnDivider(self:GetSpawnDivider()>0 and self:GetSpawnDivider() or 1)
-		self:SetModel(self.Model or "models/props_c17/streetsign004e.mdl")
 		if self:GetWaveFile() == "" then
 			self:SetWaveFile(ROTGB_GetConVarValue("rotgb_default_wave_preset"))
-		end
-		if self.Skin then
-			self:SetSkin(self.Skin)
-		end
-		if self.TempNextTargets then
-			for k,v in pairs(self.TempNextTargets) do
-				self["SetNextTarget"..k](self,v~="" and ents.FindByName(v)[1] or NULL)
-			end
-		end
-		if self.TempNextBlimpTargets then
-			for k,v in pairs(self.TempNextBlimpTargets) do
-				self["SetNextBlimpTarget"..k](self,v~="" and ents.FindByName(v)[1] or NULL)
-			end
-		end
-		self:PhysicsInit(SOLID_VPHYSICS)
-		local physobj = self:GetPhysicsObject()
-		if IsValid(physobj) then
-			physobj:Wake()
 		end
 		self:SetUseType(SIMPLE_USE)
 		if not self.NoAutoStart then
 			self.NoAutoStart = true
 			self:SetAutoStart(true)
 		end
-		if self.TempIsHidden then
-			self:SetNotSolid(true)
-			self:SetNoDraw(true)
-			self:SetMoveType(MOVETYPE_NOCLIP)
-		end
+		gballoon_pob.Initialize(self)
 	end
 end
 
@@ -1359,7 +1297,7 @@ end
 function ENT:Use(activator)
 	--if input:lower()=="balloon_start_wave" then
 		local cwave = self:GetWave()
-		if cwave == self:GetLastWave() + 1 and (self.EnableBalloonChecking or self:GetNextWaveTime() <= CurTime()) then return end
+		if cwave == self:GetLastWave() + 1 and (self.EnableBalloonChecking or self:GetNextWaveTime() > CurTime()) then return end
 		if ((IsValid(activator) and activator:GetClass()~="gballoon_spawner" or activator == self) and self:GetStartAll() and not self.LoopPrevent) then
 			self.LoopPrevent = true
 			for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
@@ -1631,26 +1569,28 @@ end
 end)]]
 
 local function DrawCircle(x,y,r,percent,...)
-	local SEGMENTS = GetConVar("rotgb_circle_segments"):GetInt()
-	local seoul = -360/SEGMENTS
-	percent = math.Clamp(percent*SEGMENTS,0,SEGMENTS)
-	local vertices = {{x=x,y=y}}
-	local pi = math.pi
-	for i=0,math.floor(percent) do
-		local compx = x+math.sin(math.rad(i*seoul)+pi)*r
-		local compy = y+math.cos(math.rad(i*seoul)+pi)*r
-		table.insert(vertices,{x=compx,y=compy})
+	if percent > 0 then
+		local SEGMENTS = GetConVar("rotgb_circle_segments"):GetInt()
+		local seoul = -360/SEGMENTS
+		percent = math.Clamp(percent*SEGMENTS,0,SEGMENTS)
+		local vertices = {{x=x,y=y}}
+		local pi = math.pi
+		for i=0,math.floor(percent) do
+			local compx = x+math.sin(math.rad(i*seoul)+pi)*r
+			local compy = y+math.cos(math.rad(i*seoul)+pi)*r
+			table.insert(vertices,{x=compx,y=compy})
+		end
+		if math.floor(percent)~=percent then
+			local compx = x+math.sin(math.rad(percent*seoul)+pi)*r
+			local compy = y+math.cos(math.rad(percent*seoul)+pi)*r
+			table.insert(vertices,{x=compx,y=compy})
+		end
+		draw.NoTexture()
+		surface.SetDrawColor(...)
+		surface.DrawPoly(vertices)
+		table.insert(vertices,table.remove(vertices,1))
+		surface.DrawPoly(table.Reverse(vertices))
 	end
-	if math.floor(percent)~=percent then
-		local compx = x+math.sin(math.rad(percent*seoul)+pi)*r
-		local compy = y+math.cos(math.rad(percent*seoul)+pi)*r
-		table.insert(vertices,{x=compx,y=compy})
-	end
-	draw.NoTexture()
-	surface.SetDrawColor(...)
-	surface.DrawPoly(vertices)
-	table.insert(vertices,table.remove(vertices,1))
-	surface.DrawPoly(table.Reverse(vertices))
 end
 
 function ENT:DrawTranslucent()
@@ -1662,7 +1602,7 @@ function ENT:DrawTranslucent()
 	reqang.p = 0
 	reqang.y = reqang.y-90
 	reqang.r = 90
-	--if cwave <= self:GetLastWave() or ROTGB_GetConVarValue("rotgb_freeplay") then
+	if not self:GetHideWave() then
 		local text1 = "Next Wave: "..cwave
 		local text2 = "RgBE: "..self:GetWaveTable()[cwave].rbe
 		local text3 = "Press 'Use' on this entity to start the wave."
@@ -1688,7 +1628,7 @@ function ENT:DrawTranslucent()
 			local percent = math.Clamp((self:GetNextWaveTime()-CurTime())/self:GetWaveDuration(cwave-1)*self:GetSpeedMul()+0.02,0,1)
 			DrawCircle(0,panelh/-2-32,16,percent,HSVToColor(percent*120,1,1))
 		cam.End3D2D()
-	--[[else]]if self:GetNextWaveTime()>CurTime() then
+	else
 		local percent = math.Clamp((self:GetNextWaveTime()-CurTime())/self:GetWaveDuration(cwave-1)*self:GetSpeedMul()+0.02,0,1)
 		cam.Start3D2D(self:GetPos()+Vector(0,0,GetConVar("rotgb_hoverover_distance"):GetFloat()+draw.GetFontHeight("DermaLarge")*0.4+self:OBBMaxs().z),reqang,0.2)
 			DrawCircle(0,-draw.GetFontHeight("DermaLarge")-32,16,percent,HSVToColor(percent*120,1,1))

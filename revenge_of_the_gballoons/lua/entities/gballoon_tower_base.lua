@@ -301,12 +301,20 @@ function ENT:Think()
 			self.SellAmount = (self.SellAmount or 0) + towerCost
 		end
 		if not self:IsStunned() then
-			self.ExpensiveThinkDelay = self.ExpensiveThinkDelay or CurTime()
-			if self.ExpensiveThinkDelay <= CurTime() then
-				self.ExpensiveThinkDelay = CurTime() + math.min(0.5, 1/(self.FireRate or 1))
-				self:ExpensiveThink()
-				if not IsValid(self:GetTowerOwner()) then
-					self:SetTowerOwner(player.GetAll()[math.random(player.GetCount())])
+			local shouldExpensiveThink = false
+			for k,v in pairs(ROTGB_GetBalloons()) do
+				if self:ValidTarget(v) then
+					shouldExpensiveThink = true break
+				end
+			end
+			if shouldExpensiveThink then
+				self.ExpensiveThinkDelay = self.ExpensiveThinkDelay or CurTime()
+				if self.ExpensiveThinkDelay <= CurTime() then
+					self.ExpensiveThinkDelay = CurTime() + math.min(0.5, 1/(self.FireRate or 1))
+					self:ExpensiveThink()
+					if not IsValid(self:GetTowerOwner()) then
+						self:SetTowerOwner(player.GetAll()[math.random(player.GetCount())])
+					end
 				end
 			end
 			if (self.NextFire or 0) < CurTime() and (self.DetectedEnemy or self.FireWhenNoEnemies) then

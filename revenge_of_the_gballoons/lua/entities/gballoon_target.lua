@@ -1,7 +1,6 @@
 AddCSLuaFile()
 
-ENT.Base = "base_anim"
-ENT.Type = "anim"
+local gballoon_pob = baseclass.Get("gballoon_path_object_base") -- internally sets ENT.Base and ENT.Type too
 ENT.PrintName = "gBalloon Target"
 ENT.Category = "RotgB: Miscellaneous"
 ENT.ScriptedEntityType = "entity"
@@ -659,41 +658,24 @@ end
 
 function ENT:KeyValue(key,value)
 	local lkey = key:lower()
-	if lkey=="gballoon_damage_only" then
+	if lkey=="natural_health_multiplier" then
+		self:SetNaturalHealthMultiplier(tonumber(value) or 0)
+	elseif lkey=="gballoon_damage_only" then
 		self:SetGBOnly(tobool(value))
-	elseif lkey=="model" then
-		self.Model = value
-	elseif lkey=="skin" then
-		self.Skin = value
+	elseif lkey=="hide_health" then
+		self:SetHideHealth(tobool(value))
+	elseif lkey=="non_vital" then
+		self:SetNonVital(tobool(value))
 	elseif lkey=="is_beacon" then -- TODO: DEPRECATED
 		self:SetIsBeacon(tobool(value))
 	elseif lkey=="is_waypoint" then
 		self:SetIsBeacon(tobool(value))
-	elseif string.sub(lkey,1,11) == "next_target" then
-		local num = (tonumber("0x"..string.sub(lkey,-1)) or 0) + 1
-		self.TempNextTargets = self.TempNextTargets or {}
-		self.TempNextTargets[num] = value
-	elseif string.sub(lkey,1,17) == "next_blimp_target" then
-		local num = (tonumber("0x"..string.sub(lkey,-1)) or 0) + 1
-		self.TempNextBlimpTargets = self.TempNextBlimpTargets or {}
-		self.TempNextBlimpTargets[num] = value
-	elseif lkey=="is_visible" then -- TODO: DEPRECATED
-		self.TempIsHidden = not tobool(value)
-	elseif lkey=="is_hidden" then
-		self.TempIsHidden = tobool(value)
 	elseif lkey=="teleport_to" then
 		self:SetTeleport(tobool(value))
-	elseif lkey=="unspectatable" then
-		self:SetUnSpectatable(tobool(value))
-		scripted_ents.GetMember("point_rotgb_spectator", "TransmitChangeToSpectatingPlayers")(self)
-	elseif lkey=="non_vital" then
-		self:SetNonVital(tobool(value))
-	elseif lkey=="hide_health" then
-		self:SetHideHealth(tobool(value))
+	elseif lkey=="is_visible" then -- TODO: DEPRECATED
+		self.TempIsHidden = not tobool(value)
 	elseif lkey=="weight" then
 		self:SetWeight(tonumber(value) or 0)
-	elseif lkey=="natural_health_multiplier" then
-		self:SetNaturalHealthMultiplier(tonumber(value) or 0)
 	elseif lkey=="onbreak" then
 		self:StoreOutput(key,value)
 	elseif lkey=="onhealthchanged" then
@@ -709,11 +691,28 @@ function ENT:KeyValue(key,value)
 	elseif lkey=="onwaypointednonblimp" then
 		self:StoreOutput(key,value)
 	end
+	return gballoon_pob.KeyValue(self,lkey,value)
 end
 
 function ENT:AcceptInput(input,activator,caller,data)
 	input = input:lower()
-	if input=="sethealth" then
+	if input=="setnaturalhealthmultiplier" then
+		local newMul = tonumber(data) or 0
+		if self:GetNaturalHealthMultiplier() == 0 then
+			local naturalHealth = ROTGB_GetConVarValue("rotgb_target_natural_health") * newMul
+			self:SetMaxHealth(naturalHealth)
+			self:SetHealth(naturalHealth)
+		else
+			local multiplier = newMul / self:GetNaturalHealthMultiplier()
+			self:SetMaxHealth(self:GetMaxHealth() * multiplier)
+			self:SetHealth(self:Health() * multiplier)
+		end
+		self:SetNaturalHealthMultiplier(newMul)
+	elseif input=="setiswaypoint" then -- TODO: DEPRECATED
+		self:SetIsBeacon(tobool(data))
+	elseif input=="setweight" then
+		self:SetWeight(tonumber(data) or 0)
+	elseif input=="sethealth" then
 		local oldhealth = self:Health()
 		self:SetHealth(tonumber(data) or 0)
 		if self:Health()~=oldhealth then
@@ -739,12 +738,24 @@ function ENT:AcceptInput(input,activator,caller,data)
 			self:TriggerOutput("OnBreak",activator)
 			self:Input("Kill",activator,self,data)
 		end
+	elseif input=="healhealth" then
+		local oldhealth = self:Health()
+		self:SetHealth(math.min(self:Health()+(tonumber(data) or 0), self:GetMaxHealth()))
+		if self:Health()~=oldhealth then
+			self:TriggerOutput("OnHealthChanged",activator,self:Health()/self:GetMaxHealth())
+		end
 	elseif input=="setmaxhealth" then
 		self:SetMaxHealth(tonumber(data) or 0)
 	elseif input=="addmaxhealth" then
 		self:SetMaxHealth(self:GetMaxHealth()+(tonumber(data) or 0))
 	elseif input=="removemaxhealth" then
 		self:SetMaxHealth(self:GetMaxHealth()-(tonumber(data) or 0))
+	elseif input=="healmaxhealth" then
+		local oldhealth = self:Health()
+		self:SetHealth(math.min(self:Health()+(tonumber(data) or 1)*self:GetMaxHealth(), self:GetMaxHealth()))
+		if self:Health()~=oldhealth then
+			self:TriggerOutput("OnHealthChanged",activator,self:Health()/self:GetMaxHealth())
+		end
 	elseif input=="break" then
 		local oldhealth = self:Health()
 		self:SetHealth(0)
@@ -753,75 +764,13 @@ function ENT:AcceptInput(input,activator,caller,data)
 		end
 		self:TriggerOutput("OnBreak",activator)
 		self:Input("Kill",activator,self,data)
-	elseif input=="setiswaypoint" then -- TODO: DEPRECATED
-		self:SetIsBeacon(tobool(data))
-	elseif input=="enablewaypointing" then
-		self:SetIsBeacon(false)
-	elseif input=="disablewaypointing" then
-		self:SetIsBeacon(true)
-	elseif input=="togglewaypointing" then
-		self:SetIsBeacon(not self:GetIsBeacon())
-	elseif string.sub(input,1,15) == "setnextwaypoint" then
-		local num = (tonumber("0x"..string.sub(input,-1)) or 0) + 1
-		self["SetNextTarget"..num](self,data~="" and ents.FindByName(data)[1] or NULL)
-	elseif string.sub(input,1,20) == "setnextblimpwaypoint" then
-		local num = (tonumber("0x"..string.sub(input,-1)) or 0) + 1
-		self["SetNextBlimpTarget"..num](self,data~="" and ents.FindByName(data)[1] or NULL)
-	elseif input=="setweight" then
-		self:SetWeight(tonumber(data) or 0)
-	elseif input=="enablespectating" then
-		self:SetUnSpectatable(false)
-	elseif input=="disablespectating" then
-		self:SetUnSpectatable(true)
-		scripted_ents.GetMember("point_rotgb_spectator", "TransmitChangeToSpectatingPlayers")(self)
-	elseif input=="togglespectating" then
-		self:SetUnSpectatable(not self:GetUnSpectatable())
-		scripted_ents.GetMember("point_rotgb_spectator", "TransmitChangeToSpectatingPlayers")(self)
-	elseif input=="enablevitaltarget" then
-		self:SetNonVital(false)
-	elseif input=="disablevitaltarget" then
-		self:SetNonVital(true)
-	elseif input=="togglevitaltarget" then
-		self:SetNonVital(not self:GetNonVital())
-	elseif input=="enablehealthhide" then
-		self:SetHideHealth(true)
-	elseif input=="disablehealthhide" then
-		self:SetHideHealth(false)
-	elseif input=="togglehealthhide" then
-		self:SetHideHealth(not self:GetHideHealth())
-	elseif input=="setnaturalhealthmultiplier" then
-		local newMul = tonumber(data) or 0
-		if self:GetNaturalHealthMultiplier() == 0 then
-			local naturalHealth = ROTGB_GetConVarValue("rotgb_target_natural_health") * newMul
-			self:SetMaxHealth(naturalHealth)
-			self:SetHealth(naturalHealth)
-		else
-			local multiplier = newMul / self:GetNaturalHealthMultiplier()
-			self:SetMaxHealth(self:GetMaxHealth() * multiplier)
-			self:SetHealth(self:Health() * multiplier)
-		end
-		self:SetNaturalHealthMultiplier(newMul)
-	elseif input=="resethealth" then
-		self:SetHealth(self:GetMaxHealth())
-	elseif input=="hide" then
-		self:SetNotSolid(true)
-		self:SetNoDraw(true)
-		self:SetMoveType(MOVETYPE_NOCLIP)
-	elseif input=="unhide" then
-		self:SetNotSolid(false)
-		self:SetNoDraw(false)
-		self:SetMoveType(MOVETYPE_VPHYSICS)
-	elseif input=="togglehide" then
-		if self:GetNoDraw() then
-			self:SetNotSolid(false)
-			self:SetNoDraw(false)
-			self:SetMoveType(MOVETYPE_VPHYSICS)
-		else
-			self:SetNotSolid(true)
-			self:SetNoDraw(true)
-			self:SetMoveType(MOVETYPE_NOCLIP)
-		end
 	end
+	self:CheckBoolEDTInput(input, "balloondamageonly", "GBOnly")
+	self:CheckBoolEDTInput(input, "nonvitality", "NonVital")
+	self:CheckBoolEDTInput(input, "hidehealth", "HideHealth")
+	self:CheckBoolEDTInput(input, "waypointing", "IsBeacon")
+	self:CheckBoolEDTInput(input, "teleporting", "Teleport")
+	return gballoon_pob.AcceptInput(self,input,activator,caller,data)
 end
 
 function ENT:SpawnFunction(ply,trace,classname)
@@ -837,15 +786,6 @@ end
 
 function ENT:Initialize()
 	if SERVER then
-		self:SetModel(self.Model or "models/props_c17/streetsign004e.mdl")
-		if self.Skin then
-			self:SetSkin(self.Skin)
-		end
-		self:PhysicsInit(SOLID_VPHYSICS)
-		local physobj = self:GetPhysicsObject()
-		if IsValid(physobj) then
-			physobj:Wake()
-		end
 		local healthOverride = ROTGB_GetConVarValue("rotgb_target_health_override")
 		if healthOverride > 0 then
 			self:SetHealth(healthOverride)
@@ -858,29 +798,7 @@ function ENT:Initialize()
 			self:SetHealth(naturalHealth)
 			self:SetMaxHealth(naturalHealth)
 		end
-		--[[if self.TmepNextTarget then
-			self:SetNextTarget(ents.FindByName(self.TmepNextTarget)[1] or NULL)
-			self.TmepNextTarget = nil
-		end
-		if IsValid(self:GetNextTarget()) then
-			self:SetNextTarget1(self:GetNextTarget())
-			self:SetNextTarget(NULL)
-		end]]
-		if self.TempNextTargets then
-			for k,v in pairs(self.TempNextTargets) do
-				self["SetNextTarget"..k](self,v~="" and ents.FindByName(v)[1] or NULL)
-			end
-		end
-		if self.TempNextBlimpTargets then
-			for k,v in pairs(self.TempNextBlimpTargets) do
-				self["SetNextBlimpTarget"..k](self,v~="" and ents.FindByName(v)[1] or NULL)
-			end
-		end
-		if self.TempIsHidden then
-			self:SetNotSolid(true)
-			self:SetNoDraw(true)
-			self:SetMoveType(MOVETYPE_NOCLIP)
-		end
+		gballoon_pob.Initialize(self)
 	end
 end
 

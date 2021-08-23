@@ -232,7 +232,7 @@ function ENT:TriggerAbility()
 					ent.AttackDamage = ent.AttackDamage + 300
 					ent.FireRate = ent.FireRate * 4
 					ent.rotgb_Targets = ent.rotgb_Targets * 3
-					ent:SetMaterial("models/spawn_effect2")
+					ent:SetMaterial("!gBalloonRainbow")
 				end
 				timer.Simple(10, function()
 					if IsValid(ent) then

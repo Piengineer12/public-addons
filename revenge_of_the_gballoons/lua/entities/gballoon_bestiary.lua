@@ -218,7 +218,7 @@ end
 
 local addonoffers = [[What This Addon Offers:
 
-gBalloon Bestiary (Entities > RotgB: Miscellaneous)
+RotgB Guide Book (Entities > RotgB: Miscellaneous)
 
 1 weapon (Weapons > RotgB)
 	RotgB Game SWEP
@@ -288,7 +288,7 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 		local Main = vgui.Create("DFrame")
 		Main:SetSize(ScrW()/2,ScrH()/2)
 		Main:SetSizable(true)
-		Main:SetTitle("gBalloon Bestiary")
+		Main:SetTitle("RotgB Guide Book")
 		Main:Center()
 		Main:MakePopup()
 		
@@ -304,7 +304,7 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 		RichText:AppendText("This is the guide book for RotgB, which aims to tell about how to use the addon effectively,\z
 		as well as listing the gBalloons statistics, immunities and weaknesses.\n\n\z
 		Each gBalloon page describes about a gBalloon as well as its Hit Points, Red gBalloon Equivalent (RgBE), Size, Speed, Pop Products and Extra Properties. \z
-		It should be noted that the gBalloons' statistics shown in the Bestiary are only accurate \z
+		It should be noted that the gBalloons' statistics shown in the Guide Book are only accurate \z
 		if the gBalloon server settings are set to their defaults (see Options > RotgB > Server Settings).\n\n\z
 		More information will be added to this book if deemed neccessary.\n\n")
 		RichText:InsertColorChange(127,127,127,255)
@@ -405,7 +405,7 @@ function ENT:DrawTranslucent()
 	reqang.p = 0
 	reqang.y = reqang.y-90
 	reqang.r = 90
-	cam.Start3D2D(self:GetPos()+Vector(0,0,ROTGB_GetConVarValue("rotgb_hoverover_distance")+t1y*0.1+self:OBBMaxs().z),reqang,0.2)
+	cam.Start3D2D(self:GetPos()+Vector(0,0,GetConVar("rotgb_hoverover_distance"):GetFloat()+t1y*0.1+self:OBBMaxs().z),reqang,0.2)
 		surface.SetDrawColor(0,0,0,127)
 		surface.DrawRect(t1x/-2,t1y/-2,t1x,t1y)
 		surface.SetTextColor(0,255,0)
@@ -415,12 +415,12 @@ function ENT:DrawTranslucent()
 end
 
 list.Set("NPC","gballoon_bestiary",{
-	Name = "gBalloon Bestiary",
+	Name = "RotgB Guide Book",
 	Class = "gballoon_bestiary",
 	Category = "RotgB: Miscellaneous"
 })
 list.Set("SpawnableEntities","gballoon_bestiary",{
-	PrintName = "gBalloon Bestiary",
+	PrintName = "RotgB Guide Book",
 	ClassName = "gballoon_bestiary",
 	Category = "RotgB: Miscellaneous"
 })

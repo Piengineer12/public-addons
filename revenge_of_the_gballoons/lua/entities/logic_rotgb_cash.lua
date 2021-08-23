@@ -9,11 +9,16 @@ function ENT:KeyValue(key,value)
 	key = key:lower()
 	if key=="fire_on_changed" then
 		self.AlwaysThink = tobool(value)
-	elseif key=="oncanafford" then
-		self.OnCanAfford = key
+	elseif key=="altermode" then
+		self.SetMode = tonumber(value)
+	elseif key=="onprecashchanged" then
+		self.OnPreCashChanged = key
 		self:StoreOutput(key,value)
-	elseif key=="oncantafford" then
-		self.OnCantAfford = key
+	elseif key=="onpostcashchanged" then
+		self.OnPostCashChanged = key
+		self:StoreOutput(key,value)
+	elseif key=="onaltercash" then
+		self.OnCashSet = key
 		self:StoreOutput(key,value)
 	elseif key=="ongetcash" then
 		self.OnTestCash = key
@@ -24,51 +29,23 @@ function ENT:KeyValue(key,value)
 	elseif key=="ongetcashmax" then
 		self.OnTestCashMax = key
 		self:StoreOutput(key,value)
-	elseif key=="onprecashchanged" then
-		self.OnPreCashChanged = key
+	elseif key=="oncanafford" then
+		self.OnCanAfford = key
 		self:StoreOutput(key,value)
-	elseif key=="onpostcashchanged" then
-		self.OnPostCashChanged = key
-		self:StoreOutput(key,value)
-	elseif key=="altermode" then
-		self.SetMode = tonumber(value)
-	elseif key=="onaltercash" then
-		self.OnCashSet = key
+	elseif key=="oncantafford" then
+		self.OnCantAfford = key
 		self:StoreOutput(key,value)
 	end
 end
 
 function ENT:AcceptInput(input,activator,caller,data)
 	input = input:lower()
-	if input=="setfireonchanged" then
+	if input=="setfireonchanged" then -- TODO: Turn this into the EDT formatting
 		self.AlwaysThink = tobool(data)
 	else
 		data = tonumber(data) or 0
 		if input=="altermode" then
 			self.SetMode = data
-		elseif input=="canafford" then
-			local cash = ROTGB_GetCash(activator)
-			if cash < data then
-				self:TriggerOutput(self.OnCantAfford,activator,data-cash)
-			else
-				self:TriggerOutput(self.OnCanAfford,activator,cash-data)
-			end
-		elseif input=="getcash" then
-			self:TriggerOutput(self.OnTestCash,activator,ROTGB_GetCash(activator))
-		elseif input=="getcashmin" or input=="getcashmax" then
-			local cashtable,isMax = {},input=="getcashmax"
-			for k,v in pairs(player.GetAll()) do
-				table.insert(cashtable,ROTGB_GetCash(v))
-			end
-			table.sort(cashtable, function(a,b)
-				return isMax == a > b
-			end)
-			local amt = cashtable[math.Clamp(data or 1,1,#cashtable)]
-			if isMax then
-				self:TriggerOutput(self.OnTestCashMax,activator,amt)
-			else
-				self:TriggerOutput(self.OnTestCashMin,activator,amt)
-			end
 		elseif input=="altercash" then
 			if self.SetMode == 0 then
 				ROTGB_SetCash(data,activator)
@@ -97,6 +74,29 @@ function ENT:AcceptInput(input,activator,caller,data)
 			elseif self.SetMode == 8 then
 				ROTGB_RemoveCash(data)
 				self:TriggerOutput(self.OnCashSet,activator,ROTGB_GetCash(activator))
+			end
+		elseif input=="getcash" then
+			self:TriggerOutput(self.OnTestCash,activator,ROTGB_GetCash(activator))
+		elseif input=="getcashmin" or input=="getcashmax" then
+			local cashtable,isMax = {},input=="getcashmax"
+			for k,v in pairs(player.GetAll()) do
+				table.insert(cashtable,ROTGB_GetCash(v))
+			end
+			table.sort(cashtable, function(a,b)
+				return isMax == a > b
+			end)
+			local amt = cashtable[math.Clamp(data or 1,1,#cashtable)]
+			if isMax then
+				self:TriggerOutput(self.OnTestCashMax,activator,amt)
+			else
+				self:TriggerOutput(self.OnTestCashMin,activator,amt)
+			end
+		elseif input=="canafford" then
+			local cash = ROTGB_GetCash(activator)
+			if cash < data then
+				self:TriggerOutput(self.OnCantAfford,activator,data-cash)
+			else
+				self:TriggerOutput(self.OnCanAfford,activator,cash-data)
 			end
 		end
 	end

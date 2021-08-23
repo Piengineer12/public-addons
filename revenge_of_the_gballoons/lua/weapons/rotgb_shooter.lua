@@ -917,6 +917,9 @@ function SWEP:CreateLeftPanel(Main, RightDivider)
 				
 				local startLevel = level
 				local endLevel = table.KeyFromValue(reftab.majorLevels, j) - 1 + math.floor(level/100) * 100
+				if endLevel % 100 == 0 then
+					endLevel = endLevel-1 -- don't prestige
+				end
 				for k=startLevel, endLevel do
 					local minorLevel = k % 100 + 1
 					local majorLevelTrigger = reftab.majorLevels[minorLevel]

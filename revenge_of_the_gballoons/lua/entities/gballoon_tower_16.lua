@@ -38,10 +38,10 @@ ENT.UpgradeReference = {
 			"Slightly increases hoverball generation speed.",
 			"Slightly increases hoverball cash gain.",
 			"Considerably increases hoverball generation speed.",
-			"Slightly decreases hoverball generation speed, but colossally increases hoverball sell price.",
-			"Considerably decreases hoverball generation speed to further increase hoverball price.",
+			"Slightly decreases hoverball generation speed, but colossally increases hoverball cash gain.",
+			"Considerably decreases hoverball generation speed to further increase hoverball cash gain.",
 			"Yes.",
-			"Each hoverball takes a few rounds to be created. This tower creates Dark Matter Hoverballs that sell for $1.5 million each, with a 10% chance for 10 times the amount."
+			"Each hoverball takes a few rounds to be created. This tower creates Dark Matter Hoverballs that give $1.5 million each, with a 10% chance for 10 times the amount."
 		},
 		Prices = {350,500,1500,7000,40000,250000,5e6},
 		Funcs = {

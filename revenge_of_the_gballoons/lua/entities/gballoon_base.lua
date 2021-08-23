@@ -524,6 +524,7 @@ end,nil,
 if SERVER then
 	local reqgen
 	local nextCashThink = 5
+	local cashLoaded = false
 	--util.AddNetworkString("NavmeshMissing")
 	util.AddNetworkString("rotgb_generic")
 	--[[net.Receive("NavmeshMissing",function()
@@ -587,13 +588,15 @@ if SERVER then
 		end
 		if nextCashThink < CurTime() then
 			nextCashThink = CurTime() + 5
-			if not ROTGB_CASH then
-				ROTGB_SetCash(ROTGB_GetConVarValue("rotgb_starting_cash"))
-			else
-				for k,v in pairs(player.GetAll()) do
-					if not v.ROTGB_CASH then
-						ROTGB_SetCash(ROTGB_GetConVarValue("rotgb_starting_cash"), v)
-					end
+			if not cashLoaded then
+				cashLoaded = true
+				ROTGB_CASH = ROTGB_GetConVarValue("rotgb_starting_cash")
+				ROTGB_UpdateCash()
+			end
+			for k,v in pairs(player.GetAll()) do
+				if not v.ROTGB_CASH then
+					v.ROTGB_CASH = ROTGB_GetConVarValue("rotgb_starting_cash")
+					ROTGB_UpdateCash(v)
 				end
 			end
 		end

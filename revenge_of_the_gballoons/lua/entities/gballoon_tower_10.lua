@@ -130,7 +130,7 @@ ENT.UpgradeReference = {
 		}
 	}
 }
-ENT.UpgradeLimits = {5,2,0}
+ENT.UpgradeLimits = {6,2,0}
 
 local lastshotsounds = {"weapons/airboat/airboat_gun_lastshot1.wav","weapons/airboat/airboat_gun_lastshot2.wav"}
 sound.Add({
