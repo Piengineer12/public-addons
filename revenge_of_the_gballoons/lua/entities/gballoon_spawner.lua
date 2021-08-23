@@ -1405,21 +1405,21 @@ function ENT:GenerateNextWave(cwave)
 	local trbe = 0
 	local wavetab = {}
 	local choices = {"gballoon_blimp_blue","gballoon_blimp_red","gballoon_blimp_green","gballoon_fast_hidden_regen_shielded_blimp_gray","gballoon_blimp_purple","gballoon_fast_blimp_magenta","gballoon_blimp_rainbow"}
-	local factors = {120,60,40,30,24,20,15,12,10,8,6,5,4,3,2,1}
+	local factors = {100,50,20,10,5,2,1}
 	while true do
 		if trbe > (self:GetWaveTable()[cwave-1].assumerbe or self:GetWaveTable()[cwave-1].rbe) then break end
-		local genval = util.SharedRandom("ROTGB_WAVEGEN_"..self:GetWaveFile().."_"..cwave,0,7,trbe)
+		local genval = util.SharedRandom("ROTGB_WAVEGEN__"..self:GetWaveFile().."_"..cwave,0,7,trbe)
 		local choice = choices[math.floor(genval)+1]
 		local crbe = scripted_ents.GetStored("gballoon_base").t.rotgb_rbetab[choice]
 		local amount = math.Clamp((erbe-trbe)/crbe,1,120)
 		for i,v in ipairs(factors) do
 			if amount>=v then amount=v break end
 		end
-		table.insert(wavetab,{choice,amount,60})
+		table.insert(wavetab,{choice,amount,10})
 		trbe = trbe + crbe * amount
 	end
 	wavetab.rbe = math.Round(trbe)
-	wavetab.duration = 60
+	wavetab.duration = 10
 	--wavetab.unnatural = true
 	self:GetWaveTable()[cwave] = wavetab
 end

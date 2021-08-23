@@ -49,7 +49,7 @@ function ROTGB_GetCash(ply)
 		else
 			local average = 0
 			for k,v in pairs(player.GetAll()) do
-				average = average + v.ROTGB_CASH
+				average = average + (v.ROTGB_CASH or 0)
 			end
 			return average
 		end
