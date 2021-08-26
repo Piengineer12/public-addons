@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.5.1"
-ISAWC._VERSIONDATE = "2021-08-15"
+ISAWC._VERSION = "4.6.0"
+ISAWC._VERSIONDATE = "2021-08-26"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -864,7 +864,32 @@ local function BasicAutoComplete(cmd, argStr)
 	return possibilities
 end
 
-local clearcachemessage = "Clears inventories saved from Alternate Saving. Containers that aren't presently in the map will have their contents wiped out."
+local lastSQLACResult = {}
+local lastSQLACTime = 0
+local function PlayerSQLAutoComplete(cmd, argStr)
+	if lastSQLACTime+10 < RealTime() then
+		lastSQLACTime = RealTime()+10
+		table.Empty(lastSQLACResult)
+		local results = ISAWC:SQL("SELECT \"steamID\" FROM \"isawc_player_data\";")
+		if results then
+			for k,v in pairs(results) do
+				table.insert(lastSQLACResult, v.steamID)
+			end
+		end
+	end
+	
+	local possibilities = {}
+	local namesearch = argStr:Trim():lower()
+	for k,v in pairs(lastSQLACResult) do
+		if string.StartWith(v:lower(), namesearch) then
+			table.insert(possibilities, cmd .. " " .. v)
+		end
+	end
+	return possibilities
+end
+
+local clearcachemessage = "Clears inventories saved from Alternate Saving. Containers that aren't \z
+presently in the map will have their contents wiped out."
 if SERVER then
 	ISAWC:AddConCommand("isawc_container_clearcache", {
 		exec = function(ply,cmd,args)
@@ -887,6 +912,61 @@ if SERVER then
 		help = clearcachemessage
 	})
 	
+	ISAWC:AddConCommand("isawc_delete", {
+		exec = function(ply,cmd,args,argStr)
+			if IsValid(ply) and not ply:IsAdmin() then
+				ISAWC:Log("Access denied. If you wish to delete your own items, and the server has enabled item delection, please use the option within the inventory GUI.")
+			elseif argStr=="*" then
+				for k,v in pairs(player.GetAll()) do
+					table.Empty(v.ISAWC_Inventory)
+				end
+				ISAWC:Log("You have deleted everyone's inventory.")
+			elseif next(args) then
+				local success = false
+				for k,v in pairs(player.GetAll()) do
+					if v:Nick() == argStr then
+						success = true
+						table.Empty(v.ISAWC_Inventory)
+						ISAWC:Log("You have deleted the inventory of " .. argStr .. ".")
+						break
+					end
+				end
+				if not success then
+					ISAWC:Log("Can't find player \"" .. argStr .. "\".")
+				end
+			else
+				ISAWC:Log("Usage: isawc_delete <player>")
+			end
+		end,
+		autocomplete = BasicAutoComplete,
+		help = "Deletes a player's inventory. The player must be currently active on the server. * may be used to delete ALL player inventories.",
+		help_small = "Usage: isawc_delete <player>"
+	})
+	
+	ISAWC:AddConCommand("isawc_delete_offline", {
+		exec = function(ply,cmd,args,argStr)
+			if IsValid(ply) and not ply:IsAdmin() then
+				ISAWC:Log("Access denied.")
+			elseif argStr=="*" then
+				ISAWC:SQL("DELETE FROM \"isawc_player_data\";")
+				ISAWC:Log("You have deleted everyone's inventory.")
+			elseif next(args) then
+				local results = ISAWC:SQL("SELECT \"steamID\" FROM \"isawc_player_data\" WHERE \"steamID\" = %s;", argStr)
+				if results then
+					ISAWC:SQL("DELETE FROM \"isawc_player_data\" WHERE \"steamID\" = %s;", argStr)
+					ISAWC:Log("You have deleted the inventory of " .. argStr .. ".")
+				else
+					ISAWC:Log("Can't find player with SteamID \"" .. argStr .. "\".")
+				end
+			else
+				ISAWC:Log("Usage: isawc_delete_offline <player>")
+			end
+		end,
+		autocomplete = PlayerSQLAutoComplete,
+		help = "Deletes an offline player's inventory via their SteamID. Does not work well for online players.",
+		help_small = "Usage: isawc_delete_offline <player>"
+	})
+	
 	ISAWC:AddConCommand("isawc_reset_convars", {
 		exec = function(ply,cmd,args,argStr)
 			if IsValid(ply) and not ply:IsAdmin() then
@@ -907,30 +987,28 @@ if SERVER then
 		exec = function(ply,cmd,args,argStr)
 			if IsValid(ply) and not ply:IsAdmin() then
 				ISAWC:Log("Access denied.")
-			else
-				if #args==0 then
-					ISAWC:Log("Usage: isawc_copy <player>")
-				else
-					local success = false
-					for k,v in pairs(player.GetAll()) do
-						if v:Nick() == argStr then
-							success = true
-							if ply == v then
-								ISAWC:Log("You can't copy your own inventory!")
-							else
-								table.Empty(ply.ISAWC_Inventory)
-								for i2,v2 in ipairs(v.ISAWC_Inventory) do
-									table.insert(ply.ISAWC_Inventory, v2)
-								end
-								ISAWC:Log("You have copied the inventory of " .. argStr .. " into your inventory.")
+			elseif next(args) then
+				local success = false
+				for k,v in pairs(player.GetAll()) do
+					if v:Nick() == argStr then
+						success = true
+						if ply == v then
+							ISAWC:Log("You can't copy your own inventory!")
+						else
+							table.Empty(ply.ISAWC_Inventory)
+							for i2,v2 in ipairs(v.ISAWC_Inventory) do
+								table.insert(ply.ISAWC_Inventory, v2)
 							end
-							break
+							ISAWC:Log("You have copied the inventory of " .. argStr .. " into your inventory.")
 						end
-					end
-					if not success then
-						ISAWC:Log("Can't find player \"" .. argStr .. "\".")
+						break
 					end
 				end
+				if not success then
+					ISAWC:Log("Can't find player \"" .. argStr .. "\".")
+				end
+			else
+				ISAWC:Log("Usage: isawc_copy <player>")
 			end
 		end,
 		autocomplete = BasicAutoComplete,
@@ -942,30 +1020,28 @@ if SERVER then
 		exec = function(ply,cmd,args,argStr)
 			if IsValid(ply) and not ply:IsAdmin() then
 				ISAWC:Log("Access denied.")
-			else
-				if #args==0 then
-					ISAWC:Log("Usage: isawc_paste <player>")
-				else
-					local success = false
-					for k,v in pairs(player.GetAll()) do
-						if v:Nick() == argStr then
-							success = true
-							if ply == v then
-								ISAWC:Log("You can't paste into your own inventory!")
-							else
-								table.Empty(v.ISAWC_Inventory)
-								for i2,v2 in ipairs(ply.ISAWC_Inventory) do
-									table.insert(v.ISAWC_Inventory, v2)
-								end
-								ISAWC:Log("You have pasted your inventory into the inventory of " .. argStr .. ".")
+			elseif next(args) then
+				local success = false
+				for k,v in pairs(player.GetAll()) do
+					if v:Nick() == argStr then
+						success = true
+						if ply == v then
+							ISAWC:Log("You can't paste into your own inventory!")
+						else
+							table.Empty(v.ISAWC_Inventory)
+							for i2,v2 in ipairs(ply.ISAWC_Inventory) do
+								table.insert(v.ISAWC_Inventory, v2)
 							end
-							break
+							ISAWC:Log("You have pasted your inventory into the inventory of " .. argStr .. ".")
 						end
-					end
-					if not success then
-						ISAWC:Log("Can't find player \"" .. argStr .. "\".")
+						break
 					end
 				end
+				if not success then
+					ISAWC:Log("Can't find player \"" .. argStr .. "\".")
+				end
+			else
+				ISAWC:Log("Usage: isawc_paste <player>")
 			end
 		end,
 		autocomplete = BasicAutoComplete,
