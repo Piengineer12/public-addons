@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.6.0"
-ISAWC._VERSIONDATE = "2021-08-26"
+ISAWC._VERSION = "4.6.1"
+ISAWC._VERSIONDATE = "2021-08-27"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -2876,7 +2876,7 @@ ISAWC.Initialize = function()
 	if table.IsEmpty(ISAWC.LastLoadedData) and SERVER then
 		local data = util.JSONToTable(file.Read("isawc_data.dat") or "") or {}
 		if table.IsEmpty(data) then
-			data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "")) or {}
+			data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "") or "") or {}
 		end
 		ISAWC:PerformCompatibilityLoad(data)
 		
