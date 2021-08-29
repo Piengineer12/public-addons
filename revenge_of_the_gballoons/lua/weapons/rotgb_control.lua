@@ -77,6 +77,17 @@ local padding = 8
 local buttonHeight = 48
 local screenMaterial = Material("models/screenspace")
 
+if CLIENT then
+	surface.CreateFont("RotgBUIFont",{
+		font="Roboto",
+		size=24
+	})
+	surface.CreateFont("RotgBUITitleFont",{
+		font="Luckiest Guy",
+		size=48
+	})
+end
+
 function SWEP:SetupDataTables()
 	self:NetworkVar("Int",0,"CurrentTower")
 end
@@ -142,15 +153,10 @@ function SWEP:PostDrawViewModel(viewmodel, weapon, ply)
 	if IsValid(viewmodel) and viewmodel:GetCycle()>0.99 then
 		--if self:GetCurrentTower() == 0 then
 			local renderPos, renderAngles = LocalToWorld(Vector(26.6,2,-2.5), Angle(1,-95,47), viewmodel:GetPos(), viewmodel:GetAngles())
-			cam.Start3D2D(renderPos, renderAngles, 0.02)
+			cam.Start3D2D(renderPos, renderAngles, 0.01)
 			-- screen is 3.8 x 2.0
-			if (IsValid(self.TowerMenu) and self.TowerMenu:IsVisible()) then
-				draw.SimpleText("Secondary Fire", "Trebuchet24", 95, 38, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-				draw.SimpleText("to Hide Menu", "Trebuchet24", 95, 62, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-			else
-				draw.SimpleText("Secondary Fire", "Trebuchet24", 95, 38, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-				draw.SimpleText("to Show Menu", "Trebuchet24", 95, 62, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-			end
+			draw.SimpleText("Secondary Fire", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+			draw.SimpleText(IsValid(self.TowerMenu) and self.TowerMenu:IsVisible() and "to Hide Menu" or "to Show Menu", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
 			cam.End3D2D()
 		--[[else
 			local renderPos, renderAngles = LocalToWorld(Vector(19.15,1.3,0.2), Angle(-3,-92,69), viewmodel:GetPos(), viewmodel:GetAngles())
@@ -324,7 +330,7 @@ end
 function SWEP:InstallMenuFunctions(Main)
 	function Main:CreateButton(text, parent, color1, color2, color3)
 		local Button = vgui.Create("DButton", parent)
-		Button:SetFont("Trebuchet24")
+		Button:SetFont("RotgBUIFont")
 		Button:SetText(text)
 		Button:SetColor(color_black)
 		Button:SetTall(buttonHeight)
@@ -337,7 +343,7 @@ function SWEP:InstallMenuFunctions(Main)
 	end
 	function Main:AddHeader(text, parent)
 		local Label = vgui.Create("DLabel", parent)
-		Label:SetFont("Trebuchet24")
+		Label:SetFont("RotgBUIFont")
 		Label:SetText(text)
 		Label:DockMargin(0,0,0,padding)
 		Label:SetColor(color_aqua)
@@ -348,7 +354,7 @@ function SWEP:InstallMenuFunctions(Main)
 	end
 	function Main:AddSearchBox(parent)
 		local TextEntry = vgui.Create("DTextEntry", parent)
-		TextEntry:SetFont("Trebuchet24")
+		TextEntry:SetFont("RotgBUIFont")
 		TextEntry:SetPlaceholderText("Search...")
 		TextEntry:SetTall(buttonHeight)
 		TextEntry:Dock(TOP)
@@ -471,7 +477,11 @@ function SWEP:CreateLeftPanel(Main)
 						end
 					end
 					function NameButton:PaintOver(w,h)
-						draw.SimpleText(v:Nick().." ("..ROTGB_FormatCash(ROTGB_GetCash(v))..")", "Trebuchet24", w/2, h/2, color_black, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+						if IsValid(v) then
+							draw.SimpleText(v:Nick().." ("..ROTGB_FormatCash(ROTGB_GetCash(v))..")", "RotgBUIFont", w/2, h/2, color_black, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+						else -- eee!
+							ScrollPanel:Refresh()
+						end
 					end
 					
 					if v == LocalPlayer() then
@@ -509,26 +519,26 @@ function SWEP:CreateLeftTowerPanel(Main, data)
 	DescLabel:Dock(TOP)
 	DescLabel:SetWrap(true)
 	DescLabel:SetAutoStretchVertical(true)
-	DescLabel:SetFont("Trebuchet24")
+	DescLabel:SetFont("RotgBUIFont")
 	DescLabel:SetText(data.Purpose)
 	
 	local DamageLabel = vgui.Create("DLabel", LeftPanel)
 	DamageLabel:Dock(TOP)
-	DamageLabel:SetFont("Trebuchet24")
+	DamageLabel:SetFont("RotgBUIFont")
 	DamageLabel:SetText(string.format("Damage: %u", data.AttackDamage/10))
 	DamageLabel:SetTextColor(color_light_red)
 	DamageLabel:SizeToContents()
 	
 	local FireRateLabel = vgui.Create("DLabel", LeftPanel)
 	FireRateLabel:Dock(TOP)
-	FireRateLabel:SetFont("Trebuchet24")
+	FireRateLabel:SetFont("RotgBUIFont")
 	FireRateLabel:SetText(string.format("Fire Rate: %.2f/s", data.FireRate))
 	FireRateLabel:SetTextColor(color_light_green)
 	FireRateLabel:SizeToContents()
 	
 	local RangePanel = vgui.Create("DLabel", LeftPanel)
 	RangePanel:Dock(TOP)
-	RangePanel:SetFont("Trebuchet24")
+	RangePanel:SetFont("RotgBUIFont")
 	RangePanel:SetText(string.format("Range: %u Hu", data.DetectionRadius))
 	RangePanel:SetTextColor(color_light_blue)
 	RangePanel:SizeToContents()
@@ -596,11 +606,16 @@ function SWEP:CreateRightPanel(Main)
 					if not self.levelLocked then
 						self.levelLocked = true
 						self:SetColor(color_gray)
+						TowerPanel.cashText = string.format("Level %u", self.minimumLevel)
 					end
 				elseif self.levelLocked then
 					self.levelLocked = false
-					self:SetColor(color_white)
+					TowerPanel.cashText = ROTGB_FormatCash(ROTGB_ScaleBuyCost(v.Cost), true)
+					if self.affordable and not self.levelLocked then
+						self:SetColor(color_white)
+					end
 				end
+				
 				if ROTGB_GetCash() < ROTGB_ScaleBuyCost(v.Cost) then
 					drawColor = color_red
 					if self.affordable then
@@ -609,7 +624,9 @@ function SWEP:CreateRightPanel(Main)
 					end
 				elseif not self.affordable then
 					self.affordable = true
-					self:SetColor(color_white)
+					if self.affordable and not self.levelLocked then
+						self:SetColor(color_white)
+					end
 				end
 				
 				if self:IsHovered() then
@@ -655,7 +672,7 @@ function SWEP:CreateBottomRightPanel(Main)
 	BottomPanel:DockPadding(padding,padding,padding,padding)
 	
 	local AutoCheckBox = vgui.Create("DCheckBoxLabel", BottomPanel)
-	AutoCheckBox:SetFont("Trebuchet24")
+	AutoCheckBox:SetFont("RotgBUIFont")
 	AutoCheckBox:SetText("Auto Start")
 	AutoCheckBox:SizeToContentsY()
 	AutoCheckBox:Dock(BOTTOM)

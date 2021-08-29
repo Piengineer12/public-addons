@@ -32,7 +32,7 @@ ENT.rotgb_rbetab = {
 	gballoon_ceramic=103,
 	gballoon_brick=133,
 	gballoon_marble=193,
-
+	
 	gballoon_blimp_blue=612,
 	gballoon_blimp_red=3148,
 	gballoon_blimp_green=16592,
@@ -594,7 +594,8 @@ if SERVER then
 				ROTGB_UpdateCash()
 			end
 			for k,v in pairs(player.GetAll()) do
-				if not v.ROTGB_CASH then
+				if not v.ROTGB_cashLoaded then
+					v.ROTGB_cashLoaded = true
 					v.ROTGB_CASH = ROTGB_GetConVarValue("rotgb_starting_cash")
 					ROTGB_UpdateCash(v)
 				end

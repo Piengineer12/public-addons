@@ -198,61 +198,68 @@ local hurtFeedStaySeconds = 10
 net.Receive("rotgb_target_received_damage", function()
 	local target = net.ReadEntity()
 	local newHealth = net.ReadInt(32)
-	local attackerLabel = net.ReadString()
-	local damage = net.ReadInt(32)
 	local flags = net.ReadUInt(8)
-	local timestamp = net.ReadFloat()
-	local displayName = "<unknown>"
-	local isBalloon = bit.band(flags,1)==1
-	local color
 	
 	if IsValid(target) then
-		target.rotgb_ActualHealth = newHealth
+		if bit.band(flags,7)==7 then
+			target.rotgb_ActualMaxHealth = newHealth
+		else
+			target.rotgb_ActualHealth = newHealth
+		end
 	end
 	
-	if bit.band(flags,2)==2 then
-		local ply = Player(tonumber(attackerLabel))
-		if IsValid(ply) then
-			displayName = ply:Nick()
-			color = team.GetColor(ply:Team())
+	if bit.band(flags,3)~=3 then
+		local attackerLabel = net.ReadString()
+		local damage = net.ReadInt(32)
+		local timestamp = net.ReadFloat()
+		local displayName = "<unknown>"
+		local isBalloon = bit.band(flags,1)==1
+		local color
+		
+		if bit.band(flags,2)==2 then
+			local ply = Player(tonumber(attackerLabel))
+			if IsValid(ply) then
+				displayName = ply:Nick()
+				color = team.GetColor(ply:Team())
+			end
+		elseif isBalloon then
+			local npcTable = list.GetForEdit("NPC")[attackerLabel]
+			displayName = npcTable.Name
+			if bit.band(flags,32)==32 then
+				displayName = "Shielded "..displayName
+			end
+			if bit.band(flags,16)==16 then
+				displayName = "Regen "..displayName
+			end
+			if bit.band(flags,8)==8 then
+				displayName = "Hidden "..displayName
+			end
+			if bit.band(flags,4)==4 then
+				displayName = "Fast "..displayName
+			end
+			local h,s,v = ColorToHSV(string.ToColor(npcTable.KeyValues.BalloonColor))
+			if s == 1 then v = 1 end
+			s = s / 2
+			v = (v + 1) / 2
+			color = HSVToColor(h,s,v)
+		else
+			displayName = language.GetPhrase(attackerLabel)
 		end
-	elseif isBalloon then
-		local npcTable = list.GetForEdit("NPC")[attackerLabel]
-		displayName = npcTable.Name
-		if bit.band(flags,32)==32 then
-			displayName = "Shielded "..displayName
+		
+		local existingEntry = hurtFeed[displayName]
+		if existingEntry then
+			existingEntry.damage = existingEntry.damage + damage
+			existingEntry.timestamp = timestamp
+			existingEntry.instances = existingEntry.instances + 1
+		else
+			hurtFeed[displayName] = {
+				damage = damage,
+				timestamp = timestamp,
+				instances = 1,
+				color = color,
+				isBalloon = isBalloon
+			}
 		end
-		if bit.band(flags,16)==16 then
-			displayName = "Regen "..displayName
-		end
-		if bit.band(flags,8)==8 then
-			displayName = "Hidden "..displayName
-		end
-		if bit.band(flags,4)==4 then
-			displayName = "Fast "..displayName
-		end
-		local h,s,v = ColorToHSV(string.ToColor(npcTable.KeyValues.BalloonColor))
-		if s == 1 then v = 1 end
-		s = s / 2
-		v = (v + 1) / 2
-		color = HSVToColor(h,s,v)
-	else
-		displayName = language.GetPhrase(attackerLabel)
-	end
-	
-	local existingEntry = hurtFeed[displayName]
-	if existingEntry then
-		existingEntry.damage = existingEntry.damage + damage
-		existingEntry.timestamp = timestamp
-		existingEntry.instances = existingEntry.instances + 1
-	else
-		hurtFeed[displayName] = {
-			damage = damage,
-			timestamp = timestamp,
-			instances = 1,
-			color = color,
-			isBalloon = isBalloon
-		}
 	end
 end)
 
@@ -272,16 +279,7 @@ hook.Add("HUDPaint","RotgB",function()
 		local targets = FilterSequentialTable(ents.GetAll(), TableFilterWaypoints)
 		table.sort(targets, WaypointSorter)
 		for k,v in pairs(targets) do
-			if v.rotgb_ActualHealth then
-				if v.rotgb_ActualHealth > v:Health() then
-					targets[k] = string.Comma(v:Health())
-					v.rotgb_ActualHealth = nil
-				else
-					targets[k] = string.Comma(v.rotgb_ActualHealth)
-				end
-			else
-				targets[k] = string.Comma(v:Health())
-			end
+			targets[k] = string.Comma(v.rotgb_ActualHealth or v:Health())
 		end
 		
 		local size = ConS:GetFloat()
@@ -680,6 +678,8 @@ function ENT:KeyValue(key,value)
 		self:StoreOutput(key,value)
 	elseif lkey=="onhealthchanged" then
 		self:StoreOutput(key,value)
+	elseif lkey=="onmaxhealthchanged" then
+		self:StoreOutput(key,value)
 	elseif lkey=="onkilled" then
 		self:StoreOutput(key,value)
 	elseif lkey=="ontakedamage" then
@@ -713,55 +713,40 @@ function ENT:AcceptInput(input,activator,caller,data)
 	elseif input=="setweight" then
 		self:SetWeight(tonumber(data) or 0)
 	elseif input=="sethealth" then
-		local oldhealth = self:Health()
 		self:SetHealth(tonumber(data) or 0)
-		if self:Health()~=oldhealth then
-			self:TriggerOutput("OnHealthChanged",activator,self:Health()/self:GetMaxHealth())
-		end
+		self:TriggerOnHealthChanged()
 		if self:Health()<=0 then
 			self:TriggerOutput("OnBreak",activator)
 			self:Input("Kill",activator,self,data)
 		end
 	elseif input=="addhealth" then
-		local oldhealth = self:Health()
 		self:SetHealth(self:Health()+(tonumber(data) or 0))
-		if self:Health()~=oldhealth then
-			self:TriggerOutput("OnHealthChanged",activator,self:Health()/self:GetMaxHealth())
-		end
+		self:TriggerOnHealthChanged()
 	elseif input=="removehealth" then
-		local oldhealth = self:Health()
 		self:SetHealth(self:Health()-(tonumber(data) or 0))
-		if self:Health()~=oldhealth then
-			self:TriggerOutput("OnHealthChanged",activator,self:Health()/self:GetMaxHealth())
-		end
+		self:TriggerOnHealthChanged()
 		if self:Health()<=0 then
 			self:TriggerOutput("OnBreak",activator)
 			self:Input("Kill",activator,self,data)
 		end
 	elseif input=="healhealth" then
-		local oldhealth = self:Health()
 		self:SetHealth(math.min(self:Health()+(tonumber(data) or 0), self:GetMaxHealth()))
-		if self:Health()~=oldhealth then
-			self:TriggerOutput("OnHealthChanged",activator,self:Health()/self:GetMaxHealth())
-		end
+		self:TriggerOnHealthChanged()
 	elseif input=="setmaxhealth" then
 		self:SetMaxHealth(tonumber(data) or 0)
+		self:TriggerOnMaxHealthChanged()
 	elseif input=="addmaxhealth" then
 		self:SetMaxHealth(self:GetMaxHealth()+(tonumber(data) or 0))
+		self:TriggerOnMaxHealthChanged()
 	elseif input=="removemaxhealth" then
 		self:SetMaxHealth(self:GetMaxHealth()-(tonumber(data) or 0))
+		self:TriggerOnMaxHealthChanged()
 	elseif input=="healmaxhealth" then
-		local oldhealth = self:Health()
 		self:SetHealth(math.min(self:Health()+(tonumber(data) or 1)*self:GetMaxHealth(), self:GetMaxHealth()))
-		if self:Health()~=oldhealth then
-			self:TriggerOutput("OnHealthChanged",activator,self:Health()/self:GetMaxHealth())
-		end
+		self:TriggerOnHealthChanged()
 	elseif input=="break" then
-		local oldhealth = self:Health()
 		self:SetHealth(0)
-		if self:Health()~=oldhealth then
-			self:TriggerOutput("OnHealthChanged",activator,self:Health()/self:GetMaxHealth())
-		end
+		self:TriggerOnHealthChanged()
 		self:TriggerOutput("OnBreak",activator)
 		self:Input("Kill",activator,self,data)
 	end
@@ -802,6 +787,13 @@ function ENT:Initialize()
 	end
 end
 
+function ENT:Think()
+	self.oldHealth = self.oldHealth or self:Health()
+	self.oldMaxHealth = self.oldMaxHealth or self:GetMaxHealth()
+	self:TriggerOnHealthChanged()
+	self:TriggerOnMaxHealthChanged()
+end
+
 function ENT:PreEntityCopy()
 	self.CurHealth = self:Health()
 	self.CurMaxHealth = self:GetMaxHealth()
@@ -810,6 +802,36 @@ end
 function ENT:PostEntityPaste(ply,ent,tab)
 	ent:Spawn()
 	ent:Activate()
+end
+
+function ENT:TriggerOnHealthChanged()
+	if self:Health()~=self.oldHealth then
+		if SERVER then
+			self:TriggerOutput("OnHealthChanged",activator,self:Health()/self:GetMaxHealth())
+			net.Start("rotgb_target_received_damage")
+			net.WriteEntity(self)
+			net.WriteInt(self:Health(), 32)
+			net.WriteUInt(3, 8)
+			net.Broadcast()
+		end
+		
+		self.oldHealth = self:Health()
+	end
+end
+
+function ENT:TriggerOnMaxHealthChanged(oldMaxHealth)
+	if self:GetMaxHealth()~=self.oldMaxHealth then
+		if SERVER then
+			self:TriggerOutput("OnMaxHealthChanged",activator,self:GetMaxHealth())
+			net.Start("rotgb_target_received_damage")
+			net.WriteEntity(self)
+			net.WriteInt(self:GetMaxHealth(), 32)
+			net.WriteUInt(7, 8)
+			net.Broadcast()
+		end
+		
+		self.oldMaxHealth = self:GetMaxHealth()
+	end
 end
 
 function ENT:OnTakeDamage(dmginfo)
@@ -837,9 +859,9 @@ function ENT:OnTakeDamage(dmginfo)
 			net.Start("rotgb_target_received_damage")
 			net.WriteEntity(self)
 			net.WriteInt(self:Health(), 32)
+			net.WriteUInt(flags, 8)
 			net.WriteString(label)
 			net.WriteInt(oldHealth-self:Health(), 32)
-			net.WriteUInt(flags, 8)
 			net.WriteFloat(CurTime())
 			net.Broadcast()
 			self:TriggerOutput("OnHealthChanged",dmginfo:GetAttacker(),self:Health()/self:GetMaxHealth())
@@ -862,7 +884,8 @@ function ENT:DrawTranslucent()
 	--self:Draw()
 	if not (self:GetIsBeacon() or self:GetHideHealth()) then
 		--self:DrawModel()
-		local actualHealth = math.min(self:Health(), self.rotgb_ActualHealth or math.huge)
+		local actualHealth = self.rotgb_ActualHealth or self:Health()
+		local actualMaxHealth = self.rotgb_ActualMaxHealth or self:GetMaxHealth()
 		local text1 = "Health: "..actualHealth
 		surface.SetFont("DermaLarge")
 		local t1x,t1y = surface.GetTextSize(text1)
@@ -873,7 +896,7 @@ function ENT:DrawTranslucent()
 		cam.Start3D2D(self:GetPos()+Vector(0,0,ConH:GetFloat()+t1y*0.1+self:OBBMaxs().z),reqang,0.2)
 			surface.SetDrawColor(0,0,0,127)
 			surface.DrawRect(t1x/-2,t1y/-2,t1x,t1y)
-			surface.SetTextColor(HSVToColor(math.Clamp(actualHealth/self:GetMaxHealth()*120,0,120),1,1))
+			surface.SetTextColor(HSVToColor(math.Clamp(actualHealth/actualMaxHealth*120,0,120),1,1))
 			surface.SetTextPos(t1x/-2,t1y/-2)
 			surface.DrawText(text1)
 		cam.End3D2D()

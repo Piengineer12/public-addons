@@ -124,7 +124,7 @@ ENT.UpgradeReference = {
 		Descs = {
 			"At the start of each round, gain 15% of a round's worth of hoverball cash.",
 			"This tower no longer generates income. At the start of each round, gain all of the hoverball income and 60 seconds of non-hoverball income that would have been generated.",
-			"Each round, hoverball cash production is altered to a random number between 0% and 400%.",
+			"Each round, hoverball cash production is altered to between 0% and 400%.",
 			"At the end of each round, all gBalloon Targets gain 20 health.",
 			"At the end of each round, the hoverball income of all Hoverball Factory towers are multiplied by 1.2!",
 			"At the end of each round, all gBalloon Targets' health are multiplied by 1.2!"

@@ -104,9 +104,6 @@ function ENT:Initialize()
 	local cost = ROTGB_ScaleBuyCost(self.Cost or 0)
 	local maxCount = ROTGB_GetConVarValue("rotgb_tower_maxcount")
 	self:ROTGB_Initialize()
-	if not IsValid(self:GetTowerOwner()) then
-		self:SetTowerOwner(player.GetAll()[math.random(player.GetCount())])
-	end
 	self.LOSOffset = self.LOSOffset or vector_origin
 	if SERVER then
 		self:SetModel(self.Model)
@@ -312,15 +309,24 @@ function ENT:Think()
 				if self.ExpensiveThinkDelay <= CurTime() then
 					self.ExpensiveThinkDelay = CurTime() + math.min(0.5, 1/(self.FireRate or 1))
 					self:ExpensiveThink()
-					if not IsValid(self:GetTowerOwner()) then
-						self:SetTowerOwner(player.GetAll()[math.random(player.GetCount())])
-					end
 				end
 			end
 			if (self.NextFire or 0) < CurTime() and (self.DetectedEnemy or self.FireWhenNoEnemies) then
 				self.NextFire = CurTime() + 1/(self.FireRate or 1)
 				self:ExpensiveThink(true)
 				if self.gBalloons[1]--[[IsValid(self.SolicitedgBalloon)]] or self.FireWhenNoEnemies then
+					if not IsValid(self:GetTowerOwner()) then
+						local bestPlayer = NULL
+						local bestDistance = math.huge
+						for k,v in pairs(player.GetAll()) do
+							local distance = v:GetPos():DistToSqr(self:GetPos())
+							if distance < bestDistance then
+								bestPlayer = v
+								bestDistance = distance
+							end
+						end
+						self:SetTowerOwner(bestPlayer)
+					end
 					local nofire = self:FireFunction(--[[self.SolicitedgBalloon,]]self.gBalloons or {})
 					if nofire then
 						self.NextFire = 0
@@ -669,8 +675,9 @@ local function UpgradeMenu(ent)
 				local canAfford = curcash >= self.RequiredAmount
 				local drawColor
 				local pulser = math.sin(CurTime()*math.pi*2)/2+0.5
+				local ignoreTier = ROTGB_GetConVarValue("rotgb_ignore_upgrade_limits") or ent:GetNWFloat("rotgb_noupgradelimit") >= CurTime()
 				if j==self.Tier then
-					if j>UpgradeStatement.MaxTier then
+					if j>UpgradeStatement.MaxTier and not ignoreTier then
 						drawColor = color_red
 					elseif canAfford then
 						drawColor = HSVToColor(60, 1-pulser, 1)
@@ -678,7 +685,7 @@ local function UpgradeMenu(ent)
 						drawColor = color_yellow
 					end
 				else
-					if j>UpgradeStatement.MaxTier then
+					if j>UpgradeStatement.MaxTier and not ignoreTier then
 						drawColor = color_dark_red
 					elseif j>self.Tier then
 						drawColor = canAfford and HSVToColor(0, 0, pulser/2+0.5) or color_gray
@@ -702,7 +709,7 @@ local function UpgradeMenu(ent)
 					Main:Close()
 					return CauseNotification("Tower is invalid!")
 				end
-				if UpgradeStatement.MaxTier < j then return end
+				if not (UpgradeStatement.MaxTier >= j or ROTGB_GetConVarValue("rotgb_ignore_upgrade_limits") or ent:GetNWFloat("rotgb_noupgradelimit") >= CurTime()) then return end
 				local moreCashNeeded = self.RequiredAmount - curcash
 				if moreCashNeeded>0 then return CauseNotification("You need "..ROTGB_FormatCash(moreCashNeeded, true).." more to buy this upgrade!") end
 				for k=self.Tier,j do
@@ -843,7 +850,6 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 					end
 					tier = tier + 1
 				end
-				ent:SetUpgradeStatus(ent:GetUpgradeStatus()+bit.lshift(upgradeAmount,path*4))
 			end
 		else
 			CauseNotification("You can't tamper with someone else's tower!")
@@ -915,15 +921,13 @@ end)
 
 function ENT:Use(activator,caller,...)
 	if (IsValid(caller) and caller:IsPlayer()) then
-		if caller == self:GetTowerOwner() then
-			net.Start("rotgb_openupgrademenu")
-			net.WriteEntity(self)
-			net.WriteUInt(ROTGB_TOWER_MENU, 2)
-			net.Send(caller)
-		else
-			net.Start("rotgb_openupgrademenu")
-			net.Send(caller)
+		if not IsValid(self:GetTowerOwner()) then
+			self:SetTowerOwner(caller)
 		end
+		net.Start("rotgb_openupgrademenu")
+		net.WriteEntity(self)
+		net.WriteUInt(ROTGB_TOWER_MENU, 2)
+		net.Send(caller)
 	end	
 end
 
