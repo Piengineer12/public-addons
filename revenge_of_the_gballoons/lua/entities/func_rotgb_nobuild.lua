@@ -16,11 +16,12 @@ function ENT:KeyValue(key,value)
 end
 
 function ENT:AcceptInput(input,activator,caller,data)
-	if input:lower()=="enable" then
+	input = input:lower()
+	if input=="enable" then
 		self:SetDisabled(false)
-	elseif input:lower()=="disable" then
+	elseif input=="disable" then
 		self:SetDisabled(true)
-	elseif input:lower()=="toggle" then
+	elseif input=="toggle" then
 		self:SetDisabled(not self:GetDisabled())
 	end
 end

@@ -1,7 +1,6 @@
 AddCSLuaFile()
 
-ENT.Base = "base_anim"
-ENT.Type = "anim"
+local gballoon_pob = baseclass.Get("gballoon_path_object_base") -- internally sets ENT.Base and ENT.Type too
 ENT.PrintName = "gBalloon Spawner"
 ENT.Category = "RotgB: Miscellaneous"
 ENT.ScriptedEntityType = "entity"
@@ -14,1028 +13,7 @@ ENT.AdminOnly = false
 ENT.Editable = true
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.DisableDuplicator = false
---ENT.CustomWaveData = {}
 ENT.CustomWaveName = ""
-
-ROTGB_WAVES = {
-	-- format: { balloon_type, amount=1, timespan=0, delay=0 }
-	-- RgBE must be included
-	{ ---- 1
-		{"gballoon_red",10,10},
-		duration=10,
-		rbe=10
-	},
-	{
-		{"gballoon_red",20,10},
-		duration=10,
-		rbe=20
-	},
-	{ -- 3
-		{"gballoon_red",10,5},
-		{"gballoon_blue",10,5,5},
-		duration=10,
-		rbe=30--10*3
-	},
-	{
-		{"gballoon_blue",10,10},
-		{"gballoon_red",20,10},
-		duration=10,
-		rbe=40--10*2+20
-	},
-	{ ---- 5
-		{"gballoon_green",15,15},
-		duration=15,
-		rbe=45--15*3
-	},
-	{
-		{"gballoon_green",10,5},
-		{"gballoon_blue",10,5,5},
-		{"gballoon_red",10,5,10},
-		duration=15,
-		rbe=60--10*(1+2+3)
-	},
-	{ -- 7
-		{"gballoon_red",6,3},
-		{"gballoon_blue",6,3,3},
-		{"gballoon_green",6,3,6},
-		{"gballoon_yellow",12,6,9},
-		duration=15,
-		rbe=84--6*6+12*4
-	},
-	{
-		{"gballoon_green",15,15},
-		{"gballoon_yellow",15,15,0.5},
-		duration=15.5,
-		rbe=105--15*(3+4)
-	},
-	{ ---- 9
-		{"gballoon_red",80,20},
-		{"gballoon_pink",10,1,19},
-		duration=20,
-		rbe=130--60+10*5
-	},
-	{
-		{"gballoon_regen_red",15,5},
-		{"gballoon_regen_blue",15,5,5},
-		{"gballoon_regen_green",15,5,10},
-		{"gballoon_regen_yellow",15,5,15},
-		duration=20,
-		rbe=150--15*(1+2+3+4)
-	},
-	{ -- 11
-		{"gballoon_white"},
-		{"gballoon_white",10,20},
-		{"gballoon_white",5,20},
-		duration=20,
-		rbe=176--16*11
-	},
-	{
-		{"gballoon_blue",40,20},
-		{"gballoon_white",10,5,15},
-		duration=20,
-		rbe=190--40*2+10*11
-	},
-	{ ---- 13
-		{"gballoon_black",5,25},
-		{"gballoon_black",5,25},
-		{"gballoon_black",5,25},
-		{"gballoon_green",5,25},
-		{"gballoon_green",5,25},
-		{"gballoon_green",5,25},
-		{"gballoon_red",5,25},
-		{"gballoon_red",5,25},
-		{"gballoon_red",5,25},
-		duration=25,
-		rbe=225--15*(11+3+1)
-	},
-	{
-		{"gballoon_regen_pink",50,25},
-		duration=25,
-		rbe=250--25*5
-	},
-	{ -- 15
-		{"gballoon_purple",25,25},
-		duration=25,
-		rbe=275--25*11
-	},
-	{
-		{"gballoon_white"},
-		{"gballoon_white",5,5},
-		{"gballoon_black",5,5,5},
-		{"gballoon_purple",5,5,10},
-		{"gballoon_black",5,5,15},
-		{"gballoon_white",5,5,20},
-		{"gballoon_white",nil,nil,25},
-		duration=25,
-		rbe=297--27*11
-	},
-	{ ---- 17
-		{"gballoon_orange",30,30},
-		duration=30,
-		rbe=330--30*11
-	},
-	{
-		{"gballoon_red",60,30},
-		{"gballoon_blue",60,30},
-		{"gballoon_fast_green",60,30},
-		duration=30,
-		rbe=360--60*(1+2+3)
-	},
-	{ -- 19
-		{"gballoon_zebra",15,30},
-		{"gballoon_yellow",15,30},
-		duration=30,
-		rbe=405--15*(23+4)
-	},
-	{
-		{"gballoon_white",10,30},
-		{"gballoon_black",10,30,0.75},
-		{"gballoon_purple",10,30,1.5},
-		{"gballoon_orange",10,30,2.25},
-		duration=32.25,
-		rbe=440--40*11
-	},
-	{ ---- 21
-		{"gballoon_aqua",7,7},
-		{"gballoon_aqua",7,7,14},
-		{"gballoon_aqua",7,7,28},
-		duration=35,
-		rbe=483--21*23
-	},
-	{
-		{"gballoon_zebra",5,5},
-		{"gballoon_black",5,5,5},
-		{"gballoon_white",5,5,5},
-		{"gballoon_pink",10,5,10},
-		{"gballoon_yellow",15,5,15},
-		{"gballoon_green",20,5,20},
-		{"gballoon_blue",30,5,25},
-		{"gballoon_red",60,5,30},
-		duration=35,
-		rbe=515--5*23+10*11+10*5+15*4+20*3+30*2+60
-	},
-	{ -- 23
-		{"gballoon_gray",2,1},
-		{"gballoon_gray",4,2,10},
-		{"gballoon_gray",8,4,20},
-		{"gballoon_gray",10,5,30},
-		duration=35,
-		rbe=552--24*23
-	},
-	{
-		{"gballoon_fast_regen_yellow",70,35},
-		{"gballoon_shielded_gray",7,35},
-		duration=35,
-		rbe=602--70*4+7*46
-	},
-	{ ---- 25
-		{"gballoon_gray",8,40},
-		{"gballoon_zebra",8,40,1},
-		{"gballoon_aqua",8,40,2},
-		{"gballoon_error",8,40,3},
-		duration=43,
-		rbe=736--32*23
-	},
-	{
-		{"gballoon_pink",40,40},
-		{"gballoon_white",13,nil,10},
-		{"gballoon_black",13,nil,20},
-		{"gballoon_purple",13,nil,30},
-		{"gballoon_orange",13,nil,40},
-		duration=40,
-		rbe=772--40*5+52*11
-	},
-	{ -- 27
-		{"gballoon_rainbow",8,40},
-		{"gballoon_rainbow"},
-		duration=40,
-		rbe=837--9*93
-	},
-	{
-		{"gballoon_hidden_orange",3,3},
-		{"gballoon_shielded_red",24,8},
-		{"gballoon_shielded_blue",24,8,8},
-		{"gballoon_shielded_green",24,8,16},
-		{"gballoon_shielded_yellow",24,8,24},
-		{"gballoon_shielded_pink",24,8,32},
-		duration=40,
-		rbe=971--32*2*(1+2+3+4+5)+11
-	},
-	{ ---- 29
-		{"gballoon_rainbow",9,45},
-		{"gballoon_orange",2,nil,9},
-		{"gballoon_pink",2,nil,9},
-		{"gballoon_orange",2,nil,18},
-		{"gballoon_pink",2,nil,18},
-		{"gballoon_orange",2,nil,27},
-		{"gballoon_pink",2,nil,27},
-		{"gballoon_orange",2,nil,36},
-		{"gballoon_pink",2,nil,36},
-		{"gballoon_orange",2,nil,45},
-		{"gballoon_pink",2,nil,45},
-		duration=45,
-		rbe=997--10*(5+11)+9*93
-	},
-	{
-		{"gballoon_shielded_rainbow"},
-		{"gballoon_shielded_rainbow",5,45},
-		duration=45,
-		rbe=1116--6*186
-	},
-	{ -- 31
-		{"gballoon_regen_white",15,45},
-		{"gballoon_regen_black",15,45},
-		{"gballoon_regen_white",15,15,30},
-		{"gballoon_regen_black",15,15,30},
-		{"gballoon_regen_white",25,5,40},
-		{"gballoon_regen_black",25,5,40},
-		duration=45,
-		rbe=1210--110*11
-	},
-	{
-		{"gballoon_fast_rainbow"},
-		{"gballoon_fast_rainbow",nil,nil,9},
-		{"gballoon_fast_rainbow",2,nil,18},
-		{"gballoon_fast_rainbow",3,nil,27},
-		{"gballoon_fast_rainbow",3,nil,36},
-		{"gballoon_fast_rainbow",4,nil,45},
-		duration=45,
-		rbe=1302--14*93
-	},
-	{ ---- 33
-		{"gballoon_white",10,50,2.5},
-		{"gballoon_black",10,50,2.5},
-		{"gballoon_purple",10,50,2.5},
-		{"gballoon_orange",10,50,2.5},
-		{"gballoon_gray",10,50},
-		{"gballoon_zebra",10,50},
-		{"gballoon_aqua",10,50},
-		{"gballoon_error",10,50},
-		duration=52.5,
-		rbe=1360--40*(11+23)
-	},
-	{
-		{"gballoon_fast_regen_pink",250,25},
-		{"gballoon_regen_shielded_green",25,25,25},
-		{"gballoon_hidden_regen_shielded_red",25,25},
-		{"gballoon_fast_hidden_regen_shielded_red",25,25,25},
-		duration=50,
-		rbe=1500--250*5+50*6+50*2
-	},
-	{ -- 35
-		{"gballoon_ceramic",10,50},
-		{"gballoon_ceramic",5,50},
-		duration=50,
-		rbe=1545--15*103
-	},
-	{
-		{"gballoon_regen_shielded_blue",150,50},
-		{"gballoon_aqua",25,50},
-		{"gballoon_shielded_white",25,50},
-		duration=50,
-		rbe=1725--25*(23+22)+600
-	},
-	{ ---- 37
-		{"gballoon_fast_red",1925,55},
-		duration=55,
-		rbe=1925
-	},
-	{
-		{"gballoon_fast_hidden_regen_shielded_green",55,55},
-		{"gballoon_fast_hidden_regen_shielded_green",55,44,11},
-		{"gballoon_fast_hidden_regen_shielded_green",55,33,22},
-		{"gballoon_fast_hidden_regen_shielded_green",55,22,33},
-		{"gballoon_fast_hidden_regen_shielded_green",55,11,44},
-		{"gballoon_fast_hidden_regen_shielded_green",55,nil,55},
-		duration=55,
-		rbe=1980--330*6
-	},
-	{
-		{"gballoon_shielded_ceramic",11,55},
-		duration=55,
-		rbe=2266--11*206
-	},
-	{ -- 40
-		{"gballoon_blimp_blue"},
-		duration=0,
-		rbe=612
-	},-- 40
-	{
-		{"gballoon_red",120,60},
-		{"gballoon_orange",120,60,0.125},
-		{"gballoon_yellow",120,60,0.25},
-		{"gballoon_ceramic",6,60},
-		duration=60.25,
-		rbe=2538--120*(1+11+4)+6*103
-	},
-	{
-		{"gballoon_rainbow",12,60},
-		{"gballoon_gray",12,60},
-		{"gballoon_zebra",12,60},
-		{"gballoon_aqua",12,60},
-		{"gballoon_error",12,60},
-		{"gballoon_white",12,60},
-		{"gballoon_black",12,60},
-		{"gballoon_purple",12,60},
-		{"gballoon_orange",12,60},
-		{"gballoon_pink",12,60},
-		{"gballoon_yellow",12,60},
-		{"gballoon_green",12,60},
-		{"gballoon_blue",12,60},
-		{"gballoon_red",12,60},
-		duration=60,
-		rbe=2928--12*(93+23*4+11*4+15)
-	},
-	{
-		{"gballoon_regen_purple",120,60},
-		{"gballoon_shielded_white",60,60},
-		{"gballoon_fast_hidden_pink",120,60},
-		duration=60,
-		rbe=3240--120*(11+11+5)
-	},
-	{
-		{"gballoon_blimp_blue",5,60},
-		{"gballoon_pink",120,60},
-		duration=60,
-		rbe=3660--5*612+600
-	},
-	{ -- 45
-		{"gballoon_hidden_gray",180,60},
-		duration=60,
-		rbe=4140--180*23
-	},-- 45
-	{
-		{"gballoon_hidden_zebra",60,60},
-		{"gballoon_fast_gray",60,60},
-		{"gballoon_regen_white",60,60},
-		{"gballoon_shielded_black",60,60},
-		duration=60,
-		rbe=4740--60*(23+23+11+22)
-	},
-	{
-		{"gballoon_zebra",58,58,1},
-		{"gballoon_white",29,58},
-		{"gballoon_white",29,58,0.2},
-		{"gballoon_white",29,58,0.4},
-		{"gballoon_white",29,58,0.6},
-		{"gballoon_white",29,58,0.8},
-		{"gballoon_black",29,58,1.0},
-		{"gballoon_black",29,58,1.2},
-		{"gballoon_black",29,58,1.4},
-		{"gballoon_black",29,58,1.6},
-		{"gballoon_black",29,58,1.8},
-		{"gballoon_blimp_blue",nil,nil,60},
-		duration=60,
-		rbe=5136--290*11+58*23+612
-	},
-	{
-		{"gballoon_zebra",15,15},
-		{"gballoon_zebra",15,15,0.2},
-		{"gballoon_zebra",15,15,0.4},
-		{"gballoon_zebra",15,15,0.6},
-		{"gballoon_hidden_zebra",15,15,0.8},
-		{"gballoon_fast_ceramic",15,15},
-		{"gballoon_regen_orange",15,15,15},
-		{"gballoon_fast_yellow",75,15,15},
-		{"gballoon_fast_shielded_black",15,15,30},
-		{"gballoon_fast_shielded_red",75,15,30},
-		{"gballoon_blimp_blue",3,15,45},
-		{"gballoon_rainbow",2,nil,50},
-		{"gballoon_rainbow",2,nil,55},
-		{"gballoon_rainbow",2,nil,60},
-		duration=60,
-		rbe=5709--75*11+15*103+15*11+75*4+15*22+150+3*612+6*93
-	},
-	{
-		{"gballoon_error",60,60},
-		{"gballoon_fast_error",30,60},
-		{"gballoon_hidden_error",30,60},
-		{"gballoon_regen_error",30,60},
-		{"gballoon_shielded_error",30,60},
-		{"gballoon_fast_hidden_error",15,60},
-		{"gballoon_fast_regen_error",15,60},
-		{"gballoon_fast_shielded_error",15,60},
-		{"gballoon_hidden_regen_error",15,60},
-		{"gballoon_hidden_shielded_error",15,60},
-		{"gballoon_regen_shielded_error",15,60},
-		duration=60,
-		rbe=6210--(60+120+90)*23
-	},
-	{ -- 50
-		{"gballoon_ceramic",30,30},
-		{"gballoon_brick",30,30,30},
-		duration=60,
-		rbe=7080--30*103+30*133
-	},-- 50
-	{
-		{"gballoon_ceramic",15,60},
-		{"gballoon_ceramic",15,60},
-		{"gballoon_ceramic",15,60},
-		{"gballoon_ceramic",15,60},
-		{"gballoon_ceramic",15,60},
-		duration=60,
-		rbe=7765--75*103
-	},
-	{
-		{"gballoon_blimp_blue",10,60},
-		{"gballoon_regen_gray",120,60},
-		duration=60,
-		rbe=8880--10*612+120*23
-	},
-	{
-		{"gballoon_regen_rainbow",60,60},
-		{"gballoon_fast_aqua",180,60},
-		duration=60,
-		rbe=9720--60*93+180*23
-	},
-	{
-		{"gballoon_fast_hidden_regen_shielded_pink",300,60},
-		{"gballoon_brick",50,25,35},
-		{"gballoon_white",50,25,35},
-		duration=60,
-		rbe=10200--300*10+50*(133+11)
-	},
-	{ -- 55
-		{"gballoon_blimp_blue",15,60},
-		{"gballoon_white",60,60},
-		{"gballoon_white",60,60},
-		{"gballoon_fast_pink",120,60},
-		{"gballoon_fast_yellow",120,60},
-		duration=60,
-		rbe=11580--120*(5+4)+60*22+15*612
-	},-- 55
-	{
-		{"gballoon_brick",60,60},
-		{"gballoon_regen_purple",120,60},
-		{"gballoon_hidden_black",120,60},
-		{"gballoon_hidden_white",120,60},
-		{"gballoon_shielded_pink",120,60},
-		duration=60,
-		rbe=13140--120*(10+11+11+11)+60*133
-	},
-	{
-		{"gballoon_shielded_white",240,60},
-		{"gballoon_shielded_purple",120,60},
-		{"gballoon_blimp_blue",10,20,40},
-		duration=60,
-		rbe=14040--240*22+120*22+10*612
-	},
-	{
-		{"gballoon_fast_orange",300,60},
-		{"gballoon_yellow",60,60},
-		{"gballoon_shielded_brick",30,60},
-		{"gballoon_fast_yellow",30,10,50},
-		{"gballoon_fast_red",30,10,50},
-		{"gballoon_fast_red",30,10,50},
-		{"gballoon_brick",30,10,50},
-		duration=60,
-		rbe=15690--300*11+60*4+30*266+30*6+30*133
-	},
-	{
-		{"gballoon_blimp_blue",20,60},
-		{"gballoon_blimp_blue",3,3,57},
-		{"gballoon_blimp_blue",2,2,58},
-		{"gballoon_blimp_blue",nil,nil,60},
-		{"gballoon_blimp_blue",nil,nil,60},
-		duration=60,
-		rbe=16524--27*612
-	},
-	{ -- 60
-		{"gballoon_blimp_red"},
-		duration=0,
-		rbe=3148
-	},-- 60
-	{
-		{"gballoon_blimp_blue",10,60},
-		{"gballoon_ceramic",120,60},
-		duration=60,
-		rbe=18480--120*103+10*612
-	},
-	{
-		{"gballoon_brick",15,60},
-		{"gballoon_brick",15,60},
-		{"gballoon_brick",15,60},
-		{"gballoon_brick",15,60},
-		{"gballoon_brick",15,60},
-		{"gballoon_brick",15,60},
-		{"gballoon_brick",15,60},
-		{"gballoon_brick",15,60},
-		{"gballoon_brick",15,60},
-		{"gballoon_brick",15,60},
-		duration=60,
-		rbe=19950--150*133
-	},
-	{
-		{"gballoon_ceramic",60,60},
-		{"gballoon_ceramic",10,nil,30},
-		{"gballoon_ceramic",10,nil,30},
-		{"gballoon_ceramic",10,nil,30},
-		{"gballoon_ceramic",10,nil,30},
-		{"gballoon_ceramic",10,nil,30},
-		{"gballoon_ceramic",10,nil,60},
-		{"gballoon_ceramic",10,nil,60},
-		{"gballoon_ceramic",10,nil,60},
-		{"gballoon_ceramic",10,nil,60},
-		{"gballoon_ceramic",10,nil,60},
-		{"gballoon_ceramic",10,nil,60},
-		{"gballoon_ceramic",10,nil,60},
-		{"gballoon_ceramic",10,nil,60},
-		{"gballoon_ceramic",10,nil,60},
-		{"gballoon_ceramic",10,nil,60},
-		duration=60,
-		rbe=21630--(60+10*15)*103
-	},
-	{
-		{"gballoon_blimp_blue",10,5},
-		{"gballoon_blimp_blue",15,5,25},
-		{"gballoon_blimp_blue",15,5,55},
-		duration=60,
-		rbe=24480--40*612
-	},
-	{ -- 65
-		{"gballoon_brick",80,40},
-		{"gballoon_ceramic",80,40,0.25},
-		{"gballoon_blimp_blue",10,10,50},
-		{"gballoon_blimp_blue",nil,nil,60},
-		{"gballoon_blimp_blue",nil,nil,60},
-		{"gballoon_blimp_blue",nil,nil,60},
-		duration=60,
-		rbe=26836--80*(133+103)+13*612
-	},-- 65
-	{
-		{"gballoon_blimp_red",6,60},
-		{"gballoon_blimp_red",3,60},
-		{"gballoon_blimp_blue",nil,60},
-		duration=60,
-		rbe=28944--9*3148+612
-	},
-	{
-		{"gballoon_blimp_blue",30,60},
-		{"gballoon_blimp_blue",15,30,30},
-		{"gballoon_blimp_blue",7,14,46},
-		{"gballoon_blimp_blue",2,4,56},
-		duration=60,
-		rbe=33048--54*612
-	},
-	{
-		{"gballoon_regen_shielded_ceramic",180,60},
-		duration=60,
-		rbe=37080--180*206
-	},
-	{
-		{"gballoon_blimp_red",10,60},
-		{"gballoon_blimp_blue",10,60,3},
-		{"gballoon_ceramic",6,1,59},
-		{"gballoon_ceramic",6,1,59},
-		{"gballoon_ceramic",6,1,59},
-		{"gballoon_ceramic",6,1,59},
-		{"gballoon_ceramic",6,1,59},
-		duration=60,
-		rbe=40690--10*(3148+612)+30*103
-	},
-	{ -- 70
-		{"gballoon_ceramic",100,20},
-		{"gballoon_brick",100,20,20},
-		{"gballoon_marble",100,20,40},
-		duration=60,
-		rbe=42900--100*(103+133+193)
-	},-- 70
-	{
-		{"gballoon_blimp_red",10,60},
-		{"gballoon_blimp_red",5,60},
-		duration=60,
-		rbe=47220--15*3148
-	},
-	{
-		{"gballoon_fast_hidden_regen_shielded_ceramic",120,60},
-		{"gballoon_blimp_blue",20,60},
-		{"gballoon_blimp_blue",20,60},
-		duration=60,
-		rbe=49200--120*206+40*612
-	},
-	{
-		{"gballoon_shielded_marble",60,60},
-		{"gballoon_shielded_brick",60,60},
-		{"gballoon_shielded_ceramic",60,60},
-		duration=60,
-		rbe=51480--60*(103+133+193)*2
-	},
-	{
-		{"gballoon_fast_hidden_regen_shielded_orange",120,60},
-		{"gballoon_blimp_red",15,60},
-		{"gballoon_blimp_blue",15,60},
-		duration=60,
-		rbe=59040--120*22+15*3148+15*612
-	},
-	{ -- 75
-		{"gballoon_fast_marble",30,60},
-		{"gballoon_fast_marble",30,60},
-		{"gballoon_fast_marble",30,60},
-		{"gballoon_fast_marble",30,60},
-		{"gballoon_fast_marble",30,60},
-		{"gballoon_fast_marble",30,60},
-		{"gballoon_fast_marble",30,60},
-		{"gballoon_fast_marble",30,60},
-		{"gballoon_fast_marble",30,60},
-		{"gballoon_fast_marble",30,60},
-		{"gballoon_fast_marble",30,60},
-		duration=60,
-		rbe=63690--330*193
-	},-- 75
-	{
-		{"gballoon_blimp_red",6,60},
-		{"gballoon_blimp_red",6,60},
-		{"gballoon_blimp_red",6,60},
-		{"gballoon_blimp_red",6,60},
-		duration=60,
-		rbe=75552--24*3148
-	},
-	{
-		{"gballoon_blimp_blue",120,60},
-		{"gballoon_ceramic",60,60},
-		duration=60,
-		rbe=79620--120*612+60*103
-	},
-	{
-		{"gballoon_blimp_red",2,60},
-		{"gballoon_blimp_red",2,60},
-		{"gballoon_blimp_red",2,60},
-		{"gballoon_blimp_red",2,60},
-		{"gballoon_blimp_red",2,60},
-		{"gballoon_blimp_red",2,60},
-		{"gballoon_blimp_red",2,60},
-		{"gballoon_blimp_red",2,60},
-		{"gballoon_blimp_blue",60,60},
-		duration=60,
-		rbe=87088--16*3148+60*612
-	},
-	{
-		{"gballoon_shielded_marble",240,60},
-		duration=60,
-		rbe=92640--240*386
-	},
-	{ -- 80
-		{"gballoon_blimp_green"},
-		duration=0,
-		rbe=16592
-	},-- 80
-	{
-		{"gballoon_blimp_blue",120,60},
-		{"gballoon_blimp_blue",60,60},
-		duration=60,
-		rbe=110160--180*612
-	},
-	{
-		{"gballoon_blimp_red",30,60},
-		{"gballoon_marble",120,60},
-		duration=60,
-		rbe=117600--120*193+30*3148
-	},
-	{
-		{"gballoon_blimp_blue",20,20},
-		{"gballoon_blimp_red",10,20,20},
-		{"gballoon_blimp_green",5,20,40},
-		duration=60,
-		rbe=126680--20*612+10*3148+5*16592
-	},
-	{
-		{"gballoon_blimp_red",20,60},
-		{"gballoon_blimp_red",4,60},
-		{"gballoon_blimp_blue",20,60},
-		{"gballoon_blimp_blue",20,60},
-		{"gballoon_blimp_blue",20,60},
-		{"gballoon_blimp_blue",20,60},
-		{"gballoon_blimp_blue",4,60},
-		{"gballoon_blimp_blue",4,60},
-		{"gballoon_blimp_blue",4,60},
-		{"gballoon_blimp_blue",4,60},
-		duration=60,
-		rbe=134304--24*(4*612+3148)
-	},
-	{ -- 85
-		{"gballoon_blimp_green",6,60},
-		{"gballoon_blimp_green",3,60},
-		duration=60,
-		rbe=149328--9*16592
-	},-- 85
-	{
-		{"gballoon_blimp_red",30,60},
-		{"gballoon_blimp_blue",60,60},
-		{"gballoon_blimp_blue",30,60},
-		{"gballoon_blimp_blue",15,60},
-		duration=60,
-		rbe=158700--30*3148+105*612
-	},
-	{
-		{"gballoon_blimp_red",30,30},
-		{"gballoon_blimp_blue",120,30,30},
-		duration=60,
-		rbe=167880--120*612+30*3148
-	},
-	{
-		{"gballoon_blimp_green",10,60},
-		{"gballoon_blimp_green"},
-		duration=60,
-		rbe=182512--11*16592
-	},
-	{
-		{"gballoon_blimp_blue",300,60},
-		duration=60,
-		rbe=183600--300*612
-	},
-	{ -- 90
-		{"gballoon_fast_hidden_regen_shielded_blimp_gray"},
-		{"gballoon_fast_hidden_regen_shielded_blimp_gray",100,50,10},
-		duration=60,
-		rbe=196344--101*1944
-	},-- 90
-	{
-		{"gballoon_red",9,nil},
-		{"gballoon_blue",9,nil,3},
-		{"gballoon_green",9,nil,6},
-		{"gballoon_yellow",9,nil,9},
-		{"gballoon_pink",9,nil,12},
-		{"gballoon_white",9,nil,15},
-		{"gballoon_black",9,nil,18},
-		{"gballoon_purple",9,nil,21},
-		{"gballoon_orange",9,nil,24},
-		{"gballoon_gray",9,nil,27},
-		{"gballoon_zebra",9,nil,30},
-		{"gballoon_aqua",9,nil,33},
-		{"gballoon_error",9,nil,36},
-		{"gballoon_rainbow",9,nil,39},
-		{"gballoon_ceramic",9,nil,42},
-		{"gballoon_brick",9,nil,45},
-		{"gballoon_marble",9,nil,48},
-		{"gballoon_blimp_blue",9,nil,51},
-		{"gballoon_blimp_red",9,nil,54},
-		{"gballoon_blimp_green",9,nil,57},
-		{"gballoon_fast_hidden_regen_shielded_blimp_gray",9,nil,60},
-		duration=60,
-		rbe=206721--9*(1944+16592+3148+612+193+133+103+93+23*4+11*4+15)
-	},
-	{
-		{"gballoon_blimp_blue",60,60},
-		{"gballoon_blimp_blue",30,60,0.25},
-		{"gballoon_fast_hidden_regen_shielded_blimp_gray",60,60,0.5},
-		{"gballoon_fast_hidden_regen_shielded_blimp_gray",30,60,0.75},
-		duration=60,
-		rbe=230040--90*612+90*1944
-	},
-	{
-		{"gballoon_blimp_green",6,60},
-		{"gballoon_blimp_green",6,60},
-		{"gballoon_blimp_green"},
-		{"gballoon_blimp_green"},
-		duration=60,
-		rbe=232288--14*16592
-	},
-	{
-		{"gballoon_blimp_green",15,60},
-		{"gballoon_fast_hidden_regen_shielded_blimp_gray",15,60},
-		duration=60,
-		rbe=278040--15*(1944+16592)
-	},
-	{ -- 95
-		{"gballoon_blimp_blue",14,7,13},
-		{"gballoon_green",120,60},
-		{"gballoon_blue",40,20},
-		{"gballoon_red",80,40},
-		{"gballoon_blimp_red",14,7,33},
-		{"gballoon_blimp_green",14,7,53},
-		duration=60,
-		rbe=285448--14*(612+3148+16592)+120*3+40*2+80
-	},-- 95
-	{
-		{"gballoon_blimp_red",60,60},
-		{"gballoon_fast_hidden_regen_shielded_blimp_gray",30,60},
-		{"gballoon_marble",240,60},
-		duration=60,
-		rbe=293520--60*(1944/2+3148+193*4)
-	},
-	{
-		{"gballoon_blimp_green",15,30},
-		{"gballoon_blimp_red",15,60},
-		{"gballoon_fast_hidden_regen_shielded_blimp_gray",15,15,45},
-		duration=60,
-		rbe=325260--15*(1944+16592+3148)
-	},
-	{
-		{"gballoon_blimp_green",20,60},
-		{"gballoon_shielded_marble",6,nil,60},
-		{"gballoon_shielded_marble",6,nil,60},
-		{"gballoon_shielded_marble",6,nil,60},
-		{"gballoon_shielded_marble",6,nil,60},
-		{"gballoon_shielded_marble",6,nil,60},
-		duration=60,
-		rbe=343420--20*16592+30*386
-	},
-	{
-		{"gballoon_blimp_blue",30,15},
-		{"gballoon_blimp_red",15,15,15},
-		{"gballoon_blimp_green",15,15,30},
-		{"gballoon_fast_hidden_regen_shielded_blimp_gray",30,15,45},
-		duration=60,
-		rbe=372780--30*612+15*3148+15*16592+30*1944
-	},
-	{ -- 100
-		{"gballoon_blimp_purple"},
-		duration=0,
-		rbe=57072
-	},-- 100
-	{
-		{"gballoon_blimp_green",15,60},
-		{"gballoon_blimp_green",10,60},
-		{"gballoon_blimp_green",2,60},
-		duration=60,
-		rbe=447984--27*16592
-	},
-	{
-		{"gballoon_blimp_red",60,60},
-		{"gballoon_blimp_red",20,60},
-		{"gballoon_fast_hidden_regen_shielded_blimp_gray",120,60,0.25},
-		duration=60.25,
-		rbe=485120--120*1944+80*3148
-	},
-	{
-		{"gballoon_blimp_green",30,30},
-		{"gballoon_blimp_red",10,30,15},
-		{"gballoon_blimp_blue",3,30,30},
-		duration=60,
-		rbe=531076--30*16592+10*3148+3*612
-	},
-	{
-		{"gballoon_blimp_red",20,60},
-		{"gballoon_blimp_green",20,60,1},
-		{"gballoon_blimp_blue",20,60,2},
-		{"gballoon_blimp_red",8,48,10},
-		{"gballoon_blimp_green",8,48,11},
-		{"gballoon_blimp_blue",8,48,12},
-		duration=60,
-		rbe=569856--28*(16592+3148+612)
-	},
-	{ -- 105
-		{"gballoon_blimp_red",180,60},
-		{"gballoon_blimp_red",17,nil,60},
-		duration=60,
-		rbe=620156--197*3148
-	},-- 105
-	{
-		{"gballoon_blimp_green",30,60},
-		{"gballoon_blimp_green",10,60},
-		duration=60,
-		rbe=663680--40*16592
-	},
-	{
-		{"gballoon_blimp_red",240,60},
-		duration=60,
-		rbe=755520--240*3148
-	},
-	{
-		{"gballoon_blimp_red",10,60},
-		{"gballoon_blimp_green",10,60},
-		{"gballoon_blimp_purple",10,60},
-		duration=60,
-		rbe=768120--10*(16592+57072+3148)
-	},
-	{
-		{"gballoon_blimp_red",60,30},
-		{"gballoon_blimp_blue",180,30},
-		{"gballoon_blimp_purple",10,30,30},
-		duration=60,
-		rbe=869760--180*612+60*3148+10*57072
-	},
-	{ -- 110
-		{"gballoon_fast_blimp_magenta",60,60},
-		{"gballoon_fast_blimp_magenta",20,20,40},
-		{"gballoon_fast_blimp_magenta",20,20,40},
-		duration=60,
-		rbe=927600--100*9276
-	},-- 110
-	{
-		{"gballoon_blimp_purple",15,60},
-		{"gballoon_blimp_green",6,60},
-		{"gballoon_blimp_red",10,60},
-		{"gballoon_blimp_blue",20,60},
-		{"gballoon_ceramic",6,60},
-		{"gballoon_gray",nil,60},
-		{"gballoon_pink",nil,60},
-		{"gballoon_blue",nil,60},
-		duration=60,
-		rbe=1000000--15*57072+6*16592+10*3148+20*612+6*103+23+5+2
-	},
-	{
-		{"gballoon_blimp_green",10,30},
-		{"gballoon_blimp_green",10,30},
-		{"gballoon_blimp_green",10,30},
-		{"gballoon_blimp_green",10,30},
-		{"gballoon_fast_hidden_regen_shielded_blimp_gray",10,30},
-		{"gballoon_fast_hidden_regen_shielded_blimp_gray",10,30},
-		{"gballoon_fast_hidden_regen_shielded_blimp_gray",10,30},
-		{"gballoon_fast_hidden_regen_shielded_blimp_gray",10,30},
-		{"gballoon_blimp_purple",6,30,30},
-		duration=60,
-		rbe=1083872--40*(16592+1944)+6*57072
-	},
-	{
-		{"gballoon_blimp_purple",20,60},
-		{"gballoon_blimp_green",5,60},
-		{"gballoon_blimp_red",3,60},
-		{"gballoon_blimp_blue",nil,60},
-		{"gballoon_fast_hidden_regen_ceramic",nil,60},
-		{"gballoon_fast_hidden_regen_pink",nil,60},
-		{"gballoon_fast_hidden_regen_green",nil,60},
-		duration=60,
-		rbe=1234567--20*57072+5*16592+3*3148+612+103+5+3
-	},
-	{
-		{"gballoon_fast_blimp_magenta",120,60},
-		{"gballoon_fast_hidden_regen_shielded_blimp_gray",120,60},
-		duration=60,
-		rbe=1346400--120*(9276+1944)
-	},
-	{ -- 115
-		{"gballoon_blimp_purple",5,60},
-		{"gballoon_blimp_purple",5,60},
-		{"gballoon_blimp_purple",5,60},
-		{"gballoon_blimp_purple",5,60},
-		{"gballoon_blimp_purple",5,60},
-		duration=60,
-		rbe=1426800--25*57072
-	},-- 115
-	{
-		{"gballoon_fast_blimp_magenta",180,60},
-		duration=60,
-		rbe=1669680--180*9276
-	},
-	{
-		{"gballoon_blimp_purple",30,60},
-		duration=60,
-		rbe=1712160--30*57072
-	},
-	{
-		{"gballoon_blimp_green",120,60},
-		duration=60,
-		rbe=1991040--120*16592
-	},
-	{
-		{"gballoon_red",25,5},
-		{"gballoon_blue",25,5,5},
-		{"gballoon_green",25,5,10},
-		{"gballoon_yellow",25,5,15},
-		{"gballoon_pink",25,5,20},
-		{"gballoon_white",25,5,25},
-		{"gballoon_black",25,5,30},
-		{"gballoon_purple",25,5,35},
-		{"gballoon_orange",25,5,40},
-		{"gballoon_gray",25,5,45},
-		{"gballoon_zebra",25,5,50},
-		{"gballoon_aqua",25,5,55},
-		{"gballoon_error",25,5,60},
-		{"gballoon_rainbow",25,5,65},
-		{"gballoon_ceramic",25,5,70},
-		{"gballoon_brick",25,5,75},
-		{"gballoon_marble",25,5,80},
-		{"gballoon_blimp_blue",25,5,85},
-		{"gballoon_blimp_red",25,5,90},
-		{"gballoon_blimp_green",25,5,95},
-		{"gballoon_fast_hidden_regen_shielded_blimp_gray",25,5,100},
-		{"gballoon_blimp_purple",25,5,105},
-		{"gballoon_fast_blimp_magenta",50,10,110},
-		duration=120,
-		rbe=2464825--25*(9276*2+57072+1944+16592+3148+612+193+133+103+93+23*4+11*4+15)
-	},
-	{ -- 120
-		{"gballoon_blimp_rainbow"},
-		{"gballoon_red",600,300},
-		{"gballoon_fast_blimp_magenta",50,10,60},
-		{"gballoon_blimp_purple",50,10,70},
-		{"gballoon_fast_hidden_regen_shielded_blimp_gray",50,10,80},
-		{"gballoon_blimp_green",50,10,90},
-		{"gballoon_blimp_red",50,10,100},
-		{"gballoon_blimp_blue",50,10,110},
-		{"gballoon_fast_hidden_regen_shielded_marble",50,10,120},
-		{"gballoon_hidden_regen_shielded_brick",50,10,130},
-		{"gballoon_fast_regen_shielded_ceramic",50,10,140},
-		{"gballoon_regen_shielded_rainbow",50,10,150},
-		{"gballoon_fast_hidden_shielded_error",50,10,160},
-		{"gballoon_hidden_shielded_aqua",50,10,170},
-		{"gballoon_fast_shielded_zebra",50,10,180},
-		{"gballoon_shielded_gray",50,10,190},
-		{"gballoon_fast_hidden_regen_orange",50,10,200},
-		{"gballoon_hidden_regen_purple",50,10,210},
-		{"gballoon_fast_regen_black",50,10,220},
-		{"gballoon_regen_white",50,10,230},
-		{"gballoon_fast_hidden_pink",50,10,240},
-		{"gballoon_hidden_yellow",50,10,250},
-		{"gballoon_fast_green",50,10,260},
-		{"gballoon_blue",50,10,270},
-		{"gballoon_blimp_rainbow",10,10,290},
-		duration=300,
-		assumerbe=2.5e6,
-		rbe=7056745--232695+50*(9276+57072+1944+16592+3148+612+193*2+133*2+103*2+93*2+23*4*2+11*4+14)+600+10*232695
-	}
-}
 
 ROTGB_WAVES_RAMP = {
 	-- format: { balloon_type, amount=1, timespan=0, delay=0 }
@@ -1318,7 +296,7 @@ ROTGB_WAVES_RAMP = {
 	},
 }
 
-ROTGB_WAVES_10S = {
+ROTGB_WAVES = {
 	{ ---- 1
 		{"gballoon_red",10,10},
 		duration=10,
@@ -2114,116 +1092,158 @@ ROTGB_WAVES_10S = {
 	},---- 120
 }
 
-ROTGB_CUSTOM_WAVES = {["?RAMP"]=ROTGB_WAVES_RAMP, ["?10S"]=ROTGB_WAVES_10S}
+ROTGB_CUSTOM_WAVES = {["?RAMP"]=ROTGB_WAVES_RAMP}
 
 function ENT:GetWaveDuration(wave)
 	return (self:GetWaveTable()[wave] or {}).duration or 0
-	--[[if wave>120 then return 60
-	elseif wave < 40 then return math.ceil(wave/4)*5+5
-	elseif wave==120 then return 300
-	elseif wave==119 then return 120
-	elseif wave%20==0 then return 0
-	else return 60
-	end]]
 end
 
 function ENT:SetupDataTables()
-	self:NetworkVar("Int",0,"Wave",{KeyName="start_wave",Edit={title="Wave To Spawn",type="Int",min=1,max=120,order=1}})
-	self:NetworkVar("Bool",0,"AutoStart",{KeyName="auto_start",Edit={title="Auto-Start",type="Boolean",order=3}})
-	self:NetworkVar("Bool",1,"ForceNextWave",{KeyName="force_next",Edit={title="Force Auto-Start",type="Boolean",order=5}})
-	self:NetworkVar("Bool",2,"StartAll",{KeyName="start_all",Edit={title="Start All Others",type="Boolean",order=6}})
-	self:NetworkVar("Float",0,"AutoStartDelay",{KeyName="auto_start_delay",Edit={title="Auto-Start Delay",type="Float",min=0,max=60,order=4}})
-	self:NetworkVar("Float",1,"SpeedMul",{KeyName="spawn_speed_mul",Edit={title="Spawn Rate",type="Float",min=0.1,max=10,order=2}})
-	self:NetworkVar("Float",2,"NextWaveTime")
-	self:NetworkVar("String",0,"WaveFile",{KeyName="wave_file",Edit={title="Custom Wave Name",type="Generic",order=7}})
-	self:NetworkVar("Entity",0,"NextTarget1")
-	self:NetworkVar("Entity",1,"NextTarget2")
-	self:NetworkVar("Entity",2,"NextTarget3")
-	self:NetworkVar("Entity",3,"NextTarget4")
-	self:NetworkVar("Entity",4,"NextTarget5")
-	self:NetworkVar("Entity",5,"NextTarget6")
-	self:NetworkVar("Entity",6,"NextTarget7")
-	self:NetworkVar("Entity",7,"NextTarget8")
-	self:NetworkVar("Entity",8,"NextTarget9")
-	self:NetworkVar("Entity",9,"NextTarget10")
-	self:NetworkVar("Entity",10,"NextTarget11")
-	self:NetworkVar("Entity",11,"NextTarget12")
-	self:NetworkVar("Entity",12,"NextTarget13")
-	self:NetworkVar("Entity",13,"NextTarget14")
-	self:NetworkVar("Entity",14,"NextTarget15")
-	self:NetworkVar("Entity",15,"NextTarget16")
-	self:NetworkVar("Entity",16,"NextBlimpTarget1")
-	self:NetworkVar("Entity",17,"NextBlimpTarget2")
-	self:NetworkVar("Entity",18,"NextBlimpTarget3")
-	self:NetworkVar("Entity",19,"NextBlimpTarget4")
-	self:NetworkVar("Entity",20,"NextBlimpTarget5")
-	self:NetworkVar("Entity",21,"NextBlimpTarget6")
-	self:NetworkVar("Entity",22,"NextBlimpTarget7")
-	self:NetworkVar("Entity",23,"NextBlimpTarget8")
-	self:NetworkVar("Entity",24,"NextBlimpTarget9")
-	self:NetworkVar("Entity",25,"NextBlimpTarget10")
-	self:NetworkVar("Entity",26,"NextBlimpTarget11")
-	self:NetworkVar("Entity",27,"NextBlimpTarget12")
-	self:NetworkVar("Entity",28,"NextBlimpTarget13")
-	self:NetworkVar("Entity",29,"NextBlimpTarget14")
-	self:NetworkVar("Entity",30,"NextBlimpTarget15")
-	self:NetworkVar("Entity",31,"NextBlimpTarget16")
+	self:NetworkVar("Int", 0, "Wave", {KeyName="start_wave", Edit={title="Wave To Spawn", type="Int", min=1, max=1000, order=1}})
+	self:NetworkVar("Int", 1, "SpawnDivider", {KeyName="spawn_divider", Edit={title="Spawn Divider", type="Int", min=1, max=100, order=4}})
+	self:NetworkVar("Int", 2, "DividerDelay", {KeyName="divider_delay", Edit={title="Divider Delay", type="Int", min=0, max=100, order=5}})
+	self:NetworkVar("Int", 3, "LastWave", {KeyName="end_wave", Edit={title="Last Wave", type="Int", min=1, max=1000, order=2}})
+	self:NetworkVar("Bool", 0, "AutoStart", {KeyName="auto_start", Edit={title="Auto-Start", type="Boolean", order=6}})
+	self:NetworkVar("Bool", 1, "ForceNextWave", {KeyName="force_next", Edit={title="Force Auto-Start", type="Boolean", order=8}})
+	self:NetworkVar("Bool", 2, "StartAll", {KeyName="start_all", Edit={title="Start All Others", type="Boolean", order=9}})
+	self:NetworkVar("Bool", 3, "UnSpectatable")
+	self:NetworkVar("Bool", 4, "HideWave", {KeyName="hide_wave", Edit={title="Hide Wave", type="Boolean", order=11}})
+	self:NetworkVar("Float", 0, "AutoStartDelay", {KeyName="auto_start_delay", Edit={title="Auto-Start Delay", type="Float", min=0, max=60, order=7}})
+	self:NetworkVar("Float", 1, "SpeedMul", {KeyName="spawn_rate_mul", Edit={title="Spawn Rate", type="Float", min=0.1, max=10, order=3}})
+	self:NetworkVar("Float", 2, "NextWaveTime")
+	self:NetworkVar("String", 0, "WaveFile", {KeyName="wave_preset", Edit={title="Wave Preset", type="Generic", order=10}})
+	self:NetworkVar("Entity", 0, "NextTarget1")
+	self:NetworkVar("Entity", 1, "NextTarget2")
+	self:NetworkVar("Entity", 2, "NextTarget3")
+	self:NetworkVar("Entity", 3, "NextTarget4")
+	self:NetworkVar("Entity", 4, "NextTarget5")
+	self:NetworkVar("Entity", 5, "NextTarget6")
+	self:NetworkVar("Entity", 6, "NextTarget7")
+	self:NetworkVar("Entity", 7, "NextTarget8")
+	self:NetworkVar("Entity", 8, "NextTarget9")
+	self:NetworkVar("Entity", 9, "NextTarget10")
+	self:NetworkVar("Entity", 10, "NextTarget11")
+	self:NetworkVar("Entity", 11, "NextTarget12")
+	self:NetworkVar("Entity", 12, "NextTarget13")
+	self:NetworkVar("Entity", 13, "NextTarget14")
+	self:NetworkVar("Entity", 14, "NextTarget15")
+	self:NetworkVar("Entity", 15, "NextTarget16")
+	self:NetworkVar("Entity", 16, "NextBlimpTarget1")
+	self:NetworkVar("Entity", 17, "NextBlimpTarget2")
+	self:NetworkVar("Entity", 18, "NextBlimpTarget3")
+	self:NetworkVar("Entity", 19, "NextBlimpTarget4")
+	self:NetworkVar("Entity", 20, "NextBlimpTarget5")
+	self:NetworkVar("Entity", 21, "NextBlimpTarget6")
+	self:NetworkVar("Entity", 22, "NextBlimpTarget7")
+	self:NetworkVar("Entity", 23, "NextBlimpTarget8")
+	self:NetworkVar("Entity", 24, "NextBlimpTarget9")
+	self:NetworkVar("Entity", 25, "NextBlimpTarget10")
+	self:NetworkVar("Entity", 26, "NextBlimpTarget11")
+	self:NetworkVar("Entity", 27, "NextBlimpTarget12")
+	self:NetworkVar("Entity", 28, "NextBlimpTarget13")
+	self:NetworkVar("Entity", 29, "NextBlimpTarget14")
+	self:NetworkVar("Entity", 30, "NextBlimpTarget15")
+	self:NetworkVar("Entity", 31, "NextBlimpTarget16")
 end
 
 function ENT:KeyValue(key,value)
 	local lkey = key:lower()
 	if lkey=="start_wave" then
-		self:SetWave(tonumber(value) or 1)
-	--[[elseif lkey=="auto_start" then
-		self:SetAutoStart(tobool(value))]]
+		value = tonumber(value) or 0
+		if value ~= 0 then
+			self:SetWave(value)
+		else
+			self:SetWave(ROTGB_GetConVarValue("rotgb_default_first_wave"))
+		end
+	elseif lkey=="end_wave" then
+		value = tonumber(value) or 0
+		if value ~= 0 then
+			self:SetLastWave(value)
+		else
+			self:SetLastWave(ROTGB_GetConVarValue("rotgb_default_last_wave"))
+		end
+	elseif lkey=="wave_preset" then
+		self:SetWaveFile(value)
+	elseif lkey=="hide_wave" then
+		self:SetHideWave(tobool(value))
+	elseif lkey=="start_all" then
+		self:SetStartAll(tobool(value))
+	elseif lkey=="spawn_speed_mul" then -- TODO: DEPRECATED
+		self:SetSpeedMul(tonumber(value) or 1)
+	elseif lkey=="spawn_rate_mul" then
+		self:SetSpeedMul(tonumber(value) or 1)
+	elseif lkey=="spawn_divider" then
+		self:SetSpawnDivider(tonumber(value) or 1)
+	elseif lkey=="divider_delay" then
+		self:SetDividerDelay(tonumber(value) or 1)
 	elseif lkey=="no_auto_start" then
-		self.NoAutoStart = true
-	elseif lkey=="force_next" then
-		self:SetForceNextWave(tobool(value))
+		self.NoAutoStart = tobool(value)
 	elseif lkey=="auto_start_delay" then
 		self:SetAutoStartDelay(tonumber(value) or 0)
-	elseif lkey=="spawn_speed_mul" then
-		self:SetSpeedMul(tonumber(value) or 1)
-	elseif string.sub(lkey,1,11) == "next_target" then
-		local num = (tonumber("0x"..string.sub(lkey,-1)) or 0) + 1
-		self.TempNextTargets = self.TempNextTargets or {}
-		self.TempNextTargets[num] = value
-	elseif string.sub(lkey,1,17) == "next_blimp_target" then
-		local num = (tonumber("0x"..string.sub(lkey,-1)) or 0) + 1
-		self.TempNextBlimpTargets = self.TempNextBlimpTargets or {}
-		self.TempNextBlimpTargets[num] = value
-	elseif lkey=="model" then
-		self.Model = value
-	elseif lkey=="skin" then
-		self.Skin = value
+	elseif lkey=="force_next" then
+		self:SetForceNextWave(tobool(value))
 	elseif lkey=="finished_shortly_threshold" then
 		self.OutputShortlyThreshold = value
+	elseif lkey=="dont_trigger_wave_relays" then
+		self.DontTriggerWaveRelays = value
+	elseif lkey=="no_messages" then
+		self.NoMessages = tobool(value)
 	elseif lkey=="onwavestart" then
 		self:StoreOutput(key,value)
 	elseif lkey=="onwavefinished" then
 		self:StoreOutput(key,value)
 	elseif lkey=="onwavefinishedshortly" then
 		self:StoreOutput(key,value)
-	elseif lkey=="dont_trigger_wave_relays" then
-		self.DontTriggerWaveRelays = value
-	elseif lkey=="no_messages" then
-		self.NoMessages = tobool(value)
 	end
+	return gballoon_pob.KeyValue(self,lkey,value)
 end
 
 function ENT:AcceptInput(input,activator,caller,data)
 	input = input:lower()
-	if input=="setautostart" then
+	if input=="setnextwave" then
+		local value = tonumber(data) or 0
+		if value > 0 then
+			self:SetWave(value)
+		else
+			self:SetWave(ROTGB_GetConVarValue("rotgb_default_first_wave"))
+		end
+	elseif input=="setlastwave" then
+		local value = tonumber(data) or 0
+		if value > 0 then
+			self:SetLastWave(value)
+		else
+			self:SetLastWave(ROTGB_GetConVarValue("rotgb_default_last_wave"))
+		end
+	elseif input=="setwavepreset" then
+		self:SetWaveFile(data)
+	elseif input=="setstartall" then -- TO DO: DEPRECATED
+		self:SetStartAll(tobool(data))
+	elseif input=="setspawnratemultiplier" then
+		self:SetSpeedMul(tonumber(data) or 1)
+	elseif input=="setspawndivider" then
+		self:SetSpawnDivider(tonumber(data) or 1)
+	elseif input=="setdividerdelay" then
+		self:SetDividerDelay(tonumber(data) or 1)
+	elseif input=="setautostart" then -- TO DO: DEPRECATED
 		self:SetAutoStart(tobool(data))
-	elseif input=="setforcenext" then
+	elseif input=="setautostartdelay" then
+		self:SetAutoStartDelay(tonumber(data) or 0)
+	elseif input=="setforcenext" then -- TO DO: DEPRECATED
 		self:SetForceNextWave(tobool(data))
-	elseif string.sub(input,1,15) == "setnextwaypoint" then
-		local num = (tonumber("0x"..string.sub(input,-1)) or 0) + 1
-		self["SetNextTarget"..num](self,data~="" and ents.FindByName(data)[1] or NULL)
-	elseif string.sub(input,1,20) == "setnextblimpwaypoint" then
-		local num = (tonumber("0x"..string.sub(input,-1)) or 0) + 1
-		self["SetNextBlimpTarget"..num](self,data~="" and ents.FindByName(data)[1] or NULL)
+	elseif input=="setshortnessthreshold" then
+		self.OutputShortlyThreshold = tonumber(data) or 0
+	elseif input=="enablenomessages" then
+		self.NoMessages = true
+	elseif input=="disablenomessages" then
+		self.NoMessages = false
+	elseif input=="togglenomessages" then
+		self.NoMessages = not self.NoMessages
 	end
+	self:CheckBoolEDTInput(input, "hidewave", "HideWave")
+	self:CheckBoolEDTInput(input, "startall", "StartAll")
+	self:CheckBoolEDTInput(input, "autostart", "AutoStart")
+	self:CheckBoolEDTInput(input, "forceautostart", "ForceNextWave")
+	return gballoon_pob.AcceptInput(self,input,activator,caller,data)
 end
 
 function ENT:SpawnFunction(ply,trace,classname)
@@ -2238,7 +1258,6 @@ function ENT:SpawnFunction(ply,trace,classname)
 end
 
 local notifshown
-local gBalloonTable = baseclass.Get("gballoon_base")
 
 function ENT:Initialize()
 	if SERVER then
@@ -2250,32 +1269,23 @@ function ENT:Initialize()
 			notifshown = true
 		end
 		self.OutputShortlyThreshold = tonumber(self.OutputShortlyThreshold) or 7.5
-		self:SetWave(self:GetWave()>0 and self:GetWave() or 1)
+		if self:GetWave()<=0 then
+			self:SetWave(ROTGB_GetConVarValue("rotgb_default_first_wave"))
+		end
+		if self:GetLastWave()<=0 then
+			self:SetLastWave(ROTGB_GetConVarValue("rotgb_default_last_wave"))
+		end
 		self:SetSpeedMul(self:GetSpeedMul()>0 and self:GetSpeedMul() or 1)
-		self:SetModel(self.Model or "models/props_c17/streetsign004e.mdl")
-		if self.Skin then
-			self:SetSkin(self.Skin)
-		end
-		if self.TempNextTargets then
-			for k,v in pairs(self.TempNextTargets) do
-				self["SetNextTarget"..k](self,v~="" and ents.FindByName(v)[1] or NULL)
-			end
-		end
-		if self.TempNextBlimpTargets then
-			for k,v in pairs(self.TempNextBlimpTargets) do
-				self["SetNextBlimpTarget"..k](self,v~="" and ents.FindByName(v)[1] or NULL)
-			end
-		end
-		self:PhysicsInit(SOLID_VPHYSICS)
-		local physobj = self:GetPhysicsObject()
-		if IsValid(physobj) then
-			physobj:Wake()
+		self:SetSpawnDivider(self:GetSpawnDivider()>0 and self:GetSpawnDivider() or 1)
+		if self:GetWaveFile() == "" then
+			self:SetWaveFile(ROTGB_GetConVarValue("rotgb_default_wave_preset"))
 		end
 		self:SetUseType(SIMPLE_USE)
 		if not self.NoAutoStart then
 			self.NoAutoStart = true
 			self:SetAutoStart(true)
 		end
+		gballoon_pob.Initialize(self)
 	end
 end
 
@@ -2286,48 +1296,34 @@ end
 
 function ENT:Use(activator)
 	--if input:lower()=="balloon_start_wave" then
-		if (IsValid(activator) and activator:GetClass()~="gballoon_spawner" and self:GetStartAll()) then
+		local cwave = self:GetWave()
+		if cwave == self:GetLastWave() + 1 and (self.EnableBalloonChecking or self:GetNextWaveTime() > CurTime()) then return end
+		if ((IsValid(activator) and activator:GetClass()~="gballoon_spawner" or activator == self) and self:GetStartAll() and not self.LoopPrevent) then
+			self.LoopPrevent = true
 			for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
-				v:Use(self,self,USE_ON,1)
+				if v ~= self and v:GetWave() == cwave then
+					v:Use(self,self,USE_ON,1)
+				end
 			end
-		end
-		if self:GetNextWaveTime()>CurTime() or not self:GetForceNextWave() and gBalloonTable:GetgBalloonCount()>0 then
-			ROTGB_AddCash(100*GetConVar("rotgb_cash_mul"):GetFloat())
+			self.LoopPrevent = false
 		end
 		self:SetNWBool("HasShownUsage",true)
-		local cwave = self:GetWave() or 1
-		if not self:GetWaveTable()[cwave] and GetConVar("rotgb_freeplay"):GetBool() then
+		if not self:GetWaveTable()[cwave] then
 			self:GenerateNextWave(cwave)
 		end
-		self:SetNextWaveTime(CurTime()+self:GetWaveDuration(cwave)/self:GetSpeedMul())
 		local trigent = ents.FindByName("wave_start_relay")[1]
 		if IsValid(trigent) and not tobool(self.DontTriggerWaveRelays) then
 			if not trigent.RotgB_HasFired then
 				trigent:Fire("Trigger")
 				trigent.RotgB_HasFired = true
-			elseif trigent.RotgB_HasFired and not self:GetWaveTable()[cwave] then
-				trigent.RotgB_HasFired = nil
-				trigent = ents.FindByName("wave_finished_relay")[1]
-				if IsValid(trigent) then
-					trigent:Fire("Trigger")
-				end
 			end
 		end
+		if self:TriggerWaveEnded() then return self:Remove() end
+		self:SetNextWaveTime(CurTime()+self:GetWaveDuration(cwave)/self:GetSpeedMul())
 		self:TriggerOutput("OnWaveStart",activator,cwave)
 		if not self.NoMessages then
-			if (not self:GetWaveTable()[cwave] or self:GetWaveTable()[cwave].unnatural) and not self.WinMessage then
-				self.WinMessage = true
-				PrintMessage(HUD_PRINTTALK,"All standard waves cleared! Congratulations, you win!")
-				PrintMessage(HUD_PRINTTALK,"If you want a harder challenge, try doubling the gBalloons' health, spawn rate or halving the cash multiplier.")
-				if GetConVar("rotgb_freeplay"):GetBool() then
-					PrintMessage(HUD_PRINTTALK,"BEWARE! The gBalloons become exponentially faster and faster after each wave!")
-				end
-			end
-			if (self:GetWaveTable()[cwave] and not self:GetWaveTable()[cwave].unnatural) or GetConVar("rotgb_freeplay"):GetBool() then
-				PrintMessage(HUD_PRINTTALK,"Wave "..cwave.." started!")
-			end
+			PrintMessage(HUD_PRINTTALK,"Wave "..cwave.." started!")
 		end
-		if not (self:GetWaveTable()[cwave] and not self:GetWaveTable()[cwave].unnatural) and not GetConVar("rotgb_freeplay"):GetBool() then return self:Remove() end
 		local creaid = self:GetCreationID()
 		for k,v in pairs(self:GetWaveTable()[cwave] or {}) do
 			if k=="rbe" and not self.NoMessages then
@@ -2338,7 +1334,8 @@ function ENT:Use(activator)
 				timeframe = (timeframe or 0) / self:GetSpeedMul()
 				local function layer1()
 					if IsValid(self) then
-						--if gBalloonTable:GetgBalloonCount() < GetConVar("rotgb_max_to_exist"):GetInt() then
+						self.TimesSpawned = (self.TimesSpawned or -1) + 1
+						if (self.TimesSpawned - self:GetDividerDelay()) % self:GetSpawnDivider() == 0 then
 							local SpawnPos = self:GetPos()+Vector(0,0,10)
 							local bln = ents.Create("gballoon_base")
 							if IsValid(bln) then
@@ -2348,10 +1345,6 @@ function ENT:Use(activator)
 								end
 								bln:Spawn()
 								bln:Activate()
-								--[[if IsValid(self:GetNextTarget()) then
-									self:SetNextTarget1(self:GetNextTarget())
-									self:SetNextTarget(NULL)
-								end]]
 								local nextTargs = {}
 								if bln:GetBalloonProperty("BalloonBlimp") then
 									self.rotgb_TimesBlimpSpawned = (self.rotgb_TimesBlimpSpawned or 0) + 1
@@ -2365,7 +1358,6 @@ function ENT:Use(activator)
 									self.rotgb_TimesSpawned = (self.rotgb_TimesSpawned or 0) + 1
 								end
 								if next(nextTargs) then
-									--bln:SetTarget(nextTargs[math.random(#nextTargs)])
 									bln:SetTarget(bln:ChooseNextTargetWeighted(self.rotgb_TimesBlimpSpawned, nextTargs))
 								else
 									for i=1,16 do
@@ -2376,23 +1368,16 @@ function ENT:Use(activator)
 									end
 									if next(nextTargs) then
 										local times = bln:GetBalloonProperty("BalloonBlimp") and (self.rotgb_TimesSpawned or 0)+self.rotgb_TimesBlimpSpawned or self.rotgb_TimesSpawned
-										--bln:SetTarget(nextTargs[math.random(#nextTargs)])
 										bln:SetTarget(bln:ChooseNextTargetWeighted(times, nextTargs))
 									end
 								end
 								--timer.Simple(0,function()
 									if bln.loco then
-										bln.loco:SetAcceleration(bln.loco:GetAcceleration()*1.02^math.max(0,cwave-120))
+										bln.loco:SetAcceleration(bln.loco:GetAcceleration()*1.02^math.max(0,cwave-(self.WinWave or math.huge)))
 									end
 								--end)
 							end
-						--[[else
-							self:SetNextWaveTime(self:GetNextWaveTime()+1)
-							timer.Pause(timername)
-							timer.Simple(1,function()
-								timer.UnPause(timername)
-							end)
-						end]]
+						end
 					else
 						timer.Remove(timername)
 					end
@@ -2419,25 +1404,45 @@ function ENT:GenerateNextWave(cwave)
 	local erbe = self:GetWaveTable()[cwave-1].assumerbe and self:GetWaveTable()[cwave-1].assumerbe*1.1 or self:GetWaveTable()[cwave-1].rbe*1.1
 	local trbe = 0
 	local wavetab = {}
-	local gballoon_base = baseclass.Get("gballoon_base")
 	local choices = {"gballoon_blimp_blue","gballoon_blimp_red","gballoon_blimp_green","gballoon_fast_hidden_regen_shielded_blimp_gray","gballoon_blimp_purple","gballoon_fast_blimp_magenta","gballoon_blimp_rainbow"}
-	local factors = {120,60,40,30,24,20,15,12,10,8,6,5,4,3,2,1}
+	local factors = {100,50,20,10,5,2,1}
 	while true do
 		if trbe > (self:GetWaveTable()[cwave-1].assumerbe or self:GetWaveTable()[cwave-1].rbe) then break end
-		local genval = util.SharedRandom("ROTGB_WAVEGEN_"..self:GetWaveFile().."_"..cwave,0,7,trbe)
+		local genval = util.SharedRandom("ROTGB_WAVEGEN__"..self:GetWaveFile().."_"..cwave,0,7,trbe)
 		local choice = choices[math.floor(genval)+1]
-		local crbe = gballoon_base.rotgb_rbetab[choice]
+		local crbe = scripted_ents.GetStored("gballoon_base").t.rotgb_rbetab[choice]
 		local amount = math.Clamp((erbe-trbe)/crbe,1,120)
 		for i,v in ipairs(factors) do
 			if amount>=v then amount=v break end
 		end
-		table.insert(wavetab,{choice,amount,60})
+		table.insert(wavetab,{choice,amount,10})
 		trbe = trbe + crbe * amount
 	end
 	wavetab.rbe = math.Round(trbe)
-	wavetab.duration = 60
-	wavetab.unnatural = true
+	wavetab.duration = 10
+	--wavetab.unnatural = true
 	self:GetWaveTable()[cwave] = wavetab
+end
+
+function ENT:TriggerWaveEnded()
+	local cwave = self:GetWave()
+	local inFreeplay = cwave > self:GetLastWave()
+	if (self.lastEndWaveTriggered or 1) ~= cwave then
+		self.lastEndWaveTriggered = cwave
+		ROTGB_AddCash(100/self:GetSpawnDivider()*ROTGB_GetConVarValue("rotgb_cash_mul"))
+		if not self.NoMessages then
+			if inFreeplay and not self.WinWave then
+				self.WinWave = cwave
+				hook.Run("AllBalloonsDestroyed")
+				PrintMessage(HUD_PRINTTALK,"All standard waves cleared! Congratulations, you win!")
+				PrintMessage(HUD_PRINTTALK,"If you want a harder challenge, try doubling the gBalloons' health, spawn rate or halving the cash multiplier.")
+				if ROTGB_GetConVarValue("rotgb_freeplay") then
+					PrintMessage(HUD_PRINTTALK,"BEWARE! The gBalloons become exponentially faster and faster after each wave!")
+				end
+			end
+		end
+	end
+	return inFreeplay and not ROTGB_GetConVarValue("rotgb_freeplay")
 end
 
 function ENT:TriggerWaveFinished()
@@ -2472,7 +1477,8 @@ function ENT:SpawnNextWave()
 	else
 		self:TriggerWaveFinishedShortly()
 	end
-	ROTGB_AddCash(100*GetConVar("rotgb_cash_mul"):GetFloat())
+	if self:TriggerWaveEnded() then return self:Remove() end
+	if self:GetWave() == self:GetLastWave() + 1 then return end
 	if self:GetAutoStartDelay()>0 then
 		timer.Simple(self:GetAutoStartDelay(),function()
 			if (IsValid(self) and self:GetAutoStart()) then
@@ -2490,7 +1496,7 @@ function ENT:Think()
 			self.EnableBalloonChecking = nil
 			self:SpawnNextWave()
 		else
-			if gBalloonTable:GetgBalloonCount()==0 then
+			if ROTGB_GetBalloonCount()==0 then
 				self.EnableBalloonChecking = nil
 				self:SpawnNextWave()
 			end
@@ -2512,7 +1518,7 @@ function ENT:Think()
 				local datablocks = math.ceil(#textdata/packetlength)
 				for i=1,datablocks do
 					net.Start("rotgb_generic")
-					net.WriteString("wave_transfer")
+					net.WriteUInt(ROTGB_OPERATION_WAVE_TRANSFER, 8)
 					net.WriteString(self:GetWaveFile())
 					net.WriteUInt(datablocks, 16)
 					net.WriteUInt(i, 16)
@@ -2527,7 +1533,6 @@ function ENT:Think()
 		end
 	end
 	if CLIENT and self:GetNWString("rotgb_validwave")~=self.CustomWaveName then
-		--PrintTable(ROTGB_CLIENTWAVES[self:GetWaveFile()])
 		if ROTGB_CUSTOM_WAVES[self:GetNWString("rotgb_validwave")] then
 			self.CustomWaveName = self:GetNWString("rotgb_validwave")
 		elseif ((ROTGB_CLIENTWAVES[self:GetWaveFile()] or {})[1] or {}).rbe then
@@ -2537,8 +1542,9 @@ function ENT:Think()
 	end
 end
 
-hook.Add("PlayerSpawn","RotgB",function(ply)
-	ply.ROTGB_CASH = GetConVar("rotgb_starting_cash"):GetFloat()
+-- this is disabled now, what was the point of this?
+--[[hook.Add("PlayerInitialSpawn","RotgB",function(ply)
+	ROTGB_SetCash(ROTGB_GetConVarValue("rotgb_starting_cash"), ply)
 	for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
 		if file.Exists("rotgb_wavedata/"..v:GetWaveFile()..".dat", "DATA") then
 			local rawdata = util.JSONToTable(util.Decompress(file.Read("rotgb_wavedata/"..v:GetWaveFile()..".dat","DATA") or ""))
@@ -2548,7 +1554,7 @@ hook.Add("PlayerSpawn","RotgB",function(ply)
 				local datablocks = math.ceil(#textdata/packetlength)
 				for i=1,datablocks do
 					net.Start("rotgb_generic")
-					net.WriteString("wave_transfer")
+					net.WriteUInt(ROTGB_OPERATION_WAVE_TRANSFER, 8)
 					net.WriteString(v:GetWaveFile())
 					net.WriteUInt(datablocks, 16)
 					net.WriteUInt(i, 16)
@@ -2560,35 +1566,35 @@ hook.Add("PlayerSpawn","RotgB",function(ply)
 			end
 		end
 	end
-end)
+end)]]
 
 local function DrawCircle(x,y,r,percent,...)
-	local SEGMENTS = GetConVar("rotgb_circle_segments"):GetInt()
-	local seoul = -360/SEGMENTS
-	percent = math.Clamp(percent*SEGMENTS,0,SEGMENTS)
-	local vertices = {{x=x,y=y}}
-	local pi = math.pi
-	for i=0,math.floor(percent) do
-		local compx = x+math.sin(math.rad(i*seoul)+pi)*r
-		local compy = y+math.cos(math.rad(i*seoul)+pi)*r
-		table.insert(vertices,{x=compx,y=compy})
+	if percent > 0 then
+		local SEGMENTS = GetConVar("rotgb_circle_segments"):GetInt()
+		local seoul = -360/SEGMENTS
+		percent = math.Clamp(percent*SEGMENTS,0,SEGMENTS)
+		local vertices = {{x=x,y=y}}
+		local pi = math.pi
+		for i=0,math.floor(percent) do
+			local compx = x+math.sin(math.rad(i*seoul)+pi)*r
+			local compy = y+math.cos(math.rad(i*seoul)+pi)*r
+			table.insert(vertices,{x=compx,y=compy})
+		end
+		if math.floor(percent)~=percent then
+			local compx = x+math.sin(math.rad(percent*seoul)+pi)*r
+			local compy = y+math.cos(math.rad(percent*seoul)+pi)*r
+			table.insert(vertices,{x=compx,y=compy})
+		end
+		draw.NoTexture()
+		surface.SetDrawColor(...)
+		surface.DrawPoly(vertices)
+		table.insert(vertices,table.remove(vertices,1))
+		surface.DrawPoly(table.Reverse(vertices))
 	end
-	if math.floor(percent)~=percent then
-		local compx = x+math.sin(math.rad(percent*seoul)+pi)*r
-		local compy = y+math.cos(math.rad(percent*seoul)+pi)*r
-		table.insert(vertices,{x=compx,y=compy})
-	end
-	draw.NoTexture()
-	surface.SetDrawColor(...)
-	surface.DrawPoly(vertices)
-	table.insert(vertices,table.remove(vertices,1))
-	surface.DrawPoly(table.Reverse(vertices))
 end
 
 function ENT:DrawTranslucent()
-	self:Draw()
-	--self:DrawModel()
-	if not self:GetWaveTable()[self:GetWave()] and GetConVar("rotgb_freeplay"):GetBool() then
+	if not self:GetWaveTable()[self:GetWave()] then
 		self:GenerateNextWave(self:GetWave())
 	end
 	local cwave = self:GetWave()
@@ -2596,7 +1602,7 @@ function ENT:DrawTranslucent()
 	reqang.p = 0
 	reqang.y = reqang.y-90
 	reqang.r = 90
-	if self:GetWaveTable()[self:GetWave()] then
+	if not self:GetHideWave() then
 		local text1 = "Next Wave: "..cwave
 		local text2 = "RgBE: "..self:GetWaveTable()[cwave].rbe
 		local text3 = "Press 'Use' on this entity to start the wave."
@@ -2622,7 +1628,7 @@ function ENT:DrawTranslucent()
 			local percent = math.Clamp((self:GetNextWaveTime()-CurTime())/self:GetWaveDuration(cwave-1)*self:GetSpeedMul()+0.02,0,1)
 			DrawCircle(0,panelh/-2-32,16,percent,HSVToColor(percent*120,1,1))
 		cam.End3D2D()
-	elseif self:GetNextWaveTime()>CurTime() then
+	else
 		local percent = math.Clamp((self:GetNextWaveTime()-CurTime())/self:GetWaveDuration(cwave-1)*self:GetSpeedMul()+0.02,0,1)
 		cam.Start3D2D(self:GetPos()+Vector(0,0,GetConVar("rotgb_hoverover_distance"):GetFloat()+draw.GetFontHeight("DermaLarge")*0.4+self:OBBMaxs().z),reqang,0.2)
 			DrawCircle(0,-draw.GetFontHeight("DermaLarge")-32,16,percent,HSVToColor(percent*120,1,1))

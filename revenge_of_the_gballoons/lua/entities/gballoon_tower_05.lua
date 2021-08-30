@@ -14,7 +14,7 @@ ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/hunter/misc/cone1x05.mdl")
 ENT.FireRate = 0.4
 ENT.Cost = 450
-ENT.DetectionRadius = 256
+ENT.DetectionRadius = 192
 ENT.AbilityCooldown = 60
 ENT.FireWhenNoEnemies = true
 ENT.UseLOS = true
@@ -65,7 +65,7 @@ ENT.UpgradeReference = {
 		Descs = {
 			"Slightly increases freezing range.",
 			"Considerably increases freezing duration.",
-			"Freezing now causes ALL layers to be frozen. Enables the tower to freeze gBlimps weaker than Purple gBlimps.",
+			"Freezing now causes ALL layers to be frozen. Enables the tower to freeze gBlimps weaker than Green gBlimps.",
 			"Every gBalloon in its radius moves 50% slower, even if hidden.",
 			"Once every 60 seconds, shooting at this tower causes all gBalloons to move 75% slower for 15 seconds.",
 			"Considerably increases freezing range. All gBalloons move 75% slower regardless of range. Once every 60 seconds, shooting at this tower freezes all gBalloons in addition to slowing them down for 15 seconds."
@@ -138,8 +138,8 @@ ENT.UpgradeLimits = {6,2,0}
 function ENT:DoFreeze(ent)
 	if (self:ValidTargetIgnoreRange(ent) and ent:GetPos():DistToSqr(self:GetShootPos())<=self.DetectionRadius*self.DetectionRadius) then
 		if --[[(not ent:GetBalloonProperty("BalloonWhite") or self.rotgb_FreezeBoost)
-		and]] (not ent:GetBalloonProperty("BalloonBlimp") or self.rotgb_Intense and ent:GetBalloonProperty("BalloonType")~="gballoon_blimp_purple" and ent:GetBalloonProperty("BalloonType")~="gballoon_blimp_rainbow")
-		or ent:HasRotgBStatusEffect("unimmune") then
+		and]] (not ent:GetBalloonProperty("BalloonBlimp") or self.rotgb_Intense and ent:GetRgBE()<=12592)
+		--[[or ent:HasRotgBStatusEffect("unimmune")]] then
 			if self.rotgb_Intense then
 				ent:Freeze2(self.rotgb_FreezeTime)
 			else
@@ -173,7 +173,7 @@ function ENT:FireFunction(gBalloons)
 			for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
 				if self:ValidTargetIgnoreRange(v) and v:GetPos():DistToSqr(self:GetShootPos())<=drrt then
 					if --[[(not v:GetBalloonProperty("BalloonWhite") or self.rotgb_FreezeBoost or v:HasRotgBStatusEffect("unimmune"))
-					and]] (not v:GetBalloonProperty("BalloonBlimp") or self.rotgb_Intense and ent:GetBalloonProperty("BalloonType")~="gballoon_blimp_purple" and ent:GetBalloonProperty("BalloonType")~="gballoon_blimp_rainbow") then
+					and]] (not v:GetBalloonProperty("BalloonBlimp") or self.rotgb_Intense and ent:GetRgBE()<=12592) then
 						v:TakeDamage(self.AttackDamage,self:GetTowerOwner(),self)
 					else
 						v:ShowResistEffect(1)
@@ -237,7 +237,7 @@ function ENT:ROTGB_Think()
 	end]]
 	if self.rotgb_SpeedSlowdown then
 		if self.rotgb_Wonderland then
-			for index,ent in pairs(ents.FindByClass("gballoon_base")) do
+			for index,ent in pairs(ROTGB_GetBalloons()) do
 				ent:Slowdown("ROTGB_ICE_TOWER_ARCTIC",0.25,999999)
 			end
 		else
@@ -262,14 +262,14 @@ function ENT:ROTGB_Draw()
 end
 
 function ENT:TriggerAbility()
-	local entities = ents.FindByClass("gballoon_base")
+	local entities = ROTGB_GetBalloons()
 	if not next(entities) then return true end
 	for index,ent in pairs(entities) do
 		ent:Slowdown("ROTGB_ICE_TOWER_ABILITY",0.25,15)
 		if self.rotgb_Wonderland then
 			if --[[(not ent:GetBalloonProperty("BalloonWhite") or self.rotgb_FreezeBoost)
-			and]] (not ent:GetBalloonProperty("BalloonBlimp") or self.rotgb_Intense and ent:GetBalloonProperty("BalloonType")~="gballoon_blimp_purple" and ent:GetBalloonProperty("BalloonType")~="gballoon_blimp_rainbow")
-			or ent:HasRotgBStatusEffect("unimmune") then
+			and]] (not ent:GetBalloonProperty("BalloonBlimp") or self.rotgb_Intense and ent:GetRgBE()<=12592)
+			--[[or ent:HasRotgBStatusEffect("unimmune")]] then
 				if self.rotgb_Intense then
 					ent:Freeze2(15)
 				else

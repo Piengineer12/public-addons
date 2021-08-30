@@ -14,7 +14,7 @@ ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/dav0r/tnt/tnttimed.mdl")
 ENT.FireRate = 0.5
 ENT.Cost = 850
-ENT.DetectionRadius = 256
+ENT.DetectionRadius = 192
 ENT.AbilityCooldown = 30
 ENT.AttackDamage = 10
 ENT.rotgb_AbilityDamage = 32768
@@ -55,11 +55,11 @@ ENT.UpgradeReference = {
 			"Slightly increases blast size.",
 			"Enables the tower to pop hidden gBalloons.",
 			"Tremendously increases blast damage.",
-			"gBalloons popped by this tower do not spawn any children. Enables the tower to pop Black gBalloons, Zebra gBalloons and Monochrome gBlimps.",
+			"Enables the tower to pop Black gBalloons, Zebra gBalloons and Monochrome gBlimps.",
 			"Increases blast size considerably and damage colossally.",
 			"Considerably increases blast damage and colossally increases fire rate!"
 		},
-		Prices = {400,1500,5000,30000,300000,3e6},--{350,800,3000,5000,75000},
+		Prices = {400,1500,5000,8500,125000,1.25e6},
 		Funcs = {
 			function(self)
 				self.DetectionRadius = self.DetectionRadius * 1.5
@@ -117,7 +117,7 @@ ENT.UpgradeReference = {
 		}
 	}
 }
-ENT.UpgradeLimits = {5,2,0}
+ENT.UpgradeLimits = {6,2,0}
 
 function ENT:FireFunction(gBalloons)
 	self:EmitSound("phx/kaboom.wav", 75, math.random(80,120), 0.5)
@@ -134,15 +134,15 @@ function ENT:ROTGB_Think()
 		dmginfo:SetDamageType(self.rotgb_HitBlack and DMG_GENERIC or DMG_BLAST)
 		dmginfo:SetReportedPosition(self:GetShootPos())
 		
-		for k,v in pairs(ents.FindByClass("gballoon_base")) do
+		for k,v in pairs(ROTGB_GetBalloons()) do
 			if v.ROTGB_TOWER_02_Marks then
-				if self.rotgb_HitBlack and v:Health() <= v.ROTGB_TOWER_02_Marks then
+				--[[if self.rotgb_HitBlack and v:Health() <= v.ROTGB_TOWER_02_Marks then
 					dmginfo:SetDamage(v:GetRgBE() * 1000)
 					dmginfo:SetMaxDamage(v:GetRgBE() * 1000)
-				else
+				else]]
 					dmginfo:SetDamage(v.ROTGB_TOWER_02_Marks)
 					dmginfo:SetMaxDamage(v.ROTGB_TOWER_02_Marks)
-				end
+				--end
 				v:TakeDamageInfo(dmginfo)
 				v.ROTGB_TOWER_02_Marks = nil
 			end
@@ -294,7 +294,7 @@ end
 end]=]
 
 function ENT:TriggerAbility()
-	local entities = ents.FindByClass("gballoon_base")
+	local entities = ROTGB_GetBalloons()
 	if not next(entities) then return true end
 	for index,ent in pairs(entities) do
 		local effdata = EffectData()

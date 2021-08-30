@@ -14,7 +14,7 @@ ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/mechanics/wheels/wheel_speed_72.mdl")
 ENT.FireRate = 1
 ENT.Cost = 450
-ENT.DetectionRadius = 512
+ENT.DetectionRadius = 384
 ENT.AttackDamage = 10
 ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,20)
@@ -96,7 +96,7 @@ ENT.UpgradeReference = {
 		}
 	}
 }
-ENT.UpgradeLimits = {5,2}
+ENT.UpgradeLimits = {6,2}
 
 local rosqrt2 = 1/math.sqrt(2)
 

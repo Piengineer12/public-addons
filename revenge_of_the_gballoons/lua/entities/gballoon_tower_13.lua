@@ -14,7 +14,7 @@ ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/props_phx/construct/wood/wood_wire1x1x1.mdl")
 ENT.FireRate = 4
 ENT.Cost = 550
-ENT.DetectionRadius = 384
+ENT.DetectionRadius = 256
 ENT.LOSOffset = Vector(0,0,24)
 ENT.UserTargeting = true
 ENT.AbilityCooldown = 15
@@ -220,11 +220,6 @@ function ENT:FireFunction(gBalloons)
 			towerTarget:TakeDamageInfo(dmginfo)
 		end
 	end
-	--[[for k,v in pairs(gBalloons) do
-		if (IsValid(v) and v:GetClass()=="gballoon_base") then
-			--v.FireSusceptibility = (v.FireSusceptibility or 0) + self.rotgb_FireUptick * (v:GetBalloonProperty("BalloonBlimp") and self.rotgb_HeavyFireUptick or 1)
-		end
-	end]]
 	if self.rotgb_Flames >= 1 then
 		local fireDir = vector_origin
 		if self.rotgb_AngVel then
@@ -246,47 +241,30 @@ function ENT:FireFunction(gBalloons)
 		fireDir:Normalize()
 		self:SetNWVector("OurTurning",fireDir)
 		local anglecos = math.cos(math.rad(self.rotgb_SpreadAngle))
-		--if self.rotgb_AngVel then
-			--fireDir = self:LocalToWorld(fireDir)
-			--fireDir:Sub(self:GetPos())
-			for k,v in pairs(gBalloons) do
-				if self:ValidTarget(v) then
-					local bpos = self:WorldToLocal(v:LocalToWorld(v:OBBCenter()))
-					bpos.z = 0
-					bpos:Normalize()
-					for i=1,self.rotgb_Flames do
-						if bpos:Dot(fireDir) >= anglecos then
-							v:RotgB_Ignite(self.rotgb_FireUptick * (v:GetBalloonProperty("BalloonBlimp") and self.rotgb_HeavyFireUptick or 1), self:GetTowerOwner(), self, self.rotgb_FireDuration)
-							if self.rotgb_AltFire then
-								v:InflictRotgBStatusEffect("unimmune_fireonly",self.rotgb_FireDuration)
-							end
-							if self.rotgb_FireDamage > 0 then
-								local dmginfo = DamageInfo()
-								dmginfo:SetAttacker(self:GetTowerOwner())
-								dmginfo:SetInflictor(self)
-								dmginfo:SetDamage(self.rotgb_FireDamage + self.AttackDamage)
-								dmginfo:SetDamageType(DMG_BURN)
-								v:TakeDamageInfo(dmginfo)
-							end
-						end
-						bpos:Rotate(Angle(0,360/self.rotgb_Flames,0))
-					end
-				end
-			end
-		--[[else
-			fireDir:Normalize()
-			for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
-				if (IsValid(v) and v:GetClass()=="gballoon_base") then
-					local bpos = v:GetPos()
-					bpos:Add(v:OBBCenter())
-					bpos:Sub(startpos)
-					bpos:Normalize()
+		for k,v in pairs(gBalloons) do
+			if self:ValidTarget(v) then
+				local bpos = self:WorldToLocal(v:LocalToWorld(v:OBBCenter()))
+				bpos.z = 0
+				bpos:Normalize()
+				for i=1,self.rotgb_Flames do
 					if bpos:Dot(fireDir) >= anglecos then
-						v:RotgB_Ignite(self.rotgb_FireDuration)
+						v:RotgB_Ignite(self.rotgb_FireUptick * (v:GetBalloonProperty("BalloonBlimp") and self.rotgb_HeavyFireUptick or 1), self:GetTowerOwner(), self, self.rotgb_FireDuration)
+						if self.rotgb_AltFire then
+							v:InflictRotgBStatusEffect("unimmune_fireonly",self.rotgb_FireDuration)
+						end
+						if self.rotgb_FireDamage > 0 then
+							local dmginfo = DamageInfo()
+							dmginfo:SetAttacker(self:GetTowerOwner())
+							dmginfo:SetInflictor(self)
+							dmginfo:SetDamage(self.rotgb_FireDamage + self.AttackDamage)
+							dmginfo:SetDamageType(DMG_BURN)
+							v:TakeDamageInfo(dmginfo)
+						end
 					end
+					bpos:Rotate(Angle(0,360/self.rotgb_Flames,0))
 				end
 			end
-		end]]
+		end
 	end
 end
 

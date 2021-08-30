@@ -14,7 +14,7 @@ ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/props_phx/games/chess/black_bishop.mdl")
 ENT.FireRate = 2
 ENT.Cost = 300
-ENT.DetectionRadius = 384
+ENT.DetectionRadius = 256
 ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,40)
 ENT.UserTargeting = true
@@ -115,15 +115,17 @@ ENT.UpgradeReference = {
 		}
 	}
 }
-ENT.UpgradeLimits = {5,5,5}
+ENT.UpgradeLimits = {5,2,0}
 
 local function SnipeEntity()
 	while true do
-		local self,ent,nosplat = coroutine.yield()
+		local self,ent = coroutine.yield()
 		ent:Slowdown("ROTGB_GLUE_TOWER",1-self.rotgb_GlueSlowdown,self.rotgb_GlueDuration)
-		if not nosplat then
-			util.Decal("Antlion.Splat",self:GetShootPos(),ent:LocalToWorld(ent:OBBCenter()),self)
-		end
+		local effData = EffectData()
+		effData:SetEntity(ent)
+		effData:SetFlags(self.rotgb_GlueDamage > 0 and 1 or 0)
+		effData:SetHitBox(self.rotgb_GlueDuration*10)
+		util.Effect("gballoon_tower_9_glued", effData)
 		if self.rotgb_GlueSoak then
 			ent:InflictRotgBStatusEffect("glue_soak",self.rotgb_GlueDuration)
 		end
@@ -153,29 +155,34 @@ coroutine.resume(ENT.thread)
 function ENT:FireFunction(gBalloons)
 	local hits = 0
 	if self.rotgb_GlueSplatter then
-		for k,v in pairs(ents.FindInSphere(v:GetPos(),64)) do
-			if self:ValidTargetIgnoreRange(v) and (not (v.rotgb_SpeedMods and v.rotgb_SpeedMods.ROTGB_GLUE_TOWER)) then
-				if not (v:GetBalloonProperty("BalloonBlimp") and not self.rotgb_GreatGlue or v:GetBalloonProperty("BalloonAqua")) then
-					local perf,str = coroutine.resume(self.thread,self,v,true)
-					if not perf then error(str) end
-				else
-					v:ShowResistEffect(5)
-				end
-			end
-		end
-	else
 		for i,v in ipairs(gBalloons) do
 			if not (v.rotgb_SpeedMods and v.rotgb_SpeedMods.ROTGB_GLUE_TOWER) then
-				if not (v:GetBalloonProperty("BalloonBlimp") and not self.rotgb_GreatGlue or v:GetBalloonProperty("BalloonAqua")) then
-					local perf,str = coroutine.resume(self.thread,self,v)
-					if not perf then error(str) end
-				else
-					v:ShowResistEffect(5)
+				for k,v2 in pairs(ents.FindInSphere(v:GetPos(),64)) do
+					if self:ValidTargetIgnoreRange(v2) and not (v2.rotgb_SpeedMods and v2.rotgb_SpeedMods.ROTGB_GLUE_TOWER) then
+						self:GlueBalloon(v2)
+					end
 				end
 				hits = hits + 1
 				if hits >= self.rotgb_Hits then break end
 			end
 		end
+	else
+		for i,v in ipairs(gBalloons) do
+			if not (v.rotgb_SpeedMods and v.rotgb_SpeedMods.ROTGB_GLUE_TOWER) then
+				self:GlueBalloon(v)
+				hits = hits + 1
+				if hits >= self.rotgb_Hits then break end
+			end
+		end
+	end
+end
+
+function ENT:GlueBalloon(balloon)
+	if not (balloon:GetBalloonProperty("BalloonBlimp") and not self.rotgb_GreatGlue or balloon:GetBalloonProperty("BalloonAqua")) then
+		local perf,str = coroutine.resume(self.thread,self,balloon)
+		if not perf then error(str) end
+	else
+		balloon:ShowResistEffect(5)
 	end
 end
 
@@ -189,7 +196,7 @@ function ENT:ROTGB_Think()
 		dmginfo:SetInflictor(self)
 		dmginfo:SetDamageType(DMG_ACID)
 		dmginfo:SetReportedPosition(self:GetShootPos())
-		for k,v in pairs(ents.FindByClass("gballoon_base")) do
+		for k,v in pairs(ROTGB_GetBalloons()) do
 			v.AcidicList = v.AcidicList or {}
 			if v.AcidicList[self] then
 				if v.AcidicList[self][2] < CurTime() then
@@ -206,20 +213,59 @@ function ENT:ROTGB_Think()
 		self.ThinkC = CurTime() + 0.5
 		for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
 			if v:GetClass()=="gballoon_base" then
-				if not (v:GetBalloonProperty("BalloonBlimp") and not self.rotgb_GreatGlue or v:GetBalloonProperty("BalloonAqua")) then
-					local perf,str = coroutine.resume(self.thread,self,v,true)
-					if not perf then error(str) end
-				else
-					v:ShowResistEffect(5)
-				end
+				self:GlueBalloon(v)
 			end
 		end
 	end
 end
 
 function ENT:TriggerAbility()
-	for k,v in pairs(ents.FindByClass("gballoon_base")) do
-		local perf,str = coroutine.resume(self.thread,self,v,true)
+	for k,v in pairs(ROTGB_GetBalloons()) do
+		local perf,str = coroutine.resume(self.thread,self,v)
 		if not perf then error(str) end
 	end
+end
+
+if CLIENT then
+	local EFFECT = {}
+	function EFFECT:Init(data)
+		self.entity = data:GetEntity()
+		if IsValid(self.entity) then
+			self.emitter = ParticleEmitter(self.entity:GetPos(), false)
+		end
+		self.expiryTime = CurTime() + data:GetHitBox()/10
+		self.alternateColor = data:GetFlags() == 1
+	end
+	function EFFECT:Think()
+		if not IsValid(self.entity) or self.expiryTime < CurTime() then
+			if self.emitter then
+				self.emitter:Finish()
+			end
+			return false
+		else
+			self.emitter:SetPos(self.entity:GetPos())
+			return true
+		end
+	end
+	function EFFECT:Render()
+		if IsValid(self.emitter) and IsValid(self.entity) --[[and self.nextParticle < CurTime()]] then
+			local startPos = VectorRand(self.entity:OBBMins(), self.entity:OBBMaxs())
+			startPos:Add(self.entity:GetPos())
+			local particle = self.emitter:Add("sprites/orangecore2_gmod", startPos)
+			if particle then
+				particle:SetColor(self.alternateColor and 63 or 255,255,0)
+				particle:SetBounce(0.2)
+				particle:SetCollide(true)
+				particle:SetGravity(Vector(0,0,-600))
+				particle:SetDieTime(2)
+				particle:SetStartAlpha(32)
+				particle:SetEndAlpha(1024)
+				particle:SetStartSize(8)
+				particle:SetEndSize(0)
+				--particle:SetLighting(true)
+				particle:SetRoll(math.random()*math.pi*2)
+			end
+		end
+	end
+	effects.Register(EFFECT,"gballoon_tower_9_glued")
 end

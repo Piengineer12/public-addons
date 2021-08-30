@@ -83,7 +83,7 @@ ENT.UpgradeReference = {
 				self.AttackDamage = self.AttackDamage + 5090
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 23560
+				self.AttackDamage = self.AttackDamage + 25360
 			end
 		}
 	},
@@ -124,7 +124,6 @@ ENT.UpgradeReference = {
 ENT.UpgradeLimits = {6,2,0}
 
 --[[function ENT:FireFunction(gBalloons)
-	local cmul = GetConVar("rotgb_cash_mul"):GetFloat()
 	if self.rotgb_Buff > 4 then
 		self.rotgb_TowerCharge = (self.rotgb_TowerCharge or 0) + 1
 		if self.rotgb_TowerCharge >= 60 then
@@ -165,7 +164,7 @@ function ENT:ROTGB_Think()
 	for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
 		if v:GetClass()=="gballoon_base" then
 			if self.rotgb_NoRegen then
-				v.BalloonRegenTime = CurTime()+GetConVar("rotgb_regen_delay"):GetFloat()
+				v.BalloonRegenTime = CurTime()+ROTGB_GetConVarValue("rotgb_regen_delay")
 			end
 			if self.rotgb_NoFast and v:GetBalloonProperty("BalloonFast") then
 				v:Slowdown("ROTGB_FASTLESS",0.5,0.25)
@@ -179,7 +178,7 @@ function ENT:ROTGB_Think()
 			if self.rotgb_NoImmunities then
 				v:InflictRotgBStatusEffect("unimmune",0.25)
 			end
-			if v:GetRgBE() <= self.AttackDamage/10 and self.AttackDamage>=30 then
+			if v:GetRgBE() <= self.AttackDamage/10 and self.AttackDamage > 0 then
 				v:TakeDamage(v:GetRgBE() * 1000, self:GetTowerOwner(), self)
 			end
 		elseif v.Base=="gballoon_tower_base" then
@@ -232,8 +231,7 @@ hook.Add("OnEntityCreated","ROTGB_TOWER_06",function(ent)
 			if rebate then
 				timer.Simple(0.1,function()
 					if IsValid(ent) then
-						local cash = (ent.Cost or 0)*0.2*GetConVar("rotgb_cash_mul"):GetFloat()
-						rebate:AddCash(cash, ent:GetTowerOwner())
+						rebate:AddCash((ent.Cost or 0)*0.2, ent:GetTowerOwner())
 					end
 				end)
 			end
@@ -249,7 +247,7 @@ hook.Add("EntityTakeDamage","ROTGB_TOWER_06",function(ent,dmginfo)
 			if v.rotgb_Buff > 3 then table.insert(insure, v) end
 		end
 		if #insure > 0 then
-			local cash = dmginfo:GetDamage()*1000*GetConVar("rotgb_cash_mul"):GetFloat()*player.GetCount()
+			local cash = dmginfo:GetDamage()*1000*player.GetCount()
 			for k,v in pairs(insure) do
 				v:AddCash(cash)
 			end

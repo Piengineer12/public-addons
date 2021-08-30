@@ -102,9 +102,6 @@ local function SnipeEntity()
 			Attacker = self:GetTowerOwner(),
 			Callback = function(attacker,tracer,dmginfo)
 				dmginfo:SetDamageType(self.rotgb_CanPopGray and DMG_SNIPER or DMG_BULLET)
-				--[[if (IsValid(tracer.Entity) and tracer.Entity:GetClass() == "gballoon_base" and tracer.Entity:GetBalloonProperty("BalloonGray")) then
-					tracer.Entity:TakeDamage(self.AttackDamage,self,self)
-				end]]
 			end,
 			Damage = self.AttackDamage + (ent.rotgb_AdditionslSniperDamage or 0),
 			Distance = self.DetectionRadius*1.5,
@@ -124,7 +121,7 @@ local function SnipeEntity()
 			bullet.Damage = bullet.Damage * 5
 		end
 		if self.rotgb_NoImmune then
-			ent.BalloonRegenTime = CurTime()+GetConVar("rotgb_regen_delay"):GetFloat()+1
+			ent.BalloonRegenTime = CurTime()+ROTGB_GetConVarValue("rotgb_regen_delay")+1
 			if ent:GetBalloonProperty("BalloonFast") then
 				ent:Slowdown("ROTGB_FASTLESS",0.5,1)
 			end

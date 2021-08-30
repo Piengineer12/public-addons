@@ -14,7 +14,7 @@ ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/props_phx/games/chess/white_pawn.mdl")
 ENT.FireRate = 2
 ENT.Cost = 250
-ENT.DetectionRadius = 384
+ENT.DetectionRadius = 256
 ENT.AbilityCooldown = 30
 ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,25)
@@ -67,8 +67,8 @@ ENT.UpgradeReference = {
 			"Slightly increases tower range.",
 			"Allows the tower to see Hidden gBalloons.",
 			"Considerably increases tower range. This tower now fires two shots at once.",
-			"This tower fires an additional shot. Once every 60 seconds, shooting at this tower causes all Ally Pawns to turn into Ally Queens, increasing damage dealt by 10 layers for 20 seconds.",
-			"Once every 60 seconds, shooting at this tower causes all Ally Pawns to turn into Rainbow Beamer Prisms, increasing fire rate by 300%, simultaneous hits by 200% and damage dealt by 30 layers for 20 seconds."
+			"This tower fires an additional shot. Once every 60 seconds, shooting at this tower causes all Ally Pawns within its range to turn into Ally Queens, increasing damage dealt by 10 layers for 20 seconds.",
+			"Once every 60 seconds, shooting at this tower causes all Ally Pawns within its range to turn into Rainbow Beamer Prisms, increasing fire rate by 300%, simultaneous hits by 200% and damage dealt by 30 layers for 20 seconds."
 		},
 		Prices = {100,400,2000,40000,350000},
 		Funcs = {
@@ -106,9 +106,6 @@ local function SnipeEntity()
 				Attacker = self:GetTowerOwner(),
 				Callback = function(attacker,tracer,dmginfo)
 					dmginfo:SetDamageType(self.rotgb_CanPopGray and DMG_SNIPER or DMG_BULLET)
-					--[[if (IsValid(tracer.Entity) and tracer.Entity:GetClass() == "gballoon_base" and tracer.Entity:GetBalloonProperty("BalloonGray")) then
-						tracer.Entity:TakeDamage(self.AttackDamage,self,self)
-					end]]
 					if IsValid(ent) and self.rotgb_DoFire then
 						ent:RotgB_Ignite(10, self:GetTowerOwner(), self, self.rotgb_DoFireAura and 10 or 5)
 					end
@@ -196,24 +193,27 @@ function ENT:FireFunction(gBalloons)
 end
 
 function ENT:TriggerAbility()
+	local success = false
 	if self.rotgb_AbilityDamage > 0 then
-		local entities = ents.FindByClass("gballoon_base")
-		if not next(entities) and not self.rotgb_Transformation then return true end
-		for index,ent in pairs(entities) do
-			local effdata = EffectData()
-			effdata:SetOrigin(Vector(ent:GetPos()))
-			effdata:SetStart(Vector(ent:GetPos()))
-			effdata:SetEntity(ent)
-			util.Effect("Explosion",effdata,true,true)
-			ent:TakeDamage(64,self:GetTowerOwner(),self)
-			--ent.FireSusceptibility = (ent.FireSusceptibility or 0) + 99
-			ent:RotgB_Ignite(self.rotgb_AbilityDamage, self:GetTowerOwner(), self, 10)
-		end
+		local entities = ROTGB_GetBalloons()
+		if next(entities) then
+			success = true
+			for index,ent in pairs(entities) do
+				local effdata = EffectData()
+				effdata:SetOrigin(Vector(ent:GetPos()))
+				effdata:SetStart(Vector(ent:GetPos()))
+				effdata:SetEntity(ent)
+				util.Effect("Explosion",effdata,true,true)
+				ent:TakeDamage(64,self:GetTowerOwner(),self)
+				--ent.FireSusceptibility = (ent.FireSusceptibility or 0) + 99
+				ent:RotgB_Ignite(self.rotgb_AbilityDamage, self:GetTowerOwner(), self, 10)
+			end
+		elseif not self.rotgb_Transformation then return true end
 	end
 	if self.rotgb_Transformation then
-		local entities = ents.FindByClass("gballoon_tower_07")
-		for index,ent in pairs(entities) do
-			if not ent.rotgb_Transformed then
+		for index,ent in pairs(ents.FindInSphere(self:GetShootPos(), self.DetectionRadius)) do
+			if ent:GetClass()=="gballoon_tower_07" and not ent.rotgb_Transformed then
+				success = true
 				local effdata = EffectData()
 				effdata:SetOrigin(Vector(ent:GetPos()))
 				effdata:SetStart(Vector(ent:GetPos()))
@@ -232,7 +232,7 @@ function ENT:TriggerAbility()
 					ent.AttackDamage = ent.AttackDamage + 300
 					ent.FireRate = ent.FireRate * 4
 					ent.rotgb_Targets = ent.rotgb_Targets * 3
-					ent:SetMaterial("models/spawn_effect2")
+					ent:SetMaterial("!gBalloonRainbow")
 				end
 				timer.Simple(10, function()
 					if IsValid(ent) then
@@ -250,5 +250,6 @@ function ENT:TriggerAbility()
 				end)
 			end
 		end
+		if not success then return true end
 	end
 end

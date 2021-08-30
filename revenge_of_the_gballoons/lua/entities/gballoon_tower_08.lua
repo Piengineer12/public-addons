@@ -263,7 +263,7 @@ local ShotSound = Sound("Airboat.FireGunHeavy")
 local AlertSound = Sound("npc/attack_helicopter/aheli_megabomb_siren1.wav")
 
 abilityFunction = function(self)
-	local entities = ents.FindByClass("gballoon_base")
+	local entities = ROTGB_GetBalloons()
 	--if not next(entities) then return true end
 	local enttab = {}
 	for index,ent in pairs(entities) do
@@ -272,7 +272,7 @@ abilityFunction = function(self)
 	local ent = next(entities) and self:ChooseSomething(enttab)
 	if IsValid(self) and IsValid(ent) then
 		if self.rotgb_Infinite then
-			self:AddCash(1e7*GetConVar("rotgb_cash_mul"):GetFloat(), self:GetTowerOwner())
+			self:AddCash(1e7, self:GetTowerOwner())
 		end
 		ent:EmitSound("ambient/explosions/explode_6.wav",100)
 		local startPos = ents.Create("info_target")
@@ -324,11 +324,6 @@ abilityFunction = function(self)
 				beam:Remove()
 			end
 		end)
-		--[[for k,v in pairs(ents.FindInSphere(ent:GetPos(),32)) do
-			if v:GetClass()=="gballoon_base" then
-				v:Pop(-1)
-			end
-		end]]
 	elseif IsValid(self) then
 		timer.Simple(math.random(),function()
 			abilityFunction(self)
@@ -337,7 +332,7 @@ abilityFunction = function(self)
 end
 
 function ENT:TriggerAbility()
-	local entities = ents.FindByClass("gballoon_base")
+	local entities = ROTGB_GetBalloons()
 	if not next(entities) then return true end
 	local enttab = {}
 	for index,ent in pairs(entities) do

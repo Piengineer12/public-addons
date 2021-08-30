@@ -121,6 +121,7 @@ ENT.UpgradeReference = {
 				self.rotgb_AbilityType = self.rotgb_AbilityType + 4
 			end,
 			function(self)
+				self:SetAbilityNextFire(CurTime() + self.AbilityCooldown)
 				self.rotgb_AbilityType = self.rotgb_AbilityType + 16
 			end,
 		}
@@ -251,14 +252,16 @@ function ENT:ApplyDirectDamage(bln,pill)
 		bln:MultiplyValue("ROTGB_TOWER_17",self,self.rotgb_ExtraMul,99999)
 		local effData = EffectData()
 		effData:SetEntity(bln)
-		effData:SetOrigin(bln:GetPos())
 		util.Effect("gballoon_tower_17_morecash", effData)
 	end
 	local dmginfo = self:CreateDamageInfo()
 	if pill.rotgb_PillType == 3 and bln:GetBalloonProperty("BalloonType")=="gballoon_gray" then
 		dmginfo:SetDamage(bln:GetRgBE()*1000)
 		dmginfo:SetDamageType(DMG_ACID)
-		self:AddCash(bit.lshift(25,2*#self.rotgb_PillTypes)*GetConVar("rotgb_cash_mul"):GetFloat(), owner)
+		self:AddCash(bit.lshift(25,2*#self.rotgb_PillTypes), owner)
+	elseif pill.rotgb_PillType == 2 then
+		dmginfo:SetDamage(self.AttackDamage+self.rotgb_SplashDamageModifier)
+		dmginfo:SetDamageType(DMG_SHOCK)
 	else
 		dmginfo:SetDamage(self.rotgb_SplashDamageModifier > 0 and self.AttackDamage+self.rotgb_SplashDamageModifier or self.AttackDamage)
 	end
@@ -274,14 +277,16 @@ function ENT:ApplyIndirectDamage(bln,pill)
 		bln:MultiplyValue("ROTGB_TOWER_17",self,self.rotgb_ExtraMul,99999)
 		local effData = EffectData()
 		effData:SetEntity(bln)
-		effData:SetOrigin(bln:GetPos())
 		util.Effect("gballoon_tower_17_morecash", effData)
 	end
 	local dmginfo = self:CreateDamageInfo()
-	if pill.rotgb_PillType == 3 and bln:GetBalloonProperty("BalloonGray") then
+	if pill.rotgb_PillType == 3 and bln:GetBalloonProperty("BalloonType")=="gballoon_gray" then
 		dmginfo:SetDamage(bln:GetRgBE()*1000)
 		dmginfo:SetDamageType(DMG_ACID)
-		self:AddCash(bit.lshift(25,2*#self.rotgb_PillTypes)*GetConVar("rotgb_cash_mul"):GetFloat(), owner)
+		self:AddCash(bit.lshift(25,2*#self.rotgb_PillTypes), owner)
+	elseif pill.rotgb_PillType == 2 then
+		dmginfo:SetDamage(self.AttackDamage+self.rotgb_SplashDamageModifier)
+		dmginfo:SetDamageType(DMG_SHOCK)
 	else
 		dmginfo:SetDamage(self.AttackDamage+self.rotgb_SplashDamageModifier)
 	end
@@ -365,7 +370,7 @@ function ENT:ROTGB_Think()
 				end
 			end
 		end
-		for k,v in pairs(ents.FindByClass("gballoon_base")) do
+		for k,v in pairs(ROTGB_GetBalloons()) do
 			v.AcidicList = v.AcidicList or {}
 			if v.AcidicList[self] then
 				if v.AcidicList[self] < CurTime() then
@@ -381,7 +386,6 @@ function ENT:ROTGB_Think()
 end
 
 function ENT:TriggerAbility()
-	local gBalloonTable = baseclass.Get("gballoon_base")
 	if bit.band(self.rotgb_AbilityType, 1) ~= 0 then
 		if bit.band(self.rotgb_AbilityType, 8) == 0 then
 			self.FireRate = self.FireRate*3
@@ -407,7 +411,7 @@ function ENT:TriggerAbility()
 		local effData = EffectData()
 		effData:SetMagnitude(90)
 		effData:SetScale(1)
-		for k,v in pairs(gBalloonTable:GetgBalloons()) do
+		for k,v in pairs(ROTGB_GetBalloons()) do
 			effData:SetEntity(v)
 			effData:SetOrigin(v:GetPos())
 			util.Effect("gballoon_tower_17_poison", effData)
@@ -418,7 +422,7 @@ function ENT:TriggerAbility()
 	if bit.band(self.rotgb_AbilityType, 4) ~= 0 then
 		local dmginfo = self:CreateDamageInfo()
 		if bit.band(self.rotgb_AbilityType, 16) == 0 then
-			dmginfo:SetDamage(100000)
+			dmginfo:SetDamage(10000)
 		else
 			dmginfo:SetDamage(1000000)
 		end
@@ -481,35 +485,39 @@ if CLIENT then
 	
 	EFFECT = {}
 	function EFFECT:Init(data)
-		self.emitter = ParticleEmitter(data:GetOrigin(), false)
 		self.entity = data:GetEntity()
+		if IsValid(self.entity) then
+			self.emitter = ParticleEmitter(self.entity:GetPos(), false)
+		end
 	end
 	function EFFECT:Think()
 		if not IsValid(self.entity) then
-			self.emitter:Finish()
+			if self.emitter then
+				self.emitter:Finish()
+			end
 			return false
-		else return true
+		else
+			self.emitter:SetPos(self.entity:GetPos())
+			return true
 		end
 	end
 	function EFFECT:Render()
 		if IsValid(self.emitter) and IsValid(self.entity) then
-			if self.emitter:GetNumActiveParticles() < 100 then
-				local startPos = VectorRand(self.entity:OBBMins(), self.entity:OBBMaxs())
-				startPos:Add(self.entity:GetPos())
-				local particle = self.emitter:Add("sprites/orangecore2_gmod", startPos)
-				if particle then
-					particle:SetColor(255,0,255)
-					particle:SetBounce(0.2)
-					particle:SetCollide(true)
-					particle:SetGravity(Vector(0,0,-600))
-					particle:SetDieTime(2)
-					particle:SetStartAlpha(32)
-					particle:SetEndAlpha(1024)
-					particle:SetStartSize(8)
-					particle:SetEndSize(0)
-					--particle:SetLighting(true)
-					particle:SetRoll(math.random()*math.pi*2)
-				end
+			local startPos = VectorRand(self.entity:OBBMins(), self.entity:OBBMaxs())
+			startPos:Add(self.entity:GetPos())
+			local particle = self.emitter:Add("sprites/orangecore2_gmod", startPos)
+			if particle then
+				particle:SetColor(255,0,255)
+				particle:SetBounce(0.2)
+				particle:SetCollide(true)
+				particle:SetGravity(Vector(0,0,-600))
+				particle:SetDieTime(2)
+				particle:SetStartAlpha(32)
+				particle:SetEndAlpha(1024)
+				particle:SetStartSize(8)
+				particle:SetEndSize(0)
+				--particle:SetLighting(true)
+				particle:SetRoll(math.random()*math.pi*2)
 			end
 		end
 	end

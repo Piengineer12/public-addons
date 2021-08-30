@@ -14,7 +14,7 @@ ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/hunter/blocks/cube1x1x025.mdl")
 ENT.FireRate = 0.5
 ENT.Cost = 700
-ENT.DetectionRadius = 512
+ENT.DetectionRadius = 256
 ENT.AttackDamage = 10
 ENT.LOSOffset = Vector(0,0,32)
 ENT.UserTargeting = true
@@ -95,7 +95,7 @@ ENT.UpgradeReference = {
 		}
 	}
 }
-ENT.UpgradeLimits = {5,2}
+ENT.UpgradeLimits = {6,2}
 
 function ENT:FireFunction(gBalloons)
 	self:SetNWFloat("LastFireTime",CurTime())
