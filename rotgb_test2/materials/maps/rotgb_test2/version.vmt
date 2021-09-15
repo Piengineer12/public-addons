@@ -1,0 +1,6 @@
+VertexlitGeneric
+{
+	$basetexture maps/rotgb_test2/version
+	$model 1
+	$halflambert 1
+}
