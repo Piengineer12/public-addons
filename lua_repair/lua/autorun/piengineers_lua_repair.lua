@@ -7,8 +7,8 @@ Donate:			https://ko-fi.com/piengineer12
 Links above are confirmed working as of 2021-06-23. All dates are in ISO 8601 format. 
 ]]
 
-LUA_REPAIR_VERSION = "1.3.3"
-LUA_REPAIR_VERSION_DATE = "2021-08-14"
+LUA_REPAIR_VERSION = "1.4.0"
+LUA_REPAIR_VERSION_DATE = "2021-12-05"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
@@ -80,8 +80,14 @@ local function FixAllErrors()
 	STRING.__concat = function(a,b)
 		return tostring(a)..tostring(b)
 	end
-	STRING.IsValid = function()
+	string.IsValid = function()
 		return true
+	end
+	local oldExplode = string.Explode
+	string.Explode = function(separator, str, withpattern)
+		separator = separator or ""
+		str = str or ""
+		return oldExplode(separator, str, withpattern)
 	end
 	local oldadd,oldsub = VECTOR.__add,VECTOR.__sub
 	local oldmul,olddiv = VECTOR.__mul,VECTOR.__div
