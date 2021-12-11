@@ -30,11 +30,11 @@ ENT.UpgradeReference = {
 			"Tremendously increases attack damage. gBalloons popped by this tower do not spawn any children.",
 			"Colossally increases attack damage and enables the tower to pop Hidden gBalloons.",
 			"This tower now hits ALL gBalloons within sight.",
-			"Once every 60 seconds, shooting at this tower OBLITERATES the strongest gBalloon on the map after 5 seconds. You still get the cash.",
-			"Reduces Orbital Friendship Cannon's cooldown by 30 seconds and you gain $10,000,000 for every use.",
+			"Once every 60 seconds, shooting at this tower deals INFINITE damage to the strongest gBalloon on the map after 5 seconds. You still get the cash.",
+			"Reduces Orbital Friendship Cannon's cooldown by 30 seconds and you gain $50,000,000 for every use.",
 			"It's worth it."
 		},
-		Prices = {2000,15000,100000,1.25e6,5e6,10e6,50e6,1e9},
+		Prices = {2000,5000,30000,150000,1.25e6,10e6,50e6,1e9},--{2000,15000,100000,1.25e6,5e6,10e6,50e6,1e9},
 		Funcs = {
 			function(self)
 				self.InfiniteRange = true
@@ -272,9 +272,9 @@ abilityFunction = function(self)
 	local ent = next(entities) and self:ChooseSomething(enttab)
 	if IsValid(self) and IsValid(ent) then
 		if self.rotgb_Infinite then
-			self:AddCash(1e7, self:GetTowerOwner())
+			self:AddCash(5e7, self:GetTowerOwner())
 		end
-		ent:EmitSound("ambient/explosions/explode_6.wav",100)
+		ent:EmitSound("ambient/explosions/explode_6.wav",100,100,0.5)
 		local startPos = ents.Create("info_target")
 		local ecp = ent:GetPos()
 		ecp.z = 16000

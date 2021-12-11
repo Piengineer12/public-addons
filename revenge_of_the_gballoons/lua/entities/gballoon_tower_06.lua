@@ -14,7 +14,7 @@ ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/maxofs2d/hover_propeller.mdl")
 ENT.FireRate = 0
 ENT.Cost = 600
-ENT.AbilityCooldown = 60
+ENT.AbilityCooldown = 45
 ENT.LOSOffset = Vector(0,0,25)
 ENT.AttackDamage = 0
 ENT.DetectionRadius = 512
@@ -31,7 +31,7 @@ ENT.UpgradeReference = {
 			"All Hidden gBalloons within this tower's radius become visible to all towers.",
 			"All Shielded gBalloons within this tower's radius take double damage from all sources.",
 			"All gBalloons within the tower's range lose all immunities. gBalloon armour is not affected.",
-			"Once every 60 seconds, shooting at this tower causes all towers within this tower's radius to deal 15 extra layers of damage for 15 seconds.",
+			"Once every 45 seconds, shooting at this tower causes all towers within this tower's radius to deal 15 extra layers of damage for 15 seconds.",
 		},
 		Prices = {500,1000,2000,4000,30000,35000},
 		Funcs = {
@@ -65,7 +65,7 @@ ENT.UpgradeReference = {
 			"This tower can now instantly pop Blue gBlimps, Marble gBalloons and anything lower!",
 			"This tower can now instantly pop Red gBlimps and anything lower!",
 		},
-		Prices = {4000,5500,35000,150000,1000000,5000000},
+		Prices = {3000,4500,25000,120000,750000,3750000},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 20
@@ -230,7 +230,7 @@ hook.Add("OnEntityCreated","ROTGB_TOWER_06",function(ent)
 			end
 			if rebate then
 				timer.Simple(0.1,function()
-					if IsValid(ent) then
+					if IsValid(ent) and IsValid(rebate) then
 						rebate:AddCash((ent.Cost or 0)*0.2, ent:GetTowerOwner())
 					end
 				end)

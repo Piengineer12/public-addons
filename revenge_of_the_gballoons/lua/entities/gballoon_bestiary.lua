@@ -271,7 +271,8 @@ local credits = {
 	{"fansided", "76561198117057248", "Suggested multi-gBalloon Spawner activation (2020-03-03)."},
 	{"PuggleLeDog", "76561198120548061", "Suggested BTD4 Camo gBalloon (2020-10-04) and gBlimps with attributes (2020-10-04)."},
 	{"Ryankz11", "76561198004803429", "Suggested removal of annoying NavMesh missing message (2020-10-04)."},
-	{"<various people>", nil, "For reporting many of the bugs and balance changes with this addon."}
+	{"Fatal Error Sans", "id/legosilverking", "Suggested many, many bug fixes, balance changes and ideas, as well as playtesting experimental addon versions (2021-08-02)."},
+	{"<various people>", nil, "For reporting many of the other bugs and balance changes with this addon."}
 }
 
 local creditsUnimplemented = {
@@ -405,7 +406,7 @@ function ENT:DrawTranslucent()
 	reqang.p = 0
 	reqang.y = reqang.y-90
 	reqang.r = 90
-	cam.Start3D2D(self:GetPos()+Vector(0,0,GetConVar("rotgb_hoverover_distance"):GetFloat()+t1y*0.1+self:OBBMaxs().z),reqang,0.2)
+	cam.Start3D2D(self:GetPos()+Vector(0,0,ROTGB_GetConVarValue("rotgb_hoverover_distance")+t1y*0.1+self:OBBMaxs().z),reqang,0.2)
 		surface.SetDrawColor(0,0,0,127)
 		surface.DrawRect(t1x/-2,t1y/-2,t1x,t1y)
 		surface.SetTextColor(0,255,0)

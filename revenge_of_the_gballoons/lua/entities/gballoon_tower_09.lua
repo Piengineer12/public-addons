@@ -31,10 +31,10 @@ ENT.UpgradeReference = {
 			"Glue slows down gBalloons more and lasts slightly longer.",
 			"Considerably increases fire rate.",
 			"Glue slows down gBalloons even more.",
-			"Glue can now affect gBlimps.",
-			"Glue causes gBalloons to lose all immunities."
+			"Glue can now affect gBlimps weaker than Purple gBlimps.",
+			"Glue causes gBalloons to lose all immunities, if they can be glued."
 		},
-		Prices = {250,500,2000,40000,200000},
+		Prices = {250,500,1000,10000,150000},
 		Funcs = {
 			function(self)
 				self.rotgb_GlueSlowdown = self.rotgb_GlueSlowdown * 1.5
@@ -63,7 +63,7 @@ ENT.UpgradeReference = {
 			"Glue pops ten layers per second!",
 			"Glue pops 100 layers per second!"
 		},
-		Prices = {250,1250,7500,75000,1500000},
+		Prices = {250,1250,3500,17500,200000},
 		Funcs = {
 			function(self)
 				self.rotgb_GlueSoak = true
@@ -92,7 +92,7 @@ ENT.UpgradeReference = {
 			"Any non-immune gBalloon within the tower's range gets glued! Also enables the tower to glue hidden gBalloons.",
 			"Glue lasts considerably longer. Once every 15 seconds, shooting at this tower causes ALL gBalloons to be glued, regardless of immunities!"
 		},
-		Prices = {250,1000,5000,35000,125000},
+		Prices = {250,1000,3500,12500,50000},
 		Funcs = {
 			function(self)
 				self.DetectionRadius = self.DetectionRadius * 2
@@ -116,6 +116,10 @@ ENT.UpgradeReference = {
 	}
 }
 ENT.UpgradeLimits = {5,2,0}
+
+function ENT:ROTGB_ApplyPerks()
+	self.FireRate = self.FireRate * (1+hook.Run("GetSkillAmount", "bishopOfGlueFireRate")/100)
+end
 
 local function SnipeEntity()
 	while true do
@@ -178,7 +182,7 @@ function ENT:FireFunction(gBalloons)
 end
 
 function ENT:GlueBalloon(balloon)
-	if not (balloon:GetBalloonProperty("BalloonBlimp") and not self.rotgb_GreatGlue or balloon:GetBalloonProperty("BalloonAqua")) then
+	if (not balloon:GetBalloonProperty("BalloonBlimp") or self.rotgb_GreatGlue and balloon:GetRgBE()<=37072) and not balloon:GetBalloonProperty("BalloonAqua") then
 		local perf,str = coroutine.resume(self.thread,self,balloon)
 		if not perf then error(str) end
 	else

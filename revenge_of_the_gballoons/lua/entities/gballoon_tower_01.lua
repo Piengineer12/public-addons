@@ -12,12 +12,12 @@ ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/props_phx/facepunch_barrel.mdl")
-ENT.FireRate = 1
+ENT.FireRate = 2
 ENT.Cost = 500
 ENT.DetectionRadius = 192
 ENT.AttackDamage = 10
 ENT.UserTargeting = true
-ENT.rotgb_Radius = 128
+ENT.rotgb_Radius = 64
 ENT.rotgb_Bounces = 4
 ENT.UpgradeReference = {
 	{
@@ -88,13 +88,17 @@ ENT.UpgradeReference = {
 }
 ENT.UpgradeLimits = {5,2}
 
+function ENT:ROTGB_ApplyPerks()
+	self.rotgb_Bounces = self.rotgb_Bounces + hook.Run("GetSkillAmount", "electrostaticBarrelBounces")
+end
+
 function ENT:AccumulategBalloons(tab1)
 	local success
 	local count = 1
 	for ki,vi in pairs(tab1) do
 		if IsValid(ki) then
 			for k,v in pairs(ents.FindInSphere(ki:GetPos(),self.rotgb_Radius)) do
-				if self:ValidTarget(v) and (not tab1[v] or self.rotgb_Recursion) then
+				if self:ValidTargetIgnoreRange(v) and (not tab1[v] or self.rotgb_Recursion) then
 					v.Recurse = (v.Recurse or 0) + 1
 					count = count + 1
 					tab1[v] = ki

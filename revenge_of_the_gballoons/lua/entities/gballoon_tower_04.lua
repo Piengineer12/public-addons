@@ -19,7 +19,7 @@ ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,40)
 ENT.UserTargeting = true
 ENT.AttackDamage = 10
-ENT.rotgb_Spread = 60--75
+ENT.rotgb_Spread = 60
 ENT.rotgb_Shots = 1
 ENT.rotgb_LaserDamageMul = 1
 ENT.UpgradeReference = {
@@ -33,7 +33,7 @@ ENT.UpgradeReference = {
 			"Fires an even bigger beam that obliterates all gBalloons in its path, regardless of immunities.",
 			"BLARGGGH!!!"
 		},
-		Prices = {500,3000,10000,50000,400000,25e6},
+		Prices = {250,750,5000,50000,400000,25e6},
 		Funcs = {
 			function(self)
 				self.rotgb_Spread = self.rotgb_Spread / 1.5
@@ -63,13 +63,13 @@ ENT.UpgradeReference = {
 		Names = {"Higher Torque","Bigger Bullets","TripShot","Super High Torque","DodecaShot","A Million Rounds Per Minute"},
 		Descs = {
 			"Slightly increases fire rate.",
-			"Slightly increases range and damage dealt by each bullet.",
+			"Slightly increases range and considerably increases damage dealt by each bullet.",
 			"Fires three bullets per shot.",
 			"Considerably increases fire rate.",
 			"Slightly increases bullet spread, but twelve bullets are fired per shot!",
 			"Considerably increases bullet spread, but considerably increases damage dealt by each bullet and sixty bullets are fired per shot!"
 		},
-		Prices = {250,1500,4500,6500,10000,30000},
+		Prices = {250,1250,4500,6500,10000,30000},
 		Funcs = {
 			function(self)
 				self.FireRate = self.FireRate * 1.5
@@ -97,6 +97,10 @@ ENT.UpgradeReference = {
 	}
 }
 ENT.UpgradeLimits = {6,2}
+
+function ENT:ROTGB_ApplyPerks()
+	self.rotgb_Spread = self.rotgb_Spread * (1+hook.Run("GetSkillAmount", "gatlingGunKnightSpread")/100)
+end
 
 local function SnipeEntity()
 	while true do

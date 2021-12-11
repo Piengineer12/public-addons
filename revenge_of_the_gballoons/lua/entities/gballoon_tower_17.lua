@@ -53,10 +53,10 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.HasAbility = true
-				self.rotgb_AbilityType = self.rotgb_AbilityType + 1
+				self.rotgb_AbilityType = bit.bor(self.rotgb_AbilityType, 1)
 			end,
 			function(self)
-				self.rotgb_AbilityType = self.rotgb_AbilityType + 8
+				self.rotgb_AbilityType = bit.bor(self.rotgb_AbilityType, 8)
 			end
 		}
 	},
@@ -69,7 +69,7 @@ ENT.UpgradeReference = {
 			"Tremendously increases poison cloud damage. Once every 80 seconds, shooting at this tower poisons all gBalloons in the map for 90 seconds.",
 			"Poison clouds deal 9x damage, are considerably bigger and last considerably longer."
 		},
-		Prices = {250,3000,10000,25000,1.2e6},
+		Prices = {250,2750,10000,25000,1.2e6},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 10
@@ -86,7 +86,7 @@ ENT.UpgradeReference = {
 			function(self)
 				self.rotgb_PoisonDamage = self.rotgb_PoisonDamage + 20
 				self.HasAbility = true
-				self.rotgb_AbilityType = self.rotgb_AbilityType + 2
+				self.rotgb_AbilityType = bit.bor(self.rotgb_AbilityType, 2)
 			end,
 			function(self)
 				self.rotgb_PoisonDamage = self.rotgb_PoisonDamage + 240
@@ -100,7 +100,7 @@ ENT.UpgradeReference = {
 		Descs = {
 			"Increases direct and indirect hit damage by 1 layer.",
 			"Increases direct hit damage by 3 layers and increases indirect hit damage by 4 layers.",
-			"Enables the tower to lob electric pills that create an electric spark, arcing up to 4 gBalloons.",
+			"Enables the tower to lob electric pills that create an electric spark, arcing up to 4 gBalloons. Arcs always deal direct hit damage.",
 			"Once every 80 seconds, shooting at this tower causes it to emit two pulses that deal shock and sonic damage, dealing 1,000 layers each to all gBalloons within its radius.",
 			"Causes the tower's ability to be on cooldown. Activating Shock N' Wave will destroy this tower to create two pulses that deal 100,000 layers each."
 		},
@@ -118,11 +118,11 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.HasAbility = true
-				self.rotgb_AbilityType = self.rotgb_AbilityType + 4
+				self.rotgb_AbilityType = bit.bor(self.rotgb_AbilityType, 4)
 			end,
 			function(self)
 				self:SetAbilityNextFire(CurTime() + self.AbilityCooldown)
-				self.rotgb_AbilityType = self.rotgb_AbilityType + 16
+				self.rotgb_AbilityType = bit.bor(self.rotgb_AbilityType, 16)
 			end,
 		}
 	},
@@ -160,6 +160,11 @@ ENT.UpgradeReference = {
 	}
 }
 ENT.UpgradeLimits = {5,3,3,0}
+
+function ENT:ROTGB_ApplyPerks()
+	self.rotgb_FlyTime = self.rotgb_FlyTime * (1+hook.Run("GetSkillAmount", "pillLobberFlyTime")/100)
+	self.rotgb_ExploRadius = self.rotgb_ExploRadius * (1+hook.Run("GetSkillAmount", "pillLobberExploRadius")/100)
+end
 
 function ENT:GetThrowVelocity(localVector)
 	local flyTime = self.rotgb_FlyTime

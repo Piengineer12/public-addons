@@ -5,7 +5,8 @@ ENT.Type = "nextbot"
 
 function ENT:Initialize()
 	self:SetModel("models/maxofs2d/motion_sensor.mdl")
-	self.NextFire = CurTime() + math.random()
+	self.NextFire = CurTime()
+	self.CreationTime = self:GetCreationTime()
 	self.rotgb_IgnoreCollisions = true
 	self:SetHealth(1e9)
 	self:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
@@ -89,13 +90,13 @@ end
 
 function ENT:FireAtEnemy()
 	if (self.NextFire or 0) < CurTime() then
-		self.NextFire = CurTime() + 1/self:GetSpawnedTower().FireRate
+		self.NextFire = CurTime() + 1/self:GetSpawnedTower().FireRate/(self:GetSpawnedTower().BonusFireRate or 1)/(CurTime() > self.CreationTime+19 and self:GetSpawnedTower().rotgb_PostFireRate or 1)
 		local iscrit = math.random() < self:GetSpawnedTower().rotgb_CritChance
 		local damage = self:AttackDamage()
 		if iscrit then
 			damage = damage * self:GetSpawnedTower().rotgb_CritMul
 		end
-		if CurTime() - self:GetCreationTime() > 18 then
+		if CurTime() > self.CreationTime+19 then
 			damage = damage * self:GetSpawnedTower().rotgb_PostMul
 		end
 		if self:GetSpawnedTower().rotgb_TurretLasers then
@@ -117,7 +118,7 @@ function ENT:FireAtEnemy()
 			end
 			for k,v in pairs(targets) do
 				if self:GetSpawnedTower().rotgb_TurretBucks then
-					self:GetSpawnedTower():AddCash(10, self:GetSpawnedTower():GetTowerOwner())
+					self:GetSpawnedTower():AddCash(100, self:GetSpawnedTower():GetTowerOwner())
 				end
 				if iscrit then
 					--util.ScreenShake(self:GetShootPos(), 4, 20, 0.5, 1024)
@@ -160,7 +161,7 @@ function ENT:FireAtEnemy()
 		else
 			self.rotgb_Owner = self:GetSpawnedTower()
 			if self.rotgb_Owner.rotgb_TurretBucks then
-				self.rotgb_Owner:AddCash(10)
+				self.rotgb_Owner:AddCash(100)
 			end
 			local enemy = self:GetEnemy()
 			local dir = enemy:GetPos()
@@ -186,7 +187,7 @@ function ENT:FireAtEnemy()
 				Num = 1,
 				Tracer = 1,
 				AmmoType = "Pistol",
-				TracerName = iscrit and "GunshipTracer" or "Tracer",
+				TracerName = "Tracer",
 				Dir = dir,
 				Spread = vector_origin,
 				Src = self:GetShootPos(),
@@ -215,9 +216,9 @@ function ENT:Think()
 			self.loco:SetDesiredSpeed(self:GetSpawnedTower().rotgb_TurretSpeed)
 			self.loco:SetAcceleration(self:GetSpawnedTower().rotgb_TurretSpeed*5)
 			self.loco:SetDeceleration(self:GetSpawnedTower().rotgb_TurretSpeed*5)
-			if CurTime() - self:GetCreationTime() > 20 then
+			if CurTime() > self.CreationTime+20 then
 				self:Remove()
-			elseif CurTime() - self:GetCreationTime() > 18 then
+			elseif CurTime() > self.CreationTime+19 then
 				local effdata = EffectData()
 				effdata:SetEntity(self)
 				effdata:SetOrigin(self:GetShootPos())
@@ -236,7 +237,7 @@ function ENT:MoveToEnemy()
 	local enemy = self:GetEnemy()
 	local path = Path("Chase")
 	path:SetMinLookAheadDistance(64)
-	path:SetGoalTolerance(math.max(self:DetectionRadius()/3,enemy:BoundingRadius()*1.5))
+	path:SetGoalTolerance(self:DetectionRadius()/8)
 	path:Compute(self, enemy:GetPos())
 	while IsValid(path) and self:HaveEnemy() do
 		if self:GetEnemy() ~= enemy then break end
@@ -249,7 +250,7 @@ function ENT:MoveToEnemy()
 				self.UnstuckAttempts = 0
 			end
 			self.UnstuckAttempts = self.UnstuckAttempts + 1
-			self.ResetStuck = CurTime() + 30
+			self.ResetStuck = CurTime() + 10
 			if self.UnstuckAttempts == 1 then -- A simple jump should fix it.
 				self.loco:Jump()
 				path:Compute(self, enemy:GetPos())
@@ -260,7 +261,6 @@ function ENT:MoveToEnemy()
 			elseif self.UnstuckAttempts == 3 then -- If not, ask GMod kindly to free us.
 				self:HandleStuck()
 			else -- If not, just teleport us ahead on the path. (Sanic method)
-				self.LastStuck = CurTime()
 				self:SetPos(path:GetPositionOnPath(path:GetCursorPosition()+2^self.UnstuckAttempts))
 				self.loco:ClearStuck()
 			end
@@ -276,8 +276,7 @@ function ENT:RunBehaviour()
 			if not IsValid(self:GetSpawnedTower()) then
 				self:Remove()
 			elseif self:HaveEnemy() and not GetConVar("ai_disabled"):GetBool() then
-				self.NextFire = CurTime() + math.random() / self:GetSpawnedTower().FireRate
-				while (self:HaveEnemy() and self:GetRangeSquaredTo(self:GetEnemy()) <= self:DetectionRadius() * self:DetectionRadius()) do
+				while (self:HaveEnemy() and self:GetRangeSquaredTo(self:GetEnemy()) <= self:DetectionRadius()^2) do
 					self:FireAtEnemy()
 					coroutine.yield()
 				end
@@ -290,4 +289,18 @@ function ENT:RunBehaviour()
 			coroutine.wait(0.1)
 		end
 	end
+end
+
+function ENT:PreEntityCopy()
+	self.rotgb_DuplicatorTimeOffset = CurTime()
+end
+
+function ENT:PostEntityPaste(ply,ent,tab)
+	self:AddTimePhase(CurTime() - (self.rotgb_DuplicatorTimeOffset or CurTime()))
+end
+
+function ENT:AddTimePhase(timeToAdd)
+	self.NextFire = (self.NextFire or 0) + timeToAdd
+	self.CreationTime = (self.CreationTime or 0) + timeToAdd
+	self.ResetStuck = (self.ResetStuck or 0) + timeToAdd
 end

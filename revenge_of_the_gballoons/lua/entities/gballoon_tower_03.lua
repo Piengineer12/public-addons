@@ -24,18 +24,19 @@ ENT.UpgradeReference = {
 		Names = {"Sniping Scope","Night Vision Goggles","Semi-Automatic Rifle","Fully-Automatic Rifle","Marking Shots","England's Grace"},
 		Descs = {
 			"Increases range to infinite.",
-			"Grants Hidden gBalloon popping power.",
+			"Considerably increases fire rate and grants Hidden gBalloon popping power.",
 			"Tremendously increases fire rate.",
 			"Colossally increases fire rate!",
 			"This tower now places markers on gBalloons. Each marker placed increases damage taken from Sniper Queens by one layer. Markers only affect the gBalloon's outermost layer.",
-			"Increases fire rate further and this tower hits all gBalloons in its radius per shot!"
+			"Doubles fire rate and hits all gBalloons in its radius per shot!"
 		},
-		Prices = {300,750,2500,10000,100000,25e6},
+		Prices = {300,2000,5000,25000,250000,10e6},
 		Funcs = {
 			function(self)
 				self.InfiniteRange = true
 			end,
 			function(self)
+				self.FireRate = self.FireRate * 2
 				self.SeeCamo = true
 			end,
 			function(self)
@@ -59,11 +60,11 @@ ENT.UpgradeReference = {
 			"Pops five layers per shot.",
 			"Grants Gray gBalloon popping power and pops eight layers per shot!",
 			"Pops 18 layers per shot, enough to completely destroy a Ceramic gBalloon.",
-			"Pops 54 layers per shot! Shots will also stun gBlimps for 1 second. This upgrade can't stun Purple and Rainbow gBlimps.",
-			"Pops 270 layers per shot! Shots will also deal colossally increased damage versus gBlimps.",
-			"Pops 2700 layers per shot! Shots will also cause gBalloons to lose all immunities and most of its properties do not function for 1 second!"
+			"Pops 54 layers per shot! Shots will also stun gBlimps for 3 seconds. This upgrade can't stun Purple gBlimps and above.",
+			"Pops 270 layers per shot! Shots will also deal colossally increased damage versus gBlimps, enough to destroy Red gBlimps in a single hit!",
+			"Pops 2700 layers per shot! Shots will also cause gBalloons to lose all immunities and all of its properties do not function for 1 second!"
 		},
-		Prices = {200,1250,2500,20000,500000,10e6},
+		Prices = {200,1250,2000,20000,500000,10e6},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 20
@@ -92,6 +93,10 @@ ENT.UpgradeReference = {
 }
 ENT.UpgradeLimits = {6,2}
 
+function ENT:ROTGB_ApplyPerks()
+	self.FireRate = self.FireRate * (1+hook.Run("GetSkillAmount", "sniperQueenFireRate")/100)
+end
+
 local function SnipeEntity()
 	while true do
 		local self,ent = coroutine.yield()
@@ -111,7 +116,7 @@ local function SnipeEntity()
 			Dir = uDir,
 			Src = startPos
 		}
-		if self.rotgb_StunBlimp and ent:GetBalloonProperty("BalloonBlimp") and ent:GetBalloonProperty("BalloonType")~="gballoon_blimp_purple" and ent:GetBalloonProperty("BalloonType")~="gballoon_blimp_rainbow" then
+		if self.rotgb_StunBlimp and ent:GetBalloonProperty("BalloonBlimp") and ent:GetRgBE()<35128 then
 			ent:Stun(1)
 		end
 		if self.rotgb_MarkingShots then

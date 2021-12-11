@@ -6,7 +6,7 @@ ENT.PrintName = "Turret Factory"
 ENT.Category = "RotgB: Towers"
 ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "This tower creates turrets that seek out gBalloons, but only if they are in the turret's range."
+ENT.Purpose = "This tower creates turrets that seek out gBalloons. Turrets have a range of 256 Hu."
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -24,29 +24,30 @@ ENT.rotgb_TurretSpeed = 300
 ENT.rotgb_TurretRange = 256
 ENT.rotgb_CritChance = 0
 ENT.rotgb_CritMul = 5
+ENT.rotgb_PostFireRate = 1
 ENT.rotgb_PostMul = 1
 ENT.UpgradeReference = {
 	{
-		Names = {"Speed Up","Speed Up II","High Tech Turrets","Final Moments","Golden Bullets","Rope Bullets"},
+		Names = {"Speed Up","High Tech Turrets","All Out Attack","Final Moments","Golden Bullets","Rope Bullets"},
 		Descs = {
 			"Reduces turret generation delay by 1 second.",
-			"Reduces turret generation delay by another second. Also slightly increases the turrets' ranges.",
-			"Turrets can now detect Hidden gBalloons.",
+			"Reduces turret generation delay by another second. Also allows turrets to detect Hidden gBalloons.",
+			"Turrets that are sparking fire 10 times faster!",
 			"Turrets that are sparking deal decuple (x10) damage!",
-			"Every time a turret hits a gBalloon, gain $10!",
-			"Bullets slow down gBalloons by 75% for 1 second!"
+			"Every time a turret hits a gBalloon, gain $100!",
+			"Bullets slow down ANY gBalloons by 75% for 1 second!"
 		},
-		Prices = {150,800,1500,2500,25000,100000},
+		Prices = {150,1500,1750,20000,25000,100000},
 		Funcs = {
 			function(self)
 				self.AbilityCooldown = self.AbilityCooldown * 3/4
 			end,
 			function(self)
 				self.AbilityCooldown = self.AbilityCooldown * 2/3
-				self.rotgb_TurretRange = self.rotgb_TurretRange * 1.5
+				self.SeeCamo = true
 			end,
 			function(self)
-				self.SeeCamo = true
+				self.rotgb_PostFireRate = self.rotgb_PostFireRate * 10
 			end,
 			function(self)
 				self.rotgb_PostMul = self.rotgb_PostMul * 10
@@ -64,11 +65,11 @@ ENT.UpgradeReference = {
 		Descs = {
 			"Slightly increases turrets' speeds and fire rates.",
 			"Considerably increases turrets' speeds and fire rates.",
-			"Tremendously increases turrets' fire rate.",
+			"Tremendously increases turrets' speeds and fire rates.",
 			"All turrets now shoot lasers!",
 			"All turrets can now hit multiple gBalloons at once!",
 		},
-		Prices = {400,1750,5000,7500,30000},
+		Prices = {200,650,2500,4000,30000},
 		Funcs = {
 			function(self)
 				self.rotgb_TurretSpeed = self.rotgb_TurretSpeed * 1.5
@@ -79,6 +80,7 @@ ENT.UpgradeReference = {
 				self.FireRate = self.FireRate * 2
 			end,
 			function(self)
+				self.rotgb_TurretSpeed = self.rotgb_TurretSpeed * 3
 				self.FireRate = self.FireRate * 3
 			end,
 			function(self)
@@ -94,19 +96,19 @@ ENT.UpgradeReference = {
 		Names = {"Bigger Bullets","Critical Bullets","Super Bullets","One With The Crits","Real Bangers","Killshots"},
 		Descs = {
 			"Considerably increases the turrets' damage.",
-			"Turrets have a 10% chance to critically hit, dealing quintuple (x5) damage and ignoring resistances.",
+			"Turrets have a 20% chance to critically hit, dealing quintuple (x5) damage and ignoring resistances.",
 			"Critical hits now deal quindecuple (x15) damage instead of quintuple damage.",
 			"Critical hits now deal quinqueseptuagintuple (x75) damage!",
-			"Critical hit chance is reduced to 5%, but critical hits deal quincentuple (x500) damage!",
+			"Critical hit chance is reduced to 10%, but critical hits deal quincentuple (x500) damage!",
 			"Critical hit chance is reduced to 1%, but if it crits...!"
 		},
-		Prices = {450,1250,5000,25000,75000,1.5e6},
+		Prices = {450,850,1850,10000,30000,1.5e6},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 10
 			end,
 			function(self)
-				self.rotgb_CritChance = 0.1
+				self.rotgb_CritChance = 0.2
 			end,
 			function(self)
 				self.rotgb_CritMul = self.rotgb_CritMul * 3
@@ -119,13 +121,17 @@ ENT.UpgradeReference = {
 				self.rotgb_CritMul = self.rotgb_CritMul * 20 / 3
 			end,
 			function(self)
-				self.rotgb_CritChance = self.rotgb_CritChance / 5
-				self.rotgb_CritMul = self.rotgb_CritMul * 200
+				self.rotgb_CritChance = self.rotgb_CritChance / 10
+				self.rotgb_CritMul = self.rotgb_CritMul * 400
 			end
 		}
 	}
 }
 ENT.UpgradeLimits = {6,2,0}
+
+function ENT:ROTGB_ApplyPerks()
+	self.AbilityCooldown = self.AbilityCooldown * (1+hook.Run("GetSkillAmount", "turretFactoryAbilityCooldown")/100)
+end
 
 function ENT:TriggerAbility()
 	local navs = navmesh.Find(self:GetShootPos(), self.DetectionRadius, self.DetectionRadius/4, self.DetectionRadius/4)

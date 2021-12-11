@@ -136,12 +136,22 @@ function SWEP:SecondaryAttack()
 	end
 	if self:CanSecondaryAttack() then
 		self:SetNextSecondaryFire(CurTime()+0.2)
+		-- FIXME: This is a VERY bad way to get the modified amounts
+		self.TowerTable = table.Copy(ROTGB_GetAllTowers())
+		for k,v in pairs(self.TowerTable) do
+			if not self.BaseTowerTable then	
+				self.BaseTowerTable = scripted_ents.GetStored("gballoon_tower_base")
+			end
+			v.ROTGB_ApplyPerks = v.ROTGB_ApplyPerks or self.BaseTowerTable.t.ROTGB_ApplyPerks
+			self.BaseTowerTable.t.ApplyPerks(v)
+		end
 		if IsValid(self.TowerMenu) then
 			if self.TowerMenu:IsVisible() then
 				self.TowerMenu:Hide()
 			else
 				self.TowerMenu:Show()
 				self.TowerMenu:MakePopup()
+				self.TowerMenu:OnShow()
 			end
 		else
 			self:CreateTowerMenu()
@@ -173,8 +183,16 @@ end
 
 function SWEP:Think()
 	if not self.TowerTable then
-		self.TowerTable = ROTGB_GetAllTowers()
 		self:SetHoldType("slam")
+		-- FIXME: duplication of above FIXME
+		self.TowerTable = table.Copy(ROTGB_GetAllTowers())
+		for k,v in pairs(self.TowerTable) do
+			if not self.BaseTowerTable then	
+				self.BaseTowerTable = scripted_ents.GetStored("gballoon_tower_base")
+			end
+			v.ROTGB_ApplyPerks = v.ROTGB_ApplyPerks or self.BaseTowerTable.t.ROTGB_ApplyPerks
+			self.BaseTowerTable.t.ApplyPerks(v)
+		end
 	end
 	if CLIENT then
 		if self:GetCurrentTower() == 0 then
@@ -196,13 +214,13 @@ function SWEP:Think()
 				self.ClientsideModel.TowerType = self:GetCurrentTower()
 				self.ClientsideModel.RenderOverride = function(self)
 					self:DrawModel()
-					if tower.DetectionRadius < 16384 and GetConVar("rotgb_range_enable_indicators"):GetBool() then
-						local fadeout = GetConVar("rotgb_range_fade_time"):GetFloat()
-						self.DrawFadeNext = RealTime()+fadeout+GetConVar("rotgb_range_hold_time"):GetFloat()
+					if tower.DetectionRadius < 16384 and ROTGB_GetConVarValue("rotgb_range_enable_indicators") then
+						local fadeout = ROTGB_GetConVarValue("rotgb_range_fade_time")
+						self.DrawFadeNext = RealTime()+fadeout+ROTGB_GetConVarValue("rotgb_range_hold_time")
 						if (self.DrawFadeNext or 0)>RealTime() then
-							local ConA = GetConVar("rotgb_range_alpha")
+							local maxAlpha = ROTGB_GetConVarValue("rotgb_range_alpha")
 							local scol = self:GetColor() == color_aqua and tower.InfiniteRange and color_blue or self:GetColor()
-							local alpha = math.Clamp(math.Remap(self.DrawFadeNext-RealTime(),fadeout,0,ConA:GetFloat(),0),0,ConA:GetFloat())
+							local alpha = math.Clamp(math.Remap(self.DrawFadeNext-RealTime(),fadeout,0,maxAlpha,0),0,maxAlpha)
 							scol = Color(scol.r,scol.g,scol.b,alpha)
 							render.DrawWireframeSphere(self:LocalToWorld(tower.LOSOffset or vector_origin),-tower.DetectionRadius,32,17,scol,true)
 						end
@@ -328,6 +346,9 @@ local function PaintBackground(self, w, h)
 end
 
 function SWEP:InstallMenuFunctions(Main)
+	function Main:OnShow()
+		self.AutoStartCheckBox:Refresh()
+	end
 	function Main:CreateButton(text, parent, color1, color2, color3)
 		local Button = vgui.Create("DButton", parent)
 		Button:SetFont("RotgBUIFont")
@@ -469,7 +490,7 @@ function SWEP:CreateLeftPanel(Main)
 							net.WriteEntity(v)
 							net.SendToServer()
 							
-							if not GetConVar("rotgb_individualcash"):GetBool() then
+							if not ROTGB_GetConVarValue("rotgb_individualcash") then
 								chat.AddText(color_aqua, "It is pointless to use this option while Individual Cash\nis disabled (ConVar rotgb_individualcash).")
 							end
 						else
@@ -573,8 +594,8 @@ function SWEP:CreateRightPanel(Main)
 	TowersPanel:Dock(FILL)
 	local oldThink = ScrollPanel.Think
 	function ScrollPanel:Think(...)
-		if self.Difficulty ~= GetConVar("rotgb_difficulty"):GetFloat() then
-			self.Difficulty = GetConVar("rotgb_difficulty"):GetFloat()
+		if self.Difficulty ~= ROTGB_GetConVarValue("rotgb_difficulty") then
+			self.Difficulty = ROTGB_GetConVarValue("rotgb_difficulty")
 			self:Refresh()
 		end
 		if oldThink then
@@ -599,7 +620,7 @@ function SWEP:CreateRightPanel(Main)
 				local drawColor = color_white
 				local isLevelLocked = false
 				if self.minimumLevel > 0 then
-					isLevelLocked = LocalPlayer():ROTGB_GetLevel() < self.minimumLevel
+					isLevelLocked = LocalPlayer():RTG_GetLevel() < self.minimumLevel
 				end
 				if isLevelLocked then
 					drawColor = color_red
@@ -677,17 +698,23 @@ function SWEP:CreateBottomRightPanel(Main)
 	AutoCheckBox:SizeToContentsY()
 	AutoCheckBox:Dock(BOTTOM)
 	AutoCheckBox:DockMargin(0,padding,0,0)
-	for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
-		if v:GetAutoStart() then
-			AutoCheckBox:SetChecked(true)
-		end
-	end
 	function AutoCheckBox:OnChange(value)
 		net.Start("rotgb_controller")
 		net.WriteUInt(ROTGB_AUTOSTART, 8)
 		net.WriteBool(value)
 		net.SendToServer()
 	end
+	function AutoCheckBox:Refresh()
+		self:SetChecked(false)
+		for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
+			if v:GetAutoStart() then
+				self:SetChecked(true)
+				break
+			end
+		end
+	end
+	AutoCheckBox:Refresh()
+	Main.AutoStartCheckBox = AutoCheckBox
 	
 	local ButtonDivider = vgui.Create("DHorizontalDivider", BottomPanel)
 	ButtonDivider:Dock(FILL)

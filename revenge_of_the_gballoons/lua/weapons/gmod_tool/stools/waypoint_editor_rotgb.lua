@@ -268,6 +268,10 @@ TOOL.Reload = function(self,trace)
 	end
 end
 
+TOOL.UnpackColor = function(self,color)
+	return color.r, color.g, color.b, color.a
+end
+
 TOOL.GetEColor = function(self,delta,nonblimp)
 	local colmode = tonumber(self:GetClientInfo("indicator_color"))
 	if colmode>=6 and colmode<=11 then
@@ -278,15 +282,15 @@ TOOL.GetEColor = function(self,delta,nonblimp)
 		end
 	end
 	if colmode==0 then
-		return HSVToColor(delta*360,1,1):Unpack()
+		return self:UnpackColor(HSVToColor(delta*360,1,1))
 	elseif colmode==1 then
 		local col = HSVToColor(delta*360,1,1)
 		col.a = math.sin(delta*math.pi)*255
-		return col:Unpack()
+		return self:UnpackColor(col)
 	elseif colmode==2 then
 		local col = HSVToColor(delta*360,1,1)
 		col.a = 255-math.sin(delta*math.pi)*255
-		return col:Unpack()
+		return self:UnpackColor(col)
 	else
 		local builtcolor
 		if nonblimp then
@@ -299,7 +303,7 @@ TOOL.GetEColor = function(self,delta,nonblimp)
 		elseif colmode==5 then
 			builtcolor.a = builtcolor.a*(1-math.sin(delta*math.pi))
 		end
-		return builtcolor:Unpack()
+		return self:UnpackColor(builtcolor)
 	end
 end
 

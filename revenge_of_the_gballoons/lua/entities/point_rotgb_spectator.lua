@@ -7,6 +7,7 @@ ENT.Instructions = "Hook this entity's inputs and outputs to something."
 
 function ENT:SetupDataTables()
 	self:NetworkVar("Bool",0,"Disabled")
+	self:NetworkVar("Bool",1,"RotationLocked")
 	self:NetworkVar("Int",0,"UsageFlags")
 	self:NetworkVar("Int",1,"FOV")
 end
@@ -21,6 +22,8 @@ function ENT:KeyValue(key,value)
 		self.EndingPoint = tonumber(value) or 0
 	elseif key=="fov" then
 		self:SetFOV(tonumber(value) or 0)
+	elseif key=="lock_rotation" then
+		self:SetRotationLocked(tobool(value))
 	end
 	self:TransmitChangeToSpectatingPlayers()
 end
@@ -41,6 +44,8 @@ function ENT:AcceptInput(input,activator,caller,data)
 		self:UpdateUsageFlags()
 	elseif input=="setfov" then
 		self:SetFOV(tonumber(data) or 0)
+	elseif input=="setlockrotation" then
+		self:SetRotationLocked(tobool(data))
 	end
 	self:TransmitChangeToSpectatingPlayers()
 end

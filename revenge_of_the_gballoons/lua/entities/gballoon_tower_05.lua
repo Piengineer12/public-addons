@@ -14,7 +14,7 @@ ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/hunter/misc/cone1x05.mdl")
 ENT.FireRate = 0.4
 ENT.Cost = 450
-ENT.DetectionRadius = 192
+ENT.DetectionRadius = 256
 ENT.AbilityCooldown = 60
 ENT.FireWhenNoEnemies = true
 ENT.UseLOS = true
@@ -64,19 +64,19 @@ ENT.UpgradeReference = {
 		Names = {"Greater Influence","Better Coolant","Below Zero","Winds of Antarctica","Ice Sign: Absolute Zero","The World of White Wonderland"},
 		Descs = {
 			"Slightly increases freezing range.",
-			"Considerably increases freezing duration.",
+			"Slightly increases freezing duration.",
 			"Freezing now causes ALL layers to be frozen. Enables the tower to freeze gBlimps weaker than Green gBlimps.",
 			"Every gBalloon in its radius moves 50% slower, even if hidden.",
 			"Once every 60 seconds, shooting at this tower causes all gBalloons to move 75% slower for 15 seconds.",
 			"Considerably increases freezing range. All gBalloons move 75% slower regardless of range. Once every 60 seconds, shooting at this tower freezes all gBalloons in addition to slowing them down for 15 seconds."
 		},
-		Prices = {200,1250,15000,20000,50000,1000000},
+		Prices = {200,300,8500,17500,25000,500000},
 		Funcs = {
 			function(self)
 				self.DetectionRadius = self.DetectionRadius * 1.5
 			end,
 			function(self)
-				self.rotgb_FreezeTime = self.rotgb_FreezeTime * 2
+				self.rotgb_FreezeTime = self.rotgb_FreezeTime * 1.5
 				--self.rotgb_FreezeBoost = true
 			end,
 			function(self)
@@ -96,24 +96,24 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Quick Refresher","Agitated Core","Angered Core","Cold Play","Icicle Storm","Blizzard and Hail"},
+		Names = {"Agitated Core","Quick Refresher","Angered Core","Cold Play","Icicle Storm","Blizzard and Hail"},
 		Descs = {
-			"Slightly increases freezing rate.",
 			"The Orb of Cold now fires ice shards which pop one layer per shot.",
+			"Slightly increases shard fire rate and freezing rate.",
 			"Considerably increases shard fire rate and damage.",
 			"Tremendously increases shard damage and shards gain infinite range. Will still freeze gBalloons only in its original radius.",
 			"Increases fire rate by 1% per RgBE of every gBalloon within range.",
 			"Every time a shard hits a gBalloon, shard damage is increased by 1/10th of a layer. All bonus damage is lost when no gBalloons can be attacked with shards."
 		},
-		Prices = {400,450,3500,15000,75000,750000},
+		Prices = {250,850,1000,7500,75000,750000},
 		Funcs = {
 			function(self)
-				self.FireRate = self.FireRate * 1.5
+				self.FireRate = self.FireRate * 5
+				self.rotgb_FireRateMul = self.rotgb_FireRateMul * 5
+				self.UserTargeting = true
 			end,
 			function(self)
-				self.FireRate = self.FireRate * 4
-				self.rotgb_FireRateMul = self.rotgb_FireRateMul * 4
-				self.UserTargeting = true
+				self.FireRate = self.FireRate * 1.5
 			end,
 			function(self)
 				self.FireRate = self.FireRate * 2
@@ -134,6 +134,10 @@ ENT.UpgradeReference = {
 	}
 }
 ENT.UpgradeLimits = {6,2,0}
+
+function ENT:ROTGB_ApplyPerks()
+	self.rotgb_SpeedPercent = self.rotgb_SpeedPercent * (1+hook.Run("GetSkillAmount", "orbOfColdSpeedPercent")/100)
+end
 
 function ENT:DoFreeze(ent)
 	if (self:ValidTargetIgnoreRange(ent) and ent:GetPos():DistToSqr(self:GetShootPos())<=self.DetectionRadius*self.DetectionRadius) then
@@ -251,11 +255,13 @@ function ENT:ROTGB_Think()
 end
 
 function ENT:ROTGB_Draw()
+	local curTime = CurTime()
+	local pi = math.pi
 	self.DispVec = self.DispVec or Vector()
-	self.DispVec.z = math.sin(CurTime()%2*math.pi)*6
-	local elapsedseconds = CurTime()-self:GetNWFloat("LastFireTime")
+	self.DispVec.z = math.sin(curTime%2*pi)*6
+	local elapsedseconds = curTime-self:GetNWFloat("LastFireTime")
 	local dispvec = self.LOSOffset + self.DispVec
-	local sat = math.min(math.EaseInOut(math.abs(CurTime()*math.pi/2%2-1),0.5,0.5)/2+0.5,elapsedseconds*math.pi)
+	local sat = math.min(math.EaseInOut(math.abs(curTime*pi/2%2-1),0.5,0.5)/2+0.5,elapsedseconds*pi)
 	self:DrawModel()
 	render.SetColorMaterial()
 	render.DrawSphere(self:LocalToWorld(dispvec),6,24,13,HSVToColor(180,sat,1))

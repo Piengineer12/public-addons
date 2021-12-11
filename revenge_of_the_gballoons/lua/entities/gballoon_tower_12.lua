@@ -19,7 +19,7 @@ ENT.AttackDamage = 10
 ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,20)
 ENT.UserTargeting = true
-ENT.rotgb_MaxPierce = 3
+ENT.rotgb_MaxPierce = 5
 ENT.rotgb_Size = 2
 ENT.rotgb_Torque = 80e3
 ENT.UpgradeReference = {
@@ -98,6 +98,10 @@ ENT.UpgradeReference = {
 }
 ENT.UpgradeLimits = {6,2}
 
+function ENT:ROTGB_ApplyPerks()
+	self.rotgb_MaxPierce = self.rotgb_MaxPierce + hook.Run("GetSkillAmount", "sawbladeLauncherPierce")
+end
+
 local rosqrt2 = 1/math.sqrt(2)
 
 local function ExpirySaw(ent,tower)
@@ -175,12 +179,12 @@ function ENT:ROTGB_Think()
 						dmginfo:SetDamage(self.AttackDamage)
 						v.rotgb_MaxPierce = v.rotgb_MaxPierce - 1
 						self.rotgb_Hits = (self.rotgb_Hits or 0) + 1
-						if self.rotgb_Electric and not v2:GetBalloonProperty("BalloonPurple") then
+						if self.rotgb_Electric and v2:DamageTypeCanDamage(DMG_SHOCK) then
 							dmginfo:SetDamageType(DMG_SHOCK)
 							dmginfo:ScaleDamage(3)
 							v2:TakeDamageInfo(dmginfo)
 							dmginfo:ScaleDamage(1/3)
-						elseif v2:GetBalloonProperty("BalloonGray") then
+						elseif not v2:DamageTypeCanDamage(DMG_SLASH) then
 							v.rotgb_MaxPierce = 0
 							self.rotgb_Hits = self.rotgb_Hits - 1
 						end
@@ -234,7 +238,7 @@ function ENT:FireFunction(tableOfBalloons)
 			local ivel = tableOfBalloons[pind]:GetPos()-self:GetShootPos()
 			ivel.z = 0
 			ivel:Normalize()
-			ivel:Mul(500+math.random()*50)
+			ivel:Mul(1000+math.random()*100)
 			physobj:SetVelocity(ivel)
 			pind = pind + 1
 		end

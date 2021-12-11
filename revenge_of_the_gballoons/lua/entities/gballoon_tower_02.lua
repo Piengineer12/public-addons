@@ -14,7 +14,7 @@ ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/dav0r/tnt/tnttimed.mdl")
 ENT.FireRate = 0.5
 ENT.Cost = 850
-ENT.DetectionRadius = 192
+ENT.DetectionRadius = 256
 ENT.AbilityCooldown = 30
 ENT.AttackDamage = 10
 ENT.rotgb_AbilityDamage = 32768
@@ -87,14 +87,14 @@ ENT.UpgradeReference = {
 	{
 		Names = {"WOWsplosions","Heavy Bombs","Flex Remover","Ice Bombs","The Tsar Bomba","Meteor Nuke"},
 		Descs = {
-			"gBalloons hit by this tower move 30% slower for 3 seconds.",
+			"gBalloons hit by this tower move 50% slower for 3 seconds.",
 			"Tremendously increases damage versus gBlimps.",
 			"Explosions strip gBalloons of their Shielded and Fast properties.",
 			"Freezes gBalloons for 2 seconds per hit. Note that White and Black gBalloons cannot be frozen by this upgrade.",
 			"Once every 30 seconds, firing at this tower deals massive damage to all gBalloons regardless of immunities.",
 			"The Tsar Bomba deals far more damage, enough to wipe out all Purple gBlimps on the map!",
 		},
-		Prices = {400,1750,3500,25000,300000,4.5e6},--{350,700,1500,4000,250000},
+		Prices = {400,1750,3500,7500,100000,1.25e6},--{400,1750,3500,25000,300000,4.5e6},
 		Funcs = {
 			function(self)
 				self.rotgb_AlternateExplode = true
@@ -118,6 +118,10 @@ ENT.UpgradeReference = {
 	}
 }
 ENT.UpgradeLimits = {6,2,0}
+
+function ENT:ROTGB_ApplyPerks()
+	self.DetectionRadius = self.DetectionRadius * (1+hook.Run("GetSkillAmount", "proximityMineRange")/100)
+end
 
 function ENT:FireFunction(gBalloons)
 	self:EmitSound("phx/kaboom.wav", 75, math.random(80,120), 0.5)
@@ -196,7 +200,7 @@ function ENT:Explode(pos, recursion, gBalloons)
 				end
 			end
 			if self.rotgb_AlternateExplode then
-				v:Slowdown("ROTGB_PROX_MINE",0.7,3)
+				v:Slowdown("ROTGB_PROX_MINE",0.5,3)
 			end
 			v.ROTGB_TOWER_02_Marks = (v.ROTGB_TOWER_02_Marks or 0) + markedDamage
 		end

@@ -27,7 +27,7 @@ ENT.UpgradeReference = {
 	{
 		Names = {"Unstoppable Waves","Intense Waves","Thermal Detection","Concentrated Waves","Extreme Frequency Waves","Extremely Concentrated Waves"},
 		Descs = {
-			"Increases the tower's range to infinite.",
+			"Considerably increases the tower's range.",
 			"Considerably increases microwave damage.",
 			"Enables the tower to see hidden gBalloons.",
 			"Tremendously increases microwave damage, but slightly decreases microwave width.",
@@ -37,7 +37,7 @@ ENT.UpgradeReference = {
 		Prices = {650,1250,3000,5000,75000,850000},
 		Funcs = {
 			function(self)
-				self.InfiniteRange = true
+				self.DetectionRadius = self.DetectionRadius * 2
 			end,
 			function(self)
 				self.AttackDamage = self.AttackDamage + 10
@@ -63,7 +63,7 @@ ENT.UpgradeReference = {
 	{
 		Names = {"Stronger Battery","Diffractional Waves","Open Fryer","20-Star Fryer","gBalloon S.E.A.R.","Now That's Hot"},
 		Descs = {
-			"Increases the tower's fire rate.",
+			"Slightly increases the tower's fire rate.",
 			"Triples the width of microwaves.",
 			"Microwaves are now emitted in all directions.",
 			"Microwaves now have a 20% chance to set gBalloons on fire permanently. Every time the tower successfully does this, new fires from this tower pop one extra layer for 10 seconds. This effect stacks.",
@@ -96,6 +96,10 @@ ENT.UpgradeReference = {
 	}
 }
 ENT.UpgradeLimits = {6,2}
+
+function ENT:ROTGB_ApplyPerks()
+	self.rotgb_MicrowaveAngle = self.rotgb_MicrowaveAngle * (1+hook.Run("GetSkillAmount", "microwaveGeneratorMicrowaveAngle")/100)
+end
 
 function ENT:FireFunction(gBalloons)
 	self:SetNWFloat("LastFireTime",CurTime())

@@ -14,7 +14,7 @@ ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/props_phx/construct/wood/wood_wire1x1x1.mdl")
 ENT.FireRate = 4
 ENT.Cost = 550
-ENT.DetectionRadius = 256
+ENT.DetectionRadius = 384
 ENT.LOSOffset = Vector(0,0,24)
 ENT.UserTargeting = true
 ENT.AbilityCooldown = 15
@@ -73,7 +73,7 @@ ENT.UpgradeReference = {
 		Descs = {
 			"Considerably increases burning duration, but slightly reduces fire rate.",
 			"Tremendously increases burning duration and considerably increases damage over time. However, fire rate is considerably reduced.",
-			"Slightly increases range and fires now ignore immunities.",
+			"Slightly increases range and fires can pop Purple gBalloons.",
 			"Considerably increases range and tremendously increases fire damage over time.",
 			"gBlimps take triple fire damage! Also considerably increases fire rate.",
 			"Tremendously increases fire rate, and infinitely increases range and burning duration!"
@@ -150,6 +150,11 @@ ENT.UpgradeReference = {
 	}
 }
 ENT.UpgradeLimits = {6,4,2}
+
+function ENT:ROTGB_ApplyPerks()
+	self.FireRate = self.FireRate * (1+hook.Run("GetSkillAmount", "fireCubeFireRate")/100)
+	self.DetectionRadius = self.DetectionRadius * (1+hook.Run("GetSkillAmount", "fireCubeRange")/100)
+end
 
 hook.Add("EntityTakeDamage","RotgB_Tower13",function(vic,dmginfo)
 	if vic:GetClass()=="gballoon_base" then
@@ -287,9 +292,9 @@ function ENT:ROTGB_Draw()
 		end
 	end
 	if (self.DrawFadeNext or 0)>RealTime() then
-		local fadeout = GetConVar("rotgb_range_fade_time"):GetFloat()
-		local ConAVal = GetConVar("rotgb_range_alpha"):GetFloat()
-		local alpha = math.Clamp(math.Remap(self.DrawFadeNext-RealTime(),fadeout,0,ConAVal,0),0,ConAVal)
+		local fadeout = ROTGB_GetConVarValue("rotgb_range_fade_time")
+		local maxAlpha = ROTGB_GetConVarValue("rotgb_range_alpha")
+		local alpha = math.Clamp(math.Remap(self.DrawFadeNext-RealTime(),fadeout,0,maxAlpha,0),0,maxAlpha)
 		local scol = Color(255,127,0,alpha)
 		--local scol = Color(255,127,0)
 		--[[render.SetMaterial(laserMat)
@@ -304,7 +309,7 @@ function ENT:ROTGB_Draw()
 		--reqang.y = reqang.y-90
 		selfang.r = selfang.r+90
 		--for i=1,2 do
-			cam.Start3D2D(self:LocalToWorld(self.LOSOffset+Vector(0,0,GetConVar("rotgb_hoverover_distance"):GetFloat()+16+self:OBBMaxs().z)),selfang,1)
+			cam.Start3D2D(self:LocalToWorld(self.LOSOffset+Vector(0,0,ROTGB_GetConVarValue("rotgb_hoverover_distance")+16+self:OBBMaxs().z)),selfang,1)
 				surface.SetDrawColor(scol)
 				surface.SetMaterial(arrowMat)
 				surface.DrawTexturedRect(-16,-16,32,32)
