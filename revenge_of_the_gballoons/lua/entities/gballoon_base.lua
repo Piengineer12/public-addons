@@ -139,6 +139,8 @@ function ENT:GetBalloonProperty(key)
 		self.Properties.BalloonRegen = tobool(self.Properties.BalloonRegen)
 		self.Properties.BalloonVoid = tobool(self.Properties.BalloonVoid)
 		self.Properties.BalloonGlass = tobool(self.Properties.BalloonGlass)
+		self.Properties.BalloonCashBonus = self.Properties.BalloonCashBonus or 0
+		
 		self.PropertyConverted = true
 	end
 	return tonumber(self.Properties[key]) or self.Properties[key]
@@ -178,7 +180,7 @@ function ROTGB_BalloonsExist()
 	for k,v in pairs(ROTGB_GBALLOONS) do
 		if IsValid(v) then return true
 		else
-			ROTGB_GBALLOONS[k] = nil end
+			ROTGB_GBALLOONS[k] = nil
 		end
 	end
 end
@@ -1531,10 +1533,10 @@ function ENT:DetermineNextBalloons(blns,dmgbits,instant)
 					end
 					table.insert(newspawns,crt)
 				end
-				pluses = pluses + v.Amount
+				pluses = pluses + v.Amount * (1+(v.ExtraCash or 0))
 				pops = pops + v.Amount * v.Health
 			else
-				pluses = pluses + v.Amount
+				pluses = pluses + v.Amount * (1+(v.ExtraCash or 0))
 				pops = pops + v.Amount * v.Health
 			end
 		end
@@ -1548,9 +1550,15 @@ function ENT:Pop(damage,target,dmgbits)
 	-- self:SetNWBool("BalloonPurple",false)
 	local maxToExist = ROTGB_GetConVarValue("rotgb_max_to_exist")
 	local doAchievement = ROTGB_GetConVarValue("rotgb_use_achievement_handler")
-	local selftype = self:GetBalloonProperty("BalloonType")
-	local selfblmp = self:GetBalloonProperty("BalloonBlimp")
-	local nexts = {{Type=selftype,Amount=1,Health=1,Properties=self:GetBitflagPropertyState(),PrevBalloons=self.PrevBalloons,Blimp=selfblmp,Frozen=(self.FreezeUntil2 or 0)>CurTime()}}
+	local nexts = {{
+		Type=self:GetBalloonProperty("BalloonType"),
+		Amount=1,Health=1,
+		Properties=self:GetBitflagPropertyState(),
+		PrevBalloons=self.PrevBalloons,
+		Blimp=self:GetBalloonProperty("BalloonBlimp"),
+		Frozen=(self.FreezeUntil2 or 0)>CurTime(),
+		ExtraCash=self:GetBalloonProperty("BalloonCashBonus")
+	}}
 	local cash = 0
 	local deductedCash = 0
 	local pops = 0
@@ -1614,9 +1622,12 @@ function ENT:Pop(damage,target,dmgbits)
 	else
 		local baseMul = ROTGB_GetConVarValue("rotgb_cash_mul")
 		local newcash = self:GetAndApplyValueMultipliers(cash)
-		self:Log("Awarding "..cash*baseMul.." cash (x"..newcash/cash..") after "..pops.." pops...","damage")
-		cash = newcash
-		ROTGB_AddCash(cash*baseMul)
+		local toAward = newcash*baseMul
+		if engine.ActiveGamemode() == "rotgb" then	
+			toAward = toAward * (1+hook.Run("GetSkillAmount", "cashFromBalloons")/100)
+		end
+		self:Log("Awarding "..toAward.." cash (x"..newcash/cash..") after "..pops.." pops...","damage")
+		ROTGB_AddCash(toAward)
 		if (IsValid(self.LastInflictor) and (self.LastInflictor.Base == "gballoon_tower_base" or self.LastInflictor:GetClass()=="rotgb_shooter")) and pops > 0 then
 			self.LastInflictor:AddPops(pops)
 			self:Log("Credited "..tostring(self.LastInflictor).." "..pops.." pop(s).","damage")

@@ -15,6 +15,7 @@ ENT.Model = Model("models/props_phx/gears/bevel90_24.mdl")
 ENT.FireRate = 1
 ENT.Cost = 500
 ENT.DetectionRadius = 256
+ENT.InfiniteRange = true
 ENT.AttackDamage = 10
 ENT.LOSOffset = Vector(0,0,32)
 ENT.UserTargeting = true
@@ -152,11 +153,14 @@ end
 
 function ENT:ROTGB_Think()
 	if self:GetAbilityNextFire()<CurTime() then
-		self:SetAbilityNextFire(CurTime() + self.AbilityCooldown)
-		local failed = self:TriggerAbility()
-		if failed then
-			self:SetAbilityNextFire(0)
-		end
+		local dmginfo = DamageInfo()
+		
+		dmginfo:SetAttacker(self:GetTowerOwner())
+		dmginfo:SetInflictor(self:GetTowerOwner())
+		dmginfo:SetDamageType(DMG_GENERIC)
+		dmginfo:SetDamage(1)
+		
+		self:TakeDamageInfo(dmginfo)
 	elseif (self.HasAbility and self:GetAbilityNextFire()>CurTime()+self.AbilityCooldown) then
 		self:SetAbilityNextFire(0)
 	end

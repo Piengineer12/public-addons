@@ -190,9 +190,12 @@ function ENT:FireFunction(gBalloons)
 		local perf,str = coroutine.resume(self.thread,self,gBalloons[1])
 		if not perf then error(str) end
 	else
+		--local i = 1
 		for k,v in pairs(gBalloons) do
 			local perf,str = coroutine.resume(self.thread,self,v)
 			if not perf then error(str) end
+			--i = i + 1
+			--if i > 10 then break end
 		end
 	end
 end

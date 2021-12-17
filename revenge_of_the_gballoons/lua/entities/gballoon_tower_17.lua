@@ -27,7 +27,7 @@ ENT.rotgb_PoisonDuration = 10
 ENT.rotgb_PoisonRange = 64
 ENT.rotgb_SplashDamageModifier = -10
 ENT.rotgb_AbilityType = 0
-ENT.rotgb_FlyTime = 1
+ENT.rotgb_FlyTime = 0.2
 ENT.rotgb_ExtraMul = 0
 ENT.UpgradeReference = {
 	{
@@ -164,6 +164,10 @@ ENT.UpgradeLimits = {5,3,3,0}
 function ENT:ROTGB_ApplyPerks()
 	self.rotgb_FlyTime = self.rotgb_FlyTime * (1+hook.Run("GetSkillAmount", "pillLobberFlyTime")/100)
 	self.rotgb_ExploRadius = self.rotgb_ExploRadius * (1+hook.Run("GetSkillAmount", "pillLobberExploRadius")/100)
+	
+	local directDamage = math.floor(hook.Run("GetSkillAmount", "pillLobberDirectDamage"))*10
+	self.AttackDamage = self.AttackDamage + directDamage
+	self.rotgb_SplashDamageModifier = self.rotgb_SplashDamageModifier - directDamage
 end
 
 function ENT:GetThrowVelocity(localVector)

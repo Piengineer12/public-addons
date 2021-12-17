@@ -125,9 +125,9 @@ ENT.UpgradeReference = {
 			"At the start of each round, gain 15% of a round's worth of hoverball cash.",
 			"This tower no longer generates income. At the start of each round, gain 115% of the hoverball income and 12 seconds of non-hoverball income that would have been generated.",
 			"Each round, hoverball cash production is altered to between 0% and 400%.",
-			"At the end of each round, all gBalloon Targets gain 20 health.",
+			"At the end of each round, all gBalloon Targets' health is increased by 20% of their maximum health, rounded down. This upgrade can overheal targets.",
 			"At the end of each round, the hoverball income of all Hoverball Factory towers are multiplied by 1.2!",
-			"At the end of each round, all gBalloon Targets' health are multiplied by 1.2!"
+			"At the end of each round, all gBalloon Targets' health is increased by 20% of their health, rounded down. This upgrade can overheal targets."
 		},
 		Prices = {450,1000,2000,5000,20000,75000},
 		Funcs = {
@@ -155,6 +155,10 @@ ENT.UpgradeReference = {
 }
 ENT.UpgradeLimits = {7,2,0}
 
+function ENT:ROTGB_ApplyPerks()
+	self:ScaleCosts(1+hook.Run("GetSkillAmount", "hoverballFactoryCosts")/100)
+end
+
 function ENT:FireFunction(gBalloons)
 	if IsValid(self.rotgb_Spawner) then
 		local delayBetweenBalls = self.rotgb_HoverballDelay * 10 / self.FireRate
@@ -162,6 +166,9 @@ function ENT:FireFunction(gBalloons)
 			self.rotgb_LastCharge = self.rotgb_LastCharge + delayBetweenBalls
 			local should10x = self.rotgb_10Chance and math.random() < 0.1
 			local hoverballAmount = self.rotgb_HoverballWorth * (should10x and 10 or 1)
+			if engine.ActiveGamemode() == "rotgb" then
+				hoverballAmount = hoverballAmount * (1+hook.Run("GetSkillAmount", "valuableHoverballs")/100)
+			end
 			if self.rotgb_AutoHoverball then
 				self:AddCash(hoverballAmount, self:GetTowerOwner())
 				local effdata = EffectData()
@@ -222,6 +229,7 @@ end
 
 function ENT:PerformBank(lagless)
 	self.rotgb_CashToAdd = lagless and self.rotgb_CashToAdd or {}
+	local cashMultiplier = self.rotgb_BankFactor*(1+(hook.Run("GetSkillAmount", "valuableHoverballs") or 0)/100)
 	if self.rotgb_BankBonus then
 		if not lagless then
 			for k,v in pairs(ents.GetAll()) do
@@ -232,11 +240,11 @@ function ENT:PerformBank(lagless)
 			end
 		end
 		for k,v in pairs(player.GetAll()) do
-			self:AddCash(math.min(self.rotgb_BankMax, (ROTGB_GetCash(v) + (self.rotgb_CashToAdd[v] or 0)) * self.rotgb_BankFactor), v)
+			self:AddCash(math.min(self.rotgb_BankMax, (ROTGB_GetCash(v) + (self.rotgb_CashToAdd[v] or 0)) * cashMultiplier), v)
 		end
 	else
 		for k,v in pairs(player.GetAll()) do
-			self:AddCash(math.min(self.rotgb_BankMax,ROTGB_GetCash(v)*self.rotgb_BankFactor),v)
+			self:AddCash(math.min(self.rotgb_BankMax,ROTGB_GetCash(v)*cashMultiplier),v)
 		end
 	end
 end
@@ -246,7 +254,7 @@ hook.Add("gBalloonSpawnerWaveStarted", "ROTGB_TOWER_16", function(spawner,wave)
 		if v.rotgb_Spawner == spawner then
 			local buff = v.rotgb_Buff
 			v:AddCash(v.rotgb_HoverballWorth*(v.rotgb_10Chance and 1.9 or 1)/v.rotgb_HoverballDelay*v.FireRate/10*v.rotgb_HoverballPostCash
-			*(v.rotgb_Trading and math.random()*4 or 1), v:GetTowerOwner())
+			*(v.rotgb_Trading and math.random()*4 or 1)*(1+(hook.Run("GetSkillAmount", "valuableHoverballs") or 0)/100), v:GetTowerOwner())
 			if v.rotgb_BankFactor > 0 and v.rotgb_NoHoverball then
 				v:PerformBank()
 				for i=1,11 do
@@ -254,13 +262,17 @@ hook.Add("gBalloonSpawnerWaveStarted", "ROTGB_TOWER_16", function(spawner,wave)
 				end
 			end
 			if buff > 0 then
+				local healthProvide = v.rotgb_AutoHoverball and 0.4 or 0.2
+				if engine.ActiveGamemode() == "rotgb" then
+					healthProvide = healthProvide*(1+hook.Run("GetSkillAmount", "hoverballFactoryHealthAmplifier")/100)
+				end
 				if buff > 1 then
 					v.rotgb_HoverballWorth = v.rotgb_HoverballWorth * 1.2
 				end
 				for k2,v2 in pairs(ents.FindByClass("gballoon_target")) do
-					v2:SetHealth(math.min(v2:Health()+(v.rotgb_AutoHoverball and 40 or 20), 999999999))
+					v2:SetHealth(math.min(v2:Health()+v2:GetMaxHealth()*healthProvide, 999999999))
 					if buff > 2 then
-						v2:SetHealth(math.min(v2:Health()*(v.rotgb_AutoHoverball and 1.4 or 1.2), 999999999))
+						v2:SetHealth(math.min(v2:Health()*(1+healthProvide), 999999999))
 					end
 				end
 			end
@@ -270,6 +282,6 @@ end)
 
 function ENT:TriggerAbility()
 	for k,v in pairs(player.GetAll()) do
-		self:AddCash(ROTGB_GetCash(v),v)
+		self:AddCash(ROTGB_GetCash(v)*(1+(hook.Run("GetSkillAmount", "valuableHoverballs") or 0)/100),v)
 	end
 end

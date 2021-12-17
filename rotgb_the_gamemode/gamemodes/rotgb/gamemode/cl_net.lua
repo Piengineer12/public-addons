@@ -8,10 +8,13 @@ net.Receive("rotgb_statchanged", function()
 				ply.rtg_XP = net.ReadDouble()
 			end
 		end
-	elseif func == RTG_STAT_INITEXP then
+	elseif func == RTG_STAT_INIT then
 		local ply = net.ReadEntity()
 		if IsValid(ply) then
 			ply.rtg_PreviousXP = net.ReadDouble()
+			if ply == LocalPlayer() then
+				hook.Run("SetNextSave", RealTime())
+			end
 		end
 	elseif func == RTG_STAT_VOTES then
 		local voteWindow = hook.Run("GetVoterMenu")
@@ -53,7 +56,6 @@ net.Receive("rotgb_gamemode", function()
 		if amount == RTG_SKILL_CLEAR or amount == RTG_SKILL_MULTIPLE and not isForSelf then
 			if isForSelf then
 				ply:RTG_ClearSkills()
-				ply:RTG_ApplySkills()
 			else
 				hook.Run("ClearAppliedSkills")
 			end

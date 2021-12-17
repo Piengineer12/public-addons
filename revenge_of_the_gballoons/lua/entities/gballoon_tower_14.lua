@@ -99,6 +99,7 @@ ENT.UpgradeLimits = {6,2}
 
 function ENT:ROTGB_ApplyPerks()
 	self.rotgb_MicrowaveAngle = self.rotgb_MicrowaveAngle * (1+hook.Run("GetSkillAmount", "microwaveGeneratorMicrowaveAngle")/100)
+	self:ScaleCosts(1+hook.Run("GetSkillAmount", "microwaveGeneratorCosts")/100)
 end
 
 function ENT:FireFunction(gBalloons)

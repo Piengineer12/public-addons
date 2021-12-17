@@ -72,6 +72,7 @@ function ENT:Initialize()
 	self:ApplyPerks()
 	local cost = ROTGB_ScaleBuyCost(self.Cost or 0)
 	local maxCount = ROTGB_GetConVarValue("rotgb_tower_maxcount")
+	local upgradePriceMultiplier = self.UpgradeReferencePriceMultiplier
 	self:ROTGB_Initialize()
 	self.LOSOffset = self.LOSOffset or vector_origin
 	
@@ -114,10 +115,7 @@ function ENT:Initialize()
 			for i=1,tier do
 				if (v.Funcs and v.Funcs[tier]) then
 					v.Funcs[tier](self)
-					self.LocalCost = self.LocalCost + ROTGB_ScaleBuyCost(v.Prices[tier])
-				elseif (v.Functions and v.Functions[tier]) then
-					v.Functions[tier](v,self)
-					self.LocalCost = self.LocalCost + ROTGB_ScaleBuyCost(v.Prices[tier])
+					self.LocalCost = self.LocalCost + ROTGB_ScaleBuyCost(v.Prices[tier]*upgradePriceMultiplier)
 				end
 			end
 		end
@@ -166,9 +164,15 @@ ENT.ROTGB_ApplyPerks = ENT.ROTGB_Initialize
 function ENT:ApplyPerks()
 	if engine.ActiveGamemode() == "rotgb" then
 		self:ROTGB_ApplyPerks()
+		self:ScaleCosts(1+hook.Run("GetSkillAmount", "towerCosts")/100)
 		self.FireRate = self.FireRate * (1+hook.Run("GetSkillAmount", "towerFireRate")/100)
 		self.DetectionRadius = self.DetectionRadius * (1+hook.Run("GetSkillAmount", "towerRange")/100)
 	end
+end
+
+function ENT:ScaleCosts(scale)
+	self.Cost = self.Cost * scale
+	self.UpgradeReferencePriceMultiplier = (self.UpgradeReferencePriceMultiplier or 1) * scale
 end
 
 hook.Add("EntityTakeDamage","ROTGB_TOWERS",function(vic,dmginfo)
@@ -326,15 +330,18 @@ function ENT:Think()
 					if hook.Run("GetSkillAmount", "towerEarlyFireRate") ~= 0 then
 						local waveFireRateFractionBonus = math.max(math.Remap(self.MaxWaveReached or 0, 1, 41, 1, 0), 0)
 						local mul = 1+hook.Run("GetSkillAmount", "towerEarlyFireRate")/100*waveFireRateFractionBonus
+						--print("A", mul)
 						bonusMultiplier = bonusMultiplier * mul
 					end
-					if hook.Run("GetSkillAmount", "towerAbilityD3FireRate") ~= 0 and (v.OtherTowerAbilityActivatedTime or 0) >= CurTime() then
+					if hook.Run("GetSkillAmount", "towerAbilityD3FireRate") ~= 0 and (self.OtherTowerAbilityActivatedTime or 0) >= CurTime() then
 						local mul = 1+hook.Run("GetSkillAmount", "towerAbilityD3FireRate")/100
+						--print("B", mul)
 						bonusMultiplier = bonusMultiplier * mul
 					end
-					if hook.Run("GetSkillAmount", "towerMoneyFireRate") ~= 0 then
-						local logMul = self.SellAmount > 0 and math.max(math.log10(self.SellAmount), 1) or 1
+					if hook.Run("GetSkillAmount", "towerMoneyFireRate") ~= 0 and self.SellAmount then
+						local logMul = self.SellAmount > 0 and math.max(math.log(self.SellAmount), 1) or 1
 						local mul = 1+hook.Run("GetSkillAmount", "towerMoneyFireRate")/100*logMul
+						--print("C", mul)
 						bonusMultiplier = bonusMultiplier * mul
 					end
 					self.BonusFireRate = bonusMultiplier
@@ -488,7 +495,7 @@ function ENT:OnTakeDamage(dmginfo)
 			if engine.ActiveGamemode() == "rotgb" then
 				for k,v in pairs(ents.GetAll()) do
 					if v.Base == "gballoon_tower_base" then
-						v.OtherTowerAbilityActivatedTime = CurTime() + self.AbilityCooldown/3
+						v.OtherTowerAbilityActivatedTime = math.max(v.OtherTowerAbilityActivatedTime or 0, CurTime() + self.AbilityCooldown/3)
 					end
 				end
 			end
@@ -502,6 +509,9 @@ end
 
 function ENT:AddCash(cash, ply)
 	local incomeCash = cash * ROTGB_GetConVarValue("rotgb_tower_income_mul") * ROTGB_GetConVarValue("rotgb_cash_mul")
+	if engine.ActiveGamemode() == "rotgb" then
+		incomeCash = incomeCash * (1+hook.Run("GetSkillAmount", "towerIncome")/100)
+	end
 	ROTGB_AddCash(incomeCash, ply)
 	self:SetCashGenerated(self:GetCashGenerated()+incomeCash)
 end
@@ -526,12 +536,13 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 				-- get path number and upgrade amount
 				local path = net.ReadUInt(4)
 				local upgradeAmount = net.ReadUInt(4)+1
+				local upgradePriceMultiplier = ent.UpgradeReferencePriceMultiplier
 				
 				local reference = ent.UpgradeReference[path+1]
 				if not reference then return end
 				local tier = bit.rshift(ent:GetUpgradeStatus(),path*4)%16+1
 				for i=1,upgradeAmount do
-					local price = ROTGB_ScaleBuyCost(reference.Prices[tier])
+					local price = ROTGB_ScaleBuyCost(reference.Prices[tier]*upgradePriceMultiplier)
 					ent.SellAmount = (ent.SellAmount or 0) + price
 					if (reference.Funcs and reference.Funcs[tier]) then
 						reference.Funcs[tier](ent)
@@ -586,9 +597,10 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 			end
 		end
 		-- it's valid
+		local upgradePriceMultiplier = ent.UpgradeReferencePriceMultiplier
 		local tier = bit.rshift(ent:GetUpgradeStatus(),path*4)%16+1
 		for i=1,upgradeAmount do
-			local price = ROTGB_ScaleBuyCost(reference.Prices[tier])
+			local price = ROTGB_ScaleBuyCost(reference.Prices[tier]*upgradePriceMultiplier)
 			if ROTGB_GetCash(ply)<price then return end
 			ent.SellAmount = (ent.SellAmount or 0) + price
 			if (reference.Funcs and reference.Funcs[tier]) then

@@ -16,10 +16,8 @@ function GM:PlayerSpawn(ply, fromTransition)
 		player_manager.OnPlayerSpawn(ply, fromTransition)
 		player_manager.RunClass(ply, "Spawn")
 		
-		-- RotgB levels should not have level transitions, but I'll define this anyway
-		if not fromTransition then
-			hook.Run("PlayerLoadout", ply)
-		end
+		ply:StripWeapons()
+		hook.Run("PlayerLoadout", ply)
 		hook.Run("PlayerSetModel", ply)
 	end
 end

@@ -1240,6 +1240,7 @@ function ROTGB_UpgradeMenu(ent)
 		end,"No")
 	end
 	
+	local upgradePriceMultiplier = ent.UpgradeReferencePriceMultiplier or 1
 	for i=0,#reference-1 do -- make this zero-indexed
 		
 		local curcash = ROTGB_GetCash(LocalPlayer())
@@ -1268,7 +1269,7 @@ function ROTGB_UpgradeMenu(ent)
 			draw.RoundedBox(8,0,0,w,h,self:IsHovered() and color_gray_translucent or color_black_translucent)
 			draw.SimpleText(not reftab.Names[self.Tier] and "Fully Upgraded!" or not self:IsEnabled() and "Path Locked!" or reftab.Names[self.Tier],"DermaLarge",0,0,not reftab.Names[self.Tier] and color_green or not self:IsEnabled() and color_red or color_white)
 			if reftab.Prices[self.Tier] and self:IsEnabled() then
-				local price = ROTGB_ScaleBuyCost(reftab.Prices[self.Tier])
+				local price = ROTGB_ScaleBuyCost(reftab.Prices[self.Tier]*upgradePriceMultiplier)
 				draw.SimpleText("Price: "..string.Comma(math.ceil(price)),"DermaLarge",w,0,price>curcash and color_red or color_green,TEXT_ALIGN_RIGHT)
 			end
 		end
@@ -1278,7 +1279,7 @@ function ROTGB_UpgradeMenu(ent)
 				return ROTGB_CauseNotification("Tower is invalid!")
 			end
 			if not reftab.Prices[self.Tier] then return ROTGB_CauseNotification("Upgrade is invalid!") end
-			local price = ROTGB_ScaleBuyCost(reftab.Prices[self.Tier])
+			local price = ROTGB_ScaleBuyCost(reftab.Prices[self.Tier]*upgradePriceMultiplier)
 			if curcash<price then return ROTGB_CauseNotification("You need $"..string.Comma(math.ceil(price-curcash)).." more to buy this upgrade!") end
 			if (reftab.Funcs and reftab.Funcs[self.Tier]) then
 				reftab.Funcs[self.Tier](ent)
@@ -1302,7 +1303,7 @@ function ROTGB_UpgradeMenu(ent)
 			local HoverButton = UpgradeIndicatorPanel:Add("DButton")
 			HoverButton:SetWide(24)
 			HoverButton:SetText("")
-			HoverButton:SetTooltip(reftab.Names[j].." ($"..string.Comma(math.ceil(reftab.Prices[j]))..")\n"..reftab.Descs[j])
+			HoverButton:SetTooltip(reftab.Names[j].." ($"..string.Comma(math.ceil(reftab.Prices[j]*upgradePriceMultiplier))..")\n"..reftab.Descs[j])
 			HoverButton:DockMargin(0,0,8,0)
 			HoverButton:Dock(LEFT)
 			HoverButton.RequiredAmount = 0
@@ -1339,7 +1340,7 @@ function ROTGB_UpgradeMenu(ent)
 				if j < self.Tier then return 0 end
 				local cost = 0
 				for k=self.Tier,j do
-					cost = cost + ROTGB_ScaleBuyCost(reftab.Prices[k])
+					cost = cost + ROTGB_ScaleBuyCost(reftab.Prices[k]*upgradePriceMultiplier)
 				end
 				return cost
 			end

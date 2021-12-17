@@ -40,21 +40,22 @@ ENT.UpgradeReference = {
 				self.InfiniteRange = true
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 20
-				self.rotgb_BeamWidth = self.rotgb_BeamWidth * 1.5
+				self.AttackDamage = self.AttackDamage + 10
+				self.rotgb_BeamWidth = self.rotgb_BeamWidth * math.sqrt(2)
 				self.rotgb_UseAltLaser = true
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 80
-				self.rotgb_BeamWidth = self.rotgb_BeamWidth * 1.5
+				self.AttackDamage = self.AttackDamage + 40
+				self.rotgb_BeamWidth = self.rotgb_BeamWidth * math.sqrt(3)
 				self.rotgb_BeamNoChildren = true
 			end,
 			function(self)
 				self.AttackDamage = self.AttackDamage + 240
-				self.rotgb_BeamWidth = self.rotgb_BeamWidth * 1.5
+				self.rotgb_BeamWidth = self.rotgb_BeamWidth * math.sqrt(5)
 				self.SeeCamo = true
 			end,
 			function(self)
+				--self.AttackDamage = self.AttackDamage + 300
 				self.UserTargeting = false
 			end,
 			function(self)
@@ -79,6 +80,10 @@ ENT.UpgradeReference = {
 	}
 }
 ENT.UpgradeLimits = {99}
+
+function ENT:ROTGB_ApplyPerks()
+	self:ScaleCosts(1+hook.Run("GetSkillAmount", "rainbowBeamerCosts")/100)
+end
 
 local function SnipeEntity()
 	while true do
@@ -238,9 +243,12 @@ function ENT:FireFunction(gBalloons)
 						damagemul = damagemul + v:GetRgBE() / 10
 					end
 				end]]
+				--local i = 1
 				for k,v in pairs(gBalloons) do
 					local perf,str = coroutine.resume(self.thread,self,v,10)
 					if not perf then error(str) end
+					--i = i + 1
+					--if i > 10 then break end
 				end
 			end
 		--end

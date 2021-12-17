@@ -672,18 +672,19 @@ if SERVER then
 			nextCashThink = CurTime() + 5
 			if not cashLoaded then
 				cashLoaded = true
-				ROTGB_CASH = ROTGB_GetConVarValue("rotgb_starting_cash")
+				ROTGB_CASH = hook.Run("GetStartingRotgBCash") or ROTGB_GetConVarValue("rotgb_starting_cash")
 				ROTGB_UpdateCash()
 			end
 			for k,v in pairs(player.GetAll()) do
 				if not v.ROTGB_cashLoaded then
 					v.ROTGB_cashLoaded = true
-					v.ROTGB_CASH = ROTGB_GetConVarValue("rotgb_starting_cash")
+					v.ROTGB_CASH = hook.Run("GetStartingRotgBCash") or ROTGB_GetConVarValue("rotgb_starting_cash")
 					ROTGB_UpdateCash(v)
 				end
 			end
 		end
 	end)
+	
 	hook.Add("InitPostEntity","RotgB",function()
 		local other_data = util.JSONToTable(file.Read("rotgb_data.txt","DATA") or "") or {}
 		if other_data.blacklist then
@@ -838,6 +839,7 @@ if CLIENT then
 	net.Receive("rotgb_target_received_damage", function()
 		local target = net.ReadEntity()
 		local newHealth = net.ReadInt(32)
+		local goldenHealth = net.ReadInt(32)
 		local flags = net.ReadUInt(8)
 		
 		if IsValid(target) then
@@ -846,12 +848,13 @@ if CLIENT then
 			else
 				target.rotgb_ActualHealth = newHealth
 			end
+			target:SetGoldenHealth(goldenHealth)
 		end
 		
 		if bit.band(flags,3)~=3 then
 			local attackerLabel = net.ReadString()
 			local damage = net.ReadInt(32)
-			local timestamp = net.ReadFloat()
+			local timestamp = RealTime()
 			local displayName = "<unknown>"
 			local isBalloon = bit.band(flags,1)==1
 			local color
@@ -908,8 +911,10 @@ if CLIENT then
 	local heartmat = Material("icon16/heart.png")
 	local oldSize = 0
 	local generateCooldown = 1
+	local color_yellow = Color(255,255,0)
 	hook.Add("HUDPaint","RotgB",function()
 		if ROTGB_GetConVarValue("rotgb_hud_enabled") then
+			local realTime = RealTime()
 			local spawners = FilterSequentialTable(ents.GetAll(), TableFilterSpawners)
 			table.sort(spawners, SpawnerSorter)
 			for k,v in pairs(spawners) do
@@ -918,16 +923,13 @@ if CLIENT then
 			
 			local targets = FilterSequentialTable(ents.GetAll(), TableFilterWaypoints)
 			table.sort(targets, WaypointSorter)
-			for k,v in pairs(targets) do
-				targets[k] = string.Comma(v.rotgb_ActualHealth or v:Health())
-			end
 			
 			local size = ROTGB_GetConVarValue("rotgb_hud_size")
 			if oldSize ~= size then
 				oldSize = size
-				generateCooldown = RealTime() + 1
+				generateCooldown = realTime + 1
 			end
-			if generateCooldown < RealTime() and generateCooldown >= 0 then
+			if generateCooldown < realTime and generateCooldown >= 0 then
 				generateCooldown = -1
 				CreateGBFont(size)
 			end
@@ -950,7 +952,17 @@ if CLIENT then
 			end
 			
 			if next(targets) then
-				draw.SimpleTextOutlined(table.concat(targets, " + "),"RotgB_font",textX,yPos+size,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+				local tX, tY = textX, yPos+size
+				for i,v in ipairs(targets) do
+					tX = tX + draw.SimpleTextOutlined(string.Comma(v:Health()).." ","RotgB_font",tX,tY,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+					if v:GetGoldenHealth() > 0 then
+						tX = tX + draw.SimpleTextOutlined("+ "..string.Comma(v:GetGoldenHealth()).." ","RotgB_font",tX,tY,color_yellow,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+					end
+					tX = tX + draw.SimpleTextOutlined("/ "..string.Comma(v:GetMaxHealth()),"RotgB_font",tX,tY,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+					if i < #targets then
+						draw.SimpleTextOutlined(" + ","RotgB_font",tX,tY,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+					end
+				end
 			else
 				draw.SimpleTextOutlined("0","RotgB_font",textX,yPos+size,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 			end
@@ -958,7 +970,7 @@ if CLIENT then
 			draw.SimpleTextOutlined(ROTGB_FormatCash(ROTGB_GetCash(LocalPlayer())),"RotgB_font",textX,yPos+size*2,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 			
 			for k,v in pairs(hurtFeed) do
-				if v.timestamp + hurtFeedStaySeconds < CurTime() then
+				if v.timestamp + hurtFeedStaySeconds < realTime then
 					hurtFeed[k] = nil
 				end
 			end
@@ -972,8 +984,11 @@ if CLIENT then
 			for i,v in ipairs(hurtFeedKeyless) do
 				local attributed = v.isBalloon and v.instances > 1 and string.format("%ux %s", v.instances, v.__key) or v.__key
 				local textPart1 = "Took "..string.Comma(v.damage).." damage from "
+				if v.damage < 0 then
+					textPart1 = "Healed "..string.Comma(-v.damage).." health from "
+				end
 				local textPart2 = "!"
-				local alpha = math.Remap(CurTime(), v.timestamp, v.timestamp+hurtFeedStaySeconds, 512, 0)
+				local alpha = math.Remap(realTime, v.timestamp, v.timestamp+hurtFeedStaySeconds, 512, 0)
 				local fgColor = Color(255, 255, 255, math.min(alpha, 255))
 				local fgColor2 = v.color or fgColor
 				fgColor2 = Color(fgColor2.r, fgColor2.g, fgColor2.b, math.min(alpha, 255))

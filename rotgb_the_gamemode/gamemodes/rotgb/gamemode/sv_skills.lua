@@ -1,3 +1,28 @@
+function GM:ReadSkillMessage(ply)
+	local amount = net.ReadUInt(2)
+	if amount == RTG_SKILL_CLEAR then
+		ply:RTG_ClearSkills()
+	else
+		if amount == RTG_SKILL_ONE then
+			amount = 1
+		elseif amount == RTG_SKILL_MULTIPLE then
+			amount = net.ReadUInt(12)+1 -- max is 4,096
+		end
+		if amount <= ply:RTG_GetSkillPoints() then
+			local skills = {}
+			for i=1,amount do
+				local skill = net.ReadUInt(12)+1
+				if hook.Run("GetSkills")[skill] and not ply:RTG_HasSkill(skill) then
+					skills[skill] = true
+				end
+			end
+			if next(skills) then
+				ply:RTG_AddSkills(skills)
+			end
+		end
+	end
+end
+
 function GM:PlayerAddSkills(ply, skillIDs)
 	local appliedSkills = hook.Run("GetAppliedSkills")
 	local appliedSkillsToAdd = {}
@@ -43,16 +68,16 @@ function GM:PlayerAddSkills(ply, skillIDs)
 end
 
 function GM:PlayerClearSkills(ply)
-	local skillsToApply = {}
+	local appliedSkills = {}
 	local plys = player.GetAll()
 	for k,v in pairs(hook.Run("GetSkills")) do
 		for k2,v2 in pairs(plys) do
 			if v2:RTG_HasSkill(k) then
-				skillsToApply[k2] = v2 break
+				appliedSkills[k2] = v2 break
 			end
 		end
 	end
-	hook.Run("SetAppliedSkills", skillsToApply)
+	hook.Run("SetAppliedSkills", appliedSkills)
 	
 	net.Start("rotgb_gamemode")
 	net.WriteUInt(RTG_OPERATION_SKILLS, 4)
@@ -73,4 +98,18 @@ function GM:PlayerClearSkills(ply)
 		net.WriteUInt(RTG_SKILL_CLEAR, 2)
 	end
 	net.Broadcast()
+end
+
+-- defined in rotgb_general.lua
+function GM:GetStartingRotgBCash()
+	return 650 + hook.Run("GetSkillAmount", "startingCash")
+end
+
+-- defined in gballoon_spawner.lua
+function GM:gBalloonSpawnerPrespawn(bln, keyValues)
+	if tobool(keyValues.BalloonBlimp) then
+		local outerCashBonus = (tonumber(keyValues.BalloonCashBonus) or 0) + (tonumber(keyValues.BalloonHealth) or 1) * hook.Run("GetSkillAmount", "gBlimpOuterHealthCash")/100
+		bln:SetKeyValue("BalloonCashBonus",outerCashBonus)
+	end
+	bln:SetKeyValue("BalloonMoveSpeed", (tonumber(keyValues.BalloonMoveSpeed) or 100)*(1+hook.Run("GetSkillAmount", "gBalloonSpeed")/100))
 end

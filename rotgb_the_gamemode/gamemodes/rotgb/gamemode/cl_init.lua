@@ -1,10 +1,12 @@
 include("sh_init.lua")
 include("cl_hud.lua")
 include("cl_net.lua")
+include("cl_player.lua")
 include("cl_skills.lua")
 include("cl_ui.lua")
 
 AccessorFunc(GM, "StartupState", "StartupState", FORCE_NUMBER)
+AccessorFunc(GM, "NextSave", "NextSave", FORCE_NUMBER)
 
 function GM:Initialize()
 	--[[local creationNeeded = not sql.TableExists("rotgb_data")
@@ -30,6 +32,7 @@ function GM:Initialize()
 		hook.Run("DoSQLiteQuery", string.format("INSERT INTO rotgb_data (version) VALUES (%u);", self.DatabaseFormatVersion))
 	end]]
 	hook.Run("SetStartupState", 0)
+	hook.Run("SetNextSave", 0)
 	hook.Run("SharedInitialize")
 	
 	-- taken from base gamemode, wtf does this do?
@@ -38,27 +41,19 @@ end
 
 function GM:InitPostEntity()
 	hook.Run("InitializePlayer", LocalPlayer())
+	hook.Run("LoadClient", LocalPlayer())
 end
 
 local nextNetAttempt = 0
 local lastUIThink = 0
-local nextSave = -1
 function GM:Think()
 	local localPlayer = LocalPlayer()
 	if IsValid(localPlayer) then
 		local realTime = RealTime()
 		local startupState = hook.Run("GetStartupState")
-		if not localPlayer.rtg_PreviousXP and nextNetAttempt <= realTime then
-			nextNetAttempt = realTime + self.NetSendInterval
-			nextSave = realTime + self.DatabaseSaveInterval
-			net.Start("rotgb_statchanged")
-			net.WriteUInt(RTG_STAT_INITEXP, 4)
-			net.WriteDouble(hook.Run("LoadClientExperience"))
-			net.SendToServer()
-		end
-		if nextSave > 0 and nextSave <= realTime then
-			nextSave = realTime + self.DatabaseSaveInterval
-			hook.Run("SaveClientExperience")
+		if hook.Run("GetNextSave") > 0 and hook.Run("GetNextSave") <= realTime then
+			hook.Run("SetNextSave", realTime + self.DatabaseSaveInterval)
+			hook.Run("SaveClient", LocalPlayer())
 		end
 		if lastUIThink + 0.5 < realTime then
 			lastUIThink = realTime
@@ -78,7 +73,7 @@ function GM:Think()
 end
 
 function GM:ShutDown()
-	hook.Run("SaveClientExperience")
+	hook.Run("SaveClient")
 end
 
 function GM:PostCleanupMap()
@@ -100,25 +95,6 @@ end, nil, "Opens the vote selection menu.")
 concommand.Add("rotgb_tg_skill_tree", function()
 	hook.Run("ShowSkillTree")
 end, nil, "Opens the skill tree menu.")
-
-function GM:LoadClientExperience()
-	local data = file.Read("rotgb_tg_data.dat", "DATA")
-	if data then
-		local tabl = util.JSONToTable(data)
-		return tabl and tonumber(tabl.xp) or 0
-	end
-	
-	return 0
-end
-
-function GM:SaveClientExperience()
-	local tabl = {}
-	local data = file.Read("rotgb_tg_data.dat", "DATA")
-	if data then tabl = util.JSONToTable(data) or tabl end
-	
-	tabl.xp = LocalPlayer():RTG_GetExperience()
-	file.Write("rotgb_tg_data.dat", util.TableToJSON(tabl))
-end
 
 function GM:StartVote(voteInfo)
 	hook.Run("SetCurrentVote", voteInfo)

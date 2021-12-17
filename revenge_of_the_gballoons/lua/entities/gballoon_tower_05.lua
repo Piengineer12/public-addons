@@ -177,7 +177,7 @@ function ENT:FireFunction(gBalloons)
 			for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
 				if self:ValidTargetIgnoreRange(v) and v:GetPos():DistToSqr(self:GetShootPos())<=drrt then
 					if --[[(not v:GetBalloonProperty("BalloonWhite") or self.rotgb_FreezeBoost or v:HasRotgBStatusEffect("unimmune"))
-					and]] (not v:GetBalloonProperty("BalloonBlimp") or self.rotgb_Intense and ent:GetRgBE()<=12592) then
+					and]] (not v:GetBalloonProperty("BalloonBlimp") or self.rotgb_Intense and v:GetRgBE()<=12592) then
 						v:TakeDamage(self.AttackDamage,self:GetTowerOwner(),self)
 					else
 						v:ShowResistEffect(1)

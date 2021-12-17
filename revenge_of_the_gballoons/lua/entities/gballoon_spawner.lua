@@ -1453,7 +1453,13 @@ function ENT:TriggerWaveEnded()
 	local inFreeplay = cwave > self:GetLastWave()
 	if (self.lastEndWaveTriggered or 1) ~= cwave then
 		self.lastEndWaveTriggered = cwave
-		ROTGB_AddCash(100/self:GetSpawnDivider()*ROTGB_GetConVarValue("rotgb_cash_mul"))
+		local income = 100/self:GetSpawnDivider()*ROTGB_GetConVarValue("rotgb_cash_mul")
+		if engine.ActiveGamemode() == "rotgb" then
+			income = income + hook.Run("GetSkillAmount", "waveWaveIncome")*(cwave-1)
+			income = income * (1+hook.Run("GetSkillAmount", "waveIncome")/100)
+		end
+		print(income)
+		ROTGB_AddCash(income)
 		hook.Run("gBalloonSpawnerWaveEnded",self,cwave-1)
 		if inFreeplay and not self.WinWave then
 			self.WinWave = cwave
@@ -1592,9 +1598,11 @@ function ENT:SpawnByTable(spawnTable)
 			local bln = ents.Create("gballoon_base")
 			if IsValid(bln) then
 				bln:SetPos(SpawnPos)
-				for k,v in pairs(list.GetForEdit("NPC")[spawnTable.type].KeyValues) do
+				local keyValues = list.GetForEdit("NPC")[spawnTable.type].KeyValues
+				for k,v in pairs(keyValues) do
 					bln:SetKeyValue(k,v)
 				end
+				hook.Run("gBalloonSpawnerPrespawn", self, bln, keyValues)
 				bln:Spawn()
 				bln:Activate()
 				local nextTargs = {}

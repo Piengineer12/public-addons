@@ -157,8 +157,8 @@ function ENT:ROTGB_Initialize()
 	if ROTGB_BalloonsExist() then
 		self.rotgb_Charging = true
 	else
-		for k,v in pairs(ents.FindByClass("gballoon_target")) do
-			if v:GetNextWaveTime() <= CurTime() then
+		for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
+			if v:GetNextWaveTime() > CurTime() then
 				self.rotgb_Charging = true break
 			end
 		end
@@ -217,7 +217,6 @@ local function SnipeEntity()
 			self:FireBullets(bullet)
 		end
 		self:SetNWFloat("rotgb_Charges",self:GetNWFloat("rotgb_Charges")-chargesSpent)
-		self.FireWhenNoEnemies = true
 	end
 end
 

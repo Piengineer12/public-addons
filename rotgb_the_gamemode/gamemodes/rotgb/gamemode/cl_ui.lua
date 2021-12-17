@@ -1536,18 +1536,22 @@ local function CreateSkillTreeSurface(parent)
 			
 			-- FIXME: if "{1}" eventually does get added, this part needs to be improved
 			local traitText = traitsText[v]
-			local pos2,pos3 = string.find(traitText, "{0}")
-			local borders = {1,pos2,pos3 and pos3+1}
-			
-			for k2,v2 in pairs(borders) do
-				local nextBorder = borders[k2+1]
-				local subtext = string.sub(traitText, v2, (nextBorder or 0)-1)
+			if traitText then 
+				local pos2,pos3 = string.find(traitText, "{0}")
+				local borders = {1,pos2,pos3 and pos3+1}
 				
-				if k2%2==0 then
-					textPanel.rtg_Texts[k2] = string.format("%+.2f", textPanel.amounts[k2/2])
-				else
-					textPanel.rtg_Texts[k2] = subtext
+				for k2,v2 in pairs(borders) do
+					local nextBorder = borders[k2+1]
+					local subtext = string.sub(traitText, v2, (nextBorder or 0)-1)
+					
+					if k2%2==0 then
+						textPanel.rtg_Texts[k2] = string.format("%+.2f", textPanel.amounts[k2/2])
+					else
+						textPanel.rtg_Texts[k2] = subtext
+					end
 				end
+			else
+				textPanel.rtg_Texts[1] = "No trait description found! Trait: "..v
 			end
 			
 			function textPanel:Paint(w,h)
@@ -1997,6 +2001,7 @@ function GM:HideSkillTree()
 end
 
 function GM:GameOver(success)
+	hook.Run("SaveClient", LocalPlayer())
 	if success then
 		self.GameOverMenu = hook.Run("CreateSuccessMenu")
 	else

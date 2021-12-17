@@ -142,7 +142,7 @@ function SWEP:SecondaryAttack()
 			if not self.BaseTowerTable then	
 				self.BaseTowerTable = scripted_ents.GetStored("gballoon_tower_base")
 			end
-			v.ROTGB_ApplyPerks = v.ROTGB_ApplyPerks or self.BaseTowerTable.t.ROTGB_ApplyPerks
+			table.Inherit(v, self.BaseTowerTable.t)
 			self.BaseTowerTable.t.ApplyPerks(v)
 		end
 		if IsValid(self.TowerMenu) then
@@ -151,6 +151,7 @@ function SWEP:SecondaryAttack()
 			else
 				self.TowerMenu:Show()
 				self.TowerMenu:MakePopup()
+				self.TowerMenu.TowerScrollPanel:Refresh()
 				self.TowerMenu:OnShow()
 			end
 		else
@@ -190,7 +191,7 @@ function SWEP:Think()
 			if not self.BaseTowerTable then	
 				self.BaseTowerTable = scripted_ents.GetStored("gballoon_tower_base")
 			end
-			v.ROTGB_ApplyPerks = v.ROTGB_ApplyPerks or self.BaseTowerTable.t.ROTGB_ApplyPerks
+			table.Inherit(v, self.BaseTowerTable.t)
 			self.BaseTowerTable.t.ApplyPerks(v)
 		end
 	end
@@ -592,7 +593,7 @@ function SWEP:CreateRightPanel(Main)
 	TowersPanel:SetSpaceX(padding)
 	TowersPanel:SetSpaceY(padding)
 	TowersPanel:Dock(FILL)
-	local oldThink = ScrollPanel.Think
+	--[[local oldThink = ScrollPanel.Think
 	function ScrollPanel:Think(...)
 		if self.Difficulty ~= ROTGB_GetConVarValue("rotgb_difficulty") then
 			self.Difficulty = ROTGB_GetConVarValue("rotgb_difficulty")
@@ -601,7 +602,7 @@ function SWEP:CreateRightPanel(Main)
 		if oldThink then
 			oldThink(self, ...)
 		end
-	end
+	end]]
 	function ScrollPanel:Refresh()
 		TowersPanel:Clear()
 		
@@ -664,6 +665,7 @@ function SWEP:CreateRightPanel(Main)
 		end
 	end
 	ScrollPanel:Refresh()
+	Main.TowerScrollPanel = ScrollPanel
 	
 	RightDivider:SetBottom(self:CreateBottomRightPanel(Main))
 	

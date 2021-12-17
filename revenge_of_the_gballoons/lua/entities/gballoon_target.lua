@@ -26,6 +26,7 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Bool",4,"NonVital")
 	self:NetworkVar("Bool",5,"HideHealth")
 	self:NetworkVar("Int",0,"Weight",{KeyName="weight",Edit={title="Weight (highest = first)",type="Int",min=0,max=100}})
+	self:NetworkVar("Int",1,"GoldenHealth",{KeyName="golden_health",Edit={title="Golden Health",type="Int",min=0,max=100}})
 	self:NetworkVar("Float",0,"NaturalHealthMultiplier")
 	self:NetworkVar("Entity",0,"NextTarget1")
 	self:NetworkVar("Entity",1,"NextTarget2")
@@ -194,6 +195,18 @@ function ENT:Initialize()
 		end
 		gballoon_pob.Initialize(self)
 	end
+	if engine.ActiveGamemode() == "rotgb" then
+		self:ApplyPerks()
+	end
+end
+
+function ENT:ApplyPerks()
+	if SERVER then
+		local healthMultiplier = 1+hook.Run("GetSkillAmount", "targetHealth")/100*(1+hook.Run("GetSkillAmount", "targetHealthEffectiveness")/100)
+		self:SetHealth(self:Health()*healthMultiplier)
+		self:SetMaxHealth(self:GetMaxHealth()*healthMultiplier)
+	end
+	self:SetGoldenHealth(hook.Run("GetSkillAmount", "targetGoldenHealth"))
 end
 
 function ENT:Think()
@@ -209,8 +222,12 @@ function ENT:PreEntityCopy()
 end
 
 function ENT:PostEntityPaste(ply,ent,tab)
-	ent:Spawn()
-	ent:Activate()
+	if self.CurHealth then
+		self:SetHealth(self.CurHealth)
+	end
+	if self.CurMaxHealth then
+		self:SetMaxHealth(self.CurMaxHealth)
+	end
 end
 
 function ENT:TriggerOnHealthChanged()
@@ -220,6 +237,7 @@ function ENT:TriggerOnHealthChanged()
 			net.Start("rotgb_target_received_damage")
 			net.WriteEntity(self)
 			net.WriteInt(self:Health(), 32)
+			net.WriteInt(self:GetGoldenHealth(), 32)
 			net.WriteUInt(3, 8)
 			net.Broadcast()
 		end
@@ -235,6 +253,7 @@ function ENT:TriggerOnMaxHealthChanged(oldMaxHealth)
 			net.Start("rotgb_target_received_damage")
 			net.WriteEntity(self)
 			net.WriteInt(self:GetMaxHealth(), 32)
+			net.WriteInt(self:GetGoldenHealth(), 32)
 			net.WriteUInt(7, 8)
 			net.Broadcast()
 		end
@@ -247,32 +266,63 @@ function ENT:OnTakeDamage(dmginfo)
 	self:TriggerOutput("OnTakeDamage",dmginfo:GetAttacker(),dmginfo:GetDamage())
 	if not self:GetGBOnly() or (IsValid(dmginfo:GetAttacker()) and dmginfo:GetAttacker():GetClass()=="gballoon_base") then
 		self:EmitSound("physics/metal/metal_box_break"..math.random(1,2)..".wav",60)
-		local oldHealth = self:Health()
-		self:SetHealth(oldHealth-dmginfo:GetDamage())
-		if oldHealth~=self:Health() then
-			local attacker = dmginfo:GetAttacker()
-			local flags = bit.bor(
-				IsValid(attacker) and attacker:GetClass()=="gballoon_base" and 1 or 0,
-				attacker:IsPlayer() and 2 or 0
-			)
-			if bit.band(flags, 1)==1 then
-				flags = bit.bor(
-					flags,
-					attacker:GetBalloonProperty("BalloonFast") and 4 or 0,
-					attacker:GetBalloonProperty("BalloonHidden") and 8 or 0,
-					attacker:GetBalloonProperty("BalloonRegen") and 16 or 0,
-					attacker:GetBalloonProperty("BalloonShielded") and 32 or 0
-				)
+		local oldNonGoldenHealth = self:Health()
+		local oldHealth = oldNonGoldenHealth+self:GetGoldenHealth()
+		if engine.ActiveGamemode() == "rotgb" then
+			dmginfo:SubtractDamage(hook.Run("GetSkillAmount", "targetArmor"))
+			if dmginfo:GetDamage() < 0 then
+				dmginfo:SetDamage(0)
 			end
-			local label = bit.band(flags, 2)==2 and attacker:UserID() or bit.band(flags, 1)==1 and attacker:GetBalloonProperty("BalloonType") or IsValid(attacker) and attacker:GetClass() or "<unknown>"
-			net.Start("rotgb_target_received_damage")
-			net.WriteEntity(self)
-			net.WriteInt(self:Health(), 32)
-			net.WriteUInt(flags, 8)
-			net.WriteString(label)
-			net.WriteInt(oldHealth-self:Health(), 32)
-			net.WriteFloat(CurTime())
-			net.Broadcast()
+			dmginfo:ScaleDamage(1/(1+hook.Run("GetSkillAmount", "targetDefence")/100))
+			if math.random() < hook.Run("GetSkillAmount", "targetDodge")/100 then
+				dmginfo:SetDamage(0)
+			else
+				local targetShield = math.floor(self:GetMaxHealth()*hook.Run("GetSkillAmount", "targetShield")/100)
+				if targetShield > (self.WaveShield or 0) then
+					local shieldLeft = targetShield-(self.WaveShield or 0)
+					local shieldReduction = math.ceil(math.min(shieldLeft, dmginfo:GetDamage()))
+					self.WaveShield = (self.WaveShield or 0) + shieldReduction
+					dmginfo:SubtractDamage(shieldReduction)
+				end
+				if math.floor(hook.Run("GetSkillAmount", "targetOSP")) > (self.OSPs or 0) and math.ceil(dmginfo:GetDamage()) >= oldHealth then
+					dmginfo:SetDamage(0)
+					self.OSPs = (self.OSPs or 0) + 1
+				end
+			end
+		end
+		
+		local goldenHealthReduction = math.ceil(math.min(self:GetGoldenHealth(), dmginfo:GetDamage()))
+		self:SetGoldenHealth(self:GetGoldenHealth()-goldenHealthReduction)
+		ROTGB_AddCash(goldenHealthReduction*ROTGB_GetConVarValue("rotgb_cash_mul"))
+		dmginfo:SubtractDamage(goldenHealthReduction)
+		
+		self:SetHealth(oldNonGoldenHealth-dmginfo:GetDamage())
+		self.oldHealth = self:Health()
+		
+		local attacker = dmginfo:GetAttacker()
+		local flags = bit.bor(
+			IsValid(attacker) and attacker:GetClass()=="gballoon_base" and 1 or 0,
+			attacker:IsPlayer() and 2 or 0
+		)
+		if bit.band(flags, 1)==1 then
+			flags = bit.bor(
+				flags,
+				attacker:GetBalloonProperty("BalloonFast") and 4 or 0,
+				attacker:GetBalloonProperty("BalloonHidden") and 8 or 0,
+				attacker:GetBalloonProperty("BalloonRegen") and 16 or 0,
+				attacker:GetBalloonProperty("BalloonShielded") and 32 or 0
+			)
+		end
+		local label = bit.band(flags, 2)==2 and attacker:UserID() or bit.band(flags, 1)==1 and attacker:GetBalloonProperty("BalloonType") or IsValid(attacker) and attacker:GetClass() or "<unknown>"
+		net.Start("rotgb_target_received_damage", true)
+		net.WriteEntity(self)
+		net.WriteInt(self:Health(), 32)
+		net.WriteInt(self:GetGoldenHealth(), 32)
+		net.WriteUInt(flags, 8)
+		net.WriteString(label)
+		net.WriteInt(oldHealth-self:Health()-self:GetGoldenHealth(), 32)
+		net.Broadcast()
+		if oldNonGoldenHealth~=self:Health() then
 			self:TriggerOutput("OnHealthChanged",dmginfo:GetAttacker(),self:Health()/self:GetMaxHealth())
 		end
 		if self:Health()<=0 then
@@ -310,6 +360,28 @@ function ENT:DrawTranslucent()
 			surface.DrawText(text1)
 		cam.End3D2D()
 	end
+end
+
+if engine.ActiveGamemode() == "rotgb" then
+	hook.Add("gBalloonSpawnerWaveEnded", "ROTGB_TARGET", function(target, endedWave)
+		if hook.Run("GetSkillAmount", "targetRegeneration") > 0 then
+			for k,v in pairs(ents.FindByClass("gballoon_target")) do
+				v.WaveShield = 0
+				local healing = math.min(v:GetMaxHealth()-v:Health(), math.floor(hook.Run("GetSkillAmount", "targetRegeneration")))
+				v:SetHealth(v:Health()+healing)
+				if healing > 0 then
+					net.Start("rotgb_target_received_damage")
+					net.WriteEntity(v)
+					net.WriteInt(v:Health(), 32)
+					net.WriteInt(v:GetGoldenHealth(), 32)
+					net.WriteUInt(0, 8)
+					net.WriteString("Regeneration")
+					net.WriteInt(-healing, 32)
+					net.Broadcast()
+				end
+			end
+		end
+	end)
 end
 
 local function CreateHealthManipulationOption(amt,subOperation,ent)

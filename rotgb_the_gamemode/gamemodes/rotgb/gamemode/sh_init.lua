@@ -3,13 +3,13 @@ GM.Author						= "Piengineer"
 GM.Email						= "[REDACTED]"
 GM.Website						= "https://steamcommunity.com/id/Piengineer12"
 GM.TeamBased					= true
-GM.SecondsBetweenTeamSwitches	= 0
+GM.SecondsBetweenTeamSwitches	= 1
 GM.SpawnDelay					= 2
 GM.NetSendInterval				= 0.2 -- this is also the scoreboard refresh rate, but if this is too low, messages might be sent to the client so fast that the client might crash!
 GM.DatabaseFormatVersion		= 1
-GM.DatabaseSaveInterval			= 60
-GM.VoteTime						= 10
-GM.DebugMode					= true
+GM.DatabaseSaveInterval			= 30
+GM.VoteTime						= 20
+GM.DebugMode					= false
 GM.ModeCategories				= {Easy = 1, Medium = 2, Hard = 3}
 GM.Modes						= {
 	__common = {
@@ -116,11 +116,10 @@ music?
 GAMEMODE:
 
 voting: kicking + difficulty setting
-fix the spectator cameras
 ]]
 
 RTG_STAT_POPS = 1
-RTG_STAT_INITEXP = 2
+RTG_STAT_INIT = 2
 RTG_STAT_VOTES = 3
 
 RTG_OPERATION_KICK = 1
@@ -142,22 +141,34 @@ RTG_SKILL_CLEAR = 1
 RTG_SKILL_ONE = 2
 RTG_SKILL_MULTIPLE = 3
 
+RTG_LOGGING_INFO = 1
+RTG_LOGGING_ERROR = 2
+
+local color_aqua = Color(0,255,255)
+local color_light_red = Color(255,127,127)
+
+function GM:RTG_Log(message, logging, noNewline)
+	local logColor = color_white
+	if logging == RTG_LOGGING_ERROR then
+		logColor = color_light_red
+	end
+	local newline = '\n'
+	if noNewline then
+		newline = nil
+	end
+	MsgC(color_aqua, "[RotgB:TG] ", logColor, message, newline)
+end
+
 AddCSLuaFile()
 include("sh_common_functions.lua")
+include("sh_player.lua")
 include("sh_skills.lua")
+include("sh_teams.lua")
 include("player_class/builder.lua")
 include("player_class/hunter.lua")
 
-function GM:SharedInitialize()
-	hook.Run("RebuildSkills")
-	hook.Run("SetCachedSkillAmounts", {})
-end
-
-function GM:InitializePlayer(ply)
-	ply.rtg_Level = 1
-	ply.rtg_XP = 0
-	ply.rtg_SkillAmount = 0
-	ply.rtg_Skills = {}
+function GM:CreateTeams()
+	hook.Run("InitializeTeams")
 end
 
 function GM:PhysgunPickup(ply, ent)
@@ -169,44 +180,6 @@ end
 
 function GM:PlayerNoClip(ply, desired)
 	return self.DebugMode
-end
-
-function GM:CreateTeams()
-	TEAM_BUILDER = 1
-	team.SetUp(TEAM_BUILDER, "Builder", Color(255,255,0))
-	team.SetClass(TEAM_BUILDER, "Builder")
-	team.SetSpawnPoint(TEAM_BUILDER, "info_player_start")
-	
-	TEAM_HUNTER = 2
-	team.SetUp(TEAM_HUNTER, "Hunter", Color(255,127,0))
-	team.SetClass(TEAM_HUNTER, "Hunter")
-	team.SetSpawnPoint(TEAM_HUNTER, "info_player_start")
-	
-	team.SetColor(TEAM_CONNECTING, Color(127,127,127))
-	team.SetColor(TEAM_UNASSIGNED, Color(127,127,127))
-	
-	team.SetColor(TEAM_SPECTATOR, Color(191,191,191))
-	team.SetSpawnPoint(TEAM_SPECTATOR, "info_player_start")
-	
-	TEAM_DESCRIPTIONS = {
-		[TEAM_BUILDER] = {
-			"You start with the RotgB Game Tool.",
-			"Use the RotgB Game Tool to build towers that pop gBalloons.",
-			"You are unable to pop gBalloons yourself."
-		},
-		[TEAM_HUNTER] = {
-			"You start with the Balloon Shooter and $650 less than normal.",
-			"You are unable to build towers.",
-			"Use the Balloon Shooter to pop gBalloons."
-		},
-		[TEAM_SPECTATOR] = {
-			"You start with nothing and don't gain cash.",
-			"You are invisible and can freely roam around the map.",
-			"Press the Primary Fire key to cycle forward between views. Most views disable free roaming.",
-			"Press the Secondary Fire key to cycle backward.",
-			"While spectating a player, press the Crouch key to toggle between first person mode and third person mode."
-		}
-	}
 end
 
 function GM:OnPlayerHitGround(ply, intoWater, onFloating, fallSpeed)
@@ -221,7 +194,19 @@ function GM:CanProperty(ply, property, ent)
 	return false
 end
 
+function GM:PostCleanupMap()
+	RTG_FirstAllyPawnFreeDone = nil
+	if SERVER then
+		hook.Run("PostCleanupMapServer")
+	end
+end
+
 -- non-base
+
+function GM:SharedInitialize()
+	hook.Run("RebuildSkills")
+	hook.Run("SetCachedSkillAmounts", {})
+end
 
 AccessorFunc(GM, "Difficulty", "Difficulty", FORCE_STRING)
 AccessorFunc(GM, "CurrentVote", "CurrentVote")
