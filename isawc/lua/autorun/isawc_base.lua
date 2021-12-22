@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.6.1"
-ISAWC._VERSIONDATE = "2021-08-27"
+ISAWC._VERSION = "4.7.0"
+ISAWC._VERSIONDATE = "2021-12-22"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -715,8 +715,8 @@ If set to 2, containers may be opened by another player in the same team.\
 This overrides the \"always public\" option in the \"Edit Properties...\" menu.")
 	
 ISAWC.ConHideNotifsG = CreateConVar("isawc_hide_notificationsglobal","0",FCVAR_REPLICATED,
-"Same as Hide All Notifications (isawc_hide_notifications) on client, but affects the whole server.\
-Does nothing on client - use the mentioned ConVar instead.")
+"Same as Hide All Notifications (isawc_hide_notifications) on client, but affects all clients on the server.\
+Note that this does not prevent hint messages from popping up for clients.")
 
 ISAWC.ConAllowPickupOnPhysgun = CreateConVar("isawc_pickup_physgunned","0",FCVAR_REPLICATED,
 "If set, entities being picked up by the Physics Gun can still be picked up and put into any inventory.\
@@ -853,6 +853,11 @@ A range of 0 disables this feature.")
 ISAWC.ConUseBindDelayOverride = CreateConVar("isawc_pickup_binddelayoverride", "0", FCVAR_REPLICATED,
 "If non-zero, overwrites the value of the \"isawc_pickup_binddelay\" ConVar for all clients. See the mentioned ConVar for more information.")
 
+ISAWC.ConUseCompression = CreateConVar("isawc_use_savecompression", "1", FCVAR_REPLICATED,
+"Enables save data compression (LZMA+Base64). This saves disk space, but saving and loading becomes much slower.\
+Compression is more effective if any players have many items in their inventories.\
+Consider also modifying the \"isawc_player_save\" and \"isawc_player_savedelay\" ConVars so that saving does not occur too often.")
+
 local function BasicAutoComplete(cmd, argStr)
 	local possibilities = {}
 	local namesearch = argStr:Trim():lower()
@@ -919,6 +924,7 @@ if SERVER then
 			elseif argStr=="*" then
 				for k,v in pairs(player.GetAll()) do
 					table.Empty(v.ISAWC_Inventory)
+					-- TODO: ISAWC_Inventory init problem?
 				end
 				ISAWC:Log("You have deleted everyone's inventory.")
 			elseif next(args) then
@@ -1161,6 +1167,9 @@ if CLIENT then
 	ISAWC.ConHideNotifs = CreateClientConVar("isawc_hide_notifications","0",true,false,
 	"Prevents those pop-up messages from... popping up.")
 	
+	ISAWC.ConHideHintNotifs = CreateClientConVar("isawc_hide_hintnotifications","0",true,false,
+	"Prevents only the hint messages from popping up. Overridden by the \"isawc_hide_notifications\" ConVar.")
+	
 	ISAWC.ConHideNotifSound = CreateClientConVar("isawc_hide_notificationsound","0",true,false,
 	"Stops the annoying buzzer sound from playing every time you fail to pick up an item.")
 
@@ -1263,6 +1272,8 @@ ISAWC.PopulateDFormClient = function(DForm)
 	DForm:Help("Bind a key with \"bind <key> isawc_activate_inventory_menu\" (toggle version) or \"bind <key> +isawc_inventory\" (hold version).\n")
 	DForm:CheckBox("Suppress All Notifications",ISAWC.ConHideNotifs:GetName())
 	DForm:Help(" - "..ISAWC.ConHideNotifs:GetHelpText().."\n")
+	DForm:CheckBox("Suppress Hint Notifications",ISAWC.ConHideHintNotifs:GetName())
+	DForm:Help(" - "..ISAWC.ConHideHintNotifs:GetHelpText().."\n")
 	DForm:CheckBox("Disable Notification Sound",ISAWC.ConHideNotifSound:GetName())
 	DForm:Help(" - "..ISAWC.ConHideNotifSound:GetHelpText().."\n")
 	DForm:CheckBox("Always Show Connections",ISAWC.ConPermaConnectorHUD:GetName())
@@ -1291,6 +1302,8 @@ ISAWC.PopulateDFormGeneral = function(DForm)
 	DForm:Help(" - "..ISAWC.ConUndoIntoContain:GetHelpText().."\n")
 	DForm:CheckBox("Use Alternate Storage Method",ISAWC.ConAltSave:GetName())
 	DForm:Help(" - "..ISAWC.ConAltSave:GetHelpText().."\n")
+	DForm:CheckBox("Use Save Data Compression",ISAWC.ConUseCompression:GetName())
+	DForm:Help(" - "..ISAWC.ConUseCompression:GetHelpText().."\n")
 	DForm:CheckBox("[EXPERIMENTAL] Save Engine Tables",ISAWC.ConSaveTable:GetName())
 	DForm:Help(" - "..ISAWC.ConSaveTable:GetHelpText().."\n")
 	local dangerbutton = DForm:Button("Set All To Default","isawc_reset_convars")
@@ -1577,16 +1590,23 @@ ISAWC.InstallSortFunctions = function(self,panel,InvPanel,delname,wepstorename,d
 				end
 			end):SetIcon("icon16/arrow_switch.png")
 		end
+		local selfOptions,selfOption = sOptions:AddSubMenu("Self Options")
+		selfOption:SetIcon("icon16/user.png")
 		do
 			if ISAWC.ConAllowSelflinks:GetBool() then
-				sOptions:AddCVar("Disallow Inventory Links", "isawc_allow_selflinks", "1", "0"):SetIcon("icon16/link_delete.png")
+				selfOptions:AddCVar("Disallow Inventory Links", "isawc_allow_selflinks", "1", "0"):SetIcon("icon16/link_delete.png")
 			else
-				sOptions:AddCVar("Allow Inventory Links", "isawc_allow_selflinks", "1", "0"):SetIcon("icon16/link_add.png")
+				selfOptions:AddCVar("Allow Inventory Links", "isawc_allow_selflinks", "1", "0"):SetIcon("icon16/link_add.png")
 			end
 			if ISAWC.ConAllowPlayerMagnetization:GetBool() then
-				sOptions:AddCVar("Disallow Self-Magnetization", "isawc_player_magnet_enabled", "1", "0"):SetIcon("icon16/basket_delete.png")
+				selfOptions:AddCVar("Disable Magnetization", "isawc_player_magnet_enabled", "1", "0"):SetIcon("icon16/basket_delete.png")
 			else
-				sOptions:AddCVar("Allow Self-Magnetization", "isawc_player_magnet_enabled", "1", "0"):SetIcon("icon16/basket_add.png")
+				selfOptions:AddCVar("Enable Magnetization", "isawc_player_magnet_enabled", "1", "0"):SetIcon("icon16/basket_add.png")
+			end
+			if ISAWC.ConHideHintNotifs:GetBool() then
+				selfOptions:AddCVar("Enable Hint Messages", "isawc_hide_hintnotifications", "1", "0"):SetIcon("icon16/comment_add.png")
+			else
+				selfOptions:AddCVar("Disable Hint Messages", "isawc_hide_hintnotifications", "1", "0"):SetIcon("icon16/comment_delete.png")
 			end
 		end
 		sOptions:AddOption("Drop All Items",function()
@@ -2642,6 +2662,22 @@ ISAWC.NoPickup = function(self,msg,ply)
 	end
 end
 
+ISAWC.PushNotification = function(self,msg)
+	if not (self.ConHideHintNotifs:GetBool() or self.ConHideNotifs:GetBool()) then
+		if not istable(msg) then
+			msg = {msg}
+		else
+			msg = table.Reverse(msg)
+		end
+		for i,v in ipairs(msg) do
+			notification.AddLegacy(v,NOTIFY_GENERIC,4+#v/10)
+		end
+		if not self.ConHideNotifSound:GetBool() then
+			surface.PlaySound(string.format("ambient/water/drip%i.wav", math.random(4)))
+		end
+	end
+end
+
 ISAWC.RemoveRecursions = function(self,tab,done)
 	if not istable(tab) then return false end
 	
@@ -2737,14 +2773,19 @@ ISAWC.SaveInventory = function(self,ply)
 	if istable(ply) then
 		self:SQL("BEGIN;")
 		for k,v in pairs(ply) do
-			steamid = v:SteamID()
-			if steamid and self.ConDoSave:GetInt() > 0 then
+			steamid = v:SteamID() or ""
+			if steamid ~= "" and self.ConDoSave:GetInt() > 0 then
 				local inv = v.ISAWC_Inventory
 				if self:RemoveRecursions(inv) then
 					self:Log("Warning! " .. v:Nick() .. " had an item with recursive tables! This may cause errors to occur!")
 				end
 				if (inv and next(inv)) then
-					local data = util.TableToJSON(inv) -- util.Compress is BROKEN as of 2021-10-06!
+					local data
+					if self.ConUseCompression:GetBool() then
+						data = util.Base64Encode(util.Compress(util.TableToJSON(inv)))
+					else
+						data = util.TableToJSON(inv)
+					end
 					self:SQL("INSERT INTO \"isawc_player_data\" (\"steamID\", \"data\") VALUES (%s, %s);", steamid, data)
 				else
 					self:SQL("DELETE FROM \"isawc_player_data\" WHERE \"steamID\" = %s;", steamid)
@@ -2753,14 +2794,19 @@ ISAWC.SaveInventory = function(self,ply)
 		end
 		self:SQL("COMMIT;")
 	elseif (isentity(ply) and ply:IsPlayer()) then
-		steamid = steamid or ply:SteamID()
-		if steamid and self.ConDoSave:GetInt() > 0 then
+		steamid = steamid or ply:SteamID() or ""
+		if steamid ~= "" and self.ConDoSave:GetInt() > 0 then
 			local inv = ply.ISAWC_Inventory
 			if self:RemoveRecursions(inv) then
 				self:Log("Warning! " .. ply:Nick() .. " had an item with recursive tables! This may cause errors to occur!")
 			end
 			if (inv and next(inv)) then
-				local data = util.TableToJSON(inv)
+				local data
+				if self.ConUseCompression:GetBool() then
+					data = util.Base64Encode(util.Compress(util.TableToJSON(inv)))
+				else
+					data = util.TableToJSON(inv)
+				end
 				self:SQL("INSERT INTO \"isawc_player_data\" (\"steamID\", \"data\") VALUES (%s, %s);", steamid, data)
 			else
 				self:SQL("DELETE FROM \"isawc_player_data\" WHERE \"steamID\" = %s;", steamid)
@@ -2924,6 +2970,12 @@ ISAWC.PlayerSpawn = function(ply)
 					local results = ISAWC:SQL("SELECT \"steamID\", \"data\" FROM \"isawc_player_data\" WHERE \"steamID\" = %s;", steamID)
 					if (results and results[1]) then
 						ply.ISAWC_Inventory = util.JSONToTable(results[1].data)
+						if not ply.ISAWC_Inventory then
+							ply.ISAWC_Inventory = util.JSONToTable(util.Decompress(results[1].data) or "")
+							if not ply.ISAWC_Inventory then
+								ply.ISAWC_Inventory = util.JSONToTable(util.Decompress(util.Base64Decode(results[1].data) or "") or "")
+							end
+						end
 					end
 				end
 				if not (ply.ISAWC_Inventory and next(ply.ISAWC_Inventory)) and ISAWC.LastLoadedData[steamID] then
@@ -3894,8 +3946,8 @@ ISAWC.CanPickup = function(self,ply,ent,speculative)
 				DropEntityIfHeld(ent)
 			end
 			if ply:GetPos():Distance(ent:GetPos())-ent:BoundingRadius()-ply:BoundingRadius()>self.ConDistance:GetFloat() and ply:IsPlayer() then self:NoPickup("You need to be closer to the object!",ply) return false end
-			if not (ent:IsSolid() or listCode==2 or ent:IsWeapon()) then self:NoPickup("You can't pick up non-solid entities!",ply) return false end
-			if ent:GetMoveType()~=MOVETYPE_VPHYSICS and not self.ConNonVPhysics:GetBool() and not (listCode==2 or ent:IsWeapon()) then self:NoPickup("You can't pick up non-VPhysics entities!",ply) return false end
+			if not (ent:IsSolid() or ent:IsWeapon()) then self:NoPickup("You can't pick up non-solid entities!",ply) return false end
+			if ent:GetMoveType()~=MOVETYPE_VPHYSICS and not self.ConNonVPhysics:GetBool() and not ent:IsWeapon() then self:NoPickup("You can't pick up non-VPhysics entities!",ply) return false end
 			if constraint.HasConstraints(ent) and not self.ConAllowConstrained:GetBool() then self:NoPickup("You can't pick up constrained entities!",ply) return false end
 			local TotalMass, TotalVolume, TotalCount = self:CalculateEntitySpace(ent)
 			local data = self:GetClientStats(ply)
@@ -3968,6 +4020,7 @@ end
 local invcooldown = 0
 local nextsave = 0
 local nextAltSaveCheck = 0
+local clientTicks = 0
 local allPlayers = player.GetAll()
 for k,v in pairs(allPlayers) do
 	if v.ISAWC_AttachedCollisionInterface then
@@ -4022,6 +4075,8 @@ ISAWC.Tick = function()
 		local ply = LocalPlayer()
 		local overrideKey = input.GetKeyCode(ISAWC.ConUseBindOverride:GetString())
 		local useKey = overrideKey > 0 and overrideKey or input.GetKeyCode(ISAWC.ConUseBind:GetString())
+		local invToggleKey = input.GetKeyCode(ISAWC.ConInventoryBind:GetString())
+		local invHoldKey = input.GetKeyCode(ISAWC.ConInventoryBindHold:GetString())
 		local noOtherUIs = not (gui.IsGameUIVisible() or gui.IsConsoleVisible() or IsValid(vgui.GetKeyboardFocus()))
 		if input.IsKeyDown(useKey) and noOtherUIs then
 			local probent = ply:GetEyeTrace().Entity
@@ -4044,8 +4099,8 @@ ISAWC.Tick = function()
 					probent = traceresult.Entity
 				end
 			end
-			local ent = hook.Run("FindUseEntity",ply,probent) or probent
-			if IsValid(ent) then
+			local ent = probent or NULL
+			if IsValid(ent) and not (ent:IsWeapon() and ent:GetOwner() == ply) then
 				if (ent.ISAWC_ResetUseTime or 0) < CurTime() then
 					ent.ISAWC_UseStreak = 0
 				end
@@ -4063,7 +4118,7 @@ ISAWC.Tick = function()
 					end
 				end
 			end
-		elseif input.IsKeyDown(input.GetKeyCode(ISAWC.ConInventoryBind:GetString())) and noOtherUIs and invcooldown < RealTime() then
+		elseif input.IsKeyDown(invToggleKey) and noOtherUIs and invcooldown < RealTime() then
 			invcooldown = RealTime() + 1
 			if not (ply:GetActiveWeapon().CW20Weapon and ply:GetActiveWeapon().dt.State == CW_CUSTOMIZE and CW_CUSTOMIZE) then
 				if IsValid(ISAWC.reliantwindow) then
@@ -4072,16 +4127,37 @@ ISAWC.Tick = function()
 					ISAWC.reliantwindow = ISAWC:BuildInventory()
 				end
 			end
-		elseif input.IsKeyDown(input.GetKeyCode(ISAWC.ConInventoryBindHold:GetString())) and not (IsValid(ISAWC.TempWindow) and ISAWC.TempWindow:IsVisible()) then
+		elseif input.IsKeyDown(invHoldKey) and not (IsValid(ISAWC.TempWindow) and ISAWC.TempWindow:IsVisible()) then
 			if IsValid(ISAWC.TempWindow) then
 				ISAWC.TempWindow:Show()
 				ISAWC.TempWindow:RequestFocus()
 			else
 				ISAWC.TempWindow = ISAWC:BuildInventory()
 			end
-		elseif not input.IsKeyDown(input.GetKeyCode(ISAWC.ConInventoryBindHold:GetString())) and (IsValid(ISAWC.TempWindow) and ISAWC.TempWindow:IsVisible()) then
+		elseif not input.IsKeyDown(invHoldKey) and (IsValid(ISAWC.TempWindow) and ISAWC.TempWindow:IsVisible()) then
 			ISAWC.TempWindow:Hide()
 			ISAWC.TempWindow:KillFocus()
+		end
+		if clientTicks < 1200 then
+			clientTicks = clientTicks + 1
+			if clientTicks == 600 then
+				ISAWC:PushNotification(
+					string.format(
+						"[ISAWC] Hold %s to pick up items.",
+						string.upper(language.GetPhrase(input.GetKeyName(useKey) or "none"))
+					)
+				)
+			elseif clientTicks == 800 then
+				ISAWC:PushNotification(
+					string.format(
+						"Press %s or hold %s to open your inventory.",
+						string.upper(language.GetPhrase(input.GetKeyName(invToggleKey) or "none")),
+						string.upper(language.GetPhrase(input.GetKeyName(invHoldKey) or "none"))
+					)
+				)
+			elseif clientTicks == 1000 then
+				ISAWC:PushNotification({"You can also open your inventory in the CONTEXT MENU,", "as well as right-click items from there to pick them up."})
+			end
 		end
 	end
 end

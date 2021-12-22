@@ -76,14 +76,14 @@ function SWEP:PrimaryAttack()
 				for k,v in pairs(ents.FindInSphere(hitpos,16)) do
 					tracedata[v] = -v:GetPos():DistToSqr(hitpos)
 				end
-				net.Start("isawc_general")
-				net.WriteString("pickup")
-				net.WriteEntity(table.GetWinningKey(tracedata))
-				net.SendToServer()
+				ent = table.GetWinningKey(tracedata)
 			else
+				ent = traceresult.Entity
+			end
+			if IsValid(ent) and not (ent:IsWeapon() and ent:GetOwner() == self:GetOwner()) then
 				net.Start("isawc_general")
 				net.WriteString("pickup")
-				net.WriteEntity(traceresult.Entity)
+				net.WriteEntity(ent)
 				net.SendToServer()
 			end
 		end
@@ -114,14 +114,14 @@ function SWEP:SecondaryAttack()
 				for k,v in pairs(ents.FindInSphere(hitpos,16)) do
 					tracedata[v] = -v:GetPos():DistToSqr(hitpos)
 				end
-				net.Start("isawc_general")
-				net.WriteString("pickup")
-				net.WriteEntity(table.GetWinningKey(tracedata))
-				net.SendToServer()
+				ent = table.GetWinningKey(tracedata)
 			else
+				ent = traceresult.Entity
+			end
+			if IsValid(ent) and not (ent:IsWeapon() and ent:GetOwner() == self:GetOwner()) then
 				net.Start("isawc_general")
 				net.WriteString("pickup")
-				net.WriteEntity(traceresult.Entity)
+				net.WriteEntity(ent)
 				net.SendToServer()
 			end
 		end
