@@ -59,6 +59,7 @@ ROTGB_OPERATION_TRANSFER = 3
 ROTGB_OPERATION_ACHIEVEMENT = 4
 ROTGB_OPERATION_WAVE_EDIT = 5
 ROTGB_OPERATION_HEALTH_EDIT = 6
+ROTGB_OPERATION_TRIGGER = 7
 
 ROTGB_TOWER_MENU = 0
 ROTGB_TOWER_UPGRADE = 1
@@ -655,6 +656,11 @@ if SERVER then
 				ROTGB_AddCash(transferAmount, ply2)
 				ROTGB_RemoveCash(transferAmount, ply)
 			end
+		elseif operation == ROTGB_OPERATION_TRIGGER then
+			local tower = net.ReadEntity()
+			if (IsValid(tower) and tower.Base == "gballoon_tower_base") then
+				tower:DoAbility()
+			end
 		end
 	end)
 	
@@ -758,7 +764,11 @@ if CLIENT then
 		elseif cash==-math.huge then -- number is negative inf
 			return "$-∞"
 		elseif cash<math.huge and cash>-math.huge then -- number is real
-			return "$"..string.Comma((roundUp and math.ceil or math.floor)(cash))
+			if cash>-1e12 and cash<1e12 then
+				return "$"..string.Comma((roundUp and math.ceil or math.floor)(cash))
+			else
+				return string.format("$%.6E", cash)
+			end
 		else -- number isn't a number. Caused by inf minus inf
 			return "$?"
 		end
@@ -838,18 +848,18 @@ if CLIENT then
 	local hurtFeedStaySeconds = 10
 	net.Receive("rotgb_target_received_damage", function()
 		local target = net.ReadEntity()
-		local newHealth = net.ReadInt(32)
-		local goldenHealth = net.ReadInt(32)
+		--local newHealth = net.ReadInt(32)
+		--local goldenHealth = net.ReadInt(32)
 		local flags = net.ReadUInt(8)
 		
-		if IsValid(target) then
+		--[[if IsValid(target) then
 			if bit.band(flags,7)==7 then
 				target.rotgb_ActualMaxHealth = newHealth
 			else
 				target.rotgb_ActualHealth = newHealth
 			end
 			target:SetGoldenHealth(goldenHealth)
-		end
+		end]]
 		
 		if bit.band(flags,3)~=3 then
 			local attackerLabel = net.ReadString()
@@ -1310,6 +1320,21 @@ if CLIENT then
 		elseif operation == ROTGB_OPERATION_ACHIEVEMENT then
 			for i=1, net.ReadUInt(32) do
 				achievements.BalloonPopped()
+			end
+		end
+	end)
+	
+	local drawNoBuilds = false
+	function ROTGB_SetDrawNoBuilds(value)
+		drawNoBuilds = value
+	end
+	
+	local nextUpdate = nil
+	hook.Add("PreDrawTranslucentRenderables", "RotgB", function(depth, skybox, skybox3d)
+		if (nextUpdate or 0) < RealTime() then
+			nextUpdate = RealTime() + 0.5
+			for k,v in pairs(ents.FindByClass("func_rotgb_nobuild")) do
+				v:SetNoDraw(not drawNoBuilds)
 			end
 		end
 	end)

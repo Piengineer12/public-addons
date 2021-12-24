@@ -1,4 +1,5 @@
 include("sh_init.lua")
+include("cl_common_functions.lua")
 include("cl_hud.lua")
 include("cl_net.lua")
 include("cl_player.lua")

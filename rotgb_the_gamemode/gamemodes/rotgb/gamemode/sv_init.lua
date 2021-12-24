@@ -94,6 +94,7 @@ end
 function GM:PostCleanupMapServer()
 	hook.Run("SetGameIsOver", false)
 	hook.Run("SetDefeated", false)
+	hook.Run("UpdateAppliedSkills")
 	for k,v in pairs(player.GetAll()) do
 		v:UnSpectate()
 		v:Spawn()
@@ -104,6 +105,13 @@ function GM:PostCleanupMapServer()
 			ROTGB_UpdateCash(v)
 		end
 		v.rotgb_gBalloonPops = 0
+		net.Start("rotgb_statchanged", true)
+		net.WriteUInt(RTG_STAT_POPS, 4)
+		net.WriteUInt(1, 12)
+		net.WriteEntity(v)
+		net.WriteDouble(v.rotgb_gBalloonPops or 0)
+		net.WriteDouble(v.rtg_XP)
+		net.Send(v)
 	end
 	shouldUpdate = true
 end
@@ -136,7 +144,7 @@ end
 
 function GM:GetXPMultiplier()
 	local multiplier = hook.Run("GetScoreMultiplier")
-	if hook.Run("GetGameIsOver") then return 0 end
+	if hook.Run("GetGameIsOver") and not self.DebugMode then return 0 end
 	return multiplier
 end
 
@@ -155,7 +163,7 @@ function GM:gBalloonTargetRemoved(target)
 end
 
 function GM:AllTargetsDestroyed()
-	game.SetTimeScale(0.2)
+	game.SetTimeScale(0.5)
 	for k,v in pairs(player.GetAll()) do
 		v:ScreenFade(SCREENFADE.OUT, color_black, 0.9, 1)
 	end

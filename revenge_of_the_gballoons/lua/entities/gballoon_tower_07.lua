@@ -98,7 +98,7 @@ ENT.UpgradeLimits = {7,2}
 function ENT:ROTGB_ApplyPerks()
 	--self.FireRate = self.FireRate * (1+hook.Run("GetSkillAmount", "allyPawnFireRate")/100)
 	--self.DetectionRadius = self.DetectionRadius * (1+hook.Run("GetSkillAmount", "allyPawnRange")/100)
-	self.rotgb_Targets = self.rotgb_Targets + (1+hook.Run("GetSkillAmount", "allyPawnTargets")/100)
+	--self.rotgb_Targets = self.rotgb_Targets + (1+hook.Run("GetSkillAmount", "allyPawnTargets")/100)
 	if not RTG_FirstAllyPawnFreeDone and hook.Run("GetSkillAmount", "allyPawnFirstFree") > 0 then
 		self.Cost = 0
 	end

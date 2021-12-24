@@ -1,0 +1,5 @@
+UnlitGeneric
+{
+	$basetexture rotgb/nobuild
+	$alpha 0.25
+}

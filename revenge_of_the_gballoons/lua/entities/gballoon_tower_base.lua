@@ -15,6 +15,7 @@ ENT.Model = "models/props_c17/streetsign004e.mdl"
 ENT.UpgradeReference = {}
 ENT.UpgradeLimits = {}
 ENT.LOSOffset = vector_origin
+ENT.BonusFireRate = 1
 
 local buttonlabs = {"First","Last","Strong","Weak","Close","Far","Fast","Slow"}
 
@@ -72,7 +73,7 @@ function ENT:Initialize()
 	self:ApplyPerks()
 	local cost = ROTGB_ScaleBuyCost(self.Cost or 0)
 	local maxCount = ROTGB_GetConVarValue("rotgb_tower_maxcount")
-	local upgradePriceMultiplier = self.UpgradeReferencePriceMultiplier
+	local upgradePriceMultiplier = self.UpgradeReferencePriceMultiplier or 1
 	self:ROTGB_Initialize()
 	self.LOSOffset = self.LOSOffset or vector_origin
 	
@@ -346,7 +347,7 @@ function ENT:Think()
 					end
 					self.BonusFireRate = bonusMultiplier
 				end
-				local fireDelay = 1/(self.FireRate or 1)/(self.BonusFireRate or 1)
+				local fireDelay = 1/(self.FireRate or 1)/self.BonusFireRate
 				self.NextFire = curTime + fireDelay
 				self:ExpensiveThink(true)
 				if self.gBalloons[1]--[[IsValid(self.SolicitedgBalloon)]] or self.FireWhenNoEnemies then
@@ -485,8 +486,13 @@ function ENT:DrawTranslucent()
 end
 
 function ENT:OnTakeDamage(dmginfo)
-	if (self.HasAbility and self:GetAbilityNextFire()>CurTime()+self.AbilityCooldown) then self:SetAbilityNextFire(0) end
-	if (self.HasAbility and IsValid(dmginfo:GetAttacker()) and dmginfo:GetAttacker():IsPlayer() and self:GetAbilityNextFire()<CurTime()) then
+	if IsValid(dmginfo:GetAttacker()) and dmginfo:GetAttacker():IsPlayer() then
+		self:DoAbility()
+	end
+end
+
+function ENT:DoAbility()
+	if (self.HasAbility and (self:GetAbilityNextFire()<CurTime() or self:GetAbilityNextFire()>CurTime()+self.AbilityCooldown)) then
 		local failed = self:TriggerAbility()
 		if failed then
 			self:SetAbilityNextFire(0)
@@ -536,7 +542,7 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 				-- get path number and upgrade amount
 				local path = net.ReadUInt(4)
 				local upgradeAmount = net.ReadUInt(4)+1
-				local upgradePriceMultiplier = ent.UpgradeReferencePriceMultiplier
+				local upgradePriceMultiplier = ent.UpgradeReferencePriceMultiplier or 1
 				
 				local reference = ent.UpgradeReference[path+1]
 				if not reference then return end
@@ -597,7 +603,7 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 			end
 		end
 		-- it's valid
-		local upgradePriceMultiplier = ent.UpgradeReferencePriceMultiplier
+		local upgradePriceMultiplier = ent.UpgradeReferencePriceMultiplier or 1
 		local tier = bit.rshift(ent:GetUpgradeStatus(),path*4)%16+1
 		for i=1,upgradeAmount do
 			local price = ROTGB_ScaleBuyCost(reference.Prices[tier]*upgradePriceMultiplier)

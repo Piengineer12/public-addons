@@ -234,12 +234,12 @@ function ENT:TriggerOnHealthChanged()
 	if self:Health()~=self.oldHealth then
 		if SERVER then
 			self:TriggerOutput("OnHealthChanged",activator,self:Health()/self:GetMaxHealth())
-			net.Start("rotgb_target_received_damage")
+			--[[net.Start("rotgb_target_received_damage")
 			net.WriteEntity(self)
 			net.WriteInt(self:Health(), 32)
 			net.WriteInt(self:GetGoldenHealth(), 32)
 			net.WriteUInt(3, 8)
-			net.Broadcast()
+			net.Broadcast()]]
 		end
 		
 		self.oldHealth = self:Health()
@@ -250,12 +250,12 @@ function ENT:TriggerOnMaxHealthChanged(oldMaxHealth)
 	if self:GetMaxHealth()~=self.oldMaxHealth then
 		if SERVER then
 			self:TriggerOutput("OnMaxHealthChanged",activator,self:GetMaxHealth())
-			net.Start("rotgb_target_received_damage")
+			--[[net.Start("rotgb_target_received_damage")
 			net.WriteEntity(self)
 			net.WriteInt(self:GetMaxHealth(), 32)
 			net.WriteInt(self:GetGoldenHealth(), 32)
 			net.WriteUInt(7, 8)
-			net.Broadcast()
+			net.Broadcast()]]
 		end
 		
 		self.oldMaxHealth = self:GetMaxHealth()
@@ -316,8 +316,8 @@ function ENT:OnTakeDamage(dmginfo)
 		local label = bit.band(flags, 2)==2 and attacker:UserID() or bit.band(flags, 1)==1 and attacker:GetBalloonProperty("BalloonType") or IsValid(attacker) and attacker:GetClass() or "<unknown>"
 		net.Start("rotgb_target_received_damage", true)
 		net.WriteEntity(self)
-		net.WriteInt(self:Health(), 32)
-		net.WriteInt(self:GetGoldenHealth(), 32)
+		--net.WriteInt(self:Health(), 32)
+		--net.WriteInt(self:GetGoldenHealth(), 32)
 		net.WriteUInt(flags, 8)
 		net.WriteString(label)
 		net.WriteInt(oldHealth-self:Health()-self:GetGoldenHealth(), 32)
@@ -343,8 +343,8 @@ function ENT:DrawTranslucent()
 	--self:Draw()
 	if not (self:GetIsBeacon() or self:GetHideHealth()) then
 		--self:DrawModel()
-		local actualHealth = self.rotgb_ActualHealth or self:Health()
-		local actualMaxHealth = self.rotgb_ActualMaxHealth or self:GetMaxHealth()
+		local actualHealth = --[[self.rotgb_ActualHealth or]] self:Health()
+		local actualMaxHealth = --[[self.rotgb_ActualMaxHealth or]] self:GetMaxHealth()
 		local text1 = "Health: "..actualHealth
 		surface.SetFont("DermaLarge")
 		local t1x,t1y = surface.GetTextSize(text1)
@@ -372,8 +372,8 @@ if engine.ActiveGamemode() == "rotgb" then
 				if healing > 0 then
 					net.Start("rotgb_target_received_damage")
 					net.WriteEntity(v)
-					net.WriteInt(v:Health(), 32)
-					net.WriteInt(v:GetGoldenHealth(), 32)
+					--net.WriteInt(v:Health(), 32)
+					--net.WriteInt(v:GetGoldenHealth(), 32)
 					net.WriteUInt(0, 8)
 					net.WriteString("Regeneration")
 					net.WriteInt(-healing, 32)

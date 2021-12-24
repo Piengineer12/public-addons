@@ -46,7 +46,7 @@ function table.GetMemberValuesCount(tab, member)
 	return encountered
 end
 
--- Linearly interpolates between two colors, constructs and returns a new color object
+-- Linearly interpolates between two Colors, constructs and returns a new Color object
 -- every time this function is called
 -- Color <- number t, Color firstColor, Color secondColor
 function LerpColor(t, firstColor, secondColor)
@@ -57,6 +57,47 @@ function LerpColor(t, firstColor, secondColor)
 		Lerp(t, firstColor.a, secondColor.a)
 	)
 end
+
+-- Creates a new Color object based on the passed hexadecimal string
+-- Color, bool <- string colorStr
+--[[function util.ConvertHexToColor(colorStr)
+	local isGood = true
+	local colorAsNumber = tonumber("0x"..colorStr)
+	if not colorAsNumber then
+		colorAsNumber = 0
+		isGood = false
+	elseif colorAsNumber > 0xFFFFFFFF or colorAsNumber < 0 then
+		isGood = false
+	end
+	colorAsNumber = bit.tobit(colorAsNumber)
+	local newColor = Color(255, 255, 255, 255)
+	-- the following might be TOO performance optimized, haha
+	local strLen = #colorStr
+	if strLen > 6 then
+		-- 8-bit + alpha
+		newColor.r = bit.rshift(bit.band(colorAsNumber, bit.tobit(0xFF000000)), 24)
+		newColor.g = bit.rshift(bit.band(colorAsNumber, 0xFF0000), 16)
+		newColor.b = bit.rshift(bit.band(colorAsNumber, 0xFF00), 8)
+		newColor.a = bit.band(colorAsNumber, 0xFF)
+	elseif strLen > 4 then
+		-- 8-bit
+		newColor.r = bit.rshift(bit.band(colorAsNumber, 0xFF0000), 16)
+		newColor.g = bit.rshift(bit.band(colorAsNumber, 0xFF00), 8)
+		newColor.b = bit.band(colorAsNumber, 0xFF)
+	elseif strLen > 3 then
+		-- 4-bit + alpha
+		newColor.r = bit.bor(bit.rshift(bit.band(colorAsNumber, 0xF000), 8), bit.rshift(bit.band(colorAsNumber, 0xF000), 12))
+		newColor.g = bit.bor(bit.rshift(bit.band(colorAsNumber, 0xF00), 4), bit.rshift(bit.band(colorAsNumber, 0xF00), 8))
+		newColor.b = bit.bor(bit.band(colorAsNumber, 0xF0), bit.rshift(bit.band(colorAsNumber, 0xF0), 4))
+		newColor.a = bit.bor(bit.lshift(bit.band(colorAsNumber, 0xF), 4), bit.band(colorAsNumber, 0xF))
+	else
+		-- 4-bit
+		newColor.r = bit.bor(bit.rshift(bit.band(colorAsNumber, 0xF00), 4), bit.rshift(bit.band(colorAsNumber, 0xF00), 8))
+		newColor.g = bit.bor(bit.band(colorAsNumber, 0xF0), bit.rshift(bit.band(colorAsNumber, 0xF0), 4))
+		newColor.b = bit.bor(bit.lshift(bit.band(colorAsNumber, 0xF), 4), bit.band(colorAsNumber, 0xF))
+	end
+	return newColor, isGood
+end]]
 
 VectorTable = VectorTable or {}
 
@@ -228,7 +269,7 @@ local VECTORTABLE_META_INDEX = {
 	end,
 	
 	-- Returns the VectorTable's X, Y, Z, etc. values, starting from element i and ending at j
-	-- vararg <- VectorTable vectorTable, number i = 1, number j = #vectorTable
+	-- vararg(number) <- VectorTable vectorTable, number i = 1, number j = #vectorTable
 	Unpack = function(...)
 		return unpack(...)
 	end

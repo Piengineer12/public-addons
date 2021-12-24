@@ -9,7 +9,7 @@ GM.NetSendInterval				= 0.2 -- this is also the scoreboard refresh rate, but if 
 GM.DatabaseFormatVersion		= 1
 GM.DatabaseSaveInterval			= 30
 GM.VoteTime						= 20
-GM.DebugMode					= false
+GM.DebugMode					= true
 GM.ModeCategories				= {Easy = 1, Medium = 2, Hard = 3}
 GM.Modes						= {
 	__common = {
@@ -106,15 +106,22 @@ TO DO LIST:
 fix Multipurpose Engine all-path upgrade
 + several others (*.txt in same directory)
 
+fix upgrade tooltip prices
+replace rebate upgrade from Hoverball Factory
+popped gBalloons MIGHT incorrectly render a shield when their health is actually too low to render
 button to sell all towers - low priority
+button to activate all abilities - low priority
 sandbox saving
-add outputs to wave spawner when auto-start manually modified
 fix autostart on rotgb_heatwave
 sfx for upgrading and placing
 music?
 
 GAMEMODE:
 
+skill web: hoverover for current bonuses
+skill web: rename convar to skill web
+skill web: skill point display
+skill web: text stating that a map restart needs to happen before skills take effect
 voting: kicking + difficulty setting
 ]]
 

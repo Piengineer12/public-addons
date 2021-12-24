@@ -13,7 +13,7 @@ local color_dark_black_semiopaque = Color(0, 0, 0, 191)
 local color_purple = Color(127, 0, 255)
 local SQRT_2 = math.sqrt(2)
 
-local SCOREBOARD_CELL_WIDTH_MULTIPLIERS = {1, 6, 6, 2, 2, 6, {1, 3, 2}, 4}
+local SCOREBOARD_CELL_WIDTH_MULTIPLIERS = {1, 6, 6, 3, 3, 8, {1, 3, 2}, 3}
 local SCOREBOARD_PADDING = 2
 local SCOREBOARD_CELL_SPACE = 1
 local SCOREBOARD_FIELDS = {"Name", "Current Cash", "Score", "Ping", "Level", "Transfer", "Voice", "Kick"}
@@ -25,7 +25,7 @@ local SCOREBOARD_FUNCS = {
 		return string.Comma(math.floor(ply.rotgb_gBalloonPops or 0))
 	end,
 	[4] = function(ply)
-		return string.Comma(ply:Ping())
+		return string.Comma(ply:Ping()).." ms"
 	end
 }
 local SKILL_SIZE = 64
@@ -47,9 +47,12 @@ local SKILL_TOOLTIP_TIERS = {{"Minor Perk", color_light_green}, {"Major Perk", c
 
 local FONT_HEADER_HEIGHT = ScreenScale(16)
 local FONT_BODY_HEIGHT = ScreenScale(12)
+local FONT_LEVEL_HEIGHT = ScreenScale(16)
+local FONT_EXPERIENCE_HEIGHT = ScreenScale(12)
+
 local FONT_SCOREBOARD_HEADER_HEIGHT = ScreenScale(8)
 local FONT_SCOREBOARD_BODY_HEIGHT = ScreenScale(8)
-local FONT_LEVEL_SMALL_HEIGHT = ScreenScale(6)
+local FONT_LEVEL_SMALL_HEIGHT = ScreenScale(5)
 local FONT_SKILL_BODY_HEIGHT = ScreenScale(6)
 local indentX = ScrW()*0.1
 local indentY = ScrH()*0.1
@@ -90,7 +93,7 @@ AccessorFunc(GM, "VoterMenu", "VoterMenu")
 AccessorFunc(GM, "SkillTreeMenu", "SkillTreeMenu")
 
 surface.CreateFont("rotgb_header", {
-	font = "White Rabbit",
+	font = "Audiowide",
 	size = FONT_HEADER_HEIGHT
 })
 
@@ -99,8 +102,18 @@ surface.CreateFont("rotgb_body", {
 	size = FONT_BODY_HEIGHT
 })
 
-surface.CreateFont("rotgb_scoreboard_header", {
+surface.CreateFont("rotgb_level", {
+	font = "Audiowide",
+	size = FONT_LEVEL_HEIGHT
+})
+
+surface.CreateFont("rotgb_experience", {
 	font = "Bombardier",
+	size = FONT_EXPERIENCE_HEIGHT
+})
+
+surface.CreateFont("rotgb_scoreboard_header", {
+	font = "Audiowide",
 	size = FONT_SCOREBOARD_HEADER_HEIGHT
 })
 
@@ -110,7 +123,7 @@ surface.CreateFont("rotgb_scoreboard_body", {
 })
 
 surface.CreateFont("rotgb_level_small", {
-	font = "Luckiest Guy",
+	font = "Audiowide",
 	size = FONT_LEVEL_SMALL_HEIGHT
 })
 
@@ -187,6 +200,35 @@ local function CreateElementCenteringPanel(child, parent)
 	child:SetParent(Panel)
 	function Panel:PerformLayout(w,h)
 		child:CenterHorizontal()
+	end
+	
+	return Panel
+end
+
+local function CreateHorizontalPanelContainer(parent, children, gapWidth)
+	local Panel = vgui.Create("DPanel", parent)
+	Panel.childrenPanels = children or {}
+	Panel.gapWidth = gapWidth or 0
+	Panel.Paint = nil
+	if IsValid(Panel.childrenPanels[1]) then
+		local newHeight = Panel.childrenPanels[1]:GetTall()
+		Panel:SetTall(newHeight)
+		for k,v in pairs(Panel.childrenPanels) do
+			v:SetTall(newHeight)
+			v:SetParent(parent)
+		end
+	end
+	function Panel:PerformLayout(w,h)
+		local widthRequired = -self.gapWidth
+		for k,v in pairs(self.childrenPanels) do
+			widthRequired = widthRequired + v:GetWide() + self.gapWidth
+		end
+		local panelPos = VectorTable(self:GetPos())
+		panelPos:AddUnpacked((self:GetWide() - widthRequired) / 2, 0)
+		for k,v in pairs(self.childrenPanels) do
+			v:SetPos(panelPos:Unpack())
+			panelPos:AddUnpacked(v:GetWide() + self.gapWidth, 0)
+		end
 	end
 	
 	return Panel
@@ -351,7 +393,7 @@ local function CreateScoreboardOtherLevelCell(parent, ply)
 		surface.SetFont("rotgb_level_small")
 		surface.SetTextPos(0,0)
 		surface.SetTextColor(127,0,255)
-		surface.DrawText(string.Comma(self.Level))
+		surface.DrawText(string.format("%i", self.Level))
 		
 		surface.SetDrawColor(63,0,127)
 		surface.DrawRect(0,h*.75,w,h*.25)
@@ -1240,7 +1282,7 @@ local function CreateSkillButton(parent, skillID, skillTier)
 	-- we're not using a DButton here since it's a lot less efficient,
 	-- we want to have MANY of these buttons at the same time after all!
 	local button = vgui.Create("DPanel", parent)
-	button:SetCursor("sizeall")
+	button:SetCursor("hand")
 	--button:NoClipping(true)
 	button:SetPaintedManually(true)
 	button.rtg_ActivateTime = -SKILL_ACTIVATE_TIME
@@ -1250,45 +1292,32 @@ local function CreateSkillButton(parent, skillID, skillTier)
 	local radiusMultiplier = SKILL_SPRITE_RADIUS_MULTIPLIERS[skillTier+1]
 	
 	function button:OnMousePressed(mousecode)
-		if self:IsMouseHovered() and mousecode == MOUSE_LEFT then
+		if mousecode == MOUSE_LEFT then
 			self.rtg_Pressed = true
 			self:MouseCapture(true)
-			parent:SetPreventCapture(true)
 		else
 			parent:OnMousePressed(mousecode)
 		end
 	end
 	function button:OnMouseReleased(mousecode)
-		if self.rtg_Pressed and mousecode == MOUSE_LEFT then
-			if self:IsMouseHovered() then
-				self:UnlockPerk()
-			end
+		if self.rtg_Pressed and self:IsHovered() and mousecode == MOUSE_LEFT then
+			self:UnlockPerk()
 			self:MouseCapture(false)
 			self.rtg_Pressed = false
-			parent:SetPreventCapture(false)
 		else
 			parent:OnMouseReleased(mousecode)
 		end
 	end
-	function button:OnCursorMoved(x,y)
-		if self:IsMouseHovered() ~= self.rtg_Hovered then
-			self.rtg_Hovered = not self.rtg_Hovered
-			if self.rtg_Hovered then
-				self:SetCursor("hand")
-				parent:OnSkillHovered(skillID)
-			else
-				self:SetCursor("sizeall")
-				parent:OnSkillUnhovered(skillID)
-			end
-		end
-		parent:OnCursorMoved(parent:CursorPos())
+	function button:OnCursorEntered()
+		parent:OnSkillHovered(skillID)
 	end
 	function button:OnCursorExited()
-		if self.rtg_Hovered then
-			self.rtg_Hovered = false
-			self:SetCursor("sizeall")
-			parent:OnSkillUnhovered(skillID)
-		end
+		parent:OnSkillUnhovered(skillID)
+	end
+	function button:TestHover(x,y)
+		local halfWidth = self:GetWide()/2
+		x,y = self:ScreenToLocal(x,y)
+		return (x - halfWidth)^2 + (y - halfWidth)^2 <= (halfWidth*radiusMultiplier)^2
 	end
 	function button:Paint(w,h)
 		local sineValue = math.sin(RealTime()*SKILL_SMOOTH_SPEED_MULTIPLIER+self.rtg_SinePhase)
@@ -1329,11 +1358,6 @@ local function CreateSkillButton(parent, skillID, skillTier)
 			net.SendToServer()
 		end
 	end
-	function button:IsMouseHovered()
-		local halfWidth = self:GetWide()/2
-		local x,y = self:CursorPos()
-		return (x - halfWidth)^2 + (y - halfWidth)^2 <= (halfWidth*radiusMultiplier)^2
-	end
 	function button:ActivatePerk()
 		self.rtg_ActivateTime = RealTime() + SKILL_ACTIVATE_TIME
 	end
@@ -1348,12 +1372,154 @@ local function DrawSkillTooltip(panel, w, h)
 	surface.DrawOutlinedRect(0,0,w,h,1)
 end
 
+local function CreateTraitDescription(traitDescs, trait, amounts)
+	local results = {}
+	local traitDesc = traitDescs[trait]
+	-- this was all so dumb
+	--[[if string.find(traitDesc, "{") then
+		results[1] = color_white
+		results[1] = string.match(traitDesc, "^([^%{]*)") or ""
+		local i = 3
+		for interInsert in string.gmatch(traitDesc, "}([^%{]*){") do
+			results[i] = color_white
+			results[i] = toInsert
+			i = i + 2
+		end
+		results[i] = color_white
+		results[i] = string.match(traitDesc, "([^%}]*)$") or ""
+		
+		i = 2
+		for interpret in string.gmatch(traitDesc, "{([^%}]*)}") do
+			if tonumber(interpret) then
+				results[i] = color_yellow
+				results[i] = amounts[tonumber(interpret)]
+			end
+			i = i + 2
+		end
+	else
+		table.insert(results, color_white)
+		table.insert(results, traitDesc)
+	end]]
+	if traitDesc then
+		for k,v in pairs(traitDesc) do
+			if isnumber(v) then
+				results[k] = string.format("%+.2f", amounts[v])
+			--[[elseif string.sub(v, 1, 1) == "#" then
+				results[k] = util.ConvertHexToColor(string.sub(v, 1))]]
+			else
+				results[k] = v
+			end
+		end
+	else
+		results[1] = color_light_red
+		results[2] = "No trait description found for trait \""..trait.."\"!"
+	end
+	
+	return results
+end
+
+local function CreateSkillTooltip(skillTreeSurface)
+	local traitDescs = hook.Run("GetTraitsText")
+	local tooltip = vgui.Create("DPanel", skillTreeSurface)
+	tooltip:SetSize(32,32)
+	tooltip.Paint = DrawSkillTooltip
+	function tooltip:Update(skill)
+		
+		self.rtg_SkillTier = skill.tier
+		local tierPalette = SKILL_TOOLTIP_TIERS[self.rtg_SkillTier+1]
+		local maxWidth = 0
+		
+		self.rtg_TitleText:SetText(skill.name)
+		self.rtg_TitleText:SetTextColor(tierPalette[2])
+		self.rtg_TitleText:SizeToContentsX()
+		maxWidth = math.max(maxWidth, self.rtg_TitleText:GetWide())
+		--[[self.rtg_TierText:SetText(tierPalette[1])
+		self.rtg_TierText:SetTextColor(color_white)
+		self.rtg_TierText:SizeToContentsX()
+		maxWidth = math.max(maxWidth, self.rtg_TierText:GetWide())]]
+		
+		for k,v in pairs(self.rtg_DescTexts) do
+			v:Remove()
+		end
+		table.Empty(self.rtg_DescTexts)
+		
+		local traits = table.Copy(istable(skill.trait) and skill.trait or {skill.trait})
+		local amounts = table.Copy(istable(skill.amount) and skill.amount or {skill.amount})
+		local skillEffectivenessMul = 1+hook.Run("GetSkillAmount", "skillEffectiveness")/100
+		for k,v in pairs(amounts) do
+			if istable(v) then
+				for k2,v2 in pairs(v) do
+					v[k2] = v2 * skillEffectivenessMul
+				end
+			elseif traits[k] == "skillEffectiveness" then
+				amounts[k] = v
+			else
+				amounts[k] = v * skillEffectivenessMul
+			end
+		end
+		surface.SetFont("rotgb_skill_body")
+		for k,v in pairs(traits) do
+			local textPanel = vgui.Create("DPanel", self)
+			textPanel:SetPos(SKILL_TOOLTIP_PADDING, SKILL_TOOLTIP_PADDING+FONT_SKILL_BODY_HEIGHT*k)
+			textPanel.rtg_Texts = CreateTraitDescription(traitDescs, v, istable(amounts[k]) and amounts[k] or {amounts[k]})
+			
+			--[[-- FIXME: if "{1}" eventually does get added, this part needs to be improved
+			local traitText = traitsText[v]
+			if traitText then 
+				local pos2,pos3 = string.find(traitText, "{0}")
+				local borders = {1,pos2,pos3 and pos3+1}
+				
+				for k2,v2 in pairs(borders) do
+					local nextBorder = borders[k2+1]
+					local subtext = string.sub(traitText, v2, (nextBorder or 0)-1)
+					
+					if k2%2==0 then
+						textPanel.rtg_Texts[k2] = string.format("%+.2f", textPanel.amounts[k2/2])
+					else
+						textPanel.rtg_Texts[k2] = subtext
+					end
+				end
+			else
+				textPanel.rtg_Texts[1] = "No trait description found! Trait: "..v
+			end]]
+			
+			function textPanel:Paint(w,h)
+				draw.MultiColoredText(self.rtg_Texts, "rotgb_skill_body", 0, 0, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
+			end
+			
+			self.rtg_DescTexts[k] = textPanel
+			textPanel:SetSize(draw.GetMultiColoredTextSize(textPanel.rtg_Texts, "rotgb_skill_body"))
+			maxWidth = math.max(maxWidth, textPanel:GetWide())
+		end
+		
+		self:SetSize(maxWidth+SKILL_TOOLTIP_PADDING*2, FONT_SKILL_BODY_HEIGHT*(1+#traits)+SKILL_TOOLTIP_PADDING*2)
+	end
+	
+	local titleText = vgui.Create("DLabel", tooltip)
+	titleText:SetFont("rotgb_skill_body")
+	titleText:SetTall(FONT_SKILL_BODY_HEIGHT)
+	titleText:SetPos(SKILL_TOOLTIP_PADDING, SKILL_TOOLTIP_PADDING)
+	tooltip.rtg_TitleText = titleText
+	
+	--[[local tierText = vgui.Create("DLabel", tooltip)
+	tierText:SetFont("rotgb_skill_body")
+	tierText:SetTall(FONT_SKILL_BODY_HEIGHT)
+	tierText:SetPos(SKILL_TOOLTIP_PADDING, SKILL_TOOLTIP_PADDING+FONT_SKILL_BODY_HEIGHT)
+	tooltip.rtg_TierText = tierText]]
+	
+	tooltip.rtg_DescTexts = {}
+	
+	return tooltip
+end
+
 local function CreateSkillTreeSurface(parent)
 	local skills = hook.Run("GetSkills")
-	local traitsText = hook.Run("GetTraitsText")
 	local Surface = vgui.Create("DPanel", parent)
+	local hoveredSkillID = 1
+	local ply = LocalPlayer()
 	Surface:Dock(FILL)
 	Surface:SetMouseInputEnabled(true)
+	Surface:SetKeyboardInputEnabled(true)
 	Surface:SetCursor("sizeall")
 	Surface.rtg_Radians = 0
 	Surface.rtg_Offset = VectorTable(0,0)
@@ -1361,8 +1527,8 @@ local function CreateSkillTreeSurface(parent)
 	Surface.rtg_LnScale = 0
 	Surface.rtg_SkillPositionData = {}
 	Surface.rtg_SkillButtons = {}
+	Surface.rtg_KeyFlags = 0
 	
-	AccessorFunc(Surface, "preventCapture", "PreventCapture", FORCE_BOOL)
 	--[[function Surface:OnCursorEntered()
 	end
 	function Surface:OnCursorExited()
@@ -1401,6 +1567,46 @@ local function CreateSkillTreeSurface(parent)
 	end
 	function Surface:OnCursorMoved(x,y)
 	end
+	function Surface:OnKeyCodePressed(key)
+		if key == KEY_W then
+			self.rtg_KeyFlags = bit.bor(self.rtg_KeyFlags, 1)
+		elseif key == KEY_A then
+			self.rtg_KeyFlags = bit.bor(self.rtg_KeyFlags, 2)
+		elseif key == KEY_S then
+			self.rtg_KeyFlags = bit.bor(self.rtg_KeyFlags, 4)
+		elseif key == KEY_D then
+			self.rtg_KeyFlags = bit.bor(self.rtg_KeyFlags, 8)
+		elseif key == KEY_I then
+			self.rtg_KeyFlags = bit.bor(self.rtg_KeyFlags, 16)
+		elseif key == KEY_O then
+			self.rtg_KeyFlags = bit.bor(self.rtg_KeyFlags, 32)
+		elseif key == KEY_K then
+			self.rtg_KeyFlags = bit.bor(self.rtg_KeyFlags, 64)
+		elseif key == KEY_L then
+			self.rtg_KeyFlags = bit.bor(self.rtg_KeyFlags, 128)
+		elseif key == KEY_SPACE then
+			self:ResetSkillTreeCamera()
+		end
+	end
+	function Surface:OnKeyCodeReleased(key)
+		if key == KEY_W then
+			self.rtg_KeyFlags = bit.band(self.rtg_KeyFlags, bit.bnot(1))
+		elseif key == KEY_A then
+			self.rtg_KeyFlags = bit.band(self.rtg_KeyFlags, bit.bnot(2))
+		elseif key == KEY_S then
+			self.rtg_KeyFlags = bit.band(self.rtg_KeyFlags, bit.bnot(4))
+		elseif key == KEY_D then
+			self.rtg_KeyFlags = bit.band(self.rtg_KeyFlags, bit.bnot(8))
+		elseif key == KEY_I then
+			self.rtg_KeyFlags = bit.band(self.rtg_KeyFlags, bit.bnot(16))
+		elseif key == KEY_O then
+			self.rtg_KeyFlags = bit.band(self.rtg_KeyFlags, bit.bnot(32))
+		elseif key == KEY_K then
+			self.rtg_KeyFlags = bit.band(self.rtg_KeyFlags, bit.bnot(64))
+		elseif key == KEY_L then
+			self.rtg_KeyFlags = bit.band(self.rtg_KeyFlags, bit.bnot(128))
+		end
+	end
 	function Surface:Paint(w,h)
 		local startX, startY = self:LocalToScreen(0, 0)
 		local endX, endY = self:LocalToScreen(w, h)
@@ -1427,6 +1633,31 @@ local function CreateSkillTreeSurface(parent)
 		
 		render.SetScissorRect(startX, startY, endX, endY, false)
 		DisableClipping(false)
+		
+		draw.MultiColoredText({
+			color_white, "You have ",
+			color_yellow, string.format("%i", ply:RTG_GetSkillPoints()),
+			color_white, " skill points remaining."
+		}, "rotgb_skill_body", 0, 0)
+		draw.MultiColoredText({
+			color_white, "Drag by holding ",
+			color_yellow, "left click",
+			color_white, " and zoom/rotate by holding ",
+			color_yellow, "right click",
+			color_white, "."
+		}, "rotgb_skill_body", 0, FONT_SKILL_BODY_HEIGHT)
+		draw.MultiColoredText({
+			color_white, "You can also use ",
+			color_yellow, "WASD",
+			color_white, " for dragging and ",
+			color_yellow, "IOKL",
+			color_white, " for zooming/rotating.",
+		}, "rotgb_skill_body", 0, FONT_SKILL_BODY_HEIGHT*2)
+		draw.MultiColoredText({
+			color_white, "Press ",
+			color_yellow, "Space",
+			color_white, " to reset the camera.",
+		}, "rotgb_skill_body", 0, FONT_SKILL_BODY_HEIGHT*3)
 	end
 	function Surface:Think()
 		local x,y = self:CursorPos()
@@ -1437,6 +1668,32 @@ local function CreateSkillTreeSurface(parent)
 		if self.rtg_ZoomPos then
 			self:ZoomSkillTree(x-self.rtg_ZoomPos[1], y-self.rtg_ZoomPos[2])
 			self.rtg_ZoomPos:SetUnpacked(x,y)
+		end
+		if bit.band(self.rtg_KeyFlags, 255) ~= 0 then
+			if bit.band(self.rtg_KeyFlags, 1) ~= 0 then
+				self:DragSkillTree(0, 15)
+			end
+			if bit.band(self.rtg_KeyFlags, 2) ~= 0 then
+				self:DragSkillTree(15, 0)
+			end
+			if bit.band(self.rtg_KeyFlags, 4) ~= 0 then
+				self:DragSkillTree(0, -15)
+			end
+			if bit.band(self.rtg_KeyFlags, 8) ~= 0 then
+				self:DragSkillTree(-15, 0)
+			end
+			if bit.band(self.rtg_KeyFlags, 16) ~= 0 then
+				self:ZoomSkillTree(0, -5)
+			end
+			if bit.band(self.rtg_KeyFlags, 32) ~= 0 then
+				self:ZoomSkillTree(0, 5)
+			end
+			if bit.band(self.rtg_KeyFlags, 64) ~= 0 then
+				self:ZoomSkillTree(-5, 0)
+			end
+			if bit.band(self.rtg_KeyFlags, 128) ~= 0 then
+				self:ZoomSkillTree(5, 0)
+			end
 		end
 	end
 	function Surface:PerformLayout(w, h)
@@ -1464,8 +1721,15 @@ local function CreateSkillTreeSurface(parent)
 		self.rtg_Offset:Multiply(math.exp(-zoomAmount))
 		self:InvalidateLayout()
 	end
+	function Surface:ResetSkillTreeCamera()
+		self.rtg_Offset:SetUnpacked(0, 0)
+		self.rtg_Radians = 0
+		self.rtg_LnScale = 0
+		self:InvalidateLayout()
+	end
 	
 	function Surface:OnSkillHovered(skillID)
+		hoveredSkillID = skillID
 		self:ShowSkillTooltip()
 		self:UpdateSkillTooltip(skillID)
 	end
@@ -1476,24 +1740,7 @@ local function CreateSkillTreeSurface(parent)
 		if IsValid(self.rtg_SkillTooltip) then
 			self.rtg_SkillTooltip:Show()
 		else
-			local tooltip = vgui.Create("DPanel", self)
-			tooltip:SetSize(32,32)
-			tooltip.Paint = DrawSkillTooltip
-			
-			local titleText = vgui.Create("DLabel", tooltip)
-			titleText:SetFont("rotgb_skill_body")
-			titleText:SetTall(FONT_SKILL_BODY_HEIGHT)
-			titleText:SetPos(SKILL_TOOLTIP_PADDING, SKILL_TOOLTIP_PADDING)
-			tooltip.rtg_TitleText = titleText
-			
-			--[[local tierText = vgui.Create("DLabel", tooltip)
-			tierText:SetFont("rotgb_skill_body")
-			tierText:SetTall(FONT_SKILL_BODY_HEIGHT)
-			tierText:SetPos(SKILL_TOOLTIP_PADDING, SKILL_TOOLTIP_PADDING+FONT_SKILL_BODY_HEIGHT)
-			tooltip.rtg_TierText = tierText]]
-			
-			tooltip.rtg_DescTexts = {}
-			self.rtg_SkillTooltip = tooltip
+			self.rtg_SkillTooltip = CreateSkillTooltip(self)
 		end
 	end
 	function Surface:HideSkillTooltip()
@@ -1503,12 +1750,11 @@ local function CreateSkillTreeSurface(parent)
 		return IsValid(self.rtg_SkillTooltip) and self.rtg_SkillTooltip:IsVisible()
 	end
 	function Surface:UpdateSkillTooltip(skillID)
-		local tooltip = self.rtg_SkillTooltip
-		local skill = skills[skillID]
+		self.rtg_SkillTooltip:Update(skills[skillID])
 		
+		--[=[local maxWidth = 0
 		tooltip.rtg_SkillTier = skill.tier
 		local tierPalette = SKILL_TOOLTIP_TIERS[tooltip.rtg_SkillTier+1]
-		local maxWidth = 0
 		
 		tooltip.rtg_SkillID = skillID
 		tooltip.rtg_TitleText:SetText(skill.name)
@@ -1572,12 +1818,12 @@ local function CreateSkillTreeSurface(parent)
 			maxWidth = math.max(maxWidth, textPanel:GetWide())
 		end
 		
-		tooltip:SetSize(maxWidth+SKILL_TOOLTIP_PADDING*2, FONT_SKILL_BODY_HEIGHT*(1+#traits)+SKILL_TOOLTIP_PADDING*2)
+		tooltip:SetSize(maxWidth+SKILL_TOOLTIP_PADDING*2, FONT_SKILL_BODY_HEIGHT*(1+#traits)+SKILL_TOOLTIP_PADDING*2)]=]
 		self:RepositionSkillTooltip()
 	end
 	function Surface:RepositionSkillTooltip()
 		local skillTooltip = self.rtg_SkillTooltip
-		local skillButton = self.rtg_SkillButtons[skillTooltip.rtg_SkillID]
+		local skillButton = self.rtg_SkillButtons[hoveredSkillID]
 		local buttonX, buttonY, buttonW, buttonH = skillButton:GetBounds()
 		
 		local radius = SKILL_SPRITE_RADIUS_MULTIPLIERS[skillTooltip.rtg_SkillTier+1]
@@ -1606,8 +1852,8 @@ local function CreateSkillTreeSurface(parent)
 	
 	function Surface:GetSkillMaterial(skillID)
 		local skillMaterialTable = SKILL_MATERIALS[skills[skillID].tier+1]
-		if LocalPlayer():RTG_HasSkill(skillID) then return skillMaterialTable.acquired
-		elseif LocalPlayer():RTG_SkillUnlocked(skillID, skills) then return skillMaterialTable.unlocked
+		if ply:RTG_HasSkill(skillID) then return skillMaterialTable.acquired
+		elseif ply:RTG_SkillUnlocked(skillID, skills) then return skillMaterialTable.unlocked
 		else return skillMaterialTable.locked
 		end
 	end
@@ -1676,11 +1922,24 @@ local function CreateSkillTreeSurface(parent)
 	return Surface
 end
 
-local function CreateSkillTreeCancelButtonPanel(parent)
-	local button = CreateButton(Panel, "Back >", color_yellow, function()
+local function CreateSkillTreeButtonsPanel(parent)
+	local cameraButton = CreateButton(Panel, "Reset Camera >", color_green, function()
+		parent:ResetSkillTreeCamera()
+	end)
+	local resetButton = CreateButton(Panel, "Reset Skills >", color_red, function()
+		if next(LocalPlayer():RTG_GetSkills()) then
+			Derma_Query("Are you sure you want to reset all skills?", "Reset Skills", "#GameUI_Yes", function()
+				net.Start("rotgb_gamemode")
+				net.WriteUInt(RTG_OPERATION_SKILLS, 4)
+				net.WriteUInt(RTG_SKILL_CLEAR, 2)
+				net.SendToServer()
+			end, "#GameUI_No")
+		end
+	end)
+	local backButton = CreateButton(Panel, "Back >", color_yellow, function()
 		hook.Run("HideSkillTree")
 	end)
-	local Panel = CreateElementCenteringPanel(button, parent)
+	local Panel = CreateHorizontalPanelContainer(parent, {cameraButton, backButton, resetButton}, FONT_HEADER_HEIGHT)
 	Panel:Dock(BOTTOM)
 	
 	return Panel
@@ -1880,10 +2139,19 @@ function GM:CreateSkillTreeMenu()
 	local Menu = CreateMenu()
 	
 	local surface = CreateSkillTreeSurface(Menu)
-	CreateSkillTreeCancelButtonPanel(Menu)
+	CreateSkillTreeButtonsPanel(Menu)
 	
 	function Menu:ActivatePerk(...)
 		surface:ActivatePerk(...)
+	end
+	function Menu:ResetSkillTreeCamera(...)
+		surface:ResetSkillTreeCamera(...)
+	end
+	function Menu:OnKeyCodePressed(...)
+		surface:OnKeyCodePressed(...)
+	end
+	function Menu:OnKeyCodeReleased(...)
+		surface:OnKeyCodeReleased(...)
 	end
 	
 	return Menu

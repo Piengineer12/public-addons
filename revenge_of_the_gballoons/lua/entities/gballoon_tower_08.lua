@@ -21,6 +21,7 @@ ENT.LOSOffset = Vector(0,0,150)
 ENT.UserTargeting = true
 ENT.AttackDamage = 10
 ENT.rotgb_BeamWidth = 8
+ENT.rotgb_DamageMul = 10
 ENT.UpgradeReference = {
 	{
 		Names = {"Super Range","Enhanced Prisms","Secondary Spectrum","Fury of the Radiant Sun","Rainbow Overlord","Orbital Friendship Cannon","Dyson Sphere","INFINITE POWER!"},
@@ -83,6 +84,7 @@ ENT.UpgradeLimits = {99}
 
 function ENT:ROTGB_ApplyPerks()
 	self:ScaleCosts(1+hook.Run("GetSkillAmount", "rainbowBeamerCosts")/100)
+	self.rotgb_DamageMul = self.rotgb_DamageMul * (1+hook.Run("GetSkillAmount", "rainbowBeamerDamage")/100)
 end
 
 local function SnipeEntity()
@@ -233,7 +235,7 @@ function ENT:FireFunction(gBalloons)
 		end
 		if self.rotgb_NextFire > CurTime() + self.rotgb_BeamDelay then]]
 			if self.UserTargeting then
-				local perf,str = coroutine.resume(self.thread,self,gBalloons[1],10)
+				local perf,str = coroutine.resume(self.thread,self,gBalloons[1],self.rotgb_DamageMul)
 				if not perf then error(str) end
 			else
 				--[[local damagemul = 10
@@ -245,7 +247,7 @@ function ENT:FireFunction(gBalloons)
 				end]]
 				--local i = 1
 				for k,v in pairs(gBalloons) do
-					local perf,str = coroutine.resume(self.thread,self,v,10)
+					local perf,str = coroutine.resume(self.thread,self,v,self.rotgb_DamageMul)
 					if not perf then error(str) end
 					--i = i + 1
 					--if i > 10 then break end

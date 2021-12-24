@@ -8,7 +8,7 @@ PLAYER.RunSpeed				= 400
 
 function PLAYER:Loadout()
 	self.Player:Give("rotgb_control")
-	if hook.Run("GetSkillAmount", "physgun") then
+	if hook.Run("GetSkillAmount", "physgun") > 0 then
 		self.Player:Give("weapon_physgun")
 	end
 end

@@ -43,6 +43,7 @@ ENT.rotgb_rbetab = {
 	-- the gBalloon Spawner implodes if we don't define these for some reason
 	gballoon_fast_hidden_regen_shielded_blimp_gray=1944,
 	gballoon_fast_blimp_magenta=5388,
+	gballoon_fast_hidden_regen_shielded_blimp_rainbow=442062,
 	
 	gballoon_glass=1,
 	gballoon_void=1,
@@ -84,6 +85,7 @@ function ENT:LogError(message,attrib)
 end
 
 local entitiestoconsider = {}
+local savedKeyValueTables = {}
 
 function ENT:KeyValue(key,value)
 	self.Properties = self.Properties or {}
@@ -104,46 +106,176 @@ function ENT:AcceptInput(input,activator,caller,data)
 	end
 end
 
+function ENT:SetBalloonProperty(key, value)
+	if self.Properties[key] ~= value then
+		self.Properties[key] = value
+		self:ApplyBalloonProperty(key, value)
+	end
+end
+
 function ENT:GetBalloonProperty(key)
 	self.Properties = self.Properties or {}
 	if not self.PropertyConverted then
-		local useLegacy = ROTGB_GetConVarValue("rotgb_legacy_gballoons")
-		local noTrails = ROTGB_GetConVarValue("rotgb_notrails")
-		self.Properties.BalloonFast = tobool(self.Properties.BalloonFast)
-		self.Properties.BalloonMoveSpeed = self.Properties.BalloonMoveSpeed or 100
-		self.Properties.BalloonScale = self.Properties.BalloonScale or 1
-		self.Properties.BalloonShielded = tobool(self.Properties.BalloonShielded)
-		self.Properties.BalloonHealth = self.Properties.BalloonHealth or 1
-		self.Properties.BalloonHealth = self.Properties.BalloonHealth or 1
-		self.Properties.BalloonRainbow = tobool(self.Properties.BalloonRainbow)
-		self.Properties.BalloonHidden = tobool(self.Properties.BalloonHidden)
-		self.Properties.BalloonColor = self.Properties.BalloonColor or "255 255 255 127"
-		self.Properties.BalloonMaterial = self.Properties.BalloonMaterial
-			or useLegacy and self.Properties.BalloonShielded and "models/balloon/balloon_star"
-			or self.Properties.BalloonRegen and "models/balloon/balloon_classicheart"
-			or (useLegacy or noTrails) and self.Properties.BalloonFast and "models/balloon/balloon_dog"
-			or "models/balloon/balloon"
-		self.Properties.BalloonModel = self.Properties.BalloonModel
-			or useLegacy and self.Properties.BalloonShielded and "models/balloons/balloon_star.mdl"
-			or self.Properties.BalloonRegen and "models/balloons/balloon_classicheart.mdl"
-			or (useLegacy or noTrails) and self.Properties.BalloonFast and "models/balloons/balloon_dog.mdl"
-			or "models/maxofs2d/balloon_classic.mdl"
-		self.Properties.BalloonPopSound = self.Properties.BalloonPopSound or "garrysmod/balloon_pop_cute.wav"
-		self.Properties.BalloonType = self.Properties.BalloonType or "gballoon_red"
-		self.Properties.BalloonBlack = tobool(self.Properties.BalloonBlack)
-		self.Properties.BalloonWhite = tobool(self.Properties.BalloonWhite)
-		self.Properties.BalloonPurple = tobool(self.Properties.BalloonPurple)
-		self.Properties.BalloonGray = tobool(self.Properties.BalloonGray)
-		self.Properties.BalloonAqua = tobool(self.Properties.BalloonAqua)
-		self.Properties.BalloonBlimp = tobool(self.Properties.BalloonBlimp)
-		self.Properties.BalloonRegen = tobool(self.Properties.BalloonRegen)
-		self.Properties.BalloonVoid = tobool(self.Properties.BalloonVoid)
-		self.Properties.BalloonGlass = tobool(self.Properties.BalloonGlass)
-		self.Properties.BalloonCashBonus = self.Properties.BalloonCashBonus or 0
-		
-		self.PropertyConverted = true
+		self:ConvertProperties()
 	end
 	return tonumber(self.Properties[key]) or self.Properties[key]
+end
+
+function ENT:ConvertProperties()
+	local useLegacy = ROTGB_GetConVarValue("rotgb_legacy_gballoons")
+	local noTrails = ROTGB_GetConVarValue("rotgb_notrails")
+	self.Properties.BalloonFast = tobool(self.Properties.BalloonFast)
+	self.Properties.BalloonMoveSpeed = self.Properties.BalloonMoveSpeed or 100
+	self.Properties.BalloonScale = self.Properties.BalloonScale or 1
+	self.Properties.BalloonShielded = tobool(self.Properties.BalloonShielded)
+	self.Properties.BalloonHealth = self.Properties.BalloonHealth or 1
+	self.Properties.BalloonHealth = self.Properties.BalloonHealth or 1
+	self.Properties.BalloonRainbow = tobool(self.Properties.BalloonRainbow)
+	self.Properties.BalloonHidden = tobool(self.Properties.BalloonHidden)
+	self.Properties.BalloonColor = self.Properties.BalloonColor or "255 255 255 127"
+	self.Properties.BalloonMaterial = self.Properties.BalloonMaterial
+		or useLegacy and self.Properties.BalloonShielded and "models/balloon/balloon_star"
+		or self.Properties.BalloonRegen and "models/balloon/balloon_classicheart"
+		or (useLegacy or noTrails) and self.Properties.BalloonFast and "models/balloon/balloon_dog"
+		or "models/balloon/balloon"
+	self.Properties.BalloonModel = self.Properties.BalloonModel
+		or useLegacy and self.Properties.BalloonShielded and "models/balloons/balloon_star.mdl"
+		or self.Properties.BalloonRegen and "models/balloons/balloon_classicheart.mdl"
+		or (useLegacy or noTrails) and self.Properties.BalloonFast and "models/balloons/balloon_dog.mdl"
+		or "models/maxofs2d/balloon_classic.mdl"
+	self.Properties.BalloonPopSound = self.Properties.BalloonPopSound or "garrysmod/balloon_pop_cute.wav"
+	self.Properties.BalloonType = self.Properties.BalloonType or "gballoon_red"
+	self.Properties.BalloonBlack = tobool(self.Properties.BalloonBlack)
+	self.Properties.BalloonWhite = tobool(self.Properties.BalloonWhite)
+	self.Properties.BalloonPurple = tobool(self.Properties.BalloonPurple)
+	self.Properties.BalloonGray = tobool(self.Properties.BalloonGray)
+	self.Properties.BalloonAqua = tobool(self.Properties.BalloonAqua)
+	self.Properties.BalloonBlimp = tobool(self.Properties.BalloonBlimp)
+	self.Properties.BalloonRegen = tobool(self.Properties.BalloonRegen)
+	self.Properties.BalloonVoid = tobool(self.Properties.BalloonVoid)
+	self.Properties.BalloonGlass = tobool(self.Properties.BalloonGlass)
+	self.Properties.BalloonCashBonus = self.Properties.BalloonCashBonus or 0
+	
+	self.PropertyConverted = true
+end
+
+function ENT:ApplyBalloonProperty(key, value)
+	if not value then
+		value = self:GetBalloonProperty(key)
+	end
+	local useOldStyle = ROTGB_GetConVarValue("rotgb_legacy_gballoons") and not ROTGB_GetConVarValue("rotgb_pertain_effects")
+	
+	if key == "BalloonModel" then
+		self:SetModel(value)
+	elseif key == "BalloonScale" then
+		self:SetModelScale(value*ROTGB_GetConVarValue("rotgb_scale"))
+	elseif key == "BalloonColor" then
+		local desiredCol = string.ToColor(self:GetBalloonProperty("BalloonColor"))
+		if self:GetBalloonProperty("BalloonHidden") then
+			desiredCol.a = 0
+		end
+		self:SetColor(desiredCol)
+		if IsValid(self.FastTrail) then
+			self:RebuildFastTrail()
+		end
+	elseif key == "BalloonHidden" then
+		self:SetNWBool("BalloonHidden",value)
+		if value then
+			local desiredCol = self:GetColor()
+			desiredCol.a = 0
+			self:SetColor(desiredCol)
+			self:SetRenderFX(kRenderFxHologram)
+		else
+			self:SetColor(string.ToColor(self:GetBalloonProperty("BalloonColor")))
+			self:SetRenderFX(kRenderFxNone)
+		end
+		if IsValid(self.FastTrail) then
+			self:RebuildFastTrail()
+		end
+	elseif key == "BalloonMaterial" then
+		self:SetMaterial(value)
+	elseif key == "BalloonHealth" then
+		local hp = self:GetBalloonProperty("BalloonHealth")
+		*(self.OldBalloonShielded and 2 or 1)
+		*(self:GetBalloonProperty("BalloonBlimp") and ROTGB_GetConVarValue("rotgb_blimp_health_multiplier") or 1)
+		*ROTGB_GetConVarValue("rotgb_health_multiplier")
+		
+		self:SetHealth(hp)
+		self:SetMaxHealth(hp)
+	elseif key == "BalloonShielded" and self.OldBalloonShielded ~= value then
+		self.OldBalloonShielded = value
+		self:SetHealth(self:Health() * (value and 2 or 0.5))
+		self:SetMaxHealth(self:GetMaxHealth() * (value and 2 or 0.5))
+	elseif key == "BalloonPurple" and not (useOldStyle or self:GetBalloonProperty("BalloonHidden")) then
+		self:SetNWBool("BalloonPurple",value)
+	elseif key == "BalloonShielded" and not (useOldStyle or self:Health()*2<=self:GetMaxHealth()) then
+		self:SetNWBool("RenderShield",true)
+	elseif key == "BalloonFast" then
+		if value then
+			self:Slowdown("BalloonFast",2,9999)
+			if not (useOldStyle or ROTGB_GetConVarValue("rotgb_notrails")) then
+				self:RebuildFastTrail()
+			end
+		else
+			self:UnSlowdown("BalloonFast")
+			if IsValid(self.FastTrail) then
+				self.FastTrail:Remove()
+			end
+		end
+	end
+end
+
+-- applies all properties at once, far more efficient than calling the above for each property
+-- can be invoked multiple times without causing errors
+function ENT:ApplyAllBalloonProperties()
+	self:ConvertProperties()
+	local useOldStyle = ROTGB_GetConVarValue("rotgb_legacy_gballoons") and not ROTGB_GetConVarValue("rotgb_pertain_effects")
+	
+	self:SetModel(self:GetBalloonProperty("BalloonModel"))
+	self:SetModelScale(self:GetBalloonProperty("BalloonScale")*ROTGB_GetConVarValue("rotgb_scale"))
+	self:SetMaterial(self:GetBalloonProperty("BalloonMaterial"))
+	local desiredCol = string.ToColor(self:GetBalloonProperty("BalloonColor"))
+	if self:GetBalloonProperty("BalloonHidden") then
+		desiredCol.a = 0
+		self:SetNWBool("BalloonHidden",true)
+		self:SetRenderFX(kRenderFxHologram)
+	end
+	self:SetColor(desiredCol)
+	
+	local hp = self:GetBalloonProperty("BalloonHealth")
+	*(self:GetBalloonProperty("BalloonBlimp") and ROTGB_GetConVarValue("rotgb_blimp_health_multiplier") or 1)
+	*ROTGB_GetConVarValue("rotgb_health_multiplier")
+	
+	if self:GetBalloonProperty("BalloonShielded") then
+		self.OldBalloonShielded = true
+		hp = hp * 2
+		self:SetNWBool("RenderShield",true)
+	end
+	self:SetHealth(hp)
+	self:SetMaxHealth(hp)
+	
+	if self:GetBalloonProperty("BalloonPurple") and not (useOldStyle or self:GetBalloonProperty("BalloonHidden")) then
+		self:SetNWBool("BalloonPurple",true)
+	end
+	
+	if self:GetBalloonProperty("BalloonFast") then 
+		self:Slowdown("BalloonFast",2,9999)
+		if not (useOldStyle or ROTGB_GetConVarValue("rotgb_notrails")) then
+			self:RebuildFastTrail()
+		end
+	else
+		if IsValid(self.FastTrail) then
+			self.FastTrail:Remove()
+		end
+		self:UnSlowdown("BalloonFast")
+	end
+end
+
+function ENT:RebuildFastTrail()
+	if IsValid(self.FastTrail) then self.FastTrail:Remove() end
+	local col = string.ToColor(self:GetBalloonProperty("BalloonColor"))
+	col.a = self:GetBalloonProperty("BalloonHidden") and col.a/4 or col.a
+	self.FastTrail = util.SpriteTrail(self,0,col,false,self:BoundingRadius()*2,0,1,0.125,self:GetBalloonProperty("BalloonRainbow") and "beams/rainbow1.vmt" or "effects/beam_generic01.vmt")
 end
 
 function ENT:SpawnFunction(ply,trace,classname)
@@ -190,6 +322,7 @@ local notifshown
 function ENT:Initialize()
 	self:RegistergBalloon()
 	if SERVER then
+		hook.Run("gBalloonKeyValuesApply", self.Properties)
 		local failslist
 		for k,v in pairs(ROTGB_BLACKLIST) do
 			if v[1] == "gballoon_*" or self:GetBalloonProperty("BalloonBlimp") and v[1] == "gballoon_blimp_*" or self:GetBalloonProperty("BalloonType") == v[1] then
@@ -224,34 +357,11 @@ function ENT:Initialize()
 			PrintMessage(HUD_PRINTTALK, "No NavMesh found! Please generate one first!")
 			notifshown = true
 		end
+		hook.Run("gBalloonPreInitialize", self)
+		
 		--self:SetLocalPos(Vector(0,0,10))
-		local model = self:GetBalloonProperty("BalloonModel")
-		if not model then
-			self.PropertyConverted = false
-			model = self:GetBalloonProperty("BalloonModel")
-		end
-		self:SetModel(model)
-		self:SetModelScale(self:GetBalloonProperty("BalloonScale")*ROTGB_GetConVarValue("rotgb_scale"))
-		local desiredCol = self:GetBalloonProperty("BalloonRainbow") and Color(255,255,255) or string.ToColor(self:GetBalloonProperty("BalloonColor"))
-		if self:GetBalloonProperty("BalloonHidden") then
-			self:SetNWBool("BalloonHidden",true)
-			desiredCol.a = 0
-			self:SetRenderFX(kRenderFxHologram)
-		end
-		self:SetColor(desiredCol)
-		self:SetMaterial(self:GetBalloonProperty("BalloonMaterial"))
-		local hp = math.Round(
-			self:GetBalloonProperty("BalloonHealth")
-			*(self:GetBalloonProperty("BalloonShielded") and 2 or 1)
-			*(self:GetBalloonProperty("BalloonBlimp") and ROTGB_GetConVarValue("rotgb_blimp_health_multiplier") or 1)
-			*ROTGB_GetConVarValue("rotgb_health_multiplier")
-		)
-		if self.SetHealth then
-			self:SetMaxHealth(hp)
-			self:SetHealth(hp)
-		else
-			self:LogError("gBalloon health is bugged out!","damage")
-		end
+		self:ApplyAllBalloonProperties()
+		
 		self:SetCollisionGroup(COLLISION_GROUP_INTERACTIVE_DEBRIS)
 		self:SetBloodColor(ROTGB_GetConVarValue("rotgb_bloodtype")<7 and ROTGB_GetConVarValue("rotgb_bloodtype") or DONT_BLEED)
 		--[=[if not IsValid(self.Attractor) then
@@ -295,20 +405,6 @@ function ENT:Initialize()
 				end
 			end)]]
 		end]=]
-		local pertainEffects = ROTGB_GetConVarValue("rotgb_pertain_effects")
-		local useLegacy = ROTGB_GetConVarValue("rotgb_legacy_gballoons")
-		if self:GetBalloonProperty("BalloonPurple") and not (self:GetBalloonProperty("BalloonHidden") or useLegacy and not pertainEffects) then
-			self:SetNWBool("BalloonPurple",true)
-		end
-		if self:GetBalloonProperty("BalloonShielded") and self:Health()*2>self:GetMaxHealth() and (not useLegacy or pertainEffects) then
-			self:SetNWBool("RenderShield",true)
-		end
-		if self:GetBalloonProperty("BalloonFast") and not (useLegacy and not pertainEffects or ROTGB_GetConVarValue("rotgb_notrails")) then
-			if IsValid(self.FastTrail) then self.FastTrail:Remove() end
-			local col = self:GetBalloonProperty("BalloonRainbow") and Color(255,255,255) or string.ToColor(self:GetBalloonProperty("BalloonColor"))
-			col.a = self:GetBalloonProperty("BalloonHidden") and col.a/4 or col.a
-			self.FastTrail = util.SpriteTrail(self,0,col,false,self:BoundingRadius()*2,0,1,0.125,self:GetBalloonProperty("BalloonRainbow") and "beams/rainbow1.vmt" or "effects/beam_generic01.vmt")
-		end
 		--self:AddRelationship("player D_HT 30")
 		local mask = ROTGB_GetConVarValue("rotgb_target_choice")
 		for k,v in pairs(ents.GetAll()) do
@@ -327,6 +423,7 @@ function ENT:Initialize()
 		if IsValid(physobj) then
 			physobj:AddGameFlag(FVPHYSICS_CONSTRAINT_STATIC)
 		end
+		hook.Run("gBalloonPostInitialize", self)
 		--self.BeaconsReached = {}
 	end
 	if CLIENT then
@@ -1228,6 +1325,7 @@ function ENT:CheckForSpeedMods()
 	self.loco:SetDesiredSpeed(self.DesiredSpeed)
 end
 
+-- "Slowdown" isn't accurate anymore as multipliers > 1 are now accepted
 function ENT:Slowdown(id,amt,tim)
 	self.rotgb_SpeedMods = self.rotgb_SpeedMods or {}
 	if self.rotgb_SpeedMods[id] then
@@ -1356,7 +1454,7 @@ end
 
 local function TestDamageResistances(properties,dmgbits,frozen)
 	if properties.BalloonGlass and dmgbits then return 8
-	elseif ROTGB_GetConVarValue("rotgb_ignore_damage_resistances") then return nil
+	elseif ROTGB_GetConVarValue("rotgb_ignore_damage_resistances") then return false
 	elseif frozen and ROTGB_HasAnyBits(dmgbits,DMG_BULLET+DMG_SLASH+DMG_BUCKSHOT) then return 6
 	elseif properties.BalloonBlack and ROTGB_HasAnyBits(dmgbits,DMG_BLAST,DMG_BLAST_SURFACE) then return 2
 	elseif properties.BalloonWhite and ROTGB_HasAnyBits(dmgbits,DMG_VEHICLE,DMG_DROWN,DMG_DROWNRECOVER) then return 1
@@ -1404,6 +1502,7 @@ end
 
 function ENT:OnInjured(dmginfo)
 	if dmginfo:GetInflictor():GetClass()~="env_fire" then
+		hook.Run("gBalloonTakeDamage", self, dmginfo)
 		self.BalloonRegenTime = CurTime()+ROTGB_GetConVarValue("rotgb_regen_delay")
 		self.LastAttacker = dmginfo:GetAttacker()
 		self.LastInflictor = dmginfo:GetInflictor()
@@ -1500,9 +1599,16 @@ function ENT:DetermineNextBalloons(blns,dmgbits,instant)
 			--local Fast = v.Fast
 			local Shield = v.Shield
 			local Hidden = v.Hidden
-			local keyvals = list.GetForEdit("NPC")[class].KeyValues
+			local keyvals = savedKeyValueTables[class]
+			if not keyvals then
+				keyvals = list.Get("NPC")[class].KeyValues
+				hook.Run("gBalloonKeyValuesApply", keyvals)
+				savedKeyValueTables[class] = keyvals
+			end
+			
 			local blockbymaxdamage = (v.InternalPops or 0) >= (tonumber(keyvals.BalloonMaxDamage) or math.huge)
 			local unitshift = blockbymaxdamage and 0.1 or 1
+			
 			if TestDamageResistances(keyvals,dmgbits,v.Frozen) and not self:HasRotgBStatusEffect("unimmune") then
 				table.insert(newspawns,v)
 			elseif (istable(v) and (v.Health or 1)>unitshift) and not instant then
@@ -1760,7 +1866,7 @@ function ENT:CheckForRegenAndFire()
 		end
 		if self:GetBalloonProperty("BalloonRegen") and (self.PrevBalloons and next(self.PrevBalloons)) then
 			local curtime = CurTime()
-			local regenDelay = ROTGB_GetConVarValue("rotgb_regen_delay")
+			local regenDelay = hook.Run("GetgBalloonRegenDelay", self) or ROTGB_GetConVarValue("rotgb_regen_delay")
 			self.BalloonRegenTime = self.BalloonRegenTime or curtime+regenDelay
 			if self.BalloonRegenTime <= curtime then
 				self.BalloonRegenTime = curtime+regenDelay

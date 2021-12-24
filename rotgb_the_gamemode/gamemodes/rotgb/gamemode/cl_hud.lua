@@ -3,12 +3,12 @@ local levelUpText
 local oldLevel = -1
 
 local color_purple = Color(127, 0, 255)
-local FONT_HEADER_HEIGHT = ScreenScale(24)
+local FONT_LEVEL_HEIGHT = ScreenScale(16)
 
 function GM:HUDDrawXP()
 	local ply = LocalPlayer()
-	local barHeight = FONT_HEADER_HEIGHT/4
-	local barWidth = barHeight * 50
+	local barHeight = FONT_LEVEL_HEIGHT/4
+	local barWidth = barHeight * 75
 	
 	local barX = (ScrW() - barWidth)/2
 	local barY = ScrH() - barHeight*2
@@ -22,12 +22,16 @@ function GM:HUDDrawXP()
 	surface.SetDrawColor(127,0,255)
 	surface.DrawRect(barX, barY, barWidth * ply:RTG_GetLevelFraction(), barHeight)
 	
-	draw.SimpleTextOutlined("Level "..string.Comma(level), "rotgb_header", barX, barY, color_purple, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
+	draw.SimpleTextOutlined(string.format("Level %i", level), "rotgb_level", barX, barY, color_purple, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
 	if levelDisplayExpiryTime < RealTime() then
-		draw.SimpleTextOutlined(string.Comma(math.floor(ply:RTG_GetExperience())).." / "..string.Comma(math.ceil(ply:RTG_GetExperienceNeeded())), "rotgb_body", barX+barWidth, barY, color_purple, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
+		local experienceText = string.Comma(math.floor(ply:RTG_GetExperience()))
+		if ply:RTG_GetExperienceNeeded() < math.huge then
+			experienceText = experienceText.." / "..string.Comma(math.ceil(ply:RTG_GetExperienceNeeded()))
+		end
+		draw.SimpleTextOutlined(experienceText, "rotgb_experience", barX+barWidth, barY, color_purple, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
 	else
 		local textColor = Color(255,math.sin(RealTime()*math.pi)*127+128,255)
-		draw.SimpleTextOutlined(levelUpText, "rotgb_body", barX+barWidth, barY, textColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
+		draw.SimpleTextOutlined(levelUpText, "rotgb_experience", barX+barWidth, barY, textColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
 	end
 	
 	if level ~= oldLevel then

@@ -27,7 +27,7 @@ ENT.rotgb_PoisonDuration = 10
 ENT.rotgb_PoisonRange = 64
 ENT.rotgb_SplashDamageModifier = -10
 ENT.rotgb_AbilityType = 0
-ENT.rotgb_FlyTime = 0.2
+ENT.rotgb_FlyTime = 1
 ENT.rotgb_ExtraMul = 0
 ENT.UpgradeReference = {
 	{

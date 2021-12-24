@@ -1432,7 +1432,7 @@ function ROTGB_UpgradeMenu(ent)
 	InfoButton.CurrentPops = ent:GetPops()
 	InfoButton.CurrentCash = ent:GetCashGenerated()
 	if InfoButton.CurrentCash > 0 then
-		InfoButton:SetText("Damage: "..string.Comma(InfoButton.CurrentPops).." | Cash: "..string.Comma(math.floor(InfoButton.CurrentCash)))
+		InfoButton:SetText("Damage: "..string.Comma(InfoButton.CurrentPops).." | Cash: "..ROTGB_FormatCash(InfoButton.CurrentCash))
 	else
 		InfoButton:SetText("Damage: "..string.Comma(InfoButton.CurrentPops))
 	end
@@ -1447,7 +1447,7 @@ function ROTGB_UpgradeMenu(ent)
 			self.CurrentPops = ent:GetPops()
 			self.CurrentCash = ent:GetCashGenerated()
 			if self.CurrentCash > 0 then
-				self:SetText("Damage: "..string.Comma(self.CurrentPops).." | Cash: "..string.Comma(math.floor(self.CurrentCash)))
+				self:SetText("Damage: "..string.Comma(self.CurrentPops).." | Cash: "..ROTGB_FormatCash(self.CurrentCash))
 			else
 				self:SetText("Damage: "..string.Comma(self.CurrentPops))
 			end

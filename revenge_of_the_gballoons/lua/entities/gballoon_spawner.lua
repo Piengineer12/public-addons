@@ -476,8 +476,8 @@ ROTGB_WAVES = { -- format: { balloon_type, amount=1, timespan=0, delay=0 }
 		rbe=338
 	},
 	{
-		{"gballoon_fast_regen_shielded_blue",90,10},
-		{"gballoon_fast_hidden_regen_red",nil,nil,10},
+		{"gballoon_regen_shielded_blue",90,10},
+		{"gballoon_hidden_regen_red",nil,nil,10},
 		duration=10,
 		rbe=361
 	},
@@ -1138,10 +1138,10 @@ function ENT:GetWaveDuration(wave)
 end
 
 function ENT:SetupDataTables()
-	self:NetworkVar("Int", 0, "Wave", {KeyName="start_wave", Edit={title="Wave To Spawn", type="Int", min=1, max=1000, order=1}})
+	self:NetworkVar("Int", 0, "Wave", {KeyName="start_wave", Edit={title="Wave To Spawn", type="Int", min=1, max=200, order=1}})
 	self:NetworkVar("Int", 1, "SpawnDivider", {KeyName="spawn_divider", Edit={title="Spawn Divider", type="Int", min=1, max=100, order=4}})
 	self:NetworkVar("Int", 2, "DividerDelay", {KeyName="divider_delay", Edit={title="Divider Delay", type="Int", min=0, max=100, order=5}})
-	self:NetworkVar("Int", 3, "LastWave", {KeyName="end_wave", Edit={title="Last Wave", type="Int", min=1, max=1000, order=2}})
+	self:NetworkVar("Int", 3, "LastWave", {KeyName="end_wave", Edit={title="Last Wave", type="Int", min=1, max=200, order=2}})
 	self:NetworkVar("Bool", 0, "AutoStartInternal", {KeyName="auto_start", Edit={title="Auto-Start", type="Boolean", order=6}})
 	self:NetworkVar("Bool", 1, "ForceNextWave", {KeyName="force_next", Edit={title="Force Auto-Start", type="Boolean", order=8}})
 	self:NetworkVar("Bool", 2, "StartAll", {KeyName="start_all", Edit={title="Start All Others", type="Boolean", order=9}})
@@ -1430,14 +1430,26 @@ function ENT:GenerateNextWave(cwave)
 	local wavetab = {}
 	local choices = {"gballoon_blimp_blue","gballoon_blimp_red","gballoon_blimp_green","gballoon_fast_hidden_regen_shielded_blimp_gray","gballoon_blimp_purple","gballoon_fast_blimp_magenta","gballoon_blimp_rainbow"}
 	local factors = {100,50,20,10,5,2,1}
+	local missingChoices = 0
 	while true do
 		if trbe > (self:GetWaveTable()[cwave-1].assumerbe or self:GetWaveTable()[cwave-1].rbe) then break end
-		local genval = util.SharedRandom("ROTGB_WAVEGEN__"..self:GetWaveFile().."_"..cwave,0,7,trbe)
-		local choice = choices[math.floor(genval)+1]
+		local genval = util.SharedRandom("ROTGB_WAVEGEN__"..self:GetWaveFile().."_"..cwave,0,#choices,trbe)
+		local choice = table.remove(choices, math.floor(genval)+1)
 		local crbe = scripted_ents.GetStored("gballoon_base").t.rotgb_rbetab[choice]
-		local amount = math.Clamp((erbe-trbe)/crbe,1,120)
-		for i,v in ipairs(factors) do
-			if amount>=v then amount=v break end
+		local amount = 0
+		if crbe then
+			amount = math.Clamp((erbe-trbe)/crbe,1,100)
+			for i,v in ipairs(factors) do
+				if amount>=v then amount=v break end
+			end
+		else
+			missingChoices = missingChoices + 1
+			if missingChoices == 1 then
+				choice = "gballoon_fast_hidden_regen_shielded_blimp_rainbow"
+				crbe = scripted_ents.GetStored("gballoon_base").t.rotgb_rbetab[choice]
+				amount = math.Round(math.Clamp((erbe-trbe)/crbe,1,100))
+			else break
+			end
 		end
 		table.insert(wavetab,{choice,amount,10})
 		trbe = trbe + crbe * amount
@@ -1458,7 +1470,6 @@ function ENT:TriggerWaveEnded()
 			income = income + hook.Run("GetSkillAmount", "waveWaveIncome")*(cwave-1)
 			income = income * (1+hook.Run("GetSkillAmount", "waveIncome")/100)
 		end
-		print(income)
 		ROTGB_AddCash(income)
 		hook.Run("gBalloonSpawnerWaveEnded",self,cwave-1)
 		if inFreeplay and not self.WinWave then
@@ -1602,8 +1613,9 @@ function ENT:SpawnByTable(spawnTable)
 				for k,v in pairs(keyValues) do
 					bln:SetKeyValue(k,v)
 				end
-				hook.Run("gBalloonSpawnerPrespawn", self, bln, keyValues)
+				hook.Run("gBalloonSpawnerPreSpawn", self, bln, keyValues)
 				bln:Spawn()
+				hook.Run("gBalloonSpawnerPostSpawn", self, bln, keyValues)
 				bln:Activate()
 				local nextTargs = {}
 				if bln:GetBalloonProperty("BalloonBlimp") then
@@ -1631,8 +1643,9 @@ function ENT:SpawnByTable(spawnTable)
 						bln:SetTarget(bln:ChooseNextTargetWeighted(times, nextTargs))
 					end
 				end
-				if bln.loco then
-					bln.loco:SetAcceleration(bln.loco:GetAcceleration()*1.05^math.max(0,(self:GetWave()-1)-(self.WinWave or math.huge)))
+				local waveSpeedAmp = self:GetWave()-(self.WinWave or math.huge)-1
+				if waveSpeedAmp > 0 then
+					bln:Slowdown("Freeplay", 1.05^waveSpeedAmp, 9999)
 				end
 			end
 		end

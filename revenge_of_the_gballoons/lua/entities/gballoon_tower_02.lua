@@ -152,6 +152,7 @@ function ENT:ROTGB_Think()
 				v.ROTGB_TOWER_02_Marks = nil
 			end
 		end
+		self.rotgb_Exploded = false
 	end
 end
 
@@ -179,19 +180,8 @@ function ENT:Explode(pos, recursion, gBalloons)
 				markedDamage = markedDamage * 3
 			end
 			if self.rotgb_StrengthBreaker then
-				if v:GetBalloonProperty("BalloonShielded") then
-					v:SetHealth(v:Health()/2)
-					v:SetMaxHealth(v:GetMaxHealth()/2)
-					v.Properties.BalloonShielded = false
-					v:SetNWBool("RenderShield",false)
-				end
-				if v:GetBalloonProperty("BalloonFast") then
-					v.loco:SetAcceleration(v.loco:GetAcceleration()/2)
-					v.loco:SetDesiredSpeed(v.loco:GetAcceleration()*0.2)
-					v.loco:SetDeceleration(v.loco:GetAcceleration())
-					v.Properties.BalloonFast = false
-					if IsValid(v.FastTrail) then v.FastTrail:Remove() end
-				end
+				v:SetBalloonProperty("BalloonShielded", false)
+				v:SetBalloonProperty("BalloonFast", false)
 			end
 			if not v:GetBalloonProperty("BalloonBlimp") and self.rotgb_Stun then
 				if not (v:GetBalloonProperty("BalloonWhite") or v:GetBalloonProperty("BalloonBlimp") or v:GetBalloonProperty("BalloonBlack")) or v:HasRotgBStatusEffect("unimmune") then

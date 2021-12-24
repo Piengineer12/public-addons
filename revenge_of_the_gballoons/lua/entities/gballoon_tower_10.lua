@@ -105,8 +105,8 @@ ENT.UpgradeReference = {
 			"Considerably increases the tower's range.",
 			"Whenever a particle from this tower hits a gBalloon, gain $5.",
 			"The tower now hits all gBalloons within its radius each shot.",
-			"gBalloons hit by this tower's shots permanently lose all immunities.",
-			"gBalloons hit by this tower's shots permanently take 15 more layers of damage from all sources."
+			"gBalloons hit by this tower's shots permanently lose all immunities except for armor.",
+			"gBalloons hit by this tower's shots permanently lose all armor and take 15 more layers of damage from all sources."
 		},
 		Prices = {600,1000,3500,20000,75000,300000},
 		Funcs = {
@@ -208,7 +208,7 @@ local function SnipeEntity()
 			ent:InflictRotgBStatusEffect("unimmune",999999)
 		end
 		if self.rotgb_NoA then
-			ent.Properties.BalloonArmor = -15
+			ent:SetBalloonProperty("BalloonArmor", -15)
 		end
 		if self.rotgb_NoC and bullet.Damage/10*ROTGB_GetConVarValue("rotgb_damage_multiplier")>=ent:Health() then
 			bullet.Damage = ent:GetRgBE() * 1000
