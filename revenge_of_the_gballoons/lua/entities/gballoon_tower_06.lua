@@ -21,7 +21,6 @@ ENT.DetectionRadius = 512
 ENT.SeeCamo = true
 ENT.InfiniteRange2 = true
 ENT.rotgb_Buff = 0
-ENT.rotgb_Towers = {}
 ENT.UpgradeReference = {
 	{
 		Names = {"Ultrasound Annoyance","Speed Traps","Radar Pulsar","Unfastening Dust","Immunity Shatter","Total Meltdown"},
@@ -93,10 +92,10 @@ ENT.UpgradeReference = {
 			"All towers in this tower's radius fire 20% faster.",
 			"Whenever a tower is placed, you gain a 20% rebate. This upgrade does not stack at all.",
 			"All towers within the range of this tower pop one extra layer per attack, and have 20% more range.",
-			"Whenever a gBalloon reaches its target and pops, each player gains $1000 for each damage point taken by the target.",
-			"Whenever a tower fires within this tower's range, there is a chance that another tower within this tower's range will also fire! \z
-				The chance is reduced if the firing tower fires more than once per second.",
-			"All towers in this tower's radius no longer have upgrade path restrictions!",
+			"Whenever a gBalloon reaches its target and pops, each player gains $1000 for each damage point taken by the target, ignoring all damage reduction effects.",
+			"Whenever a tower fires within this tower's range, there is a chance that a random tower within this tower's range will also fire! \z
+				The chance is reduced if the firing tower fires faster than the targeted tower.",
+			"All towers except this tower in this tower's radius no longer have upgrade path restrictions!",
 		},
 		Prices = {400,500,2500,5000,15000,50000000},
 		Funcs = {
@@ -139,32 +138,12 @@ ENT.UpgradeLimits = {6,2,0}
 end]]
 
 function ENT:ROTGB_Think()
-	local anotherfired
-	for k,v in pairs(self.rotgb_Towers) do
-		if (IsValid(k) and k.rotgb_AffectedBy == self) then
-			local effect = k.rotgb_Effect or 0
-			if effect > 0 then
-				k.FireRate = k.FireRate / 1.2
-			end
-			if effect > 2 then
-				k.AttackDamage = (k.AttackDamage or 0) - 10
-				k.DetectionRadius = k.DetectionRadius / 1.2
-			end
-			if effect > 4 and k.NextFire~=k.rotgb_BuffTrack then
-				k.rotgb_BuffTrack = k.NextFire
-				if math.random()<1/k.FireRate then
-					anotherfired = true
-				end
-			end
-			k.rotgb_AffectedBy = nil
-		else
-			self.rotgb_Towers[k] = nil
-		end
-	end
+	local anotherfired = 0
+	local radiusTowers = {}
 	for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
 		if v:GetClass()=="gballoon_base" then
 			if self.rotgb_NoRegen then
-				v.BalloonRegenTime = CurTime()+ROTGB_GetConVarValue("rotgb_regen_delay")
+				v.BalloonRegenTime = CurTime()+(hook.Run("GetgBalloonRegenDelay", self) or ROTGB_GetConVarValue("rotgb_regen_delay"))
 			end
 			if self.rotgb_NoFast and v:GetBalloonProperty("BalloonFast") then
 				v:Slowdown("ROTGB_FASTLESS",0.5,0.25)
@@ -182,40 +161,50 @@ function ENT:ROTGB_Think()
 				v:TakeDamage(v:GetRgBE() * 1000, self:GetTowerOwner(), self)
 			end
 		elseif v.Base=="gballoon_tower_base" then
-			if not IsValid(v.rotgb_AffectedBy) then
-				self.rotgb_Towers[v] = true
-				v.rotgb_AffectedBy = self
-				v.rotgb_Effect = self.rotgb_Buff
-				if v.rotgb_Effect > 0 then
-					v.FireRate = v.FireRate * 1.2
-				end
-				if v.rotgb_Effect > 2 then
-					v.AttackDamage = (v.AttackDamage or 0) + 10
-					v.DetectionRadius = v.DetectionRadius * 1.2
+			if self.rotgb_Buff > 0 then
+				v:ApplyBuff(self, "ROTGB_TOWER_06_PASSIVE", 999999, function(tower)
+					tower.FireRate = tower.FireRate * 1.2
+				end, function(tower)
+					tower.FireRate = tower.FireRate / 1.2
+				end)
+			end
+			if self.rotgb_Buff > 2 then
+				v:ApplyBuff(self, "ROTGB_TOWER_06_PASSIVE_2", 999999, function(tower)
+					tower.AttackDamage = (tower.AttackDamage or 0) + 10
+					tower.DetectionRadius = tower.DetectionRadius * 1.2
+				end, function(tower)
+					tower.AttackDamage = (tower.AttackDamage or 0) - 10
+					tower.DetectionRadius = tower.DetectionRadius / 1.2
+				end)
+			end
+			if self.rotgb_Buff > 4 then
+				if v.NextFire~=v.rotgb_Tower06BuffTrack then
+					v.rotgb_Tower06BuffTrack = v.NextFire
+					anotherfired = math.min(anotherfired, v.FireRate or 1)
+				else
+					table.insert(radiusTowers, v)
 				end
 			end
-			if self.rotgb_Buff > 5 then
+			if self.rotgb_Buff > 5 and v ~= self then
 				v:SetNWFloat("rotgb_noupgradelimit", CurTime()+2)
 			end
 		end
 	end
-	if anotherfired then
-		local tower = select(2,table.Random(self.rotgb_Towers))
-		tower:ExpensiveThink(true)
-		if IsValid(tower.SolicitedgBalloon) then
-			tower:FireFunction(tower.SolicitedgBalloon,tower.gBalloons or {})
+	if anotherfired and next(radiusTowers) then
+		local selectedTower = radiusTowers[math.random(#radiusTowers)]
+		if math.random() < (selectedTower.FireRate or 1) / anotherfired then
+			selectedTower:DoFireFunction()
 		end
 	end
 end
 
 function ENT:TriggerAbility()
 	for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
-		if v.Base=="gballoon_tower_base" and v.AttackDamage then
-			v.AttackDamage = v.AttackDamage + 150
-			timer.Simple(15,function()
-				if IsValid(v) then
-					v.AttackDamage = v.AttackDamage - 150
-				end
+		if v.Base=="gballoon_tower_base" then
+			v:ApplyBuff(self, "ROTGB_TOWER_06_TM", 15, function(tower)
+				tower.AttackDamage = (tower.AttackDamage or 0) + 150
+			end, function(tower)
+				tower.AttackDamage = (tower.AttackDamage or 0) - 150
 			end)
 		end
 	end

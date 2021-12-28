@@ -141,8 +141,8 @@ function SWEP:SecondaryAttack()
 	end
 	if self:CanSecondaryAttack() then
 		self:SetNextSecondaryFire(CurTime()+0.2)
-		-- FIXME: This is a VERY bad way to get the modified amounts
-		self.TowerTable = table.Copy(ROTGB_GetAllTowers())
+		-- FIXME: This is kind of a bad way to get the modified amounts!
+		self.TowerTable = ROTGB_GetAllTowers()
 		for k,v in pairs(self.TowerTable) do
 			if not self.BaseTowerTable then	
 				self.BaseTowerTable = scripted_ents.GetStored("gballoon_tower_base")
@@ -206,7 +206,7 @@ function SWEP:Think()
 	if not self.TowerTable then
 		self:SetHoldType("slam")
 		-- FIXME: duplication of above FIXME
-		self.TowerTable = table.Copy(ROTGB_GetAllTowers())
+		self.TowerTable = ROTGB_GetAllTowers()
 		for k,v in pairs(self.TowerTable) do
 			if not self.BaseTowerTable then	
 				self.BaseTowerTable = scripted_ents.GetStored("gballoon_tower_base")
@@ -246,6 +246,8 @@ function SWEP:Think()
 							render.DrawWireframeSphere(self:LocalToWorld(tower.LOSOffset or vector_origin),-tower.DetectionRadius,32,17,scol,true)
 						end
 					end
+					--local mins, maxs = self:GetCollisionBounds()
+					--render.DrawWireframeBox(self:GetPos(), self:GetAngles(), mins, maxs, color_white, true)
 				end
 				ROTGB_SetDrawNoBuilds(true)
 				self.ClientsideModel:CallOnRemove("ROTGB_SetDrawNoBuilds", HideAllNoBuilds)
@@ -619,61 +621,69 @@ function SWEP:CreateRightPanel(Main)
 		TowersPanel:Clear()
 		local towerPanelSize = wep:DeterminePowerOfTwoSize((ScrW()*0.2-padding*4.5)/2)
 		
+		local blacklisted = {}
+		for entry in string.gmatch(ROTGB_GetConVarValue("rotgb_tower_blacklist"), "%S+") do
+			blacklisted[entry] = true
+		end
+		local chessOnly = ROTGB_GetConVarValue("rotgb_tower_chessonly")
 		for i,v in ipairs(wep.TowerTable) do
-			local TowerPanel = vgui.Create("DImageButton", TowersPanel)
-			TowerPanel:SetMaterial("vgui/entities/"..v.ClassName)
-			TowerPanel:SetSize(towerPanelSize, towerPanelSize)
-			TowerPanel:SetColor(color_gray)
-			TowerPanel.affordable = false
-			TowerPanel.minimumLevel = engine.ActiveGamemode() == "rotgb" and i or 0
-			TowerPanel.levelLocked = false
-			TowerPanel.cashText = ROTGB_FormatCash(ROTGB_ScaleBuyCost(v.Cost), true)
-			TowerPanel:SetTooltip(v.PrintName)
-			
-			function TowerPanel:PaintOver(w, h)
-				local drawColor = color_white
-				local isLevelLocked = false
-				if self.minimumLevel > 0 then
-					isLevelLocked = LocalPlayer():RTG_GetLevel() < self.minimumLevel
-				end
-				if isLevelLocked then
-					drawColor = color_red
-					if not self.levelLocked then
-						self.levelLocked = true
-						self:SetColor(color_gray)
-						TowerPanel.cashText = string.format("Level %u", self.minimumLevel)
+			if not (blacklisted[v.ClassName] or chessOnly > 0 and not v.IsChessPiece or chessOnly < 0 and v.IsChessPiece) then
+				local TowerPanel = vgui.Create("DImageButton", TowersPanel)
+				TowerPanel:SetMaterial("vgui/entities/"..v.ClassName)
+				TowerPanel:SetSize(towerPanelSize, towerPanelSize)
+				TowerPanel:SetColor(color_gray)
+				TowerPanel.affordable = false
+				TowerPanel.minimumLevel = engine.ActiveGamemode() == "rotgb" and i or 0
+				TowerPanel.levelLocked = false
+				TowerPanel.price = ROTGB_ScaleBuyCost(v.Cost, v, {type = ROTGB_TOWER_PURCHASE})
+				TowerPanel.cashText = ROTGB_FormatCash(TowerPanel.price, true)
+				TowerPanel:SetTooltip(v.PrintName)
+				
+				function TowerPanel:PaintOver(w, h)
+					local drawColor = color_white
+					local isLevelLocked = false
+					if self.minimumLevel > 0 then
+						isLevelLocked = LocalPlayer():RTG_GetLevel() < self.minimumLevel
 					end
-				elseif self.levelLocked then
-					self.levelLocked = false
-					TowerPanel.cashText = ROTGB_FormatCash(ROTGB_ScaleBuyCost(v.Cost), true)
-					if self.affordable and not self.levelLocked then
-						self:SetColor(color_white)
+					if isLevelLocked then
+						drawColor = color_red
+						if not self.levelLocked then
+							self.levelLocked = true
+							self:SetColor(color_gray)
+							TowerPanel.cashText = string.format("Level %u", self.minimumLevel)
+						end
+					elseif self.levelLocked then
+						self.levelLocked = false
+						TowerPanel.cashText = ROTGB_FormatCash(self.price, true)
+						if self.affordable and not self.levelLocked then
+							self:SetColor(color_white)
+						end
 					end
+					
+					if ROTGB_GetCash() < self.price then
+						drawColor = color_red
+						if self.affordable then
+							self.affordable = false
+							self:SetColor(color_gray)
+						end
+					elseif not self.affordable then
+						self.affordable = true
+						if self.affordable and not self.levelLocked then
+							self:SetColor(color_white)
+						end
+					end
+					
+					if self:IsHovered() then
+						surface.SetDrawColor(drawColor.r, drawColor.g, drawColor.b, 31)
+						surface.DrawRect(0, 0, w, h)
+					end
+					
+					draw.SimpleTextOutlined(self.cashText, "RotgB_font", w/2, h, drawColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM, 2, color_black)
 				end
 				
-				if ROTGB_GetCash() < ROTGB_ScaleBuyCost(v.Cost) then
-					drawColor = color_red
-					if self.affordable then
-						self.affordable = false
-						self:SetColor(color_gray)
-					end
-				elseif not self.affordable then
-					self.affordable = true
-					if self.affordable and not self.levelLocked then
-						self:SetColor(color_white)
-					end
+				function TowerPanel:DoClick()
+					wep:DoTowerSelector(i)
 				end
-				
-				if self:IsHovered() then
-					surface.SetDrawColor(drawColor.r, drawColor.g, drawColor.b, 31)
-					surface.DrawRect(0, 0, w, h)
-				end
-				
-				draw.SimpleTextOutlined(self.cashText, "RotgB_font", w/2, h, drawColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM, 2, color_black)
-			end
-			
-			function TowerPanel:DoClick()
-				wep:DoTowerSelector(i)
 			end
 		end
 	end
@@ -820,9 +830,11 @@ function SWEP:CreateMiddlePanel(Main)
 		TowersPanel:Clear()
 		local towerPanelSize = wep:DeterminePowerOfTwoSize(ScrH()*0.15-padding*4.5-24)
 		local halfSize = towerPanelSize/2
+		local success = false
 		
 		for k,v in pairs(ents.GetAll()) do
 			if v.Base == "gballoon_tower_base" and v.HasAbility then
+				success = true
 				local TowerPanel = vgui.Create("DImageButton", TowersPanel)
 				TowerPanel.Tower = v
 				TowerPanel:SetMaterial("vgui/entities/"..v:GetClass())
@@ -878,6 +890,12 @@ function SWEP:CreateMiddlePanel(Main)
 				end
 			end
 		end
+		
+		if not success then
+			Main:AddHeader("(Towers with \"shooting at this tower\" effects will appear here.)", TowersPanel)
+		end
+		TowersPanel:InvalidateLayout(true)
+		ScrollPanel:InvalidateLayout(true)
 	end
 	ScrollPanel:Refresh()
 	Main.AbilityScrollPanel = ScrollPanel

@@ -190,28 +190,25 @@ function ENT:Initialize()
 			self:SetMaxHealth(self.CurMaxHealth)
 		elseif self:GetNaturalHealthMultiplier() ~= 0 then
 			local naturalHealth = ROTGB_GetConVarValue("rotgb_target_natural_health") * self:GetNaturalHealthMultiplier()
+			self.notYetCorrectedNaturalHealth = naturalHealth
 			self:SetHealth(naturalHealth)
 			self:SetMaxHealth(naturalHealth)
 		end
 		gballoon_pob.Initialize(self)
 	end
-	if engine.ActiveGamemode() == "rotgb" then
-		self:ApplyPerks()
-	end
-end
-
-function ENT:ApplyPerks()
-	if SERVER then
-		local healthMultiplier = 1+hook.Run("GetSkillAmount", "targetHealth")/100*(1+hook.Run("GetSkillAmount", "targetHealthEffectiveness")/100)
-		self:SetHealth(self:Health()*healthMultiplier)
-		self:SetMaxHealth(self:GetMaxHealth()*healthMultiplier)
-	end
-	self:SetGoldenHealth(hook.Run("GetSkillAmount", "targetGoldenHealth"))
 end
 
 function ENT:Think()
 	self.oldHealth = self.oldHealth or self:Health()
 	self.oldMaxHealth = self.oldMaxHealth or self:GetMaxHealth()
+	if self.notYetCorrectedNaturalHealth then
+		local naturalHealth = hook.Run("gBalloonTargetHealthAdjust", self, self.notYetCorrectedNaturalHealth)
+		if naturalHealth then
+			self:SetHealth(naturalHealth)
+			self:SetMaxHealth(naturalHealth)
+		end
+		self.notYetCorrectedNaturalHealth = nil
+	end
 	self:TriggerOnHealthChanged()
 	self:TriggerOnMaxHealthChanged()
 end

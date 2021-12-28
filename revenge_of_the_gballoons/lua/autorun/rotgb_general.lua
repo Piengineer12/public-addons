@@ -6,7 +6,7 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		4.1.0-alpha.1
+Version:		5.0.0-alpha.2
 ]]
 
 local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","towers"}
@@ -33,6 +33,10 @@ function ROTGB_EntityLogError(entity,message,attrib)
 	if ROTGB_GetConVarValue("rotgb_debug"):find(attrib) then
 		MsgC(Color(0,255,0),"[RotgB] ",Color(255,255,0),string.FormattedTime(CurTime(),"[%02i:%02i.%02i] "),color_white,tostring(entity)..": ",Color(255,127,127),message,"\n")
 	end
+end
+
+function ROTGB_LoggingEnabled(attrib)
+	return not not ROTGB_GetConVarValue("rotgb_debug"):find(attrib)
 end
 
 function ROTGB_HasAllBits(bits,required)
@@ -63,6 +67,7 @@ ROTGB_OPERATION_TRIGGER = 7
 
 ROTGB_TOWER_MENU = 0
 ROTGB_TOWER_UPGRADE = 1
+ROTGB_TOWER_PURCHASE = 2
 
 ROTGB_HEALTH_SET = 1
 ROTGB_HEALTH_HEAL = 2
@@ -381,10 +386,10 @@ RegisterConVar("rotgb_use_achievement_handler","1",R_INT,
 RegisterConVar("rotgb_difficulty","1",R_FLOAT,
 [[Sets the difficulty of RotgB.
  - Available values:
- - 0: Easy (x0.8 tower costs)
- - 1: Normal (x1.0 tower costs)
- - 2: Hard (x1.2 tower costs)
- - 3: Insane (x1.4 tower costs)
+ - 0: Easy (x0.8 tower costs, x0.9 gBalloon speed)
+ - 1: Normal (x1.0 tower costs, x1.0 gBalloon speed)
+ - 2: Hard (x1.2 tower costs, x1.1 gBalloon speed)
+ - 3: Insane (x1.4 tower costs, x1.2 gBalloon speed)
  
  - Note: The prices displayed in the spawnmenu are always the Normal difficulty prices due to the spawnmenu being static (names cannot be changed).]])
 
@@ -414,6 +419,13 @@ RegisterConVar("rotgb_tower_ignore_physgun","0",R_BOOL,
 
 RegisterConVar("rotgb_health_param","0",R_FLOAT,
 [[Sets the health value for the rotgb_*health ConCommands.]])
+
+RegisterConVar("rotgb_tower_blacklist","",R_STRING,
+[[Tower classes in the blacklist cannot be placed. Separate entries with spaces.]])
+
+RegisterConVar("rotgb_tower_chessonly","0",R_INT,
+[[Enabling this option will allow only chess towers to be placed. Towers can declare whether they are chess towers or not in their respective class files.
+ - If -1, only NON-chess towers can be placed.]])
 
 concommand.Add("rotgb_health_param_internal",function(ply,cmd,args,argStr) if (not IsValid(ply) or ply:IsAdmin()) then ROTGB_CVARS["rotgb_health_param"][1]:SetInt(tonumber(args[1]) or 0) end end,nil,nil,FCVAR_UNREGISTERED)
 
@@ -558,8 +570,14 @@ function ROTGB_GetTransferAmount(ply)
 	return math.floor(math.max(0, cash / 5, math.min(cash, 100)))
 end
 
-function ROTGB_ScaleBuyCost(num)
-	return num * (1 + (ROTGB_GetConVarValue("rotgb_difficulty") - 1)/5)
+function ROTGB_ScaleBuyCost(num,ent,data)
+	num = num or 0
+	local newAmount = hook.Run("RotgBScaleBuyCost", num, ent, data)
+	if newAmount then
+		return newAmount
+	else
+		return num * (1 + (ROTGB_GetConVarValue("rotgb_difficulty") - 1)/5)
+	end
 end
 
 if SERVER then
@@ -1125,6 +1143,10 @@ if CLIENT then
 			DForm:Help(" - "..GetConVar("rotgb_func_nav_expand"):GetHelpText().."\n")
 		end)
 		spawnmenu.AddToolMenuOption("RotgB","Server","RotgB_Server5","Towers","","",function(DForm)
+			DForm:TextEntry("Tower Blacklist","rotgb_tower_blacklist")
+			DForm:Help(" - "..GetConVar("rotgb_tower_blacklist"):GetHelpText().."\n")
+			DForm:NumberWang("Chess Only","rotgb_tower_chessonly",-1,1)
+			DForm:Help(" - "..GetConVar("rotgb_tower_chessonly"):GetHelpText().."\n")
 			DForm:CheckBox("Hurt Non-gBalloons","rotgb_tower_damage_others")
 			DForm:Help(" - "..GetConVar("rotgb_tower_damage_others"):GetHelpText().."\n")
 			DForm:CheckBox("Ignore Upgrade Limits","rotgb_ignore_upgrade_limits")

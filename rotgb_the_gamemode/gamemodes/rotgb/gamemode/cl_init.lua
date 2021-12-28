@@ -93,9 +93,9 @@ concommand.Add("rotgb_tg_vote", function()
 	hook.Run("ShowVoteMenu")
 end, nil, "Opens the vote selection menu.")
 
-concommand.Add("rotgb_tg_skill_tree", function()
-	hook.Run("ShowSkillTree")
-end, nil, "Opens the skill tree menu.")
+concommand.Add("rotgb_tg_skill_web", function()
+	hook.Run("ShowSkillWeb")
+end, nil, "Opens the skill web menu.")
 
 function GM:StartVote(voteInfo)
 	hook.Run("SetCurrentVote", voteInfo)

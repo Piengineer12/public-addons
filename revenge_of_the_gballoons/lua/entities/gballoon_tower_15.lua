@@ -153,14 +153,7 @@ end
 
 function ENT:ROTGB_Think()
 	if self:GetAbilityNextFire()<CurTime() then
-		local dmginfo = DamageInfo()
-		
-		dmginfo:SetAttacker(self:GetTowerOwner())
-		dmginfo:SetInflictor(self:GetTowerOwner())
-		dmginfo:SetDamageType(DMG_GENERIC)
-		dmginfo:SetDamage(1)
-		
-		self:TakeDamageInfo(dmginfo)
+		self:DoAbility()
 	elseif (self.HasAbility and self:GetAbilityNextFire()>CurTime()+self.AbilityCooldown) then
 		self:SetAbilityNextFire(0)
 	end

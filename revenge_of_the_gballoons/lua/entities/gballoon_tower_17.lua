@@ -473,7 +473,7 @@ if CLIENT then
 		end
 	end
 	function EFFECT:Render()
-		if IsValid(self.emitter) and IsValid(self.tower) and self.KillTime - 1 > CurTime() then
+		if IsValid(self.emitter) and IsValid(self.tower) and self.KillTime - 1 > CurTime() and FrameTime() > 0 then
 			if self.emitter:GetNumActiveParticles() < 100 then
 				local particle = self.emitter:Add("particle/smokestack", self.tower:GetClass()=="gballoon_base" and self.tower:GetPos() or self.emitter:GetPos())
 				if particle then
@@ -511,7 +511,7 @@ if CLIENT then
 		end
 	end
 	function EFFECT:Render()
-		if IsValid(self.emitter) and IsValid(self.entity) then
+		if IsValid(self.emitter) and IsValid(self.entity) and FrameTime() > 0 then
 			local startPos = VectorRand(self.entity:OBBMins(), self.entity:OBBMaxs())
 			startPos:Add(self.entity:GetPos())
 			local particle = self.emitter:Add("sprites/orangecore2_gmod", startPos)

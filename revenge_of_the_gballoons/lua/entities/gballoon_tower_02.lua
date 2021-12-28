@@ -121,7 +121,6 @@ ENT.UpgradeLimits = {6,2,0}
 
 function ENT:ROTGB_ApplyPerks()
 	self.DetectionRadius = self.DetectionRadius * (1+hook.Run("GetSkillAmount", "proximityMineRange")/100)
-	self:ScaleCosts(1+hook.Run("GetSkillAmount", "proximityMineCosts")/100)
 end
 
 function ENT:FireFunction(gBalloons)

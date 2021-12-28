@@ -16,7 +16,7 @@ end
 local color_yellow = Color(255, 255, 0)
 GM.BaseTraitsText = {
 	[""] = {color_white, "This perk does nothing."},
-	skillEffectiveness = {color_white, "All ", color_yellow, "yellow", color_white, " effects are increased by ", 1, "%."},
+	skillEffectiveness = {color_white, "All ", color_yellow, "yellow", color_white, " skill effects are increased by ", 1, "%."},
 	
 	towerPrice = {color_yellow, 1, color_white, "% tower cost"},
 	physgun = {color_white, "Gain the Physics Gun, which can be used to move towers, but only while there are no gBalloons on the map."},
@@ -269,6 +269,42 @@ end
 
 function GM:IsAppliedSkill(skillName)
 	return hook.Run("GetAppliedSkills")[hook.Run("GetSkillNames")[skillName]]
+end
+
+-- defined in rotgb_general.lua
+function GM:RotgBScaleBuyCost(num,ent,data)
+	local newAmount = num * (1 + (ROTGB_GetConVarValue("rotgb_difficulty") - 1)/5)
+	local typ = data.type
+	if typ == ROTGB_TOWER_PURCHASE or typ == ROTGB_TOWER_UPGRADE then
+		newAmount = newAmount * (1+hook.Run("GetSkillAmount", "towerCosts")/100)
+		local class = ent.GetClass and ent:GetClass() or ent.ClassName
+		
+		if class == "gballoon_tower_02" then
+			newAmount = newAmount * (1+hook.Run("GetSkillAmount", "proximityMineCosts")/100)
+		elseif class == "gballoon_tower_08" then
+			newAmount = newAmount * (1+hook.Run("GetSkillAmount", "rainbowBeamerCosts")/100)
+		elseif class == "gballoon_tower_14" then
+			newAmount = newAmount * (1+hook.Run("GetSkillAmount", "microwaveGeneratorCosts")/100)
+		elseif class == "gballoon_tower_16" then
+			newAmount = newAmount * (1+hook.Run("GetSkillAmount", "hoverballFactoryCosts")/100)
+		end
+	end
+	return newAmount
+end
+
+-- defined in gballoon_target.lua
+function GM:gBalloonTargetHealthAdjust(ent, health)
+	ent:SetGoldenHealth(hook.Run("GetSkillAmount", "targetGoldenHealth"))
+	return health * (1+hook.Run("GetSkillAmount", "targetHealth")/100*(1+hook.Run("GetSkillAmount", "targetHealthEffectiveness")/100))
+end
+
+-- defined in gballoon_tower_base.lua
+function GM:RotgBTowerPlaced(tower)
+	local maxWave = 0
+	for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
+		maxWave = math.max(maxWave, v:GetWave())
+	end
+	tower.MaxWaveReached = maxWave
 end
 
 local PLAYER = FindMetaTable("Player")

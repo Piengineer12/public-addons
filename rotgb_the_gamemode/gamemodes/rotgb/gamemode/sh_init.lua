@@ -50,8 +50,9 @@ GM.Modes						= {
 		}
 	},
 	easy_regular = {
-		name = "Regular",
 		category = "Easy",
+		name = "Regular",
+		description = "Easy difficulty, ends at Wave 40. Towers and upgrades are 20% cheaper and gBalloons move 10% slower.",
 		place = 1,
 		convars = {
 			rotgb_difficulty = 0,
@@ -59,9 +60,34 @@ GM.Modes						= {
 			rotgb_target_natural_health = 200
 		}
 	},
+	easy_chessonly = {
+		category = "Easy",
+		name = "Chess Only",
+		description = "Easy difficulty, but only chess towers can be placed.",
+		place = 2,
+		convars = {
+			rotgb_difficulty = 0,
+			rotgb_default_last_wave = 40,
+			rotgb_target_natural_health = 200,
+			rotgb_tower_chessonly = 1
+		}
+	},
+	easy_halfcash = {
+		category = "Easy",
+		name = "Half Cash",
+		description = "Easy difficulty, but all income and cash gains are halved.",
+		place = 3,
+		convars = {
+			rotgb_difficulty = 0,
+			rotgb_default_last_wave = 40,
+			rotgb_target_natural_health = 200,
+			rotgb_cash_mul = 0.5
+		}
+	},
 	medium_regular = {
 		name = "Regular",
 		category = "Medium",
+		description = "Medium difficulty, ends at Wave 60.",
 		place = 1,
 		convars = {
 			rotgb_difficulty = 1,
@@ -72,6 +98,7 @@ GM.Modes						= {
 	hard_regular = {
 		name = "Regular",
 		category = "Hard",
+		description = "Hard difficulty, ends at Wave 80. Towers and upgrades are 20% more expensive and gBalloons move 10% faster.",
 		place = 1,
 		convars = {
 			rotgb_difficulty = 2,
@@ -79,10 +106,11 @@ GM.Modes						= {
 			rotgb_target_natural_health = 100
 		}
 	},
-	hard_insane = {
-		name = "Insane",
-		category = "Hard",
-		place = 2,
+	insane_regular = {
+		name = "Regular",
+		category = "Insane",
+		description = "Insane difficulty, ends at Wave 100. Towers and upgrades are 40% more expensive and gBalloons move 20% faster.",
+		place = 1,
 		convars = {
 			rotgb_difficulty = 3,
 			rotgb_default_last_wave = 100,
@@ -91,8 +119,9 @@ GM.Modes						= {
 	},
 	hard_impossible = {
 		name = "Impossible",
-		category = "Hard",
-		place = 3,
+		category = "Insane",
+		description = "Impossible difficulty, ends at Wave 120. Towers and upgrades are 60% more expensive and gBalloons move 30% faster.",
+		place = 2,
 		convars = {
 			rotgb_difficulty = 4,
 			rotgb_default_last_wave = 120,
@@ -103,25 +132,26 @@ GM.Modes						= {
 
 --[[
 TO DO LIST:
-fix Multipurpose Engine all-path upgrade
 + several others (*.txt in same directory)
 
-fix upgrade tooltip prices
-replace rebate upgrade from Hoverball Factory
-popped gBalloons MIGHT incorrectly render a shield when their health is actually too low to render
-button to sell all towers - low priority
-button to activate all abilities - low priority
+make sure force auto-start forces auto-start
+add ConVar to control force auto-start
+update the readme file
+implement CHESS tower blacklisting
 sandbox saving
 fix autostart on rotgb_heatwave
 sfx for upgrading and placing
 music?
+fix Multipurpose Engine buff desync - difficult to solve on client side
+popped gBalloons MIGHT incorrectly render a shield when their health is actually too low to render - low priority
+button to sell all towers - low priority
+button to activate all abilities - low priority
 
 GAMEMODE:
 
-skill web: hoverover for current bonuses
-skill web: rename convar to skill web
-skill web: skill point display
-skill web: text stating that a map restart needs to happen before skills take effect
+implement more game difficulty modes
+implement description field for difficulty GUI
+skill web: skill web stars?
 voting: kicking + difficulty setting
 ]]
 

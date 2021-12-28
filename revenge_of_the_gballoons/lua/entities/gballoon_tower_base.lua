@@ -71,11 +71,13 @@ ENT.ROTGB_Initialize = function()end
 
 function ENT:Initialize()
 	self:ApplyPerks()
-	local cost = ROTGB_ScaleBuyCost(self.Cost or 0)
-	local maxCount = ROTGB_GetConVarValue("rotgb_tower_maxcount")
-	local upgradePriceMultiplier = self.UpgradeReferencePriceMultiplier or 1
+	local cost = ROTGB_ScaleBuyCost(self.Cost or 0, self, {type = ROTGB_TOWER_PURCHASE})
 	self:ROTGB_Initialize()
+	
 	self.LOSOffset = self.LOSOffset or vector_origin
+	self.LocalCost = cost
+	self.DetectionRadius = self.DetectionRadius * ROTGB_GetConVarValue("rotgb_tower_range_multiplier")
+	self.BuffIdentifiers = {}
 	
 	if not IsValid(self:GetTowerOwner()) and self:GetOwnerUserID() ~= 0 then -- duplication always fails to copy entities properly
 		self:SetTowerOwner(Player(self:GetOwnerUserID()))
@@ -93,7 +95,7 @@ function ENT:Initialize()
 			physobj:EnableMotion(false)
 		end
 		self:SetUseType(SIMPLE_USE)
-		if maxCount>=0 then
+		--[[if maxCount>=0 then
 			local count = 0
 			for k,v in pairs(ents.GetAll()) do
 				if v.Base=="gballoon_tower_base" then
@@ -106,24 +108,24 @@ function ENT:Initialize()
 		end
 		if cost>ROTGB_GetCash(self:GetTowerOwner()) then
 			self:SetNoDraw(true)
-		end
+		end]]
 	end
-	self.LocalCost = cost
-	self.DetectionRadius = self.DetectionRadius * ROTGB_GetConVarValue("rotgb_tower_range_multiplier")
 	if self:GetUpgradeStatus()>0 then
 		for i,v in ipairs(self.UpgradeReference) do
 			local tier = bit.rshift(self:GetUpgradeStatus(),(i-1)*4)%16
-			for i=1,tier do
+			for j=1,tier do
 				if (v.Funcs and v.Funcs[tier]) then
 					v.Funcs[tier](self)
-					self.LocalCost = self.LocalCost + ROTGB_ScaleBuyCost(v.Prices[tier]*upgradePriceMultiplier)
+					self.LocalCost = self.LocalCost + ROTGB_ScaleBuyCost(v.Prices[tier], self, {type = ROTGB_TOWER_UPGRADE, path = i, tier = j})
 				end
 			end
 		end
 	end
 	if CLIENT and LocalPlayer()==self:GetTowerOwner() then
 		local localPlayer = LocalPlayer()
-		local levelLocked, towerIndex = false, 0
+		local levelLocked, blacklisted, towerIndex = false, false, 0
+		local tooMany, maxCount = false, ROTGB_GetConVarValue("rotgb_tower_maxcount")
+		local chessDeny = 0
 		if engine.ActiveGamemode() == "rotgb" then
 			-- get a sorted-by-price list of all towers, then return our index from the list
 			local towers = ROTGB_GetAllTowers()
@@ -134,11 +136,20 @@ function ENT:Initialize()
 			end
 			levelLocked = localPlayer:RTG_GetLevel() < towerIndex
 		end
-		if levelLocked then
-			ROTGB_CauseNotification("You need to be level "..string.Comma(towerIndex).." to buy this tower!")
-		elseif self.LocalCost>ROTGB_GetCash(localPlayer) then
-			ROTGB_CauseNotification("You need $"..string.Comma(math.ceil(self.LocalCost-ROTGB_GetCash(localPlayer))).." more to buy this tower!")
-		elseif maxCount>=0 then
+		for entry in string.gmatch(ROTGB_GetConVarValue("rotgb_tower_blacklist"), "%S+") do
+			if self:GetClass() == entry then
+				blacklisted = true break
+			end
+		end
+		local chessOnly = ROTGB_GetConVarValue("rotgb_tower_chessonly")
+		if chessOnly ~= 0 then
+			if chessOnly > 0 and not self.IsChessPiece then
+				chessDeny = 1
+			elseif chessOnly < 0 and self.IsChessPiece then
+				chessDeny = -1
+			end
+		end
+		if maxCount > 0 then
 			local count = 0
 			for k,v in pairs(ents.GetAll()) do
 				if v.Base=="gballoon_tower_base" then
@@ -146,18 +157,27 @@ function ENT:Initialize()
 				end
 			end
 			if count > maxCount then
-				ROTGB_CauseNotification("You are not allowed to place any more towers!")
+				tooMany = true
 			end
 		end
-	end
-
-	if engine.ActiveGamemode() == "rotgb" then
-		local maxWave = 0
-		for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
-			maxWave = math.max(maxWave, v:GetWave())
+		if blacklisted then
+			ROTGB_CauseNotification("That tower is blacklisted from being placed!")
+		elseif chessDeny ~= 0 then
+			if chessDeny > 0 then
+				ROTGB_CauseNotification("Only chess towers can be placed!")
+			else
+				ROTGB_CauseNotification("Only non-chess towers can be placed!")
+			end
+		elseif tooMany then
+			ROTGB_CauseNotification("You are not allowed to place any more towers!")
+		elseif levelLocked then
+			ROTGB_CauseNotification(string.format("You need to be level %i to buy this tower!", towerIndex))
+		elseif self.LocalCost>ROTGB_GetCash(localPlayer) then
+			ROTGB_CauseNotification("You need $"..string.Comma(math.ceil(self.LocalCost-ROTGB_GetCash(localPlayer))).." more to buy this tower!")
 		end
-		self.MaxWaveReached = maxWave
 	end
+	
+	hook.Run("RotgBTowerPlaced", self)
 end
 
 ENT.ROTGB_ApplyPerks = ENT.ROTGB_Initialize
@@ -165,15 +185,9 @@ ENT.ROTGB_ApplyPerks = ENT.ROTGB_Initialize
 function ENT:ApplyPerks()
 	if engine.ActiveGamemode() == "rotgb" then
 		self:ROTGB_ApplyPerks()
-		self:ScaleCosts(1+hook.Run("GetSkillAmount", "towerCosts")/100)
 		self.FireRate = self.FireRate * (1+hook.Run("GetSkillAmount", "towerFireRate")/100)
 		self.DetectionRadius = self.DetectionRadius * (1+hook.Run("GetSkillAmount", "towerRange")/100)
 	end
-end
-
-function ENT:ScaleCosts(scale)
-	self.Cost = self.Cost * scale
-	self.UpgradeReferencePriceMultiplier = (self.UpgradeReferencePriceMultiplier or 1) * scale
 end
 
 hook.Add("EntityTakeDamage","ROTGB_TOWERS",function(vic,dmginfo)
@@ -215,6 +229,9 @@ function ENT:AddTimePhase(timeToAdd)
 	self.StunUntil2 = (self.StunUntil2 or 0) + timeToAdd
 	self:SetAbilityNextFire(self:GetAbilityNextFire() + timeToAdd)
 	self:SetNWFloat("rotgb_noupgradelimit", self:GetNWFloat("rotgb_noupgradelimit") + timeToAdd)
+	for identifier,info in pairs(self.BuffIdentifiers) do
+		info.expiry = info.expiry + timeToAdd
+	end
 end
 
 ENT.FireFunction = ENT.ROTGB_Initialize
@@ -273,11 +290,6 @@ function ENT:Think()
 		local towerCost = self.LocalCost
 		if not self.IsEnabled and towerCost then
 			self.IsEnabled = true
-			--[[for k,v in pairs(ents.FindInBox(self:GetCollisionBounds())) do
-				if v:GetClass()=="func_rotgb_nobuild" and not v.Disabled then
-					return SafeRemoveEntity(self)
-				end
-			end]] -- already done in func_rotgb_nobuild
 			if engine.ActiveGamemode() == "rotgb" and self:GetTowerOwner():IsPlayer() then
 				local towerIndex = 0
 				local towers = ROTGB_GetAllTowers()
@@ -292,6 +304,20 @@ function ENT:Think()
 				end
 			end
 			local maxCount = ROTGB_GetConVarValue("rotgb_tower_maxcount")
+			for entry in string.gmatch(ROTGB_GetConVarValue("rotgb_tower_blacklist"), "%S+") do
+				if self:GetClass() == entry then
+					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(self:GetTowerOwner()).." due to blacklist.", "towers")
+					return SafeRemoveEntity(self)
+				end
+			end
+			local chessOnly = ROTGB_GetConVarValue("rotgb_tower_chessonly")
+			if chessOnly ~= 0 then
+				if chessOnly > 0 and not self.IsChessPiece then
+					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(self:GetTowerOwner()).." due to not being a chess tower.", "towers")
+				elseif chessOnly < 0 and self.IsChessPiece then
+					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(self:GetTowerOwner()).." due to being a chess tower.", "towers")
+				end
+			end
 			if towerCost>ROTGB_GetCash(self:GetTowerOwner()) then
 				ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(self:GetTowerOwner()).." due to insufficient cash.", "towers")
 				return SafeRemoveEntity(self)
@@ -326,53 +352,67 @@ function ENT:Think()
 				end
 			end
 			if (self.NextFire or 0) < curTime and (self.DetectedEnemy or self.FireWhenNoEnemies) then
-				if engine.ActiveGamemode() == "rotgb" then
-					local bonusMultiplier = 1
-					if hook.Run("GetSkillAmount", "towerEarlyFireRate") ~= 0 then
-						local waveFireRateFractionBonus = math.max(math.Remap(self.MaxWaveReached or 0, 1, 41, 1, 0), 0)
-						local mul = 1+hook.Run("GetSkillAmount", "towerEarlyFireRate")/100*waveFireRateFractionBonus
-						--print("A", mul)
-						bonusMultiplier = bonusMultiplier * mul
-					end
-					if hook.Run("GetSkillAmount", "towerAbilityD3FireRate") ~= 0 and (self.OtherTowerAbilityActivatedTime or 0) >= CurTime() then
-						local mul = 1+hook.Run("GetSkillAmount", "towerAbilityD3FireRate")/100
-						--print("B", mul)
-						bonusMultiplier = bonusMultiplier * mul
-					end
-					if hook.Run("GetSkillAmount", "towerMoneyFireRate") ~= 0 and self.SellAmount then
-						local logMul = self.SellAmount > 0 and math.max(math.log(self.SellAmount), 1) or 1
-						local mul = 1+hook.Run("GetSkillAmount", "towerMoneyFireRate")/100*logMul
-						--print("C", mul)
-						bonusMultiplier = bonusMultiplier * mul
-					end
-					self.BonusFireRate = bonusMultiplier
-				end
-				local fireDelay = 1/(self.FireRate or 1)/self.BonusFireRate
-				self.NextFire = curTime + fireDelay
-				self:ExpensiveThink(true)
-				if self.gBalloons[1]--[[IsValid(self.SolicitedgBalloon)]] or self.FireWhenNoEnemies then
-					if not IsValid(self:GetTowerOwner()) then
-						local bestPlayer = NULL
-						local bestDistance = math.huge
-						for k,v in pairs(player.GetAll()) do
-							local distance = v:GetPos():DistToSqr(self:GetPos())
-							if distance < bestDistance then
-								bestPlayer = v
-								bestDistance = distance
-							end
-						end
-						self:SetTowerOwner(bestPlayer)
-					end
-					local nofire = self:FireFunction(--[[self.SolicitedgBalloon,]]self.gBalloons or {})
-					if nofire then
-						self.NextFire = 0
-					end
-				end
-				self.ExpensiveThinkDelay = 0
+				self:DoFireFunction()
 			end
 		end
+		self:BuffThink()
 		self:NextThink(curTime)
 		return true
+	end
+end
+
+function ENT:DoFireFunction()
+	self:ExpensiveThink(true)
+	if self.gBalloons[1]--[[IsValid(self.SolicitedgBalloon)]] or self.FireWhenNoEnemies then
+		if engine.ActiveGamemode() == "rotgb" then
+			local bonusMultiplier = 1
+			if hook.Run("GetSkillAmount", "towerEarlyFireRate") ~= 0 then
+				local waveFireRateFractionBonus = math.max(math.Remap(self.MaxWaveReached or 0, 1, 41, 1, 0), 0)
+				local mul = 1+hook.Run("GetSkillAmount", "towerEarlyFireRate")/100*waveFireRateFractionBonus
+				--print("A", mul)
+				bonusMultiplier = bonusMultiplier * mul
+			end
+			if hook.Run("GetSkillAmount", "towerAbilityD3FireRate") ~= 0 and (self.OtherTowerAbilityActivatedTime or 0) >= CurTime() then
+				local mul = 1+hook.Run("GetSkillAmount", "towerAbilityD3FireRate")/100
+				--print("B", mul)
+				bonusMultiplier = bonusMultiplier * mul
+			end
+			if hook.Run("GetSkillAmount", "towerMoneyFireRate") ~= 0 and self.SellAmount then
+				local logMul = self.SellAmount > 0 and math.max(math.log(self.SellAmount), 1) or 1
+				local mul = 1+hook.Run("GetSkillAmount", "towerMoneyFireRate")/100*logMul
+				--print("C", mul)
+				bonusMultiplier = bonusMultiplier * mul
+			end
+			self.BonusFireRate = bonusMultiplier
+		end
+		local fireDelay = 1/(self.FireRate or 1)/self.BonusFireRate
+		self.NextFire = CurTime() + fireDelay
+		if not IsValid(self:GetTowerOwner()) then
+			local bestPlayer = NULL
+			local bestDistance = math.huge
+			for k,v in pairs(player.GetAll()) do
+				local distance = v:GetPos():DistToSqr(self:GetPos())
+				if distance < bestDistance then
+					bestPlayer = v
+					bestDistance = distance
+				end
+			end
+			self:SetTowerOwner(bestPlayer)
+		end
+		local nofire = self:FireFunction(--[[self.SolicitedgBalloon,]]self.gBalloons or {})
+		if nofire then
+			self.NextFire = 0
+		end
+	end
+	self.ExpensiveThinkDelay = 0
+end
+
+function ENT:BuffThink()
+	for identifier,info in pairs(self.BuffIdentifiers) do
+		if not IsValid(info.tower) or info.expiry < CurTime() then
+			info.unapplyFunc(self)
+			self.BuffIdentifiers[identifier] = nil
+		end
 	end
 end
 
@@ -380,8 +420,21 @@ function ENT:GetShootPos()
 	return self:LocalToWorld(self.LOSOffset)
 end
 
-function ENT:IsBalloon(ent)
-	return ent:GetClass()=="gballoon_base"
+function ENT:ApplyBuff(tower, identifier, duration, applyFunc, unapplyFunc)
+	identifier = identifier or #self.BuffIdentifiers+1
+	if not self.BuffIdentifiers[identifier] then
+		duration = duration or math.huge
+		self.BuffIdentifiers[identifier] = {tower = tower, expiry = CurTime() + duration, unapplyFunc = unapplyFunc}
+		applyFunc(self)
+	end
+end
+
+function ENT:TowerBuffed(identifier)
+	return IsValid(self.BuffIdentifiers[identifier])
+end
+
+function ENT:TowerBuffedBy(identifier)
+	return self:TowerBuffed(identifier) and self.BuffIdentifiers[identifier]
 end
 
 function ENT:ValidTarget(v)
@@ -542,13 +595,12 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 				-- get path number and upgrade amount
 				local path = net.ReadUInt(4)
 				local upgradeAmount = net.ReadUInt(4)+1
-				local upgradePriceMultiplier = ent.UpgradeReferencePriceMultiplier or 1
 				
 				local reference = ent.UpgradeReference[path+1]
 				if not reference then return end
 				local tier = bit.rshift(ent:GetUpgradeStatus(),path*4)%16+1
 				for i=1,upgradeAmount do
-					local price = ROTGB_ScaleBuyCost(reference.Prices[tier]*upgradePriceMultiplier)
+					local price = ROTGB_ScaleBuyCost(reference.Prices[tier], ent, {type = ROTGB_TOWER_UPGRADE, path = path+1, tier = tier})
 					ent.SellAmount = (ent.SellAmount or 0) + price
 					if (reference.Funcs and reference.Funcs[tier]) then
 						reference.Funcs[tier](ent)
@@ -603,10 +655,9 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 			end
 		end
 		-- it's valid
-		local upgradePriceMultiplier = ent.UpgradeReferencePriceMultiplier or 1
 		local tier = bit.rshift(ent:GetUpgradeStatus(),path*4)%16+1
 		for i=1,upgradeAmount do
-			local price = ROTGB_ScaleBuyCost(reference.Prices[tier]*upgradePriceMultiplier)
+			local price = ROTGB_ScaleBuyCost(reference.Prices[tier], ent, {type = ROTGB_TOWER_UPGRADE, path = path+1, tier = tier})
 			if ROTGB_GetCash(ply)<price then return end
 			ent.SellAmount = (ent.SellAmount or 0) + price
 			if (reference.Funcs and reference.Funcs[tier]) then

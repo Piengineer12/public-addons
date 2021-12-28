@@ -200,7 +200,6 @@ function GM:gBalloonTakeDamage(bln, dmginfo)
 		dmginfo:SetDamageType(newFlags)
 	end
 end
-
 function GM:GetgBalloonRegenDelay(bln)
 	return ROTGB_GetConVarValue("rotgb_regen_delay") / (1+hook.Run("GetSkillAmount", "gBalloonRegenRate")/100)
 end

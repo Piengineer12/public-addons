@@ -20,6 +20,7 @@ ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,25)
 ENT.UserTargeting = true
 ENT.AttackDamage = 10
+ENT.IsChessPiece = true
 ENT.rotgb_AbilityDamage = 0
 ENT.rotgb_Targets = 1
 ENT.UpgradeReference = {
@@ -227,41 +228,41 @@ function ENT:TriggerAbility()
 	end
 	if self.rotgb_Transformation then
 		for index,ent in pairs(ents.FindInSphere(self:GetShootPos(), self.DetectionRadius)) do
-			if ent:GetClass()=="gballoon_tower_07" and not ent.rotgb_Transformed then
-				success = true
-				local effdata = EffectData()
-				effdata:SetOrigin(Vector(ent:GetPos()))
-				effdata:SetStart(Vector(ent:GetPos()))
-				effdata:SetEntity(ent)
-				effdata:SetMagnitude(1)
-				effdata:SetScale(1)
-				effdata:SetRadius(1)
-				util.Effect("Sparks",effdata,true,true)
-				ent.rotgb_Transformed = self.rotgb_Transformation
-				local oldMaterial = ent:GetMaterial()
-				
-				if self.rotgb_Transformation == 1 then
-					ent.AttackDamage = ent.AttackDamage + 100
-					ent:SetModel("models/props_phx/games/chess/white_queen.mdl")
-				else
-					ent.AttackDamage = ent.AttackDamage + 300
-					ent.FireRate = ent.FireRate * 4
-					ent.rotgb_Targets = ent.rotgb_Targets * 3
-					ent:SetMaterial("!gBalloonRainbow")
-				end
-				timer.Simple(10, function()
-					if IsValid(ent) then
-						if ent.rotgb_Transformed == 1 then
-							ent.AttackDamage = ent.AttackDamage - 100
-						else
-							ent.AttackDamage = ent.AttackDamage - 300
-							ent.FireRate = ent.FireRate / 4
-							ent.rotgb_Targets = ent.rotgb_Targets / 3
-						end
-						ent.rotgb_Transformed = nil
-						ent:SetMaterial(oldMaterial)
-						ent:SetModel("models/props_phx/games/chess/white_pawn.mdl")
+			if ent:GetClass()=="gballoon_tower_07" then
+				ent:ApplyBuff(self, "ROTGB_TOWER_07_TRANSFORM", 10, function(tower)
+					success = true
+					local effdata = EffectData()
+					effdata:SetOrigin(Vector(tower:GetPos()))
+					effdata:SetStart(Vector(tower:GetPos()))
+					effdata:SetEntity(tower)
+					effdata:SetMagnitude(1)
+					effdata:SetScale(1)
+					effdata:SetRadius(1)
+					util.Effect("Sparks",effdata,true,true)
+					
+					tower.rotgb_OldMaterial = tower:GetMaterial()
+					tower.rotgb_Transformed = self.rotgb_Transformation
+					
+					if tower.rotgb_Transformed == 1 then
+						tower.AttackDamage = tower.AttackDamage + 100
+						tower:SetModel("models/props_phx/games/chess/white_queen.mdl")
+					else
+						tower.AttackDamage = tower.AttackDamage + 300
+						tower.FireRate = tower.FireRate * 4
+						tower.rotgb_Targets = tower.rotgb_Targets * 3
+						tower:SetMaterial("!gBalloonRainbow")
 					end
+				end, function(tower)
+					if tower.rotgb_Transformed == 1 then
+						tower.AttackDamage = tower.AttackDamage - 100
+					else
+						tower.AttackDamage = tower.AttackDamage - 300
+						tower.FireRate = tower.FireRate / 4
+						tower.rotgb_Targets = tower.rotgb_Targets / 3
+					end
+					tower.rotgb_Transformed = nil
+					tower:SetMaterial(tower.rotgb_OldMaterial)
+					tower:SetModel("models/props_phx/games/chess/white_pawn.mdl")
 				end)
 			end
 		end

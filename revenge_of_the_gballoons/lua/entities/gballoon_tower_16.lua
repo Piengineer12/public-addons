@@ -155,10 +155,6 @@ ENT.UpgradeReference = {
 }
 ENT.UpgradeLimits = {7,2,0}
 
-function ENT:ROTGB_ApplyPerks()
-	self:ScaleCosts(1+hook.Run("GetSkillAmount", "hoverballFactoryCosts")/100)
-end
-
 function ENT:FireFunction(gBalloons)
 	if IsValid(self.rotgb_Spawner) then
 		local delayBetweenBalls = self.rotgb_HoverballDelay * 10 / self.FireRate / self.BonusFireRate

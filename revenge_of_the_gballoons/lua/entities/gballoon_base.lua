@@ -28,22 +28,17 @@ ENT.rotgb_rbetab = {
 	gballoon_aqua=23,
 	gballoon_error=23,
 	gballoon_rainbow=93,
-	gballoon_ceramic=103,
-	gballoon_brick=133,
-	gballoon_marble=193,
+	gballoon_ceramic=196,
+	gballoon_brick=427,
+	gballoon_marble=974,
 	
-	gballoon_blimp_blue=612,
-	gballoon_blimp_red=3148,
-	gballoon_blimp_green=16592,
-	gballoon_blimp_gray=972,
-	gballoon_blimp_purple=55128,
-	gballoon_blimp_magenta=5388,
-	gballoon_blimp_rainbow=221031,
-	
-	-- the gBalloon Spawner implodes if we don't define these for some reason
-	gballoon_fast_hidden_regen_shielded_blimp_gray=1944,
-	gballoon_fast_blimp_magenta=5388,
-	gballoon_fast_hidden_regen_shielded_blimp_rainbow=442062,
+	gballoon_blimp_blue=984,
+	gballoon_blimp_red=4636,
+	gballoon_blimp_green=22544,
+	gballoon_blimp_gray=4296,
+	gballoon_blimp_purple=73680,
+	gballoon_blimp_magenta=18699,
+	gballoon_blimp_rainbow=284772,
 	
 	gballoon_glass=1,
 	gballoon_void=1,
@@ -63,9 +58,9 @@ ENT.rotgb_spawns = {
 	gballoon_aqua={gballoon_white=2},
 	gballoon_error={gballoon_purple=2},
 	gballoon_rainbow={gballoon_gray=1,gballoon_zebra=1,gballoon_aqua=1,gballoon_error=1},
-	gballoon_ceramic={gballoon_rainbow=1},
-	gballoon_brick={gballoon_ceramic=1},
-	gballoon_marble={gballoon_brick=1},
+	gballoon_ceramic={gballoon_rainbow=2},
+	gballoon_brick={gballoon_ceramic=2},
+	gballoon_marble={gballoon_brick=2},
 	
 	gballoon_blimp_blue={gballoon_ceramic=4},
 	gballoon_blimp_red={gballoon_blimp_blue=4},
@@ -226,7 +221,7 @@ function ENT:ApplyBalloonProperty(key, value)
 end
 
 -- applies all properties at once, far more efficient than calling the above for each property
--- can be invoked multiple times without causing errors
+-- should be able to be invoked multiple times without causing errors
 function ENT:ApplyAllBalloonProperties()
 	self:ConvertProperties()
 	local useOldStyle = ROTGB_GetConVarValue("rotgb_legacy_gballoons") and not ROTGB_GetConVarValue("rotgb_pertain_effects")
@@ -359,62 +354,20 @@ function ENT:Initialize()
 		end
 		hook.Run("gBalloonPreInitialize", self)
 		
-		--self:SetLocalPos(Vector(0,0,10))
 		self:ApplyAllBalloonProperties()
+		
+		local difficultySpeedModifier = 1 + (ROTGB_GetConVarValue("rotgb_difficulty") - 1)/10
+		self:Slowdown("rotgb_difficulty",difficultySpeedModifier,9999)
 		
 		self:SetCollisionGroup(COLLISION_GROUP_INTERACTIVE_DEBRIS)
 		self:SetBloodColor(ROTGB_GetConVarValue("rotgb_bloodtype")<7 and ROTGB_GetConVarValue("rotgb_bloodtype") or DONT_BLEED)
-		--[=[if not IsValid(self.Attractor) then
-			local filterbits = 0
-			self.Attractor = ents.Create("npc_bullseye")
-			self.Attractor:SetPos(self:GetPos())
-			self.Attractor:SetParent(self)
-			self.Attractor:SetModelScale(self:GetModelScale())
-			self.Attractor:SetHealth(self:Health()*10)
-			self.Attractor:SetMaxHealth(self:GetMaxHealth()*10)
-			if self:GetBalloonProperty("BalloonBlack") then filterbits = filterbits+DMG_BLAST+DMG_BLAST_SURFACE end
-			if self:GetBalloonProperty("BalloonWhite") then filterbits = filterbits+DMG_DROWN+DMG_PARALYZE end
-			if self:GetBalloonProperty("BalloonPurple") then filterbits = filterbits+DMG_BURN+DMG_SHOCK+DMG_ENERGYBEAM+DMG_REMOVENORAGDOLL+DMG_PLASMA+DMG_DISSOLVE end
-			if self:GetBalloonProperty("BalloonGray") then filterbits = filterbits+DMG_BULLET+DMG_SLASH+DMG_BUCKSHOT end
-			if self:GetBalloonProperty("BalloonAqua") then filterbits = filterbits+DMG_CRUSH+DMG_VEHICLE+DMG_FALL+DMG_CLUB+DMG_PHYSGUN end
-			if filterbits > 0 and not (ROTGB_GetConVarValue("rotgb_ignore_damage_resistances") or self:HasRotgBStatusEffect("unimmune")) then
-				self.Attractor.Filter = ents.Create("filter_damage_type")
-				self.Attractor.Filter:SetKeyValue("damagetype",filterbits)
-				self.Attractor.Filter:SetKeyValue("Negated",1)
-				self.Attractor.Filter:SetName(self:GetCreationID().."_attractor_filter")
-				self.Attractor.Filter:Spawn()
-				self.Attractor.Filter:Activate()
-				self.Attractor.Filter.From_gBalloons = true
-				self.Attractor:SetKeyValue("damagefilter",self.Attractor.Filter:GetName())
-			end
-			self.Attractor:Spawn()
-			self.Attractor:Activate()
-			self.Attractor.From_gBalloons = true
-			--[[local physobj = self.Attractor:GetPhysicsObject()
-			if IsValid(physobj) then
-				physobj:AddGameFlag(FVPHYSICS_CONSTRAINT_STATIC)
-			end]]
-			self.Attractor:AddRelationship("player D_HT 30")
-			self.Attractor:SetCollisionGroup(COLLISION_GROUP_IN_VEHICLE)
-			--self.Attractor:SetNotSolid(true)
-			self:DeleteOnRemove(self.Attractor)
-			--[[self.Attractor:CallOnRemove("pop_self",function(att)
-				if IsValid(self) then
-					self:SetHealth(0)
-					self:Pop(0)
-				end
-			end)]]
-		end]=]
-		--self:AddRelationship("player D_HT 30")
 		local mask = ROTGB_GetConVarValue("rotgb_target_choice")
 		for k,v in pairs(ents.GetAll()) do
 			if v:IsNPC() then
 				if mask<0 and v:Health()>0 and v:GetClass()~="gballoon_base" then
 					v:AddEntityRelationship(self,D_HT,99)
-					--v:AddRelationship("!self D_HT 98")
 				elseif self:MaskFilter(mask,v) then
 					v:AddEntityRelationship(self,D_HT,99)
-					--v:AddRelationship("!self D_HT 98")
 				end
 			end
 		end
@@ -900,7 +853,9 @@ function ENT:FindTarget()
 	local searchSize = ROTGB_GetConVarValue("rotgb_search_size")
 	local entis = searchSize<0 and ents.GetAll() or ents.FindInSphere(ourPos,searchSize)
 	local resulttabs = {}
-	self:Log("We are considering the following: "..util.TableToJSON(table.Sanitise(entis),true),"targeting")
+	if ROTGB_LoggingEnabled("targeting") then
+		self:Log("We are considering the following: "..util.TableToJSON(table.Sanitise(entis),true),"targeting")
+	end
 	for k,v in pairs(entis) do
 		if self:CanTarget(v) then
 			self:Log("We can target "..tostring(v)..". Attempting to build a path...","targeting")
@@ -1542,7 +1497,7 @@ function ENT:OnInjured(dmginfo)
 			dmginfo:SetDamage(math.ceil(dmginfo:GetDamage()))
 		end]]
 		local newhealth = self:Health()-math.max(dmginfo:GetDamage(),0)
-		local addDamageThisLayer = self:Health()-math.max(newhealth, 0)-1
+		local addDamageThisLayer = self:Health()-math.max(newhealth,0)-1
 		self:SetHealth(newhealth)
 		self:Log("Took "..dmginfo:GetDamage().." damage! We are now at "..newhealth.." health.","damage")
 		if (IsValid(self.LastInflictor) and (self.LastInflictor.Base == "gballoon_tower_base" or self.LastInflictor:GetClass()=="rotgb_shooter")) and addDamageThisLayer > 0 then
@@ -1587,67 +1542,93 @@ end
 
 local lastEffectRender = 0
 
-function ENT:DetermineNextBalloons(blns,dmgbits,instant)
+function ENT:DetermineNextBalloons(blns,dmgbits,damageLeft,instant)
 	local pluses = 0
 	local pops = 0
 	local newspawns = {}
 	local oldnv,opls,opop = 0,0,0
+	local minimumEffectiveHealthLeft = math.huge
 	for k,v in pairs(blns) do
-		if istable(v) then
-			local class = v.Type
-			--local DoRegen = v.DoRegen
-			--local Fast = v.Fast
-			local Shield = v.Shield
-			local Hidden = v.Hidden
-			local keyvals = savedKeyValueTables[class]
-			if not keyvals then
-				keyvals = list.Get("NPC")[class].KeyValues
-				hook.Run("gBalloonKeyValuesApply", keyvals)
-				savedKeyValueTables[class] = keyvals
+		local class = v.Type
+		local keyvals = savedKeyValueTables[class]
+		if not keyvals then
+			keyvals = list.Get("NPC")[class].KeyValues
+			hook.Run("gBalloonKeyValuesApply", keyvals)
+			savedKeyValueTables[class] = keyvals
+		end
+		local effectiveHealth = (v.Armor or 0) + (v.Health or 1)
+		
+		if TestDamageResistances(keyvals,dmgbits,v.Frozen) and not self:HasRotgBStatusEffect("unimmune") then
+			table.insert(newspawns,v)
+		elseif effectiveHealth > 1 and not instant then
+			if (v.Armor or 0) > 0 then
+				v.Armor = v.Armor - 1
+			else
+				v.Health = v.Health - 1
 			end
-			
-			local blockbymaxdamage = (v.InternalPops or 0) >= (tonumber(keyvals.BalloonMaxDamage) or math.huge)
-			local unitshift = blockbymaxdamage and 0.1 or 1
-			
-			if TestDamageResistances(keyvals,dmgbits,v.Frozen) and not self:HasRotgBStatusEffect("unimmune") then
-				table.insert(newspawns,v)
-			elseif (istable(v) and (v.Health or 1)>unitshift) and not instant then
-			--elseif (istable(v) and v.Health > 1) and (not instant or blockbymaxdamage) then
-				--if not blockbymaxdamage then
-					v.InternalPops = (v.InternalPops or 0) + 1
-					v.Health = v.Health - unitshift
-					pops = pops + v.Amount * unitshift
-				--end
-				table.insert(newspawns,v)
-			elseif self.rotgb_spawns[class] then
-				for k2,v2 in pairs(self.rotgb_spawns[class]) do
-					local keyvals2 = list.GetForEdit("NPC")[k2].KeyValues
-					local crt = {
-						Type=k2,
-						Amount=v2*v.Amount,
-						Health=math.Round(
-							(keyvals2.BalloonHealth or 1)*(keyvals2.BalloonShielded or ROTGB_HasAllBits(v.Properties, 4) and 2 or 1)
-							*(keyvals2.BalloonBlimp and ROTGB_GetConVarValue("rotgb_blimp_health_multiplier") or 1)*ROTGB_GetConVarValue("rotgb_health_multiplier")
-						),
-						Properties=v.Properties
-						--Frozen=(self.FreezeUntil2 or 0)>CurTime()
-					}
-					if ROTGB_HasAllBits(v.Properties, 1) and not v.Blimp then
-						crt.PrevBalloons=table.Copy(v.PrevBalloons or {})
-						table.insert(crt.PrevBalloons,class)
+			minimumEffectiveHealthLeft = math.min(minimumEffectiveHealthLeft, effectiveHealth - 1)
+			pops = pops + v.Amount
+			table.insert(newspawns,v)
+		elseif self.rotgb_spawns[class] then
+			for k2,v2 in pairs(self.rotgb_spawns[class]) do
+				local keyvals2 = savedKeyValueTables[k2]
+				if not keyvals2 then
+					keyvals2 = list.Get("NPC")[k2].KeyValues
+					hook.Run("gBalloonKeyValuesApply", keyvals2)
+					savedKeyValueTables[k2] = keyvals2
+				end
+				local crt = {
+					Type=k2,
+					Amount=v2*v.Amount,
+					Health=math.Round(
+						(keyvals2.BalloonHealth or 1)*(keyvals2.BalloonShielded or ROTGB_HasAllBits(v.Properties, 4) and 2 or 1)
+						*(keyvals2.BalloonBlimp and ROTGB_GetConVarValue("rotgb_blimp_health_multiplier") or 1)*ROTGB_GetConVarValue("rotgb_health_multiplier")
+					),
+					Armor=tonumber(keyvals2.BalloonArmor),
+					Properties=v.Properties
+				}
+				if ROTGB_HasAllBits(v.Properties, 1) and not v.Blimp then
+					crt.PrevBalloons=table.Copy(v.PrevBalloons or {})
+					table.insert(crt.PrevBalloons,class)
+					if ROTGB_LoggingEnabled("regeneration") then
 						self:Log("A gBalloon will regenerate, to a maximum of: "..util.TableToJSON(crt.PrevBalloons,true),"regeneration")
 					end
-					table.insert(newspawns,crt)
 				end
-				pluses = pluses + v.Amount * (1+(v.ExtraCash or 0))
-				pops = pops + v.Amount * v.Health
-			else
-				pluses = pluses + v.Amount * (1+(v.ExtraCash or 0))
-				pops = pops + v.Amount * v.Health
+				table.insert(newspawns,crt)
 			end
+			minimumEffectiveHealthLeft = 0
+			pluses = pluses + v.Amount * (1+(v.ExtraCash or 0))
+			pops = pops + v.Amount * v.Health
+		else
+			pluses = pluses + v.Amount * (1+(v.ExtraCash or 0))
+			pops = pops + v.Amount * v.Health
 		end
 	end
-	return newspawns,pluses,pops
+	damageLeft = damageLeft - 1
+	if minimumEffectiveHealthLeft < math.huge and minimumEffectiveHealthLeft > 0 then
+		local extraDamage = math.min(damageLeft, minimumEffectiveHealthLeft) - 1
+		if extraDamage > 0 then
+			for k,v in pairs(newspawns) do
+				local class = v.Type
+				local keyvals = savedKeyValueTables[class]
+				if not keyvals then
+					keyvals = list.Get("NPC")[class].KeyValues
+					hook.Run("gBalloonKeyValuesApply", keyvals)
+					savedKeyValueTables[class] = keyvals
+				end
+				if not TestDamageResistances(keyvals,dmgbits,v.Frozen) or self:HasRotgBStatusEffect("unimmune") then
+					if (v.Armor or 0) > 0 then
+						local resisted = math.min(v.Armor, extraDamage)
+						extraDamage = extraDamage - resisted
+						v.Armor = v.Armor - resisted
+					end
+					v.Health = v.Health - extraDamage
+				end
+			end
+			damageLeft = damageLeft - extraDamage
+		end
+	end
+	return newspawns,pluses,pops,damageLeft
 end
 
 function ENT:Pop(damage,target,dmgbits)
@@ -1671,26 +1652,33 @@ function ENT:Pop(damage,target,dmgbits)
 	local balloonnum = ROTGB_GetBalloonCount()
 	--local nextsasstring = self:GetPopSaveString(nexts[1],damage,dmgbits or 0)
 	if damage < 0 or damage>self:GetRgBE()*10 then damage = math.huge end
-	self:Log("Before Popping: "..util.TableToJSON(nexts,true),"damage")
+	if ROTGB_LoggingEnabled("damage") then
+		self:Log("Before Popping: "..util.TableToJSON(nexts,true),"damage")
+	end
 	local ctime = SysTime()
-	local i = 1
+	local damageLeft = damage+1
 	local spawnedBalloonCount = 1
-	while i <= damage+1 or spawnedBalloonCount+balloonnum > maxToExist do
+	local overspawned = spawnedBalloonCount+balloonnum > maxToExist
+	while damageLeft > 0 or spawnedBalloonCount+balloonnum > maxToExist do
 		local addcash,addpops = 0,0
-		local overspawned = spawnedBalloonCount+balloonnum > maxToExist
-		nexts,addcash,addpops = self:DetermineNextBalloons(nexts,overspawned and 0 or dmgbits,damage==math.huge or overspawned)
-		self:Log("Pop #"..i.." of #"..damage+1 ..":"..util.TableToJSON(nexts,true),"damage")
+		nexts,addcash,addpops,damageLeft = self:DetermineNextBalloons(nexts,overspawned and 0 or dmgbits,damageLeft,damage == math.huge)
+		if ROTGB_LoggingEnabled("damage") then
+			self:Log("Pop #"..damage+1-damageLeft.." of #"..damage+1 ..": "..util.TableToJSON(nexts,true),"damage")
+		end
 		if (self.DeductCash or 0)>0 then
 			self.DeductCash = self.DeductCash - 1
 			deductedCash = deductedCash + addcash
 		else
 			cash = cash + addcash
 		end
-		i = i + 1
 		pops = pops + addpops
 		spawnedBalloonCount = 0
 		for k,v in pairs(nexts) do
 			spawnedBalloonCount = spawnedBalloonCount + (v.Amount or 1)
+		end
+		overspawned = spawnedBalloonCount+balloonnum > maxToExist
+		if overspawned then
+			damage = math.huge
 		end
 		if spawnedBalloonCount==0 or addpops==0 then break end
 	end
@@ -1700,8 +1688,10 @@ function ENT:Pop(damage,target,dmgbits)
 			table.Add(nexts,v)
 		end
 	end]]
-	self:Log("After Popping: "..util.TableToJSON(nexts,true),"damage")
-	self:Log("Time taken: "..(SysTime()-ctime)*1000 .." ms","damage")
+	if ROTGB_LoggingEnabled("damage") then
+		self:Log("After Popping: "..util.TableToJSON(nexts,true),"damage")
+		self:Log("Time taken: "..(SysTime()-ctime)*1000 .." ms","damage")
+	end
 	if (IsValid(self.LastAttacker) and self.LastAttacker:IsPlayer()) then
 		if doAchievement == 1 then
 			self.LastAttacker:SendLua("achievements.BalloonPopped()") -- What? It's a balloon, right?
@@ -1744,10 +1734,11 @@ function ENT:Pop(damage,target,dmgbits)
 		self:EmitSound(self:GetBalloonProperty("BalloonPopSound"),75,math.random(80,120),1)
 	--end
 	if not self:GetBalloonProperty("BalloonBlimp") and lastEffectRender<CurTime() then
-		if lastEffectRender+1<CurTime() then
-			lastEffectRender = CurTime() - 1
+		local effectRenderDelay = 1/ROTGB_GetConVarValue("rotgb_max_effects_per_second")
+		if lastEffectRender+effectRenderDelay<CurTime() then
+			lastEffectRender = CurTime()
 		end
-		lastEffectRender = lastEffectRender+1/ROTGB_GetConVarValue("rotgb_max_effects_per_second")
+		lastEffectRender = lastEffectRender+effectRenderDelay
 		local effdata = EffectData()
 		effdata:SetStart(string.ToColor(self:GetBalloonProperty("BalloonColor")):ToVector()*255)
 		effdata:SetEntity(self)
@@ -1760,7 +1751,9 @@ function ENT:Pop(damage,target,dmgbits)
 	for i,v in ipairs(nexts) do
 		if --[[i+balloonnum<ROTGB_GetConVarValue("rotgb_max_to_exist") and]] istable(v) then
 			for j=1,v.Amount do
-				self:Log("To Spawn: "..util.TableToJSON(v,true),"damage")
+				if ROTGB_LoggingEnabled("damage") then
+					self:Log("To Spawn: "..util.TableToJSON(v,true),"damage")
+				end
 				local tospawn = v.Type
 				local spe = ents.Create("gballoon_base")
 				spe:SetPos(self:GetPos()+VectorRand()+vector_up)
@@ -2169,8 +2162,8 @@ local registerkeys = {
 	rainbow = {
 		Name = "Rainbow gBalloon",
 		KeyValues = {
-			BalloonMoveSpeed = "225",
-			BalloonScale = "2.25",
+			BalloonMoveSpeed = "200",
+			BalloonScale = "2",
 			BalloonColor = "255 255 255 255",
 			BalloonType = "gballoon_rainbow",
 			BalloonMaterial = "!gBalloonRainbow",
@@ -2180,8 +2173,8 @@ local registerkeys = {
 	ceramic = {
 		Name = "Ceramic gBalloon",
 		KeyValues = {
-			BalloonMoveSpeed = "175",
-			BalloonScale = "1.75",
+			BalloonMoveSpeed = "225",
+			BalloonScale = "2.25",
 			BalloonColor = "127 63 0 255",
 			BalloonType = "gballoon_ceramic",
 			BalloonMaterial = "models/props_debris/plasterceiling008a",
@@ -2191,31 +2184,31 @@ local registerkeys = {
 	brick = {
 		Name = "Brick gBalloon",
 		KeyValues = {
-			BalloonMoveSpeed = "150",
-			BalloonScale = "2",
+			BalloonMoveSpeed = "250",
+			BalloonScale = "2.5",
 			BalloonColor = "255 63 63 255",
 			BalloonType = "gballoon_brick",
 			BalloonMaterial = "brick/brick_model",
-			BalloonHealth = "30",
-			BalloonMaxDamage = "4"
+			BalloonHealth = "35",
+			--BalloonMaxDamage = "4"
 		}
 	},
 	marble = {
 		Name = "Marble gBalloon",
 		KeyValues = {
-			BalloonMoveSpeed = "125",
-			BalloonScale = "2.25",
+			BalloonMoveSpeed = "275",
+			BalloonScale = "2.75",
 			BalloonColor = "255 255 255 255",
 			BalloonType = "gballoon_marble",
 			BalloonMaterial = "phoenix_storms/plastic",
-			BalloonHealth = "60",
-			BalloonMaxDamage = "4"
+			BalloonHealth = "120",
+			--BalloonMaxDamage = "4"
 		}
 	},
 	blimp_blue = {
 		Name = "Blue gBlimp",
 		KeyValues = {
-			BalloonMoveSpeed = "175",
+			BalloonMoveSpeed = "100",
 			BalloonScale = "2",
 			BalloonColor = "0 127 255 255",
 			BalloonType = "gballoon_blimp_blue",
@@ -2229,7 +2222,7 @@ local registerkeys = {
 	blimp_red = {
 		Name = "Red gBlimp",
 		KeyValues = {
-			BalloonMoveSpeed = "150",
+			BalloonMoveSpeed = "50",
 			BalloonScale = "2.25",
 			BalloonColor = "255 0 0 255",
 			BalloonType = "gballoon_blimp_red",
@@ -2243,7 +2236,7 @@ local registerkeys = {
 	blimp_green = {
 		Name = "Green gBlimp",
 		KeyValues = {
-			BalloonMoveSpeed = "125",
+			BalloonMoveSpeed = "25",
 			BalloonScale = "2.5",
 			BalloonColor = "0 255 0 255",
 			BalloonType = "gballoon_blimp_green",
@@ -2257,13 +2250,13 @@ local registerkeys = {
 	blimp_gray = {
 		Name = "Monochrome gBlimp",
 		KeyValues = {
-			BalloonMoveSpeed = "150",
+			BalloonMoveSpeed = "200",
 			BalloonScale = "2",
 			BalloonColor = "127 127 127 255",
 			BalloonType = "gballoon_blimp_gray",
 			BalloonMaterial = "models/debug/debugwhite",
 			BalloonModel = "models/props_phx/ww2bomb.mdl",
-			BalloonHealth = "200",
+			BalloonHealth = "400",
 			BalloonBlack = "1",
 			BalloonGray = "1",
 			BalloonBlimp = "1",
@@ -2273,7 +2266,7 @@ local registerkeys = {
 	blimp_purple = {
 		Name = "Purple gBlimp",
 		KeyValues = {
-			BalloonMoveSpeed = "100",
+			BalloonMoveSpeed = "25",
 			BalloonScale = "2.75",
 			BalloonColor = "127 0 255 255",
 			BalloonType = "gballoon_blimp_purple",
@@ -2287,7 +2280,7 @@ local registerkeys = {
 	blimp_magenta = {
 		Name = "Magenta gBlimp",
 		KeyValues = {
-			BalloonMoveSpeed = "300",
+			BalloonMoveSpeed = "350",
 			BalloonScale = "2.25",
 			BalloonColor = "255 0 255 255",
 			BalloonType = "gballoon_blimp_magenta",
@@ -2302,7 +2295,7 @@ local registerkeys = {
 	blimp_rainbow = {
 		Name = "Rainbow gBlimp",
 		KeyValues = {
-			BalloonMoveSpeed = "100",
+			BalloonMoveSpeed = "50",
 			BalloonScale = "3",
 			BalloonColor = "255 255 255 255",
 			BalloonType = "gballoon_blimp_rainbow",

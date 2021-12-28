@@ -116,10 +116,10 @@ ENT.UpgradeReference = {
 			"Explosions stun gBalloons for 2 seconds, if they aren't immune to explosions. This upgrade can't stun gBlimps, but gBalloons stunned this way take 1 extra layer of damage from all sources.",
 			"Shells deal tremendously more damage versus gBlimps and Gray gBalloons, and can stun Red gBlimps and lower. Explosions and fragments will also set gBalloons on fire, popping 20 layers over 10 seconds.",
 			"Tremendously increases the number of shell fragments, considerably increases burning damage and shells can stun Green gBlimps and lower. Once every 30 seconds, shooting at this tower causes shells to be lobbed to every gBalloon on the map.",
-			"Shells can stun Purple gBlimps and lower, and gBalloons permanently lose all immunities (if they aren't immune to explosions)! Also tremendously increases fire damage and slightly increases ability recharge rate. Blitz Cannon ability now also incrases fire damage to 8,000 layers per second, gives a 20% chance to deal 1,000x explosion damage versus gBlimps and causes ALL Mortar Towers' shells to stun and burn gBalloons at a rate similar to the Flaming Shells upgrade. The ability lasts for 10 seconds when activated."
+			"Shells can stun Purple gBlimps and lower, and gBalloons permanently lose all immunities (if they aren't immune to explosions)! Also tremendously increases fire damage and slightly increases ability recharge rate. Blitz Cannon ability now also incrases fire damage to 12,000 layers per second, gives a 20% chance to deal 1,000x explosion damage versus gBlimps and causes ALL Mortar Towers' shells to stun and burn gBalloons at a rate similar to the Flaming Shells upgrade. The ability lasts for 10 seconds when activated."
 		},
-		-- 2, 5, 13, 215, 667.5, 117902.667 (FIXME: recalculation required!)
-		Prices = {450,1250,3500,85000,175000,60e6},
+		-- 2, 6, 12, 120, 308, >150,000
+		Prices = {450,1750,2500,45000,75000,60e6},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 10
@@ -211,7 +211,7 @@ function ENT:Bombshell(poses)
 				for k,v in pairs(ents.FindInSphere(pos,self.rotgb_ExploRadius)) do
 					if self:ValidTargetIgnoreRange(v) then
 						dmginfo:SetDamagePosition(v:GetPos())
-						if self.rotgb_Stun > 0 and v:DamageTypeCanDamage(dmginfo:GetDamageType()) and (v:GetRgBE() <= self.rotgb_StunMaxRgBE or self.rotgb_StunMaxRgBE >= 1e9) then
+						if self.rotgb_Stun > 0 and v:DamageTypeCanDamage(dmginfo:GetDamageType()) and (v:GetRgBE() <= self.rotgb_StunMaxRgBE*2 or self.rotgb_StunMaxRgBE >= 1e9) then
 							v:Stun(self.rotgb_Stun)
 							if self.rotgb_StunVulnerability then
 								v:InflictRotgBStatusEffect("shell_shocked", self.rotgb_Stun)
@@ -305,24 +305,39 @@ end
 
 function ENT:TriggerAbility()
 	local abilityType = self.rotgb_AbilityType
-	local buffID = math.random()
 	if bit.band(abilityType, 1)==1 then
-		self.rotgb_Stun = self.rotgb_Stun + 1
-		self.rotgb_StunMaxRgBE = self.rotgb_StunMaxRgBE + 1e9
-		self.FireRate = self.FireRate*5
-		self.rotgb_TravelTime = self.rotgb_TravelTime/5
+		self:ApplyBuff(self, "ROTGB_TOWER_11_AC", 10, function(tower)
+			tower.rotgb_Stun = tower.rotgb_Stun + 1
+			tower.rotgb_StunMaxRgBE = tower.rotgb_StunMaxRgBE + 2e9
+			tower.FireRate = tower.FireRate*5
+			tower.rotgb_TravelTime = tower.rotgb_TravelTime/5
+		end, function(tower)
+			tower.rotgb_Stun = tower.rotgb_Stun - 1
+			tower.rotgb_StunMaxRgBE = tower.rotgb_StunMaxRgBE - 2e9
+			tower.FireRate = tower.FireRate/5
+			tower.rotgb_TravelTime = tower.rotgb_TravelTime*5
+		end)
 	end
 	if bit.band(abilityType, 4)==4 then
-		self.rotgb_FireDamage = self.rotgb_FireDamage + 79880
-		self.rotgb_HeavyCrits = true
+		self:ApplyBuff(self, "ROTGB_TOWER_11_GFC", 10, function(tower)
+			tower.rotgb_FireDamage = tower.rotgb_FireDamage + 199880
+			tower.rotgb_HeavyCrits = true
+		end, function(tower)
+			tower.rotgb_FireDamage = tower.rotgb_FireDamage - 199880
+			tower.rotgb_HeavyCrits = nil
+		end)
 		for k,v in pairs(ents.FindByClass("gballoon_tower_11")) do
-			if not v.rotgb_MortarBuffed then
-				v.rotgb_MortarBuffed = buffID
-				v.rotgb_Stun = v.rotgb_Stun + 2
-				v.rotgb_StunMaxRgBE = v.rotgb_StunMaxRgBE + 3148
-				v.rotgb_FireDamage = v.rotgb_FireDamage + 20
-				v.rotgb_FireDuration = v.rotgb_FireDuration + 10
-			end
+			v:ApplyBuff(self, "ROTGB_TOWER_11_GFC_OTHER", 10, function(tower)
+				tower.rotgb_Stun = tower.rotgb_Stun + 2
+				tower.rotgb_StunMaxRgBE = tower.rotgb_StunMaxRgBE + 3148
+				tower.rotgb_FireDamage = tower.rotgb_FireDamage + 20
+				tower.rotgb_FireDuration = tower.rotgb_FireDuration + 10
+			end, function(tower)
+				tower.rotgb_Stun = tower.rotgb_Stun - 2
+				tower.rotgb_StunMaxRgBE = tower.rotgb_StunMaxRgBE - 3148
+				tower.rotgb_FireDamage = tower.rotgb_FireDamage - 20
+				tower.rotgb_FireDuration = tower.rotgb_FireDuration - 10
+			end)
 		end
 	end
 	if bit.band(abilityType, 2)==2 then
@@ -335,29 +350,4 @@ function ENT:TriggerAbility()
 		end
 		self:Bombshell(poses)
 	end
-	timer.Simple(10,function()
-		if IsValid(self) then
-			if bit.band(abilityType, 1)==1 then
-				self.rotgb_Stun = self.rotgb_Stun - 1
-				self.rotgb_StunMaxRgBE = self.rotgb_StunMaxRgBE - 1e9
-				self.FireRate = self.FireRate/5
-				self.rotgb_TravelTime = self.rotgb_TravelTime*5
-			end
-			if bit.band(abilityType, 4)==4 then
-				self.rotgb_FireDamage = self.rotgb_FireDamage - 79880
-				self.rotgb_HeavyCrits = nil
-			end
-		end
-		if bit.band(abilityType, 4)==4 then
-			for k,v in pairs(ents.FindByClass("gballoon_tower_11")) do
-				if v.rotgb_MortarBuffed == buffID then
-					v.rotgb_MortarBuffed = nil
-					v.rotgb_Stun = v.rotgb_Stun - 2
-					v.rotgb_StunMaxRgBE = v.rotgb_StunMaxRgBE - 3148
-					v.rotgb_FireDamage = v.rotgb_FireDamage - 20
-					v.rotgb_FireDuration = v.rotgb_FireDuration - 10
-				end
-			end
-		end
-	end)
 end

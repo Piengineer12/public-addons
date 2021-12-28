@@ -19,9 +19,11 @@ ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,40)
 ENT.UserTargeting = true
 ENT.AttackDamage = 10
+ENT.IsChessPiece = true
 ENT.rotgb_Spread = 60
 ENT.rotgb_Shots = 1
 ENT.rotgb_LaserDamageMul = 1
+ENT.IsChessPiece = true
 ENT.UpgradeReference = {
 	{
 		Names = {"Stabilized Barrel","Consistent Barrel Spinner","Computerized Targeting","Laser Shooter","Ray of Doom","G.R.E.E.N. Beams"},

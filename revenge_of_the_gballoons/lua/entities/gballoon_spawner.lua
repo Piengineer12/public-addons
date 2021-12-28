@@ -1435,7 +1435,11 @@ function ENT:GenerateNextWave(cwave)
 		if trbe > (self:GetWaveTable()[cwave-1].assumerbe or self:GetWaveTable()[cwave-1].rbe) then break end
 		local genval = util.SharedRandom("ROTGB_WAVEGEN__"..self:GetWaveFile().."_"..cwave,0,#choices,trbe)
 		local choice = table.remove(choices, math.floor(genval)+1)
-		local crbe = scripted_ents.GetStored("gballoon_base").t.rotgb_rbetab[choice]
+		local keyValues = list.Get("NPC")[choice].KeyValues
+		local crbe = scripted_ents.GetStored("gballoon_base").t.rotgb_rbetab[keyValues.BalloonType]
+		if tobool(keyValues.BalloonShielded) then
+			crbe = crbe * 2
+		end
 		local amount = 0
 		if crbe then
 			amount = math.Clamp((erbe-trbe)/crbe,1,100)

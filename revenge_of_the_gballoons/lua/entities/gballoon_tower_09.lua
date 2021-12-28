@@ -20,6 +20,7 @@ ENT.LOSOffset = Vector(0,0,40)
 ENT.UserTargeting = true
 ENT.AttackDamage = 0
 ENT.AbilityCooldown = 15
+ENT.IsChessPiece = true
 ENT.rotgb_Hits = 1
 ENT.rotgb_GlueSlowdown = 1/3
 ENT.rotgb_GlueDamage = 0
@@ -252,7 +253,7 @@ if CLIENT then
 		end
 	end
 	function EFFECT:Render()
-		if IsValid(self.emitter) and IsValid(self.entity) --[[and self.nextParticle < CurTime()]] then
+		if IsValid(self.emitter) and IsValid(self.entity) and FrameTime() > 0 then
 			local startPos = VectorRand(self.entity:OBBMins(), self.entity:OBBMaxs())
 			startPos:Add(self.entity:GetPos())
 			local particle = self.emitter:Add("sprites/orangecore2_gmod", startPos)

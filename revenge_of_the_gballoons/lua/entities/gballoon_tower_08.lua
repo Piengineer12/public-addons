@@ -83,7 +83,6 @@ ENT.UpgradeReference = {
 ENT.UpgradeLimits = {99}
 
 function ENT:ROTGB_ApplyPerks()
-	self:ScaleCosts(1+hook.Run("GetSkillAmount", "rainbowBeamerCosts")/100)
 	self.rotgb_DamageMul = self.rotgb_DamageMul * (1+hook.Run("GetSkillAmount", "rainbowBeamerDamage")/100)
 end
 
@@ -254,7 +253,7 @@ function ENT:FireFunction(gBalloons)
 				end
 			end
 		--end
-		if self.rotgb_OtherBonus then
+		--[[if self.rotgb_OtherBonus then
 			self.rotgb_OtherBy = self.rotgb_OtherBy or 0
 			self.FireRate = self.FireRate / (1+self.rotgb_OtherBy*0.2)
 			self.rotgb_OtherBy = ents.FindInSphere(self:GetShootPos(),512)
@@ -265,7 +264,7 @@ function ENT:FireFunction(gBalloons)
 			end
 			self.rotgb_OtherBy = #self.rotgb_OtherBy
 			self.FireRate = self.FireRate * (1+self.rotgb_OtherBy*0.2)
-		end
+		end]]
 	end
 end
 
