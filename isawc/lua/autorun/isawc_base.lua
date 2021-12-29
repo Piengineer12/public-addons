@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.7.0"
-ISAWC._VERSIONDATE = "2021-12-22"
+ISAWC._VERSION = "4.7.1"
+ISAWC._VERSIONDATE = "2021-12-29"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -2729,10 +2729,7 @@ end
 
 ISAWC.SaveData = function(self)
 	if next(self.LastLoadedData) then
-		local data = util.JSONToTable(file.Read("isawc_data.dat", "DATA") or "") or {}
-		if table.IsEmpty(data) then
-			data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat", "DATA") or "")) or {}
-		end
+		local data = {}
 		data.Stacklist = self.Stacklist or {}
 		data.Masslist = self.Masslist or {}
 		data.Volumelist = self.Volumelist or {}
@@ -2756,7 +2753,11 @@ ISAWC.SaveData = function(self)
 			end
 		end
 		
-		file.Write("isawc_data.dat",util.TableToJSON(data))
+		if self.ConUseCompression:GetBool() then
+			file.Write("isawc_data.dat",util.Compress(util.TableToJSON(data)))
+		else
+			file.Write("isawc_data.dat",util.TableToJSON(data))
+		end
 	end
 end
 
@@ -2840,7 +2841,13 @@ ISAWC.SaveContainerInventory = function(self,container)
 			"containerID" TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
 			"data" TEXT NOT NULL
 		);]])
-		self:SQL("INSERT INTO \"isawc_container_data\" (\"containerID\", \"data\") VALUES (%s, %s);", container:GetFileID(), util.TableToJSON(inv))
+		local data
+		if self.ConUseCompression:GetBool() then
+			data = util.Base64Encode(util.Compress(util.TableToJSON(inv)))
+		else
+			data = util.TableToJSON(inv)
+		end
+		self:SQL("INSERT INTO \"isawc_container_data\" (\"containerID\", \"data\") VALUES (%s, %s);", container:GetFileID(), data)
 	end
 end
 
@@ -2935,10 +2942,7 @@ ISAWC.Initialize = function()
 		ISAWC.VolumeMultiList = data.VolumeMultiList or ISAWC.VolumeMultiList
 		ISAWC.CountMultiList = data.CountMultiList or ISAWC.CountMultiList
 		for k,v in pairs(data.BWLists or {}) do
-			if ISAWC.BWLists[v] then
-				ISAWC.BWLists[v].Blacklist = data.BWLists.Blacklist
-				ISAWC.BWLists[v].Whitelist = data.BWLists.Whitelist
-			end
+			ISAWC.BWLists[k] = v
 		end
 		
 		local replacements = 0
@@ -2955,7 +2959,6 @@ ISAWC.Initialize = function()
 		end
 		
 		ISAWC.LastLoadedData = data
-		ISAWC.LastLoadedData.init = true
 	end
 end
 

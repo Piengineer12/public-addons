@@ -272,6 +272,9 @@ function ENT:Think()
 			local result = ISAWC:SQL("SELECT \"containerID\", \"data\" FROM \"isawc_container_data\" WHERE \"containerID\" = %s;", chosenFileID)
 			if (result and result[1]) then
 				self.ISAWC_Inventory = util.JSONToTable(result[1].data)
+				if not self.ISAWC_Inventory then
+					self.ISAWC_Inventory = util.JSONToTable(util.Decompress(util.Base64Decode(result[1].data) or "") or "")
+				end
 			elseif file.Exists("isawc_containers/"..chosenFileID..".dat","DATA") then
 				self.ISAWC_Inventory = util.JSONToTable(util.Decompress(file.Read("isawc_containers/"..chosenFileID..".dat") or ""))
 			end
