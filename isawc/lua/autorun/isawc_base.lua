@@ -10,7 +10,7 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.7.2"
+ISAWC._VERSION = "4.7.4"
 ISAWC._VERSIONDATE = "2021-12-29"
 
 if SERVER then util.AddNetworkString("isawc_general") end
@@ -30,6 +30,10 @@ ISAWC.dm3perHu = 0.00204838
 
 ISAWC.Log = function(self,msg)
 	MsgC(color_aqua,"[ISAWC] ",color_white,msg,"\n")
+end
+
+if SERVER then
+	ISAWC:Log(string.format("ISAWC by Piengineer12, version %s (%s)", ISAWC._VERSION, ISAWC._VERSIONDATE))
 end
 
 ISAWC.StringMatchParams = function(self,str,params)

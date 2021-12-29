@@ -84,7 +84,7 @@ function ENT:Initialize()
 				{"Mass", "Volume", "Count", "MaxMass", "MaxVolume", "MaxCount"},
 				{"NORMAL", "NORMAL", "NORMAL", "NORMAL", "NORMAL", "NORMAL"}
 			)
-			local baseClass = baseclass.Get("base_wire_entity")
+			local baseClass = scripted_ents.Get("base_wire_entity")
 			self.ISAWC_OnRemove = baseClass.OnRemove
 			self.OnRestore = baseClass.OnRestore
 			self.BuildDupeInfo = baseClass.BuildDupeInfo
@@ -92,7 +92,6 @@ function ENT:Initialize()
 			self.PreEntityCopy = baseClass.PreEntityCopy
 			self.OnEntityCopyTableFinish = baseClass.OnEntityCopyTableFinish
 			self.OnDuplicated = baseClass.OnDuplicated
-			self.PostEntityPaste = baseClass.PostEntityPaste
 		end
 		self:SetTrigger(true)
 	end
@@ -112,6 +111,14 @@ function ENT:Initialize()
 	self.MagnetScale = self:BoundingRadius()
 	self.NextRegenThink = CurTime()
 	self.MagnetTraceResult = {}
+end
+
+function ENT:PostEntityPaste(ply,ent,entities)
+	self:SetModel(self.ContainerModel)
+	self:PhysicsInit(SOLID_VPHYSICS)
+	
+	local baseClass = scripted_ents.Get("base_wire_entity")
+	baseClass.PostEntityPaste(self,ply,ent,entities)
 end
 
 function ENT:Touch(ent)
@@ -155,6 +162,18 @@ function ENT:Use(activator,caller,typ,data)
 		end
 		if self:GetPlayerTeam()==0 then
 			self:SetPlayerTeam(activator:Team() or 0)
+		end
+		if SERVER and ISAWC.ConSaveIntoFile:GetBool() then
+			local chosenFileID = self:GetFileID()
+			local result = ISAWC:SQL("SELECT \"containerID\", \"data\" FROM \"isawc_container_data\" WHERE \"containerID\" = %s;", chosenFileID)
+			if (result and result[1]) then
+				self.ISAWC_Inventory = util.JSONToTable(result[1].data)
+				if not self.ISAWC_Inventory then
+					self.ISAWC_Inventory = util.JSONToTable(util.Decompress(util.Base64Decode(result[1].data) or "") or "")
+				end
+			elseif file.Exists("isawc_containers/"..chosenFileID..".dat","DATA") then
+				self.ISAWC_Inventory = util.JSONToTable(util.Decompress(file.Read("isawc_containers/"..chosenFileID..".dat") or ""))
+			end
 		end
 		if ISAWC:IsLegalContainer(self, activator, true) then
 			for k,v in pairs(self.ISAWC_Openers) do
@@ -265,18 +284,6 @@ function ENT:Think()
 				if not invalid then
 					self:SetFileID(chosenFileID)
 				end
-			end
-		end
-		if SERVER and ISAWC.ConSaveIntoFile:GetBool() then
-			local chosenFileID = self:GetFileID()
-			local result = ISAWC:SQL("SELECT \"containerID\", \"data\" FROM \"isawc_container_data\" WHERE \"containerID\" = %s;", chosenFileID)
-			if (result and result[1]) then
-				self.ISAWC_Inventory = util.JSONToTable(result[1].data)
-				if not self.ISAWC_Inventory then
-					self.ISAWC_Inventory = util.JSONToTable(util.Decompress(util.Base64Decode(result[1].data) or "") or "")
-				end
-			elseif file.Exists("isawc_containers/"..chosenFileID..".dat","DATA") then
-				self.ISAWC_Inventory = util.JSONToTable(util.Decompress(file.Read("isawc_containers/"..chosenFileID..".dat") or ""))
 			end
 		end
 		if ISAWC.ConMagnet:GetFloat() > 0 and ISAWC:SatisfiesBWLists(self:GetClass(), "ContainerMagnetContainer") and not self.ISAWC_IsDeathDrop then
