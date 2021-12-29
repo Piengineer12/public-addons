@@ -10,7 +10,7 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.7.1"
+ISAWC._VERSION = "4.7.2"
 ISAWC._VERSIONDATE = "2021-12-29"
 
 if SERVER then util.AddNetworkString("isawc_general") end
@@ -2942,7 +2942,8 @@ ISAWC.Initialize = function()
 		ISAWC.VolumeMultiList = data.VolumeMultiList or ISAWC.VolumeMultiList
 		ISAWC.CountMultiList = data.CountMultiList or ISAWC.CountMultiList
 		for k,v in pairs(data.BWLists or {}) do
-			ISAWC.BWLists[k] = v
+			ISAWC.BWLists[k].Blacklist = v.Blacklist
+			ISAWC.BWLists[k].Whitelist = v.Whitelist
 		end
 		
 		local replacements = 0
