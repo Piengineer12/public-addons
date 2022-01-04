@@ -610,7 +610,7 @@ hook.Add("PlayerChangedTeam", "ISAWC", function(ply, old, new)
 			if accountID==v:GetOwnerAccountID() then
 				for i=1,32 do
 					local container = v:GetContainer(i)
-					if (container.Base == "isawc_container_base" and not container:PlayerPermitted(v)) then
+					if (container.Base == "isawc_container_base" and not container:PlayerPermitted(ply)) then
 						v:UnlinkEntity(container)
 					end
 				end

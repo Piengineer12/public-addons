@@ -285,7 +285,6 @@ function SWEP:OpenMakerMenu()
 		elseif weapon.cooldown <= RealTime() then
 			net.Start("isawc_general")
 			net.WriteString("send_maker_data")
-			net.WriteEntity(weapon)
 			net.WriteFloat(massMul)
 			net.WriteFloat(volumeMul)
 			net.WriteFloat(countMul)

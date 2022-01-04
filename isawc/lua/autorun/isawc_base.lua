@@ -10,7 +10,7 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.8.0"
+ISAWC._VERSION = "4.8.1"
 ISAWC._VERSIONDATE = "2022-01-04"
 
 if SERVER then util.AddNetworkString("isawc_general") end
@@ -858,8 +858,6 @@ ISAWC.ConUseCompression = CreateConVar("isawc_use_savecompression", "1", FCVAR_R
 "Enables save data compression (LZMA+Base64). This saves disk space, but saving and loading becomes much slower.\
 Compression is more effective if any players have many items in their inventories.\
 Consider also modifying the \"isawc_player_save\" and \"isawc_player_savedelay\" ConVars so that saving does not occur too often.")
-
--- TODO: add to GUI and Container Maker
 
 ISAWC.ConLockpickTime = CreateConVar("isawc_container_lockpicktime", "20", FCVAR_REPLICATED,
 "DarkRP only. The amount of time it takes to lockpick a container, in seconds.\
@@ -3788,7 +3786,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 				--exporter:UpdateWireOutputs()
 			end
 		elseif func == "send_maker_data" then
-			local weapon = net.ReadEntity()
+			local weapon = ply:GetActiveWeapon()
 			if (IsValid(weapon) and weapon:GetClass()=="weapon_isawc_maker") then
 				local massMul, volumeMul, countMul, lockMul = net.ReadFloat(), net.ReadFloat(), net.ReadFloat(), net.ReadFloat()
 				local massConstant, volumeConstant = net.ReadFloat(), net.ReadFloat()
