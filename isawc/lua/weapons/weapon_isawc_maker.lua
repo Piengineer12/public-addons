@@ -14,7 +14,7 @@ SWEP.WorldModel = "models/weapons/w_pistol.mdl"
 --SWEP.ViewModelFlip1 = false
 --SWEP.ViewModelFlip2 = false
 SWEP.Spawnable = true
---SWEP.AdminOnly = false
+SWEP.AdminOnly = true
 SWEP.Slot = 2
 SWEP.SlotPos = 7
 --SWEP.BounceWeaponIcon = true
@@ -57,12 +57,15 @@ function SWEP:SetupDataTables()
 	self:NetworkVar("Float",2,"CountMul")
 	self:NetworkVar("Float",3,"MassConstant")
 	self:NetworkVar("Float",4,"VolumeConstant")
+	self:NetworkVar("Float",5,"LockMul")
 	self:NetworkVar("String",0,"OpenSounds")
 	self:NetworkVar("String",1,"CloseSounds")
+	self:NetworkVar("String",2,"AdditionalAccess")
 	
 	self:SetMassMul(1)
 	self:SetVolumeMul(1)
 	self:SetCountMul(1)
+	self:SetLockMul(1)
 	self:SetMassConstant(10)
 	self:SetVolumeConstant(10)
 	self:SetOpenSounds("chest/open.wav")
@@ -84,11 +87,13 @@ function SWEP:PrimaryAttack()
 				Volume = self:GetVolumeConstant()
 			}
 			container:SetCountMul(self:GetCountMul())
+			container:SetLockMul(self:GetLockMul())
 			container.OpenSounds = string.Split(self:GetOpenSounds(), '|')
 			container.CloseSounds = string.Split(self:GetCloseSounds(), '|')
 			container:SetPos(ent:GetPos())
 			container:SetAngles(ent:GetAngles())
 			container:Spawn()
+			container:InterpretAdditionalAccess(self:GetAdditionalAccess(), ply)
 			ent:Remove()
 			self:EmitSound("buttons/button17.wav")
 			ply:PrintMessage(HUD_PRINTTALK, "The physics prop has been turned into a transformed container!")
@@ -135,9 +140,10 @@ function SWEP:OpenMakerMenu()
 	if (self.cooldown or 0) > RealTime() then return end
 	
 	self.cooldown = RealTime() + 1
-	local massMul, volumeMul, countMul = self:GetMassMul(), self:GetVolumeMul(), self:GetCountMul()
+	local massMul, volumeMul, countMul, lockMul = self:GetMassMul(), self:GetVolumeMul(), self:GetCountMul(), self:GetLockMul()
 	local massConstant, volumeConstant = self:GetMassConstant(), self:GetVolumeConstant()
 	local openSounds, closeSounds = self:GetOpenSounds(), self:GetCloseSounds()
+	local additionalAccess = self:GetAdditionalAccess()
 	--print(massMul, volumeMul, massConstant, volumeConstant, openSounds, closeSounds)
 	local weapon = self
 	
@@ -146,11 +152,14 @@ function SWEP:OpenMakerMenu()
 	Main:Center()
 	Main:MakePopup()
 	
-	local Label = Main:Add("DLabel")
+	local ScrollPanel = Main:Add("DScrollPanel")
+	ScrollPanel:Dock(FILL)
+	
+	local Label = ScrollPanel:Add("DLabel")
 	Label:SetText("A multiplier of 0 means infinite.")
 	Label:Dock(TOP)
 	
-	local MassSlider = Main:Add("DNumSlider")
+	local MassSlider = ScrollPanel:Add("DNumSlider")
 	MassSlider:SetText("Mass Multiplier")
 	MassSlider:SetMinMax(0,10)
 	MassSlider:SetDecimals(3)
@@ -161,7 +170,7 @@ function SWEP:OpenMakerMenu()
 		massMul = value
 	end
 	
-	local VolumeSlider = Main:Add("DNumSlider")
+	local VolumeSlider = ScrollPanel:Add("DNumSlider")
 	VolumeSlider:SetText("Volume Multiplier")
 	VolumeSlider:SetMinMax(0,10)
 	VolumeSlider:SetDecimals(3)
@@ -172,7 +181,7 @@ function SWEP:OpenMakerMenu()
 		volumeMul = value
 	end
 	
-	local CountSlider = Main:Add("DNumSlider")
+	local CountSlider = ScrollPanel:Add("DNumSlider")
 	CountSlider:SetText("Count Multiplier")
 	CountSlider:SetMinMax(0,10)
 	CountSlider:SetDecimals(3)
@@ -183,7 +192,18 @@ function SWEP:OpenMakerMenu()
 		countMul = value
 	end
 	
-	local ConstantMassSlider = Main:Add("DNumSlider")
+	local LockSlider = ScrollPanel:Add("DNumSlider")
+	LockSlider:SetText("(DarkRP) Lock Multiplier")
+	LockSlider:SetMinMax(0,10)
+	LockSlider:SetDecimals(3)
+	LockSlider:SetDefaultValue(1)
+	LockSlider:SetValue(lockMul)
+	LockSlider:Dock(TOP)
+	function LockSlider:OnValueChanged(value)
+		lockMul = value
+	end
+	
+	local ConstantMassSlider = ScrollPanel:Add("DNumSlider")
 	ConstantMassSlider:SetText("Constant Mass (kg)")
 	ConstantMassSlider:SetMinMax(0,10000)
 	ConstantMassSlider:SetDecimals(0)
@@ -194,7 +214,7 @@ function SWEP:OpenMakerMenu()
 		massConstant = value
 	end
 	
-	local ConstantVolumeSlider = Main:Add("DNumSlider")
+	local ConstantVolumeSlider = ScrollPanel:Add("DNumSlider")
 	ConstantVolumeSlider:SetText("Constant Volume (dm³)")
 	ConstantVolumeSlider:SetMinMax(0,10000)
 	ConstantVolumeSlider:SetDecimals(0)
@@ -205,30 +225,54 @@ function SWEP:OpenMakerMenu()
 		volumeConstant = value
 	end
 	
-	local Label = Main:Add("DLabel")
+	local Label = ScrollPanel:Add("DLabel")
 	Label:SetText("Use '|' to separate each sound. One will be selected randomly when the container is opened / closed.")
 	Label:Dock(TOP)
 	
-	local Label = Main:Add("DLabel")
+	local Label = ScrollPanel:Add("DLabel")
 	Label:SetText("Open Sounds")
 	Label:Dock(TOP)
 	
-	local OpenSoundsBox = Main:Add("DTextEntry")
+	local OpenSoundsBox = ScrollPanel:Add("DTextEntry")
 	OpenSoundsBox:SetText(openSounds)
 	OpenSoundsBox:Dock(TOP)
 	function OpenSoundsBox:OnChange()
 		openSounds = self:GetValue()
 	end
 	
-	local Label = Main:Add("DLabel")
+	local Label = ScrollPanel:Add("DLabel")
 	Label:SetText("Close Sounds")
 	Label:Dock(TOP)
 	
-	local CloseSoundsBox = Main:Add("DTextEntry")
+	local CloseSoundsBox = ScrollPanel:Add("DTextEntry")
 	CloseSoundsBox:SetText(closeSounds)
 	CloseSoundsBox:Dock(TOP)
 	function CloseSoundsBox:OnChange()
 		closeSounds = self:GetValue()
+	end
+	
+	local Label = ScrollPanel:Add("DLabel")
+	Label:SetText("Additional Access\n\z
+	Format: option=value|option=value|...\n\n\z
+	
+	If option is \"player\" (without quotes), the value should be the player username.\n\z
+	If option is \"team\", the value should be the team number.\n\n\z
+	
+	Example:\n\z
+	player=Player1|player=Player2|team=2\n\n\z
+	
+	In DarkRP, additional options are available:\n\z
+	If option is \"darkrp_category\", the value should be the job category name as displayed in the job menu.\n\z
+	If option is \"darkrp_command\", the value should be the job command name (the /job value).\n\z
+	If option is \"darkrp_doorgroup\", the value should be the door group name.")
+	Label:SizeToContentsY()
+	Label:Dock(TOP)
+	
+	local AdditionalAccessBox = ScrollPanel:Add("DTextEntry")
+	AdditionalAccessBox:SetText(additionalAccess)
+	AdditionalAccessBox:Dock(TOP)
+	function AdditionalAccessBox:OnChange()
+		additionalAccess = self:GetValue()
 	end
 	
 	local AcceptButton = Main:Add("DButton")
@@ -245,10 +289,12 @@ function SWEP:OpenMakerMenu()
 			net.WriteFloat(massMul)
 			net.WriteFloat(volumeMul)
 			net.WriteFloat(countMul)
+			net.WriteFloat(lockMul)
 			net.WriteFloat(massConstant)
 			net.WriteFloat(volumeConstant)
 			net.WriteString(openSounds)
 			net.WriteString(closeSounds)
+			net.WriteString(additionalAccess)
 			net.SendToServer()
 			weapon.cooldown = RealTime() + 1
 		end

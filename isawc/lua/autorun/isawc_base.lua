@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.7.4"
-ISAWC._VERSIONDATE = "2021-12-29"
+ISAWC._VERSION = "4.8.0"
+ISAWC._VERSIONDATE = "2022-01-04"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -32,9 +32,7 @@ ISAWC.Log = function(self,msg)
 	MsgC(color_aqua,"[ISAWC] ",color_white,msg,"\n")
 end
 
-if SERVER then
-	ISAWC:Log(string.format("ISAWC by Piengineer12, version %s (%s)", ISAWC._VERSION, ISAWC._VERSIONDATE))
-end
+ISAWC:Log(string.format("Loading ISAWC by Piengineer12, version %s (%s)", ISAWC._VERSION, ISAWC._VERSIONDATE))
 
 ISAWC.StringMatchParams = function(self,str,params)
 	for k,v in pairs(params) do
@@ -800,8 +798,7 @@ ISAWC.ConNoAmmo = CreateConVar("isawc_spawn_emptyweapons", "0", FCVAR_REPLICATED
 "If set, all weapons spawned from inventories will not have any ammo in their clip.")
 
 ISAWC.ConAllowInterConnection = CreateConVar("isawc_allow_interownerconnections", "0", FCVAR_REPLICATED,
-"If set to 1, Inventory Importers and Exporters may be connected to a container owned by someone else.\
-If set to 2, connections are only allowed to containers owned by the same team.")
+"If enabled, Inventory Importers and Exporters may be connected to a container owned by someone else.")
 
 ISAWC.ConMinExportDelay = CreateConVar("isawc_exporter_mindelay", "0.05", FCVAR_REPLICATED,
 "Minimum delay between items exported by Inventory Exporters.")
@@ -861,6 +858,17 @@ ISAWC.ConUseCompression = CreateConVar("isawc_use_savecompression", "1", FCVAR_R
 "Enables save data compression (LZMA+Base64). This saves disk space, but saving and loading becomes much slower.\
 Compression is more effective if any players have many items in their inventories.\
 Consider also modifying the \"isawc_player_save\" and \"isawc_player_savedelay\" ConVars so that saving does not occur too often.")
+
+-- TODO: add to GUI and Container Maker
+
+ISAWC.ConLockpickTime = CreateConVar("isawc_container_lockpicktime", "20", FCVAR_REPLICATED,
+"DarkRP only. The amount of time it takes to lockpick a container, in seconds.\
+Successfully lockpicking a container will disable the container's access restrictions, which can be manually enabled again in the GUI.\
+If this is negative, all containers cannot be lockpicked.\
+Note that the actual lockpicking time is multiplied with the container's Lock Multiplier.")
+
+ISAWC.ConLockpickTimeBump = CreateConVar("isawc_container_lockpicktimedifference", "10", FCVAR_REPLICATED,
+"DarkRP only. Randomly adds or subtracts the amount of time it takes to lockpick a container, in seconds.")
 
 local function BasicAutoComplete(cmd, argStr)
 	local possibilities = {}
@@ -1411,8 +1419,12 @@ ISAWC.PopulateDFormContainer = function(DForm)
 	combox:AddChoice("2 - Use StartTouch", 2)
 	combox:AddChoice("3 - Use PhysicsCollide", 3)
 	DForm:Help(" - "..ISAWC.ConDragAndDropOntoContainer:GetHelpText().."\n")
-	DForm:NumSlider("Always Openable By Everyone",ISAWC.ConAlwaysPublic:GetName(),0,2,0)
+	DForm:CheckBox("Always Openable By Everyone",ISAWC.ConAlwaysPublic:GetName())
 	DForm:Help(" - "..ISAWC.ConAlwaysPublic:GetHelpText().."\n")
+	DForm:NumSlider("Lockpick Time",ISAWC.ConLockpickTime:GetName(),0,100,1)
+	DForm:Help(" - "..ISAWC.ConLockpickTime:GetHelpText().."\n")
+	DForm:NumSlider("Lockpick Drift",ISAWC.ConLockpickTimeBump:GetName(),0,100,1)
+	DForm:Help(" - "..ISAWC.ConLockpickTimeBump:GetHelpText().."\n")
 	DForm:CheckBox("Drop Inventory On Remove",ISAWC.ConDropOnDeathContainer:GetName())
 	DForm:Help(" - "..ISAWC.ConDropOnDeathContainer:GetHelpText().."\n")
 	DForm:CheckBox("Use Database Saving",ISAWC.ConSaveIntoFile:GetName())
@@ -1432,7 +1444,7 @@ ISAWC.PopulateDFormContainer = function(DForm)
 end
 
 ISAWC.PopulateDFormImportExport = function(DForm)
-	DForm:NumSlider("Allow UP'd Container Connections",ISAWC.ConAllowInterConnection:GetName(),0,2,0)
+	DForm:CheckBox("Allow Public Connections",ISAWC.ConAllowInterConnection:GetName())
 	DForm:Help(" - "..ISAWC.ConAllowInterConnection:GetHelpText().."\n")
 	DForm:NumSlider("Importer Health Multiplier",ISAWC.ConImporterAutoHealth:GetName(),0,10,2)
 	DForm:Help(" - "..ISAWC.ConImporterAutoHealth:GetHelpText().."\n")
@@ -1488,7 +1500,7 @@ ISAWC.DrawInfos = function(self,invinfo,w,h)
 	end
 end
 
-ISAWC.InstallSortFunctions = function(self,panel,InvPanel,delname,wepstorename,dropname,container)
+ISAWC.InstallSortFunctions = function(self,panel,InvPanel,delname,wepstorename,dropname,container,displayContainerOptions)
 	local allowdel = ISAWC.ConAllowDelete:GetBool()
 	panel:SetText(allowdel and "    Options / Delete All" or "    Options")
 	panel:SetTextColor(color_white)
@@ -1594,9 +1606,29 @@ ISAWC.InstallSortFunctions = function(self,panel,InvPanel,delname,wepstorename,d
 				end
 			end):SetIcon("icon16/arrow_switch.png")
 		end
-		local selfOptions,selfOption = sOptions:AddSubMenu("Self Options")
-		selfOption:SetIcon("icon16/user.png")
-		do
+		if displayContainerOptions then
+			local containerOptions,containerOption = sOptions:AddSubMenu("Container Options")
+			containerOption:SetIcon("icon16/brick_edit.png")
+			if container:GetIsPublic() then
+				containerOptions:AddOption("Enable Access Restriction",function()
+					net.Start("isawc_general")
+					net.WriteString("set_is_public")
+					net.WriteBool(false)
+					net.WriteEntity(container)
+					net.SendToServer()
+				end):SetIcon("icon16/lock_add.png")
+			else
+				containerOptions:AddOption("Disable Access Restriction",function()
+					net.Start("isawc_general")
+					net.WriteString("set_is_public")
+					net.WriteBool(true)
+					net.WriteEntity(container)
+					net.SendToServer()
+				end):SetIcon("icon16/lock_delete.png")
+			end
+		else
+			local selfOptions,selfOption = sOptions:AddSubMenu("Self Options")
+			selfOption:SetIcon("icon16/user_edit.png")
 			if ISAWC.ConAllowSelflinks:GetBool() then
 				selfOptions:AddCVar("Disallow Inventory Links", "isawc_allow_selflinks", "1", "0"):SetIcon("icon16/link_delete.png")
 			else
@@ -2079,7 +2111,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 	
 	local SortRight = InvBaseRight:Add("DButton")
 	SortRight:Dock(BOTTOM)
-	ISAWC:InstallSortFunctions(SortRight,InvRight,"delete_in_container_full2","store_weapon_in_container2","drop_all_in_container2",container)
+	ISAWC:InstallSortFunctions(SortRight,InvRight,"delete_in_container_full2","store_weapon_in_container2","drop_all_in_container2",container,true)
 	
 	local LoadingRight = InvRight:Add("DLabel")
 	LoadingRight:SetText(language.GetPhrase("gmod_loading_title"))
@@ -2504,6 +2536,16 @@ ISAWC.WriteClientInventory = function(self,ply)
 	end
 end
 
+ISAWC.WriteContainerInventory = function(self,ply,container)
+	local inv = container:GetInventory(ply)
+	net.WriteUInt(#inv, 16)
+	for i,v in ipairs(inv) do
+		if next(v.Entities or {}) then
+			self:WriteModelFromDupeTable(v)
+		end
+	end
+end
+
 ISAWC.WriteModelFromDupeTable = function(self,dupe)
 	local ent = dupe.Entities[next(dupe.Entities)]
 	local bodyGroups = "000000000"
@@ -2522,11 +2564,12 @@ ISAWC.WriteModelFromDupeTable = function(self,dupe)
 	net.WriteInt(ent.SavedMaxClip2 or -1, 32)
 end
 
-ISAWC.GetClientStats = function(self,ply)
+ISAWC.GetClientStats = function(self,ply,user)
 	local isPlayer = ply:IsPlayer()
 	local cw,cv,cc = 0,0,0
 	local mw,mv,mc = 0,0,isPlayer and self.ConCount:GetInt() or self.ConCount2:GetInt() * (ply.GetCountMul and ply:GetCountMul() or 1)
-	for k,v in pairs(ply.ISAWC_Inventory or {}) do
+	local inv = IsValid(user) and ply:GetInventory(user) or ply.ISAWC_Inventory or {}
+	for k,v in pairs(inv) do
 		local aw,av,ac = self:GetStatsFromDupeTable(v)
 		if aw > 0 then
 			cw = cw + aw
@@ -2623,7 +2666,7 @@ ISAWC.SendInventory2 = function(self,ply,container)
 	net.WriteData(data1,#data1)
 	net.WriteData(data2,#data2)]]
 	self:WriteClientInventory(ply)
-	self:WriteClientInventory(container)
+	self:WriteContainerInventory(ply,container)
 	local stats = self:GetClientStats(ply)
 	for i=1,4 do
 		net.WriteFloat(stats[i])
@@ -2631,7 +2674,7 @@ ISAWC.SendInventory2 = function(self,ply,container)
 	for i=5,6 do
 		net.WriteUInt(stats[i],16)
 	end
-	stats = self:GetClientStats(container)
+	stats = self:GetClientStats(container,ply)
 	for i=1,4 do
 		net.WriteFloat(stats[i])
 	end
@@ -2667,7 +2710,7 @@ ISAWC.NoPickup = function(self,msg,ply)
 end
 
 ISAWC.PushNotification = function(self,msg)
-	if not (self.ConHideHintNotifs:GetBool() or self.ConHideNotifs:GetBool()) then
+	if not self.ConHideNotifs:GetBool() then
 		if not istable(msg) then
 			msg = {msg}
 		else
@@ -2822,12 +2865,13 @@ end
 
 ISAWC.SaveContainerInventory = function(self,container)
 	container:SendInventoryUpdate()
-	local inv = container.ISAWC_Inventory
+	local inv = {ISAWC_Inventory = container.ISAWC_Inventory, ISAWC_PlayerLocalizedInventories = container.ISAWC_PlayerLocalizedInventories}
 	local endername = container:GetEnderInvName()
 	if (endername or "")~="" then
 		for k,v in pairs(ents.GetAll()) do
-			if (IsValid(v) and v.Base=="isawc_container_base" and v:GetEnderInvName()==endername) then
-				v.ISAWC_Inventory = inv
+			if (v.Base=="isawc_container_base" and v:GetEnderInvName()==endername) then
+				v.ISAWC_Inventory = container.ISAWC_Inventory
+				v.ISAWC_PlayerLocalizedInventories = container.ISAWC_PlayerLocalizedInventories
 				v:SendInventoryUpdate()
 			end
 		end
@@ -2869,6 +2913,7 @@ ISAWC.DropAll = function(self,container,ply)
 			self:Log("Failed to remove items owned by "..tostring(container).." as the dropped container was invalid!")
 		else
 			briefcase:SetPos(ply:GetShootPos())
+			briefcase:SetCreator(ply)
 			if modelOverride ~= "" then
 				briefcase.ContainerModel = modelOverride
 			end
@@ -2877,13 +2922,20 @@ ISAWC.DropAll = function(self,container,ply)
 			briefcase:GetPhysicsObject():SetVelocity(ply:GetAimVector() * 200)
 			briefcase.ISAWC_IsDeathDrop = true
 			briefcase.ISAWC_IsDropAll = true
-			for i=1,#container.ISAWC_Inventory do
-				local dupe = container.ISAWC_Inventory[i]
+			
+			local inv
+			if container.Base == "isawc_container_base" then
+				inv = container:GetInventory(ply)
+			else
+				inv = container.ISAWC_Inventory
+			end
+			for i=1,#inv do
+				local dupe = inv[i]
 				if dupe then
 					table.insert(briefcase.ISAWC_Inventory,dupe)
 				end
 			end
-			table.Empty(container.ISAWC_Inventory)
+			table.Empty(inv)
 			
 			ply.ISAWC_DropAllContainers = self:FilterSequentialTable(ply.ISAWC_DropAllContainers or {}, self.FilterIsValid)
 			table.insert(ply.ISAWC_DropAllContainers, briefcase)
@@ -3013,6 +3065,7 @@ ISAWC.PlayerDeath = function(ply)
 		else
 			ply.ISAWC_Inventory = ply.ISAWC_Inventory or {}
 			briefcase:SetPos(ply:GetPos() + ply:OBBCenter())
+			briefcase:SetCreator(ply)
 			if modelOverride ~= "" then
 				briefcase.ContainerModel = modelOverride
 			end
@@ -3078,7 +3131,7 @@ end
 ISAWC.IsLegalContainer = function(self,ent,ply,ignoreDist)
 	local cond1 = IsValid(ent) and ent.Base=="isawc_container_base" and ply:Alive()
 	local cond2 = ignoreDist or ply:GetPos():Distance(ent:GetPos())-ent:BoundingRadius()<=ISAWC.ConDistance:GetFloat()
-	local cond3 = cond1 and (ent:GetOwnerAccountID()==(ply:AccountID() or 0) or ent:GetIsPublic() or ISAWC.ConAlwaysPublic:GetInt() == 1 or ISAWC.ConAlwaysPublic:GetInt() >= 2 and ply:Team() == ent:GetPlayerTeam())
+	local cond3 = cond1 and ent:PlayerPermitted(ply)
 	local legal = cond1 and cond2 and cond3
 	
 	if not legal then
@@ -3190,6 +3243,7 @@ ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 				local newent = ents.Create(v:GetClass())
 				newent:SetPos(v:GetPos())
 				newent:SetAngles(v:GetAngles())
+				newent:SetCreator(ply)
 				entTab[k] = newent
 				newent:Spawn()
 				newent:SetClip1(self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
@@ -3285,6 +3339,7 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 				local newent = ents.Create(v:GetClass())
 				newent:SetPos(v:GetPos())
 				newent:SetAngles(v:GetAngles())
+				newent:SetCreator(ply)
 				entTab[k] = newent
 				newent:Spawn()
 				newent:SetClip1(self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
@@ -3370,6 +3425,7 @@ ISAWC.SpawnDupeWeak = function(self,dupe,spawnpos,spawnangles,ply)
 				local newent = ents.Create(v:GetClass())
 				newent:SetPos(v:GetPos())
 				newent:SetAngles(v:GetAngles())
+				newent:SetCreator(ply)
 				entTab[k] = newent
 				newent:Spawn()
 				newent:SetClip1(self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
@@ -3419,17 +3475,18 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			local container = net.ReadEntity()
 			if self:IsLegalContainer(container,ply) then
 				local constructtable = {}
-				for i=1,#container.ISAWC_Inventory do
+				local inv = container:GetInventory(ply)
+				for i=1,#inv do
 					local desired = net.ReadUInt(16)
 					if desired<1 then return end
-					if desired>#container.ISAWC_Inventory then return end
+					if desired>#inv then return end
 					constructtable[desired] = i
 				end
-				if #constructtable~=#container.ISAWC_Inventory then return end
+				if #constructtable~=#inv then return end
 				for k,v in pairs(table.Copy(constructtable)) do
-					constructtable[v] = container.ISAWC_Inventory[k]
+					constructtable[v] = inv[k]
 				end
-				container.ISAWC_Inventory = constructtable
+				container:SetInventory(constructtable,ply)
 				self:SendInventory2(ply,container)
 			end
 		elseif func == "spawn" or func == "spawn_self" or func == "delete" then
@@ -3531,7 +3588,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 							undo.Create("Spawn From Container")
 							for i=1,net.ReadUInt(16) do
 								invnum = net.ReadUInt(16)
-								local dupe = table.remove(container.ISAWC_Inventory,invnum)
+								local dupe = table.remove(container:GetInventory(ply),invnum)
 								if dupe then
 									self:SpawnDupe2(dupe,func=="spawn_in_container2",func~="delete_in_container2",invnum,ply,container)
 								end
@@ -3542,7 +3599,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 							self:SetSuppressUndoHeaders(false)
 						end
 					else
-						local dupe = table.remove(container.ISAWC_Inventory,invnum)
+						local dupe = table.remove(container:GetInventory(ply),invnum)
 						if dupe then
 							self:SpawnDupe2(dupe,func=="spawn_in_container2",func~="delete_in_container2",invnum,ply,container)
 						end
@@ -3553,7 +3610,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 		elseif func == "drop_all_in_container2" then
 			local container = net.ReadEntity()
 			if self:IsLegalContainer(container,ply) then
-				if (container.ISAWC_Inventory and next(container.ISAWC_Inventory)) then
+				if next(container:GetInventory(ply)) then
 					self:DropAll(container,ply)
 					self:SendInventory2(ply,container)
 				end
@@ -3562,7 +3619,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			local container = net.ReadEntity()
 			if self:IsLegalContainer(container,ply) then
 				if self.ConAllowDelete:GetBool() then
-					table.Empty(container.ISAWC_Inventory)
+					table.Empty(container:GetInventory(ply))
 				else
 					self:NoPickup("You can't delete inventory items!",ply)
 				end
@@ -3580,21 +3637,21 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 							invnum = net.ReadUInt(16)
 							local dupe = ply.ISAWC_Inventory[invnum]
 							if not dupe then break end
-							local data = self:GetClientStats(container)
+							local data = self:GetClientStats(container,ply)
 							if data[5]+dupe.TotalCount>data[6] then self:NoPickup("The container needs "..math.ceil(data[5]+dupe.TotalCount-data[6]).." more slot(s) before it can accept the item!",ply) break end
 							if data[3]+dupe.TotalVolume>data[4] then self:NoPickup("The container needs "..math.Round((data[3]+dupe.TotalVolume-data[4])*self.dm3perHu,2).." dm³ more before it can accept the item!",ply) break end
 							if data[1]+dupe.TotalMass>data[2] then self:NoPickup("The container needs "..math.Round(data[1]+dupe.TotalMass-data[2],2).." kg more before it can accept the item!",ply) break end
-							table.insert(container.ISAWC_Inventory,dupe)
+							table.insert(container:GetInventory(ply),dupe)
 							table.remove(ply.ISAWC_Inventory,invnum)
 						end
 					else
 						local dupe = ply.ISAWC_Inventory[invnum]
 						if not dupe then return end
-						local data = self:GetClientStats(container)
+						local data = self:GetClientStats(container,ply)
 						if data[5]+dupe.TotalCount>data[6] then return self:NoPickup("The container needs "..math.ceil(data[5]+dupe.TotalCount-data[6]).." more slot(s) before it can accept the item!",ply) end
 						if data[3]+dupe.TotalVolume>data[4] then return self:NoPickup("The container needs "..math.Round((data[3]+dupe.TotalVolume-data[4])*self.dm3perHu,2).." dm³ more before it can accept the item!",ply) end
 						if data[1]+dupe.TotalMass>data[2] then return self:NoPickup("The container needs "..math.Round(data[1]+dupe.TotalMass-data[2],2).." kg more before it can accept the item!",ply) end
-						table.insert(container.ISAWC_Inventory,dupe)
+						table.insert(container:GetInventory(ply),dupe)
 						table.remove(ply.ISAWC_Inventory,invnum)
 					end
 					self:SendInventory2(ply,container)
@@ -3607,24 +3664,24 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 				if invnum == 0 then
 					for i=1,net.ReadUInt(16) do
 						invnum = net.ReadUInt(16)
-						local dupe = container.ISAWC_Inventory[invnum]
+						local dupe = container:GetInventory(ply)[invnum]
 						if not dupe then break end
 						local data = self:GetClientStats(ply)
 						if data[5]+dupe.TotalCount>data[6] then self:NoPickup("You need "..math.ceil(data[5]+dupe.TotalCount-data[6]).." more slot(s) to take that item!",ply) break end
 						if data[3]+dupe.TotalVolume>data[4] then self:NoPickup("You need "..math.Round((data[3]+dupe.TotalVolume-data[4])*self.dm3perHu,2).." dm³ more to take that item!",ply) break end
 						if data[1]+dupe.TotalMass>data[2] then self:NoPickup("You need "..math.Round(data[1]+dupe.TotalMass-data[2],2).." kg more to take that item!",ply) break end
 						table.insert(ply.ISAWC_Inventory,dupe)
-						table.remove(container.ISAWC_Inventory,invnum)
+						table.remove(container:GetInventory(ply),invnum)
 					end
 				else
-					local dupe = container.ISAWC_Inventory[invnum]
+					local dupe = container:GetInventory(ply)[invnum]
 					if not dupe then return end
 					local data = self:GetClientStats(ply)
 					if data[5]+dupe.TotalCount>data[6] then return self:NoPickup("You need "..math.ceil(data[5]+dupe.TotalCount-data[6]).." more slot(s) to take that item!",ply) end
 					if data[3]+dupe.TotalVolume>data[4] then return self:NoPickup("You need "..math.Round((data[3]+dupe.TotalVolume-data[4])*self.dm3perHu,2).." dm³ more to take that item!",ply) end
 					if data[1]+dupe.TotalMass>data[2] then return self:NoPickup("You need "..math.Round(data[1]+dupe.TotalMass-data[2],2).." kg more to take that item!",ply) end
 					table.insert(ply.ISAWC_Inventory,dupe)
-					table.remove(container.ISAWC_Inventory,invnum)
+					table.remove(container:GetInventory(ply),invnum)
 				end
 				self:SendInventory2(ply,container)
 			end
@@ -3650,12 +3707,12 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 				if invnum == 0 then
 					for i=1,net.ReadUInt(16) do
 						invnum = net.ReadUInt(16)
-						local dupe = func == "empty_in_container" and ply.ISAWC_Inventory[invnum] or container.ISAWC_Inventory[invnum]
+						local dupe = func == "empty_in_container" and ply.ISAWC_Inventory[invnum] or container:GetInventory(ply)[invnum]
 						if not dupe then return end
 						self:EmptyWeaponClipsToPlayer(dupe, ply)
 					end
 				else
-					local dupe = func == "empty_in_container" and ply.ISAWC_Inventory[invnum] or container.ISAWC_Inventory[invnum]
+					local dupe = func == "empty_in_container" and ply.ISAWC_Inventory[invnum] or container:GetInventory(ply)[invnum]
 					if not dupe then return end
 					self:EmptyWeaponClipsToPlayer(dupe, ply)
 				end
@@ -3733,19 +3790,28 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 		elseif func == "send_maker_data" then
 			local weapon = net.ReadEntity()
 			if (IsValid(weapon) and weapon:GetClass()=="weapon_isawc_maker") then
-				local massMul, volumeMul, countMul = net.ReadFloat(), net.ReadFloat(), net.ReadFloat()
+				local massMul, volumeMul, countMul, lockMul = net.ReadFloat(), net.ReadFloat(), net.ReadFloat(), net.ReadFloat()
 				local massConstant, volumeConstant = net.ReadFloat(), net.ReadFloat()
 				local openSounds, closeSounds = net.ReadString(), net.ReadString()
+				local additionalAccess = net.ReadString()
 				--print(massMul, volumeMul, massConstant, volumeConstant, openSounds, closeSounds)
 				weapon:SetMassMul(massMul)
 				weapon:SetVolumeMul(volumeMul)
 				weapon:SetCountMul(countMul)
+				weapon:SetLockMul(lockMul)
 				weapon:SetMassConstant(massConstant)
 				weapon:SetVolumeConstant(volumeConstant)
 				weapon:SetOpenSounds(openSounds)
 				weapon:SetCloseSounds(closeSounds)
+				weapon:SetAdditionalAccess(additionalAccess)
 				weapon:EmitSound("buttons/button17.wav")
 				ply:PrintMessage(HUD_PRINTTALK, "Properties set! They will take place the next time you transform a container.")
+			end
+		elseif func == "set_is_public" then
+			local isPublic = net.ReadBool()
+			local container = net.ReadEntity()
+			if self:IsLegalContainer(container,ply) then
+				container:SetIsPublic(isPublic)
 			end
 		else
 			self:Log("Received unrecognised message header \"" .. func .. "\" from " .. ply:Nick() .. ". Assuming data packet corrupted.")
@@ -3932,10 +3998,10 @@ ISAWC.CanPickup = function(self,ply,ent,speculative)
 		end
 		if ent:IsPlayer() and not passeswlist then self:NoPickup("You can't pick up players!",ply) return false end
 		if ent==game.GetWorld() and not passeswlist then self:NoPickup("You can't pick up worldspawn!",ply) return false end
-		if not ply:IsPlayer() and (class=="isawc_phantomface" or class=="isawc_extractor" or class=="isawc_weighingscale") and not passeswlist then
+		if not ply:IsPlayer() and (class=="isawc_importer" or class=="isawc_extractor" or class=="isawc_weighingscale") and not passeswlist then
 			if class=="isawc_weighingscale" then
 				self:NoPickup("You can't pick up Weighing Scales!",ply) return false
-			elseif class=="isawc_phantomface" then
+			elseif class=="isawc_importer" then
 				if ent:GetFileID()=='' then
 					self:NoPickup("You can't pick up unconnected Inventory Importers!",ply) return false
 				elseif ent:GetContainer()==ply then
@@ -3958,7 +4024,18 @@ ISAWC.CanPickup = function(self,ply,ent,speculative)
 			if ent:GetMoveType()~=MOVETYPE_VPHYSICS and not self.ConNonVPhysics:GetBool() and not ent:IsWeapon() then self:NoPickup("You can't pick up non-VPhysics entities!",ply) return false end
 			if constraint.HasConstraints(ent) and not self.ConAllowConstrained:GetBool() then self:NoPickup("You can't pick up constrained entities!",ply) return false end
 			local TotalMass, TotalVolume, TotalCount = self:CalculateEntitySpace(ent)
-			local data = self:GetClientStats(ply)
+			local data
+			if ply:IsPlayer() then
+				data = self:GetClientStats(ply)
+			else
+				local pickupPlayer = (
+					IsValid(ent:GetPhysicsAttacker(5)) and ent:GetPhysicsAttacker(5)
+					or IsValid(ent:GetOwner()) and ent:GetOwner()
+					or IsValid(ent:GetCreator()) and ent:GetCreator()
+					or player.GetByAccountID(ply:GetOwnerAccountID())
+				)
+				data = self:GetClientStats(ply,pickupPlayer)
+			end
 			if data[5]+TotalCount>data[6] then
 				ply.ISAWC_ExportFullTimestamp = CurTime()
 				self:NoPickup("You need "..math.ceil(data[5]+TotalCount-data[6]).." more slot(s) to pick this up!",ply) return false
@@ -4023,6 +4100,78 @@ ISAWC.PlayerMagnetize = function(self, ply, ent)
 			end
 		end
 	end
+end
+
+ISAWC.PermissionsObjectMetaIndex = {
+	Initialize = function(self)
+		self:SetPermittedUsernames({})
+		self:SetPermittedTeams({})
+		self:SetPermittedDarkRPCategories({})
+		self:SetPermittedDarkRPCommands({})
+		self:SetPermittedDarkRPDoorGroups({})
+	end,
+	
+	AddPermittedUsername = function(self, username)
+		self:GetPermittedUsernames()[username] = true
+	end,
+	
+	AddPermittedTeam = function(self, team)
+		self:GetPermittedTeams()[team] = true
+	end,
+	
+	AddPermittedDarkRPCategory = function(self, category)
+		self:GetPermittedDarkRPCategories()[category] = true
+	end,
+	
+	AddPermittedDarkRPCommand = function(self, command)
+		self:GetPermittedDarkRPCommands()[command] = true
+	end,
+	
+	AddPermittedDarkRPDoorGroup = function(self, doorGroup)
+		self:GetPermittedDarkRPDoorGroups()[doorGroup] = true
+	end,
+	
+	PlayerPermitted = function(self, ply)
+		local playerTeam = ply:Team()
+		local notPermitted = not (self:GetPermittedUsernames()[ply:Nick()] or self:GetPermittedTeams()[playerTeam])
+		
+		if DarkRP and notPermitted then
+			local jobInfo = ply:getJobTable()
+			
+			notPermitted = not (self:GetPermittedDarkRPCategories()[jobInfo.category] or self:GetPermittedDarkRPCommands()[jobInfo.command])
+			
+			if notPermitted then
+				-- this is kinda dumb (O(n^2))
+				for k,v in pairs(self:GetPermittedDarkRPDoorGroups()) do
+					if table.HasValue(RPExtraTeamDoors[k] or {}, playerTeam) then
+						notPermitted = false break
+					end
+				end
+			end
+		end
+		
+		return not notPermitted
+	end
+}
+
+AccessorFunc(ISAWC.PermissionsObjectMetaIndex, "_permittedUsernames", "PermittedUsernames")
+AccessorFunc(ISAWC.PermissionsObjectMetaIndex, "_permittedTeams", "PermittedTeams")
+AccessorFunc(ISAWC.PermissionsObjectMetaIndex, "_permittedDarkRPCategories", "PermittedDarkRPCategories")
+AccessorFunc(ISAWC.PermissionsObjectMetaIndex, "_permittedDarkRPCommands", "PermittedDarkRPCommands")
+AccessorFunc(ISAWC.PermissionsObjectMetaIndex, "_permittedDarkRPDoorGroups", "PermittedDarkRPDoorGroups")
+
+ISAWC.CreatePermissionsObject = function(self, oldTable)
+	local permissionsObject = {}
+	setmetatable(permissionsObject, {__index = self.PermissionsObjectMetaIndex})
+	permissionsObject:Initialize()
+	
+	if oldTable then
+		for k,v in pairs(oldTable) do
+			permissionsObject[k] = v
+		end
+	end
+	
+	return permissionsObject
 end
 
 local invcooldown = 0
@@ -4146,7 +4295,7 @@ ISAWC.Tick = function()
 			ISAWC.TempWindow:Hide()
 			ISAWC.TempWindow:KillFocus()
 		end
-		if clientTicks < 1200 then
+		if clientTicks < 1200 and not ISAWC.ConHideHintNotifs:GetBool() then
 			clientTicks = clientTicks + 1
 			if clientTicks == 600 then
 				ISAWC:PushNotification(
@@ -4188,6 +4337,12 @@ end
 
 ISAWC.PropPickup = function(self,ply,ent,container)
 	ply.ISAWC_Inventory = ply.ISAWC_Inventory or {}
+	local inv
+	if ply.Base == "isawc_container_base" then
+		inv = ply:GetInventory(container)
+	else
+		inv = ply.ISAWC_Inventory
+	end
 	local tpos = ent:GetPos()
 	tpos.z = tpos.z+ent:OBBMins().z
 	for k,v in pairs(constraint.GetAllConstrainedEntities(ent)) do
@@ -4197,6 +4352,7 @@ ISAWC.PropPickup = function(self,ply,ent,container)
 				local ent = ents.Create(data.Class)
 				if IsValid(ent) then
 					duplicator.DoGeneric(ent, data)
+					ent:SetCreator(ply)
 					ent:Spawn()
 					ent:Activate()
 					duplicator.DoGenericPhysics(ent, ply, data)
@@ -4236,7 +4392,7 @@ ISAWC.PropPickup = function(self,ply,ent,container)
 			v:Fire("Kill")
 		end
 	end
-	table.insert(ply.ISAWC_Inventory,dupe)
+	table.insert(inv,dupe)
 	if ply:IsPlayer() then
 		if IsValid(container) then
 			self:SendInventory2(ply,container)

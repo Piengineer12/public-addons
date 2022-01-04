@@ -30,7 +30,8 @@ function ENT:ISAWC_Initialize()
 		end
 		--self:SetUnFreezable(true)
 		self:CollisionRulesChanged()
-		self:SetEnderInvName(self:GetOwnerAccountID())
+		self:SetIsPlayerLocalized(true)
+		self:SetEnderInvName("EnderChest")
 	end
 end
 

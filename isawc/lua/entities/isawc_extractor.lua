@@ -39,7 +39,6 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Int",1,"ActiFlags")
 	self:NetworkVar("Int",2,"CurrentFileIDs")
 	self:NetworkVar("Int",3,"ContainerHealth",{KeyName="isawc_health",Edit={type="Int",title="Exporter Health",min=0,max=1000}})
-	self:NetworkVar("Int",4,"Team")
 	for i=1,32 do
 		self:NetworkVar("Entity",i-1,string.format("StorageEntity%u",i))
 	end
@@ -59,7 +58,7 @@ end
 function ENT:SetFileID(index, id)
 	if string.len(id)==8 then
 		local oldFileIDComp = self:GetFileIDComposite()
-		-- FileIDComposite is a long string, 8 characters per file
+		-- FileIDComposite is a 256 byte string, 8 characters per file
 		self:SetFileIDComposite(oldFileIDComp:sub(1, index*8-8)..id..oldFileIDComp:sub(index*8+1))
 		-- CurrentFileIDs is how we know what parts of the FileIDComposite have been filled with data
 		self:SetCurrentFileIDs(bit.bor(self:GetCurrentFileIDs(), bit.lshift(1, index-1)))
@@ -79,6 +78,7 @@ function ENT:SpawnFunction(ply,trace,classname)
 	if not trace.Hit then return end
 	
 	local ent = ents.Create(classname)
+	ent:SetCreator(ply)
 	ent:Spawn()
 	ent:Activate()
 	ent:SetPos(trace.HitPos-trace.HitNormal*ent:OBBMins().z)
@@ -129,9 +129,8 @@ function ENT:Initialize()
 		end
 		--self:UpdateWireOutputs()
 	end
-	if SERVER and (IsValid(self:GetCreator()) and self:GetCreator():IsPlayer()) then
+	if SERVER and self:GetCreator():IsPlayer() then
 		self:SetOwnerAccountID(self:GetCreator():AccountID() or 0)
-		self:SetTeam(self:GetCreator():Team())
 	end
 	self.ISAWC_CachedEntities = {}
 	self.NextCacheUpdate = 0
@@ -220,7 +219,6 @@ function ENT:Use(activator, caller)
 	if (IsValid(activator) and activator:IsPlayer()) then
 		if self:GetOwnerAccountID()==0 then
 			self:SetOwnerAccountID(activator:AccountID() or 0)
-			self:SetTeam(activator:Team())
 		end
 		if self:GetOwnerAccountID() == activator:AccountID() or activator:IsAdmin() then
 			net.Start("isawc_general")
@@ -231,17 +229,6 @@ function ENT:Use(activator, caller)
 			activator:PrintMessage(HUD_PRINTTALK, "Only the owner or an admin can use this Inventory Exporter!")
 		end
 	end
-end
-
-function ENT:GetFuzzyCreator()
-	local ply = SERVER and self:GetCreator()
-	if not IsValid(ply) then
-		ply = player.GetByAccountID(self:GetOwnerAccountID())
-		if IsValid(ply) and SERVER then
-			self:SetCreator(ply)
-		end
-	end
-	return ply
 end
 
 function ENT:LinkEntity(ent)
@@ -261,22 +248,22 @@ function ENT:LinkEntity(ent)
 		local message = "Device linked to "..tostring(ent).."!"
 		local message2 = nil
 		
+		local requestedPlayer = player.GetByAccountID(self:GetOwnerAccountID())
+		
 		if availableSpace then
-			local allowed = ISAWC.ConAllowInterConnection:GetInt() == 1
+			local allowed = ISAWC.ConAllowInterConnection:GetBool()
 			
 			if not allowed then
 				if ent:IsPlayer() then
-					if ISAWC.ConAllowInterConnection:GetInt() > 1 then
+					allowed = true
+					--[[if ISAWC.ConAllowInterConnection:GetInt() > 1 then
 						allowed = ent:Team()==self:GetTeam()
 					else
 						allowed = ent:AccountID()==self:GetOwnerAccountID()
-					end
+					end]]
 				else -- then it must be a container
-					if ISAWC.ConAllowInterConnection:GetInt() > 1 then
-						local requestedPlayer = player.GetByAccountID(ent:GetOwnerAccountID())
-						allowed = not IsValid(requestedPlayer) or requestedPlayer:Team()==self:GetTeam()
-					else
-						allowed = ent:GetOwnerAccountID()==self:GetOwnerAccountID()
+					if IsValid(requestedPlayer) then
+						allowed = ent:PlayerPermitted(requestedPlayer)
 					end
 				end
 			end
@@ -300,11 +287,10 @@ function ENT:LinkEntity(ent)
 			message = "This exporter can't be connected to any more containers!"
 		end
 		
-		local plyToMessage = self:GetFuzzyCreator()
-		if IsValid(plyToMessage) then
-			plyToMessage:PrintMessage(HUD_PRINTTALK, message)
+		if IsValid(requestedPlayer) then
+			requestedPlayer:PrintMessage(HUD_PRINTTALK, message)
 			if message2 then
-				plyToMessage:PrintMessage(HUD_PRINTTALK, message2)
+				requestedPlayer:PrintMessage(HUD_PRINTTALK, message2)
 			end
 		end
 	end
@@ -380,14 +366,16 @@ function ENT:AllowedDupe(dupe)
 	return allLegal
 end
 
-function ENT:IsExtractableContainer(container)
+function ENT:IsExtractableContainer(container,ply)
 	if IsValid(container) then
-		
-		if not container.ISAWC_Inventory then return false end
+		local inv
 		if container:IsPlayer() then
-			if not tobool(container:GetInfo("isawc_allow_selflinks")) then return false end
+			if not (container.ISAWC_Inventory and tobool(container:GetInfo("isawc_allow_selflinks"))) then return false end
+			inv = container.ISAWC_Inventory
+		else
+			inv = container:GetInventory(ply)
 		end
-		for k,v in pairs(container.ISAWC_Inventory) do
+		for k,v in pairs(inv) do
 			if self:AllowedDupe(v) then return true end
 		end
 		return false
@@ -395,19 +383,28 @@ function ENT:IsExtractableContainer(container)
 	end
 end
 
+function ENT:GetContainerInventory(container,ply)
+	if container:IsPlayer() then return container.ISAWC_Inventory
+	else return container:GetInventory(ply)
+	end
+end
+
 function ENT:SpawnProp(forcedSpawn)
 	local spawnDelay = math.max(self:GetSpawnDelay(), ISAWC.ConMinExportDelay:GetFloat(), 0.05)
 	local validContainer = false
-	for i=1,32 do
-		local container = self:GetContainer(i)
-		if self:IsExtractableContainer(container) then
-			validContainer = true break
-		end
+	if not IsValid(self:GetCreator()) then
+		self:SetCreator(player.GetByAccountID(self:GetOwnerAccountID()))
 	end
-	if validContainer then
-		self.ISAWC_NextSpawn = CurTime() + spawnDelay
-		local spawnPlayer = self:GetFuzzyCreator()
-		if IsValid(spawnPlayer) then
+	local spawnPlayer = self:GetCreator()
+	if IsValid(spawnPlayer) then
+		for i=1,32 do
+			local container = self:GetContainer(i)
+			if self:IsExtractableContainer(container,spawnPlayer) then
+				validContainer = true break
+			end
+		end
+		if validContainer then
+			self.ISAWC_NextSpawn = CurTime() + spawnDelay
 			local actiFlags = self:GetActiFlags()
 			if not forcedSpawn then
 				if bit.band(actiFlags, ACTI_CONTINUE)==ACTI_CONTINUE and self.ISAWC_SpawnStreak then
@@ -456,7 +453,7 @@ function ENT:SpawnProp(forcedSpawn)
 						end
 					end
 					container = possibleContainers[math.random(#possibleContainers)]
-					for k,v in RandomPairs(container.ISAWC_Inventory) do
+					for k,v in RandomPairs(self:GetContainerInventory(container,spawnPlayer)) do
 						if self:AllowedDupe(v) then
 							invnum = k break
 						end
@@ -465,7 +462,7 @@ function ENT:SpawnProp(forcedSpawn)
 					for i=1,32 do
 						local possibleContainer = self:GetContainer(i)
 						if self:IsExtractableContainer(possibleContainer) then
-							for j,v in ipairs(possibleContainer.ISAWC_Inventory) do
+							for j,v in ipairs(self:GetContainerInventory(possibleContainer,spawnPlayer)) do
 								if self:AllowedDupe(v) then
 									invnum = j
 									container = possibleContainer break
@@ -478,7 +475,7 @@ function ENT:SpawnProp(forcedSpawn)
 					for i=32,1,-1 do
 						local possibleContainer = self:GetContainer(i)
 						if self:IsExtractableContainer(possibleContainer) then
-							for j,v in SortedPairs(possibleContainer.ISAWC_Inventory, true) do
+							for j,v in SortedPairs(self:GetContainerInventory(possibleContainer,spawnPlayer), true) do
 								if self:AllowedDupe(v) then
 									invnum = j
 									container = possibleContainer break
@@ -492,7 +489,7 @@ function ENT:SpawnProp(forcedSpawn)
 					for i=1,32 do
 						local checkContainer = self:GetContainer(i)
 						if self:IsExtractableContainer(checkContainer) then
-							for k,v in pairs(checkContainer.ISAWC_Inventory or {}) do
+							for k,v in pairs(self:GetContainerInventory(checkContainer,spawnPlayer)) do
 								if self:AllowedDupe(v) then
 									local dm, dv, dc = ISAWC:GetStatsFromDupeTable(v)
 									local compareNum
@@ -524,17 +521,20 @@ function ENT:SpawnProp(forcedSpawn)
 				if invnum and IsValid(container) then
 					self.ISAWC_SpawnStreak = true
 					if bit.band(actiFlags, ACTI_INFINITE)==ACTI_INFINITE and spawnPlayer:IsAdmin() then
-						ISAWC:SpawnDupeWeak(container.ISAWC_Inventory[invnum], self:WorldSpaceCenter(), self:GetAngles(), spawnPlayer)
+						ISAWC:SpawnDupeWeak(self:GetContainerInventory(container,spawnPlayer)[invnum], self:WorldSpaceCenter(), self:GetAngles(), spawnPlayer)
 					else
-						ISAWC:SpawnDupeWeak(table.remove(container.ISAWC_Inventory, invnum), self:WorldSpaceCenter(), self:GetAngles(), spawnPlayer)
+						ISAWC:SpawnDupeWeak(table.remove(self:GetContainerInventory(container,spawnPlayer), invnum), self:WorldSpaceCenter(), self:GetAngles(), spawnPlayer)
 					end
+					ISAWC:SaveContainerInventory(container)
 				end
 				--container:SendInventoryUpdate()
 				--self:UpdateWireOutputs(data)
 			end
+		else
+			self.ISAWC_SpawnStreak = false
 		end
 	else
-		self.ISAWC_SpawnStreak = false
+		self.ISAWC_NextSpawn = CurTime() + 5
 	end
 end
 
@@ -604,10 +604,16 @@ function ENT:DrawTranslucent()
 end
 
 hook.Add("PlayerChangedTeam", "ISAWC", function(ply, old, new)
-	if ISAWC.ConAllowInterConnection:GetInt() > 1 then -- oh boy...
+	if not ISAWC.ConAllowInterConnection:GetBool() then
+		local accountID = ply:AccountID()
 		for k,v in pairs(ents.FindByClass("isawc_extractor")) do
-			if v:HasContainer(ply) and new~=v:GetTeam() then
-				v:UnlinkEntity(ply)
+			if accountID==v:GetOwnerAccountID() then
+				for i=1,32 do
+					local container = v:GetContainer(i)
+					if (container.Base == "isawc_container_base" and not container:PlayerPermitted(v)) then
+						v:UnlinkEntity(container)
+					end
+				end
 			end
 		end
 	end

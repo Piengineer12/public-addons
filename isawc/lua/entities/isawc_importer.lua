@@ -1,14 +1,12 @@
--- Are you *sure* Ellpeck won't mind?!
-
 ENT.Base = "base_anim"
 ENT.Type = "anim"
-ENT.PrintName = "Inventory Importer"
+ENT.PrintName = "Inventory Importer [DEPRECATED - DO NOT USE]"
 ENT.Category = "ISAWC"
 ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Items that touch this are put into a connected inventory if possible."
 ENT.Instructions = "Link this Importer to something."
-ENT.Spawnable = true
+ENT.Spawnable = false
 ENT.Editable = true
 
 AddCSLuaFile()
@@ -51,7 +49,7 @@ function ENT:Initialize()
 			end
 		end
 	end
-	if SERVER and (IsValid(self:GetCreator()) and self:GetCreator():IsPlayer()) then
+	if SERVER and self:GetCreator():IsPlayer() then
 		self:SetOwnerAccountID(self:GetCreator():AccountID() or 0)
 	end
 end
@@ -69,7 +67,7 @@ end
 
 function ENT:Use(activator, caller)
 	if (IsValid(activator) and activator:IsPlayer()) then
-		if not self:GetOwnerAccountID() or self:GetOwnerAccountID()==0 then
+		if self:GetOwnerAccountID()==0 then
 			self:SetOwnerAccountID(activator:AccountID() or 0)
 		end
 		if player.GetByAccountID(self:GetOwnerAccountID()) == activator or activator:IsAdmin() then
@@ -98,10 +96,7 @@ function ENT:LinkEntity(ent)
 			message = "That container does not belong to you!"
 		end
 		
-		local plyToMessage = self:GetCreator()
-		if not IsValid(plyToMessage) then
-			plyToMessage = player.GetByAccountID(self:GetOwnerAccountID())
-		end
+		local plyToMessage = player.GetByAccountID(self:GetOwnerAccountID())
 		if IsValid(plyToMessage) then
 			plyToMessage:PrintMessage(HUD_PRINTTALK, message)
 		end

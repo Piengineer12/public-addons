@@ -18,31 +18,38 @@ ENT.ContainerCountMul = 1
 ENT.OpenSounds = {}
 ENT.CloseSounds = {}
 
-ENT.ISAWC_Inventory = {}
 ENT.ISAWC_Openers = {}
 
 AddCSLuaFile()
 
 function ENT:SetupDataTables()
 	self:NetworkVar("Bool",0,"IsPublic",{KeyName="is_public",Edit={type="Boolean",title="Anyone Can Use",order=1}})
-	self:NetworkVar("Int",0,"ContainerHealth",{KeyName="isawc_health",Edit={type="Int",title="Container Health",min=0,max=1000,order=2}})
+	self:NetworkVar("Bool",1,"IsPlayerLocalized",{KeyName="is_player_localized",Edit={type="Boolean",title="Player-Specific Inventories",order=2}})
+	self:NetworkVar("Int",0,"ContainerHealth",{KeyName="isawc_health",Edit={type="Int",title="Container Health",min=0,max=1000,order=4}})
 	self:NetworkVar("Int",1,"OwnerAccountID")
 	self:NetworkVar("Int",2,"PlayerTeam")
-	self:NetworkVar("Float",0,"MassMul",{KeyName="isawc_mass_mul",Edit={type="Float",category="Multipliers",title="Mass Mul.",min=0,max=10,order=5}})
-	self:NetworkVar("Float",1,"VolumeMul",{KeyName="isawc_volume_mul",Edit={type="Float",category="Multipliers",title="Volume Mul.",min=0,max=10,order=6}})
-	self:NetworkVar("Float",2,"CountMul",{KeyName="isawc_count_mul",Edit={type="Float",category="Multipliers",title="Count Mul.",min=0,max=10,order=7}})
+	self:NetworkVar("Float",0,"MassMul",{KeyName="isawc_mass_mul",Edit={type="Float",category="Multipliers",title="Mass Mult.",min=0,max=10,order=5}})
+	self:NetworkVar("Float",1,"VolumeMul",{KeyName="isawc_volume_mul",Edit={type="Float",category="Multipliers",title="Volume Mult.",min=0,max=10,order=6}})
+	self:NetworkVar("Float",2,"CountMul",{KeyName="isawc_count_mul",Edit={type="Float",category="Multipliers",title="Count Mult.",min=0,max=10,order=7}})
+	self:NetworkVar("Float",3,"LockMul",{KeyName="isawc_lock_mul",Edit={type="Float",category="Multipliers",title="(DarkRP) Lock Mult.",min=0,max=10,order=8}})
 	self:NetworkVar("String",1,"FileID")
 	self:NetworkVar("String",2,"EnderInvName",{KeyName="enderchest_inv_name",Edit={type="Generic",title="Inv. ID (for EnderChests)",order=3}})
 	
 	self:SetMassMul(1)
 	self:SetVolumeMul(1)
 	self:SetCountMul(1)
+	self:SetLockMul(1)
+end
+
+if SERVER then
+	AccessorFunc(ENT, "Team", "Team", FORCE_NUMBER)
 end
 
 function ENT:SpawnFunction(ply,trace,classname)
 	if not trace.Hit then return end
 	
 	local ent = ents.Create(classname)
+	ent:SetCreator(ply)
 	ent:Spawn()
 	ent:Activate()
 	ent:SetPos(trace.HitPos-trace.HitNormal*ent:OBBMins().z)
@@ -58,6 +65,8 @@ function ENT:ISAWC_Initialize()
 end
 
 function ENT:Initialize()
+	self.ISAWC_Inventory = {}
+	self.ISAWC_PlayerLocalizedInventories = {}
 	if SERVER then
 		ISAWC:SQL([[CREATE TABLE IF NOT EXISTS "isawc_container_data" (
 			"containerID" TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
@@ -96,15 +105,31 @@ function ENT:Initialize()
 		self:SetTrigger(true)
 	end
 	self:ISAWC_Initialize()
-	if SERVER and (IsValid(self:GetCreator()) and self:GetCreator():IsPlayer()) then
-		self:SetOwnerAccountID(self:GetCreator():AccountID() or 0)
-		self:SetPlayerTeam(self:GetCreator():Team())
+	
+	if SERVER then
+		local creator = self:GetCreator()
+		if creator:IsPlayer() and self:GetOwnerAccountID()==0 then
+			self:SetOwnerAccountID(creator:AccountID() or 0)
+		end
+		if self:GetPlayerTeam()~=0 then
+			self:SetTeam(self:GetPlayerTeam())
+		end
 	end
+	
 	local endername = self:GetEnderInvName()
-	if (endername or "")~="" and table.IsEmpty(self.ISAWC_Inventory) then
-		for k,v in pairs(ents.GetAll()) do
-			if (IsValid(v) and v.Base=="isawc_container_base" and v:GetEnderInvName()==endername and not table.IsEmpty(v.ISAWC_Inventory)) then
-				self.ISAWC_Inventory = v.ISAWC_Inventory break
+	if (endername or "")~="" then
+		local invNeedsLoad = table.IsEmpty(self.ISAWC_Inventory)
+		local inv2NeedsLoad = table.IsEmpty(self.ISAWC_PlayerLocalizedInventories)
+		if invNeedsLoad or inv2NeedsLoad then
+			for k,v in pairs(ents.GetAll()) do
+				if (IsValid(v) and v.Base=="isawc_container_base" and v:GetEnderInvName()==endername) then
+					if invNeedsLoad and not table.IsEmpty(v.ISAWC_Inventory) then
+						self.ISAWC_Inventory = v.ISAWC_Inventory break
+					end
+					if inv2NeedsLoad and not table.IsEmpty(v.ISAWC_PlayerLocalizedInventories) then
+						self.ISAWC_PlayerLocalizedInventories = v.ISAWC_PlayerLocalizedInventories break
+					end
+				end
 			end
 		end
 	end
@@ -113,37 +138,74 @@ function ENT:Initialize()
 	self.MagnetTraceResult = {}
 end
 
+function ENT:InterpretAdditionalAccess(accessStr, ply)
+	local permissionsObject = ISAWC:CreatePermissionsObject()
+	
+	for keyValue in string.gmatch(accessStr, "[^|]+") do
+		local option, value = string.match(keyValue, "^([^=]+)=([^=]+)$")
+		if option == "player" then
+			permissionsObject:AddPermittedUsername(value)
+		elseif option == "team" then
+			local team = tonumber(value)
+			if team then
+				permissionsObject:AddPermittedTeam(team)
+			else
+				ISAWC:NoPickup("\""..value.."\" is not a valid team number!", ply)
+			end
+		elseif option == "darkrp_category" then
+			permissionsObject:AddPermittedDarkRPCategory(value)
+		elseif option == "darkrp_command" then
+			permissionsObject:AddPermittedDarkRPCommand(value)
+		elseif option == "darkrp_doorgroup" then
+			permissionsObject:AddPermittedDarkRPDoorGroup(value)
+		elseif option then
+			ISAWC:NoPickup("\""..option.."\" is not a valid option!", ply)
+		else
+			ISAWC:NoPickup("\""..keyValue.."\" is not a valid key-value pair!", ply)
+		end
+	end
+	
+	self.ISAWC_PermittedPlayersObject = permissionsObject
+end
+
 function ENT:PostEntityPaste(ply,ent,entities)
 	self:SetModel(self.ContainerModel)
 	self:PhysicsInit(SOLID_VPHYSICS)
+	self.ISAWC_PermittedPlayersObject = ISAWC:CreatePermissionsObject(self.ISAWC_PermittedPlayersObject)
 	
 	local baseClass = scripted_ents.Get("base_wire_entity")
 	baseClass.PostEntityPaste(self,ply,ent,entities)
 end
 
 function ENT:Touch(ent)
-	if ISAWC.ConDragAndDropOntoContainer:GetInt()==1 and not self.ISAWC_Disabled then
-		if ISAWC:CanProperty(self,ent) then
-			ISAWC:PropPickup(self,ent)
-			ISAWC:SaveContainerInventory(self)
-		end
+	if ISAWC.ConDragAndDropOntoContainer:GetInt()==1 then
+		self:PickUpTouchedProp(ent)
 	end
 end
 
 function ENT:StartTouch(ent) -- no longer works?
-	if ISAWC.ConDragAndDropOntoContainer:GetInt()==2 and not self.ISAWC_Disabled then
-		if ISAWC:CanProperty(self,ent) then
-			ISAWC:PropPickup(self,ent)
-			ISAWC:SaveContainerInventory(self)
-		end
+	if ISAWC.ConDragAndDropOntoContainer:GetInt()==2 then
+		self:PickUpTouchedProp(ent)
 	end
 end
 
 function ENT:PhysicsCollide(data)
 	local ent = data.HitEntity
-	if ISAWC.ConDragAndDropOntoContainer:GetInt()==3 and not self.ISAWC_Disabled then
+	if ISAWC.ConDragAndDropOntoContainer:GetInt()==3 then
+		self:PickUpTouchedProp(ent)
+	end
+end
+
+function ENT:PickUpTouchedProp(ent)
+	if not self.ISAWC_Disabled then
 		if ISAWC:CanProperty(self,ent) then
-			ISAWC:PropPickup(self,ent)
+			local pickupPlayer = (
+				IsValid(ent:GetPhysicsAttacker(5)) and ent:GetPhysicsAttacker(5)
+				or IsValid(ent:GetOwner()) and ent:GetOwner()
+				or IsValid(ent:GetCreator()) and ent:GetCreator()
+				or player.GetByAccountID(self:GetOwnerAccountID())
+			)
+			ISAWC:PropPickup(self,ent,pickupPlayer)
 			ISAWC:SaveContainerInventory(self)
 		end
 	end
@@ -160,19 +222,23 @@ function ENT:Use(activator,caller,typ,data)
 		if self:GetOwnerAccountID()==0 then
 			self:SetOwnerAccountID(activator:AccountID() or 0)
 		end
-		if self:GetPlayerTeam()==0 then
-			self:SetPlayerTeam(activator:Team() or 0)
-		end
-		if SERVER and ISAWC.ConSaveIntoFile:GetBool() then
+		if SERVER and ISAWC.ConSaveIntoFile:GetBool() and (table.IsEmpty(self.ISAWC_Inventory) or table.IsEmpty(self.ISAWC_PlayerLocalizedInventories)) then
 			local chosenFileID = self:GetFileID()
 			local result = ISAWC:SQL("SELECT \"containerID\", \"data\" FROM \"isawc_container_data\" WHERE \"containerID\" = %s;", chosenFileID)
 			if (result and result[1]) then
-				self.ISAWC_Inventory = util.JSONToTable(result[1].data)
-				if not self.ISAWC_Inventory then
-					self.ISAWC_Inventory = util.JSONToTable(util.Decompress(util.Base64Decode(result[1].data) or "") or "")
+				local data = util.JSONToTable(result[1].data or "")
+				if not data then
+					data = util.JSONToTable(util.Decompress(util.Base64Decode(result[1].data or "") or "") or "") or {}
+				end
+				
+				if table.IsEmpty(self.ISAWC_Inventory) then
+					self.ISAWC_Inventory = data.ISAWC_Inventory or data
+				end
+				if table.IsEmpty(self.ISAWC_PlayerLocalizedInventories) then
+					self.ISAWC_PlayerLocalizedInventories = data.ISAWC_PlayerLocalizedInventories or {}
 				end
 			elseif file.Exists("isawc_containers/"..chosenFileID..".dat","DATA") then
-				self.ISAWC_Inventory = util.JSONToTable(util.Decompress(file.Read("isawc_containers/"..chosenFileID..".dat") or ""))
+				self.ISAWC_Inventory = util.JSONToTable(util.Decompress(file.Read("isawc_containers/"..chosenFileID..".dat") or "")) or {}
 			end
 		end
 		if ISAWC:IsLegalContainer(self, activator, true) then
@@ -225,18 +291,23 @@ function ENT:OnTakeDamage(dmginfo)
 end
 
 function ENT:OnRemove()
-	if SERVER and self.ISAWC_Inventory and ISAWC.ConDropOnDeathContainer:GetBool() and IsValid(self:GetCreator()) then
-		ISAWC:SetSuppressUndo(true)
-		for i=1,#self.ISAWC_Inventory do
-			local dupe = self.ISAWC_Inventory[i]
-			if dupe then
-				ISAWC:SpawnDupe2(dupe,true,true,i,self:GetCreator(),self)
+	if SERVER and self.ISAWC_Inventory and ISAWC.ConDropOnDeathContainer:GetBool() then
+		local ply = player.GetByAccountID(self:GetOwnerAccountID())
+		if IsValid(ply) then
+			ISAWC:SetSuppressUndo(true)
+			for i=1,#self.ISAWC_Inventory do
+				local dupe = self.ISAWC_Inventory[i]
+				if dupe then
+					ISAWC:SpawnDupe2(dupe,true,true,i,ply,self)
+				end
 			end
+			ISAWC:SetSuppressUndo(false)
+			table.Empty(self.ISAWC_Inventory)
+			ISAWC:SaveContainerInventory(self)
+		else
+			ISAWC:Log(string.format("Warning! Owner of container %s was missing, so items couldn't be dropped!", tostring(self)))
 		end
-		ISAWC:SetSuppressUndo(false)
-		table.Empty(self.ISAWC_Inventory)
-		ISAWC:SaveContainerInventory(self)
-		if (self.ISAWC_OnRemove) then
+		if self.ISAWC_OnRemove then
 			self:ISAWC_OnRemove()
 		end
 	end
@@ -372,3 +443,71 @@ function ENT:SendInventoryUpdate()
 		Wire_TriggerOutput(self, "MaxCount", stats[6])
 	end
 end
+
+function ENT:PlayerPermitted(ply)
+	if self:GetIsPublic() then return true end
+	if ISAWC.ConAlwaysPublic:GetBool() then return true end
+	if ply:AccountID() == self:GetOwnerAccountID() then return true end
+	
+	if self.ISAWC_PermittedPlayersObject then
+		if self.ISAWC_PermittedPlayersObject:PlayerPermitted(ply) then return true end
+	end
+	
+	return false
+end
+
+function ENT:SetInventory(inv, ply)
+	if self:GetIsPlayerLocalized() then
+		self.ISAWC_PlayerLocalizedInventories[ply:SteamID()] = inv
+	else
+		self.ISAWC_Inventory = inv
+	end
+end
+
+function ENT:GetInventory(ply)
+	if self:GetIsPlayerLocalized() then
+		if ply:IsPlayer() then
+			local steamID = ply:SteamID()
+			if not self.ISAWC_PlayerLocalizedInventories[steamID] then
+				self.ISAWC_PlayerLocalizedInventories[steamID] = {}
+			end
+			return self.ISAWC_PlayerLocalizedInventories[steamID]
+		else
+			ISAWC:Log(string.format(
+				"Warning! Failed to access player-specific inventory of container %s with player %s! Falling back to general inventory...",
+				tostring(self), tostring(ply)
+			))
+			return self.ISAWC_Inventory
+		end
+	else
+		return self.ISAWC_Inventory
+	end
+end
+
+hook.Add("canLockpick", "ISAWC X DarkRP", function(ply, ent, trace)
+	if ent.Base == "isawc_container_base" then
+		return ISAWC.ConLockpickTime:GetFloat() >= 0 and ent:GetLockMul() > 0 and not ent:GetIsPublic()
+	end
+end)
+
+hook.Add("lockpickTime", "ISAWC X DarkRP", function(ply, ent)
+	if ent.Base == "isawc_container_base" then
+		local averageTime = ISAWC.ConLockpickTime:GetFloat()
+		
+		-- I'm surprised the devs didn't rename the lockpick class to something less likely to cause addon collisions
+		local wep = ply:GetWeapon("lockpick")
+		if IsValid(wep) then
+			local driftTime = ISAWC.ConLockpickTimeBump:GetFloat()
+			return util.SharedRandom("DarkRP_Lockpick" .. wep:EntIndex() .. "_" .. wep:GetTotalLockpicks(), averageTime - driftTime, averageTime + driftTime)
+		end
+		
+		ISAWC:Log(string.format("%s is trying to lockpick %s with a non-existent lockpick. Assuming ISAWC is incorrect and returning %.2f for lockpick time.", tostring(ply), tostring(ent), averageTime))
+		return averageTime
+	end
+end)
+
+hook.Add("onLockpickCompleted", "ISAWC X DarkRP", function(ply, success, ent)
+	if ent.Base == "isawc_container_base" and success then
+		ent:SetIsPublic(true)
+	end
+end)
