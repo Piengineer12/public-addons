@@ -29,7 +29,7 @@ ENT.UpgradeReference = {
 			"Tremendously increases fire rate.",
 			"Colossally increases fire rate!",
 			"This tower now places markers on gBalloons. Each marker placed increases damage taken from Sniper Queens by one layer. Markers only affect the gBalloon's outermost layer.",
-			"Doubles fire rate and hits all gBalloons in its radius per shot!"
+			"Doubles fire rate and all shots hit all gBalloons in its radius!"
 		},
 		Prices = {300,2000,5000,25000,250000,10e6},
 		Funcs = {

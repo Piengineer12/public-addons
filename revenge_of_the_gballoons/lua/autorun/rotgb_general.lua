@@ -6,7 +6,7 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		5.0.0-alpha.2
+Version:		5.0.0-alpha.3
 ]]
 
 local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","towers"}
@@ -423,9 +423,12 @@ RegisterConVar("rotgb_health_param","0",R_FLOAT,
 RegisterConVar("rotgb_tower_blacklist","",R_STRING,
 [[Tower classes in the blacklist cannot be placed. Separate entries with spaces.]])
 
-RegisterConVar("rotgb_tower_chessonly","0",R_INT,
+RegisterConVar("rotgb_tower_chess_only","0",R_INT,
 [[Enabling this option will allow only chess towers to be placed. Towers can declare whether they are chess towers or not in their respective class files.
  - If -1, only NON-chess towers can be placed.]])
+
+RegisterConVar("rotgb_spawner_force_auto_start","0",R_BOOL,
+[[Newly-spawned gBalloon Spawners will have Force Auto-Start enabled.]])
 
 concommand.Add("rotgb_health_param_internal",function(ply,cmd,args,argStr) if (not IsValid(ply) or ply:IsAdmin()) then ROTGB_CVARS["rotgb_health_param"][1]:SetInt(tonumber(args[1]) or 0) end end,nil,nil,FCVAR_UNREGISTERED)
 
@@ -1114,6 +1117,8 @@ if CLIENT then
 			DForm:Help(" - "..GetConVar("rotgb_default_first_wave"):GetHelpText().."\n")
 			DForm:NumSlider("Default Last Wave","rotgb_default_last_wave",1,1000,0)
 			DForm:Help(" - "..GetConVar("rotgb_default_last_wave"):GetHelpText().."\n")
+			DForm:CheckBox("Force Auto-Start","rotgb_spawner_force_auto_start")
+			DForm:Help(" - "..GetConVar("rotgb_spawner_force_auto_start"):GetHelpText().."\n")
 			DForm:CheckBox("Enable Freeplay","rotgb_freeplay")
 			DForm:Help(" - "..GetConVar("rotgb_freeplay"):GetHelpText().."\n")
 			DForm:TextEntry("Default Wave Preset","rotgb_default_wave_preset")
@@ -1145,8 +1150,8 @@ if CLIENT then
 		spawnmenu.AddToolMenuOption("RotgB","Server","RotgB_Server5","Towers","","",function(DForm)
 			DForm:TextEntry("Tower Blacklist","rotgb_tower_blacklist")
 			DForm:Help(" - "..GetConVar("rotgb_tower_blacklist"):GetHelpText().."\n")
-			DForm:NumberWang("Chess Only","rotgb_tower_chessonly",-1,1)
-			DForm:Help(" - "..GetConVar("rotgb_tower_chessonly"):GetHelpText().."\n")
+			DForm:NumberWang("Chess Only","rotgb_tower_chess_only",-1,1)
+			DForm:Help(" - "..GetConVar("rotgb_tower_chess_only"):GetHelpText().."\n")
 			DForm:CheckBox("Hurt Non-gBalloons","rotgb_tower_damage_others")
 			DForm:Help(" - "..GetConVar("rotgb_tower_damage_others"):GetHelpText().."\n")
 			DForm:CheckBox("Ignore Upgrade Limits","rotgb_ignore_upgrade_limits")

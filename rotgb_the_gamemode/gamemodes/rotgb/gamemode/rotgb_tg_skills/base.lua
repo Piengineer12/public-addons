@@ -2386,9 +2386,9 @@ return {
 				parent = "fab2"
 			},
 			{
-				ref = "lc1",
-				name = "Less Cushions",
-				trait = "gBalloonMaxDamagedMaxDamage",
+				ref = "wip1",
+				name = "Work In Progress",
+				trait = "",
 				amount = 1,
 				tier = 1,
 				links = "parent",
@@ -2425,9 +2425,9 @@ return {
 				parent = "fab5"
 			},
 			{
-				ref = "lc2",
-				name = "Less Cushions",
-				trait = "gBalloonMaxDamagedMaxDamage",
+				ref = "wip2",
+				name = "Work In Progress",
+				trait = "",
 				amount = 1,
 				tier = 1,
 				links = "parent",
@@ -2464,9 +2464,9 @@ return {
 				parent = "fab8"
 			},
 			{
-				ref = "lc3",
-				name = "Less Cushions",
-				trait = "gBalloonMaxDamagedMaxDamage",
+				ref = "wip3",
+				name = "Work In Progress",
+				trait = "",
 				amount = 1,
 				tier = 1,
 				links = "parent",
@@ -2503,9 +2503,9 @@ return {
 				parent = "fab11"
 			},
 			{
-				ref = "lc4",
-				name = "Less Cushions",
-				trait = "gBalloonMaxDamagedMaxDamage",
+				ref = "wip4",
+				name = "Work In Progress",
+				trait = "",
 				amount = 1,
 				tier = 1,
 				links = "parent",

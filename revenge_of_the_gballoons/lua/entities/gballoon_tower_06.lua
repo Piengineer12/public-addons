@@ -55,16 +55,17 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Violent Blades","Faster Blades","Heated Blades","Super Blades","Unstable Blades","Tyrant Blades"},
+		Names = {"Razor Blades","Faster Blades","Superheated Blades","Even Faster Blades","Sonic Blades","Supersonic Blades","Hypersonic Blades"},
 		Descs = {
 			"This tower can now instantly pop Blue gBalloons and lower, regardless of immunities and properties.",
 			"This tower can now instantly pop Pink gBalloons and lower.",
 			"This tower can now instantly pop Gray, Zebra, Aqua and Error gBalloons, as well as anything lower.",
 			"This tower can now instantly pop Ceramic gBalloons and anything lower!",
 			"This tower can now instantly pop Blue gBlimps, Marble gBalloons and anything lower!",
-			"This tower can now instantly pop Red gBlimps and anything lower!",
+			"This tower can now instantly pop Red gBlimps, Monochrome gBlimps and anything lower!",
+			"This tower can now instantly pop Green gBlimps, Magenta gBlimps and anything lower!",
 		},
-		Prices = {3000,4500,25000,120000,750000,3750000},
+		Prices = {2000,3000,18000,170000,780000,3.65e6,17.5e6},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 20
@@ -76,13 +77,16 @@ ENT.UpgradeReference = {
 				self.AttackDamage = self.AttackDamage + 180
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 800
+				self.AttackDamage = self.AttackDamage + 1730
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 5090
+				self.AttackDamage = self.AttackDamage + 7880
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 25360
+				self.AttackDamage = self.AttackDamage + 36520
+			end,
+			function(self)
+				self.AttackDamage = self.AttackDamage + 179080
 			end
 		}
 	},
@@ -97,7 +101,7 @@ ENT.UpgradeReference = {
 				The chance is reduced if the firing tower fires faster than the targeted tower.",
 			"All towers except this tower in this tower's radius no longer have upgrade path restrictions!",
 		},
-		Prices = {400,500,2500,5000,15000,50000000},
+		Prices = {400,500,2500,5000,15000,50e6},
 		Funcs = {
 			function(self)
 				self.rotgb_Buff = 1

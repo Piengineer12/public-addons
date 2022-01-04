@@ -142,7 +142,7 @@ function SWEP:SecondaryAttack()
 	if self:CanSecondaryAttack() then
 		self:SetNextSecondaryFire(CurTime()+0.2)
 		-- FIXME: This is kind of a bad way to get the modified amounts!
-		self.TowerTable = ROTGB_GetAllTowers()
+		self.TowerTable = table.Copy(ROTGB_GetAllTowers())
 		for k,v in pairs(self.TowerTable) do
 			if not self.BaseTowerTable then	
 				self.BaseTowerTable = scripted_ents.GetStored("gballoon_tower_base")
@@ -206,7 +206,7 @@ function SWEP:Think()
 	if not self.TowerTable then
 		self:SetHoldType("slam")
 		-- FIXME: duplication of above FIXME
-		self.TowerTable = ROTGB_GetAllTowers()
+		self.TowerTable = table.Copy(ROTGB_GetAllTowers())
 		for k,v in pairs(self.TowerTable) do
 			if not self.BaseTowerTable then	
 				self.BaseTowerTable = scripted_ents.GetStored("gballoon_tower_base")
@@ -625,7 +625,7 @@ function SWEP:CreateRightPanel(Main)
 		for entry in string.gmatch(ROTGB_GetConVarValue("rotgb_tower_blacklist"), "%S+") do
 			blacklisted[entry] = true
 		end
-		local chessOnly = ROTGB_GetConVarValue("rotgb_tower_chessonly")
+		local chessOnly = ROTGB_GetConVarValue("rotgb_tower_chess_only")
 		for i,v in ipairs(wep.TowerTable) do
 			if not (blacklisted[v.ClassName] or chessOnly > 0 and not v.IsChessPiece or chessOnly < 0 and v.IsChessPiece) then
 				local TowerPanel = vgui.Create("DImageButton", TowersPanel)

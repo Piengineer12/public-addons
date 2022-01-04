@@ -129,7 +129,7 @@ end
 
 -- defined in rotgb_general.lua
 function GM:GetStartingRotgBCash()
-	return 650 + hook.Run("GetSkillAmount", "startingCash")
+	return ROTGB_GetConVarValue("rotgb_starting_cash") + hook.Run("GetSkillAmount", "startingCash")
 end
 
 -- defined in gballoon_spawner.lua
@@ -175,10 +175,6 @@ end
 function GM:gBalloonKeyValuesApply(keyValues)
 	if keyValues.BalloonType == "gballoon_error" and hook.Run("GetSkillAmount", "gBalloonErrorExplosionUnimmune") > 0 then
 		keyValues.BalloonBlack = "0"
-	end
-	if (tonumber(keyValues.BalloonMaxDamage) or 0) > 0 then
-		local newMaxDamage = tonumber(keyValues.BalloonMaxDamage) + hook.Run("GetSkillAmount", "gBalloonMaxDamagedMaxDamage")
-		keyValues.BalloonMaxDamage = string.format("%i", math.floor(newMaxDamage))
 	end
 	if tobool(keyValues.BalloonBlimp) then
 		local newHealth = (tonumber(keyValues.BalloonHealth) or 1) * (1+hook.Run("GetSkillAmount", "gBlimpHealth")/100)

@@ -1595,13 +1595,15 @@ local function CreateSkillSummaryPanel(parent)
 	
 	surface.SetFont("rotgb_skill_body")
 	for k,v in SortedPairs(traitsAndAmounts) do
-		local textPanel = vgui.Create("DPanel", tooltip)
-		textPanel:SetTall(FONT_SKILL_BODY_HEIGHT)
-		textPanel:Dock(TOP)
-		textPanel.rtg_Texts = CreateTraitDescription(traitDescs, k, istable(v) and v or {v})
-		
-		function textPanel:Paint(w,h)
-			draw.MultiColoredText(self.rtg_Texts, "rotgb_skill_body", 0, 0, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
+		if (tonumber(v) or 1) ~= 0 then
+			local textPanel = vgui.Create("DPanel", tooltip)
+			textPanel:SetTall(FONT_SKILL_BODY_HEIGHT)
+			textPanel:Dock(TOP)
+			textPanel.rtg_Texts = CreateTraitDescription(traitDescs, k, istable(v) and v or {v})
+			
+			function textPanel:Paint(w,h)
+				draw.MultiColoredText(self.rtg_Texts, "rotgb_skill_body", 0, 0, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
+			end
 		end
 	end
 	

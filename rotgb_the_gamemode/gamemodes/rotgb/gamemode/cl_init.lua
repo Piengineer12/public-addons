@@ -1,10 +1,17 @@
-include("sh_init.lua")
-include("cl_common_functions.lua")
-include("cl_hud.lua")
-include("cl_net.lua")
-include("cl_player.lua")
-include("cl_skills.lua")
-include("cl_ui.lua")
+local files = {
+	"sh_init.lua",
+	"cl_common_functions.lua",
+	"cl_hud.lua",
+	"cl_net.lua",
+	"cl_player.lua",
+	"cl_skills.lua",
+	"cl_ui.lua"
+}
+
+for i,v in ipairs(files) do
+	AddCSLuaFile(v)
+	include(v)
+end
 
 AccessorFunc(GM, "StartupState", "StartupState", FORCE_NUMBER)
 AccessorFunc(GM, "NextSave", "NextSave", FORCE_NUMBER)

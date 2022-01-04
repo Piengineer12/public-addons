@@ -10,7 +10,7 @@ GM.DatabaseFormatVersion		= 1
 GM.DatabaseSaveInterval			= 30
 GM.VoteTime						= 20
 GM.DebugMode					= true
-GM.ModeCategories				= {Easy = 1, Medium = 2, Hard = 3}
+GM.ModeCategories				= {Easy = 1, Medium = 2, Hard = 3, Insane = 4, Impossible = 5}
 GM.Modes						= {
 	__common = {
 		convars = {
@@ -42,6 +42,7 @@ GM.Modes						= {
 			rotgb_target_health_override = true,
 			rotgb_default_first_wave = true,
 			rotgb_tower_ignore_physgun = true,
+			rotgb_spawner_force_auto_start = true,
 			
 			rotgb_difficulty = true,
 			rotgb_default_wave_preset = true,
@@ -69,7 +70,7 @@ GM.Modes						= {
 			rotgb_difficulty = 0,
 			rotgb_default_last_wave = 40,
 			rotgb_target_natural_health = 200,
-			rotgb_tower_chessonly = 1
+			rotgb_tower_chess_only = 1
 		}
 	},
 	easy_halfcash = {
@@ -81,6 +82,7 @@ GM.Modes						= {
 			rotgb_difficulty = 0,
 			rotgb_default_last_wave = 40,
 			rotgb_target_natural_health = 200,
+			rotgb_starting_cash = 325,
 			rotgb_cash_mul = 0.5
 		}
 	},
@@ -95,6 +97,32 @@ GM.Modes						= {
 			rotgb_target_natural_health = 150
 		}
 	},
+	medium_avalanche = {
+		name = "Avalanche",
+		category = "Medium",
+		description = "Medium difficulty, but rounds always start immediately one after another, regardless of Auto-Start settings.",
+		place = 2,
+		convars = {
+			rotgb_difficulty = 1,
+			rotgb_default_last_wave = 60,
+			rotgb_target_natural_health = 150,
+			rotgb_spawner_force_auto_start = 1,
+		}
+	},
+	medium_strategic = {
+		name = "Strategic",
+		category = "Medium",
+		description = "Medium difficulty, but starts at Wave 51. You also start with 20,000 cash instead of 650, but you cannot gain cash from any sources.",
+		place = 3,
+		convars = {
+			rotgb_difficulty = 1,
+			rotgb_default_first_wave = 51,
+			rotgb_default_last_wave = 60,
+			rotgb_target_natural_health = 150,
+			rotgb_starting_cash = 20000,
+			rotgb_cash_mul = 0,
+		}
+	},
 	hard_regular = {
 		name = "Regular",
 		category = "Hard",
@@ -104,6 +132,30 @@ GM.Modes						= {
 			rotgb_difficulty = 2,
 			rotgb_default_last_wave = 80,
 			rotgb_target_natural_health = 100
+		}
+	},
+	hard_legacy = {
+		name = "Legacy Waves",
+		category = "Hard",
+		description = "Hard difficulty, except pre-Update 5.0.0 waves are used instead.",
+		place = 2,
+		convars = {
+			rotgb_difficulty = 2,
+			rotgb_default_last_wave = 80,
+			rotgb_target_natural_health = 100,
+			rotgb_default_wave_preset = "?LEGACY"
+		}
+	},
+	hard_doublehpblimps = {
+		name = "Double HP gBlimps",
+		category = "Hard",
+		description = "Hard difficulty, except all gBlimps have double health.",
+		place = 3,
+		convars = {
+			rotgb_difficulty = 2,
+			rotgb_default_last_wave = 80,
+			rotgb_target_natural_health = 100,
+			rotgb_blimp_health_multiplier = 2
 		}
 	},
 	insane_regular = {
@@ -117,11 +169,23 @@ GM.Modes						= {
 			rotgb_target_natural_health = 50
 		}
 	},
-	hard_impossible = {
-		name = "Impossible",
+	insane_doublehp = {
+		name = "Double HP gBalloons",
 		category = "Insane",
-		description = "Impossible difficulty, ends at Wave 120. Towers and upgrades are 60% more expensive and gBalloons move 30% faster.",
+		description = "Insane difficulty, except ALL gBalloons have double health.",
 		place = 2,
+		convars = {
+			rotgb_difficulty = 3,
+			rotgb_default_last_wave = 100,
+			rotgb_target_natural_health = 50,
+			rotgb_health_multiplier = 2
+		}
+	},
+	impossible_regular = {
+		name = "Regular",
+		category = "Impossible",
+		description = "Impossible difficulty, ends at Wave 120. Towers and upgrades are 60% more expensive and gBalloons move 30% faster.",
+		place = 1,
 		convars = {
 			rotgb_difficulty = 4,
 			rotgb_default_last_wave = 120,
@@ -134,10 +198,8 @@ GM.Modes						= {
 TO DO LIST:
 + several others (*.txt in same directory)
 
-make sure force auto-start forces auto-start
-add ConVar to control force auto-start
+complete new spawner waves
 update the readme file
-implement CHESS tower blacklisting
 sandbox saving
 fix autostart on rotgb_heatwave
 sfx for upgrading and placing
@@ -146,6 +208,10 @@ fix Multipurpose Engine buff desync - difficult to solve on client side
 popped gBalloons MIGHT incorrectly render a shield when their health is actually too low to render - low priority
 button to sell all towers - low priority
 button to activate all abilities - low priority
+
+ISAWC:
+
+TEST
 
 GAMEMODE:
 
@@ -196,13 +262,19 @@ function GM:RTG_Log(message, logging, noNewline)
 	MsgC(color_aqua, "[RotgB:TG] ", logColor, message, newline)
 end
 
-AddCSLuaFile()
-include("sh_common_functions.lua")
-include("sh_player.lua")
-include("sh_skills.lua")
-include("sh_teams.lua")
-include("player_class/builder.lua")
-include("player_class/hunter.lua")
+local files = {
+	"sh_common_functions.lua",
+	"sh_player.lua",
+	"sh_skills.lua",
+	"sh_teams.lua",
+	"player_class/builder.lua",
+	"player_class/hunter.lua"
+}
+
+for i,v in ipairs(files) do
+	AddCSLuaFile(v)
+	include(v)
+end
 
 function GM:CreateTeams()
 	hook.Run("InitializeTeams")

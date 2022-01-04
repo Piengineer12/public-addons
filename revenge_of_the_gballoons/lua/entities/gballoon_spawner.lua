@@ -297,7 +297,7 @@ ROTGB_WAVES_RAMP = {
 	},
 }
 
-ROTGB_WAVES = { -- format: { balloon_type, amount=1, timespan=0, delay=0 }
+ROTGB_WAVES_LEGACY = { -- format: { balloon_type, amount=1, timespan=0, delay=0 }
 	{ ---- 1
 		{"gballoon_red",10,10},
 		duration=10,
@@ -1131,7 +1131,890 @@ ROTGB_WAVES = { -- format: { balloon_type, amount=1, timespan=0, delay=0 }
 	}, ---- 120
 }
 
-ROTGB_CUSTOM_WAVES = {["?RAMP"]=ROTGB_WAVES_RAMP}
+ROTGB_WAVES = { -- format: { balloon_type, amount=1, timespan=0, delay=0 }
+	{ -- 1
+		{"gballoon_red",10,10},
+		duration=10,
+		rbe=10
+	}, -- 1
+	{
+		{"gballoon_red",20,10},
+		duration=10,
+		rbe=20
+	},
+	{ -- 3
+		{"gballoon_red",10,5},
+		{"gballoon_blue",10,5,5},
+		duration=10,
+		rbe=30--10*3
+	}, -- 3
+	{
+		{"gballoon_blue",20,10},
+		duration=10,
+		rbe=40--20*2
+	},
+	{
+		{"gballoon_blue",20,5},
+		{"gballoon_red",10,5,5},
+		duration=10,
+		rbe=50--20*2+10
+	},
+	{ -- 6
+		{"gballoon_green",20,10},
+		duration=10,
+		rbe=60
+	}, -- 6
+	{
+		{"gballoon_green",10,5},
+		{"gballoon_blue",20,5,5},
+		duration=10,
+		rbe=70--20*2+10*3
+	},
+	{
+		{"gballoon_green",10,10},
+		{"gballoon_blue",10,10},
+		{"gballoon_red",30,10},
+		duration=10,
+		rbe=80--10*3+10*2+30
+	},
+	{
+		{"gballoon_red",30,5},
+		{"gballoon_green",20,5,5},
+		duration=10,
+		rbe=90
+	},
+	{ -- 10
+		{"gballoon_red",10,2.5},
+		{"gballoon_blue",10,2.5,2.5},
+		{"gballoon_green",10,2.5,5},
+		{"gballoon_yellow",10,2.5,7.5},
+		duration=10,
+		rbe=100
+	}, -- 10
+	{
+		{"gballoon_yellow",20,10},
+		{"gballoon_green",10,5,5},
+		duration=10,
+		rbe=110
+	},
+	{
+		{"gballoon_green",40,10},
+		duration=10,
+		rbe=120
+	},
+	{
+		{"gballoon_green",10,10},
+		{"gballoon_blue",50,10},
+		duration=10,
+		rbe=130
+	},
+	{
+		{"gballoon_yellow",20,5},
+		{"gballoon_green",20,5,5},
+		duration=10,
+		rbe=140
+	},
+	{ -- 15
+		{"gballoon_red"},
+		{"gballoon_pink",5,5},
+		{"gballoon_pink",25,5,5},
+		duration=10,
+		rbe=151--30*5+1
+	}, -- 15
+	{
+		{"gballoon_yellow",40,10},
+		{"gballoon_red",3,nil,10},
+		duration=10,
+		rbe=163
+	},
+	{
+		{"gballoon_green",50,10},
+		{"gballoon_blue",13,1.3,8.7},
+		duration=10,
+		rbe=176--50*3+13*2
+	},
+	{
+		{"gballoon_pink",30,10},
+		{"gballoon_yellow",10,nil,10},
+		duration=10,
+		rbe=190--30*5+10*4
+	},
+	{
+		{"gballoon_pink",38,7.2},
+		{"gballoon_yellow",4,nil,10},
+		duration=10,
+		rbe=206--38*5+4*4
+	},
+	{ -- 20
+		{"gballoon_regen_yellow",8,4},
+		{"gballoon_regen_pink",38,7.6,2.4},
+		duration=10,
+		rbe=222--8*4+38*5
+	}, -- 20
+	{ -- 21
+		{"gballoon_white",20,10},
+		{"gballoon_regen_blue",10,nil,10},
+		duration=10,
+		rbe=240--20*11+10*2
+	}, -- 21
+	{
+		{"gballoon_black",20,10},
+		{"gballoon_regen_red",39,nil,10},
+		duration=10,
+		rbe=259--20*11+39
+	},
+	{
+		{"gballoon_purple",20,10},
+		{"gballoon_yellow",15,1.5,8.5},
+		duration=10,
+		rbe=280--20*11+15*4
+	},
+	{
+		{"gballoon_orange",25,7.5},
+		{"gballoon_regen_green",9,1.8,8.2},
+		duration=10,
+		rbe=302--25*11+9*3
+	},
+	{ -- 25
+		{"gballoon_fast_green",20,2},
+		{"gballoon_orange",20,5,2},
+		{"gballoon_regen_white",4,2,7},
+		{"gballoon_fast_regen_blue",nil,10},
+		duration=10,
+		rbe=326--24*11+20*3+1*2
+	}, -- 25
+	{
+		{"gballoon_purple",20,10},
+		{"gballoon_black",10,10},
+		{"gballoon_fast_blue",10,10},
+		{"gballoon_fast_regen_green",nil,10},
+		duration=10,
+		rbe=353--30*11+10*2+3
+	},
+	{
+		{"gballoon_white",8,8},
+		{"gballoon_black",8,8},
+		{"gballoon_purple",8,8},
+		{"gballoon_orange",8,8},
+		{"gballoon_fast_red",29,2.9,7.1},
+		duration=10,
+		rbe=381--32*11+29
+	},
+	{ -- 28
+		{"gballoon_zebra",15,5},
+		{"gballoon_regen_white",3,3,7},
+		{"gballoon_regen_black",3,3,7},
+		duration=10,
+		rbe=411--15*23+6*11
+	}, -- 28
+	{
+		{"gballoon_gray",2,2},
+		{"gballoon_zebra",15,5,2},
+		{"gballoon_regen_black",4,2,7},
+		{"gballoon_fast_regen_red",9,nil,10},
+		duration=10,
+		rbe=444--(2+15)*23+4*11+9
+	},
+	{ -- 30
+		{"gballoon_hidden_white",4,4},
+		{"gballoon_aqua",15,3,4},
+		{"gballoon_purple",8,2,7},
+		{"gballoon_fast_hidden_regen_green",nil,10},
+		duration=10,
+		rbe=480--(4+8)*11+15*23+10*3
+	}, -- 30
+	{
+		{"gballoon_error",2,2},
+		{"gballoon_aqua",20,5,2},
+		{"gballoon_fast_regen_yellow",3,3,7},
+		duration=10,
+		rbe=518--(2+20)*23+3*4
+	},
+	{
+		{"gballoon_zebra",20,5},
+		{"gballoon_fast_regen_white",9,4.5,5.5},
+		duration=10,
+		rbe=559--20*23+9*11
+	},
+	{
+		{"gballoon_gray",2,1},
+		{"gballoon_black",50,5,1},
+		{"gballoon_fast_regen_yellow",2,4,6},
+		duration=10,
+		rbe=604--2*23+50*11+2*4
+	},
+	{
+		{"gballoon_aqua",25,7.5},
+		{"gballoon_regen_orange",5,2.5,6.5},
+		{"gballoon_hidden_orange",2,1,9},
+		{"gballoon_fast_hidden_regen_red",nil,10},
+		duration=10,
+		rbe=653--25*23+(5+2)*11+1
+	},
+	{ -- 35
+		{"gballoon_error",2,1},
+		{"gballoon_shielded_purple",25,5,1},
+		{"gballoon_fast_regen_pink",20,4,6},
+		{"gballoon_fast_regen_green",3,nil,10},
+		duration=10,
+		rbe=705--2*23+25*22+20*5+3*3
+	}, -- 35
+	{ -- 36
+		{"gballoon_rainbow",8,8},
+		{"gballoon_fast_red",17,1.7,8.3},
+		duration=10,
+		rbe=761--8*93+17
+	}, -- 36
+	{
+		{"gballoon_rainbow",8,4},
+		{"gballoon_hidden_zebra",nil,4.5},
+		{"gballoon_fast_hidden_white",5,5,5},
+		duration=10,
+		rbe=822--8*93+23+5*11
+	},
+	{
+		{"gballoon_ceramic",4,4},
+		{"gballoon_fast_regen_black",5,2.5,4},
+		{"gballoon_gray",nil,6.5},
+		{"gballoon_error",nil,6.5},
+		{"gballoon_fast_hidden_regen_green",nil,10},
+		duration=10,
+		rbe=888--4*196+5*11+2*23+3
+	},
+	{
+		{"gballoon_shielded_rainbow",5,5},
+		{"gballoon_fast_hidden_regen_red",7,3.5,5},
+		{"gballoon_fast_hidden_regen_shielded_white",nil,10},
+		duration=10,
+		rbe=959--5*186+7+22
+	},
+	{ -- 40
+		{"gballoon_blimp_blue"},
+		duration=10,
+		rbe=984
+	}, -- 40
+	{
+		{"gballoon_regen_zebra",40,8},
+		{"gballoon_ceramic",nil,9},
+		{"gballoon_fast_hidden_regen_shielded_red",nil,10},
+		duration=10,
+		rbe=1118--40*23+196+2
+	},
+	{
+		{"gballoon_red",2},
+		{"gballoon_blue",2,nil,1},
+		{"gballoon_green",2,nil,2},
+		{"gballoon_yellow",2,nil,3},
+		{"gballoon_pink",3,nil,4},
+		{"gballoon_white",2,nil,4.5},
+		{"gballoon_black",2,nil,5},
+		{"gballoon_purple",2,nil,5.5},
+		{"gballoon_orange",3,nil,6},
+		{"gballoon_zebra",2,nil,6.5},
+		{"gballoon_gray",2,nil,7},
+		{"gballoon_aqua",2,nil,7.5},
+		{"gballoon_error",3,nil,8},
+		{"gballoon_rainbow",3,nil,9},
+		{"gballoon_ceramic",3,nil,10},
+		duration=10,
+		rbe=1208--(1+2+3+4)*2+15+9*11+9*23+3*93+3*196
+	},
+	{
+		{"gballoon_red",33},
+		{"gballoon_orange",31,nil,2.5},
+		{"gballoon_yellow",31,nil,5},
+		{"gballoon_green",31,nil,7.5},
+		{"gballoon_aqua",31,nil,10},
+		duration=10,
+		rbe=1304--33+31*(11+4+3+23)
+	},
+	{
+		{"gballoon_ceramic",7,7},
+		{"gballoon_fast_hidden_regen_shielded_white",nil,8},
+		{"gballoon_fast_hidden_regen_shielded_pink",nil,9},
+		{"gballoon_fast_hidden_regen_pink",nil,10},
+		duration=10,
+		rbe=1409--7*196+22+10+5
+	},
+	{ -- 45
+		{"gballoon_shielded_gray",30,5},
+		{"gballoon_hidden_shielded_purple",5,2,5},
+		{"gballoon_fast_hidden_regen_shielded_pink",3,3,7},
+		{"gballoon_fast_hidden_regen_red",nil,10},
+		duration=10,
+		rbe=1521--30*46+5*22+3*10+1
+	}, -- 45
+	{
+		{"gballoon_ceramic",8,8},
+		{"gballoon_fast_hidden_regen_pink",15,1.5,8.5},
+		duration=10,
+		rbe=1643--8*196+15*5
+	},
+	{
+		{"gballoon_shielded_zebra"},
+		{"gballoon_shielded_zebra",10,5},
+		
+		{"gballoon_shielded_white",nil,0.1},
+		{"gballoon_shielded_white",nil,0.2},
+		{"gballoon_shielded_white",nil,0.3},
+		{"gballoon_shielded_white",nil,0.4},
+		{"gballoon_shielded_white",4,4,0.1},
+		{"gballoon_shielded_white",4,4,0.2},
+		{"gballoon_shielded_white",4,4,0.3},
+		{"gballoon_shielded_white",4,4,0.4},
+		
+		{"gballoon_shielded_black",nil,0.6},
+		{"gballoon_shielded_black",nil,0.7},
+		{"gballoon_shielded_black",nil,0.8},
+		{"gballoon_shielded_black",nil,0.9},
+		{"gballoon_shielded_black",4,4,0.6},
+		{"gballoon_shielded_black",4,4,0.7},
+		{"gballoon_shielded_black",4,4,0.8},
+		{"gballoon_shielded_black",4,4,0.9},
+		
+		{"gballoon_regen_rainbow",4,4,5},
+		{"gballoon_fast_hidden_regen_red",17,nil,10},
+		duration=10,
+		rbe=1775--11*46+(5*4*2)*22+4*93+17
+	},
+	{
+		{"gballoon_rainbow",20,10},
+		{"gballoon_fast_hidden_regen_shielded_zebra",nil,5},
+		{"gballoon_fast_hidden_regen_purple",nil,10},
+		duration=10,
+		rbe=1917--20*93+46+11
+	},
+	{
+		{"gballoon_blimp_blue"},
+		{"gballoon_blimp_blue",nil,3},
+		{"gballoon_fast_regen_rainbow",nil,6},
+		{"gballoon_fast_hidden_regen_green",3,1,9},
+		duration=10,
+		rbe=2070--2*984+93+3*3
+	},
+	{ -- 50
+		{"gballoon_ceramic",3,3},
+		{"gballoon_brick",3,3,3},
+		{"gballoon_rainbow",3,3,6},
+		{"gballoon_fast_hidden_regen_shielded_black",4,1,9},
+		duration=10,
+		rbe=2236--3*(196+427+93)+4*22
+	}, -- 50
+	{
+		{"gballoon_fast_aqua",20,10},
+		{"gballoon_rainbow",20,10},
+		{"gballoon_rainbow"},
+		{"gballoon_fast_hidden_regen_red",nil,10},
+		duration=10,
+		rbe=2414--20*(93+23)+93+1
+	},
+	{
+		{"gballoon_brick",5,10},
+		{"gballoon_fast_regen_shielded_pink",5,10},
+		{"gballoon_fast_regen_pink"},
+		{"gballoon_fast_regen_shielded_white",5,10},
+		{"gballoon_fast_regen_shielded_white"},
+		{"gballoon_fast_regen_shielded_red",5,10},
+		{"gballoon_fast_regen_shielded_error",5,10},
+		{"gballoon_fast_regen_shielded_error"},
+		duration=10,
+		rbe=2608--5*427+11*5+6*22+10+6*46
+	},
+	{
+		{"gballoon_blimp_blue",2},
+		{"gballoon_fast_hidden_regen_shielded_pink",45,9},
+		{"gballoon_fast_hidden_regen_shielded_yellow",45,9},
+		{"gballoon_fast_hidden_regen_blue",19,nil,10},
+		duration=10,
+		rbe=2816--2*984+45*(10+8)+19*2
+	},
+	{
+		{"gballoon_blimp_blue",3,6},
+		{"gballoon_fast_hidden_regen_shielded_white",4,4,6},
+		{"gballoon_fast_hidden_regen_red"},
+		duration=10,
+		rbe=3041--3*984+4*22+1
+	},
+	{ -- 55
+		{"gballoon_ceramic",15,7.5},
+		{"gballoon_hidden_regen_gray",15,2.5,7.5},
+		duration=10,
+		rbe=3285--15*196+15*23
+	}, -- 55
+	{
+		{"gballoon_shielded_rainbow",19,9.5},
+		{"gballoon_fast_hidden_regen_shielded_red",7,nil,10},
+		duration=10,
+		rbe=3548--38*93+7*2
+	},
+	{
+		{"gballoon_fast_hidden_regen_error"},
+		{"gballoon_brick",8,8},
+		{"gballoon_shielded_ceramic",2,2,8},
+		duration=10,
+		rbe=3831--23+8*427+2*196
+	},
+	{
+		{"gballoon_fast_hidden_regen_shielded_rainbow"},
+		{"gballoon_blimp_blue",4,8},
+		{"gballoon_fast_hidden_regen_shielded_yellow",2,2,8},
+		duration=10,
+		rbe=4138--2*93+4*984+2*8
+	},
+	{
+		{"gballoon_rainbow",48,9.6},
+		{"gballoon_fast_hidden_regen_pink",nil,10},
+		duration=10,
+		rbe=4469--48*93+5
+	},
+	{ -- 60
+		{"gballoon_blimp_red"},
+		duration=10,
+		rbe=4636
+	}, -- 60
+	{
+		{"gballoon_brick",12,6},
+		{"gballoon_fast_hidden_regen_shielded_white",4,4,6},
+		duration=10,
+		rbe=5212--12*427+4*22
+	},
+	{
+		{"gballoon_blimp_blue",5,5},
+		{"gballoon_fast_ceramic",3,3,5},
+		{"gballoon_fast_hidden_regen_rainbow",nil,9},
+		{"gballoon_fast_hidden_regen_shielded_blue",7,nil,10},
+		duration=10,
+		rbe=5629--5*984+196*3+93+7*4
+	},
+	{
+		{"gballoon_regen_ceramic",5},
+		{"gballoon_regen_ceramic",5,nil,5},
+		{"gballoon_regen_ceramic",20,nil,10},
+		{"gballoon_fast_hidden_regen_shielded_pink",20,nil,10},
+		duration=10,
+		rbe=6080--30*196+200
+	},
+	{
+		{"gballoon_fast_hidden_regen_shielded_yellow",4},
+		{"gballoon_fast_regen_purple",14,7},
+		{"gballoon_fast_regen_error",14,7},
+		{"gballoon_fast_regen_white",14,7},
+		{"gballoon_blimp_blue",6,3,7},
+		duration=10,
+		rbe=6566--4*8+14*(11+23+11)+6*984
+	},
+	{ -- 65
+		{"gballoon_shielded_blimp_blue"},
+		{"gballoon_shielded_blimp_blue",2,4},
+		{"gballoon_fast_regen_shielded_purple",27,3,7},
+		{"gballoon_fast_regen_shielded_white",27,3,7},
+		duration=10,
+		rbe=7092--3*1968+27*(22+22)
+	}, -- 65
+	{
+		{"gballoon_brick",15,5},
+		{"gballoon_orange",48,4,5},
+		{"gballoon_yellow",48,4,5},
+		{"gballoon_white",48,4,5},
+		{"gballoon_fast_hidden_regen_shielded_green",nil,10},
+		duration=10,
+		rbe=7659--15*427+48*(11+4+11)+6
+	},
+	{
+		{"gballoon_fast_hidden_regen_shielded_error",10,5},
+		
+		{"gballoon_fast_hidden_regen_shielded_purple",nil,0.1},
+		{"gballoon_fast_hidden_regen_shielded_purple",nil,0.2},
+		{"gballoon_fast_hidden_regen_shielded_purple",nil,0.3},
+		{"gballoon_fast_hidden_regen_shielded_purple",nil,0.4},
+		{"gballoon_fast_hidden_regen_shielded_purple",4,4,0.1},
+		{"gballoon_fast_hidden_regen_shielded_purple",4,4,0.2},
+		{"gballoon_fast_hidden_regen_shielded_purple",4,4,0.3},
+		{"gballoon_fast_hidden_regen_shielded_purple",4,4,0.4},
+		
+		{"gballoon_fast_hidden_regen_shielded_black",nil,0.6},
+		{"gballoon_fast_hidden_regen_shielded_black",nil,0.7},
+		{"gballoon_fast_hidden_regen_shielded_black",nil,0.8},
+		{"gballoon_fast_hidden_regen_shielded_black",nil,0.9},
+		{"gballoon_fast_hidden_regen_shielded_black",4,4,0.6},
+		{"gballoon_fast_hidden_regen_shielded_black",4,4,0.7},
+		{"gballoon_fast_hidden_regen_shielded_black",4,4,0.8},
+		{"gballoon_fast_hidden_regen_shielded_black",4,4,0.9},
+		
+		{"gballoon_blimp_blue",7,3.5,5},
+		{"gballoon_fast_hidden_regen_shielded_white",2,2,8},
+		duration=10,
+		rbe=8272--10*46+(5*4*2)*22+7*984+44
+	},
+	{
+		{"gballoon_fast_hidden_regen_red"},
+		{"gballoon_fast_hidden_regen_shielded_pink",2},
+		{"gballoon_fast_hidden_regen_shielded_rainbow",2},
+		{"gballoon_brick",20,10},
+		duration=10,
+		rbe=8933--1+2*10+2*186+20*427
+	},
+	{
+		{"gballoon_blimp_red",2,10},
+		{"gballoon_hidden_regen_ceramic"},
+		{"gballoon_fast_hidden_regen_shielded_pink",18},
+		duration=10,
+		rbe=9648--2*4636+196+18*10
+	},
+	{ -- 70
+		{"gballoon_marble",10,10},
+		{"gballoon_regen_brick"},
+		{"gballoon_fast_hidden_regen_ceramic"},
+		{"gballoon_fast_hidden_regen_shielded_zebra"},
+		{"gballoon_fast_hidden_regen_purple"},
+		duration=10,
+		rbe=10420--10*974+427+196+46+11
+	}, -- 70
+	{
+		{"gballoon_blimp_blue"},
+		{"gballoon_blimp_blue",10,10},
+		{"gballoon_regen_brick",nil,5},
+		{"gballoon_fast_hidden_regen_shielded_red",nil,10},
+		duration=10,
+		rbe=11253--11*984+427+2
+	},
+	{
+		{"gballoon_marble",10,10},
+		{"gballoon_ceramic",10,10},
+		{"gballoon_fast_hidden_regen_shielded_gray",9,9},
+		{"gballoon_fast_hidden_regen_shielded_pink",4,8},
+		duration=10,
+		rbe=12154--10*(974+196)+46*9+4*10
+	},
+	{
+		{"gballoon_fast_hidden_ceramic"},
+		{"gballoon_fast_brick",30,10},
+		{"gballoon_fast_hidden_regen_shielded_blue",30,10},
+		duration=10,
+		rbe=13126--30*427+196+30*4
+	},
+	{
+		{"gballoon_blimp_red",3,9},
+		{"gballoon_fast_hidden_regen_aqua",10,10},
+		{"gballoon_fast_hidden_regen_shielded_red",19,9.5},
+		duration=10,
+		rbe=14176--3*4636+10*23+19*2
+	},
+	{ -- 75
+		{"gballoon_fast_blimp_blue",10,10},
+		{"gballoon_blimp_red",nil,2},
+		{"gballoon_regen_shielded_ceramic",2,2,2},
+		{"gballoon_fast_hidden_regen_pink",10,5,4},
+		duration=10,
+		rbe=15310--10*984+4636+2*392+10*5
+	}, -- 75
+	{
+		{"gballoon_marble",16,8},
+		{"gballoon_fast_hidden_regen_shielded_error",20,4,6},
+		{"gballoon_fast_hidden_regen_orange"},
+		{"gballoon_fast_hidden_regen_shielded_pink",2},
+		duration=10,
+		rbe=16535--16*974+20*46+11+2*10
+	},
+	{
+		{"gballoon_shielded_brick",20,10},
+		{"gballoon_fast_hidden_regen_shielded_purple",35,7,3},
+		{"gballoon_fast_hidden_regen_shielded_yellow"},
+		duration=10,
+		rbe=17858--20*854+35*22+8
+	},
+	{
+		{"gballoon_blimp_red",4,8},
+		{"gballoon_fast_hidden_regen_shielded_orange",33,9.9,0.1},
+		{"gballoon_fast_hidden_regen_shielded_yellow",2},
+		duration=10,
+		rbe=19286--4*4636+33*22+2*8
+	},
+	{
+		{"gballoon_fast_regen_brick",48,9.6},
+		{"gballoon_fast_hidden_regen_ceramic",nil,10},
+		{"gballoon_fast_hidden_regen_rainbow",nil,10},
+		{"gballoon_fast_hidden_regen_shielded_orange",2,nil,10},
+		duration=10,
+		rbe=20829--48*427+196+93+2*22
+	},
+	{ -- 80
+		{"gballoon_blimp_green"},
+		duration=10,
+		rbe=22544
+	}, -- 80
+	{
+		{"gballoon_blimp_red",5,10},
+		{"gballoon_fast_regen_shielded_rainbow",5,10},
+		{"gballoon_fast_hidden_regen_shielded_zebra",8},
+		{"gballoon_fast_hidden_regen_red"},
+		duration=10,
+		rbe=24295--5*4636+5*186+4*46+1
+	},
+	{
+		{"gballoon_fast_shielded_blimp_blue",3},
+		{"gballoon_shielded_blimp_blue",10,10},
+		{"gballoon_fast_hidden_regen_shielded_gray",14,1.4,2.6},
+		{"gballoon_fast_hidden_regen_orange"},
+		duration=10,
+		rbe=26239--13*1968+14*46+11
+	},
+	{
+		{"gballoon_hidden_marble",29,8.7},
+		{"gballoon_fast_hidden_regen_shielded_aqua",2,nil,10},
+		duration=10,
+		rbe=28338--29*974+2*46
+	},
+	{
+		{"gballoon_regen_shielded_brick",35,7},
+		{"gballoon_fast_hidden_regen_shielded_error",15,3,7},
+		{"gballoon_fast_hidden_regen_pink",5,10},
+		duration=10,
+		rbe=30605--35*854+15*46+5*5
+	},
+	{ -- 85
+		{"gballoon_blimp_green"},
+		{"gballoon_shielded_blimp_red",nil,2},
+		{"gballoon_fast_blimp_blue",nil,4},
+		{"gballoon_fast_hidden_regen_ceramic",nil,6},
+		{"gballoon_fast_hidden_regen_shielded_zebra",nil,8},
+		{"gballoon_fast_hidden_regen_purple",nil,10},
+		duration=10,
+		rbe=33053--22544+9272+984+196+46+11
+	}, -- 85
+	{
+		{"gballoon_fast_blimp_red",7,7},
+		{"gballoon_fast_hidden_regen_marble",3,3,7},
+		{"gballoon_fast_hidden_regen_rainbow",3,3,7},
+		{"gballoon_fast_hidden_regen_shielded_white",2,2,7},
+		{"gballoon_fast_hidden_regen_red",nil,10},
+		duration=10,
+		rbe=35698--7*4636+3*974+3*93+2*22+1
+	},
+	{
+		{"gballoon_regen_marble",25,5},
+		{"gballoon_fast_regen_brick",25,5},
+		{"gballoon_fast_hidden_regen_rainbow",25,5,5},
+		{"gballoon_fast_hidden_regen_shielded_gray",25,5,5},
+		{"gballoon_fast_hidden_regen_shielded_red",25,5,5},
+		{"gballoon_fast_hidden_regen_red",3},
+		duration=10,
+		rbe=38553--25*(974+427+93+46+2)+3
+	},
+	{
+		{"gballoon_hidden_shielded_brick",48,9.6,0.4},
+		{"gballoon_fast_hidden_regen_shielded_aqua",14,7,3},
+		{"gballoon_fast_hidden_regen_shielded_red"},
+		duration=10,
+		rbe=41638--48*854+14*46+2
+	},
+	{
+		{"gballoon_fast_blimp_blue",45,9},
+		{"gballoon_fast_hidden_regen_brick",nil,10},
+		{"gballoon_fast_hidden_regen_ceramic",nil,10},
+		{"gballoon_fast_hidden_regen_shielded_orange",3,nil,10},
+		duration=10,
+		rbe=44969--45*984+427+196+3*22
+	},
+	{ -- 90
+		{"gballoon_fast_hidden_regen_shielded_marble",3},
+		{"gballoon_fast_hidden_regen_shielded_rainbow",3},
+		{"gballoon_fast_hidden_regen_shielded_blue"},
+		{"gballoon_fast_hidden_marble",8,4,2},
+		{"gballoon_hidden_regen_blimp_gray",8,4,6},
+		duration=10,
+		rbe=48566--3*(1948+186)+8*(974+4296)+4
+	}, -- 90
+	{
+		{"gballoon_blimp_green",2,4,6},
+		{"gballoon_blimp_red",nil,6},
+		{"gballoon_fast_shielded_blimp_blue",nil,3},
+		{"gballoon_fast_hidden_regen_shielded_ceramic"},
+		{"gballoon_fast_hidden_regen_shielded_rainbow"},
+		{"gballoon_fast_hidden_regen_shielded_error",3},
+		{"gballoon_fast_hidden_regen_shielded_purple"},
+		{"gballoon_fast_hidden_regen_shielded_pink",2},
+		{"gballoon_fast_hidden_regen_red",2},
+		duration=10,
+		rbe=52451--2*22544+4636+1968+392+186+3*46+22+2*10+1
+	},
+	{
+		{"gballoon_shielded_blimp_red",6,6},
+		{"gballoon_fast_blimp_blue"},
+		{"gballoon_fast_hidden_regen_shielded_yellow",4,4,6},
+		duration=10,
+		rbe=56648--6*9272+984+4*8
+	},
+	{
+		{"gballoon_hidden_regen_blimp_gray",14,7},
+		{"gballoon_fast_blimp_blue"},
+		{"gballoon_fast_hidden_regen_shielded_zebra"},
+		{"gballoon_fast_hidden_regen_pink"},
+		duration=10,
+		rbe=61179--14*4296+984+46+5
+	},
+	{
+		{"gballoon_fast_shielded_blimp_blue",33,9.9,0.1},
+		{"gballoon_fast_hidden_regen_shielded_gray",24,9.6,0.4},
+		{"gballoon_fast_hidden_regen_shielded_red",13,6.5,3.5},
+		duration=10,
+		rbe=66074--33*1968+24*46+13*2
+	},
+	{ -- 95
+		{"gballoon_blimp_green"},
+		{"gballoon_hidden_regen_blimp_gray",10,10},
+		{"gballoon_fast_hidden_regen_brick",10,10},
+		{"gballoon_fast_hidden_regen_shielded_aqua",30,10},
+		{"gballoon_fast_hidden_regen_shielded_pink",20,10},
+		{"gballoon_fast_hidden_regen_shielded_red",3},
+		duration=10,
+		rbe=71360--22544+10*(4296+427)+30*46+20*10+3*2
+	}, -- 95
+	{
+		{"gballoon_blimp_green",3,9,1},
+		{"gballoon_fast_shielded_blimp_red"},
+		{"gballoon_fast_hidden_regen_shielded_error",3},
+		{"gballoon_fast_hidden_regen_shielded_white"},
+		{"gballoon_fast_hidden_regen_shielded_blue"},
+		duration=10,
+		rbe=77068--3*22544+9272+3*46+22+4
+	},
+	{
+		{"gballoon_hidden_regen_blimp_gray",19,9.5,0.5},
+		{"gballoon_fast_hidden_regen_shielded_ceramic",4},
+		{"gballoon_fast_hidden_regen_shielded_red",21},
+		duration=10,
+		rbe=83234--19*4296+4*392+21*2
+	},
+	{
+		{"gballoon_fast_hidden_regen_shielded_marble",46,9.2,0.8},
+		{"gballoon_fast_hidden_regen_rainbow",3},
+		{"gballoon_fast_hidden_regen_green"},
+		duration=10,
+		rbe=89893--46*1948+3*93+6
+	},
+	{
+		{"gballoon_blimp_green",4,8,2},
+		{"gballoon_fast_hidden_regen_rainbow",74,7.4},
+		{"gballoon_fast_hidden_regen_shielded_red",13},
+		duration=10,
+		rbe=97084--4*22544+74*93+13*2
+	},
+	{ -- 100
+		{"gballoon_blimp_purple"},
+		duration=10,
+		rbe=73680
+	}, -- 100
+	{
+		{"gballoon_hidden_regen_shielded_blimp_gray",13,6.5},
+		{"gballoon_fast_hidden_regen_shielded_rainbow",8,8,2},
+		{"gballoon_fast_hidden_regen_black",5},
+		duration=10,
+		rbe=113239--13*8592+8*186+5*11
+	},
+	{
+		{"gballoon_blimp_green",5,10},
+		{"gballoon_fast_shielded_blimp_red"},
+		{"gballoon_fast_hidden_regen_rainbow",3},
+		{"gballoon_fast_hidden_regen_green",9},
+		duration=10,
+		rbe=122298--5*22544+9272+3*93+9*3
+	},
+	{
+		{"gballoon_hidden_regen_blimp_gray",30,10},
+		{"gballoon_fast_hidden_regen_shielded_ceramic",8,8,2},
+		{"gballoon_fast_hidden_regen_shielded_orange",3},
+		duration=10,
+		rbe=132082--30*4296+8*392+3*22
+	},
+	{
+		{"gballoon_fast_shielded_blimp_red",14,7},
+		{"gballoon_fast_shielded_blimp_blue",6,6,4},
+		{"gballoon_fast_hidden_regen_shielded_zebra",22},
+		{"gballoon_fast_hidden_regen_shielded_pink",2},
+		duration=10,
+		rbe=142648--14*9272+6*1968+22*46+2*10
+	},
+	{ -- 105
+		{"gballoon_fast_hidden_regen_shielded_blimp_gray",16,8},
+		{"gballoon_fast_hidden_regen_shielded_brick",18,9,1},
+		{"gballoon_fast_hidden_regen_shielded_gray",26},
+		{"gballoon_fast_hidden_regen_shielded_pink",2},
+		duration=10,
+		rbe=154060--16*8592+18*854+26*46+2*10
+	}, -- 105
+	{
+		{"gballoon_fast_blimp_green",7,7},
+		{"gballoon_fast_hidden_regen_shielded_brick",10,10},
+		{"gballoon_fast_hidden_regen_purple",3},
+		{"gballoon_fast_hidden_regen_shielded_blue"},
+		duration=10,
+		rbe=166385--7*22544+10*854+33+4
+	},
+	{
+		{"gballoon_hidden_regen_shielded_blimp_gray",20,10},
+		{"gballoon_fast_hidden_regen_shielded_ceramic",20,10},
+		{"gballoon_fast_hidden_regen_shielded_yellow",2},
+		duration=10,
+		rbe=179696--20*8592+20*392+2*8
+	},
+	{
+		{"gballoon_fast_shielded_blimp_red",20,10},
+		
+		duration=10,
+		rbe=194071--20*9272+8631
+	},
+	{
+		duration=10,
+		rbe=209597
+	},
+	{ -- 110
+		duration=10,
+		rbe=226365
+	}, -- 110
+	{
+		duration=10,
+		rbe=244474
+	},
+	{
+		duration=10,
+		rbe=264032
+	},
+	{
+		duration=10,
+		rbe=285154
+	},
+	{
+		duration=10,
+		rbe=307967
+	},
+	{ -- 115
+		duration=10,
+		rbe=332604
+	}, -- 115
+	{
+		duration=10,
+		rbe=359212
+	},
+	{
+		duration=10,
+		rbe=387949
+	},
+	{
+		duration=10,
+		rbe=418985
+	},
+	{
+		duration=10,
+		rbe=452504
+	},
+	{ -- 120
+		duration=10,
+		rbe=284772
+	}, -- 120
+}
+
+ROTGB_CUSTOM_WAVES = {["?RAMP"]=ROTGB_WAVES_RAMP, ["?LEGACY"]=ROTGB_WAVES_LEGACY}
 
 function ENT:GetWaveDuration(wave)
 	return (self:GetWaveTable()[wave] or {}).duration or 0
@@ -1219,8 +2102,8 @@ function ENT:KeyValue(key,value)
 		self.NoAutoStart = tobool(value)
 	elseif lkey=="auto_start_delay" then
 		self:SetAutoStartDelay(tonumber(value) or 0)
-	elseif lkey=="force_next" then
-		self:SetForceNextWave(tobool(value))
+	--[[elseif lkey=="force_next" then
+		self:SetForceNextWave(tobool(value))]]
 	elseif lkey=="finished_shortly_threshold" then
 		self.OutputShortlyThreshold = value
 	elseif lkey=="dont_trigger_wave_relays" then
@@ -1259,20 +2142,14 @@ function ENT:AcceptInput(input,activator,caller,data)
 		end
 	elseif input=="setwavepreset" then
 		self:SetWaveFile(data)
-	elseif input=="setstartall" then -- TO DO: DEPRECATED
-		self:SetStartAll(tobool(data))
 	elseif input=="setspawnratemultiplier" then
 		self:SetSpeedMul(tonumber(data) or 1)
 	elseif input=="setspawndivider" then
 		self:SetSpawnDivider(tonumber(data) or 1)
 	elseif input=="setdividerdelay" then
 		self:SetDividerDelay(tonumber(data) or 1)
-	elseif input=="setautostart" then -- TO DO: DEPRECATED
-		self:SetAutoStart(tobool(data), activator)
 	elseif input=="setautostartdelay" then
 		self:SetAutoStartDelay(tonumber(data) or 0)
-	elseif input=="setforcenext" then -- TO DO: DEPRECATED
-		self:SetForceNextWave(tobool(data))
 	elseif input=="setshortnessthreshold" then
 		self.OutputShortlyThreshold = tonumber(data) or 0
 	elseif input=="enablenomessages" then
@@ -1285,7 +2162,6 @@ function ENT:AcceptInput(input,activator,caller,data)
 	self:CheckBoolEDTInput(input, "hidewave", "HideWave")
 	self:CheckBoolEDTInput(input, "startall", "StartAll")
 	self:CheckBoolEDTInput(input, "autostart", "AutoStart")
-	self:CheckBoolEDTInput(input, "forceautostart", "ForceNextWave")
 	return gballoon_pob.AcceptInput(self,input,activator,caller,data)
 end
 
@@ -1318,6 +2194,7 @@ function ENT:Initialize()
 		if self:GetLastWave()<=0 then
 			self:SetLastWave(ROTGB_GetConVarValue("rotgb_default_last_wave"))
 		end
+		self:SetForceNextWave(ROTGB_GetConVarValue("rotgb_spawner_force_auto_start"))
 		self:SetSpeedMul(self:GetSpeedMul()>0 and self:GetSpeedMul() or 1)
 		self:SetSpawnDivider(self:GetSpawnDivider()>0 and self:GetSpawnDivider() or 1)
 		if self:GetWaveFile() == "" then
@@ -1527,11 +2404,11 @@ function ENT:SpawnNextWave()
 	if self:GetWave() == self:GetLastWave() + 1 then return end
 	if self:GetAutoStartDelay()>0 then
 		timer.Simple(self:GetAutoStartDelay(),function()
-			if (IsValid(self) and self:GetAutoStart()) then
+			if (IsValid(self) and (self:GetAutoStart() or self:GetForceNextWave())) then
 				self:Use(self,self,USE_ON,1)
 			end
 		end)
-	elseif self:GetAutoStart() then
+	elseif self:GetAutoStart() or self:GetForceNextWave() then
 		self:Use(self,self,USE_ON,1)
 	end
 end
@@ -1554,7 +2431,7 @@ function ENT:Think()
 			if filterRequired then
 				self.rotgb_ToSpawn = ROTGB_FilterSequential(self.rotgb_ToSpawn, SpawnTableNotDoneFilter)
 			end
-		elseif self:GetForceNextWave() or not ROTGB_BalloonsExist() then
+		elseif self:GetNextWaveTime() <= CurTime() and (self:GetForceNextWave() and self:GetWave() ~= self:GetLastWave() + 1 or not ROTGB_BalloonsExist()) then
 			self.EnableBalloonChecking = nil
 			self:SpawnNextWave()
 		end

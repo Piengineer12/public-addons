@@ -1,10 +1,13 @@
 GM.BaseSkills = {}
---local skillLuaFiles, skillLuaDirs = file.Find("rotgb/gamemode/rotgb_tg_skills/*.lua", "LUA") -- FIXME: this doesn't work on client, we have to hardcode this for now
-local skillLuaFiles = {
+local skillLuaFiles, skillLuaDirs = file.Find("rotgb/gamemode/rotgb_tg_skills/*.lua", "LUA") -- FIXME: this doesn't work on client, we have to hardcode this for now
+
+--[[local skillLuaFiles = {
 	"base.lua",
 	"skill_effectiveness.lua"
-}
+}]]
+
 for k,v in pairs(skillLuaFiles) do
+	AddCSLuaFile("rotgb_tg_skills/"..v)
 	local skills = include("rotgb_tg_skills/"..v)
 	if skills then
 		table.insert(GM.BaseSkills, skills)
@@ -77,7 +80,6 @@ GM.BaseTraitsText = {
 	gBlimpArmoredArmor = {color_yellow, 1, color_white, " armor on armored gBlimps (rounding up)"},
 	gBalloonFireGeneric = {color_white, "Purple gBalloons and Rainbow gBlimps are no longer immune to fire."},
 	gBalloonCritChance = {color_yellow, 1, color_white, "% chance to deal double damage"},
-	gBalloonMaxDamagedMaxDamage = {color_yellow, 1, color_white, " maximum damage per hit on Brick and Marble gBalloons (rounded down)."}
 }
 
 GM.AppliedSkills = {}

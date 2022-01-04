@@ -141,7 +141,7 @@ function ENT:Initialize()
 				blacklisted = true break
 			end
 		end
-		local chessOnly = ROTGB_GetConVarValue("rotgb_tower_chessonly")
+		local chessOnly = ROTGB_GetConVarValue("rotgb_tower_chess_only")
 		if chessOnly ~= 0 then
 			if chessOnly > 0 and not self.IsChessPiece then
 				chessDeny = 1
@@ -310,7 +310,7 @@ function ENT:Think()
 					return SafeRemoveEntity(self)
 				end
 			end
-			local chessOnly = ROTGB_GetConVarValue("rotgb_tower_chessonly")
+			local chessOnly = ROTGB_GetConVarValue("rotgb_tower_chess_only")
 			if chessOnly ~= 0 then
 				if chessOnly > 0 and not self.IsChessPiece then
 					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(self:GetTowerOwner()).." due to not being a chess tower.", "towers")
