@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.8.1"
-ISAWC._VERSIONDATE = "2022-01-04"
+ISAWC._VERSION = "4.8.2"
+ISAWC._VERSIONDATE = "2022-01-10"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -1165,10 +1165,10 @@ if CLIENT then
 	A value of -1 disables this feature.\n\z
 	A value of -2 will cause it to be the same as the \"isawc_pickup_delay\" ConVar.")
 
-	ISAWC.ConUseBind = CreateClientConVar("isawc_pickup_bind","",true,false,
+	ISAWC.ConUseBind = CreateClientConVar("isawc_pickup_bind","f",true,false,
 	"Sets the binding used to pick up items.")
 
-	ISAWC.ConInventoryBind = CreateClientConVar("isawc_player_bind","",true,false,
+	ISAWC.ConInventoryBind = CreateClientConVar("isawc_player_bind","i",true,false,
 	"If set, pressing this key will open the inventory.")
 
 	ISAWC.ConInventoryBindHold = CreateClientConVar("isawc_player_bindhold","",true,false,
@@ -2715,7 +2715,7 @@ ISAWC.PushNotification = function(self,msg)
 			msg = table.Reverse(msg)
 		end
 		for i,v in ipairs(msg) do
-			notification.AddLegacy(v,NOTIFY_GENERIC,4+#v/10)
+			notification.AddLegacy(v,NOTIFY_HINT,4+#v/10)
 		end
 		if not self.ConHideNotifSound:GetBool() then
 			surface.PlaySound(string.format("ambient/water/drip%i.wav", math.random(4)))
@@ -4293,7 +4293,7 @@ ISAWC.Tick = function()
 			ISAWC.TempWindow:Hide()
 			ISAWC.TempWindow:KillFocus()
 		end
-		if clientTicks < 1200 and not ISAWC.ConHideHintNotifs:GetBool() then
+		if clientTicks < 1800 and not ISAWC.ConHideHintNotifs:GetBool() then
 			clientTicks = clientTicks + 1
 			if clientTicks == 600 then
 				ISAWC:PushNotification(
@@ -4312,6 +4312,14 @@ ISAWC.Tick = function()
 				)
 			elseif clientTicks == 1000 then
 				ISAWC:PushNotification({"You can also open your inventory in the CONTEXT MENU,", "as well as right-click items from there to pick them up."})
+			elseif clientTicks == 1200 then
+				ISAWC:PushNotification({"You can rebind the keys via the Client section,", "under the \"ISAWC\" section at the top-right of the SPAWN MENU."})
+			elseif clientTicks == 1400 then
+				ISAWC:PushNotification({"Alternatively, you can change the ConVars \"isawc_pickup_bind\"", "\"isawc_player_bind\" and \"isawc_player_bindhold\"."})
+			elseif clientTicks == 1600 then
+				ISAWC:PushNotification("Please note that the server can override your set binds.")
+			elseif clientTicks == 1800 then
+				ISAWC:PushNotification({"You can turn these hint messages off in the Client section,", "or set \"isawc_hide_hintnotifications\" to 1."})
 			end
 		end
 	end

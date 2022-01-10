@@ -111,6 +111,7 @@ function ENT:Initialize()
 		if creator:IsPlayer() and self:GetOwnerAccountID()==0 then
 			self:SetOwnerAccountID(creator:AccountID() or 0)
 		end
+		-- compatibility, remove for version 5.0.0+
 		if self:GetPlayerTeam()~=0 then
 			self:SetTeam(self:GetPlayerTeam())
 		end

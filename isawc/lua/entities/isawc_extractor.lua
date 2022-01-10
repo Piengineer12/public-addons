@@ -525,7 +525,11 @@ function ENT:SpawnProp(forcedSpawn)
 					else
 						ISAWC:SpawnDupeWeak(table.remove(self:GetContainerInventory(container,spawnPlayer), invnum), self:WorldSpaceCenter(), self:GetAngles(), spawnPlayer)
 					end
-					ISAWC:SaveContainerInventory(container)
+					if container:IsPlayer() then
+						ISAWC:SaveInventory(container)
+					else
+						ISAWC:SaveContainerInventory(container)
+					end
 				end
 				--container:SendInventoryUpdate()
 				--self:UpdateWireOutputs(data)
