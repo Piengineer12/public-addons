@@ -58,8 +58,7 @@ function SWEP:PrimaryAttack()
 	if CLIENT and (IsFirstTimePredicted() or game.SinglePlayer()) then
 		local ent = LocalPlayer():GetEyeTrace().Entity
 		if IsValid(ent) then
-			net.Start("isawc_general")
-			net.WriteString("pickup")
+			ISAWC:StartNetMessage("pickup")
 			net.WriteEntity(ent)
 			net.SendToServer()
 		else
@@ -80,9 +79,8 @@ function SWEP:PrimaryAttack()
 			else
 				ent = traceresult.Entity
 			end
-			if IsValid(ent) and not (ent:IsWeapon() and ent:GetOwner() == self:GetOwner()) then
-				net.Start("isawc_general")
-				net.WriteString("pickup")
+			if IsValid(ent) and not (ent:IsWeapon() and IsValid(ent:GetOwner())) then
+				ISAWC:StartNetMessage("pickup")
 				net.WriteEntity(ent)
 				net.SendToServer()
 			end
@@ -96,8 +94,7 @@ function SWEP:SecondaryAttack()
 	if CLIENT then
 		local ent = LocalPlayer():GetEyeTrace().Entity
 		if IsValid(ent) then
-			net.Start("isawc_general")
-			net.WriteString("pickup")
+			ISAWC:StartNetMessage("pickup")
 			net.WriteEntity(ent)
 			net.SendToServer()
 		else
@@ -118,9 +115,8 @@ function SWEP:SecondaryAttack()
 			else
 				ent = traceresult.Entity
 			end
-			if IsValid(ent) and not (ent:IsWeapon() and ent:GetOwner() == self:GetOwner()) then
-				net.Start("isawc_general")
-				net.WriteString("pickup")
+			if IsValid(ent) and not (ent:IsWeapon() and IsValid(ent:GetOwner())) then
+				ISAWC:StartNetMessage("pickup")
 				net.WriteEntity(ent)
 				net.SendToServer()
 			end

@@ -221,8 +221,7 @@ function ENT:Use(activator, caller)
 			self:SetOwnerAccountID(activator:AccountID() or 0)
 		end
 		if self:GetOwnerAccountID() == activator:AccountID() or activator:IsAdmin() then
-			net.Start("isawc_general")
-			net.WriteString("exporter")
+			ISAWC:StartNetMessage("exporter")
 			net.WriteEntity(self)
 			net.Send(activator) -- calls ENT:BuildConfigGUI()
 		else
@@ -393,7 +392,10 @@ function ENT:SpawnProp(forcedSpawn)
 	local spawnDelay = math.max(self:GetSpawnDelay(), ISAWC.ConMinExportDelay:GetFloat(), 0.05)
 	local validContainer = false
 	if not IsValid(self:GetCreator()) then
-		self:SetCreator(player.GetByAccountID(self:GetOwnerAccountID()))
+		local owner = player.GetByAccountID(self:GetOwnerAccountID())
+		if owner then
+			self:SetCreator(owner)
+		end
 	end
 	local spawnPlayer = self:GetCreator()
 	if IsValid(spawnPlayer) then
@@ -710,8 +712,7 @@ function ENT:BuildConfigGUI()
 		ClearButton:SetTextColor(Color(255,0,0))
 		ClearButton:Dock(TOP)
 		function ClearButton:DoClick()
-			net.Start("isawc_general")
-			net.WriteString("exporter_disconnect")
+			ISAWC:StartNetMessage("exporter_disconnect")
 			net.WriteEntity(extractor)
 			net.SendToServer()
 			
@@ -810,8 +811,7 @@ function ENT:BuildConfigGUI()
 		bit.lshift(VolumePanel.actiFlags, ACTI_VOLUME_OFFSET), bit.lshift(CountPanel.actiFlags, ACTI_COUNT_OFFSET))
 		if not IsValid(extractor) then ISAWC:NoPickup("The entity doesn't exist!") return end
 		
-		net.Start("isawc_general")
-		net.WriteString("exporter")
+		ISAWC:StartNetMessage("exporter")
 		net.WriteEntity(extractor)
 		net.WriteInt(totalFlags, 32)
 		net.WriteFloat(SpawnRateSlider:GetValue())

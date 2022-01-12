@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.8.2"
-ISAWC._VERSIONDATE = "2022-01-10"
+ISAWC._VERSION = "4.9.0"
+ISAWC._VERSIONDATE = "2022-01-12"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -23,6 +23,46 @@ local color_white_semitransparent = Color(255,255,255,63)
 local color_gray_semitransparent = Color(127,127,127,63)
 local color_black_semiopaque = Color(0,0,0,191)
 local color_black_semitransparent = Color(0,0,0,63)
+
+ISAWC.MESSAGE_TYPES = {
+	pickup				= 1,
+	pickup_denied		= 2,
+	inventory			= 3,
+	inventory_l			= 4,
+	inventory_r			= 5,
+	open_container		= 6,
+	close_container		= 7,
+	moving_items		= 8,
+	moving_items_l		= 9,
+	moving_items_r		= 10,
+	transfer_to			= 11,
+	transfer_from		= 12,
+	spawn				= 13,
+	spawn_l				= 14,
+	spawn_r				= 15,
+	spawn_self			= 16,
+	spawn_self_l		= 17,
+	spawn_self_r		= 18,
+	delete				= 19,
+	delete_l			= 20,
+	delete_r			= 21,
+	delete_full			= 22,
+	delete_full_l		= 23,
+	delete_full_r		= 24,
+	drop_all			= 25,
+	drop_all_l			= 26,
+	drop_all_r			= 27,
+	empty_weapon		= 28,
+	empty_weapon_l		= 29,
+	empty_weapon_r		= 30,
+	store_weapon		= 31,
+	store_weapon_l		= 32,
+	store_weapon_r		= 33,
+	exporter			= 34,
+	exporter_disconnect	= 35,
+	send_maker_data		= 36,
+	set_public			= 37,
+}
 
 ISAWC.DoNothing = function()end
 
@@ -1499,7 +1539,7 @@ ISAWC.DrawInfos = function(self,invinfo,w,h)
 end
 
 ISAWC.InstallSortFunctions = function(self,panel,InvPanel,delname,wepstorename,dropname,container,displayContainerOptions)
-	local allowdel = ISAWC.ConAllowDelete:GetBool()
+	local allowdel = self.ConAllowDelete:GetBool()
 	panel:SetText(allowdel and "    Options / Delete All" or "    Options")
 	panel:SetTextColor(color_white)
 	panel:SetContentAlignment(4)
@@ -1518,8 +1558,7 @@ ISAWC.InstallSortFunctions = function(self,panel,InvPanel,delname,wepstorename,d
 			end
 		end):SetIcon("icon16/shape_move_backwards.png")
 		sOptions:AddOption("Store Held Weapon",function()
-			net.Start("isawc_general")
-			net.WriteString(wepstorename)
+			ISAWC:StartNetMessage(wepstorename)
 			if IsValid(container) then
 				net.WriteEntity(container)
 			end
@@ -1609,16 +1648,14 @@ ISAWC.InstallSortFunctions = function(self,panel,InvPanel,delname,wepstorename,d
 			containerOption:SetIcon("icon16/brick_edit.png")
 			if container:GetIsPublic() then
 				containerOptions:AddOption("Enable Access Restriction",function()
-					net.Start("isawc_general")
-					net.WriteString("set_is_public")
+					ISAWC:StartNetMessage("set_public")
 					net.WriteBool(false)
 					net.WriteEntity(container)
 					net.SendToServer()
 				end):SetIcon("icon16/lock_add.png")
 			else
 				containerOptions:AddOption("Disable Access Restriction",function()
-					net.Start("isawc_general")
-					net.WriteString("set_is_public")
+					ISAWC:StartNetMessage("set_public")
 					net.WriteBool(true)
 					net.WriteEntity(container)
 					net.SendToServer()
@@ -1644,8 +1681,7 @@ ISAWC.InstallSortFunctions = function(self,panel,InvPanel,delname,wepstorename,d
 			end
 		end
 		sOptions:AddOption("Drop All Items",function()
-			net.Start("isawc_general")
-			net.WriteString(dropname)
+			ISAWC:StartNetMessage(dropname)
 			if IsValid(container) then
 				net.WriteEntity(container)
 			end
@@ -1654,8 +1690,7 @@ ISAWC.InstallSortFunctions = function(self,panel,InvPanel,delname,wepstorename,d
 		if ISAWC.ConAllowDelete:GetBool() then
 			local SubOptions,SubOption = sOptions:AddSubMenu("Delete All")
 			Option = SubOptions:AddOption("Confirm Deletion",function()
-				net.Start("isawc_general")
-				net.WriteString(delname)
+				ISAWC:StartNetMessage(delname)
 				if IsValid(container) then
 					net.WriteEntity(container)
 				end
@@ -1722,8 +1757,7 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 	function InvPanel:Think()
 		if self.WaitForSend and not input.IsMouseDown(MOUSE_LEFT) then
 			self.WaitForSend = false
-			net.Start("isawc_general")
-			net.WriteString("moving_items")
+			ISAWC:StartNetMessage("moving_items")
 			for i,v in ipairs(self.IDOrder) do
 				net.WriteUInt(v,16)
 			end
@@ -1806,8 +1840,7 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 					end
 					function Item:SendSignal(msg)
 						if Item.SendIDs then
-							net.Start("isawc_general")
-							net.WriteString(msg)
+							ISAWC:StartNetMessage(msg)
 							net.WriteUInt(0,16)
 							net.WriteUInt(#Item.SendIDs,16)
 							for i,v in ipairs(Item.SendIDs) do
@@ -1816,8 +1849,7 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 							net.SendToServer()
 							Item.SendIDs = nil
 						else
-							net.Start("isawc_general")
-							net.WriteString(msg)
+							ISAWC:StartNetMessage(msg)
 							net.WriteUInt(i,16)
 							net.SendToServer()
 						end
@@ -1910,8 +1942,7 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 		end
 	end
 	
-	net.Start("isawc_general")
-	net.WriteString("inv")
+	ISAWC:StartNetMessage("inventory")
 	net.SendToServer()
 	
 	return Main
@@ -1948,8 +1979,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 		draw.RoundedBox(8,0,0,w,24,color_black_semiopaque)
 	end
 	function Main:OnRemove()
-		net.Start("isawc_general")
-		net.WriteString("container_close")
+		ISAWC:StartNetMessage("close_container")
 		net.WriteEntity(container)
 		net.SendToServer()
 	end
@@ -2007,8 +2037,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 	function InvLeft:Think()
 		if self.WaitForSend and not input.IsMouseDown(MOUSE_LEFT) then
 			self.WaitForSend = false
-			net.Start("isawc_general")
-			net.WriteString("moving_items_container")
+			ISAWC:StartNetMessage("moving_items_l")
 			net.WriteEntity(container)
 			for i,v in ipairs(self.IDOrder) do
 				net.WriteUInt(v,16)
@@ -2034,7 +2063,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 	
 	local SortLeft = InvBaseLeft:Add("DButton")
 	SortLeft:Dock(BOTTOM)
-	ISAWC:InstallSortFunctions(SortLeft,InvLeft,"delete_in_container_full","store_weapon_in_container","drop_all_in_container",container)
+	ISAWC:InstallSortFunctions(SortLeft,InvLeft,"delete_full_l","store_weapon_l","drop_all_l",container)
 	
 	local LoadingLeft = InvLeft:Add("DLabel")
 	LoadingLeft:SetText(language.GetPhrase("gmod_loading_title"))
@@ -2082,8 +2111,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 	function InvRight:Think()
 		if self.WaitForSend and not input.IsMouseDown(MOUSE_LEFT) then
 			self.WaitForSend = false
-			net.Start("isawc_general")
-			net.WriteString("moving_items_container2")
+			ISAWC:StartNetMessage("moving_items_r")
 			net.WriteEntity(container)
 			for i,v in ipairs(self.IDOrder) do
 				net.WriteUInt(v,16)
@@ -2109,7 +2137,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 	
 	local SortRight = InvBaseRight:Add("DButton")
 	SortRight:Dock(BOTTOM)
-	ISAWC:InstallSortFunctions(SortRight,InvRight,"delete_in_container_full2","store_weapon_in_container2","drop_all_in_container2",container,true)
+	ISAWC:InstallSortFunctions(SortRight,InvRight,"delete_full_r","store_weapon_r","drop_all_r",container,true)
 	
 	local LoadingRight = InvRight:Add("DLabel")
 	LoadingRight:SetText(language.GetPhrase("gmod_loading_title"))
@@ -2163,8 +2191,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 					function Item:SendSignal(msg,msg2)
 						if Item.SendIDs or Item.SendIDs2 then
 							if Item.SendIDs then
-								net.Start("isawc_general")
-								net.WriteString(msg)
+								ISAWC:StartNetMessage(msg)
 								net.WriteEntity(container)
 								net.WriteUInt(0,16)
 								net.WriteUInt(#Item.SendIDs,16)
@@ -2174,8 +2201,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 								net.SendToServer()
 							end
 							if Item.SendIDs2 then
-								net.Start("isawc_general")
-								net.WriteString(msg2)
+								ISAWC:StartNetMessage(msg2)
 								net.WriteEntity(container)
 								net.WriteUInt(0,16)
 								net.WriteUInt(#Item.SendIDs2,16)
@@ -2187,8 +2213,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 							Item.SendIDs = nil
 							Item.SendIDs2 = nil
 						else
-							net.Start("isawc_general")
-							net.WriteString(msg2 or msg)
+							ISAWC:StartNetMessage(msg2 or msg)
 							net.WriteEntity(container)
 							net.WriteUInt(i,16)
 							net.SendToServer()
@@ -2228,7 +2253,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 											self:AddSignal2(v2.ID)
 										end
 									end
-									self:SendSignal("spawn_self_in_container2","spawn_self_in_container")
+									self:SendSignal("spawn_self_r","spawn_self_l")
 								end
 							end)
 							Option:SetIcon("icon16/arrow_in.png")
@@ -2241,7 +2266,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 											self:AddSignal2(v2.ID)
 										end
 									end
-									self:SendSignal("spawn_in_container2","spawn_in_container")
+									self:SendSignal("spawn_r","spawn_l")
 								end
 							end)
 							Option:SetIcon("icon16/pencil.png")
@@ -2256,7 +2281,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 											self:AddSignal2(v2.ID)
 										end
 									end
-									self:SendSignal("empty_in_container2","empty_in_container")
+									self:SendSignal("empty_weapon_r","empty_weapon_l")
 								end
 							end)
 							Option:SetIcon("icon16/basket_remove.png")
@@ -2272,7 +2297,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 											self:AddSignal2(v2.ID)
 										end
 									end
-									self:SendSignal("delete_in_container2","delete_in_container")
+									self:SendSignal("delete_r","delete_l")
 								end
 							end)
 							SubOption:SetIcon("icon16/delete.png")
@@ -2303,7 +2328,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 								end
 							end
 						end
-						self:SendSignal("spawn_in_container2","spawn_in_container")
+						self:SendSignal("spawn_r","spawn_l")
 					end
 					Item.ID = i
 				end
@@ -2358,8 +2383,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 					function Item:SendSignal(msg,msg2)
 						if Item.SendIDs or Item.SendIDs2 then
 							if Item.SendIDs then
-								net.Start("isawc_general")
-								net.WriteString(msg)
+								ISAWC:StartNetMessage(msg)
 								net.WriteEntity(container)
 								net.WriteUInt(0,16)
 								net.WriteUInt(#Item.SendIDs,16)
@@ -2369,8 +2393,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 								net.SendToServer()
 							end
 							if Item.SendIDs2 then
-								net.Start("isawc_general")
-								net.WriteString(msg2)
+								ISAWC:StartNetMessage(msg2)
 								net.WriteEntity(container)
 								net.WriteUInt(0,16)
 								net.WriteUInt(#Item.SendIDs2,16)
@@ -2382,8 +2405,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 							Item.SendIDs = nil
 							Item.SendIDs2 = nil
 						else
-							net.Start("isawc_general")
-							net.WriteString(msg)
+							ISAWC:StartNetMessage(msg)
 							net.WriteEntity(container)
 							net.WriteUInt(i,16)
 							net.SendToServer()
@@ -2423,7 +2445,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 											self:AddSignal2(v2.ID)
 										end
 									end
-									self:SendSignal("spawn_self_in_container2","spawn_self_in_container")
+									self:SendSignal("spawn_self_r","spawn_self_l")
 								end
 							end)
 							Option:SetIcon("icon16/arrow_in.png")
@@ -2436,7 +2458,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 											self:AddSignal2(v2.ID)
 										end
 									end
-									self:SendSignal("spawn_in_container2","spawn_in_container")
+									self:SendSignal("spawn_r","spawn_l")
 								end
 							end)
 							Option:SetIcon("icon16/pencil.png")
@@ -2451,7 +2473,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 											self:AddSignal2(v2.ID)
 										end
 									end
-									self:SendSignal("empty_in_container2","empty_in_container")
+									self:SendSignal("empty_weapon_r","empty_weapon_l")
 								end
 							end)
 							Option:SetIcon("icon16/basket_remove.png")
@@ -2467,7 +2489,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 											self:AddSignal2(v2.ID)
 										end
 									end
-									self:SendSignal("delete_in_container2","delete_in_container")
+									self:SendSignal("delete_r","delete_l")
 								end
 							end)
 							SubOption:SetIcon("icon16/delete.png")
@@ -2498,7 +2520,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 								end
 							end
 						end
-						self:SendSignal("spawn_in_container2","spawn_in_container")
+						self:SendSignal("spawn_r","spawn_l")
 					end
 					Item.ID = i
 					Item.IsInContainer = true
@@ -2517,8 +2539,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 		ISAWC.InvData2 = data2
 	end
 	
-	net.Start("isawc_general")
-	net.WriteString("inv_container")
+	self:StartNetMessage("inventory_l")
 	net.WriteEntity(container)
 	net.SendToServer()
 	
@@ -2635,8 +2656,7 @@ ISAWC.GetStatsFromDupeTable = function(self,dupe)
 end
 
 ISAWC.SendInventory = function(self,ply)
-	net.Start("isawc_general")
-	net.WriteString("inv")
+	self:StartNetMessage("inventory")
 	--[[local data = util.Compress(util.TableToJSON(self:GetClientInventory(ply)))
 	net.WriteUInt(#data,32)
 	net.WriteData(data,#data)]]
@@ -2655,8 +2675,7 @@ end
 
 ISAWC.SendInventory2 = function(self,ply,container)
 	if not IsValid(container) then return end
-	net.Start("isawc_general")
-	net.WriteString("inv2")
+	self:StartNetMessage("inventory_r")
 	--[[local data1 = util.Compress(util.TableToJSON(self:WriteClientInventory(ply)))
 	local data2 = util.Compress(util.TableToJSON(self:WriteClientInventory(container)))
 	net.WriteUInt(#data1,32)
@@ -2693,8 +2712,7 @@ ISAWC.NoPickup = function(self,msg,ply)
 	end
 	if not self:GetSuppressNoPickup() then
 		if (SERVER and ply and ply:IsPlayer() and not self.ConHideNotifsG:GetBool()) then
-			net.Start("isawc_general")
-			net.WriteString("no_pickup")
+			self:StartNetMessage("pickup_denied")
 			net.WriteString(msg)
 			net.Send(ply)
 		end
@@ -2878,22 +2896,30 @@ ISAWC.SaveContainerInventory = function(self,container)
 		self:Log("Warning! " .. tostring(container) .. " had an item with recursive tables! This may cause errors to occur!")
 	end
 	if self.ConSaveIntoFile:GetBool() then
-		--[[local data = inv
-		if not file.IsDir("isawc_containers","DATA") then
-			file.CreateDir("isawc_containers")
-		end
-		file.Write("isawc_containers/"..container:GetFileID()..".dat",util.Compress(util.TableToJSON(data)))]]
-		self:SQL([[CREATE TABLE IF NOT EXISTS "isawc_container_data" (
-			"containerID" TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
-			"data" TEXT NOT NULL
-		);]])
-		local data
-		if self.ConUseCompression:GetBool() then
-			data = util.Base64Encode(util.Compress(util.TableToJSON(inv)))
+		if container:GetFileID() == "" then
+			self:Log("Warning! " .. tostring(container) .. " failed to save as no ID was associated with the container!")
 		else
-			data = util.TableToJSON(inv)
+			self:SQL([[CREATE TABLE IF NOT EXISTS "isawc_container_data" (
+				"containerID" TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
+				"data" TEXT NOT NULL
+			);]])
+			local data = next(inv.ISAWC_Inventory)
+			if not data and next(inv.ISAWC_PlayerLocalizedInventories) then
+				for k,v in pairs(inv.ISAWC_PlayerLocalizedInventories) do
+					if next(v) then data = true break end
+				end
+			end
+			if data then
+				if self.ConUseCompression:GetBool() then
+					data = util.Base64Encode(util.Compress(util.TableToJSON(inv)))
+				else
+					data = util.TableToJSON(inv)
+				end
+				self:SQL("INSERT INTO \"isawc_container_data\" (\"containerID\", \"data\") VALUES (%s, %s);", container:GetFileID(), data)
+			else
+				self:SQL("DELETE FROM \"isawc_container_data\" WHERE \"containerID\" = %s;", container:GetFileID())
+			end
 		end
-		self:SQL("INSERT INTO \"isawc_container_data\" (\"containerID\", \"data\") VALUES (%s, %s);", container:GetFileID(), data)
 	end
 end
 
@@ -3436,19 +3462,47 @@ ISAWC.SpawnDupeWeak = function(self,dupe,spawnpos,spawnangles,ply)
 	end
 end
 
+ISAWC.StartNetMessage = function(self,messageType,unreliable)
+	net.Start("isawc_general", unreliable)
+	local typeID = self.MESSAGE_TYPES[messageType]
+	net.WriteUInt(typeID or 0, 8)
+	if not typeID then
+		self:Log("Warning! Message type \""..messageType.."\" is invalid!")
+	end
+end
+
+ISAWC.IsMessageType = function(self,messageType,messageTypeString)
+	return messageType == ISAWC.MESSAGE_TYPES[messageTypeString]
+end
+
 ISAWC.ReceiveMessage = function(self,length,ply,func)
 	if SERVER and IsValid(ply) then
 		ply.ISAWC_Inventory = ply.ISAWC_Inventory or {}
-		if func == "pickup" then
+		if self:IsMessageType(func, "pickup") then
 			local ent = net.ReadEntity()
 			if self:CanProperty(ply,ent) then
 				self:PropPickup(ply,ent)
 			end
-		elseif func == "inv" then
+		elseif self:IsMessageType(func, "inventory") then
 			self:SendInventory(ply)
-		elseif func == "moving_items" or func == "moving_items_container" then
+		elseif self:IsMessageType(func, "inventory_l") then
+			local container = net.ReadEntity()
+			if self:IsLegalContainer(container,ply) then
+				self:SendInventory2(ply,container)
+			end
+		elseif self:IsMessageType(func, "close_container") then
+			local container = net.ReadEntity()
+			if self:IsLegalContainer(container,ply,true) then
+				container.ISAWC_Openers[ply] = nil
+				if not IsValid(next(container.ISAWC_Openers)) then
+					self:StartNetMessage("close_container")
+					net.WriteEntity(container)
+					net.SendPAS(container:GetPos())
+				end
+			end
+		elseif self:IsMessageType(func, "moving_items") or self:IsMessageType(func, "moving_items_l") then
 			local container
-			if func == "moving_items_container" then
+			if self:IsMessageType(func, "moving_items_l") then
 				container = net.ReadEntity()
 				if not self:IsLegalContainer(container,ply) then return end
 			end
@@ -3469,7 +3523,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			else
 				self:SendInventory(ply)
 			end
-		elseif func == "moving_items_container2" then
+		elseif self:IsMessageType(func, "moving_items_r") then
 			local container = net.ReadEntity()
 			if self:IsLegalContainer(container,ply) then
 				local constructtable = {}
@@ -3487,143 +3541,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 				container:SetInventory(constructtable,ply)
 				self:SendInventory2(ply,container)
 			end
-		elseif func == "spawn" or func == "spawn_self" or func == "delete" then
-			if self:CanDrop(ply) or func == "delete" then
-				local invnum = net.ReadUInt(16)
-				if invnum == 0 then
-					if self:CanMultiSpawn(ply) then
-						self:SetSuppressUndoHeaders(true)
-						undo.Create("Spawn From Inventory")
-						for i=1,net.ReadUInt(16) do
-							invnum = net.ReadUInt(16)
-							local dupe = table.remove(ply.ISAWC_Inventory,invnum)
-							if dupe then
-								self:SpawnDupe(dupe,func=="spawn",func~="delete",invnum,ply)
-							end
-						end
-						undo.SetCustomUndoText("Undone Spawn From Inventory")
-						undo.SetPlayer(ply)
-						undo.Finish()
-						self:SetSuppressUndoHeaders(false)
-					end
-				else
-					local dupe = table.remove(ply.ISAWC_Inventory,invnum)
-					if dupe then
-						self:SpawnDupe(dupe,func=="spawn",func~="delete",invnum,ply)
-					end
-				end
-				self:SendInventory(ply)
-			end
-		elseif func == "delete_full" or func == "delete_in_container_full" then
-			if self.ConAllowDelete:GetBool() then
-				table.Empty(ply.ISAWC_Inventory)
-			else
-				self:NoPickup("You can't delete inventory items!",ply)
-			end
-			if func == "delete_full" then
-				self:SendInventory(ply)
-			else
-				local container = net.ReadEntity()
-				if self:IsLegalContainer(container,ply) then
-					self:SendInventory2(ply,container)
-				end
-			end
-		elseif func == "drop_all" or func == "drop_all_in_container" then
-			if (ply.ISAWC_Inventory and next(ply.ISAWC_Inventory)) then
-				self:DropAll(ply,ply)
-				if func == "drop_all" then
-					self:SendInventory(ply)
-				else
-					local container = net.ReadEntity()
-					if self:IsLegalContainer(container,ply) then
-						self:SendInventory2(ply,container)
-					end
-				end
-			end
-		elseif func == "inv_container" then
-			local container = net.ReadEntity()
-			if self:IsLegalContainer(container,ply) then
-				self:SendInventory2(ply,container)
-			end
-		elseif func == "spawn_in_container" or func == "spawn_self_in_container" or func == "delete_in_container" then
-			if self:CanDrop(ply) or func == "delete_in_container" then
-				local container = net.ReadEntity()
-				if self:IsLegalContainer(container,ply) then
-					local invnum = net.ReadUInt(16)
-					if invnum == 0 then
-						if self:CanMultiSpawn(ply) then
-							self:SetSuppressUndoHeaders(true)
-							undo.Create("Spawn From Inventory")
-							for i=1,net.ReadUInt(16) do
-								invnum = net.ReadUInt(16)
-								local dupe = table.remove(ply.ISAWC_Inventory,invnum)
-								if dupe then
-									self:SpawnDupe(dupe,func=="spawn_in_container",func~="delete_in_container",invnum,ply)
-								end
-							end
-							undo.SetCustomUndoText("Undone Spawn From Inventory")
-							undo.SetPlayer(ply)
-							undo.Finish()
-							self:SetSuppressUndoHeaders(false)
-						end
-					else
-						local dupe = table.remove(ply.ISAWC_Inventory,invnum)
-						if dupe then
-							self:SpawnDupe(dupe,func=="spawn_in_container",func~="delete_in_container",invnum,ply)
-						end
-					end
-					self:SendInventory2(ply,container)
-				end
-			end
-		elseif func == "spawn_in_container2" or func == "spawn_self_in_container2" or func == "delete_in_container2" then
-			if self:CanDrop(ply) or func == "delete_in_container2" then
-				local container = net.ReadEntity()
-				if self:IsLegalContainer(container,ply) then
-					local invnum = net.ReadUInt(16)
-					if invnum == 0 then
-						if self:CanMultiSpawn(ply) then
-							self:SetSuppressUndoHeaders(true)
-							undo.Create("Spawn From Container")
-							for i=1,net.ReadUInt(16) do
-								invnum = net.ReadUInt(16)
-								local dupe = table.remove(container:GetInventory(ply),invnum)
-								if dupe then
-									self:SpawnDupe2(dupe,func=="spawn_in_container2",func~="delete_in_container2",invnum,ply,container)
-								end
-							end
-							undo.SetCustomUndoText("Undone Spawn From Container",ply)
-							undo.SetPlayer(ply)
-							undo.Finish()
-							self:SetSuppressUndoHeaders(false)
-						end
-					else
-						local dupe = table.remove(container:GetInventory(ply),invnum)
-						if dupe then
-							self:SpawnDupe2(dupe,func=="spawn_in_container2",func~="delete_in_container2",invnum,ply,container)
-						end
-					end
-					self:SendInventory2(ply,container)
-				end
-			end
-		elseif func == "drop_all_in_container2" then
-			local container = net.ReadEntity()
-			if self:IsLegalContainer(container,ply) then
-				if next(container:GetInventory(ply)) then
-					self:DropAll(container,ply)
-					self:SendInventory2(ply,container)
-				end
-			end
-		elseif func == "delete_in_container_full2" then
-			local container = net.ReadEntity()
-			if self:IsLegalContainer(container,ply) then
-				if self.ConAllowDelete:GetBool() then
-					table.Empty(container:GetInventory(ply))
-				else
-					self:NoPickup("You can't delete inventory items!",ply)
-				end
-				self:SendInventory2(ply,container)
-			end
-		elseif func == "transfer_to" then
+		elseif self:IsMessageType(func, "transfer_to") then
 			local container = net.ReadEntity()
 			if self:IsLegalContainer(container,ply) then
 				if container.ISAWC_IsDeathDrop then
@@ -3655,7 +3573,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					self:SendInventory2(ply,container)
 				end
 			end
-		elseif func == "transfer_from" then
+		elseif self:IsMessageType(func, "transfer_from") then
 			local container = net.ReadEntity()
 			if self:IsLegalContainer(container,ply) then
 				local invnum = net.ReadUInt(16)
@@ -3683,7 +3601,138 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 				end
 				self:SendInventory2(ply,container)
 			end
-		elseif func == "empty" then
+		elseif self:IsMessageType(func, "spawn") or self:IsMessageType(func, "spawn_self") or self:IsMessageType(func, "delete") then
+			if self:CanDrop(ply) or self:IsMessageType(func, "delete") then
+				local invnum = net.ReadUInt(16)
+				if invnum == 0 then
+					if self:CanMultiSpawn(ply) then
+						self:SetSuppressUndoHeaders(true)
+						undo.Create("Spawn From Inventory")
+						for i=1,net.ReadUInt(16) do
+							invnum = net.ReadUInt(16)
+							local dupe = table.remove(ply.ISAWC_Inventory,invnum)
+							if dupe then
+								self:SpawnDupe(dupe,self:IsMessageType(func, "spawn"),not self:IsMessageType(func, "delete"),invnum,ply)
+							end
+						end
+						undo.SetCustomUndoText("Undone Spawn From Inventory")
+						undo.SetPlayer(ply)
+						undo.Finish()
+						self:SetSuppressUndoHeaders(false)
+					end
+				else
+					local dupe = table.remove(ply.ISAWC_Inventory,invnum)
+					if dupe then
+						self:SpawnDupe(dupe,self:IsMessageType(func, "spawn"),not self:IsMessageType(func, "delete"),invnum,ply)
+					end
+				end
+				self:SendInventory(ply)
+			end
+		elseif self:IsMessageType(func, "spawn_l") or self:IsMessageType(func, "spawn_self_l") or self:IsMessageType(func, "delete_l") then
+			if self:CanDrop(ply) or self:IsMessageType(func, "delete_l") then
+				local container = net.ReadEntity()
+				if self:IsLegalContainer(container,ply) then
+					local invnum = net.ReadUInt(16)
+					if invnum == 0 then
+						if self:CanMultiSpawn(ply) then
+							self:SetSuppressUndoHeaders(true)
+							undo.Create("Spawn From Inventory")
+							for i=1,net.ReadUInt(16) do
+								invnum = net.ReadUInt(16)
+								local dupe = table.remove(ply.ISAWC_Inventory,invnum)
+								if dupe then
+									self:SpawnDupe(dupe,self:IsMessageType(func, "spawn_l"),not self:IsMessageType(func, "delete_l"),invnum,ply)
+								end
+							end
+							undo.SetCustomUndoText("Undone Spawn From Inventory")
+							undo.SetPlayer(ply)
+							undo.Finish()
+							self:SetSuppressUndoHeaders(false)
+						end
+					else
+						local dupe = table.remove(ply.ISAWC_Inventory,invnum)
+						if dupe then
+							self:SpawnDupe(dupe,self:IsMessageType(func, "spawn_l"),not self:IsMessageType(func, "delete_l"),invnum,ply)
+						end
+					end
+					self:SendInventory2(ply,container)
+				end
+			end
+		elseif self:IsMessageType(func, "spawn_r") or self:IsMessageType(func, "spawn_self_r") or self:IsMessageType(func, "delete_r") then
+			if self:CanDrop(ply) or self:IsMessageType(func, "delete_r") then
+				local container = net.ReadEntity()
+				if self:IsLegalContainer(container,ply) then
+					local invnum = net.ReadUInt(16)
+					if invnum == 0 then
+						if self:CanMultiSpawn(ply) then
+							self:SetSuppressUndoHeaders(true)
+							undo.Create("Spawn From Container")
+							for i=1,net.ReadUInt(16) do
+								invnum = net.ReadUInt(16)
+								local dupe = table.remove(container:GetInventory(ply),invnum)
+								if dupe then
+									self:SpawnDupe2(dupe,self:IsMessageType(func, "spawn_r"),not self:IsMessageType(func, "delete_r"),invnum,ply,container)
+								end
+							end
+							undo.SetCustomUndoText("Undone Spawn From Container",ply)
+							undo.SetPlayer(ply)
+							undo.Finish()
+							self:SetSuppressUndoHeaders(false)
+						end
+					else
+						local dupe = table.remove(container:GetInventory(ply),invnum)
+						if dupe then
+							self:SpawnDupe2(dupe,self:IsMessageType(func, "spawn_r"),not self:IsMessageType(func, "delete_r"),invnum,ply,container)
+						end
+					end
+					self:SendInventory2(ply,container)
+				end
+			end
+		elseif self:IsMessageType(func, "delete_full") or self:IsMessageType(func, "delete_full_l") then
+			if self.ConAllowDelete:GetBool() then
+				table.Empty(ply.ISAWC_Inventory)
+			else
+				self:NoPickup("You can't delete inventory items!",ply)
+			end
+			if self:IsMessageType(func, "delete_full") then
+				self:SendInventory(ply)
+			else
+				local container = net.ReadEntity()
+				if self:IsLegalContainer(container,ply) then
+					self:SendInventory2(ply,container)
+				end
+			end
+		elseif self:IsMessageType(func, "delete_full_r") then
+			local container = net.ReadEntity()
+			if self:IsLegalContainer(container,ply) then
+				if self.ConAllowDelete:GetBool() then
+					table.Empty(container:GetInventory(ply))
+				else
+					self:NoPickup("You can't delete inventory items!",ply)
+				end
+				self:SendInventory2(ply,container)
+			end
+		elseif self:IsMessageType(func, "drop_all") or self:IsMessageType(func, "drop_all_l") then
+			if (ply.ISAWC_Inventory and next(ply.ISAWC_Inventory)) then
+				self:DropAll(ply,ply)
+				if self:IsMessageType(func, "drop_all") then
+					self:SendInventory(ply)
+				else
+					local container = net.ReadEntity()
+					if self:IsLegalContainer(container,ply) then
+						self:SendInventory2(ply,container)
+					end
+				end
+			end
+		elseif self:IsMessageType(func, "drop_all_r") then
+			local container = net.ReadEntity()
+			if self:IsLegalContainer(container,ply) then
+				if next(container:GetInventory(ply)) then
+					self:DropAll(container,ply)
+					self:SendInventory2(ply,container)
+				end
+			end
+		elseif self:IsMessageType(func, "empty_weapon") then
 			local invnum = net.ReadUInt(16)
 			if invnum == 0 then
 				for i=1,net.ReadUInt(16) do
@@ -3698,25 +3747,25 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 				self:EmptyWeaponClipsToPlayer(dupe, ply)
 			end
 			self:SendInventory(ply)
-		elseif func == "empty_in_container" or func == "empty_in_container2" then
+		elseif self:IsMessageType(func, "empty_weapon_l") or self:IsMessageType(func, "empty_weapon_r") then
 			local container = net.ReadEntity()
 			if self:IsLegalContainer(container,ply) then
 				local invnum = net.ReadUInt(16)
 				if invnum == 0 then
 					for i=1,net.ReadUInt(16) do
 						invnum = net.ReadUInt(16)
-						local dupe = func == "empty_in_container" and ply.ISAWC_Inventory[invnum] or container:GetInventory(ply)[invnum]
+						local dupe = self:IsMessageType(func, "empty_weapon_l") and ply.ISAWC_Inventory[invnum] or container:GetInventory(ply)[invnum]
 						if not dupe then return end
 						self:EmptyWeaponClipsToPlayer(dupe, ply)
 					end
 				else
-					local dupe = func == "empty_in_container" and ply.ISAWC_Inventory[invnum] or container:GetInventory(ply)[invnum]
+					local dupe = self:IsMessageType(func, "empty_weapon_l") and ply.ISAWC_Inventory[invnum] or container:GetInventory(ply)[invnum]
 					if not dupe then return end
 					self:EmptyWeaponClipsToPlayer(dupe, ply)
 				end
 				self:SendInventory2(ply,container)
 			end
-		elseif func == "store_weapon" then
+		elseif self:IsMessageType(func, "store_weapon") then
 			local ent = ply:GetActiveWeapon()
 			if IsValid(ent) then
 				if self:CanPickup(ply,ent,true) then
@@ -3728,7 +3777,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			else
 				self:NoPickup("You don't have any weapons equipped!",ply)
 			end
-		elseif func == "store_weapon_in_container" then
+		elseif self:IsMessageType(func, "store_weapon_l") then
 			local container = net.ReadEntity()
 			if self:IsLegalContainer(container,ply) then
 				local ent = ply:GetActiveWeapon()
@@ -3743,7 +3792,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					self:NoPickup("You don't have any weapons equipped!",ply)
 				end
 			end
-		elseif func == "store_weapon_in_container2" then
+		elseif self:IsMessageType(func, "store_weapon_r") then
 			local container = net.ReadEntity()
 			if self:IsLegalContainer(container,ply) then
 				local ent = ply:GetActiveWeapon()
@@ -3758,18 +3807,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					self:NoPickup("You don't have any weapons equipped!",ply)
 				end
 			end
-		elseif func == "container_close" then
-			local container = net.ReadEntity()
-			if self:IsLegalContainer(container,ply,true) then
-				container.ISAWC_Openers[ply] = nil
-				if not IsValid(next(container.ISAWC_Openers)) then
-					net.Start("isawc_general")
-					net.WriteString("container_close")
-					net.WriteEntity(container)
-					net.SendPAS(container:GetPos())
-				end
-			end
-		elseif func == "exporter" then
+		elseif self:IsMessageType(func, "exporter") then
 			local exporter = net.ReadEntity()
 			if (IsValid(exporter) and exporter:GetClass()=="isawc_extractor" and exporter:GetOwnerAccountID() == (ply:AccountID() or 0) or ply:IsAdmin()) then
 				exporter:SetActiFlags(net.ReadInt(32))
@@ -3778,14 +3816,14 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 				exporter:SetActiVolume(net.ReadFloat())
 				exporter:SetActiCount(net.ReadFloat())
 			end
-		elseif func == "exporter_disconnect" then
+		elseif self:IsMessageType(func, "exporter_disconnect") then
 			local exporter = net.ReadEntity()
 			if (IsValid(exporter) and exporter:GetClass()=="isawc_extractor" and exporter:GetOwnerAccountID() == (ply:AccountID() or 0) or ply:IsAdmin()) then
 				exporter:ClearStorageEntities()
 				exporter:SetCollisionGroup(COLLISION_GROUP_NONE)
 				--exporter:UpdateWireOutputs()
 			end
-		elseif func == "send_maker_data" then
+		elseif self:IsMessageType(func, "send_maker_data") then
 			local weapon = ply:GetActiveWeapon()
 			if (IsValid(weapon) and weapon:GetClass()=="weapon_isawc_maker") then
 				local massMul, volumeMul, countMul, lockMul = net.ReadFloat(), net.ReadFloat(), net.ReadFloat(), net.ReadFloat()
@@ -3805,7 +3843,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 				weapon:EmitSound("buttons/button17.wav")
 				ply:PrintMessage(HUD_PRINTTALK, "Properties set! They will take place the next time you transform a container.")
 			end
-		elseif func == "set_is_public" then
+		elseif self:IsMessageType(func, "set_public") then
 			local isPublic = net.ReadBool()
 			local container = net.ReadEntity()
 			if self:IsLegalContainer(container,ply) then
@@ -3820,28 +3858,30 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 		end
 	end
 	if CLIENT then
-		if func == "inv" and IsValid(self.reliantwindow) then
-			if self.reliantwindow.IsDouble then
-				self.reliantwindow:Close()
-			else
-				--[[local bytes = net.ReadUInt(32)
-				self.reliantwindow:ReceiveInventory(util.JSONToTable(net.ReadData(bytes)))]]
-				local data = {}
-				for i=1,net.ReadUInt(16) do
-					data[i] = {Model=net.ReadString(), Class=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
-					Clip1=net.ReadInt(32), Clip2=net.ReadInt(32), MaxClip1=net.ReadInt(32), MaxClip2=net.ReadInt(32)}
+		if self:IsMessageType(func, "inventory") then
+			if IsValid(self.reliantwindow) then
+				if self.reliantwindow.IsDouble then
+					self.reliantwindow:Close()
+				else
+					--[[local bytes = net.ReadUInt(32)
+					self.reliantwindow:ReceiveInventory(util.JSONToTable(net.ReadData(bytes)))]]
+					local data = {}
+					for i=1,net.ReadUInt(16) do
+						data[i] = {Model=net.ReadString(), Class=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
+						Clip1=net.ReadInt(32), Clip2=net.ReadInt(32), MaxClip1=net.ReadInt(32), MaxClip2=net.ReadInt(32)}
+					end
+					self.reliantwindow:ReceiveInventory(data)
+					self.reliantwindow:ReceiveStats({net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadUInt(16),net.ReadUInt(16)})
 				end
-				self.reliantwindow:ReceiveInventory(data)
-				self.reliantwindow:ReceiveStats({net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadUInt(16),net.ReadUInt(16)})
 			end
-		elseif func == "no_pickup" then
+		elseif self:IsMessageType(func, "pickup_denied") then
 			self:NoPickup(net.ReadString(),ply)
-		elseif func == "inv_container" then
+		elseif self:IsMessageType(func, "inventory_l") then
 			local container = net.ReadEntity()
 			if IsValid(container) then
 				self:BuildOtherInventory(container)
 			end
-		elseif func == "container_open" then
+		elseif self:IsMessageType(func, "open_container") then
 			local container = net.ReadEntity()
 			if IsValid(container) then
 				container.FinishOpenAnimTime = CurTime() + (container.OpenAnimTime or 0)
@@ -3853,7 +3893,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					container:EmitSound(container.OpenSounds[math.random(1,#container.OpenSounds)], 60)
 				end
 			end
-		elseif func == "container_close" then
+		elseif self:IsMessageType(func, "close_container") then
 			local container = net.ReadEntity()
 			if IsValid(container) then
 				container.FinishCloseAnimTime = CurTime() + (container.CloseAnimTime or 0)
@@ -3861,41 +3901,45 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					container:EmitSound(container.CloseSounds[math.random(1,#container.CloseSounds)], 60)
 				end
 			end
-		elseif func == "inv2" and IsValid(self.reliantwindow) then
-			if self.reliantwindow.IsDouble then
-				--[[local bytes1,bytes2 = net.ReadUInt(32),net.ReadUInt(32)
-				local data1 = util.JSONToTable(net.ReadData(bytes1))
-				local data2 = util.JSONToTable(net.ReadData(bytes2))]]
-				local nt1, nt2 = {}, {}
-				for i=1,net.ReadUInt(16) do
-					nt1[i] = {Model=net.ReadString(), Class=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
-					Clip1=net.ReadInt(32), Clip2=net.ReadInt(32), MaxClip1=net.ReadInt(32), MaxClip2=net.ReadInt(32)}
+		elseif self:IsMessageType(func, "inventory_r") then
+			if IsValid(self.reliantwindow) then
+				if self.reliantwindow.IsDouble then
+					--[[local bytes1,bytes2 = net.ReadUInt(32),net.ReadUInt(32)
+					local data1 = util.JSONToTable(net.ReadData(bytes1))
+					local data2 = util.JSONToTable(net.ReadData(bytes2))]]
+					local nt1, nt2 = {}, {}
+					for i=1,net.ReadUInt(16) do
+						nt1[i] = {Model=net.ReadString(), Class=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
+						Clip1=net.ReadInt(32), Clip2=net.ReadInt(32), MaxClip1=net.ReadInt(32), MaxClip2=net.ReadInt(32)}
+					end
+					for i=1,net.ReadUInt(16) do
+						nt2[i] = {Model=net.ReadString(), Class=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
+						Clip1=net.ReadInt(32), Clip2=net.ReadInt(32), MaxClip1=net.ReadInt(32), MaxClip2=net.ReadInt(32)}
+					end
+					self.reliantwindow:ReceiveInventory(nt1,nt2)
+					self.reliantwindow:ReceiveStats({net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadUInt(16),net.ReadUInt(16)},{net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadUInt(16),net.ReadUInt(16)})
+				else
+					self.reliantwindow:Close()
 				end
-				for i=1,net.ReadUInt(16) do
-					nt2[i] = {Model=net.ReadString(), Class=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
-					Clip1=net.ReadInt(32), Clip2=net.ReadInt(32), MaxClip1=net.ReadInt(32), MaxClip2=net.ReadInt(32)}
-				end
-				self.reliantwindow:ReceiveInventory(nt1,nt2)
-				self.reliantwindow:ReceiveStats({net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadUInt(16),net.ReadUInt(16)},{net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadUInt(16),net.ReadUInt(16)})
-			else
-				self.reliantwindow:Close()
 			end
-		elseif func == "exporter" then
+		elseif self:IsMessageType(func, "exporter") then
 			local questionEnt = net.ReadEntity()
 			if IsValid(questionEnt) then
 				questionEnt:BuildConfigGUI()
 			end
-		elseif func == "open_maker_menu" then
+		elseif self:IsMessageType(func, "send_maker_data") then
 			local weapon = net.ReadEntity()
 			if IsValid(weapon) then
 				weapon:OpenMakerMenu()
 			end
+		else
+			self:Log("Received unrecognised message header \"" .. func .. "\" from server. Assuming data packet corrupted.")
 		end
 	end
 end
 
 net.Receive("isawc_general",function(length,ply)
-	ISAWC:ReceiveMessage(length,ply,net.ReadString())
+	ISAWC:ReceiveMessage(length,ply,net.ReadUInt(8))
 end)
 
 ISAWC.CalculateEntitySpace = function(self,ent)
@@ -4266,8 +4310,7 @@ ISAWC.Tick = function()
 				if ent.ISAWC_UseStreak >= effectiveUseDelay/engine.TickInterval() and effectiveUseDelay>=0 then
 					ent.ISAWC_UseStreak = 0
 					if ISAWC:CanProperty(ply,ent) then
-						net.Start("isawc_general")
-						net.WriteString("pickup")
+						ISAWC:StartNetMessage("pickup")
 						net.WriteEntity(ent)
 						net.SendToServer()
 					end
@@ -4293,7 +4336,7 @@ ISAWC.Tick = function()
 			ISAWC.TempWindow:Hide()
 			ISAWC.TempWindow:KillFocus()
 		end
-		if clientTicks < 1800 and not ISAWC.ConHideHintNotifs:GetBool() then
+		if clientTicks < 2400 and not ISAWC.ConHideHintNotifs:GetBool() then
 			clientTicks = clientTicks + 1
 			if clientTicks == 600 then
 				ISAWC:PushNotification(
@@ -4312,14 +4355,14 @@ ISAWC.Tick = function()
 				)
 			elseif clientTicks == 1000 then
 				ISAWC:PushNotification({"You can also open your inventory in the CONTEXT MENU,", "as well as right-click items from there to pick them up."})
-			elseif clientTicks == 1200 then
-				ISAWC:PushNotification({"You can rebind the keys via the Client section,", "under the \"ISAWC\" section at the top-right of the SPAWN MENU."})
 			elseif clientTicks == 1400 then
-				ISAWC:PushNotification({"Alternatively, you can change the ConVars \"isawc_pickup_bind\"", "\"isawc_player_bind\" and \"isawc_player_bindhold\"."})
-			elseif clientTicks == 1600 then
-				ISAWC:PushNotification("Please note that the server can override your set binds.")
+				ISAWC:PushNotification({"You can change the keys under General Client options in the", "\"ISAWC\" section at the top-right of the SPAWN MENU."})
 			elseif clientTicks == 1800 then
-				ISAWC:PushNotification({"You can turn these hint messages off in the Client section,", "or set \"isawc_hide_hintnotifications\" to 1."})
+				ISAWC:PushNotification({"Alternatively, you can change the ConVars \"isawc_pickup_bind\",", "\"isawc_player_bind\" and \"isawc_player_bindhold\"."})
+			elseif clientTicks == 2200 then
+				ISAWC:PushNotification("Please note that the server can override your set binds.")
+			elseif clientTicks == 2400 then
+				ISAWC:PushNotification({"You can turn these hint messages off in the Client options,", "or set \"isawc_hide_hintnotifications\" to 1."})
 			end
 		end
 	end
@@ -4428,8 +4471,7 @@ ISAWC.PropertyTable = {
 		return ISAWC:CanProperty(LocalPlayer(),ent)
 	end,
 	Action = function(self,ent,trace)
-		net.Start("isawc_general")
-		net.WriteString("pickup")
+		ISAWC:StartNetMessage("pickup")
 		net.WriteEntity(ent)
 		net.SendToServer()
 	end,

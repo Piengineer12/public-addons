@@ -129,8 +129,7 @@ function SWEP:Reload()
 	local ply = self:GetOwner()
 	if SERVER and ply:IsPlayer() and IsFirstTimePredicted() then
 		-- This is kinda bad, but it is still better than most other methods for communicating with the client
-		net.Start("isawc_general")
-		net.WriteString("open_maker_menu")
+		ISAWC:StartNetMessage("send_maker_data")
 		net.WriteEntity(self)
 		net.Send(ply)
 	end
@@ -283,8 +282,7 @@ function SWEP:OpenMakerMenu()
 			Main:Close()
 			ISAWC:NoPickup("The weapon is missing!",LocalPlayer())
 		elseif weapon.cooldown <= RealTime() then
-			net.Start("isawc_general")
-			net.WriteString("send_maker_data")
+			ISAWC:StartNetMessage("send_maker_data")
 			net.WriteFloat(massMul)
 			net.WriteFloat(volumeMul)
 			net.WriteFloat(countMul)

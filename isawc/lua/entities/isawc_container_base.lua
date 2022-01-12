@@ -70,7 +70,7 @@ function ENT:Initialize()
 	if SERVER then
 		ISAWC:SQL([[CREATE TABLE IF NOT EXISTS "isawc_container_data" (
 			"containerID" TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
-			"data" BLOB NOT NULL
+			"data" TEXT NOT NULL
 		);]])
 		self:SetModel(self.ContainerModel)
 		self:PhysicsInit(SOLID_VPHYSICS)
@@ -247,8 +247,7 @@ function ENT:Use(activator,caller,typ,data)
 				if not IsValid(k) then self.ISAWC_Openers[k] = nil end
 			end
 			if not next(self.ISAWC_Openers) then
-				net.Start("isawc_general")
-				net.WriteString("container_open")
+				ISAWC:StartNetMessage("open_container")
 				net.WriteEntity(self)
 				if self.ISAWC_Template then -- This is a really bad way to make sure clients know the sounds this container makes... I can't be bothered to make this better though.
 					net.WriteString(table.concat(self.OpenSounds,'|'))
@@ -257,8 +256,7 @@ function ENT:Use(activator,caller,typ,data)
 				net.SendPAS(self:GetPos())
 			end
 			self.ISAWC_Openers[activator] = true
-			net.Start("isawc_general")
-			net.WriteString("inv_container")
+			ISAWC:StartNetMessage("inventory_l")
 			net.WriteEntity(self)
 			net.Send(activator)
 		else
