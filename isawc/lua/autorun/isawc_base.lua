@@ -10,7 +10,7 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.9.0"
+ISAWC._VERSION = "4.9.1"
 ISAWC._VERSIONDATE = "2022-01-12"
 
 if SERVER then util.AddNetworkString("isawc_general") end
@@ -3097,6 +3097,7 @@ ISAWC.PlayerDeath = function(ply)
 			briefcase:SetMassMul(0)
 			briefcase:SetVolumeMul(0)
 			briefcase:SetCountMul(0)
+			briefcase:SetIsPublic(true)
 			for i=1,#ply.ISAWC_Inventory do
 				local dupe = ply.ISAWC_Inventory[i]
 				if dupe then
@@ -4464,7 +4465,7 @@ ISAWC.PhysgunDrop = function(ply,ent)
 end
 
 ISAWC.PropertyTable = {
-	MenuLabel = "Pick Up",
+	MenuLabel = "[ISAWC] Pick Up",
 	MenuIcon = "icon16/basket_put.png",
 	Order = 46,
 	Filter = function(self,ent)

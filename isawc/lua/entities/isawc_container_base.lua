@@ -65,8 +65,8 @@ function ENT:ISAWC_Initialize()
 end
 
 function ENT:Initialize()
-	self.ISAWC_Inventory = {}
-	self.ISAWC_PlayerLocalizedInventories = {}
+	self.ISAWC_Inventory = self.ISAWC_Inventory or {}
+	self.ISAWC_PlayerLocalizedInventories = self.ISAWC_PlayerLocalizedInventories or {}
 	if SERVER then
 		ISAWC:SQL([[CREATE TABLE IF NOT EXISTS "isawc_container_data" (
 			"containerID" TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
