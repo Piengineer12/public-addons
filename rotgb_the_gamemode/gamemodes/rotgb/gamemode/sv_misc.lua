@@ -1,16 +1,8 @@
-include("sh_init.lua")
-include("sv_net.lua")
-include("sv_skills.lua")
-include("sv_spawndeath.lua")
-include("sv_spectators.lua")
-include("sv_teams.lua")
-include("sv_voting.lua")
-
 local nextUpdate = 0
-local shouldUpdate = false
 
 AccessorFunc(GM, "GameIsOver", "GameIsOver", FORCE_BOOL)
 AccessorFunc(GM, "Defeated", "Defeated", FORCE_BOOL)
+AccessorFunc(GM, "StatRebroadcastRequired", "StatRebroadcastRequired", FORCE_BOOL)
 
 function GM:Initialize()
 	hook.Run("SetGameIsOver", false)
@@ -22,12 +14,12 @@ end
 function GM:Think()
 	if nextUpdate < RealTime() then
 		nextUpdate = RealTime() + self.NetSendInterval
-		if shouldUpdate then
-			shouldUpdate = false
+		if hook.Run("GetStatRebroadcastRequired") then
+			hook.Run("SetStatRebroadcastRequired", false)
 			local playersToUpdate = {}
 			for k,v in pairs(player.GetAll()) do
-				if (v.rotgb_gBalloonPops or 0) > 0 and v.rotgb_LastSentgBalloonPops ~= v.rotgb_gBalloonPops then
-					v.rotgb_LastSentgBalloonPops = v.rotgb_gBalloonPops
+				if v.rotgb_LastSentgBalloonPops ~= v.rtg_gBalloonPops then
+					v.rotgb_LastSentgBalloonPops = v.rtg_gBalloonPops
 					table.insert(playersToUpdate, v)
 				end
 			end
@@ -36,7 +28,7 @@ function GM:Think()
 			net.WriteUInt(#playersToUpdate, 12)
 			for k,v in pairs(playersToUpdate) do
 				net.WriteEntity(v)
-				net.WriteDouble(v.rotgb_gBalloonPops or 0)
+				net.WriteDouble(v.rtg_gBalloonPops or 0)
 				net.WriteDouble(v.rtg_XP)
 			end
 			net.Broadcast()
@@ -66,19 +58,6 @@ function GM:ShowTeam(ply)
 	end
 end
 
-function GM:PlayerShouldTakeDamage(ply, attacker)
-	-- players do not ever take damage from each other, nor themselves
-	return not attacker:IsPlayer()
-end
-
-function GM:OnDamagedByExplosion(ply, dmginfo)
-	-- don't make the high pitched ringing noise!
-end
-
-function GM:GetFallDamage(ply, flFallSpeed)
-	return 0
-end
-
 local sv_alltalk = GetConVar("sv_alltalk")
 function GM:PlayerCanHearPlayersVoice(pListener, pTalker)
 	return true, sv_alltalk:GetInt() == 2
@@ -104,16 +83,16 @@ function GM:PostCleanupMapServer()
 			v.ROTGB_CASH = hook.Run("GetStartingRotgBCash") or ROTGB_GetConVarValue("rotgb_starting_cash")
 			ROTGB_UpdateCash(v)
 		end
-		v.rotgb_gBalloonPops = 0
+		v.rtg_gBalloonPops = 0
 		net.Start("rotgb_statchanged", true)
 		net.WriteUInt(RTG_STAT_POPS, 4)
 		net.WriteUInt(1, 12)
 		net.WriteEntity(v)
-		net.WriteDouble(v.rotgb_gBalloonPops or 0)
+		net.WriteDouble(v.rtg_gBalloonPops or 0)
 		net.WriteDouble(v.rtg_XP)
 		net.Send(v)
 	end
-	shouldUpdate = true
+	hook.Run("SetStatRebroadcastRequired", true)
 end
 
 -- non-base
@@ -122,7 +101,7 @@ function GM:gBalloonDamaged(bln, attacker, inflictor, damage, deductedCash, isPo
 	if attacker:IsPlayer() and damage > 0 then
 		local scoreAdd = (damage - deductedCash) * hook.Run("GetScoreMultiplier")
 		local xpAdd = (damage - deductedCash) * hook.Run("GetXPMultiplier")
-		attacker.rotgb_gBalloonPops = (attacker.rotgb_gBalloonPops or 0) + scoreAdd
+		attacker.rtg_gBalloonPops = (attacker.rtg_gBalloonPops or 0) + scoreAdd
 		for k,v in pairs(player.GetAll()) do
 			v.rtg_XP = v.rtg_XP + xpAdd
 		end
@@ -130,10 +109,10 @@ function GM:gBalloonDamaged(bln, attacker, inflictor, damage, deductedCash, isPo
 		net.WriteUInt(RTG_STAT_POPS, 4)
 		net.WriteUInt(1, 12)
 		net.WriteEntity(attacker)
-		net.WriteDouble(attacker.rotgb_gBalloonPops or 0)
+		net.WriteDouble(attacker.rtg_gBalloonPops or 0)
 		net.WriteDouble(attacker.rtg_XP)
 		net.Send(attacker)
-		shouldUpdate = true
+		hook.Run("SetStatRebroadcastRequired", true)
 	end
 end
 

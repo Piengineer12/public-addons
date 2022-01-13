@@ -874,7 +874,7 @@ function SWEP:CreateMiddlePanel(Main)
 								circleColor.r,circleColor.g,circleColor.b,circleColor.a
 							)
 						end
-						draw.SimpleTextOutlined(self.upgradeText, "RotgB_font", w/2, h, drawColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM, 2, color_black)
+						draw.SimpleTextOutlined(self.upgradeText, "RotgBUIFont", w/2, h, drawColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM, 1, color_black)
 					else
 						self:Remove()
 					end

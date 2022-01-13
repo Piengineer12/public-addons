@@ -31,7 +31,7 @@ ENT.UpgradeReference = {
 			"Tremendously increases attack damage. gBalloons popped by this tower do not spawn any children.",
 			"Colossally increases attack damage and enables the tower to pop Hidden gBalloons.",
 			"This tower now hits ALL gBalloons within sight.",
-			"Once every 60 seconds, shooting at this tower deals INFINITE damage to the strongest gBalloon on the map after 5 seconds. You still get the cash.",
+			"Once every 60 seconds, shooting at this tower inflicts x1,000 damage per tick at the location of the strongest gBalloon on the map after 5 seconds.",
 			"Reduces Orbital Friendship Cannon's cooldown by 30 seconds and you gain $50,000,000 for every use.",
 			"It's worth it."
 		},
@@ -67,7 +67,7 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.rotgb_Infinite = true
-				self.AbilityCooldown = self.AbilityCooldown - 30
+				self.AbilityCooldown = self.AbilityCooldown / 2
 			end,
 			function(self)
 				self.HasAbility = nil
@@ -201,7 +201,7 @@ function ENT:ROTGB_Think()
 	if IsValid(self.KillDamagePos) then
 		for k,v in pairs(ents.FindInSphere(self.KillDamagePos:GetPos(),32)) do
 			if v:GetClass()=="gballoon_base" then
-				v:TakeDamage(v:GetRgBE()*1000, self:GetTowerOwner(), self)
+				v:TakeDamage(self.AttackDamage*1000, self:GetTowerOwner(), self)
 			end
 		end
 	end

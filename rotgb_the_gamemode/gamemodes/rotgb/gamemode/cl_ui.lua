@@ -4,14 +4,16 @@ local color_gray = Color(127, 127, 127)
 local color_light_gray = Color(191, 191, 191)
 local color_red = Color(255, 0, 0)
 local color_light_red = Color(255, 127, 127)
+local color_orange = Color(255, 127, 0)
+local color_light_orange = Color(255, 191, 127)
 local color_yellow = Color(255, 255, 0)
 local color_green = Color(0, 255, 0)
 local color_light_green = Color(127, 255, 127)
-local color_light_blue = Color(127, 127, 255)
-local color_light_orange = Color(255, 191, 127)
 local color_aqua = Color(0, 255, 255)
-local color_dark_black_semiopaque = Color(0, 0, 0, 191)
+local color_light_blue = Color(127, 127, 255)
 local color_purple = Color(127, 0, 255)
+local color_magenta = Color(255, 0, 255)
+local color_dark_black_semiopaque = Color(0, 0, 0, 191)
 local SQRT_2 = math.sqrt(2)
 
 local SCOREBOARD_CELL_WIDTH_MULTIPLIERS = {1, 6, 6, 3, 3, 8, {1, 3, 2}, 3}
@@ -23,7 +25,7 @@ local SCOREBOARD_FUNCS = {
 		return ROTGB_FormatCash(ROTGB_GetCash(ply))
 	end,
 	[3] = function(ply)
-		return string.Comma(math.floor(ply.rotgb_gBalloonPops or 0))
+		return string.Comma(math.floor(ply.rtg_gBalloonPops or 0))
 	end,
 	[4] = function(ply)
 		return string.Comma(ply:Ping()).." ms"
@@ -75,6 +77,7 @@ local SKILL_RIGHT_TEXTS = {
 		color_white, " to reset the camera."
 	}
 }
+local CATEGORY_COLORS = {color_green, color_yellow, color_orange, color_red, color_magenta}
 
 local FONT_HEADER_HEIGHT = ScreenScale(16)
 local FONT_BODY_HEIGHT = ScreenScale(12)
@@ -424,7 +427,7 @@ local function CreateScoreboardOtherLevelCell(parent, ply)
 		surface.SetFont("rotgb_level_small")
 		surface.SetTextPos(0,0)
 		surface.SetTextColor(127,0,255)
-		surface.DrawText(string.format("%i", self.Level))
+		surface.DrawText(string.Comma(self.Level))
 		
 		surface.SetDrawColor(63,0,127)
 		surface.DrawRect(0,h*.75,w,h*.25)
@@ -447,12 +450,10 @@ end
 
 local function CreateScoreboardTransferCell(parent, ply)
 	local TransferButton = CreateButton(parent, "$? >", color_green, function()
-		-- the code for this is defined in weapons/rotgb_control.lua in the main RotgB addon, not in this gamemode
-		-- also ROTGB_GetTransferAmount is in the main RotgB addon under entities/gballoon_target.lua 
-		-- the code is all over the place because I don't want to break older worlds
+		-- the code for this is defined in rotgb_general.lua in the main RotgB addon, not in this gamemode
 		net.Start("rotgb_generic")
 		net.WriteUInt(ROTGB_OPERATION_TRANSFER, 8)
-		net.WriteEntity(v)
+		net.WriteEntity(ply)
 		net.SendToServer()
 	end)
 	
@@ -778,7 +779,7 @@ local function CreateScoreboardPanel(parent)
 	end
 	
 	for k,v in pairs(player.GetAll()) do
-		Panel:ScoreUpdate(v, v.rotgb_gBalloonPops or 0)
+		Panel:ScoreUpdate(v, v.rtg_gBalloonPops or 0)
 	end
 	Panel:Think()
 	return Panel
@@ -787,7 +788,7 @@ end
 local function CreateMVPPanel(parent, zPos)
 	local plys = player.GetAll()
 	table.sort(plys, function(ply1, ply2)
-		return (ply1.rotgb_gBalloonPops or 0) > (ply2.rotgb_gBalloonPops or 0)
+		return (ply1.rtg_gBalloonPops or 0) > (ply2.rtg_gBalloonPops or 0)
 	end)
 	local panelHeight = FONT_HEADER_HEIGHT+FONT_BODY_HEIGHT*2*#plys
 	
@@ -826,7 +827,7 @@ local function CreateMVPPanel(parent, zPos)
 	Column2.Header.Paint = nil
 	
 	for i,v in ipairs(plys) do
-		local PlayerRow = Panel:AddLine(v:Nick(), v.rotgb_gBalloonPops or 0)
+		local PlayerRow = Panel:AddLine(v:Nick(), v.rtg_gBalloonPops or 0)
 		PlayerRow:SetFontInternal("rotgb_body")
 		PlayerRow.Paint = ScoreboardRowPaint
 		PlayerRow._Color = team.GetColor(v:Team())
@@ -868,6 +869,26 @@ local function CreateGameOverButtons(parent, canContinue)
 		ContinueButtonCenteringPanel:SetZPos(3)
 		ContinueButtonCenteringPanel:Dock(BOTTOM)
 	end
+end
+
+local function CreateDifficultyDescriptionPanel()
+	local Panel = vgui.Create("DPanel")
+	Panel.Paint = function()end
+	
+	local Header = CreateHeader(Panel, 1, "Select a Difficulty...")
+	local Text = CreateText(Panel, 2, "")
+	
+	function Panel:DifficultySelected(difficulty)
+		if difficulty then
+			Header:SetText(GAMEMODE.Modes[difficulty].category.." - "..GAMEMODE.Modes[difficulty].name)
+			Text:SetText(GAMEMODE.Modes[difficulty].description)
+		else
+			Header:SetText("Select a Difficulty...")
+			Text:SetText("")
+		end
+	end
+	
+	return Panel
 end
 
 local function DrawTreeNode(panel, w, h)
@@ -938,8 +959,18 @@ local function DrawNodeLabel(panel, w, h)
 end
 
 local function CreateDifficultySelectionPanel(parent)
+	local Divider = vgui.Create("DHorizontalDivider", parent)
+	Divider:Dock(FILL)
+	Divider:SetDividerWidth(FONT_BODY_HEIGHT)
+	Divider:SetLeftWidth((parent:GetWide()-FONT_BODY_HEIGHT)/2-indentX)
+	function Divider:DifficultySelectedInternal(difficulty)
+		self:DifficultySelected(difficulty)
+		Divider:GetRight():DifficultySelected(difficulty)
+	end
+	Divider:SetRight(CreateDifficultyDescriptionPanel())
+	
 	local DTree = vgui.Create("DTree", parent)
-	DTree:Dock(FILL)
+	Divider:SetLeft(DTree)
 	DTree:SetLineHeight(FONT_BODY_HEIGHT)
 	DTree.Paint = nil
 	
@@ -954,7 +985,7 @@ local function CreateDifficultySelectionPanel(parent)
 		node.Paint = DrawTreeNode
 		node.PerformLayout = LayoutTreeNode
 		function node:DoClick()
-			DTree:DifficultySelected(nil)
+			Divider:DifficultySelectedInternal(nil)
 		end
 		
 		for i2,v2 in ipairs(v.subnodes) do
@@ -968,12 +999,12 @@ local function CreateDifficultySelectionPanel(parent)
 			subnode.Paint = DrawTreeNode
 			subnode.PerformLayout = LayoutTreeNode
 			function subnode:DoClick()
-				DTree:DifficultySelected(self.internalName)
+				Divider:DifficultySelectedInternal(self.internalName)
 			end
 		end
 	end
 	
-	return DTree
+	return Divider
 end
 
 local function CreateDifficultyConfirmButtonPanel(parent, DifficultySelectionPanel, zPos)
@@ -1020,11 +1051,18 @@ end
 local function CreateVoteLeftPanel()
 	local Panel = vgui.Create("DScrollPanel")
 	
-	local KickButton = CreateButton(Panel, "Kick", color_red, function()
+	local KickButton = CreateButton(Panel, "Kick Player", color_red, function()
 		Panel:UpdateRightPanel(RTG_VOTE_KICK)
 	end)
 	KickButton:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
+	KickButton:SetZPos(1)
 	KickButton:Dock(TOP)
+	local DifficultyButton = CreateButton(Panel, "Change Difficulty", color_yellow, function()
+		Panel:UpdateRightPanel(RTG_VOTE_CHANGEDIFFICULTY)
+	end)
+	DifficultyButton:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
+	DifficultyButton:SetZPos(2)
+	DifficultyButton:Dock(TOP)
 	
 	return Panel
 end
@@ -1037,6 +1075,7 @@ local function CreateVoteRightPanel(VoteLeftPanel, data)
 		for k,v in pairs(Panel.TargetButtons) do
 			v:Remove()
 		end
+		table.Empty(Panel.TargetButtons)
 		if voteType == RTG_VOTE_KICK then
 			local plys = player.GetAll()
 			local nicknames = {}
@@ -1068,7 +1107,26 @@ local function CreateVoteRightPanel(VoteLeftPanel, data)
 				button.VoteTarget = v.userid
 				button:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
 				button:Dock(TOP)
-				Panel.TargetButtons[i] = button
+				table.insert(Panel.TargetButtons, button)
+			end
+		elseif voteType == RTG_VOTE_CHANGEDIFFICULTY then
+			for i,v in ipairs(hook.Run("GetGamemodeDifficultyNodes")) do
+				for i2,v2 in ipairs(v.subnodes) do
+					local button = CreateButton(Panel, string.format("%s - %s", v.name or "[ERROR", v2.name or "INVALID DIFFICULTY]"), CATEGORY_COLORS[i], function(self)
+						for k,v3 in pairs(Panel.TargetButtons) do
+							if v3 == self then
+								v3:SetFlashing(true)
+							else
+								v3:SetFlashing(false)
+							end
+						end
+						Panel:SetVote(RTG_VOTE_CHANGEDIFFICULTY, self.VoteTarget)
+					end)
+					button.VoteTarget = v2.internalName
+					button:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
+					button:Dock(TOP)
+					table.insert(Panel.TargetButtons, button)
+				end
 			end
 		end
 	end
@@ -1098,7 +1156,7 @@ local function CreateVoteReasonPanel()
 	return Panel
 end
 
-local function CreateVoteButtonPanel(VoteRightPanel, VoteReasonPanel, data)
+local function CreateVoteButtonPanel(Menu, VoteRightPanel, VoteReasonPanel, data)
 	local VoteButtonPanel = vgui.Create("DPanel")
 	local VoteButton = CreateButton(VoteButtonPanel, "Start Vote >", color_green, function()
 		net.Start("rotgb_gamemode")
@@ -1107,6 +1165,7 @@ local function CreateVoteButtonPanel(VoteRightPanel, VoteReasonPanel, data)
 		net.WriteString(VoteButtonPanel.VoteTarget)
 		net.WriteString(VoteReasonPanel:GetValue() or "")
 		net.SendToServer()
+		Menu:Close()
 	end)
 	
 	VoteButtonPanel:SetTall(VoteButton:GetTall())
@@ -1141,6 +1200,9 @@ local function CreateVoterStatementPanel(parent, voteInfo)
 	if voteInfo.typ == RTG_VOTE_KICK then
 		local targetPlayer = Player(tonumber(voteInfo.target) or -1)
 		RichText:AppendText("kick "..(IsValid(targetPlayer) and targetPlayer:Nick() or "[ERROR]"))
+	elseif voteInfo.typ == RTG_VOTE_CHANGEDIFFICULTY then
+		local targetMode = GAMEMODE.Modes[voteInfo.target] or {}
+		RichText:AppendText(string.format("change difficulty to %s - %s", targetMode.category or "[ERROR", targetMode.name or "INVALID DIFFICULTY]"))
 	end
 	RichText:InsertColorChange(255,255,255,255)
 	RichText:AppendText(" with ")
@@ -1185,7 +1247,7 @@ local function CreateVoterTimerPanel(parent, zPos, voteInfo)
 		local timeLeft = voteInfo.expiry-RealTime()
 		local timeLeftFraction = math.Remap(RealTime(), voteInfo.startTime, voteInfo.expiry, 1, 0)
 		
-		TextPanel:SetText(string.format("%.1f seconds left", timeLeft))
+		TextPanel:SetText(string.format("%.1f seconds left", math.max(timeLeft, 0)))
 		ProgressPanel:SetFraction(timeLeftFraction)
 	end
 	
@@ -1280,6 +1342,7 @@ local function CreateVoterResultStatementHeader(parent, voteInfo, result)
 	Header:SetFont("rotgb_body")
 	Header:SetTextColor(succeeded and color_green or color_red)
 	Header:SetText(succeeded and "#GameUI_vote_passed" or "#GameUI_vote_failed")
+	Header:SetTall(FONT_BODY_HEIGHT)
 end
 
 local function CreateVoterResultStatementPanel(parent, voteInfo, result)
@@ -1298,13 +1361,22 @@ local function CreateVoterResultStatementPanel(parent, voteInfo, result)
 		local typ = voteInfo.typ
 		if typ == RTG_VOTE_KICK then
 			local target = Player(voteInfo.target)
-			local userName = IsValid(target) and target:Nick() or "nil"
-			local appendColor = IsValid(target) and team.GetColor(target:Team()) or color_white
+			local userName = IsValid(target) and target:Nick() or "<already kicked>"
+			local appendColor = IsValid(target) and team.GetColor(target:Team()) or color_gray
 			RichText:AppendText("Player \"")
 			RichText:InsertColorChange(appendColor.r, appendColor.g, appendColor.b, appendColor.a)
 			RichText:AppendText(userName)
 			RichText:InsertColorChange(255,255,255,255)
 			RichText:AppendText("\" has been kicked.")
+		elseif typ == RTG_VOTE_CHANGEDIFFICULTY then
+			local target = GAMEMODE.Modes[voteInfo.target]
+			local difficultyName = string.format("%s - %s", target.category or "[ERROR", target.name or "INVALID DIFFICULTY]")
+			local appendColor = CATEGORY_COLORS[GAMEMODE.ModeCategories[target.category]]
+			RichText:AppendText("Difficulty will be changed to \"")
+			RichText:InsertColorChange(appendColor.r, appendColor.g, appendColor.b, appendColor.a)
+			RichText:AppendText(difficultyName)
+			RichText:InsertColorChange(255,255,255,255)
+			RichText:AppendText("\" in 5 seconds.")
 		end
 	end
 end
@@ -1318,21 +1390,20 @@ local function CreateSkillButton(parent, skillID, skillTier)
 	button:SetPaintedManually(true)
 	button.rtg_ActivateTime = -SKILL_ACTIVATE_TIME
 	button.rtg_SinePhase = math.random()*math.pi*2
-	button.rtg_Pressed = false
 	
 	local radiusMultiplier = SKILL_SPRITE_RADIUS_MULTIPLIERS[skillTier+1]
 	
 	function button:OnMousePressed(mousecode)
 		if mousecode == MOUSE_LEFT then
-			self.rtg_Pressed = true
 			self:MouseCapture(true)
 		end
 	end
 	function button:OnMouseReleased(mousecode)
-		if self.rtg_Pressed and self:IsHovered() and mousecode == MOUSE_LEFT then
-			self:UnlockPerk()
+		if mousecode == MOUSE_LEFT then
+			if self:IsHovered() then
+				self:UnlockPerk()
+			end
 			self:MouseCapture(false)
-			self.rtg_Pressed = false
 		end
 	end
 	function button:OnCursorEntered()
@@ -2146,7 +2217,7 @@ function GM:CreateFailureMenu()
 	
 	local flawless = true
 	for k,v in pairs(player.GetAll()) do
-		if (v.rotgb_gBalloonPops or 0) > 0 then
+		if (v.rtg_gBalloonPops or 0) > 0 then
 			flawless = false
 		end
 	end
@@ -2181,7 +2252,7 @@ function GM:CreateVoteMenu(data)
 	local VoteLeftPanel = CreateVoteLeftPanel()
 	local VoteRightPanel = CreateVoteRightPanel(VoteLeftPanel, data)
 	local VoteReasonPanel = CreateVoteReasonPanel()
-	local VoteStartPanel = CreateVoteButtonPanel(VoteRightPanel, VoteReasonPanel, data)
+	local VoteStartPanel = CreateVoteButtonPanel(Menu, VoteRightPanel, VoteReasonPanel, data)
 	
 	local ButtonDivider = vgui.Create("DVerticalDivider", Menu)
 	local ReasonDivider = vgui.Create("DVerticalDivider")
@@ -2213,11 +2284,13 @@ end
 function GM:CreateVoterMenu()
 	local voteInfo = hook.Run("GetCurrentVote")
 	
-	local SideMenu = vgui.Create("DFrame")
+	local SideMenu = CreateMenu()
 	SideMenu:SetSize(ScrW()/6, ScrH()/3)
 	SideMenu:SetPos(FONT_BODY_HEIGHT, ScrH()/3)
 	SideMenu:DockPadding(FONT_BODY_HEIGHT/2, FONT_BODY_HEIGHT/2, FONT_BODY_HEIGHT/2, FONT_BODY_HEIGHT/2)
-	SideMenu.Paint = DrawDarkBackground
+	SideMenu:KillFocus()
+	SideMenu:SetKeyboardInputEnabled(false)
+	SideMenu:SetMouseInputEnabled(false)
 	
 	local statement = CreateVoterStatementPanel(SideMenu, voteInfo)
 	local timer = CreateVoterTimerPanel(SideMenu, 2, voteInfo)
@@ -2335,7 +2408,8 @@ function GM:GetGamemodeDifficultyNodes()
 		if v.name then
 			local subnode = {
 				name = v.name,
-				internalName = k
+				internalName = k,
+				place = v.place
 			}
 			nodesByCategory[v.category] = nodesByCategory[v.category] or {}
 			table.insert(nodesByCategory[v.category], subnode)

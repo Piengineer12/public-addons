@@ -4,7 +4,7 @@ net.Receive("rotgb_statchanged", function()
 		for i=1,net.ReadUInt(12) do
 			local ply = net.ReadEntity()
 			if IsValid(ply) then
-				ply.rotgb_gBalloonPops = net.ReadDouble()
+				ply.rtg_gBalloonPops = net.ReadDouble()
 				ply.rtg_XP = net.ReadDouble()
 			end
 		end

@@ -1,4 +1,7 @@
 function GM:StartVote(ply, typ, target, reason)
+	if typ == RTG_VOTE_CHANGEDIFFICULTY and not GAMEMODE.Modes[target] then
+		hook.Run("SendVoteResult", ply, RTG_VOTERESULT_NOTARGET)
+	end
 	local currentVote = hook.Run("GetCurrentVote")
 	if (currentVote and currentVote.nextVoteAvailability > RealTime()) then
 		hook.Run("SendVoteResult", ply, RTG_VOTERESULT_COOLDOWN)
@@ -75,8 +78,7 @@ function GM:CurrentVoteThink()
 			if IsValid(ply) then
 				if not currentVote.metadata.userName then
 					currentVote.metadata.userName = ply:Nick()
-				end
-				if currentVote.metadata.userName ~= ply:Nick() then -- the player is trying to dodge, kick the player immediately
+				elseif currentVote.metadata.userName ~= ply:Nick() then -- the player is trying to dodge, kick the player immediately
 					ply:Kick()
 					hook.Run("ClearAndSendVoteResult", RTG_VOTERESULT_KICKBYCHANGEDNICK)
 				end
@@ -92,19 +94,28 @@ function GM:ClearAndSendVoteResult(result)
 	net.WriteUInt(RTG_OPERATION_VOTEEND, 4)
 	net.WriteUInt(result, 4)
 	net.Broadcast()
+	
+	hook.Run("SetCurrentVote")
 end
 
 function GM:ResolveCurrentVote()
 	local currentVote = hook.Run("GetCurrentVote")
 	
-	if currentVote.agrees >= currentVote.disagrees then
+	if currentVote.agrees > currentVote.disagrees then
 		if currentVote.typ == RTG_VOTE_KICK then
 			local target = Player(tonumber(currentVote.target) or -1)
 			if IsValid(target) then
-				target:Kick("You have been kicked from this server.\n")
+				timer.Simple(0.5,function()
+					target:Kick("Voted out of the server")
+				end)
 			else
 				return hook.Run("ClearAndSendVoteResult", RTG_VOTERESULT_NOTARGET)
 			end
+		elseif currentVote.typ == RTG_VOTE_CHANGEDIFFICULTY then
+			local target = currentVote.target
+			timer.Simple(5, function()
+				hook.Run("ChangeDifficulty", currentVote.target)
+			end)
 		end
 		
 		hook.Run("ClearAndSendVoteResult", RTG_VOTERESULT_AGREED)

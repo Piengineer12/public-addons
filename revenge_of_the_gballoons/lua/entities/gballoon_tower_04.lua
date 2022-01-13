@@ -22,7 +22,7 @@ ENT.AttackDamage = 10
 ENT.IsChessPiece = true
 ENT.rotgb_Spread = 60
 ENT.rotgb_Shots = 1
-ENT.rotgb_LaserDamageMul = 1
+ENT.rotgb_LaserDamageMul = 50
 ENT.IsChessPiece = true
 ENT.UpgradeReference = {
 	{
@@ -52,7 +52,7 @@ ENT.UpgradeReference = {
 				self.rotgb_UseLaser = 1
 			end,
 			function(self)
-				self.rotgb_LaserDamageMul = self.rotgb_LaserDamageMul * 3
+				self.rotgb_LaserDamageMul = self.rotgb_LaserDamageMul / 2
 				self.rotgb_UseLaser = 2
 			end,
 			function(self)
@@ -110,57 +110,55 @@ local function SnipeEntity()
 		local startPos = self:GetShootPos()
 		--uDir:Normalize()
 		if self.rotgb_UseLaser then
-			for i=1,self.rotgb_Shots do
-				local laser = ents.Create(self.rotgb_UseLaser==1 and "env_laser" or "env_beam")
-				local startEnt = self.rotgb_UseLaser==2 and ents.Create("info_target") or NULL
-				--local endEnt = ents.Create("info_target")
-				laser:SetPos(startPos)
-				--[[if IsValid(endEnt) then
-					endEnt:SetName("ROTGB04_"..endEnt:GetCreationID())
-					endEnt:SetPos(ent:GetPos()+ent.loco:GetVelocity()*0.1+ent:OBBCenter())
-				end]]
-				local oldEntName = ent:GetName()
-				local entityName = ent:GetName() ~= "" and ent:GetName() or "ROTGB04_2_"..self:GetCreationID()
-				ent:SetName(entityName)
-				if IsValid(startEnt) then
-					startEnt:SetName("ROTGB04_"..self:GetCreationID())
-					startEnt:SetPos(startPos)
-					startEnt:Spawn()
-				end
-				laser:SetKeyValue("LaserTarget",entityName)
-				laser:SetKeyValue("renderamt","255")
-				laser:SetKeyValue("rendercolor",self.rotgb_UseLaser==1 and "0 255 127" or self.rotgb_LaserDamageMul > 10 and "0 255 0" or "255 0 0")
-				laser:SetKeyValue("width","3")
-				laser:SetKeyValue("BoltWidth",2*self.rotgb_LaserDamageMul)
-				laser:SetKeyValue("NoiseAmplitude","0")
-				laser:SetKeyValue("texture","sprites/laserbeam.spr")
-				laser:SetKeyValue("TextureScroll","35")
-				laser:SetKeyValue("damage",self.AttackDamage*self.rotgb_LaserDamageMul*30)
-				laser:SetKeyValue("LightningStart","ROTGB04_"..self:GetCreationID())
-				laser:SetKeyValue("LightningEnd",entityName)
-				laser:SetKeyValue("HDRColorScale","1")
-				laser:SetKeyValue("spawnflags","33")
-				laser:SetKeyValue("life",0.2)
-				laser:Spawn()
-				laser:Activate()
-				laser.rotgb_Owner = self
-				laser.rotgb_UseLaser = self.rotgb_UseLaser
-				laser:Fire("TurnOn")
-				timer.Simple(0.2,function()
-					if IsValid(laser) then
-						laser:Remove()
-					end
-					if (IsValid(ent) and entityName == ent:GetName()) then
-						ent:SetName(oldEntName)
-					end
-					if IsValid(startEnt) then
-						startEnt:Remove()
-					end
-					--[[if IsValid(endEnt) then
-						endEnt:Remove()
-					end]]
-				end)
+			local laser = ents.Create(self.rotgb_UseLaser==1 and "env_laser" or "env_beam")
+			local startEnt = self.rotgb_UseLaser==2 and ents.Create("info_target") or NULL
+			--local endEnt = ents.Create("info_target")
+			laser:SetPos(startPos)
+			--[[if IsValid(endEnt) then
+				endEnt:SetName("ROTGB04_"..endEnt:GetCreationID())
+				endEnt:SetPos(ent:GetPos()+ent.loco:GetVelocity()*0.1+ent:OBBCenter())
+			end]]
+			local oldEntName = ent:GetName()
+			local entityName = ent:GetName() ~= "" and ent:GetName() or "ROTGB04_2_"..self:GetCreationID()
+			ent:SetName(entityName)
+			if IsValid(startEnt) then
+				startEnt:SetName("ROTGB04_"..self:GetCreationID())
+				startEnt:SetPos(startPos)
+				startEnt:Spawn()
 			end
+			laser:SetKeyValue("LaserTarget",entityName)
+			laser:SetKeyValue("renderamt","255")
+			laser:SetKeyValue("rendercolor",self.rotgb_UseLaser==1 and "0 255 127" or self.rotgb_LaserDamageMul > 200 and "0 255 0" or "255 0 0")
+			laser:SetKeyValue("width","3")
+			laser:SetKeyValue("BoltWidth",math.sqrt(self.rotgb_LaserDamageMul))
+			laser:SetKeyValue("NoiseAmplitude","0")
+			laser:SetKeyValue("texture","sprites/laserbeam.spr")
+			laser:SetKeyValue("TextureScroll","35")
+			laser:SetKeyValue("damage",self.AttackDamage*self.rotgb_LaserDamageMul*self.rotgb_Shots)
+			laser:SetKeyValue("LightningStart","ROTGB04_"..self:GetCreationID())
+			laser:SetKeyValue("LightningEnd",entityName)
+			laser:SetKeyValue("HDRColorScale","1")
+			laser:SetKeyValue("spawnflags","33")
+			laser:SetKeyValue("life",0.2)
+			laser:Spawn()
+			laser:Activate()
+			laser.rotgb_Owner = self
+			laser.rotgb_UseLaser = self.rotgb_UseLaser
+			laser:Fire("TurnOn")
+			timer.Simple(0.2,function()
+				if IsValid(laser) then
+					laser:Remove()
+				end
+				if (IsValid(ent) and entityName == ent:GetName()) then
+					ent:SetName(oldEntName)
+				end
+				if IsValid(startEnt) then
+					startEnt:Remove()
+				end
+				--[[if IsValid(endEnt) then
+					endEnt:Remove()
+				end]]
+			end)
 		else
 			local uDir = ent:LocalToWorld(ent:OBBCenter())-startPos
 			local bullet = {

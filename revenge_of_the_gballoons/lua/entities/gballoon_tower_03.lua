@@ -20,6 +20,7 @@ ENT.LOSOffset = Vector(0,0,40)
 ENT.UserTargeting = true
 ENT.AttackDamage = 30
 ENT.IsChessPiece = true
+ENT.rotgb_MaxMarkers = 100
 ENT.UpgradeReference = {
 	{
 		Names = {"Sniping Scope","Night Vision Goggles","Semi-Automatic Rifle","Fully-Automatic Rifle","Marking Shots","England's Grace"},
@@ -28,10 +29,10 @@ ENT.UpgradeReference = {
 			"Considerably increases fire rate and grants Hidden gBalloon popping power.",
 			"Tremendously increases fire rate.",
 			"Colossally increases fire rate!",
-			"This tower now places markers on gBalloons. Each marker placed increases damage taken from Sniper Queens by one layer. Markers only affect the gBalloon's outermost layer.",
-			"Doubles fire rate and all shots hit all gBalloons in its radius!"
+			"This tower now places markers on gBalloons. Every 10 markers placed will increase damage taken from Sniper Queens by one layer, up to 100 extra layers of damage. Markers only affect the gBalloon's outermost layer.",
+			"Doubles fire rate, increases the maximum marker limit to 1,000 and all shots hit all gBalloons in its radius!"
 		},
-		Prices = {300,2000,5000,25000,250000,10e6},
+		Prices = {300,2000,5000,25000,250000,20e6},
 		Funcs = {
 			function(self)
 				self.InfiniteRange = true
@@ -52,6 +53,7 @@ ENT.UpgradeReference = {
 			function(self)
 				self.FireRate = self.FireRate * 5
 				self.rotgb_Spread = true
+				self.rotgb_MaxMarkers = self.rotgb_MaxMarkers * 10
 			end
 		}
 	},
@@ -109,7 +111,7 @@ local function SnipeEntity()
 			Callback = function(attacker,tracer,dmginfo)
 				dmginfo:SetDamageType(self.rotgb_CanPopGray and DMG_SNIPER or DMG_BULLET)
 			end,
-			Damage = self.AttackDamage + (ent.rotgb_AdditionslSniperDamage or 0),
+			Damage = self.AttackDamage + math.floor((ent.rotgb_AdditionslSniperDamage or 0) / 10)*10,
 			Distance = self.DetectionRadius*1.5,
 			HullSize = 1,
 			AmmoType = self.rotgb_CanPopGray and "SniperPenetratedRound" or "Pistol",
@@ -117,11 +119,11 @@ local function SnipeEntity()
 			Dir = uDir,
 			Src = startPos
 		}
-		if self.rotgb_StunBlimp and ent:GetBalloonProperty("BalloonBlimp") and ent:GetRgBE()<35128 then
+		if self.rotgb_StunBlimp and ent:GetBalloonProperty("BalloonBlimp") and ent:GetRgBE()<53680 then
 			ent:Stun(1)
 		end
 		if self.rotgb_MarkingShots then
-			ent.rotgb_AdditionslSniperDamage = (ent.rotgb_AdditionslSniperDamage or 0) + 10
+			ent.rotgb_AdditionslSniperDamage = math.min((ent.rotgb_AdditionslSniperDamage or 0) + 1, 1000)
 		end
 		if self.rotgb_ExtraToBlimp and ent:GetBalloonProperty("BalloonBlimp") then
 			bullet.Damage = bullet.Damage * 5

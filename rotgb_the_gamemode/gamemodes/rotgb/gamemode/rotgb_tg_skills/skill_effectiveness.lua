@@ -9,7 +9,7 @@ for i=1,99 do
 			ref = string.format("se%i", i),
 			name = "Skill Effectiveness",
 			trait = "skillEffectiveness",
-			amount = 2,
+			amount = 1,
 			links = {string.format("se%i", i-1)},
 			pos = VectorTable(xPos,yPos),
 			parent = "physgun"
@@ -30,7 +30,7 @@ table.insert(skillEffectivenessSkills, {
 	ref = "se50",
 	name = "Skill Effectiveness",
 	trait = "skillEffectiveness",
-	amount = 2,
+	amount = 1,
 	links = {"se25", "ydihylh"},
 	pos = VectorTable(2,2),
 	parent = "ydihylh"
@@ -39,7 +39,7 @@ table.insert(skillEffectivenessSkills, {
 	ref = "se100",
 	name = "Skill Effectiveness",
 	trait = "skillEffectiveness",
-	amount = 2,
+	amount = 1,
 	links = {"se75", "hdtgpqa"},
 	pos = VectorTable(1,1),
 	parent = "hdtgpqa"

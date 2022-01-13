@@ -161,6 +161,33 @@ function GM:gBalloonSpawnerPostSpawn(spawner, bln, keyValues)
 	bln:SetBalloonProperty("BalloonArmor", (bln:GetBalloonProperty("BalloonArmor") or 0)+math.ceil(hook.Run("GetSkillAmount", "gBalloonOuterArmor")))
 end
 
+-- defined in gballoon_target.lua
+function GM:gballoonTargetTakeDamage(target, dmginfo)
+	dmginfo:SubtractDamage(hook.Run("GetSkillAmount", "targetArmor"))
+	if dmginfo:GetDamage() < 0 then
+		dmginfo:SetDamage(0)
+	end
+	dmginfo:ScaleDamage(1/(1+hook.Run("GetSkillAmount", "targetDefence")/100))
+	if math.random() < hook.Run("GetSkillAmount", "targetDodge")/100 then
+		dmginfo:SetDamage(0)
+	end
+end
+function GM:PostgballoonTargetTakeDamage(target, dmginfo)
+	if hook.Run("GetSkillAmount", "targetRevenge") > 0 then
+		local dmginfo = DamageInfo()
+		dmginfo:SetAttacker(target)
+		dmginfo:SetInflictor(target)
+		dmginfo:SetDamage(math.floor(hook.Run("GetSkillAmount", "targetRevenge"))*10)
+		dmginfo:SetDamageType(DMG_GENERIC)
+		dmginfo:SetReportedPosition(target:GetPos())
+		
+		for k,v in pairs(ROTGB_GetBalloons()) do
+			dmginfo:SetDamagePosition(v:GetPos())
+			v:TakeDamageInfo(dmginfo)
+		end
+	end
+end
+
 -- defined in gballoon_base.lua
 function GM:gBalloonPostInitialize(bln)
 	local slowDown = 1+hook.Run("GetSkillAmount", "gBalloonSpeed")/100

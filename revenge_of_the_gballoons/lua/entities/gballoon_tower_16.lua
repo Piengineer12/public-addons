@@ -91,7 +91,7 @@ ENT.UpgradeReference = {
 			"This tower now generates interest up to $250,000 per second!",
 			"This tower no longer has a maximum interest rate! Once every 60 seconds, shooting at this tower doubles everyone's current cash!"
 		},
-		Prices = {450,1300,10000,60000,650000,7e6,100e6},
+		Prices = {450,1300,10000,60000,650000,7e6,250e6},
 		Funcs = {
 			function(self)
 				self.rotgb_HoverballLife = self.rotgb_HoverballLife * 3

@@ -49,7 +49,7 @@ GM.BaseTraitsText = {
 	targetOSP = {color_white, "For ", color_yellow, 1, color_white, " times (rounded down), all fatal damage received by gBalloon Targets are negated."},
 	targetRegeneration = {color_white, "All damaged gBalloon Targets gain ", color_yellow, 1, color_white, " health at the end of each wave (rounded down)."},
 	hoverballFactoryHealthAmplifier = {color_yellow, 1, color_white, "% X-X-4+ Hoverball Factory health generation"},
-	targetShield = {color_white, "Damage is prevented each wave, up to ", color_yellow, 1, color_white, "% of maximum health (rounded down)."},
+	targetShield = {color_white, "All gBalloon Targets are shielded by ", color_yellow, 1, color_white, "% of their maximum health (rounded down). Shields fully recharge at the end of each wave."},
 	targetGoldenHealth = {color_yellow, 1, color_white, " gBalloon Target golden health (rounded down)"},
 	targetArmor = {color_yellow, 1, color_white, " gBalloon Target armor. Damage taken is subtracted by armor (rounding up)."},
 	targetDodge = {color_yellow, 1, color_white, "% chance to completely prevent damage"},
@@ -80,6 +80,7 @@ GM.BaseTraitsText = {
 	gBlimpArmoredArmor = {color_yellow, 1, color_white, " armor on armored gBlimps (rounding up)"},
 	gBalloonFireGeneric = {color_white, "Purple gBalloons and Rainbow gBlimps are no longer immune to fire."},
 	gBalloonCritChance = {color_yellow, 1, color_white, "% chance to deal double damage"},
+	--targetRevenge = {color_yellow, 1, color_white, " damage dealt (rounded down) to all gBalloons whenever any gBalloon Target takes damage."},
 }
 
 GM.AppliedSkills = {}
@@ -297,7 +298,11 @@ end
 -- defined in gballoon_target.lua
 function GM:gBalloonTargetHealthAdjust(ent, health)
 	ent:SetGoldenHealth(hook.Run("GetSkillAmount", "targetGoldenHealth"))
-	return health * (1+hook.Run("GetSkillAmount", "targetHealth")/100*(1+hook.Run("GetSkillAmount", "targetHealthEffectiveness")/100))
+	ent:SetPerWaveShieldPercent(hook.Run("GetSkillAmount", "targetShield"))
+	ent:SetOSPs(hook.Run("GetSkillAmount", "targetOSP"))
+	local newHealth = health * (1+hook.Run("GetSkillAmount", "targetHealth")/100*(1+hook.Run("GetSkillAmount", "targetHealthEffectiveness")/100))
+	ent:SetPerWaveShield(newHealth*ent:GetPerWaveShieldPercent()/100)
+	return newHealth
 end
 
 -- defined in gballoon_tower_base.lua
@@ -317,7 +322,7 @@ local experienceNeeded = {
 local function getExperienceNeeded(currentLevel)
 	currentLevel = math.floor(currentLevel)
 	if currentLevel < 1 then return 0
-	elseif currentLevel >= 999 then return math.huge
+	--elseif currentLevel >= 999 then return math.huge
 	elseif experienceNeeded[currentLevel] then return experienceNeeded[currentLevel]
 	else
 		local n = currentLevel-4
@@ -326,6 +331,7 @@ local function getExperienceNeeded(currentLevel)
 end
 
 function PLAYER:RTG_GetLevel()
+	self.rtg_Level = self.rtg_Level or 1
 	if getExperienceNeeded(self.rtg_Level) <= self:RTG_GetExperience() then
 		self:RTG_UpdateLevel()
 	end
@@ -354,7 +360,7 @@ end
 
 function PLAYER:RTG_UpdateLevel()
 	while getExperienceNeeded(self.rtg_Level) <= self:RTG_GetExperience() do
-		if self.rtg_Level >= 1000 then break end
+		if self:RTG_GetExperience() == math.huge then break end
 		self.rtg_Level = self.rtg_Level + 1
 	end
 end

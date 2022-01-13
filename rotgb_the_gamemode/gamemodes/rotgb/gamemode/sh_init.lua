@@ -1,5 +1,7 @@
 GM.Name							= "RotgB: The Gamemode!"
 GM.Author						= "Piengineer"
+GM.Version						= "0.1.0"
+GM.VersionDate					= "2022-01-06"
 GM.Email						= "[REDACTED]"
 GM.Website						= "https://steamcommunity.com/id/Piengineer12"
 GM.TeamBased					= true
@@ -8,7 +10,7 @@ GM.SpawnDelay					= 2
 GM.NetSendInterval				= 0.2 -- this is also the scoreboard refresh rate, but if this is too low, messages might be sent to the client so fast that the client might crash!
 GM.DatabaseFormatVersion		= 1
 GM.DatabaseSaveInterval			= 30
-GM.VoteTime						= 20
+GM.VoteTime						= 15
 GM.DebugMode					= true
 GM.ModeCategories				= {Easy = 1, Medium = 2, Hard = 3, Insane = 4, Impossible = 5}
 GM.Modes						= {
@@ -97,10 +99,10 @@ GM.Modes						= {
 			rotgb_target_natural_health = 150
 		}
 	},
-	medium_avalanche = {
-		name = "Avalanche",
+	medium_rainstorm = {
+		name = "Rainstorm",
 		category = "Medium",
-		description = "Medium difficulty, but rounds always start immediately one after another, regardless of Auto-Start settings.",
+		description = "Medium difficulty, but waves always start immediately one after another, regardless of Auto-Start settings.",
 		place = 2,
 		convars = {
 			rotgb_difficulty = 1,
@@ -135,15 +137,16 @@ GM.Modes						= {
 		}
 	},
 	hard_legacy = {
-		name = "Legacy Waves",
+		name = "Legacy Monsoon",
 		category = "Hard",
-		description = "Hard difficulty, except pre-Update 5.0.0 waves are used instead.",
+		description = "Hard difficulty, but ends at Wave 120, waves start every 10 seconds and pre-Update 4.0.0 waves are used instead.",
 		place = 2,
 		convars = {
 			rotgb_difficulty = 2,
-			rotgb_default_last_wave = 80,
+			rotgb_default_last_wave = 120,
 			rotgb_target_natural_health = 100,
-			rotgb_default_wave_preset = "?LEGACY"
+			rotgb_default_wave_preset = "?LEGACY_10S",
+			rotgb_spawner_force_auto_start = 1
 		}
 	},
 	hard_doublehpblimps = {
@@ -181,6 +184,19 @@ GM.Modes						= {
 			rotgb_health_multiplier = 2
 		}
 	},
+	insane_bosses = {
+		name = "Bosses",
+		category = "Insane",
+		description = "Insane difficulty, but waves always start immediately one after another and a boss gBalloon spawns once every 20 waves.",
+		place = 3,
+		convars = {
+			rotgb_difficulty = 3,
+			rotgb_default_last_wave = 100,
+			rotgb_target_natural_health = 50,
+			rotgb_default_wave_preset = "?BOSSES",
+			rotgb_spawner_force_auto_start = 1
+		}
+	},
 	impossible_regular = {
 		name = "Regular",
 		category = "Impossible",
@@ -191,34 +207,62 @@ GM.Modes						= {
 			rotgb_default_last_wave = 120,
 			rotgb_target_natural_health = 1
 		}
-	}
+	},
+	impossible_monsoon = {
+		name = "Monsoon",
+		category = "Impossible",
+		description = "Impossible difficulty, but waves always start two seconds apart from each other, regardless of Auto-Start settings.",
+		place = 2,
+		convars = {
+			rotgb_difficulty = 4,
+			rotgb_default_last_wave = 120,
+			rotgb_target_natural_health = 1,
+			rotgb_default_wave_preset = "?2S",
+			rotgb_spawner_force_auto_start = 1
+		}
+	},
+	impossible_bosses = {
+		name = "Super Bosses",
+		category = "Impossible",
+		description = "Impossible difficulty, but with super bosses and ends at Wave 140. Hopefully.",
+		place = 3,
+		convars = {
+			rotgb_difficulty = 4,
+			rotgb_default_last_wave = 140,
+			rotgb_target_natural_health = 1,
+			rotgb_default_wave_preset = "?BOSSES_SUPER",
+			rotgb_spawner_force_auto_start = 1
+		}
+	},
 }
 
 --[[
 TO DO LIST:
-+ several others (*.txt in same directory)
 
-complete new spawner waves
 update the readme file
-sandbox saving
 fix autostart on rotgb_heatwave
-sfx for upgrading and placing
-music?
 fix Multipurpose Engine buff desync - difficult to solve on client side
-popped gBalloons MIGHT incorrectly render a shield when their health is actually too low to render - low priority
+sandbox saving
+gBalloon bosses
+
+sfx for upgrading and placing - how?
+music - how?
+
 button to sell all towers - low priority
 button to activate all abilities - low priority
-
-ISAWC:
-
-TEST
++ several others (*.txt in same directory)
 
 GAMEMODE:
 
-implement more game difficulty modes
-implement description field for difficulty GUI
 skill web: skill web stars?
-voting: kicking + difficulty setting
+lock game modes?
+
+implement more game difficulty modes - low priority
+
+ADDON: PZDraw
+
+fonts
+rich text
 ]]
 
 RTG_STAT_POPS = 1
@@ -233,6 +277,7 @@ RTG_OPERATION_VOTEEND = 5
 RTG_OPERATION_SKILLS = 6
 
 RTG_VOTE_KICK = 1
+RTG_VOTE_CHANGEDIFFICULTY = 2
 
 RTG_VOTERESULT_NOTARGET = 1
 RTG_VOTERESULT_COOLDOWN = 2
@@ -262,8 +307,20 @@ function GM:RTG_Log(message, logging, noNewline)
 	MsgC(color_aqua, "[RotgB:TG] ", logColor, message, newline)
 end
 
-local files = {
+local clientFiles = {
+	"cl_common_functions.lua",
+	"cl_hud.lua",
+	"cl_misc.lua",
+	"cl_net.lua",
+	"cl_player.lua",
+	"cl_skills.lua",
+	"cl_ui.lua",
+	"cl_voting.lua",
+}
+
+local sharedFiles = {
 	"sh_common_functions.lua",
+	"sh_misc.lua",
 	"sh_player.lua",
 	"sh_skills.lua",
 	"sh_teams.lua",
@@ -271,56 +328,34 @@ local files = {
 	"player_class/hunter.lua"
 }
 
-for i,v in ipairs(files) do
-	AddCSLuaFile(v)
+local serverFiles = {
+	"sv_misc.lua",
+	"sv_net.lua",
+	"sv_player.lua",
+	"sv_skills.lua",
+	"sv_spectators.lua",
+	"sv_teams.lua",
+	"sv_voting.lua",
+}
+
+for i,v in ipairs(clientFiles) do
+	if SERVER then
+		AddCSLuaFile(v)
+	end
+	if CLIENT then
+		include(v)
+	end
+end
+
+for i,v in ipairs(sharedFiles) do
+	if SERVER then
+		AddCSLuaFile(v)
+	end
 	include(v)
 end
 
-function GM:CreateTeams()
-	hook.Run("InitializeTeams")
-end
-
-function GM:PhysgunPickup(ply, ent)
-	if self.DebugMode then return true
-	elseif ent.Base == "gballoon_tower_base" then return hook.Run("GetSkillAmount", "physgun") > 0 and not ROTGB_BalloonsExist()
+if SERVER then
+	for i,v in ipairs(serverFiles) do
+		include(v)
 	end
-	return false
-end
-
-function GM:PlayerNoClip(ply, desired)
-	return self.DebugMode
-end
-
-function GM:OnPlayerHitGround(ply, intoWater, onFloating, fallSpeed)
-	-- players do not take fall damage
-	return true
-end
-
-function GM:CanProperty(ply, property, ent)
-	if property == "remover" then
-		return ent.Base == "gballoon_tower_base"
-	end
-	return false
-end
-
-function GM:PostCleanupMap()
-	RTG_FirstAllyPawnFreeDone = nil
-	if SERVER then
-		hook.Run("PostCleanupMapServer")
-	end
-end
-
--- non-base
-
-function GM:SharedInitialize()
-	hook.Run("RebuildSkills")
-	hook.Run("SetCachedSkillAmounts", {})
-end
-
-AccessorFunc(GM, "Difficulty", "Difficulty", FORCE_STRING)
-AccessorFunc(GM, "CurrentVote", "CurrentVote")
-
-function GM:ShouldConVarOverride(cvar)
-	local currentDifficulty = hook.Run("GetDifficulty")
-	return self.Modes[currentDifficulty] and self.Modes[currentDifficulty].convars[cvar] or self.Modes.__common.convars[cvar]
 end

@@ -43,6 +43,17 @@ ENT.rotgb_rbetab = {
 	gballoon_glass=1,
 	gballoon_void=1,
 	gballoon_cfiber=999999999,
+	
+	gballoon_melon=1000,
+	gballoon_melon_super=5000,
+	gballoon_mossman=8920,
+	gballoon_mossman_super=42640,
+	gballoon_gman=25e3,
+	gballoon_gman_super=100e3,
+	gballoon_blimp_ggos=103896,
+	gballoon_blimp_ggos_super=507792,
+	gballoon_garrydecal=10e6,
+	gballoon_garrydecal_super=50e6
 }
 ENT.rotgb_spawns = {
 	gballoon_blue={gballoon_red=1},
@@ -69,6 +80,9 @@ ENT.rotgb_spawns = {
 	gballoon_blimp_purple={gballoon_blimp_green=2,gballoon_hidden_regen_blimp_gray=2},
 	gballoon_blimp_magenta={gballoon_hidden_regen_blimp_gray=4},
 	gballoon_blimp_rainbow={gballoon_blimp_purple=2,gballoon_fast_blimp_magenta=2},
+	
+	gballoon_blimp_ggos={gballoon_marble=4},
+	gballoon_blimp_ggos_super={gballoon_fast_hidden_regen_shielded_marble=4},
 }
 
 function ENT:Log(message,attrib)
@@ -81,6 +95,7 @@ end
 
 local entitiestoconsider = {}
 local savedKeyValueTables = {}
+local registeredBossEffects = {}
 
 function ENT:KeyValue(key,value)
 	self.Properties = self.Properties or {}
@@ -124,7 +139,6 @@ function ENT:ConvertProperties()
 	self.Properties.BalloonScale = self.Properties.BalloonScale or 1
 	self.Properties.BalloonShielded = tobool(self.Properties.BalloonShielded)
 	self.Properties.BalloonHealth = self.Properties.BalloonHealth or 1
-	self.Properties.BalloonHealth = self.Properties.BalloonHealth or 1
 	self.Properties.BalloonRainbow = tobool(self.Properties.BalloonRainbow)
 	self.Properties.BalloonHidden = tobool(self.Properties.BalloonHidden)
 	self.Properties.BalloonColor = self.Properties.BalloonColor or "255 255 255 127"
@@ -132,7 +146,7 @@ function ENT:ConvertProperties()
 		or useLegacy and self.Properties.BalloonShielded and "models/balloon/balloon_star"
 		or self.Properties.BalloonRegen and "models/balloon/balloon_classicheart"
 		or (useLegacy or noTrails) and self.Properties.BalloonFast and "models/balloon/balloon_dog"
-		or "models/balloon/balloon"
+		or "maxofs2d/models/balloon_classic_01"
 	self.Properties.BalloonModel = self.Properties.BalloonModel
 		or useLegacy and self.Properties.BalloonShielded and "models/balloons/balloon_star.mdl"
 		or self.Properties.BalloonRegen and "models/balloons/balloon_classicheart.mdl"
@@ -150,6 +164,9 @@ function ENT:ConvertProperties()
 	self.Properties.BalloonVoid = tobool(self.Properties.BalloonVoid)
 	self.Properties.BalloonGlass = tobool(self.Properties.BalloonGlass)
 	self.Properties.BalloonCashBonus = self.Properties.BalloonCashBonus or 0
+	self.Properties.BalloonBoss = tobool(self.Properties.BalloonBoss)
+	self.Properties.BalloonHealthSegments = self.Properties.BalloonHealthSegments or 1
+	self.Properties.BalloonBossEffect = self.Properties.BalloonBossEffect or ""
 	
 	self.PropertyConverted = true
 end
@@ -197,14 +214,21 @@ function ENT:ApplyBalloonProperty(key, value)
 		
 		self:SetHealth(hp)
 		self:SetMaxHealth(hp)
+		if self:GetBalloonProperty("BalloonBoss") then
+			self:SetStatusSendRequired(true)
+		end
 	elseif key == "BalloonShielded" and self.OldBalloonShielded ~= value then
 		self.OldBalloonShielded = value
 		self:SetHealth(self:Health() * (value and 2 or 0.5))
 		self:SetMaxHealth(self:GetMaxHealth() * (value and 2 or 0.5))
+		self:SetNWBool("RenderShield", value and not useOldStyle)
+		if self:GetBalloonProperty("BalloonBoss") then
+			self:SetStatusSendRequired(true)
+		end
 	elseif key == "BalloonPurple" and not (useOldStyle or self:GetBalloonProperty("BalloonHidden")) then
 		self:SetNWBool("BalloonPurple",value)
-	elseif key == "BalloonShielded" and not (useOldStyle or self:Health()*2<=self:GetMaxHealth()) then
-		self:SetNWBool("RenderShield",true)
+	elseif key == "BalloonRainbow" then
+		self:SetNWBool("BalloonRainbow",value)
 	elseif key == "BalloonFast" then
 		if value then
 			self:Slowdown("BalloonFast",2,9999)
@@ -217,6 +241,8 @@ function ENT:ApplyBalloonProperty(key, value)
 				self.FastTrail:Remove()
 			end
 		end
+	elseif key == "BalloonBoss" and value then
+		self:SetStatusSendRequired(true)
 	end
 end
 
@@ -244,13 +270,19 @@ function ENT:ApplyAllBalloonProperties()
 	if self:GetBalloonProperty("BalloonShielded") then
 		self.OldBalloonShielded = true
 		hp = hp * 2
-		self:SetNWBool("RenderShield",true)
+		self:SetNWBool("RenderShield", true)
 	end
 	self:SetHealth(hp)
 	self:SetMaxHealth(hp)
+	if self:GetBalloonProperty("BalloonBoss") then
+		self:SetStatusSendRequired(true)
+	end
 	
 	if self:GetBalloonProperty("BalloonPurple") and not (useOldStyle or self:GetBalloonProperty("BalloonHidden")) then
 		self:SetNWBool("BalloonPurple",true)
+	end
+	if self:GetBalloonProperty("BalloonRainbow") then
+		self:SetNWBool("BalloonRainbow",true)
 	end
 	
 	if self:GetBalloonProperty("BalloonFast") then 
@@ -313,6 +345,10 @@ function ROTGB_BalloonsExist()
 end
 
 local notifshown
+
+if SERVER then
+	AccessorFunc(ENT, "StatusSendRequired", "StatusSendRequired", FORCE_BOOL)
+end
 
 function ENT:Initialize()
 	self:RegistergBalloon()
@@ -1103,7 +1139,9 @@ function ENT:MoveToTarget()
 				return "Got stuck for the "..self.UnstuckAttempts..STNDRD(self.UnstuckAttempts).." time!"
 			end
 			self:CheckForRegenAndFire()
+			self:CheckForStatusBroadcasting()
 			self:CheckForSpeedMods()
+			self:CheckForBossEffects()
 			self:PerformPops()
 			coroutine.yield()
 			nearestNavArea = navmesh.GetNearestNavArea(self:GetPos())
@@ -1163,6 +1201,8 @@ function ENT:RunBehaviour()
 			end
 		end
 		self:CheckForRegenAndFire()
+		self:CheckForStatusBroadcasting()
+		self:CheckForBossEffects()
 		self:PerformPops()
 		if GetConVar("ai_disabled"):GetBool() then
 			self:Log("ai_disabled is set, waiting...","pathfinding")
@@ -1232,6 +1272,40 @@ function ENT:RunBehaviour()
 			end
 		end
 		coroutine.yield()
+	end
+end
+
+function ENT:CheckForStatusBroadcasting(forceAccept)
+	if self:GetStatusSendRequired() then
+		self:SetStatusSendRequired(false)
+		
+		local flags = bit.bor(
+			(self:GetBalloonProperty("BalloonFast") and 1 or 0),
+			(self:GetBalloonProperty("BalloonHidden") and 2 or 0),
+			(self:GetBalloonProperty("BalloonRegen") and 4 or 0),
+			(self:GetBalloonProperty("BalloonShielded") and 8 or 0),
+			(self:GetBalloonProperty("BalloonRainbow") and 16 or 0)
+		)
+		
+		net.Start("rotgb_generic", not forceAccept)
+		net.WriteUInt(ROTGB_OPERATION_BOSS, 8)
+		net.WriteUInt(self:EntIndex(), 16)
+		net.WriteString(self:GetBalloonProperty("BalloonType"))
+		net.WriteUInt(flags, 8)
+		net.WriteInt(self:Health(), 32)
+		net.WriteInt(self:GetMaxHealth(), 32)
+		net.WriteUInt(self:GetBalloonProperty("BalloonHealthSegments"), 8)
+		net.Broadcast()
+	end
+end
+
+function ENT:CheckForBossEffects()
+	if self:GetBalloonProperty("BalloonBoss") then
+		local bossEffects = registeredBossEffects[self:GetBalloonProperty("BalloonBossEffect")]
+		if (bossEffects and bossEffects.PerSecond) and (self.NextPerSecondEffect or 0) < CurTime() then
+			bossEffects.PerSecond(self)
+			self.NextPerSecondEffect = CurTime() + 1
+		end
 	end
 end
 
@@ -1428,6 +1502,10 @@ game.AddDecal("InkWhite","decals/decal_paintsplattergreen001")
 function ENT:PerformPops()
 	local health = self:Health()
 	if health<=0 then
+		if self:GetBalloonProperty("BalloonBoss") then
+			self:SetStatusSendRequired(true)
+			self:CheckForStatusBroadcasting(true)
+		end
 		local attacker = self.LastAttacker
 		local bloodType = ROTGB_GetConVarValue("rotgb_bloodtype")
 		if bloodType>=16 then
@@ -1437,7 +1515,7 @@ function ENT:PerformPops()
 			if IsValid(inkproj) then
 				local CNames = {"Orange","Pink","Purple","Blue","Cyan","Green",[0]="White"}
 				--local CCodes = {30,300,270,240,180,120,360}
-				inkproj:SetNoDraw(true)
+				--inkproj:SetNoDraw(true)
 				inkproj:Setscale(Vector(1,1,1))
 				inkproj:SetModel("models/spitball_small.mdl")
 				inkproj:SetPos(self:WorldSpaceCenter())
@@ -1505,10 +1583,20 @@ function ENT:OnInjured(dmginfo)
 			self:Log("Credited "..tostring(self.LastInflictor).." "..addDamageThisLayer.." pop(s).","damage")
 			hook.Run("gBalloonDamaged", self, self.LastAttacker, self.LastInflictor, addDamageThisLayer, 0, false)
 		end
-		if self:GetBalloonProperty("BalloonShielded") and self:Health()*2>self:GetMaxHealth() and (not ROTGB_GetConVarValue("rotgb_legacy_gballoons") or ROTGB_GetConVarValue("rotgb_pertain_effects")) then
-			self:SetNWBool("RenderShield",true)
-		else
-			self:SetNWBool("RenderShield",false)
+		if self:GetBalloonProperty("BalloonBoss") then
+			self.currentHealthSegment = self.currentHealthSegment or self:GetBalloonProperty("BalloonHealthSegments")
+			local newHealthSegment = math.max(math.ceil(self:Health() / self:GetMaxHealth() * self:GetBalloonProperty("BalloonHealthSegments")), 1)
+			if self.currentHealthSegment > newHealthSegment then
+				for i=newHealthSegment,self.currentHealthSegment-1 do
+					self:EmitSound("ambient/alarms/warningbell1.wav", 0)
+					local bossEffects = registeredBossEffects[self:GetBalloonProperty("BalloonBossEffect")]
+					if (bossEffects and bossEffects.HealthSegment) then
+						bossEffects.HealthSegment(self)
+					end
+				end
+				self.currentHealthSegment = newHealthSegment
+			end
+			self:SetStatusSendRequired(true)
 		end
 	end
 	dmginfo:SetDamage(0)
@@ -1748,8 +1836,8 @@ function ENT:Pop(damage,target,dmgbits)
 		effdata:SetOrigin(self:GetPos())
 		util.Effect("balloon_pop",effdata)
 	end
+	ctime = SysTime()
 	for i,v in ipairs(nexts) do
-		if --[[i+balloonnum<ROTGB_GetConVarValue("rotgb_max_to_exist") and]] istable(v) then
 			for j=1,v.Amount do
 				if ROTGB_LoggingEnabled("damage") then
 					self:Log("To Spawn: "..util.TableToJSON(v,true),"damage")
@@ -1758,14 +1846,14 @@ function ENT:Pop(damage,target,dmgbits)
 				local spe = ents.Create("gballoon_base")
 				spe:SetPos(self:GetPos()+VectorRand()+vector_up)
 				spe.Properties = list.Get("NPC")[tospawn].KeyValues
-				if istable(v) then
-					spe.Properties.BalloonRegen = spe.Properties.BalloonRegen or ROTGB_HasAllBits(v.Properties, 1)
-					spe.Properties.BalloonFast = spe.Properties.BalloonFast or ROTGB_HasAllBits(v.Properties, 2)
-					spe.Properties.BalloonShielded = spe.Properties.BalloonShielded or ROTGB_HasAllBits(v.Properties, 4)
-					spe.Properties.BalloonHidden = spe.Properties.BalloonHidden or ROTGB_HasAllBits(v.Properties, 8)
-				end
+				spe.Properties.BalloonRegen = spe.Properties.BalloonRegen or ROTGB_HasAllBits(v.Properties, 1)
+				spe.Properties.BalloonFast = spe.Properties.BalloonFast or ROTGB_HasAllBits(v.Properties, 2)
+				spe.Properties.BalloonShielded = spe.Properties.BalloonShielded or ROTGB_HasAllBits(v.Properties, 4)
+				spe.Properties.BalloonHidden = spe.Properties.BalloonHidden or ROTGB_HasAllBits(v.Properties, 8)
 				spe:Spawn()
 				spe:Activate()
+				spe.PrevBalloons = v.PrevBalloons
+				spe:SetHealth(v.Health or 1) -- FIXME: this was spe:SetHealth(math.max(v.Health or 1, 1)), is there a difference?
 				spe.StunUntil = self.StunUntil
 				spe.FreezeUntil2 = self.FreezeUntil2
 				spe.AcidicList = self.AcidicList
@@ -1804,15 +1892,14 @@ function ENT:Pop(damage,target,dmgbits)
 					end)
 				end]]
 				spe:SetTarget(self:GetTarget())
-				if istable(v) and SERVER then
-					spe.PrevBalloons = v.PrevBalloons
-					spe:SetHealth(math.max(v.Health or 1, 1))
-				end
 				--[[timer.Simple(0,function()
 					if (IsValid(spe) and spe:Health()<=0) then spe:Pop(-spe:Health()) end
 				end)]]
 			end
-		end
+	end
+	if ROTGB_LoggingEnabled("damage") then
+		self:Log(string.format("Successfully spawned %i gBalloon type(s).", #nexts),"damage")
+		self:Log(string.format("Time taken: %f ms", (SysTime()-ctime)*1000),"damage")
 	end
 	SafeRemoveEntity(self.RotgBFireEnt)
 	SafeRemoveEntity(self.FastTrail)
@@ -1857,33 +1944,40 @@ function ENT:CheckForRegenAndFire()
 				--end
 			end
 		end
-		if self:GetBalloonProperty("BalloonRegen") and (self.PrevBalloons and next(self.PrevBalloons)) then
+		if self:GetBalloonProperty("BalloonRegen") then
 			local curtime = CurTime()
 			local regenDelay = hook.Run("GetgBalloonRegenDelay", self) or ROTGB_GetConVarValue("rotgb_regen_delay")
 			self.BalloonRegenTime = self.BalloonRegenTime or curtime+regenDelay
 			if self.BalloonRegenTime <= curtime then
-				self.BalloonRegenTime = curtime+regenDelay
-				local prevballoon = table.remove(self.PrevBalloons)
-				self:Log("Regenerating to: "..prevballoon,"regeneration")
-				local bits = self:GetBitflagPropertyState()
-				self.Properties = list.Get("NPC")[prevballoon].KeyValues
-				if ROTGB_HasAllBits(bits, 2) then
-					self.Properties.BalloonFast = true
+				if self.PrevBalloons and next(self.PrevBalloons) then
+					local prevballoon = table.remove(self.PrevBalloons)
+					self:Log("Regenerating to: "..prevballoon,"regeneration")
+					local bits = self:GetBitflagPropertyState()
+					self.Properties = list.Get("NPC")[prevballoon].KeyValues
+					if ROTGB_HasAllBits(bits, 2) then
+						self.Properties.BalloonFast = true
+					end
+					if ROTGB_HasAllBits(bits, 4) then
+						self.Properties.BalloonShielded = true
+					end
+					if ROTGB_HasAllBits(bits, 8) then
+						self.Properties.BalloonHidden = true
+					end
+					self:SetNWBool("BalloonPurple",false)
+					self:SetNWBool("BalloonRainbow",false)
+					self:SetNWBool("RenderShield",false)
+					self.Properties.BalloonRegen = true
+					self:Spawn()
+					self:Activate()
+					self.DeductCash = (self.DeductCash or 0) + 1
+					self:Log("Regenerated to: "..prevballoon..". Fast = "..tostring(ROTGB_HasAllBits(bits, 2))..", Shielded = "..tostring(ROTGB_HasAllBits(bits, 4))..", Hidden = "..tostring(ROTGB_HasAllBits(bits, 8)),"regeneration")
+					self:Log("This gBalloon will yield "..self.DeductCash.." less cash than usual.","regeneration")
+					self.BalloonRegenTime = curtime+regenDelay
+				elseif self:Health() < self:GetMaxHealth() then
+					self:SetHealth(self:Health() + 1)
+					self.BalloonRegenTime = curtime+regenDelay
+					self:Log("Regenerated 1 health.","regeneration")
 				end
-				if ROTGB_HasAllBits(bits, 4) then
-					self.Properties.BalloonShielded = true
-				end
-				if ROTGB_HasAllBits(bits, 8) then
-					self.Properties.BalloonHidden = true
-				end
-				self:SetNWBool("BalloonPurple",false)
-				self:SetNWBool("RenderShield",false)
-				self.Properties.BalloonRegen = true
-				self:Spawn()
-				self:Activate()
-				self.DeductCash = (self.DeductCash or 0) + 1
-				self:Log("Regenerated to: "..prevballoon..". Fast = "..tostring(ROTGB_HasAllBits(bits, 2))..", Shielded = "..tostring(ROTGB_HasAllBits(bits, 4))..", Hidden = "..tostring(ROTGB_HasAllBits(bits, 8)),"regeneration")
-				self:Log("This gBalloon will yield "..self.DeductCash.." less cash than usual.","regeneration")
 			end
 		end
 		if self:GetBalloonProperty("BalloonType")=="gballoon_blimp_rainbow" then
@@ -1895,12 +1989,54 @@ function ENT:CheckForRegenAndFire()
 	end
 end
 
-local shieldcolor = Color(0,255,255,31)
-function ENT:DrawTranslucent()
-	self:Draw()
-	render.SetColorMaterial()
-	if self:GetNWBool("RenderShield") then
-		render.DrawSphere(self:GetPos()+self:OBBCenter(),self:BoundingRadius()*self:GetModelScale()*self.VModelScale.x,8,5,shieldcolor)
+if CLIENT then
+	local damageMaterial = CreateMaterial("gBalloonDamage","UnlitGeneric",{
+		["$color"] = "[ 1 1 1 ]",
+		["$model"] = 1
+	})
+	local rainbowDamageMaterial = CreateMaterial("gBalloonRainbowDamage","UnlitGeneric",{
+		["$basetexture"] = "vgui/hsv-bar",
+		["$model"] = 1
+	})
+	function ENT:Draw()
+		local healthDrawFraction = self:GetNWInt("ActualHealth", self:Health()) / self:GetMaxHealth()
+		if healthDrawFraction < 1 and healthDrawFraction > 0 then
+			local minZ = self:OBBMins().z
+			local maxZ = self:OBBMaxs().z
+			local addZ = Lerp(healthDrawFraction, maxZ, minZ)
+			local clipPoint = self:GetPos()
+			clipPoint.z = clipPoint.z + addZ
+			
+			local up = self:GetUp()
+			local positionTop = up:Dot(clipPoint)
+			local down = -up
+			local positionBottom = down:Dot(clipPoint)
+
+			local oldClipping = render.EnableClipping(true)
+			
+			render.PushCustomClipPlane(up, positionTop)
+			self:DrawModel()
+			render.PopCustomClipPlane()
+			
+			render.PushCustomClipPlane(down, positionBottom)
+			render.MaterialOverride(self:GetNWBool("BalloonRainbow") and rainbowDamageMaterial or damageMaterial)
+			self:DrawModel()
+			render.MaterialOverride(nil)
+			render.PopCustomClipPlane()
+			
+			render.EnableClipping(oldClipping)
+		else
+			self:DrawModel()
+		end
+	end
+
+	local shieldcolor = Color(0,255,255,31)
+	function ENT:DrawTranslucent()
+		self:Draw()
+		if self:GetNWBool("RenderShield") then
+			render.SetColorMaterial()
+			render.DrawSphere(self:GetPos()+self:OBBCenter(),self:BoundingRadius()*self.VModelScale.x,8,5,shieldcolor)
+		end
 	end
 end
 
@@ -1921,7 +2057,12 @@ function ENT:GetRelationship(ent)
 	end
 end
 
---[=[function ENT:Think()
+function ENT:Think()
+	if SERVER then
+		self:SetNWInt("ActualHealth", self:Health())
+		--[[local shouldRenderShield = self:GetBalloonProperty("BalloonShielded") and self:Health()*2>self:GetMaxHealth() and (not ROTGB_GetConVarValue("rotgb_legacy_gballoons") or ROTGB_GetConVarValue("rotgb_pertain_effects"))
+		self:SetNWBool("RenderShield",shouldRenderShield)]]
+	end
 	--[[if self:GetBalloonProperty("BalloonHidden") then
 		local mgh = CurTime()%2<1.5
 		if mgh and not self:GetNoDraw() then
@@ -1930,7 +2071,7 @@ end
 			self:SetNoDraw(false)
 		end
 	end]]
-end]=]
+end
 
 hook.Add("EntityKeyValue","RotgB",function(ent,key,value)
 	if ent:GetClass()=="func_nav_avoid" or ent:GetClass()=="func_nav_prefer" then
@@ -2012,18 +2153,19 @@ end)
 if CLIENT then
 	CreateMaterial("gBalloonZebra","VertexLitGeneric",{
 		["$basetexture"] = "effects/flashlight/bars",
-		["$model"] = 1,
-		["$vertexcolor"] = 1
+		["$model"] = 1
 	})
 	CreateMaterial("gBalloonError","VertexLitGeneric",{
 		["$basetexture"] = "___error",
-		["$model"] = 1,
-		["$vertexcolor"] = 1
+		["$model"] = 1
 	})
 	CreateMaterial("gBalloonRainbow","VertexLitGeneric",{
 		["$basetexture"] = "vgui/hsv-bar",
-		["$model"] = 1,
-		["$vertexcolor"] = 1
+		["$model"] = 1
+	})
+	CreateMaterial("gBalloonMonochrome","VertexLitGeneric",{
+		["$basetexture"] = "vgui/hsv-brightness",
+		["$model"] = 1
 	})
 end
 
@@ -2254,7 +2396,7 @@ local registerkeys = {
 			BalloonScale = "2",
 			BalloonColor = "127 127 127 255",
 			BalloonType = "gballoon_blimp_gray",
-			BalloonMaterial = "models/debug/debugwhite",
+			BalloonMaterial = "!gBalloonMonochrome",
 			BalloonModel = "models/props_phx/ww2bomb.mdl",
 			BalloonHealth = "400",
 			BalloonBlack = "1",
@@ -2280,7 +2422,7 @@ local registerkeys = {
 	blimp_magenta = {
 		Name = "Magenta gBlimp",
 		KeyValues = {
-			BalloonMoveSpeed = "350",
+			BalloonMoveSpeed = "300",
 			BalloonScale = "2.25",
 			BalloonColor = "255 0 255 255",
 			BalloonType = "gballoon_blimp_magenta",
@@ -2344,6 +2486,386 @@ for i=0,15 do
 	end
 end
 
+-- bosses
+local SPAWN_OFFSET = Vector(0,0,10)
+function ROTGB_RegisterBossEffect(effectNum, data)
+	registeredBossEffects[effectNum] = data
+end
+
+list.Set("NPC","gballoon_melon",{
+	Name = "gMelloon of Swiftness",
+	Class = "gballoon_base",
+	Category = "RotgB: gBalloons Bosses",
+	KeyValues = {
+		BalloonMoveSpeed = "25",
+		BalloonScale = "1",
+		BalloonColor = "127 255 0 255",
+		BalloonType = "gballoon_melon",
+		BalloonMaterial = "models/props_junk/fruit_objects01",
+		BalloonModel = "models/props_junk/watermelon01.mdl",
+		BalloonHealth = "1000",
+		BalloonBoss = "1",
+		BalloonHealthSegments = "5",
+		BalloonBossEffect = "swiftness",
+		BalloonPopSound = "ambient/explosions/citadel_end_explosion1.wav"
+	}
+})
+ROTGB_RegisterBossEffect("swiftness", {
+	HealthSegment = function(boss)
+		boss.SwiftnessMultiplier = (boss.SwiftnessMultiplier or 1) + 0.5
+		boss:UnSlowdown("gMelloon")
+		boss:Slowdown("gMelloon", boss.SwiftnessMultiplier, 9999)
+	end
+})
+list.Set("NPC","gballoon_melon_super",{
+	Name = "Super gMelloon of Swiftness",
+	Class = "gballoon_base",
+	Category = "RotgB: gBalloons Bosses",
+	KeyValues = {
+		BalloonMoveSpeed = "25",
+		BalloonScale = "1",
+		BalloonColor = "127 255 0 255",
+		BalloonType = "gballoon_melon_super",
+		BalloonMaterial = "models/props_junk/fruit_objects01",
+		BalloonModel = "models/props_junk/watermelon01.mdl",
+		BalloonHealth = "5000",
+		BalloonBoss = "1",
+		BalloonHealthSegments = "10",
+		BalloonBossEffect = "swiftness_super",
+		BalloonPopSound = "ambient/explosions/citadel_end_explosion1.wav"
+	}
+})
+ROTGB_RegisterBossEffect("swiftness_super", {
+	HealthSegment = function(boss)
+		boss.SwiftnessMultiplier = (boss.SwiftnessMultiplier or 1) + 1
+		boss:UnSlowdown("gMelloon")
+		boss:Slowdown("gMelloon", boss.SwiftnessMultiplier, 9999)
+	end
+})
+
+list.Set("NPC","gballoon_mossman",{
+	Name = "Mossman gBalloon of Ceramicity",
+	Class = "gballoon_base",
+	Category = "RotgB: gBalloons Bosses",
+	KeyValues = {
+		BalloonMoveSpeed = "25",
+		BalloonScale = "3",
+		BalloonColor = "255 127 0 255",
+		BalloonType = "gballoon_mossman",
+		BalloonMaterial = "maxofs2d/models/balloon_mossman",
+		BalloonModel = "models/maxofs2d/balloon_mossman.mdl",
+		BalloonHealth = "5000",
+		BalloonBoss = "1",
+		BalloonHealthSegments = "5",
+		BalloonBossEffect = "ceramicity",
+		BalloonPopSound = "ambient/explosions/citadel_end_explosion1.wav"
+	}
+})
+ROTGB_RegisterBossEffect("ceramicity", {
+	HealthSegment = function(boss)
+		local SpawnPos = boss:GetPos()+SPAWN_OFFSET
+		local keyValues = list.GetForEdit("NPC")["gballoon_ceramic"].KeyValues
+		for i=1,5 do
+			local bln = ents.Create("gballoon_base")
+			if IsValid(bln) then
+				bln:SetPos(SpawnPos)
+				for k,v in pairs(keyValues) do
+					bln:SetKeyValue(k,v)
+				end
+				hook.Run("gBalloonSpawnerPreSpawn", boss, bln, keyValues)
+				bln:Spawn()
+				hook.Run("gBalloonSpawnerPostSpawn", boss, bln, keyValues)
+				bln:Activate()
+			end
+		end
+	end
+})
+list.Set("NPC","gballoon_mossman_super",{
+	Name = "Super Mossman gBalloon of Ceramicity",
+	Class = "gballoon_base",
+	Category = "RotgB: gBalloons Bosses",
+	KeyValues = {
+		BalloonMoveSpeed = "25",
+		BalloonScale = "3",
+		BalloonColor = "255 127 0 255",
+		BalloonType = "gballoon_mossman_super",
+		BalloonMaterial = "maxofs2d/models/balloon_mossman",
+		BalloonModel = "models/maxofs2d/balloon_mossman.mdl",
+		BalloonHealth = "25000",
+		BalloonBoss = "1",
+		BalloonHealthSegments = "10",
+		BalloonBossEffect = "ceramicity_super",
+		BalloonPopSound = "ambient/explosions/citadel_end_explosion1.wav"
+	}
+})
+ROTGB_RegisterBossEffect("ceramicity_super", {
+	HealthSegment = function(boss)
+		local SpawnPos = boss:GetPos()+SPAWN_OFFSET
+		local keyValues = list.GetForEdit("NPC")["gballoon_fast_hidden_regen_shielded_ceramic"].KeyValues
+		for i=1,5 do
+			local bln = ents.Create("gballoon_base")
+			if IsValid(bln) then
+				bln:SetPos(SpawnPos)
+				for k,v in pairs(keyValues) do
+					bln:SetKeyValue(k,v)
+				end
+				hook.Run("gBalloonSpawnerPreSpawn", boss, bln, keyValues)
+				bln:Spawn()
+				hook.Run("gBalloonSpawnerPostSpawn", boss, bln, keyValues)
+				bln:Activate()
+			end
+		end
+	end
+})
+
+list.Set("NPC","gballoon_gman",{
+	Name = "GMan gBalloon of Stasis",
+	Class = "gballoon_base",
+	Category = "RotgB: gBalloons Bosses",
+	KeyValues = {
+		BalloonMoveSpeed = "25",
+		BalloonScale = "3",
+		BalloonColor = "255 255 255 255",
+		BalloonType = "gballoon_gman",
+		BalloonMaterial = "maxofs2d/models/balloon_gman",
+		BalloonModel = "models/maxofs2d/balloon_gman.mdl",
+		BalloonHealth = "25000",
+		BalloonBoss = "1",
+		BalloonHealthSegments = "5",
+		BalloonBossEffect = "stasis",
+		BalloonPopSound = "ambient/explosions/citadel_end_explosion1.wav"
+	}
+})
+ROTGB_RegisterBossEffect("stasis", {
+	HealthSegment = function(boss)
+		local minDistance = math.huge
+		local closestTower = NULL
+		for k,v in pairs(ents.GetAll()) do
+			if v.Base == "gballoon_tower_base" then
+				local sqrDist = v:GetShootPos():DistToSqr(boss:GetPos())
+				if not v:IsStunned() and sqrDist < minDistance then
+					minDistance = sqrDist
+					closestTower = v
+				end
+			end
+		end
+		
+		if IsValid(closestTower) then
+			closestTower:Stun(10)
+		end
+	end
+})
+list.Set("NPC","gballoon_gman_super",{
+	Name = "Super GMan gBalloon of Stasis",
+	Class = "gballoon_base",
+	Category = "RotgB: gBalloons Bosses",
+	KeyValues = {
+		BalloonMoveSpeed = "25",
+		BalloonScale = "3",
+		BalloonColor = "255 255 255 255",
+		BalloonType = "gballoon_gman_super",
+		BalloonMaterial = "maxofs2d/models/balloon_gman",
+		BalloonModel = "models/maxofs2d/balloon_gman.mdl",
+		BalloonHealth = "100000",
+		BalloonBoss = "1",
+		BalloonHealthSegments = "10",
+		BalloonBossEffect = "stasis_super",
+		BalloonPopSound = "ambient/explosions/citadel_end_explosion1.wav"
+	}
+})
+ROTGB_RegisterBossEffect("stasis_super", {
+	HealthSegment = function(boss)
+		local highestPrice = 0
+		local mostExpensiveTower = NULL
+		for k,v in pairs(ents.GetAll()) do
+			if (v.Base == "gballoon_tower_base" and not v:IsStunned()) and (v.SellAmount or 0) > highestPrice then
+				highestPrice = v.SellAmount
+				mostExpensiveTower = v
+			end
+		end
+		
+		if IsValid(mostExpensiveTower) then
+			mostExpensiveTower:Stun(10)
+		end
+	end
+})
+
+list.Set("NPC","gballoon_blimp_ggos",{
+	Name = "Fat Monochrome gBlimp of Shielding",
+	Class = "gballoon_base",
+	Category = "RotgB: gBalloons Bosses",
+	KeyValues = {
+		BalloonMoveSpeed = "25",
+		BalloonScale = "1",
+		BalloonColor = "127 127 127 255",
+		BalloonType = "gballoon_blimp_ggos",
+		BalloonMaterial = "!gBalloonMonochrome",
+		BalloonModel = "models/props_phx/mk-82.mdl",
+		BalloonHealth = "100000",
+		BalloonBoss = "1",
+		BalloonBlimp = "1",
+		BalloonGray = "1",
+		BalloonBlack = "1",
+		BalloonHealthSegments = "5",
+		BalloonBossEffect = "shielding",
+		BalloonPopSound = "ambient/explosions/citadel_end_explosion1.wav"
+	}
+})
+ROTGB_RegisterBossEffect("shielding", {
+	HealthSegment = function(boss)
+		boss:SetBalloonProperty("BalloonShielded", true)
+		boss.BossShields = (boss.BossShields or 0) + 1
+		timer.Simple(10, function()
+			if IsValid(boss) then
+				boss.BossShields = boss.BossShields - 1
+				if boss.BossShields <= 0 then
+					boss:SetBalloonProperty("BalloonShielded", false)
+				end
+			end
+		end)
+	end
+})
+list.Set("NPC","gballoon_blimp_ggos_super",{
+	Name = "Super Fat Monochrome gBlimp of Shielding",
+	Class = "gballoon_base",
+	Category = "RotgB: gBalloons Bosses",
+	KeyValues = {
+		BalloonMoveSpeed = "25",
+		BalloonScale = "1",
+		BalloonColor = "127 127 127 255",
+		BalloonType = "gballoon_blimp_ggos_super",
+		BalloonMaterial = "!gBalloonMonochrome",
+		BalloonModel = "models/props_phx/mk-82.mdl",
+		BalloonHealth = "500000",
+		BalloonBoss = "1",
+		BalloonBlimp = "1",
+		BalloonGray = "1",
+		BalloonBlack = "1",
+		BalloonHealthSegments = "10",
+		BalloonBossEffect = "shielding_super",
+		BalloonPopSound = "ambient/explosions/citadel_end_explosion1.wav"
+	}
+})
+ROTGB_RegisterBossEffect("shielding_super", {
+	HealthSegment = function(boss)
+		boss:SetBalloonProperty("BalloonShielded", true)
+		boss:SetHealth(boss:Health()*2)
+		boss:SetMaxHealth(boss:GetMaxHealth()*2)
+		boss.BossShields = (boss.BossShields or 0) + 1
+		timer.Simple(10, function()
+			if IsValid(boss) then
+				boss:SetHealth(boss:Health()/2)
+				boss:SetMaxHealth(boss:GetMaxHealth()/2)
+				boss.BossShields = boss.BossShields - 1
+				if boss.BossShields <= 0 then
+					boss:SetBalloonProperty("BalloonShielded", false)
+				end
+			end
+		end)
+	end
+})
+
+list.Set("NPC","gballoon_garrydecal",{
+	Name = "garry-decaled gBalloon of awesomeness",
+	Class = "gballoon_base",
+	Category = "RotgB: gBalloons Bosses",
+	KeyValues = {
+		BalloonMoveSpeed = "25",
+		BalloonScale = "3",
+		BalloonColor = "255 255 0 255",
+		BalloonType = "gballoon_garrydecal",
+		BalloonMaterial = "maxofs2d/models/balloon_classic_04",
+		BalloonHealth = "10000000",
+		BalloonBoss = "1",
+		BalloonHealthSegments = "5",
+		BalloonBossEffect = "kicker",
+		BalloonPopSound = "ambient/explosions/citadel_end_explosion1.wav"
+	}
+})
+ROTGB_RegisterBossEffect("kicker", {
+	PerSecond = function(boss)
+		for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
+			if v:GetWave() > v:GetLastWave() then
+				v:SetLastWave(v:GetWave())
+			end
+		end
+	end,
+	HealthSegment = function(boss)
+		local minDistance = math.huge
+		local closestTower = NULL
+		for k,v in pairs(ents.GetAll()) do
+			if v.Base == "gballoon_tower_base" then
+				local sqrDist = v:GetShootPos():DistToSqr(boss:GetPos())
+				if not v:IsStunned() and sqrDist < minDistance then
+					minDistance = sqrDist
+					closestTower = v
+				end
+			end
+		end
+		
+		if IsValid(closestTower) then
+			constraint.RemoveAll(closestTower)
+			closestTower:SetNotSolid(true)
+			closestTower:SetMoveType(MOVETYPE_NONE)
+			closestTower:SetNoDraw(true)
+			local effdata = EffectData()
+			effdata:SetEntity(closestTower)
+			util.Effect("entity_remove",effdata,true,true)
+			SafeRemoveEntityDelayed(closestTower,1)
+			PrintMessage(HUD_PRINTTALK,tostring(closestTower).." has been kicked from the server!")
+		end
+	end
+})
+list.Set("NPC","gballoon_garrydecal_super",{
+	Name = "Super garry-decaled gBalloon of awesomeness",
+	Class = "gballoon_base",
+	Category = "RotgB: gBalloons Bosses",
+	KeyValues = {
+		BalloonMoveSpeed = "25",
+		BalloonScale = "3",
+		BalloonColor = "255 255 0 255",
+		BalloonType = "gballoon_garrydecal",
+		BalloonMaterial = "maxofs2d/models/balloon_classic_04",
+		BalloonHealth = "50000000",
+		BalloonBoss = "1",
+		BalloonHealthSegments = "10",
+		BalloonBossEffect = "kicker_super",
+		BalloonPopSound = "ambient/explosions/citadel_end_explosion1.wav"
+	}
+})
+ROTGB_RegisterBossEffect("kicker_super", {
+	PerSecond = function(boss)
+		for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
+			if v:GetWave() > v:GetLastWave() then
+				v:SetLastWave(v:GetWave())
+			end
+		end
+	end,
+	HealthSegment = function(boss)
+		local highestPrice = 0
+		local mostExpensiveTower = NULL
+		for k,v in pairs(ents.GetAll()) do
+			if (v.Base == "gballoon_tower_base" and not v:IsStunned()) and (v.SellAmount or 0) > highestPrice then
+				highestPrice = v.SellAmount
+				mostExpensiveTower = v
+			end
+		end
+		
+		if IsValid(mostExpensiveTower) then
+			constraint.RemoveAll(mostExpensiveTower)
+			mostExpensiveTower:SetNotSolid(true)
+			mostExpensiveTower:SetMoveType(MOVETYPE_NONE)
+			mostExpensiveTower:SetNoDraw(true)
+			local effdata = EffectData()
+			effdata:SetEntity(mostExpensiveTower)
+			util.Effect("entity_remove",effdata,true,true)
+			SafeRemoveEntityDelayed(mostExpensiveTower,1)
+			PrintMessage(HUD_PRINTTALK,tostring(mostExpensiveTower).." has been kicked from the server!")
+		end
+	end
+})
+
+-- special
 list.Set("NPC","gballoon_void",{
 	Name = "Void gBalloon",
 	Class = "gballoon_base",
@@ -2380,7 +2902,9 @@ list.Set("NPC","gballoon_cfiber",{
 		BalloonColor = "127 127 127 255",
 		BalloonType = "gballoon_cfiber",
 		BalloonMaterial = "phoenix_storms/mat/mat_phx_carbonfiber2",
-		BalloonHealth = "999999999"
+		BalloonHealth = "999999999",
+		BalloonBoss = "1",
+		BalloonHealthSegments = "111"
 	}
 })
 list.Set("NPC","gballoon_hidden",{

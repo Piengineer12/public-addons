@@ -79,8 +79,23 @@ function ENT:Initialize()
 	self.DetectionRadius = self.DetectionRadius * ROTGB_GetConVarValue("rotgb_tower_range_multiplier")
 	self.BuffIdentifiers = {}
 	
-	if not IsValid(self:GetTowerOwner()) and self:GetOwnerUserID() ~= 0 then -- duplication always fails to copy entities properly
-		self:SetTowerOwner(Player(self:GetOwnerUserID()))
+	if not IsValid(self:GetTowerOwner()) then
+		if IsValid(Player(self:GetOwnerUserID())) then -- duplication always fails to copy entities properly
+			self:SetTowerOwner(Player(self:GetOwnerUserID()))
+		elseif IsValid(self:GetCreator()) then
+			self:SetTowerOwner(self:GetCreator())
+		else
+			local bestPlayer = NULL
+			local bestDistance = math.huge
+			for k,v in pairs(player.GetAll()) do
+				local distance = v:GetPos():DistToSqr(self:GetShootPos())
+				if distance < bestDistance then
+					bestPlayer = v
+					bestDistance = distance
+				end
+			end
+			self:SetTowerOwner(bestPlayer)
+		end
 	end
 	if self:GetTowerOwner():IsPlayer() then
 		self:SetOwnerUserID(self:GetTowerOwner():UserID())

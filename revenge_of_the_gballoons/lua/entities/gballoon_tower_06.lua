@@ -91,17 +91,16 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Morale Boost","Premium Incentive","Jungle Drumming","Health Insurance","Trusted Partnerships","Maximum Potential"},
+		Names = {"Morale Boost","Jungle Drumming","Health Insurance","Trusted Partnerships","Maximum Potential"},
 		Descs = {
 			"All towers in this tower's radius fire 20% faster.",
-			"Whenever a tower is placed, you gain a 20% rebate. This upgrade does not stack at all.",
-			"All towers within the range of this tower pop one extra layer per attack, and have 20% more range.",
+			"All towers within the range of this tower pop one extra layer per attack.",
 			"Whenever a gBalloon reaches its target and pops, each player gains $1000 for each damage point taken by the target, ignoring all damage reduction effects.",
 			"Whenever a tower fires within this tower's range, there is a chance that a random tower within this tower's range will also fire! \z
 				The chance is reduced if the firing tower fires faster than the targeted tower.",
 			"All towers except this tower in this tower's radius no longer have upgrade path restrictions!",
 		},
-		Prices = {400,500,2500,5000,15000,50e6},
+		Prices = {400,2000,5000,15000,500e6},
 		Funcs = {
 			function(self)
 				self.rotgb_Buff = 1
@@ -117,14 +116,11 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.rotgb_Buff = 5
-			end,
-			function(self)
-				self.rotgb_Buff = 6
 			end
 		}
 	}
 }
-ENT.UpgradeLimits = {6,2,0}
+ENT.UpgradeLimits = {7,2,0}
 
 --[[function ENT:FireFunction(gBalloons)
 	if self.rotgb_Buff > 4 then
@@ -172,7 +168,7 @@ function ENT:ROTGB_Think()
 					tower.FireRate = tower.FireRate / 1.2
 				end)
 			end
-			if self.rotgb_Buff > 2 then
+			if self.rotgb_Buff > 1 then
 				v:ApplyBuff(self, "ROTGB_TOWER_06_PASSIVE_2", 999999, function(tower)
 					tower.AttackDamage = (tower.AttackDamage or 0) + 10
 					tower.DetectionRadius = tower.DetectionRadius * 1.2
@@ -181,7 +177,7 @@ function ENT:ROTGB_Think()
 					tower.DetectionRadius = tower.DetectionRadius / 1.2
 				end)
 			end
-			if self.rotgb_Buff > 4 then
+			if self.rotgb_Buff > 3 then
 				if v.NextFire~=v.rotgb_Tower06BuffTrack then
 					v.rotgb_Tower06BuffTrack = v.NextFire
 					anotherfired = math.min(anotherfired, v.FireRate or 1)
@@ -189,7 +185,7 @@ function ENT:ROTGB_Think()
 					table.insert(radiusTowers, v)
 				end
 			end
-			if self.rotgb_Buff > 5 and v ~= self then
+			if self.rotgb_Buff > 4 and v ~= self then
 				v:SetNWFloat("rotgb_noupgradelimit", CurTime()+2)
 			end
 		end
@@ -214,30 +210,12 @@ function ENT:TriggerAbility()
 	end
 end
 
-hook.Add("OnEntityCreated","ROTGB_TOWER_06",function(ent)
-	timer.Simple(0,function()
-		if (IsValid(ent) and ent.Base=="gballoon_tower_base") then
-			local rebate = nil
-			for k,v in pairs(ents.FindByClass("gballoon_tower_06")) do
-				if v.rotgb_Buff > 1 then rebate = v break end
-			end
-			if rebate then
-				timer.Simple(0.1,function()
-					if IsValid(ent) and IsValid(rebate) then
-						rebate:AddCash((ent.Cost or 0)*0.2, ent:GetTowerOwner())
-					end
-				end)
-			end
-		end
-	end)
-end)
-
 hook.Add("EntityTakeDamage","ROTGB_TOWER_06",function(ent,dmginfo)
 	local caller = dmginfo:GetInflictor()
 	if (IsValid(caller) and caller:GetClass()=="gballoon_base") then
 		local insure = {}
 		for k,v in pairs(ents.FindByClass("gballoon_tower_06")) do
-			if v.rotgb_Buff > 3 then table.insert(insure, v) end
+			if v.rotgb_Buff > 2 then table.insert(insure, v) end
 		end
 		if #insure > 0 then
 			local cash = dmginfo:GetDamage()*1000*player.GetCount()

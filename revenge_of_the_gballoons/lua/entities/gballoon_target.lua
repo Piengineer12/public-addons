@@ -27,7 +27,10 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Bool",5,"HideHealth")
 	self:NetworkVar("Int",0,"Weight",{KeyName="weight",Edit={title="Weight (highest = first)",type="Int",min=0,max=100}})
 	self:NetworkVar("Int",1,"GoldenHealth",{KeyName="golden_health",Edit={title="Golden Health",type="Int",min=0,max=100}})
+	self:NetworkVar("Int",2,"OSPs",{KeyName="fatal_damage_negations",Edit={title="Fatal Damage Negations",type="Int",min=0,max=100}})
+	self:NetworkVar("Int",4,"PerWaveShield")
 	self:NetworkVar("Float",0,"NaturalHealthMultiplier")
+	self:NetworkVar("Float",1,"PerWaveShieldPercent",{KeyName="per_wave_shield_percent",Edit={title="Per-Wave Shield %",type="Float",min=0,max=100}})
 	self:NetworkVar("Entity",0,"NextTarget1")
 	self:NetworkVar("Entity",1,"NextTarget2")
 	self:NetworkVar("Entity",2,"NextTarget3")
@@ -260,32 +263,20 @@ function ENT:TriggerOnMaxHealthChanged(oldMaxHealth)
 end
 
 function ENT:OnTakeDamage(dmginfo)
-	self:TriggerOutput("OnTakeDamage",dmginfo:GetAttacker(),dmginfo:GetDamage())
 	if not self:GetGBOnly() or (IsValid(dmginfo:GetAttacker()) and dmginfo:GetAttacker():GetClass()=="gballoon_base") then
+		self:TriggerOutput("OnTakeDamage",dmginfo:GetAttacker(),dmginfo:GetDamage())
 		self:EmitSound("physics/metal/metal_box_break"..math.random(1,2)..".wav",60)
 		local oldNonGoldenHealth = self:Health()
-		local oldHealth = oldNonGoldenHealth+self:GetGoldenHealth()
-		if engine.ActiveGamemode() == "rotgb" then
-			dmginfo:SubtractDamage(hook.Run("GetSkillAmount", "targetArmor"))
-			if dmginfo:GetDamage() < 0 then
-				dmginfo:SetDamage(0)
-			end
-			dmginfo:ScaleDamage(1/(1+hook.Run("GetSkillAmount", "targetDefence")/100))
-			if math.random() < hook.Run("GetSkillAmount", "targetDodge")/100 then
-				dmginfo:SetDamage(0)
-			else
-				local targetShield = math.floor(self:GetMaxHealth()*hook.Run("GetSkillAmount", "targetShield")/100)
-				if targetShield > (self.WaveShield or 0) then
-					local shieldLeft = targetShield-(self.WaveShield or 0)
-					local shieldReduction = math.ceil(math.min(shieldLeft, dmginfo:GetDamage()))
-					self.WaveShield = (self.WaveShield or 0) + shieldReduction
-					dmginfo:SubtractDamage(shieldReduction)
-				end
-				if math.floor(hook.Run("GetSkillAmount", "targetOSP")) > (self.OSPs or 0) and math.ceil(dmginfo:GetDamage()) >= oldHealth then
-					dmginfo:SetDamage(0)
-					self.OSPs = (self.OSPs or 0) + 1
-				end
-			end
+		local oldHealth = oldNonGoldenHealth+self:GetGoldenHealth()+self:GetPerWaveShield()
+		hook.Run("gballoonTargetTakeDamage", self, dmginfo)
+		
+		local shieldReduction = math.ceil(math.min(self:GetPerWaveShield(), dmginfo:GetDamage()))
+		self:SetPerWaveShield(self:GetPerWaveShield()-shieldReduction)
+		dmginfo:SubtractDamage(shieldReduction)
+		
+		if self:GetOSPs() > 0 and math.ceil(dmginfo:GetDamage()) >= oldHealth then
+			dmginfo:SetDamage(0)
+			self:SetOSPs(self:GetOSPs()-1)
 		end
 		
 		local goldenHealthReduction = math.ceil(math.min(self:GetGoldenHealth(), dmginfo:GetDamage()))
@@ -295,6 +286,7 @@ function ENT:OnTakeDamage(dmginfo)
 		
 		self:SetHealth(oldNonGoldenHealth-dmginfo:GetDamage())
 		self.oldHealth = self:Health()
+		dmginfo:SetDamage(0)
 		
 		local attacker = dmginfo:GetAttacker()
 		local flags = bit.bor(
@@ -310,6 +302,9 @@ function ENT:OnTakeDamage(dmginfo)
 				attacker:GetBalloonProperty("BalloonShielded") and 32 or 0
 			)
 		end
+		
+		hook.Run("PostgballoonTargetTakeDamage", self, dmginfo)
+		
 		local label = bit.band(flags, 2)==2 and attacker:UserID() or bit.band(flags, 1)==1 and attacker:GetBalloonProperty("BalloonType") or IsValid(attacker) and attacker:GetClass() or "<unknown>"
 		net.Start("rotgb_target_received_damage", true)
 		net.WriteEntity(self)
@@ -317,7 +312,7 @@ function ENT:OnTakeDamage(dmginfo)
 		--net.WriteInt(self:GetGoldenHealth(), 32)
 		net.WriteUInt(flags, 8)
 		net.WriteString(label)
-		net.WriteInt(oldHealth-self:Health()-self:GetGoldenHealth(), 32)
+		net.WriteInt(oldHealth-self:Health()-self:GetGoldenHealth()-self:GetPerWaveShield(), 32)
 		net.Broadcast()
 		if oldNonGoldenHealth~=self:Health() then
 			self:TriggerOutput("OnHealthChanged",dmginfo:GetAttacker(),self:Health()/self:GetMaxHealth())
@@ -363,7 +358,7 @@ if engine.ActiveGamemode() == "rotgb" then
 	hook.Add("gBalloonSpawnerWaveEnded", "ROTGB_TARGET", function(target, endedWave)
 		if hook.Run("GetSkillAmount", "targetRegeneration") > 0 then
 			for k,v in pairs(ents.FindByClass("gballoon_target")) do
-				v.WaveShield = 0
+				v:SetPerWaveShield(v:GetMaxHealth()*v:GetPerWaveShieldPercent()/100)
 				local healing = math.min(v:GetMaxHealth()-v:Health(), math.floor(hook.Run("GetSkillAmount", "targetRegeneration")))
 				v:SetHealth(v:Health()+healing)
 				if healing > 0 then

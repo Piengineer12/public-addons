@@ -1,0 +1,48 @@
+function GM:CreateTeams()
+	hook.Run("InitializeTeams")
+end
+
+function GM:PhysgunPickup(ply, ent)
+	if self.DebugMode then return true
+	elseif ent.Base == "gballoon_tower_base" then return hook.Run("GetSkillAmount", "physgun") > 0 and not ROTGB_BalloonsExist()
+	end
+	return false
+end
+
+function GM:PlayerNoClip(ply, desired)
+	return self.DebugMode
+end
+
+function GM:OnPlayerHitGround(ply, intoWater, onFloating, fallSpeed)
+	-- players do not take fall damage
+	return true
+end
+
+function GM:CanProperty(ply, property, ent)
+	if property == "remover" then
+		return ent.Base == "gballoon_tower_base"
+	end
+	return false
+end
+
+function GM:PostCleanupMap()
+	RTG_FirstAllyPawnFreeDone = nil
+	if SERVER then
+		hook.Run("PostCleanupMapServer")
+	end
+end
+
+-- non-base
+
+function GM:SharedInitialize()
+	hook.Run("RebuildSkills")
+	hook.Run("SetCachedSkillAmounts", {})
+end
+
+AccessorFunc(GM, "Difficulty", "Difficulty", FORCE_STRING)
+AccessorFunc(GM, "CurrentVote", "CurrentVote")
+
+function GM:ShouldConVarOverride(cvar)
+	local currentDifficulty = hook.Run("GetDifficulty")
+	return self.Modes[currentDifficulty] and self.Modes[currentDifficulty].convars[cvar] or self.Modes.__common.convars[cvar]
+end

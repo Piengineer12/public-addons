@@ -20,6 +20,30 @@ function GM:PlayerSpawn(ply, fromTransition)
 		hook.Run("PlayerLoadout", ply)
 		hook.Run("PlayerSetModel", ply)
 	end
+	hook.Run("SetStatRebroadcastRequired", true)
+end
+
+function GM:PlayerShouldTakeDamage(ply, attacker)
+	-- players do not ever take damage from each other, nor themselves
+	return not attacker:IsPlayer()
+end
+
+function GM:OnDamagedByExplosion(ply, dmginfo)
+	-- don't make the high pitched ringing noise!
+end
+
+function GM:GetFallDamage(ply, flFallSpeed)
+	return 0
+end
+
+function GM:PlayerSay(ply, message, forTeam)
+	if message == "!skills" or message == "!rtg_skills" then
+		ply:ConCommand("rotgb_tg_skill_web")
+		return ""
+	elseif message == "!vote" or message == "!rtg_vote" then
+		ply:ConCommand("rotgb_tg_vote")
+		return ""
+	end
 end
 
 function GM:PlayerSilentDeath(ply)

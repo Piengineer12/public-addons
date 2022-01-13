@@ -6,7 +6,7 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		5.0.0-alpha.3
+Version:		5.0.0-alpha.4
 ]]
 
 local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","towers"}
@@ -64,6 +64,7 @@ ROTGB_OPERATION_ACHIEVEMENT = 4
 ROTGB_OPERATION_WAVE_EDIT = 5
 ROTGB_OPERATION_HEALTH_EDIT = 6
 ROTGB_OPERATION_TRIGGER = 7
+ROTGB_OPERATION_BOSS = 8
 
 ROTGB_TOWER_MENU = 0
 ROTGB_TOWER_UPGRADE = 1
@@ -672,7 +673,7 @@ if SERVER then
 		end
 		if operation == ROTGB_OPERATION_TRANSFER then
 			local ply2 = net.ReadEntity()
-			if IsValid(ply2) and ply2:IsPlayer() and ply ~= ply2 then
+			if ply2:IsPlayer() and ply ~= ply2 then
 				local transferAmount = ROTGB_GetTransferAmount(ply)
 				ROTGB_AddCash(transferAmount, ply2)
 				ROTGB_RemoveCash(transferAmount, ply)
@@ -826,6 +827,11 @@ if CLIENT then
 			size=fontsize
 		})
 	end
+	local BOSS_FONT_HEIGHT = 16
+	surface.CreateFont("RotgBBossFont",{
+		font="Roboto",
+		size=BOSS_FONT_HEIGHT
+	})
 	
 	CreateGBFont(32)
 	
@@ -942,7 +948,11 @@ if CLIENT then
 	local heartmat = Material("icon16/heart.png")
 	local oldSize = 0
 	local generateCooldown = 1
+	local bossData = {}
 	local color_yellow = Color(255,255,0)
+	local color_aqua = Color(0,255,255)
+	local color_magenta = Color(255,0,255)
+	local color_black_semiopaque = Color(0,0,0,191)
 	hook.Add("HUDPaint","RotgB",function()
 		if ROTGB_GetConVarValue("rotgb_hud_enabled") then
 			local realTime = RealTime()
@@ -986,8 +996,14 @@ if CLIENT then
 				local tX, tY = textX, yPos+size
 				for i,v in ipairs(targets) do
 					tX = tX + draw.SimpleTextOutlined(string.Comma(v:Health()).." ","RotgB_font",tX,tY,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+					if v:GetOSPs() > 0 then
+						tX = tX + draw.SimpleTextOutlined("+ "..string.Comma(v:GetOSPs()).."* ","RotgB_font",tX,tY,color_magenta,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+					end
 					if v:GetGoldenHealth() > 0 then
 						tX = tX + draw.SimpleTextOutlined("+ "..string.Comma(v:GetGoldenHealth()).." ","RotgB_font",tX,tY,color_yellow,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+					end
+					if v:GetPerWaveShield() > 0 then
+						tX = tX + draw.SimpleTextOutlined("+ "..string.Comma(v:GetPerWaveShield()).." ","RotgB_font",tX,tY,color_aqua,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 					end
 					tX = tX + draw.SimpleTextOutlined("/ "..string.Comma(v:GetMaxHealth()),"RotgB_font",tX,tY,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 					if i < #targets then
@@ -1028,6 +1044,128 @@ if CLIENT then
 				offsetX = offsetX + draw.SimpleTextOutlined(attributed, "Trebuchet24", textX+offsetX, yPos+textOffset, fgColor2, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 2, bgColor)
 				draw.SimpleTextOutlined(textPart2, "Trebuchet24", textX+offsetX, yPos+textOffset, fgColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 2, bgColor)
 				textOffset = textOffset + 24
+			end
+			
+			if (bossData.lastUpdateTime or -4) + 3 > RealTime() then
+				if not bossData.title then
+					local npcTable = list.GetForEdit("NPC")[bossData.type]
+					local displayName = npcTable.Name
+					if bit.band(bossData.flags,8)==8 then
+						displayName = "Shielded "..displayName
+					end
+					if bit.band(bossData.flags,4)==4 then
+						displayName = "Regen "..displayName
+					end
+					if bit.band(bossData.flags,2)==2 then
+						displayName = "Hidden "..displayName
+					end
+					if bit.band(bossData.flags,1)==1 then
+						displayName = "Fast "..displayName
+					end
+					bossData.title = string.upper(displayName)
+					local h,s,v = ColorToHSV(string.ToColor(npcTable.KeyValues.BalloonColor))
+					if s == 1 then v = 1 end
+					s = s / 2
+					v = (v + 1) / 2
+					bossData.color = HSVToColor(h,s,v)
+				end
+				if bit.band(bossData.flags,16)==16 then
+					bossData.color = HSVToColor(RealTime()*60%360,0.5,1)
+				end
+				bossData.healthHistory = bossData.healthHistory or {}
+				table.insert(bossData.healthHistory, bossData.health)
+				if #bossData.healthHistory > 60 then
+					table.remove(bossData.healthHistory, 1)
+				end
+				local currentHealthSegment = math.max(math.ceil(bossData.health / bossData.maxHealth * bossData.healthSegments), 1)
+				local healthPerSegment = bossData.maxHealth / bossData.healthSegments
+				local maximumSegmentHealth = bossData.maxHealth / bossData.healthSegments * currentHealthSegment
+				local healthPercent = (bossData.health - maximumSegmentHealth + healthPerSegment) / healthPerSegment
+				local bufferHealthPercent = (math.min(bossData.healthHistory[1], maximumSegmentHealth) - maximumSegmentHealth + healthPerSegment) / healthPerSegment
+				
+				local padding = BOSS_FONT_HEIGHT / 2
+				local barW = ScrW() / 3
+				local barH = BOSS_FONT_HEIGHT
+				local barX = (ScrW() - barW) / 2
+				local barY = BOSS_FONT_HEIGHT * 2 + padding
+				
+				local healthBarsP = math.floor(BOSS_FONT_HEIGHT / 8)
+				local healthBarsPW = BOSS_FONT_HEIGHT
+				local healthBarsW = healthBarsPW - healthBarsP * 2
+				local healthBarsX = barX + barW
+				local healthBarsY = barY + barH
+				
+				local backgroundW = barW + padding * 2
+				local backgroundH = BOSS_FONT_HEIGHT + barH + healthBarsPW + padding * 2
+				local backgroundX = (ScrW() - backgroundW) / 2
+				local backgroundY = BOSS_FONT_HEIGHT
+				local backgroundC = color_black_semiopaque
+				
+				-- TODO: health bars indicator
+				if bossData.currentHealthSegment ~= currentHealthSegment then
+					if bossData.currentHealthSegment then
+						bossData.lastWarningTime = RealTime()
+					end
+					bossData.currentHealthSegment = currentHealthSegment
+					bossData.currentHealthSegmentColor = HSVToColor((currentHealthSegment-1)*30%360,1,1)
+					bossData.previousHealthSegmentColors = {}
+					for i=0,currentHealthSegment-2 do
+						table.insert(bossData.previousHealthSegmentColors, HSVToColor(i*30%360,1,1))
+					end
+				end
+				if (bossData.lastWarningTime or -4) + 3 > RealTime() then
+					local redness = math.Clamp((bossData.lastWarningTime+3-RealTime())*85, 0, 255)
+					backgroundC = Color(redness, 0, 0, 191)
+				end
+				bossData.oldHealthPercent = bossData.oldHealthPercent or healthPercent
+				--[[if bossData.oldHealthPercent < healthPercent then
+					bossData.oldHealthPercent = healthPercent
+				else]]
+					bossData.oldHealthPercent = (bossData.oldHealthPercent*4 + healthPercent) / 5
+				--end
+				bossData.oldBufferHealthPercent = bossData.oldBufferHealthPercent or bufferHealthPercent
+				--[[if bossData.oldBufferHealthPercent < bufferHealthPercent then
+					bossData.oldBufferHealthPercent = bufferHealthPercent
+				else]]
+					bossData.oldBufferHealthPercent = (bossData.oldBufferHealthPercent*4 + bufferHealthPercent) / 5
+				--end
+				
+				draw.RoundedBox(8, backgroundX, backgroundY, backgroundW, backgroundH, backgroundC)
+				draw.SimpleText(bossData.title, "RotgBBossFont", ScrW()/2, backgroundY+padding, bossData.color, TEXT_ALIGN_CENTER)
+				
+				local previousSegmentColorsAmount = #bossData.previousHealthSegmentColors
+				local previousSegmentColor = bossData.previousHealthSegmentColors[previousSegmentColorsAmount] or color_black_semiopaque
+				surface.SetDrawColor(previousSegmentColor.r, previousSegmentColor.g, previousSegmentColor.b, previousSegmentColor.a)
+				surface.DrawRect(barX, barY, barW, barH)
+				
+				surface.SetDrawColor(255,255,255)
+				surface.DrawRect(barX, barY, barW*bossData.oldBufferHealthPercent, barH)
+				
+				local segmentColor = bossData.currentHealthSegmentColor
+				surface.SetDrawColor(segmentColor.r, segmentColor.g, segmentColor.b, segmentColor.a)
+				surface.DrawRect(barX, barY, barW*bossData.oldHealthPercent, barH)
+				
+				draw.SimpleText(string.format("%s / %s", string.Comma(bossData.health), string.Comma(bossData.maxHealth)), "RotgBBossFont", barX, barY+barH, color_white)
+				
+				if currentHealthSegment > 20 then
+					local localX = healthBarsX - healthBarsPW + healthBarsP
+					local localY = healthBarsY + healthBarsP
+					
+					surface.SetDrawColor(previousSegmentColor.r,previousSegmentColor.g,previousSegmentColor.b)
+					surface.DrawRect(localX, localY, healthBarsW, healthBarsW)
+					
+					draw.SimpleText("x "..string.Comma(currentHealthSegment-1), "RotgBBossFont", localX - healthBarsP, localY + healthBarsW / 2, color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+				else
+					for k,v in pairs(bossData.previousHealthSegmentColors) do
+						local localX = healthBarsX - healthBarsPW * (previousSegmentColorsAmount-k+1) + healthBarsP
+						local localY = healthBarsY + healthBarsP
+						
+						surface.SetDrawColor(v.r,v.g,v.b)
+						surface.DrawRect(localX, localY, healthBarsW, healthBarsW)
+					end
+				end
+			elseif bossData then
+				bossData = {}
 			end
 		end
 	end)
@@ -1348,6 +1486,18 @@ if CLIENT then
 			for i=1, net.ReadUInt(32) do
 				achievements.BalloonPopped()
 			end
+		elseif operation == ROTGB_OPERATION_BOSS then
+			local id = net.ReadUInt(16)
+			if bossData.id ~= id then
+				bossData = {}
+			end
+			bossData.id = id
+			bossData.type = net.ReadString()
+			bossData.flags = net.ReadUInt(8)
+			bossData.health = math.max(net.ReadInt(32), 0)
+			bossData.maxHealth = net.ReadInt(32)
+			bossData.healthSegments = net.ReadUInt(8)
+			bossData.lastUpdateTime = RealTime()
 		end
 	end)
 	

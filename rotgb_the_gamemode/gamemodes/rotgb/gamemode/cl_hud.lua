@@ -22,19 +22,19 @@ function GM:HUDDrawXP()
 	surface.SetDrawColor(127,0,255)
 	surface.DrawRect(barX, barY, barWidth * ply:RTG_GetLevelFraction(), barHeight)
 	
-	draw.SimpleTextOutlined(string.format("Level %i", level), "rotgb_level", barX, barY, color_purple, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
+	draw.SimpleTextOutlined("Level "..string.Comma(level), "rotgb_level", barX, barY, color_purple, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
 	if levelDisplayExpiryTime < RealTime() then
 		local experienceText = string.Comma(math.floor(ply:RTG_GetExperience()))
-		if ply:RTG_GetExperienceNeeded() < math.huge then
+		--if ply:RTG_GetExperienceNeeded() < math.huge then
 			experienceText = experienceText.." / "..string.Comma(math.ceil(ply:RTG_GetExperienceNeeded()))
-		end
+		--end
 		draw.SimpleTextOutlined(experienceText, "rotgb_experience", barX+barWidth, barY, color_purple, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
 	else
 		local textColor = Color(255,math.sin(RealTime()*math.pi)*127+128,255)
 		draw.SimpleTextOutlined(levelUpText, "rotgb_experience", barX+barWidth, barY, textColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
 	end
 	
-	if level ~= oldLevel then
+	if level ~= oldLevel and ply.rtg_PreviousXP then
 		if oldLevel>0 then
 			local towers = ROTGB_GetAllTowers()
 			if level<=#towers then
