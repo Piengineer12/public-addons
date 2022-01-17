@@ -42,6 +42,21 @@ net.Receive("rotgb_gamemode", function(length, ply)
 		hook.Run("StartVote", ply, typ, target, reason)
 	elseif operation == RTG_OPERATION_SKILLS then
 		hook.Run("ReadSkillMessage", ply)
+	elseif operation == RTG_OPERATION_MAPS then
+		local mapNames = {}
+		for i,v in ipairs(file.Find("maps/*.bsp","GAME")) do
+			if string.sub(v, 1, 6) == "rotgb_" then
+				table.insert(mapNames, string.sub(v, 1, -5))
+			end
+		end
+		
+		net.Start("rotgb_gamemode")
+		net.WriteUInt(RTG_OPERATION_MAPS, 4)
+		net.WriteUInt(#mapNames, 16)
+		for i,v in ipairs(mapNames) do
+			net.WriteString(v)
+		end
+		net.Send(ply)
 	end
 end)
 

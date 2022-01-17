@@ -85,22 +85,22 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"WOWsplosions","Heavy Bombs","Flex Remover","Ice Bombs","The Tsar Bomba","Meteor Nuke"},
+		Names = {"Heavy Bombs","WOWsplosions","Flex Remover","Ice Bombs","The Tsar Bomba","Meteor Nuke"},
 		Descs = {
+			"Considerably increases damage versus gBlimps.",
 			"gBalloons hit by this tower move 50% slower for 3 seconds.",
-			"Tremendously increases damage versus gBlimps.",
 			"Explosions strip gBalloons of their Shielded and Fast properties.",
 			"Freezes gBalloons for 2 seconds per hit. Note that White and Black gBalloons cannot be frozen by this upgrade.",
 			"Once every 30 seconds, firing at this tower deals massive damage to all gBalloons regardless of immunities.",
 			"The Tsar Bomba deals far more damage, enough to wipe out all Purple gBlimps on the map!",
 		},
-		Prices = {400,1750,3500,7500,100000,1.25e6},--{400,1750,3500,25000,300000,4.5e6},
+		Prices = {400,3500,12500,30000,100000,1.25e6},
 		Funcs = {
 			function(self)
-				self.rotgb_AlternateExplode = true
+				self.rotgb_ExtraVsCeramic = true
 			end,
 			function(self)
-				self.rotgb_ExtraVsCeramic = true
+				self.rotgb_AlternateExplode = true
 			end,
 			function(self)
 				self.rotgb_StrengthBreaker = true
@@ -176,7 +176,7 @@ function ENT:Explode(pos, recursion, gBalloons)
 		if self:ValidTargetIgnoreRange(v) then
 			local markedDamage = self.AttackDamage
 			if self.rotgb_ExtraVsCeramic and v:GetBalloonProperty("BalloonBlimp") then
-				markedDamage = markedDamage * 3
+				markedDamage = markedDamage * 2
 			end
 			if self.rotgb_StrengthBreaker then
 				v:SetBalloonProperty("BalloonShielded", false)

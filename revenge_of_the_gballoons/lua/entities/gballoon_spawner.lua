@@ -2269,6 +2269,7 @@ ROTGB_WAVES = { -- format: { balloon_type, amount=1, timespan=0, delay=0 }
 	{ -- 120
 		{"gballoon_blimp_rainbow"},
 		duration=10,
+		assumerbe=452504,
 		rbe=284772
 	}, -- 120
 }
@@ -2297,7 +2298,7 @@ for k,v in pairs(ROTGB_WAVES) do
 		}
 		ROTGB_WAVES_BOSSES_SUPER[k] = {
 			{"gballoon_melon_super"},
-			rbe = 5000,
+			rbe = 20000,
 			duration = 10
 		}
 	elseif k == 40 then
@@ -2308,7 +2309,7 @@ for k,v in pairs(ROTGB_WAVES) do
 		}
 		ROTGB_WAVES_BOSSES_SUPER[k] = {
 			{"gballoon_mossman_super"},
-			rbe = 42640,
+			rbe = 117640,
 			duration = 10
 		}
 	elseif k == 60 then
@@ -2319,7 +2320,7 @@ for k,v in pairs(ROTGB_WAVES) do
 		}
 		ROTGB_WAVES_BOSSES_SUPER[k] = {
 			{"gballoon_gman_super"},
-			rbe = 100000,
+			rbe = 500000,
 			duration = 10
 		}
 	elseif k == 80 then
@@ -2330,7 +2331,20 @@ for k,v in pairs(ROTGB_WAVES) do
 		}
 		ROTGB_WAVES_BOSSES_SUPER[k] = {
 			{"gballoon_blimp_ggos_super"},
-			rbe = 507792,
+			rbe = 2007792,
+			duration = 10
+		}
+	elseif k == 120 then
+		ROTGB_WAVES_BOSSES[k] = {
+			{"gballoon_blimp_long_rainbow"},
+			rbe = 4778176,
+			assumerbe=452504,
+			duration = 10
+		}
+		ROTGB_WAVES_BOSSES_SUPER[k] = {
+			{"gballoon_blimp_long_rainbow_super"},
+			rbe = 54556352,
+			assumerbe=452504,
 			duration = 10
 		}
 	else
@@ -2354,21 +2368,13 @@ end
 ROTGB_WAVES_BOSSES[140] = {
 	{"gballoon_garrydecal"},
 	rbe = 10e6,
+	assumerbe=2109101,
 	duration = 10
 }
 ROTGB_WAVES_BOSSES_SUPER[140] = {
 	{"gballoon_garrydecal_super"},
-	rbe = 50e6,
-	duration = 10
-}
-ROTGB_WAVES_BOSSES[141] = {
-	{"gballoon_blimp_rainbow",9,9,1},
-	rbe = 2562498,
-	duration = 10
-}
-ROTGB_WAVES_BOSSES_SUPER[141] = {
-	{"gballoon_blimp_rainbow",9,9,1},
-	rbe = 2562498,
+	rbe = 200e6,
+	assumerbe=2109101,
 	duration = 10
 }
 
@@ -2383,18 +2389,19 @@ end
 
 function ENT:SetupDataTables()
 	self:NetworkVar("Int", 0, "Wave", {KeyName="start_wave", Edit={title="Wave To Spawn", type="Int", min=1, max=200, order=1}})
-	self:NetworkVar("Int", 1, "SpawnDivider", {KeyName="spawn_divider", Edit={title="Spawn Divider", type="Int", min=1, max=100, order=4}})
-	self:NetworkVar("Int", 2, "DividerDelay", {KeyName="divider_delay", Edit={title="Divider Delay", type="Int", min=0, max=100, order=5}})
+	self:NetworkVar("Int", 1, "SpawnDivider", {KeyName="spawn_divider", Edit={title="Spawn Divider", type="Int", min=1, max=100, order=5}})
+	self:NetworkVar("Int", 2, "DividerDelay", {KeyName="divider_delay", Edit={title="Divider Delay", type="Int", min=0, max=100, order=6}})
 	self:NetworkVar("Int", 3, "LastWave", {KeyName="end_wave", Edit={title="Last Wave", type="Int", min=1, max=200, order=2}})
-	self:NetworkVar("Bool", 0, "AutoStartInternal", {KeyName="auto_start", Edit={title="Auto-Start", type="Boolean", order=6}})
-	self:NetworkVar("Bool", 1, "ForceNextWave", {KeyName="force_next", Edit={title="Force Auto-Start", type="Boolean", order=8}})
-	self:NetworkVar("Bool", 2, "StartAll", {KeyName="start_all", Edit={title="Start All Others", type="Boolean", order=9}})
+	self:NetworkVar("Bool", 0, "AutoStartInternal", {KeyName="auto_start", Edit={title="Auto-Start", type="Boolean", order=7}})
+	self:NetworkVar("Bool", 1, "ForceNextWave", {KeyName="force_next", Edit={title="Force Auto-Start", type="Boolean", order=9}})
+	self:NetworkVar("Bool", 2, "StartAll", {KeyName="start_all", Edit={title="Start All Others", type="Boolean", order=10}})
 	self:NetworkVar("Bool", 3, "UnSpectatable")
-	self:NetworkVar("Bool", 4, "HideWave", {KeyName="hide_wave", Edit={title="Hide Wave", type="Boolean", order=11}})
-	self:NetworkVar("Float", 0, "AutoStartDelay", {KeyName="auto_start_delay", Edit={title="Auto-Start Delay", type="Float", min=0, max=60, order=7}})
-	self:NetworkVar("Float", 1, "SpeedMul", {KeyName="spawn_rate_mul", Edit={title="Spawn Rate", type="Float", min=0.1, max=10, order=3}})
+	self:NetworkVar("Bool", 4, "HideWave", {KeyName="hide_wave", Edit={title="Hide Wave", type="Boolean", order=12}})
+	self:NetworkVar("Bool", 5, "AllowMultiStart", {KeyName="allow_multi_start", Edit={title="Allow Multiple Waves", type="Boolean", order=3}})
+	self:NetworkVar("Float", 0, "AutoStartDelay", {KeyName="auto_start_delay", Edit={title="Auto-Start Delay", type="Float", min=0, max=60, order=8}})
+	self:NetworkVar("Float", 1, "SpeedMul", {KeyName="spawn_rate_mul", Edit={title="Spawn Rate", type="Float", min=0.1, max=10, order=4}})
 	self:NetworkVar("Float", 2, "NextWaveTime")
-	self:NetworkVar("String", 0, "WaveFile", {KeyName="wave_preset", Edit={title="Wave Preset", type="Generic", order=10}})
+	self:NetworkVar("String", 0, "WaveFile", {KeyName="wave_preset", Edit={title="Wave Preset", type="Generic", order=11}})
 	self:NetworkVar("Entity", 0, "NextTarget1")
 	self:NetworkVar("Entity", 1, "NextTarget2")
 	self:NetworkVar("Entity", 2, "NextTarget3")
@@ -2451,8 +2458,6 @@ function ENT:KeyValue(key,value)
 		self:SetHideWave(tobool(value))
 	elseif lkey=="start_all" then
 		self:SetStartAll(tobool(value))
-	elseif lkey=="spawn_speed_mul" then -- TODO: DEPRECATED
-		self:SetSpeedMul(tonumber(value) or 1)
 	elseif lkey=="spawn_rate_mul" then
 		self:SetSpeedMul(tonumber(value) or 1)
 	elseif lkey=="spawn_divider" then
@@ -2463,8 +2468,10 @@ function ENT:KeyValue(key,value)
 		self.NoAutoStart = tobool(value)
 	elseif lkey=="auto_start_delay" then
 		self:SetAutoStartDelay(tonumber(value) or 0)
-	--[[elseif lkey=="force_next" then
-		self:SetForceNextWave(tobool(value))]]
+	elseif lkey=="force_next" then
+		self:SetForceNextWave(tobool(value))
+	elseif lkey=="no_multi_start" then
+		self:SetAllowMultiStart(not tobool(value))
 	elseif lkey=="finished_shortly_threshold" then
 		self.OutputShortlyThreshold = value
 	elseif lkey=="dont_trigger_wave_relays" then
@@ -2523,6 +2530,8 @@ function ENT:AcceptInput(input,activator,caller,data)
 	self:CheckBoolEDTInput(input, "hidewave", "HideWave")
 	self:CheckBoolEDTInput(input, "startall", "StartAll")
 	self:CheckBoolEDTInput(input, "autostart", "AutoStart")
+	self:CheckBoolEDTInput(input, "forceautostart", "ForceNextWave")
+	self:CheckBoolEDTInput(input, "allowmultistart", "AllowMultiStart")
 	return gballoon_pob.AcceptInput(self,input,activator,caller,data)
 end
 
@@ -2555,7 +2564,15 @@ function ENT:Initialize()
 		if self:GetLastWave()<=0 then
 			self:SetLastWave(ROTGB_GetConVarValue("rotgb_default_last_wave"))
 		end
-		self:SetForceNextWave(ROTGB_GetConVarValue("rotgb_spawner_force_auto_start"))
+		
+		if ROTGB_GetConVarValue("rotgb_spawner_force_auto_start") >= 0 then
+			self:SetForceNextWave(tobool(ROTGB_GetConVarValue("rotgb_spawner_force_auto_start")))
+		end
+		
+		if ROTGB_GetConVarValue("rotgb_spawner_no_multi_start") >= 0 then
+			self:SetAllowMultiStart(not tobool(ROTGB_GetConVarValue("rotgb_spawner_no_multi_start")))
+		end
+		
 		self:SetSpeedMul(self:GetSpeedMul()>0 and self:GetSpeedMul() or 1)
 		self:SetSpawnDivider(self:GetSpawnDivider()>0 and self:GetSpawnDivider() or 1)
 		if self:GetWaveFile() == "" then
@@ -2605,7 +2622,15 @@ end
 function ENT:Use(activator)
 	--if input:lower()=="balloon_start_wave" then
 		local cwave = self:GetWave()
-		if cwave == self:GetLastWave() + 1 and (self.EnableBalloonChecking or self:GetNextWaveTime() > CurTime()) then return end
+		if self.EnableBalloonChecking then
+			if cwave == self:GetLastWave() + 1 then return
+			elseif not self:GetAllowMultiStart() then
+				if activator:IsPlayer() then
+					activator:PrintMessage(HUD_PRINTTALK, "You cannot start multiple waves at once!")
+				end
+				return
+			end
+		end
 		if ((IsValid(activator) and activator:GetClass()~="gballoon_spawner" or activator == self) and self:GetStartAll() and not self.LoopPrevent) then
 			self.LoopPrevent = true
 			for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
@@ -2673,7 +2698,7 @@ function ENT:GenerateNextWave(cwave)
 	if not self:GetWaveTable()[cwave-1] then
 		self:GenerateNextWave(cwave-1)
 	end
-	local erbe = self:GetWaveTable()[cwave-1].assumerbe and self:GetWaveTable()[cwave-1].assumerbe*1.1 or self:GetWaveTable()[cwave-1].rbe*1.1
+	local erbe = self:GetWaveTable()[cwave-1].assumerbe and self:GetWaveTable()[cwave-1].assumerbe*1.08 or self:GetWaveTable()[cwave-1].rbe*1.08
 	local trbe = 0
 	local wavetab = {}
 	local choices = {"gballoon_blimp_blue","gballoon_blimp_red","gballoon_blimp_green","gballoon_fast_hidden_regen_shielded_blimp_gray","gballoon_blimp_purple","gballoon_fast_blimp_magenta","gballoon_blimp_rainbow"}

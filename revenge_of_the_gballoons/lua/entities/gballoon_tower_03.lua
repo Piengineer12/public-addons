@@ -20,7 +20,7 @@ ENT.LOSOffset = Vector(0,0,40)
 ENT.UserTargeting = true
 ENT.AttackDamage = 30
 ENT.IsChessPiece = true
-ENT.rotgb_MaxMarkers = 100
+ENT.rotgb_MaxMarkers = 1000
 ENT.UpgradeReference = {
 	{
 		Names = {"Sniping Scope","Night Vision Goggles","Semi-Automatic Rifle","Fully-Automatic Rifle","Marking Shots","England's Grace"},
@@ -30,7 +30,7 @@ ENT.UpgradeReference = {
 			"Tremendously increases fire rate.",
 			"Colossally increases fire rate!",
 			"This tower now places markers on gBalloons. Every 10 markers placed will increase damage taken from Sniper Queens by one layer, up to 100 extra layers of damage. Markers only affect the gBalloon's outermost layer.",
-			"Doubles fire rate, increases the maximum marker limit to 1,000 and all shots hit all gBalloons in its radius!"
+			"Doubles fire rate, increases the maximum marker limit to 1,000 extra layers of damage and all shots hit all gBalloons in its radius!"
 		},
 		Prices = {300,2000,5000,25000,250000,20e6},
 		Funcs = {
@@ -65,9 +65,9 @@ ENT.UpgradeReference = {
 			"Pops 18 layers per shot, enough to completely destroy a Ceramic gBalloon.",
 			"Pops 54 layers per shot! Shots will also stun gBlimps for 3 seconds. This upgrade can't stun Purple gBlimps and above.",
 			"Pops 270 layers per shot! Shots will also deal colossally increased damage versus gBlimps, enough to destroy Red gBlimps in a single hit!",
-			"Pops 2700 layers per shot! Shots will also cause gBalloons to lose all immunities and all of its properties do not function for 1 second!"
+			"Pops 2700 layers per shot! Shots will also cause gBalloons to lose all damage type immunities for 1 second and strips Fast, Hidden, Regen and Shielded properties off gBalloons!"
 		},
-		Prices = {200,1250,2000,20000,500000,10e6},
+		Prices = {200,1250,2000,20000,500000,20e6},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 20
@@ -123,22 +123,16 @@ local function SnipeEntity()
 			ent:Stun(1)
 		end
 		if self.rotgb_MarkingShots then
-			ent.rotgb_AdditionslSniperDamage = math.min((ent.rotgb_AdditionslSniperDamage or 0) + 1, 1000)
+			ent.rotgb_AdditionslSniperDamage = math.min((ent.rotgb_AdditionslSniperDamage or 0) + 1, self.rotgb_MaxMarkers)
 		end
 		if self.rotgb_ExtraToBlimp and ent:GetBalloonProperty("BalloonBlimp") then
 			bullet.Damage = bullet.Damage * 5
 		end
 		if self.rotgb_NoImmune then
-			ent.BalloonRegenTime = CurTime()+ROTGB_GetConVarValue("rotgb_regen_delay")+1
-			if ent:GetBalloonProperty("BalloonFast") then
-				ent:Slowdown("ROTGB_FASTLESS",0.5,1)
-			end
-			if ent:GetBalloonProperty("BalloonHidden") then
-				ent:InflictRotgBStatusEffect("unhide",1)
-			end
-			if ent:GetBalloonProperty("BalloonShielded") then
-				ent:InflictRotgBStatusEffect("unshield",1)
-			end
+			ent:SetBalloonProperty("BalloonFast", false)
+			ent:SetBalloonProperty("BalloonHidden", false)
+			ent:SetBalloonProperty("BalloonRegen", false)
+			ent:SetBalloonProperty("BalloonShielded", false)
 			ent:InflictRotgBStatusEffect("unimmune",1)
 		end
 		self:FireBullets(bullet)

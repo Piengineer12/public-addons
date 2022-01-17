@@ -1,5 +1,6 @@
 AccessorFunc(GM, "StartupState", "StartupState", FORCE_NUMBER)
 AccessorFunc(GM, "NextSave", "NextSave", FORCE_NUMBER)
+AccessorFunc(GM, "MapTable", "MapTable")
 
 function GM:Initialize()
 	--[[local creationNeeded = not sql.TableExists("rotgb_data")

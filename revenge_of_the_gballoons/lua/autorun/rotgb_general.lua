@@ -6,10 +6,10 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		5.0.0-alpha.4
+Version:		5.0.0-alpha.5
 ]]
 
-local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","towers"}
+local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","spawning","towers"}
 
 function ROTGB_Log(message,attrib)
 	if ROTGB_GetConVarValue("rotgb_debug"):find(attrib) then
@@ -428,8 +428,20 @@ RegisterConVar("rotgb_tower_chess_only","0",R_INT,
 [[Enabling this option will allow only chess towers to be placed. Towers can declare whether they are chess towers or not in their respective class files.
  - If -1, only NON-chess towers can be placed.]])
 
-RegisterConVar("rotgb_spawner_force_auto_start","0",R_BOOL,
-[[Newly-spawned gBalloon Spawners will have Force Auto-Start enabled.]])
+RegisterConVar("rotgb_spawner_force_auto_start","-1",R_INT,
+[[If 1, newly-spawned gBalloon Spawners will have Force Auto-Start enabled.
+If 0, newly-spawned gBalloon Spawners will have Force Auto-Start disabled.
+If -1, the map's values are used where applicable, otherwise 0 is used.]])
+
+RegisterConVar("rotgb_spawner_no_multi_start","-1",R_INT,
+[[If 1, newly-spawned gBalloon Spawners will have Allow Multiple Waves disabled.
+If 0, newly-spawned gBalloon Spawners will have Allow Multiple Waves enabled.
+If -1, the map's values are used where applicable, otherwise 0 is used.]])
+
+RegisterConVar("rotgb_max_fires_per_second","20",R_FLOAT,
+[[Maximum gBalloons to visibly ignite per second. Lowering this value can improve performance.
+ - Note that invisible fires can still deal fire damage to gBalloons.
+ - This may also be a decimal value.]])
 
 concommand.Add("rotgb_health_param_internal",function(ply,cmd,args,argStr) if (not IsValid(ply) or ply:IsAdmin()) then ROTGB_CVARS["rotgb_health_param"][1]:SetInt(tonumber(args[1]) or 0) end end,nil,nil,FCVAR_UNREGISTERED)
 
@@ -1255,8 +1267,10 @@ if CLIENT then
 			DForm:Help(" - "..GetConVar("rotgb_default_first_wave"):GetHelpText().."\n")
 			DForm:NumSlider("Default Last Wave","rotgb_default_last_wave",1,1000,0)
 			DForm:Help(" - "..GetConVar("rotgb_default_last_wave"):GetHelpText().."\n")
-			DForm:CheckBox("Force Auto-Start","rotgb_spawner_force_auto_start")
+			DForm:NumberWang("Force Auto-Start","rotgb_spawner_force_auto_start",-1,1)
 			DForm:Help(" - "..GetConVar("rotgb_spawner_force_auto_start"):GetHelpText().."\n")
+			DForm:NumberWang("No Multi-Start","rotgb_spawner_no_multi_start",-1,1)
+			DForm:Help(" - "..GetConVar("rotgb_spawner_no_multi_start"):GetHelpText().."\n")
 			DForm:CheckBox("Enable Freeplay","rotgb_freeplay")
 			DForm:Help(" - "..GetConVar("rotgb_freeplay"):GetHelpText().."\n")
 			DForm:TextEntry("Default Wave Preset","rotgb_default_wave_preset")
@@ -1312,6 +1326,8 @@ if CLIENT then
 			DForm:Help(" - "..GetConVar("rotgb_max_to_exist"):GetHelpText().."\n")
 			DForm:NumSlider("Max Pop Effects/Second","rotgb_max_effects_per_second",0,100,2)
 			DForm:Help(" - "..GetConVar("rotgb_max_effects_per_second"):GetHelpText().."\n")
+			DForm:NumSlider("Max Fire Effects/Second","rotgb_max_fires_per_second",0,100,2)
+			DForm:Help(" - "..GetConVar("rotgb_max_fires_per_second"):GetHelpText().."\n")
 			DForm:NumSlider("Resist Effect Delay","rotgb_resist_effect_delay",-1,10,3)
 			DForm:Help(" - "..GetConVar("rotgb_resist_effect_delay"):GetHelpText().."\n")
 			DForm:NumSlider("Critical Effect Delay","rotgb_crit_effect_delay",-1,10,3)

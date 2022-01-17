@@ -122,8 +122,13 @@ function GM:GetScoreMultiplier()
 end
 
 function GM:GetXPMultiplier()
-	local multiplier = hook.Run("GetScoreMultiplier")
 	if hook.Run("GetGameIsOver") and not self.DebugMode then return 0 end
+	
+	local multiplier = hook.Run("GetScoreMultiplier")
+	local currentDifficulty = hook.Run("GetDifficulty")
+	if currentDifficulty and self.Modes[currentDifficulty] then
+		multiplier = multiplier * (self.Modes[currentDifficulty].xpmul or 1)
+	end
 	return multiplier
 end
 

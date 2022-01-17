@@ -70,7 +70,7 @@ ENT.UpgradeReference = {
 			"Microwaves are now guaranteed to set gBalloons alight. Once every 45 seconds, firing at this tower increases damage dealt for new fires by 95 layers for 15 seconds.",
 			"All fires deal 25 times more damage!"
 		},
-		Prices = {300,1750,5000,10000,50000,1.5e6},
+		Prices = {300,1750,5000,20000,100000,3e6},
 		Funcs = {
 			function(self)
 				self.FireRate = self.FireRate * 1.5

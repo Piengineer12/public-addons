@@ -35,7 +35,7 @@ ENT.UpgradeReference = {
 		Descs = {
 			"Slightly increases fire rate.",
 			"Considerably increases fire rate and slightly increases splash radius.",
-			"Enables the tower to lob fire pills that set gBalloons on fire for 10 seconds.",
+			"Enables the tower to lob fire pills that set gBalloons on fire, dealing 20 layers of damage over 10 seconds.",
 			"Once every 80 seconds, shooting at this tower tremendously increases fire rate and considerably increases pill count for 60 seconds.",
 			"Colossally increases fire rate and tremendously increases pill count for Minute Rush.",
 		},
@@ -256,7 +256,7 @@ function ENT:ApplyDirectDamage(bln,pill)
 	local owner = self:GetTowerOwner()
 	pill:EmitSound("phx/epicmetal_hard"..math.random(7)..".wav",60,100,1,CHAN_WEAPON)
 	if pill.rotgb_PillType == 0 then
-		bln:RotgB_Ignite(10, owner, self, 10)
+		bln:RotgB_Ignite(20, owner, self, 10)
 	elseif pill.rotgb_PillType == 3 and self.rotgb_ExtraMul > 0 and not bln:GetBalloonProperty("BalloonBlimp") or self.rotgb_ExtraBlimps then
 		bln:MultiplyValue("ROTGB_TOWER_17",self,self.rotgb_ExtraMul,99999)
 		local effData = EffectData()
@@ -281,7 +281,7 @@ end
 function ENT:ApplyIndirectDamage(bln,pill)
 	local owner = self:GetTowerOwner()
 	if pill.rotgb_PillType == 0 then
-		bln:RotgB_Ignite(10, owner, self, 10)
+		bln:RotgB_Ignite(20, owner, self, 10)
 	elseif pill.rotgb_PillType == 3 and self.rotgb_ExtraMul > 0 and not bln:GetBalloonProperty("BalloonBlimp") or self.rotgb_ExtraBlimps then
 		bln:MultiplyValue("ROTGB_TOWER_17",self,self.rotgb_ExtraMul,99999)
 		local effData = EffectData()

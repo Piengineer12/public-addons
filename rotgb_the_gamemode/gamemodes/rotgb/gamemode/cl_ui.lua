@@ -83,11 +83,12 @@ local FONT_HEADER_HEIGHT = ScreenScale(16)
 local FONT_BODY_HEIGHT = ScreenScale(12)
 local FONT_LEVEL_HEIGHT = ScreenScale(16)
 local FONT_EXPERIENCE_HEIGHT = ScreenScale(12)
+local FONT_SKILL_BODY_HEIGHT = ScreenScale(6)
 
 local FONT_SCOREBOARD_HEADER_HEIGHT = ScreenScale(8)
 local FONT_SCOREBOARD_BODY_HEIGHT = ScreenScale(8)
 local FONT_LEVEL_SMALL_HEIGHT = ScreenScale(5)
-local FONT_SKILL_BODY_HEIGHT = ScreenScale(6)
+
 local indentX = ScrW()*0.1
 local indentY = ScrH()*0.1
 
@@ -176,6 +177,13 @@ local function DrawDebugBackground(panel, w, h)
 	surface.SetDrawColor(255,255,255)
 	surface.DrawOutlinedRect(0,0,w,h,1)
 	surface.DrawLine(0,0,w,h)
+end
+
+local function DrawTextBoxBackground(panel, w, h)
+	surface.SetDrawColor(color_dark_black_semiopaque)
+	surface.DrawRect(0,0,w,h)
+	surface.SetDrawColor(color_white)
+	surface.DrawOutlinedRect(0,0,w,h,1)
 end
 
 local function CreateMenu()
@@ -843,11 +851,6 @@ local function ExitButtonFunction()
 end
 
 local function RestartButtonFunction(button)
-	Derma_Query("Are you sure you want to start a new game?", "#new_game", "#GameUI_Yes", function()
-		net.Start("rotgb_gamemode")
-		net.WriteUInt(RTG_OPERATION_GAMEOVER, 4)
-		net.SendToServer()
-	end, "#GameUI_No")
 end
 
 local function CreateGameOverButtons(parent, canContinue)
@@ -856,7 +859,14 @@ local function CreateGameOverButtons(parent, canContinue)
 	ExitButtonCenteringPanel:SetZPos(1)
 	ExitButtonCenteringPanel:Dock(BOTTOM)
 	
-	local RestartButton = CreateButton(nil, "Restart >", color_yellow, RestartButtonFunction)
+	local RestartButton = CreateButton(nil, "Restart >", color_yellow, function()
+		Derma_Query("Are you sure you want to start a new game?", "#new_game", "#GameUI_Yes", function()
+			net.Start("rotgb_gamemode")
+			net.WriteUInt(RTG_OPERATION_GAMEOVER, 4)
+			net.SendToServer()
+			parent:Close()
+		end, "#GameUI_No")
+	end)
 	local RestartButtonCenteringPanel = CreateElementCenteringPanel(RestartButton, parent)
 	RestartButtonCenteringPanel:SetZPos(2)
 	RestartButtonCenteringPanel:Dock(BOTTOM)
@@ -873,7 +883,7 @@ end
 
 local function CreateDifficultyDescriptionPanel()
 	local Panel = vgui.Create("DPanel")
-	Panel.Paint = function()end
+	Panel.Paint = nil
 	
 	local Header = CreateHeader(Panel, 1, "Select a Difficulty...")
 	local Text = CreateText(Panel, 2, "")
@@ -1057,12 +1067,27 @@ local function CreateVoteLeftPanel()
 	KickButton:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
 	KickButton:SetZPos(1)
 	KickButton:Dock(TOP)
+	
 	local DifficultyButton = CreateButton(Panel, "Change Difficulty", color_yellow, function()
 		Panel:UpdateRightPanel(RTG_VOTE_CHANGEDIFFICULTY)
 	end)
 	DifficultyButton:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
 	DifficultyButton:SetZPos(2)
 	DifficultyButton:Dock(TOP)
+	
+	local RestartButton = CreateButton(Panel, "Restart", color_green, function()
+		Panel:UpdateRightPanel(RTG_VOTE_RESTART)
+	end)
+	RestartButton:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
+	RestartButton:SetZPos(3)
+	RestartButton:Dock(TOP)
+	
+	local MapButton = CreateButton(Panel, "Change Map", color_aqua, function()
+		Panel:UpdateRightPanel(RTG_VOTE_MAP)
+	end)
+	MapButton:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
+	MapButton:SetZPos(4)
+	MapButton:Dock(TOP)
 	
 	return Panel
 end
@@ -1096,15 +1121,12 @@ local function CreateVoteRightPanel(VoteLeftPanel, data)
 			for i,v in ipairs(playerTable) do
 				local button = CreateButton(Panel, v.duped and string.format("%s (joined %i min ago)", v.name, CurTime()-v.joinTime) or v.name, team.GetColor(v.team), function(self)
 					for k,v in pairs(Panel.TargetButtons) do
-						if v == self then
-							v:SetFlashing(true)
-						else
-							v:SetFlashing(false)
-						end
+						v:SetFlashing(v == self)
 					end
 					Panel:SetVote(RTG_VOTE_KICK, self.VoteTarget)
 				end)
 				button.VoteTarget = v.userid
+				button:SetZPos(i)
 				button:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
 				button:Dock(TOP)
 				table.insert(Panel.TargetButtons, button)
@@ -1114,19 +1136,60 @@ local function CreateVoteRightPanel(VoteLeftPanel, data)
 				for i2,v2 in ipairs(v.subnodes) do
 					local button = CreateButton(Panel, string.format("%s - %s", v.name or "[ERROR", v2.name or "INVALID DIFFICULTY]"), CATEGORY_COLORS[i], function(self)
 						for k,v3 in pairs(Panel.TargetButtons) do
-							if v3 == self then
-								v3:SetFlashing(true)
-							else
-								v3:SetFlashing(false)
-							end
+							v3:SetFlashing(v3 == self)
 						end
 						Panel:SetVote(RTG_VOTE_CHANGEDIFFICULTY, self.VoteTarget)
 					end)
 					button.VoteTarget = v2.internalName
+					button:SetZPos(i)
 					button:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
 					button:Dock(TOP)
 					table.insert(Panel.TargetButtons, button)
 				end
+			end
+		elseif voteType == RTG_VOTE_RESTART then
+			local QuickButton = CreateButton(Panel, "Quick Restart", color_green, function(self)
+				for k,v in pairs(Panel.TargetButtons) do
+					v:SetFlashing(v == self)
+				end
+				Panel:SetVote(RTG_VOTE_RESTART, self.VoteTarget)
+			end)
+			QuickButton.VoteTarget = "1"
+			QuickButton:SetZPos(1)
+			QuickButton:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
+			QuickButton:Dock(TOP)
+			table.insert(Panel.TargetButtons, QuickButton)
+			
+			local MapButton = CreateButton(Panel, "Full Map Restart", color_yellow, function(self)
+				for k,v in pairs(Panel.TargetButtons) do
+					v:SetFlashing(v == self)
+				end
+				Panel:SetVote(RTG_VOTE_RESTART, self.VoteTarget)
+			end)
+			MapButton.VoteTarget = "2"
+			MapButton:SetZPos(2)
+			MapButton:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
+			MapButton:Dock(TOP)
+			table.insert(Panel.TargetButtons, MapButton)
+		elseif voteType == RTG_VOTE_MAP then
+			if hook.Run("GetMapTable") then
+				for k,v in pairs(hook.Run("GetMapTable")) do
+					local button = CreateButton(Panel, v, color_green, function(self)
+						for k2,v2 in pairs(Panel.TargetButtons) do
+							v2:SetFlashing(v2 == self)
+						end
+						Panel:SetVote(RTG_VOTE_MAP, self.VoteTarget)
+					end)
+					button.VoteTarget = v
+					button:SetZPos(k)
+					button:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
+					button:Dock(TOP)
+					table.insert(Panel.TargetButtons, button)
+				end
+			else -- request from server
+				net.Start("rotgb_gamemode")
+				net.WriteUInt(RTG_OPERATION_MAPS, 4)
+				net.SendToServer()
 			end
 		end
 	end
@@ -1147,18 +1210,28 @@ local function CreateVoteRightPanel(VoteLeftPanel, data)
 end
 
 local function CreateVoteReasonPanel()
-	local Panel = vgui.Create("DTextEntry")
-	Panel:SetFont("rotgb_body")
-	Panel:SetTall(FONT_BODY_HEIGHT*5)
-	Panel:SetPlaceholderText("Reason (Optional)")
-	Panel:SetPaintBackground(false)
-	Panel:SetTextColor(color_white)
+	local Panel = vgui.Create("DPanel")
+	Panel.Paint = DrawTextBoxBackground
+	
+	local TextEntry = vgui.Create("DTextEntry", Panel)
+	TextEntry:Dock(FILL)
+	TextEntry:SetFont("rotgb_body")
+	TextEntry:SetTall(FONT_BODY_HEIGHT*5)
+	TextEntry:SetPlaceholderText("Reason (Optional)")
+	TextEntry:SetPaintBackground(false)
+	TextEntry:SetTextColor(color_white)
+	
+	function Panel:GetValue()
+		return TextEntry:GetValue()
+	end
+	
 	return Panel
 end
 
 local function CreateVoteButtonPanel(Menu, VoteRightPanel, VoteReasonPanel, data)
 	local VoteButtonPanel = vgui.Create("DPanel")
-	local VoteButton = CreateButton(VoteButtonPanel, "Start Vote >", color_green, function()
+	
+	local StartVoteButton = CreateButton(VoteButtonPanel, "Start Vote >", color_green, function()
 		net.Start("rotgb_gamemode")
 		net.WriteUInt(RTG_OPERATION_VOTESTART, 4)
 		net.WriteUInt(VoteButtonPanel.VoteType, 4)
@@ -1167,17 +1240,23 @@ local function CreateVoteButtonPanel(Menu, VoteRightPanel, VoteReasonPanel, data
 		net.SendToServer()
 		Menu:Close()
 	end)
+	local BackButton = CreateButton(VoteButtonPanel, "Back >", color_yellow, function()
+		Menu:Close()
+	end)
 	
-	VoteButtonPanel:SetTall(VoteButton:GetTall())
+	VoteButtonPanel:SetTall(StartVoteButton:GetTall()+BackButton:GetTall())
 	VoteButtonPanel.Paint = nil
-	VoteButton:SetEnabled(false)
+	StartVoteButton:SetEnabled(false)
 	function VoteButtonPanel:PerformLayout(w, h)
-		VoteButton:SetPos((w-VoteButton:GetWide())/2, 0)
+		local svbW, svbH = StartVoteButton:GetSize()
+		
+		StartVoteButton:SetPos((w-svbW)/2, 0)
+		BackButton:SetPos((w-BackButton:GetWide())/2, svbH)
 	end
 	function VoteRightPanel:SetVote(typ, target)
 		VoteButtonPanel.VoteType = typ
 		VoteButtonPanel.VoteTarget = target
-		VoteButton:SetEnabled(true)
+		StartVoteButton:SetEnabled(true)
 	end
 	
 	if data then
@@ -1196,13 +1275,40 @@ local function CreateVoterStatementPanel(parent, voteInfo)
 	RichText:AppendText(IsValid(voteInfo.initiator) and voteInfo.initiator:Nick() or "[ERROR]")
 	RichText:InsertColorChange(255,255,255,255)
 	RichText:AppendText(" wants to ")
-	RichText:InsertColorChange(255,255,0,255)
-	if voteInfo.typ == RTG_VOTE_KICK then
+	
+	local voteType = voteInfo.typ
+	if voteType == RTG_VOTE_KICK then
 		local targetPlayer = Player(tonumber(voteInfo.target) or -1)
-		RichText:AppendText("kick "..(IsValid(targetPlayer) and targetPlayer:Nick() or "[ERROR]"))
-	elseif voteInfo.typ == RTG_VOTE_CHANGEDIFFICULTY then
+		if IsValid(targetPlayer) then
+			local targetColor = team.GetColor(targetPlayer:Team())
+			RichText:InsertColorChange(targetColor.r,targetColor.g,targetColor.b,targetColor.a)
+			RichText:AppendText("kick "..targetPlayer:Nick())
+		else
+			RichText:AppendText("kick [ERROR]")
+		end
+	elseif voteType == RTG_VOTE_CHANGEDIFFICULTY then
 		local targetMode = GAMEMODE.Modes[voteInfo.target] or {}
-		RichText:AppendText(string.format("change difficulty to %s - %s", targetMode.category or "[ERROR", targetMode.name or "INVALID DIFFICULTY]"))
+		if targetMode.category then
+			local targetColor = CATEGORY_COLORS[GAMEMODE.ModeCategories[targetMode.category]]
+			RichText:InsertColorChange(targetColor.r,targetColor.g,targetColor.b,targetColor.a)
+			RichText:AppendText(string.format("change difficulty to %s - %s", targetMode.category, targetMode.name))
+		else
+			RichText:AppendText("change difficulty to [ERROR]")
+		end
+	elseif voteType == RTG_VOTE_RESTART then
+		local target = voteInfo.target
+		if target == "1" then
+			RichText:InsertColorChange(0,255,0,255)
+			RichText:AppendText("quickly restart the map")
+		elseif target == "2" then
+			RichText:InsertColorChange(255,255,0,255)
+			RichText:AppendText("fully restart the map")
+		else
+			RichText:AppendText("[ERROR] restart the map")
+		end
+	elseif voteType == RTG_VOTE_MAP then -- TODO: keep going
+		RichText:InsertColorChange(0,255,0,255)
+		RichText:AppendText("change the map to \""..voteInfo.target.."\"")
 	end
 	RichText:InsertColorChange(255,255,255,255)
 	RichText:AppendText(" with ")
@@ -1377,6 +1483,14 @@ local function CreateVoterResultStatementPanel(parent, voteInfo, result)
 			RichText:AppendText(difficultyName)
 			RichText:InsertColorChange(255,255,255,255)
 			RichText:AppendText("\" in 5 seconds.")
+		elseif typ == RTG_VOTE_RESTART then
+			RichText:AppendText("The map will be restarted in 5 seconds.")
+		elseif typ == RTG_VOTE_MAP then
+			RichText:AppendText("The map will be changed to \"")
+			RichText:InsertColorChange(0,255,0,255)
+			RichText:AppendText(voteInfo.target)
+			RichText:InsertColorChange(255,255,255,255)
+			RichText:AppendText("\" in 5 seconds.")
 		end
 	end
 end
@@ -1463,13 +1577,6 @@ local function CreateSkillButton(parent, skillID, skillTier)
 	return button
 end
 
-local function DrawSkillTooltip(panel, w, h)
-	surface.SetDrawColor(color_dark_black_semiopaque)
-	surface.DrawRect(0,0,w,h)
-	surface.SetDrawColor(color_white)
-	surface.DrawOutlinedRect(0,0,w,h,1)
-end
-
 local function CreateTraitDescription(traitDescs, trait, amounts)
 	local results = {}
 	local traitDesc = traitDescs[trait]
@@ -1520,7 +1627,7 @@ local function CreateSkillTooltip(skillTreeSurface)
 	local traitDescs = hook.Run("GetTraitsText")
 	local tooltip = vgui.Create("DPanel", skillTreeSurface)
 	tooltip:SetSize(32,32)
-	tooltip.Paint = DrawSkillTooltip
+	tooltip.Paint = DrawTextBoxBackground
 	function tooltip:Update(skills, skillID)
 		local skill = skills[skillID]
 		self.rtg_SkillTier = skill.tier
@@ -1650,7 +1757,7 @@ local function CreateSkillSummaryPanel(parent)
 	
 	local tooltip = vgui.Create("DScrollPanel", parent)
 	tooltip:Dock(FILL)
-	tooltip:GetCanvas().Paint = DrawSkillTooltip
+	tooltip:GetCanvas().Paint = DrawTextBoxBackground
 	
 	local titleText = vgui.Create("DLabel", tooltip)
 	titleText:SetFont("rotgb_skill_body")
@@ -2128,9 +2235,12 @@ function GM:CreateStartupMenu()
 	local Menu = CreateMenu()
 	CreateHeader(Menu, 1, "Welcome to Revenge of the gBalloons: The Gamemode!")
 	CreateText(Menu, 2, "RotgB: The Gamemode is a singleplayer / cooperative multiplayer PvE gamemode, where enemy gBalloons are spawned in waves.")
-	CreateText(Menu, 3, "Build towers to attack the gBalloons or attack them yourself to pop them.")
-	CreateText(Menu, 4, "If the gBalloons reach a gBalloon Target, the gBalloon Target will take damage.")
-	CreateText(Menu, 5, "The game ends when all waves have been cleared or all gBalloon Targets have been destroyed.")
+	CreateText(Menu, 3, "Build towers to attack the gBalloons before they reach a gBalloon target or it will take damage.")
+	CreateText(Menu, 4, "The game ends when all waves have been cleared or all gBalloon Targets have been destroyed.")
+	CreateText(Menu, 5, "Everyone (except for spectators) gains experience when gBalloons are popped. Higher difficulties give less experience for earlier waves, but more experience for later waves.")
+	CreateText(Menu, 6, "\nChat commands:")
+	CreateText(Menu, 7, "!vote / !rtg_vote - opens the voting menu")
+	CreateText(Menu, 8, "!skills / !rtg_skills - opens the skills menu")
 	
 	local NextButton = CreateButton(Menu, "Continue >", color_green, function()
 		hook.Run("ShowHelp")
@@ -2277,6 +2387,10 @@ function GM:CreateVoteMenu(data)
 	LeftRightDivider:SetLeft(VoteLeftPanel)
 	LeftRightDivider:SetRight(VoteRightPanel)
 	LeftRightDivider:SetLeftWidth(leftRightDividerLeftWidth)
+	
+	function Menu:UpdateRightPanel(typ)
+		VoteLeftPanel:UpdateRightPanel(typ)
+	end
 	
 	return Menu
 end

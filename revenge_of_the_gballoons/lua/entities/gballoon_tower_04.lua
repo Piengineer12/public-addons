@@ -69,9 +69,9 @@ ENT.UpgradeReference = {
 			"Fires three bullets per shot.",
 			"Considerably increases fire rate.",
 			"Slightly increases bullet spread, but twelve bullets are fired per shot!",
-			"Considerably increases bullet spread, but considerably increases damage dealt by each bullet and sixty bullets are fired per shot!"
+			"Considerably increases bullet spread, but tremendously increases damage dealt by each bullet and sixty bullets are fired per shot!"
 		},
-		Prices = {250,1250,4500,6500,10000,30000},
+		Prices = {250,1250,4000,6000,17500,175000},
 		Funcs = {
 			function(self)
 				self.FireRate = self.FireRate * 1.5
@@ -93,7 +93,7 @@ ENT.UpgradeReference = {
 			function(self)
 				self.rotgb_Spread = self.rotgb_Spread * 2
 				self.rotgb_Shots = self.rotgb_Shots * 5
-				self.AttackDamage = self.AttackDamage + 10
+				self.AttackDamage = self.AttackDamage + 40
 			end
 		}
 	}

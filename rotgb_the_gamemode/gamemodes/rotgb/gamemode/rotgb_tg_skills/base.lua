@@ -1604,7 +1604,7 @@ return {
 				ref = "tcg1",
 				name = "Tower Cash Generation",
 				trait = "towerIncome",
-				amount = 0.5,
+				amount = 1,
 				parent = "rainbowMassProduction",
 				links = "parent",
 				pos = VectorTable(-1,1)
@@ -1613,7 +1613,7 @@ return {
 				ref = "tcg2",
 				name = "Tower Cash Generation",
 				trait = "towerIncome",
-				amount = 0.5,
+				amount = 1,
 				parent = "tcg1",
 				links = {"rainbowMassProduction", "tcg1", "cheaperMines"},
 				pos = VectorTable(1,0)
@@ -1622,7 +1622,7 @@ return {
 				ref = "tcg3",
 				name = "Tower Cash Generation",
 				trait = "towerIncome",
-				amount = 0.5,
+				amount = 1,
 				parent = "tcg1",
 				links = "parent",
 				pos = VectorTable(0,1)
@@ -1631,7 +1631,7 @@ return {
 				ref = "tcg4",
 				name = "Tower Cash Generation",
 				trait = "towerIncome",
-				amount = 0.5,
+				amount = 1,
 				parent = "tcg2",
 				links = {"tcg2", "tcg3", "cheaperMines"},
 				pos = VectorTable(0,1)
@@ -1640,7 +1640,7 @@ return {
 				ref = "tcg5",
 				name = "Tower Cash Generation",
 				trait = "towerIncome",
-				amount = 0.5,
+				amount = 1,
 				parent = "tcg3",
 				links = "parent",
 				pos = VectorTable(0,1)
@@ -1649,7 +1649,7 @@ return {
 				ref = "tcg6",
 				name = "Tower Cash Generation",
 				trait = "towerIncome",
-				amount = 0.5,
+				amount = 1,
 				parent = "tcg4",
 				links = {"tcg4", "tcg5"},
 				pos = VectorTable(0,1)
@@ -1658,7 +1658,7 @@ return {
 				ref = "tcg7",
 				name = "Tower Cash Generation",
 				trait = "towerIncome",
-				amount = 0.5,
+				amount = 1,
 				parent = "tcg5",
 				links = "parent",
 				pos = VectorTable(0,1)
@@ -1667,7 +1667,7 @@ return {
 				ref = "tcg8",
 				name = "Tower Cash Generation",
 				trait = "towerIncome",
-				amount = 0.5,
+				amount = 1,
 				parent = "tcg6",
 				links = {"tcg6", "tcg7"},
 				pos = VectorTable(0,1)
@@ -1676,7 +1676,7 @@ return {
 				ref = "tcg9",
 				name = "Tower Cash Generation",
 				trait = "towerIncome",
-				amount = 0.5,
+				amount = 1,
 				parent = "tcg7",
 				links = "parent",
 				pos = VectorTable(0,1)
@@ -1685,7 +1685,7 @@ return {
 				ref = "tcg10",
 				name = "Tower Cash Generation",
 				trait = "towerIncome",
-				amount = 0.5,
+				amount = 1,
 				parent = "tcg8",
 				links = {"tcg8", "tcg9"},
 				pos = VectorTable(0,1)
@@ -1695,7 +1695,7 @@ return {
 			ref = "valuableHoverballs",
 			name = "Valuable Hoverballs",
 			trait = "hoverballFactoryIncome",
-			amount = 5,
+			amount = 15,
 			tier = 1,
 			parent = "tcg10",
 			links = {"tcg9", "tcg10"},
@@ -1706,7 +1706,7 @@ return {
 				ref = "tcg11",
 				name = "Tower Cash Generation",
 				trait = "towerIncome",
-				amount = 0.5,
+				amount = 1,
 				parent = "valuableHoverballs",
 				links = "parent",
 				pos = VectorTable(1,1)
@@ -1715,7 +1715,7 @@ return {
 				ref = "tcg12",
 				name = "Tower Cash Generation",
 				trait = "towerIncome",
-				amount = 0.5,
+				amount = 1,
 				parent = "tcg11",
 				links = {"valuableHoverballs", "tcg10", "tcg11"},
 				pos = VectorTable(0,-1)
@@ -1724,7 +1724,7 @@ return {
 				ref = "tcg13",
 				name = "Tower Cash Generation",
 				trait = "towerIncome",
-				amount = 0.5,
+				amount = 1,
 				parent = "tcg11",
 				links = "parent",
 				pos = VectorTable(1,0)
@@ -1733,7 +1733,7 @@ return {
 				ref = "tcg14",
 				name = "Tower Cash Generation",
 				trait = "towerIncome",
-				amount = 0.5,
+				amount = 1,
 				parent = "tcg12",
 				links = {"tcg12", "tcg13"},
 				pos = VectorTable(1,0)
@@ -1742,7 +1742,7 @@ return {
 				ref = "tcg15",
 				name = "Tower Cash Generation",
 				trait = "towerIncome",
-				amount = 0.5,
+				amount = 1,
 				parent = "tcg13",
 				links = "parent",
 				pos = VectorTable(1,0)
@@ -1751,7 +1751,7 @@ return {
 				ref = "tcg16",
 				name = "Tower Cash Generation",
 				trait = "towerIncome",
-				amount = 0.5,
+				amount = 1,
 				parent = "tcg14",
 				links = {"tcg14", "tcg15"},
 				pos = VectorTable(1,0)
@@ -1760,7 +1760,7 @@ return {
 				ref = "tcg17",
 				name = "Tower Cash Generation",
 				trait = "towerIncome",
-				amount = 0.5,
+				amount = 1,
 				parent = "tcg15",
 				links = "parent",
 				pos = VectorTable(1,0)
@@ -1769,7 +1769,7 @@ return {
 				ref = "tcg18",
 				name = "Tower Cash Generation",
 				trait = "towerIncome",
-				amount = 0.5,
+				amount = 1,
 				parent = "tcg16",
 				links = {"tcg16", "tcg17"},
 				pos = VectorTable(1,0)
@@ -1778,7 +1778,7 @@ return {
 				ref = "tcg19",
 				name = "Tower Cash Generation",
 				trait = "towerIncome",
-				amount = 0.5,
+				amount = 1,
 				parent = "tcg17",
 				links = "parent",
 				pos = VectorTable(1,0)
@@ -1787,7 +1787,7 @@ return {
 				ref = "tcg20",
 				name = "Tower Cash Generation",
 				trait = "towerIncome",
-				amount = 0.5,
+				amount = 1,
 				parent = "tcg18",
 				links = {"tcg18", "tcg19"},
 				pos = VectorTable(1,0)

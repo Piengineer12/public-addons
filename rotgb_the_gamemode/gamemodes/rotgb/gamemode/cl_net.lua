@@ -81,5 +81,15 @@ net.Receive("rotgb_gamemode", function()
 				hook.Run("AddAppliedSkills", skillsToApply)
 			end
 		end
+	elseif operation == RTG_OPERATION_MAPS then
+		local receivedMaps = {}
+		for i=1,net.ReadUInt(16) do
+			table.insert(receivedMaps, net.ReadString())
+		end
+		
+		hook.Run("SetMapTable", receivedMaps)
+		if IsValid(hook.Run("GetVoteMenu")) then
+			hook.Run("GetVoteMenu"):UpdateRightPanel(RTG_VOTE_MAP)
+		end
 	end
 end)

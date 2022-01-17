@@ -44,6 +44,7 @@ function GM:PlayerSay(ply, message, forTeam)
 		ply:ConCommand("rotgb_tg_vote")
 		return ""
 	end
+	return message
 end
 
 function GM:PlayerSilentDeath(ply)

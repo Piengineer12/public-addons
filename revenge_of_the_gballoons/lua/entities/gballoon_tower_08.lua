@@ -272,71 +272,73 @@ local ShotSound = Sound("Airboat.FireGunHeavy")
 local AlertSound = Sound("npc/attack_helicopter/aheli_megabomb_siren1.wav")
 
 abilityFunction = function(self)
-	local entities = ROTGB_GetBalloons()
-	--if not next(entities) then return true end
-	local enttab = {}
-	for index,ent in pairs(entities) do
-		enttab[ent] = ent:GetRgBE()+ent:GetDistanceTravelled()*1e-9
-	end
-	local ent = next(entities) and self:ChooseSomething(enttab)
-	if IsValid(self) and IsValid(ent) then
-		if self.rotgb_Infinite then
-			self:AddCash(5e7, self:GetTowerOwner())
+	if IsValid(self) then
+		local entities = ROTGB_GetBalloons()
+		--if not next(entities) then return true end
+		local enttab = {}
+		for index,ent in pairs(entities) do
+			enttab[ent] = ent:GetRgBE()+ent:GetDistanceTravelled()*1e-9
 		end
-		ent:EmitSound("ambient/explosions/explode_6.wav",100,100,0.5)
-		local startPos = ents.Create("info_target")
-		local ecp = ent:GetPos()
-		ecp.z = 16000
-		startPos:SetPos(ecp)
-		startPos:SetName("ROTGB08_"..startPos:GetCreationID())
-		local endPos = ents.Create("info_target")
-		ecp = ent:GetPos()
-		ecp.z = ecp.z + ent:OBBMins().z
-		endPos:SetPos(ecp)
-		endPos:SetName("ROTGB08_"..endPos:GetCreationID())
-		self.KillDamagePos = endPos
-		local effdata = EffectData()
-		ecp.z = ecp.z + 24
-		effdata:SetOrigin(ecp)
-		util.Effect("rainbow_wave",effdata)
-		util.ScreenShake(ecp,5,5,6,1024)
-		local beam = ents.Create("env_beam")
-		beam:SetPos(ecp)
-		beam:SetKeyValue("renderamt","255")
-		beam:SetKeyValue("rendercolor","255 255 255")
-		beam:SetKeyValue("BoltWidth","64")
-		beam:SetKeyValue("NoiseAmplitude","0")
-		beam:SetKeyValue("texture","beams/rainbow1.vmt")
-		beam:SetKeyValue("TextureScroll","100")
-		beam:SetKeyValue("LightningStart",startPos:GetName())
-		beam:SetKeyValue("LightningEnd",endPos:GetName())
-		beam:SetKeyValue("HDRColorScale","1")
-		beam:SetKeyValue("spawnflags","1")
-		--beam:SetKeyValue("damage","999999")
-		beam:Spawn()
-		beam:Activate()
-		beam:Fire("TurnOn")
-		timer.Create("ROTGB_08_AB_"..endPos:GetCreationID(),0.05,120,function()
-			if IsValid(beam) then
-				beam.CurAlpha = (beam.CurAlpha or 255) - 0.05/6*255
-				beam:Fire("Alpha",beam.CurAlpha)
+		local ent = next(entities) and self:ChooseSomething(enttab)
+		if IsValid(ent) then
+			if self.rotgb_Infinite then
+				self:AddCash(5e7, self:GetTowerOwner())
 			end
-		end)
-		timer.Simple(6,function()
-			if IsValid(startPos) then
-				startPos:Remove()
-			end
-			if IsValid(endPos) then
-				endPos:Remove()
-			end
-			if IsValid(beam) then
-				beam:Remove()
-			end
-		end)
-	elseif IsValid(self) then
-		timer.Simple(math.random(),function()
-			abilityFunction(self)
-		end)
+			ent:EmitSound("ambient/explosions/explode_6.wav",100,100,0.5)
+			local startPos = ents.Create("info_target")
+			local ecp = ent:GetPos()
+			ecp.z = 16000
+			startPos:SetPos(ecp)
+			startPos:SetName("ROTGB08_"..startPos:GetCreationID())
+			local endPos = ents.Create("info_target")
+			ecp = ent:GetPos()
+			ecp.z = ecp.z + ent:OBBMins().z
+			endPos:SetPos(ecp)
+			endPos:SetName("ROTGB08_"..endPos:GetCreationID())
+			self.KillDamagePos = endPos
+			local effdata = EffectData()
+			ecp.z = ecp.z + 24
+			effdata:SetOrigin(ecp)
+			util.Effect("rainbow_wave",effdata)
+			util.ScreenShake(ecp,5,5,6,1024)
+			local beam = ents.Create("env_beam")
+			beam:SetPos(ecp)
+			beam:SetKeyValue("renderamt","255")
+			beam:SetKeyValue("rendercolor","255 255 255")
+			beam:SetKeyValue("BoltWidth","64")
+			beam:SetKeyValue("NoiseAmplitude","0")
+			beam:SetKeyValue("texture","beams/rainbow1.vmt")
+			beam:SetKeyValue("TextureScroll","100")
+			beam:SetKeyValue("LightningStart",startPos:GetName())
+			beam:SetKeyValue("LightningEnd",endPos:GetName())
+			beam:SetKeyValue("HDRColorScale","1")
+			beam:SetKeyValue("spawnflags","1")
+			--beam:SetKeyValue("damage","999999")
+			beam:Spawn()
+			beam:Activate()
+			beam:Fire("TurnOn")
+			timer.Create("ROTGB_08_AB_"..endPos:GetCreationID(),0.05,120,function()
+				if IsValid(beam) then
+					beam.CurAlpha = (beam.CurAlpha or 255) - 0.05/6*255
+					beam:Fire("Alpha",beam.CurAlpha)
+				end
+			end)
+			timer.Simple(6,function()
+				if IsValid(startPos) then
+					startPos:Remove()
+				end
+				if IsValid(endPos) then
+					endPos:Remove()
+				end
+				if IsValid(beam) then
+					beam:Remove()
+				end
+			end)
+		elseif self.UseLOS then
+			timer.Simple(math.random(),function()
+				abilityFunction(self)
+			end)
+		end
 	end
 end
 

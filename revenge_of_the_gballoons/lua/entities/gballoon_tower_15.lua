@@ -35,10 +35,10 @@ ENT.UpgradeReference = {
 			"Reduces turret generation delay by another second. Also allows turrets to detect Hidden gBalloons.",
 			"Turrets that are sparking fire 10 times faster!",
 			"Turrets that are sparking deal decuple (x10) damage!",
-			"Every time a turret hits a gBalloon, gain $100!",
-			"Bullets slow down ANY gBalloons by 75% for 1 second!"
+			"Every time a turret hits a gBalloon, gain $50!",
+			"Bullets slow down Green gBlimps and lower by 75% for 1 second!"
 		},
-		Prices = {150,1500,1750,20000,25000,100000},
+		Prices = {150,1500,1750,20000,50000,5e6},
 		Funcs = {
 			function(self)
 				self.AbilityCooldown = self.AbilityCooldown * 3/4
@@ -94,16 +94,17 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Bigger Bullets","Critical Bullets","Super Bullets","One With The Crits","Real Bangers","Killshots"},
+		Names = {"Bigger Bullets","Critical Bullets","Super Bullets","One With The Crits","Real Bangers","Killshots","Extreme Precision"},
 		Descs = {
 			"Considerably increases the turrets' damage.",
 			"Turrets have a 20% chance to critically hit, dealing quintuple (x5) damage and ignoring resistances.",
 			"Critical hits now deal quindecuple (x15) damage instead of quintuple damage.",
 			"Critical hits now deal quinqueseptuagintuple (x75) damage!",
 			"Critical hit chance is reduced to 10%, but critical hits deal quincentuple (x500) damage!",
-			"Critical hit chance is reduced to 1%, but if it crits...!"
+			"Critical hit chance is reduced to 1%, but if it crits...!",
+			"Critical hit chance is increased back to 20%."
 		},
-		Prices = {450,850,1850,10000,30000,1.5e6},
+		Prices = {450,850,1850,10000,30000,1.5e6,30e6},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 10
@@ -124,11 +125,14 @@ ENT.UpgradeReference = {
 			function(self)
 				self.rotgb_CritChance = self.rotgb_CritChance / 10
 				self.rotgb_CritMul = self.rotgb_CritMul * 400
-			end
+			end,
+			function(self)
+				self.rotgb_CritChance = self.rotgb_CritChance * 20
+			end,
 		}
 	}
 }
-ENT.UpgradeLimits = {6,2,0}
+ENT.UpgradeLimits = {7,2,0}
 
 function ENT:ROTGB_ApplyPerks()
 	self.AbilityCooldown = self.AbilityCooldown * (1+hook.Run("GetSkillAmount", "turretFactoryAbilityCooldown")/100)

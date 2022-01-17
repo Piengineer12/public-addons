@@ -1,6 +1,8 @@
 function GM:StartVote(ply, typ, target, reason)
 	if typ == RTG_VOTE_CHANGEDIFFICULTY and not GAMEMODE.Modes[target] then
 		hook.Run("SendVoteResult", ply, RTG_VOTERESULT_NOTARGET)
+	elseif typ == RTG_VOTE_MAP and string.sub(target, 1, 6) ~= "rotgb_" then
+		hook.Run("SendVoteResult", ply, RTG_VOTERESULT_NOTARGET)
 	end
 	local currentVote = hook.Run("GetCurrentVote")
 	if (currentVote and currentVote.nextVoteAvailability > RealTime()) then
@@ -102,8 +104,10 @@ function GM:ResolveCurrentVote()
 	local currentVote = hook.Run("GetCurrentVote")
 	
 	if currentVote.agrees > currentVote.disagrees then
-		if currentVote.typ == RTG_VOTE_KICK then
-			local target = Player(tonumber(currentVote.target) or -1)
+		local target = currentVote.target
+		local typ = currentVote.typ
+		if typ == RTG_VOTE_KICK then
+			target = Player(tonumber(target) or -1)
 			if IsValid(target) then
 				timer.Simple(0.5,function()
 					target:Kick("Voted out of the server")
@@ -111,10 +115,23 @@ function GM:ResolveCurrentVote()
 			else
 				return hook.Run("ClearAndSendVoteResult", RTG_VOTERESULT_NOTARGET)
 			end
-		elseif currentVote.typ == RTG_VOTE_CHANGEDIFFICULTY then
-			local target = currentVote.target
+		elseif typ == RTG_VOTE_CHANGEDIFFICULTY then
 			timer.Simple(5, function()
-				hook.Run("ChangeDifficulty", currentVote.target)
+				hook.Run("ChangeDifficulty", target)
+			end)
+		elseif typ == RTG_VOTE_RESTART then
+			if target == "1" then
+				timer.Simple(5, function()
+					hook.Run("CleanUpMap")
+				end)
+			elseif target == "2" then
+				timer.Simple(5, function()
+					RunConsoleCommand("changelevel", game.GetMap())
+				end)
+			end
+		elseif typ == RTG_VOTE_MAP then
+			timer.Simple(5, function()
+				RunConsoleCommand("changelevel", target)
 			end)
 		end
 		

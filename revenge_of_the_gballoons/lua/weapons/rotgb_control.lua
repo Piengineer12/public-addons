@@ -327,7 +327,7 @@ if SERVER then
 						return ply:PrintMessage(HUD_PRINTTALK, "Place one gBalloon Spawner first!")
 					end
 					for k,v in pairs(spawners) do
-						v:Fire("Use")
+						v:Fire("Use",nil,nil,ply)
 					end
 					ply:EmitSound("buttons/button14.wav",60,100,1,CHAN_WEAPON)
 				elseif func == ROTGB_AUTOSTART then

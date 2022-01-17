@@ -45,15 +45,17 @@ ENT.rotgb_rbetab = {
 	gballoon_cfiber=999999999,
 	
 	gballoon_melon=1000,
-	gballoon_melon_super=5000,
+	gballoon_melon_super=20000,
 	gballoon_mossman=8920,
-	gballoon_mossman_super=42640,
+	gballoon_mossman_super=117640,
 	gballoon_gman=25e3,
-	gballoon_gman_super=100e3,
+	gballoon_gman_super=500000,
 	gballoon_blimp_ggos=103896,
-	gballoon_blimp_ggos_super=507792,
+	gballoon_blimp_ggos_super=2007792,
+	gballoon_blimp_long_rainbow=4778176,
+	gballoon_blimp_long_rainbow_super=54556352,
 	gballoon_garrydecal=10e6,
-	gballoon_garrydecal_super=50e6
+	gballoon_garrydecal_super=200e6
 }
 ENT.rotgb_spawns = {
 	gballoon_blue={gballoon_red=1},
@@ -167,6 +169,7 @@ function ENT:ConvertProperties()
 	self.Properties.BalloonBoss = tobool(self.Properties.BalloonBoss)
 	self.Properties.BalloonHealthSegments = self.Properties.BalloonHealthSegments or 1
 	self.Properties.BalloonBossEffect = self.Properties.BalloonBossEffect or ""
+	self.Properties.BalloonSuperRegen = self.Properties.BalloonSuperRegen or 0
 	
 	self.PropertyConverted = true
 end
@@ -1394,7 +1397,7 @@ function ENT:MultiplyValue(id,tower,amt,tim)
 	self.rotgb_ValueMultipliers[id] = {CurTime() + tim,amt,tower}
 end
 
-function ENT:CreateFire(dmg, atk, inflictor, tim)
+function ENT:CreateFire(tim)
 	self.RotgBFireEnt = ents.Create("env_fire")
 	self.RotgBFireEnt:SetPos(self:GetPos())
 	self.RotgBFireEnt:SetParent(self)
@@ -1403,31 +1406,44 @@ function ENT:CreateFire(dmg, atk, inflictor, tim)
 	self.RotgBFireEnt:SetKeyValue("health",tim)
 	self.RotgBFireEnt:Spawn()
 	self.RotgBFireEnt:Fire("StartFire")
-	self.RotgBFireEnt.damage = dmg
-	self.RotgBFireEnt.attacker = atk
-	self.RotgBFireEnt.inflictor = inflictor
-	self.RotgBFireEnt.dietime = CurTime()+tim
 end
+
+local lastFireRender = 0
 
 function ENT:RotgB_Ignite(dmg, atk, inflictor, tim)
 	--self:Extinguish()
 	--self:Ignite(tim)
-	if IsValid(self.RotgBFireEnt) then
-		if self.RotgBFireEnt.damage < dmg then
-			self.RotgBFireEnt.damage = dmg
-			self.RotgBFireEnt.attacker = atk
-			self.RotgBFireEnt.inflictor = inflictor
-			self.RotgBFireEnt.dietime = CurTime()+tim
-			self.RotgBFireEnt:SetKeyValue("health",tim)
-			self.RotgBFireEnt:Fire("StartFire")
-		elseif self.RotgBFireEnt.dietime < CurTime()+tim then
-			self.RotgBFireEnt.dietime = CurTime()+tim
-			self.RotgBFireEnt:SetKeyValue("health",tim)
-			self.RotgBFireEnt:Fire("StartFire")
+	if (self.FireData and self.FireData.damage >= dmg) then
+		if self.FireData.dietime < CurTime()+tim then
+			self.FireData.attacker = atk
+			self.FireData.inflictor = inflictor
+			self.FireData.dietime = CurTime()+tim
+			
+			if IsValid(self.RotgBFireEnt) then
+				self.RotgBFireEnt:SetKeyValue("health",tim)
+				self.RotgBFireEnt:Fire("StartFire")
+			end
 		end
 	else
+		self.FireData = {
+			damage = dmg,
+			attacker = atk,
+			inflictor = inflictor,
+			dietime = CurTime()+tim
+		}
 		self:Log("Caught on fire by "..tostring(inflictor).."!","fire")
-		self:CreateFire(dmg, atk, inflictor, tim)
+		if IsValid(self.RotgBFireEnt) then
+			self.RotgBFireEnt:SetKeyValue("health",tim)
+			self.RotgBFireEnt:Fire("StartFire")
+		elseif lastFireRender<CurTime() then
+			local fireRenderDelay = 1/ROTGB_GetConVarValue("rotgb_max_fires_per_second")
+			if lastFireRender+fireRenderDelay<CurTime() then
+				lastFireRender = CurTime()
+			end
+			lastFireRender = lastFireRender+fireRenderDelay
+			self:Log("Visually caught on fire!","fire")
+			self:CreateFire(tim)
+		end
 	end
 end
 
@@ -1575,7 +1591,7 @@ function ENT:OnInjured(dmginfo)
 			dmginfo:SetDamage(math.ceil(dmginfo:GetDamage()))
 		end]]
 		local newhealth = self:Health()-math.max(dmginfo:GetDamage(),0)
-		local addDamageThisLayer = self:Health()-math.max(newhealth,0)-1
+		local addDamageThisLayer = self:Health()-math.max(newhealth,1)
 		self:SetHealth(newhealth)
 		self:Log("Took "..dmginfo:GetDamage().." damage! We are now at "..newhealth.." health.","damage")
 		if (IsValid(self.LastInflictor) and (self.LastInflictor.Base == "gballoon_tower_base" or self.LastInflictor:GetClass()=="rotgb_shooter")) and addDamageThisLayer > 0 then
@@ -1740,8 +1756,8 @@ function ENT:Pop(damage,target,dmgbits)
 	local balloonnum = ROTGB_GetBalloonCount()
 	--local nextsasstring = self:GetPopSaveString(nexts[1],damage,dmgbits or 0)
 	if damage < 0 or damage>self:GetRgBE()*10 then damage = math.huge end
-	if ROTGB_LoggingEnabled("damage") then
-		self:Log("Before Popping: "..util.TableToJSON(nexts,true),"damage")
+	if ROTGB_LoggingEnabled("popping") then
+		self:Log("Before Popping: "..util.TableToJSON(nexts,true),"popping")
 	end
 	local ctime = SysTime()
 	local damageLeft = damage+1
@@ -1750,8 +1766,8 @@ function ENT:Pop(damage,target,dmgbits)
 	while damageLeft > 0 or spawnedBalloonCount+balloonnum > maxToExist do
 		local addcash,addpops = 0,0
 		nexts,addcash,addpops,damageLeft = self:DetermineNextBalloons(nexts,overspawned and 0 or dmgbits,damageLeft,damage == math.huge)
-		if ROTGB_LoggingEnabled("damage") then
-			self:Log("Pop #"..damage+1-damageLeft.." of #"..damage+1 ..": "..util.TableToJSON(nexts,true),"damage")
+		if ROTGB_LoggingEnabled("popping") then
+			self:Log("Pop #"..damage+1-damageLeft.." of #"..damage+1 ..": "..util.TableToJSON(nexts,true),"popping")
 		end
 		if (self.DeductCash or 0)>0 then
 			self.DeductCash = self.DeductCash - 1
@@ -1776,9 +1792,9 @@ function ENT:Pop(damage,target,dmgbits)
 			table.Add(nexts,v)
 		end
 	end]]
-	if ROTGB_LoggingEnabled("damage") then
-		self:Log("After Popping: "..util.TableToJSON(nexts,true),"damage")
-		self:Log("Time taken: "..(SysTime()-ctime)*1000 .." ms","damage")
+	if ROTGB_LoggingEnabled("popping") then
+		self:Log("After Popping: "..util.TableToJSON(nexts,true),"popping")
+		self:Log("Time taken: "..(SysTime()-ctime)*1000 .." ms","popping")
 	end
 	if (IsValid(self.LastAttacker) and self.LastAttacker:IsPlayer()) then
 		if doAchievement == 1 then
@@ -1838,68 +1854,82 @@ function ENT:Pop(damage,target,dmgbits)
 	end
 	ctime = SysTime()
 	for i,v in ipairs(nexts) do
-			for j=1,v.Amount do
-				if ROTGB_LoggingEnabled("damage") then
-					self:Log("To Spawn: "..util.TableToJSON(v,true),"damage")
-				end
-				local tospawn = v.Type
-				local spe = ents.Create("gballoon_base")
-				spe:SetPos(self:GetPos()+VectorRand()+vector_up)
-				spe.Properties = list.Get("NPC")[tospawn].KeyValues
-				spe.Properties.BalloonRegen = spe.Properties.BalloonRegen or ROTGB_HasAllBits(v.Properties, 1)
-				spe.Properties.BalloonFast = spe.Properties.BalloonFast or ROTGB_HasAllBits(v.Properties, 2)
-				spe.Properties.BalloonShielded = spe.Properties.BalloonShielded or ROTGB_HasAllBits(v.Properties, 4)
-				spe.Properties.BalloonHidden = spe.Properties.BalloonHidden or ROTGB_HasAllBits(v.Properties, 8)
-				spe:Spawn()
-				spe:Activate()
-				spe.PrevBalloons = v.PrevBalloons
-				spe:SetHealth(v.Health or 1) -- FIXME: this was spe:SetHealth(math.max(v.Health or 1, 1)), is there a difference?
-				spe.StunUntil = self.StunUntil
-				spe.FreezeUntil2 = self.FreezeUntil2
-				spe.AcidicList = self.AcidicList
-				spe.TravelledDistance = self.TravelledDistance
-				spe.rotgb_SpeedMods = self.rotgb_SpeedMods
-				spe.rotgb_ValueMultipliers = self.rotgb_ValueMultipliers
-				if spe.rotgb_ValueMultipliers and spe.rotgb_ValueMultipliers.ROTGB_TOWER_17 then
-					local effData = EffectData()
-					effData:SetEntity(spe)
-					util.Effect("gballoon_tower_17_morecash", effData)
-				end
-				if not self:HasRotgBStatusEffect("glue_soak") and spe.rotgb_SpeedMods then
-					spe.rotgb_SpeedMods.ROTGB_GLUE_TOWER = nil
-				elseif spe.rotgb_SpeedMods and spe.rotgb_SpeedMods.ROTGB_GLUE_TOWER then
-					local effData = EffectData()
-					effData:SetEntity(spe)
-					effData:SetFlags(spe.AcidicList and next(spe.AcidicList) and 1 or 0)
-					effData:SetHitBox(self:GetRotgBStatusEffectDuration("glue_soak")*10)
-					util.Effect("gballoon_tower_9_glued", effData)
-					spe:InflictRotgBStatusEffect("glue_soak", self:GetRotgBStatusEffectDuration("glue_soak"))
-				end
-				spe.DeductCash = self.DeductCash
-				--spe.BeaconsReached = table.Copy(self.BeaconsReached)
-				spe.LastBeacon = self.LastBeacon
-				if IsValid(self.RotgBFireEnt) then
-					spe:CreateFire(self.RotgBFireEnt.damage, self.RotgBFireEnt.attacker, self.RotgBFireEnt.inflictor, self.RotgBFireEnt.dietime-CurTime())
-					spe.LastBurn = CurTime()
-				end
-				--[[if (self.BurnTime or 0)-0.5 >= CurTime() then
-					local cBurnTime = self.BurnTime
-					timer.Simple(0.5,function()
-						if IsValid(spe) then
-							spe.BurnTime = cBurnTime
-							spe:RotgB_Ignite(spe.BurnTime-CurTime())
-						end
-					end)
-				end]]
-				spe:SetTarget(self:GetTarget())
-				--[[timer.Simple(0,function()
-					if (IsValid(spe) and spe:Health()<=0) then spe:Pop(-spe:Health()) end
-				end)]]
+		for j=1,v.Amount do
+			if ROTGB_LoggingEnabled("spawning") then
+				self:Log("To Spawn: "..util.TableToJSON(v,true),"spawning")
 			end
+			local tospawn = v.Type
+			local spe = ents.Create("gballoon_base")
+			spe:SetPos(self:GetPos()+VectorRand()+vector_up)
+			spe.Properties = list.Get("NPC")[tospawn].KeyValues
+			spe.Properties.BalloonRegen = spe.Properties.BalloonRegen or ROTGB_HasAllBits(v.Properties, 1)
+			spe.Properties.BalloonFast = spe.Properties.BalloonFast or ROTGB_HasAllBits(v.Properties, 2)
+			spe.Properties.BalloonShielded = spe.Properties.BalloonShielded or ROTGB_HasAllBits(v.Properties, 4)
+			spe.Properties.BalloonHidden = spe.Properties.BalloonHidden or ROTGB_HasAllBits(v.Properties, 8)
+			spe:Spawn()
+			spe:Activate()
+			spe.PrevBalloons = v.PrevBalloons
+			spe:SetHealth(v.Health or 1) -- FIXME: this was spe:SetHealth(math.max(v.Health or 1, 1)), is there a difference?
+			spe.StunUntil = self.StunUntil
+			spe.FreezeUntil2 = self.FreezeUntil2
+			spe.AcidicList = self.AcidicList
+			spe.TravelledDistance = self.TravelledDistance
+			spe.rotgb_SpeedMods = self.rotgb_SpeedMods
+			spe.rotgb_ValueMultipliers = self.rotgb_ValueMultipliers
+			if spe.rotgb_ValueMultipliers and spe.rotgb_ValueMultipliers.ROTGB_TOWER_17 then
+				local effData = EffectData()
+				effData:SetEntity(spe)
+				util.Effect("gballoon_tower_17_morecash", effData)
+			end
+			if not self:HasRotgBStatusEffect("glue_soak") and spe.rotgb_SpeedMods then
+				spe.rotgb_SpeedMods.ROTGB_GLUE_TOWER = nil
+			elseif spe.rotgb_SpeedMods and spe.rotgb_SpeedMods.ROTGB_GLUE_TOWER then
+				local effData = EffectData()
+				effData:SetEntity(spe)
+				effData:SetFlags(spe.AcidicList and next(spe.AcidicList) and 1 or 0)
+				effData:SetHitBox(self:GetRotgBStatusEffectDuration("glue_soak")*10)
+				util.Effect("gballoon_tower_9_glued", effData)
+				spe:InflictRotgBStatusEffect("glue_soak", self:GetRotgBStatusEffectDuration("glue_soak"))
+			end
+			spe.DeductCash = self.DeductCash
+			--spe.BeaconsReached = table.Copy(self.BeaconsReached)
+			spe.LastBeacon = self.LastBeacon
+			if self.FireData then
+				spe.FireData = {
+					damage = self.FireData.damage,
+					attacker = self.FireData.attacker,
+					inflictor = self.FireData.inflictor,
+					dietime = self.FireData.dietime
+				}
+				if lastFireRender<CurTime() then
+					local fireRenderDelay = 1/ROTGB_GetConVarValue("rotgb_max_fires_per_second")
+					if lastFireRender+fireRenderDelay<CurTime() then
+						lastFireRender = CurTime()
+					end
+					lastFireRender = lastFireRender+fireRenderDelay
+					spe:CreateFire(self.FireData.dietime-CurTime())
+				end
+				
+				spe.LastBurn = CurTime()
+			end
+			--[[if (self.BurnTime or 0)-0.5 >= CurTime() then
+				local cBurnTime = self.BurnTime
+				timer.Simple(0.5,function()
+					if IsValid(spe) then
+						spe.BurnTime = cBurnTime
+						spe:RotgB_Ignite(spe.BurnTime-CurTime())
+					end
+				end)
+			end]]
+			spe:SetTarget(self:GetTarget())
+			--[[timer.Simple(0,function()
+				if (IsValid(spe) and spe:Health()<=0) then spe:Pop(-spe:Health()) end
+			end)]]
+		end
 	end
-	if ROTGB_LoggingEnabled("damage") then
-		self:Log(string.format("Successfully spawned %i gBalloon type(s).", #nexts),"damage")
-		self:Log(string.format("Time taken: %f ms", (SysTime()-ctime)*1000),"damage")
+	if ROTGB_LoggingEnabled("spawning") then
+		self:Log(string.format("Successfully spawned %i gBalloon type(s).", #nexts),"spawning")
+		self:Log(string.format("Time taken: %f ms", (SysTime()-ctime)*1000),"spawning")
 	end
 	SafeRemoveEntity(self.RotgBFireEnt)
 	SafeRemoveEntity(self.FastTrail)
@@ -1908,40 +1938,24 @@ end
 
 function ENT:CheckForRegenAndFire()
 	if SERVER then
-		if IsValid(self.RotgBFireEnt) then
-			--[[local numberstoremove = {}
-			for k,v in pairs(self.FireBurns) do
-				if v[4] <= CurTime() or not (IsValid(v[3]) and IsValid(v[2])) then
-					if not IsValid(v[3]) then
-						self:Log("Fire attacker MISSING?!","fire")
-					end
-					if not IsValid(v[2]) then
-						self:Log("Fire inflictor MISSING?!","fire")
-					end
-					self:Log("Fire #"..k.." expired.","fire")
-					self.FireBurns[k] = nil
-				end
-			end
-			if table.IsEmpty(self.FireBurns) then
-				self.RotgBFireEnt:Remove()
-			else]]
-			if not (IsValid(self.RotgBFireEnt.attacker) and IsValid(self.RotgBFireEnt.inflictor)) then
-				self.RotgBFireEnt:Remove()
+		if self.FireData then
+			if not (IsValid(self.FireData.attacker) and IsValid(self.FireData.inflictor) and self.FireData.dietime > CurTime()) then
+				self.FireData = nil
+				SafeRemoveEntity(self.RotgBFireEnt)
+				self:Log("Fire expired!","fire")
 			elseif not self.LastBurn then
 				self.LastBurn = CurTime()
-			elseif (self.LastBurn + ROTGB_GetConVarValue("rotgb_fire_delay")) < CurTime() --[[and next(self.FireBurns)]] then
+			elseif self.LastBurn + ROTGB_GetConVarValue("rotgb_fire_delay") < CurTime() then
 				self.LastBurn = CurTime()
 				local dmginfo = DamageInfo()
 				dmginfo:SetDamagePosition(self:GetPos())
 				dmginfo:SetDamageType(bit.bor(DMG_BURN,DMG_DIRECT))
-				--for k,v in pairs(self.FireBurns) do
-					dmginfo:SetDamage(self.RotgBFireEnt.damage)
-					dmginfo:SetAttacker(self.RotgBFireEnt.attacker)
-					dmginfo:SetInflictor(self.RotgBFireEnt.inflictor)
-					dmginfo:SetReportedPosition(self.RotgBFireEnt.inflictor:GetPos())
-					self:TakeDamageInfo(dmginfo)
-					--if not (IsValid(self) and self:Health()>0) then break end
-				--end
+				dmginfo:SetDamage(self.FireData.damage)
+				dmginfo:SetAttacker(self.FireData.attacker)
+				dmginfo:SetInflictor(self.FireData.inflictor)
+				dmginfo:SetReportedPosition(self.FireData.inflictor:GetPos())
+				self:Log("Taking "..self.FireData.damage.." damage from fire!","fire")
+				self:TakeDamageInfo(dmginfo)
 			end
 		end
 		if self:GetBalloonProperty("BalloonRegen") then
@@ -1980,9 +1994,9 @@ function ENT:CheckForRegenAndFire()
 				end
 			end
 		end
-		if self:GetBalloonProperty("BalloonType")=="gballoon_blimp_rainbow" then
+		if self:GetBalloonProperty("BalloonSuperRegen") > 0 then
 			local oldHealth = self:Health()
-			local rainbowRegen = ROTGB_GetConVarValue("rotgb_rainbow_gblimp_regen_rate")
+			local rainbowRegen = ROTGB_GetConVarValue("rotgb_rainbow_gblimp_regen_rate")*self:GetBalloonProperty("BalloonSuperRegen")
 			self:SetHealth(math.min(oldHealth+rainbowRegen,self:GetMaxHealth()))
 			self:Log("Regenerated "..self:Health()-oldHealth.." health.","regeneration")
 		end
@@ -2449,6 +2463,7 @@ local registerkeys = {
 			BalloonRainbow = "1",
 			BalloonBlimp = "1",
 			BalloonArmor = "15",
+			BalloonSuperRegen = "1",
 			BalloonPopSound = "ambient/explosions/explode_5.wav"
 		}
 	}
@@ -2528,7 +2543,7 @@ list.Set("NPC","gballoon_melon_super",{
 		BalloonType = "gballoon_melon_super",
 		BalloonMaterial = "models/props_junk/fruit_objects01",
 		BalloonModel = "models/props_junk/watermelon01.mdl",
-		BalloonHealth = "5000",
+		BalloonHealth = "20000",
 		BalloonBoss = "1",
 		BalloonHealthSegments = "10",
 		BalloonBossEffect = "swiftness_super",
@@ -2574,6 +2589,7 @@ ROTGB_RegisterBossEffect("ceramicity", {
 				end
 				hook.Run("gBalloonSpawnerPreSpawn", boss, bln, keyValues)
 				bln:Spawn()
+				bln.TravelledDistance = boss.TravelledDistance
 				hook.Run("gBalloonSpawnerPostSpawn", boss, bln, keyValues)
 				bln:Activate()
 			end
@@ -2591,7 +2607,7 @@ list.Set("NPC","gballoon_mossman_super",{
 		BalloonType = "gballoon_mossman_super",
 		BalloonMaterial = "maxofs2d/models/balloon_mossman",
 		BalloonModel = "models/maxofs2d/balloon_mossman.mdl",
-		BalloonHealth = "25000",
+		BalloonHealth = "100000",
 		BalloonBoss = "1",
 		BalloonHealthSegments = "10",
 		BalloonBossEffect = "ceramicity_super",
@@ -2611,6 +2627,7 @@ ROTGB_RegisterBossEffect("ceramicity_super", {
 				end
 				hook.Run("gBalloonSpawnerPreSpawn", boss, bln, keyValues)
 				bln:Spawn()
+				bln.TravelledDistance = boss.TravelledDistance
 				hook.Run("gBalloonSpawnerPostSpawn", boss, bln, keyValues)
 				bln:Activate()
 			end
@@ -2666,7 +2683,7 @@ list.Set("NPC","gballoon_gman_super",{
 		BalloonType = "gballoon_gman_super",
 		BalloonMaterial = "maxofs2d/models/balloon_gman",
 		BalloonModel = "models/maxofs2d/balloon_gman.mdl",
-		BalloonHealth = "100000",
+		BalloonHealth = "500000",
 		BalloonBoss = "1",
 		BalloonHealthSegments = "10",
 		BalloonBossEffect = "stasis_super",
@@ -2736,7 +2753,7 @@ list.Set("NPC","gballoon_blimp_ggos_super",{
 		BalloonType = "gballoon_blimp_ggos_super",
 		BalloonMaterial = "!gBalloonMonochrome",
 		BalloonModel = "models/props_phx/mk-82.mdl",
-		BalloonHealth = "500000",
+		BalloonHealth = "2000000",
 		BalloonBoss = "1",
 		BalloonBlimp = "1",
 		BalloonGray = "1",
@@ -2762,6 +2779,115 @@ ROTGB_RegisterBossEffect("shielding_super", {
 				end
 			end
 		end)
+	end
+})
+
+list.Set("NPC","gballoon_blimp_long_rainbow",{
+	Name = "Rainbow Portal of Rainbow gBlimp-ing",
+	Class = "gballoon_base",
+	Category = "RotgB: gBalloons Bosses",
+	KeyValues = {
+		BalloonMoveSpeed = "50",
+		BalloonScale = "1",
+		BalloonColor = "255 255 255 255",
+		BalloonType = "gballoon_blimp_long_rainbow",
+		BalloonMaterial = "!gBalloonRainbow",
+		BalloonModel = "models/xqm/panel180.mdl",
+		BalloonHealth = "2500000",
+		BalloonBoss = "1",
+		BalloonPurple = "1",
+		BalloonAqua = "1",
+		BalloonRainbow = "1",
+		BalloonArmor = "15",
+		BalloonSuperRegen = "1",
+		BalloonHealthSegments = "5",
+		BalloonBossEffect = "long_rainbow",
+		BalloonPopSound = "ambient/explosions/citadel_end_explosion1.wav"
+	}
+})
+ROTGB_RegisterBossEffect("long_rainbow", {
+	HealthSegment = function(boss)
+		boss.RainbowMult = (boss.RainbowMult or 1) + 1
+		boss:SetBalloonProperty("BalloonArmor", 15*boss.RainbowMult)
+		boss:SetBalloonProperty("BalloonSuperRegen", boss.RainbowMult)
+		timer.Simple(10, function()
+			if IsValid(boss) then
+				boss.RainbowMult = boss.RainbowMult - 1
+				boss:SetBalloonProperty("BalloonArmor", 15*boss.RainbowMult)
+				boss:SetBalloonProperty("BalloonSuperRegen", boss.RainbowMult)
+			end
+		end)
+		
+		local SpawnPos = boss:GetPos()+SPAWN_OFFSET
+		local keyValues = list.GetForEdit("NPC")["gballoon_blimp_rainbow"].KeyValues
+		for i=1,2 do
+			local bln = ents.Create("gballoon_base")
+			if IsValid(bln) then
+				bln:SetPos(SpawnPos)
+				for k,v in pairs(keyValues) do
+					bln:SetKeyValue(k,v)
+				end
+				hook.Run("gBalloonSpawnerPreSpawn", boss, bln, keyValues)
+				bln:Spawn()
+				bln.TravelledDistance = boss.TravelledDistance
+				hook.Run("gBalloonSpawnerPostSpawn", boss, bln, keyValues)
+				bln:Activate()
+			end
+		end
+	end
+})
+list.Set("NPC","gballoon_blimp_long_rainbow_super",{
+	Name = "Super Rainbow Portal of Rainbow gBlimp-ing",
+	Class = "gballoon_base",
+	Category = "RotgB: gBalloons Bosses",
+	KeyValues = {
+		BalloonMoveSpeed = "50",
+		BalloonScale = "1",
+		BalloonColor = "255 255 255 255",
+		BalloonType = "gballoon_blimp_long_rainbow_super",
+		BalloonMaterial = "!gBalloonRainbow",
+		BalloonModel = "models/xqm/jetenginepropeller.mdl",
+		BalloonHealth = "50000000",
+		BalloonBoss = "1",
+		BalloonPurple = "1",
+		BalloonAqua = "1",
+		BalloonRainbow = "1",
+		BalloonArmor = "30",
+		BalloonSuperRegen = "2",
+		BalloonHealthSegments = "10",
+		BalloonBossEffect = "long_rainbow_super",
+		BalloonPopSound = "ambient/explosions/citadel_end_explosion1.wav"
+	}
+})
+ROTGB_RegisterBossEffect("long_rainbow_super", {
+	HealthSegment = function(boss)
+		boss.RainbowMult = (boss.RainbowMult or 1) + 1
+		boss:SetBalloonProperty("BalloonArmor", 30*boss.RainbowMult)
+		boss:SetBalloonProperty("BalloonSuperRegen", 2*boss.RainbowMult)
+		timer.Simple(10, function()
+			if IsValid(boss) then
+				boss.RainbowMult = boss.RainbowMult - 1
+				boss:SetBalloonProperty("BalloonArmor", 30*boss.RainbowMult)
+				boss:SetBalloonProperty("BalloonSuperRegen", 2*boss.RainbowMult)
+			end
+		end)
+		
+		local SpawnPos = boss:GetPos()+SPAWN_OFFSET
+		local keyValues = list.GetForEdit("NPC")["gballoon_fast_hidden_regen_shielded_blimp_rainbow"].KeyValues
+		for i=1,2 do
+			local bln = ents.Create("gballoon_base")
+			if IsValid(bln) then
+				bln:SetPos(SpawnPos)
+				for k,v in pairs(keyValues) do
+					bln:SetKeyValue(k,v)
+				end
+				hook.Run("gBalloonSpawnerPreSpawn", boss, bln, keyValues)
+				bln:Spawn()
+				bln.TravelledDistance = boss.TravelledDistance
+				hook.Run("gBalloonSpawnerPostSpawn", boss, bln, keyValues)
+				bln:Activate()
+			end
+		end
 	end
 })
 
@@ -2826,7 +2952,7 @@ list.Set("NPC","gballoon_garrydecal_super",{
 		BalloonColor = "255 255 0 255",
 		BalloonType = "gballoon_garrydecal",
 		BalloonMaterial = "maxofs2d/models/balloon_classic_04",
-		BalloonHealth = "50000000",
+		BalloonHealth = "200000000",
 		BalloonBoss = "1",
 		BalloonHealthSegments = "10",
 		BalloonBossEffect = "kicker_super",

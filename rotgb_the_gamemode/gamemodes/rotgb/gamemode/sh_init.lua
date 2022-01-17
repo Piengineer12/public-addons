@@ -45,6 +45,7 @@ GM.Modes						= {
 			rotgb_default_first_wave = true,
 			rotgb_tower_ignore_physgun = true,
 			rotgb_spawner_force_auto_start = true,
+			rotgb_spawner_no_multi_start = 1,
 			
 			rotgb_difficulty = true,
 			rotgb_default_wave_preset = true,
@@ -57,6 +58,7 @@ GM.Modes						= {
 		name = "Regular",
 		description = "Easy difficulty, ends at Wave 40. Towers and upgrades are 20% cheaper and gBalloons move 10% slower.",
 		place = 1,
+		xpmul = 1,
 		convars = {
 			rotgb_difficulty = 0,
 			rotgb_default_last_wave = 40,
@@ -66,8 +68,9 @@ GM.Modes						= {
 	easy_chessonly = {
 		category = "Easy",
 		name = "Chess Only",
-		description = "Easy difficulty, but only chess towers can be placed.",
+		description = "Easy difficulty, but only chess towers can be placed. Experience gain is increased by 20%.",
 		place = 2,
+		xpmul = 1.2,
 		convars = {
 			rotgb_difficulty = 0,
 			rotgb_default_last_wave = 40,
@@ -78,8 +81,9 @@ GM.Modes						= {
 	easy_halfcash = {
 		category = "Easy",
 		name = "Half Cash",
-		description = "Easy difficulty, but all income and cash gains are halved.",
+		description = "Easy difficulty, but all income and cash gains are halved. Experience gain is increased by 100%.",
 		place = 3,
+		xpmul = 2,
 		convars = {
 			rotgb_difficulty = 0,
 			rotgb_default_last_wave = 40,
@@ -93,6 +97,7 @@ GM.Modes						= {
 		category = "Medium",
 		description = "Medium difficulty, ends at Wave 60.",
 		place = 1,
+		xpmul = 0.5,
 		convars = {
 			rotgb_difficulty = 1,
 			rotgb_default_last_wave = 60,
@@ -102,8 +107,9 @@ GM.Modes						= {
 	medium_rainstorm = {
 		name = "Rainstorm",
 		category = "Medium",
-		description = "Medium difficulty, but waves always start immediately one after another, regardless of Auto-Start settings.",
+		description = "Medium difficulty, but waves always start immediately one after another, regardless of Auto-Start settings. Experience gain is increased by 20%.",
 		place = 2,
+		xpmul = 0.6,
 		convars = {
 			rotgb_difficulty = 1,
 			rotgb_default_last_wave = 60,
@@ -114,8 +120,9 @@ GM.Modes						= {
 	medium_strategic = {
 		name = "Strategic",
 		category = "Medium",
-		description = "Medium difficulty, but starts at Wave 51. You also start with 20,000 cash instead of 650, but you cannot gain cash from any sources.",
+		description = "Medium difficulty, but starts at Wave 51. You also start with 20,000 cash instead of 650, but you cannot gain cash from any sources. Experience gain is increased by 40%.",
 		place = 3,
+		xpmul = 0.7,
 		convars = {
 			rotgb_difficulty = 1,
 			rotgb_default_first_wave = 51,
@@ -130,17 +137,32 @@ GM.Modes						= {
 		category = "Hard",
 		description = "Hard difficulty, ends at Wave 80. Towers and upgrades are 20% more expensive and gBalloons move 10% faster.",
 		place = 1,
+		xpmul = 0.25,
 		convars = {
 			rotgb_difficulty = 2,
 			rotgb_default_last_wave = 80,
 			rotgb_target_natural_health = 100
 		}
 	},
+	hard_doublehpblimps = {
+		name = "Double HP gBlimps",
+		category = "Hard",
+		description = "Hard difficulty, except all gBlimps have double health. Experience gain is increased by 20%.",
+		place = 2,
+		xpmul = 0.3,
+		convars = {
+			rotgb_difficulty = 2,
+			rotgb_default_last_wave = 80,
+			rotgb_target_natural_health = 100,
+			rotgb_blimp_health_multiplier = 2
+		}
+	},
 	hard_legacy = {
 		name = "Legacy Monsoon",
 		category = "Hard",
-		description = "Hard difficulty, but ends at Wave 120, waves start every 10 seconds and pre-Update 4.0.0 waves are used instead.",
-		place = 2,
+		description = "Hard difficulty, but ends at Wave 120, waves start every 10 seconds and pre-Update 4.0.0 waves are used instead. Experience gain is decreased by 98%.",
+		place = 3,
+		xpmul = 0.005,
 		convars = {
 			rotgb_difficulty = 2,
 			rotgb_default_last_wave = 120,
@@ -149,23 +171,12 @@ GM.Modes						= {
 			rotgb_spawner_force_auto_start = 1
 		}
 	},
-	hard_doublehpblimps = {
-		name = "Double HP gBlimps",
-		category = "Hard",
-		description = "Hard difficulty, except all gBlimps have double health.",
-		place = 3,
-		convars = {
-			rotgb_difficulty = 2,
-			rotgb_default_last_wave = 80,
-			rotgb_target_natural_health = 100,
-			rotgb_blimp_health_multiplier = 2
-		}
-	},
 	insane_regular = {
 		name = "Regular",
 		category = "Insane",
 		description = "Insane difficulty, ends at Wave 100. Towers and upgrades are 40% more expensive and gBalloons move 20% faster.",
 		place = 1,
+		xpmul = 0.125,
 		convars = {
 			rotgb_difficulty = 3,
 			rotgb_default_last_wave = 100,
@@ -175,8 +186,9 @@ GM.Modes						= {
 	insane_doublehp = {
 		name = "Double HP gBalloons",
 		category = "Insane",
-		description = "Insane difficulty, except ALL gBalloons have double health.",
+		description = "Insane difficulty, except ALL gBalloons have double health. Experience gain is increased by 20%.",
 		place = 2,
+		xpmul = 0.15,
 		convars = {
 			rotgb_difficulty = 3,
 			rotgb_default_last_wave = 100,
@@ -187,8 +199,9 @@ GM.Modes						= {
 	insane_bosses = {
 		name = "Bosses",
 		category = "Insane",
-		description = "Insane difficulty, but waves always start immediately one after another and a boss gBalloon spawns once every 20 waves.",
+		description = "Insane difficulty, but waves always start immediately one after another and a boss gBalloon spawns once every 20 waves. Experience gain is increased by 40%.",
 		place = 3,
+		xpmul = 0.175,
 		convars = {
 			rotgb_difficulty = 3,
 			rotgb_default_last_wave = 100,
@@ -202,6 +215,7 @@ GM.Modes						= {
 		category = "Impossible",
 		description = "Impossible difficulty, ends at Wave 120. Towers and upgrades are 60% more expensive and gBalloons move 30% faster.",
 		place = 1,
+		xpmul = 0.0625,
 		convars = {
 			rotgb_difficulty = 4,
 			rotgb_default_last_wave = 120,
@@ -211,8 +225,9 @@ GM.Modes						= {
 	impossible_monsoon = {
 		name = "Monsoon",
 		category = "Impossible",
-		description = "Impossible difficulty, but waves always start two seconds apart from each other, regardless of Auto-Start settings.",
+		description = "Impossible difficulty, but waves always start two seconds apart from each other, regardless of Auto-Start settings. Experience gain is increased by 20%.",
 		place = 2,
+		xpmul = 0.075,
 		convars = {
 			rotgb_difficulty = 4,
 			rotgb_default_last_wave = 120,
@@ -224,8 +239,9 @@ GM.Modes						= {
 	impossible_bosses = {
 		name = "Super Bosses",
 		category = "Impossible",
-		description = "Impossible difficulty, but with super bosses and ends at Wave 140. Hopefully.",
+		description = "Impossible difficulty, but with super bosses and ends at Wave 140. Hopefully. Experience gain is decreased by 92%.",
 		place = 3,
+		xpmul = 0.005,
 		convars = {
 			rotgb_difficulty = 4,
 			rotgb_default_last_wave = 140,
@@ -240,9 +256,8 @@ GM.Modes						= {
 TO DO LIST:
 
 update the readme file
-fix autostart on rotgb_heatwave
 fix Multipurpose Engine buff desync - difficult to solve on client side
-sandbox saving
+sandbox saving - difficult
 gBalloon bosses
 
 sfx for upgrading and placing - how?
@@ -255,8 +270,6 @@ button to activate all abilities - low priority
 GAMEMODE:
 
 skill web: skill web stars?
-lock game modes?
-
 implement more game difficulty modes - low priority
 
 ADDON: PZDraw
@@ -275,9 +288,12 @@ RTG_OPERATION_DIFFICULTY = 3
 RTG_OPERATION_VOTESTART = 4
 RTG_OPERATION_VOTEEND = 5
 RTG_OPERATION_SKILLS = 6
+RTG_OPERATION_MAPS = 7
 
 RTG_VOTE_KICK = 1
 RTG_VOTE_CHANGEDIFFICULTY = 2
+RTG_VOTE_RESTART = 3
+RTG_VOTE_MAP = 4
 
 RTG_VOTERESULT_NOTARGET = 1
 RTG_VOTERESULT_COOLDOWN = 2

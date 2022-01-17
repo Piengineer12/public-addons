@@ -111,17 +111,44 @@ function ENT:AccumulategBalloons(tab1)
 	return success
 end
 
-function ENT:FireFunction(gBalloons)
-	local enttable = {[gBalloons[1]]=self}
-	local delta = 0
-	for i=1,self.rotgb_Bounces do
-		if not self:AccumulategBalloons(enttable) then break end
+function ENT:AccumulategBalloons(first)
+	local accumulated = {[first]=1}
+	local count = 0
+	local worldSpaceCenters = {}
+	for k,v in pairs(ROTGB_GetBalloons()) do
+		if self:ValidTargetIgnoreRange(v) then
+			worldSpaceCenters[v] = v:LocalToWorld(v:WorldSpaceCenter())
+		end
 	end
-	if not self.UserTargeting then
-		table.Empty(enttable)
+	for i=1,self.rotgb_Bounces do
+		local accumulateAdd = {}
+		for k,v in pairs(accumulated) do
+			for k2,v2 in pairs(worldSpaceCenters) do
+				local currentChains = accumulateAdd[k2] or 0
+				if worldSpaceCenters[k]:DistToSqr(v2) <= self.rotgb_Radius * self.rotgb_Radius and (currentChains <= 0 and not accumulated[k2] or self.rotgb_Recursion) then
+					accumulateAdd[k2] = currentChains + 1
+					count = count + 1
+					if count >= self.rotgb_Bounces and not self.rotgb_Recursion then break end
+				end
+			end
+			if count >= self.rotgb_Bounces and not self.rotgb_Recursion then break end
+		end
+		for k,v in pairs(accumulateAdd) do
+			accumulated[k] = (accumulated[k] or 0) + v
+		end
+	end
+	return accumulated
+end
+
+function ENT:FireFunction(gBalloons)
+	local enttable
+	local delta = 0
+	if self.UserTargeting then
+		enttable = self:AccumulategBalloons(gBalloons[1])
+	else
+		enttable = {}
 		for k,v in pairs(gBalloons) do
-			enttable[v] = self
-			v.Recurse = 1
+			enttable[v] = 1
 		end
 	end
 	local dmginfo = DamageInfo()
@@ -148,7 +175,7 @@ function ENT:FireFunction(gBalloons)
 			--[[if self.rotgb_Stun and k:GetBalloonProperty("BalloonType")~="gballoon_blimp_purple" and k:GetBalloonProperty("BalloonType")~="gballoon_blimp_rainbow" then
 				k:Stun(1)
 			end]]
-			dmginfo:SetDamage(self.AttackDamage*(k.Recurse or 1)*(self.rotgb_Recursion or 1))
+			dmginfo:SetDamage(self.AttackDamage*v)
 			--dmginfo:SetMaxDamage(self.AttackDamage*(k.Recurse or 1)*(self.rotgb_Recursion or 1))
 			if k:GetBalloonProperty("BalloonPurple") and self.rotgb_HitPurple then
 				dmginfo:SetDamageType(DMG_GENERIC)
@@ -157,7 +184,6 @@ function ENT:FireFunction(gBalloons)
 			else
 				k:TakeDamageInfo(dmginfo)
 			end
-			k.Recurse = nil
 		--elseif IsValid(k) then
 			--k:ShowResistEffect(3)
 		end

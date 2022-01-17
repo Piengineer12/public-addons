@@ -329,6 +329,19 @@ local function getExperienceNeeded(currentLevel)
 		return 500*(n*n+n+2)
 	end
 end
+local function getLevel(currentExperience)
+	local experienceNeededLength = #experienceNeeded
+	if currentExperience < experienceNeeded[experienceNeededLength] then
+		local level = 1
+		for i,v in ipairs(experienceNeeded) do
+			if v > currentExperience then break end
+			level = i+1
+		end
+		return level
+	else
+		return math.floor(4.5 + math.sqrt(currentExperience/500 - 1.75))
+	end
+end
 
 function PLAYER:RTG_GetLevel()
 	self.rtg_Level = self.rtg_Level or 1
@@ -350,7 +363,7 @@ end
 
 function PLAYER:RTG_GetExperience()
 	-- experience is stored clientside, so it's impossible to completely prevent clients from modifying their experience value
-	-- especially with open source code, it's better to not bother about it than to lose sleep over it
+	-- especially with open source code, it's better to just not bother about it rather then losing sleep over it
 	return (self.rtg_PreviousXP or 0) + self.rtg_XP
 end
 
@@ -359,10 +372,7 @@ function PLAYER:RTG_GetExperienceNeeded()
 end
 
 function PLAYER:RTG_UpdateLevel()
-	while getExperienceNeeded(self.rtg_Level) <= self:RTG_GetExperience() do
-		if self:RTG_GetExperience() == math.huge then break end
-		self.rtg_Level = self.rtg_Level + 1
-	end
+	self.rtg_Level = getLevel(self:RTG_GetExperience())
 end
 
 function PLAYER:RTG_ClearSkills()
@@ -404,5 +414,5 @@ function PLAYER:RTG_GetSkillPoints()
 	if not cachedTowers then
 		cachedTowers = ROTGB_GetAllTowers()
 	end
-	return self:RTG_GetLevel() - self:RTG_GetSkillAmount() - #cachedTowers
+	return math.min(self:RTG_GetLevel(), 999) - self:RTG_GetSkillAmount() - #cachedTowers
 end

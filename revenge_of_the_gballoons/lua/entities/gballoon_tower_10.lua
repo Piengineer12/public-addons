@@ -71,7 +71,7 @@ ENT.UpgradeReference = {
 			"Allows the tower to see Hidden gBalloons.",
 			"Tremendously increases attack damage.",
 			"Colossally increases attack damage! Balloons popped by this tower do not spawn any children.",
-			"Considerably reduces maximum charges... but you won't need it.",
+			"Considerably reduces maximum charges... but you probably won't need it.",
 			"This tower deals so much damage, Rainbow gBlimps are destroyed in 4 hits!"
 		},
 		Prices = {600,1500,5000,65000,650000,35e6},

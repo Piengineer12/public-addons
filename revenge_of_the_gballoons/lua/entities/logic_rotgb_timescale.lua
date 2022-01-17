@@ -33,9 +33,6 @@ function ENT:KeyValue(key,value)
 	elseif key=="onquadrupletimescale" then
 		self.OnQuadrupleTimescale = key
 		self:StoreOutput(key,value)
-	elseif key=="onoctupletimescale" then
-		self.OnOctupleTimescale = key
-		self:StoreOutput(key,value)
 	end
 end
 
@@ -51,8 +48,6 @@ function ENT:AcceptInput(input,activator,caller,data)
 		game.SetTimeScale(2)
 	elseif input=="setquadrupletimescale" then
 		game.SetTimeScale(4)
-	elseif input=="setoctupletimescale" then
-		game.SetTimeScale(8)
 	elseif input=="settimescale" then
 		game.SetTimeScale(tonumber(data) or 1)
 	elseif input=="gettimescale" then
@@ -75,8 +70,6 @@ function ENT:Think()
 					self:TriggerOutput(self.OnDoubleTimescale or "OnDoubleTimescale", self, game.GetTimeScale())
 				elseif logNewTS == 2 then
 					self:TriggerOutput(self.OnQuadrupleTimescale or "OnQuadrupleTimescale", self, game.GetTimeScale())
-				elseif logNewTS == 3 then
-					self:TriggerOutput(self.OnOctupleTimescale or "OnOctupleTimescale", self, game.GetTimeScale())
 				end
 				self:TriggerOutput(self.OnPreTimescaleChanged or "OnPreTimescaleChanged", self, self.OldTimescale)
 				self:TriggerOutput(self.OnPostTimescaleChanged or "OnPostTimescaleChanged", self, game.GetTimeScale())

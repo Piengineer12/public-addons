@@ -72,10 +72,10 @@ ENT.UpgradeReference = {
 			"Slightly increases the shells' speed and enables the tower to pop Hidden gBalloons.",
 			"Increases damage by 1 layer and increases range to infinite.",
 			"Considerably increases the shells' explosion radii and increases damage by 4 layers.",
-			"Increases damage by 24 layers! Shots will also set gBalloons on fire, popping 60 layers over 5 seconds.",
+			"Increases damage by 24 layers! Shots will also set gBalloons on fire, popping 150 layers over 5 seconds.",
 			"Increases damage by 270 layers! Shots will also deal triple damage versus gBlimps."
 		},
-		Prices = {200,1000,5000,30000,400000,12.5e6},
+		Prices = {200,1000,5000,30000,300000,4.5e6},
 		Funcs = {
 			function(self)
 				self.rotgb_ExploRadius = self.rotgb_ExploRadius*1.5
@@ -99,7 +99,7 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.AttackDamage = self.AttackDamage + 240
-				self.rotgb_FireDamage = self.rotgb_FireDamage + 120
+				self.rotgb_FireDamage = self.rotgb_FireDamage + 300
 				self.rotgb_FireDuration = self.rotgb_FireDuration + 5
 			end,
 			function(self)
@@ -116,10 +116,10 @@ ENT.UpgradeReference = {
 			"Explosions stun gBalloons for 2 seconds, if they aren't immune to explosions. This upgrade can't stun gBlimps, but gBalloons stunned this way take 1 extra layer of damage from all sources.",
 			"Shells deal tremendously more damage versus gBlimps and Gray gBalloons, and can stun Red gBlimps and lower. Explosions and fragments will also set gBalloons on fire, popping 20 layers over 10 seconds.",
 			"Tremendously increases the number of shell fragments, considerably increases burning damage and shells can stun Green gBlimps and lower. Once every 30 seconds, shooting at this tower causes shells to be lobbed to every gBalloon on the map.",
-			"Shells can stun Purple gBlimps and lower, and gBalloons permanently lose all immunities (if they aren't immune to explosions)! Also tremendously increases fire damage and slightly increases ability recharge rate. Blitz Cannon ability now also incrases fire damage to 12,000 layers per second, gives a 20% chance to deal 1,000x explosion damage versus gBlimps and causes ALL Mortar Towers' shells to stun and burn gBalloons at a rate similar to the Flaming Shells upgrade. The ability lasts for 10 seconds when activated."
+			"Shells can stun Purple gBlimps and lower, and gBalloons permanently lose all damage type immunities (if they aren't immune to explosions)! Also tremendously increases fire damage and slightly increases ability recharge rate. Blitz Cannon ability now also incrases fire damage to 12,000 layers per second, gives a 20% chance to deal 1,000x explosion damage versus gBlimps and causes ALL Mortar Towers' shells to stun and burn gBalloons at a rate similar to the Flaming Shells upgrade. The ability lasts for 10 seconds when activated."
 		},
-		-- 2, 6, 12, 120, 308, >150,000
-		Prices = {450,1750,2500,45000,75000,60e6},
+		-- 2, 6, 12, 102, 235.73, >=100,000
+		Prices = {450,1750,2500,37500,50000,35e6},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 10

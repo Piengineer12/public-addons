@@ -12,7 +12,7 @@ ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/props_phx/construct/wood/wood_wire1x1x1.mdl")
-ENT.FireRate = 4
+ENT.FireRate = 1
 ENT.Cost = 550
 ENT.DetectionRadius = 384
 ENT.LOSOffset = Vector(0,0,24)
@@ -175,7 +175,7 @@ function ENT:FireFunction(gBalloons)
 	if self.rotgb_ShrapnelDamage > 0 then
 		if self.rotgb_MultiShot then
 			for k,v in pairs(gBalloons) do
-				local uDir = v:LocalToWorld(v:OBBCenter())-startpos
+				--[[local uDir = v:LocalToWorld(v:OBBCenter())-startpos
 				local bullet = {
 					Attacker = self:GetTowerOwner(),
 					Damage = 0,
@@ -188,7 +188,7 @@ function ENT:FireFunction(gBalloons)
 					Dir = uDir,
 					Src = startpos
 				}
-				self:FireBullets(bullet)
+				self:FireBullets(bullet)]]
 				local dmginfo = DamageInfo()
 				dmginfo:SetAttacker(self:GetTowerOwner())
 				dmginfo:SetInflictor(self)
@@ -203,7 +203,7 @@ function ENT:FireFunction(gBalloons)
 				end
 			end
 		elseif IsValid(towerTarget) then
-			local uDir = towerTarget:LocalToWorld(towerTarget:OBBCenter())-startpos
+			--[[local uDir = towerTarget:LocalToWorld(towerTarget:OBBCenter())-startpos
 			local bullet = {
 				Attacker = self:GetTowerOwner(),
 				Damage = 0,
@@ -216,7 +216,7 @@ function ENT:FireFunction(gBalloons)
 				Dir = uDir,
 				Src = startpos
 			}
-			self:FireBullets(bullet)
+			self:FireBullets(bullet)]]
 			local dmginfo = DamageInfo()
 			dmginfo:SetAttacker(self:GetTowerOwner())
 			dmginfo:SetInflictor(self)

@@ -2,6 +2,7 @@ local levelDisplayExpiryTime = -1
 local levelUpText
 local oldLevel = -1
 
+local color_aqua = Color(0, 255, 255)
 local color_purple = Color(127, 0, 255)
 local FONT_LEVEL_HEIGHT = ScreenScale(16)
 
@@ -42,6 +43,9 @@ function GM:HUDDrawXP()
 				levelUpText = "Level Up! "..towerUnlocked.PrintName.." unlocked!"
 			else
 				levelUpText = "Level Up! Skill point gained!"
+				if level == #towers + 1 then
+					chat.AddText(color_white, "Reminder: Type ", color_aqua, "!skills", color_white, " or ", color_aqua, "!rtg_skills", color_white, " in chat to open the skill web.")
+				end
 			end
 			levelDisplayExpiryTime = RealTime() + 10
 			surface.PlaySound("ambient/levels/canals/windchime2.wav")

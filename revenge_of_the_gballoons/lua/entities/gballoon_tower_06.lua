@@ -14,7 +14,7 @@ ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/maxofs2d/hover_propeller.mdl")
 ENT.FireRate = 0
 ENT.Cost = 600
-ENT.AbilityCooldown = 45
+ENT.AbilityCooldown = 30
 ENT.LOSOffset = Vector(0,0,25)
 ENT.AttackDamage = 0
 ENT.DetectionRadius = 512
@@ -25,14 +25,14 @@ ENT.UpgradeReference = {
 	{
 		Names = {"Ultrasound Annoyance","Speed Traps","Radar Pulsar","Unfastening Dust","Immunity Shatter","Total Meltdown"},
 		Descs = {
-			"Prevents gBalloons in the tower's radius from regenerating health.",
-			"All Fast gBalloons within this tower's radius move 50% slower.",
-			"All Hidden gBalloons within this tower's radius become visible to all towers.",
-			"All Shielded gBalloons within this tower's radius take double damage from all sources.",
-			"All gBalloons within the tower's range lose all immunities. gBalloon armour is not affected.",
-			"Once every 45 seconds, shooting at this tower causes all towers within this tower's radius to deal 15 extra layers of damage for 15 seconds.",
+			"All gBalloons within range permanently lose the Regen property.",
+			"All gBalloons within range permanently lose the Fast property.",
+			"All gBalloons within range permanently lose the Hidden property.",
+			"All gBalloons within range permanently lose the Shielded property.",
+			"All gBalloons within range permanently lose all damage type immunities.",
+			"Once every 30 seconds, shooting at this tower causes all towers within this tower's radius to deal 40 extra layers of damage for 15 seconds.",
 		},
-		Prices = {500,1000,2000,4000,30000,35000},
+		Prices = {500,2000,7500,30000,125000,500000},
 		Funcs = {
 			function(self)
 				self.rotgb_NoRegen = true
@@ -91,16 +91,16 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Morale Boost","Jungle Drumming","Health Insurance","Trusted Partnerships","Maximum Potential"},
+		Names = {"Morale Boost","Health Insurance","Jungle Drumming","Trusted Partnerships","Maximum Potential"},
 		Descs = {
 			"All towers in this tower's radius fire 20% faster.",
-			"All towers within the range of this tower pop one extra layer per attack.",
 			"Whenever a gBalloon reaches its target and pops, each player gains $1000 for each damage point taken by the target, ignoring all damage reduction effects.",
+			"All towers within the range of this tower pop one extra layer per attack.",
 			"Whenever a tower fires within this tower's range, there is a chance that a random tower within this tower's range will also fire! \z
 				The chance is reduced if the firing tower fires faster than the targeted tower.",
 			"All towers except this tower in this tower's radius no longer have upgrade path restrictions!",
 		},
-		Prices = {400,2000,5000,15000,500e6},
+		Prices = {400,5000,40000,100000,500e6},
 		Funcs = {
 			function(self)
 				self.rotgb_Buff = 1
@@ -143,19 +143,19 @@ function ENT:ROTGB_Think()
 	for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
 		if v:GetClass()=="gballoon_base" then
 			if self.rotgb_NoRegen then
-				v.BalloonRegenTime = CurTime()+(hook.Run("GetgBalloonRegenDelay", self) or ROTGB_GetConVarValue("rotgb_regen_delay"))
+				v:SetBalloonProperty("BalloonRegen", false)
 			end
-			if self.rotgb_NoFast and v:GetBalloonProperty("BalloonFast") then
-				v:Slowdown("ROTGB_FASTLESS",0.5,0.25)
+			if self.rotgb_NoFast then
+				v:SetBalloonProperty("BalloonFast", false)
 			end
-			if self.rotgb_NoHidden and v:GetBalloonProperty("BalloonHidden") then
-				v:InflictRotgBStatusEffect("unhide",0.25)
+			if self.rotgb_NoHidden then
+				v:SetBalloonProperty("BalloonHidden", false)
 			end
-			if self.rotgb_NoShielded and v:GetBalloonProperty("BalloonShielded") then
-				v:InflictRotgBStatusEffect("unshield",0.25)
+			if self.rotgb_NoShielded then
+				v:SetBalloonProperty("BalloonShielded", false)
 			end
 			if self.rotgb_NoImmunities then
-				v:InflictRotgBStatusEffect("unimmune",0.25)
+				v:InflictRotgBStatusEffect("unimmune",999999)
 			end
 			if v:GetRgBE() <= self.AttackDamage/10 and self.AttackDamage > 0 then
 				v:TakeDamage(v:GetRgBE() * 1000, self:GetTowerOwner(), self)
@@ -168,13 +168,11 @@ function ENT:ROTGB_Think()
 					tower.FireRate = tower.FireRate / 1.2
 				end)
 			end
-			if self.rotgb_Buff > 1 then
+			if self.rotgb_Buff > 2 then
 				v:ApplyBuff(self, "ROTGB_TOWER_06_PASSIVE_2", 999999, function(tower)
 					tower.AttackDamage = (tower.AttackDamage or 0) + 10
-					tower.DetectionRadius = tower.DetectionRadius * 1.2
 				end, function(tower)
 					tower.AttackDamage = (tower.AttackDamage or 0) - 10
-					tower.DetectionRadius = tower.DetectionRadius / 1.2
 				end)
 			end
 			if self.rotgb_Buff > 3 then
@@ -202,9 +200,9 @@ function ENT:TriggerAbility()
 	for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
 		if v.Base=="gballoon_tower_base" then
 			v:ApplyBuff(self, "ROTGB_TOWER_06_TM", 15, function(tower)
-				tower.AttackDamage = (tower.AttackDamage or 0) + 150
+				tower.AttackDamage = (tower.AttackDamage or 0) + 400
 			end, function(tower)
-				tower.AttackDamage = (tower.AttackDamage or 0) - 150
+				tower.AttackDamage = (tower.AttackDamage or 0) - 400
 			end)
 		end
 	end
@@ -215,7 +213,7 @@ hook.Add("EntityTakeDamage","ROTGB_TOWER_06",function(ent,dmginfo)
 	if (IsValid(caller) and caller:GetClass()=="gballoon_base") then
 		local insure = {}
 		for k,v in pairs(ents.FindByClass("gballoon_tower_06")) do
-			if v.rotgb_Buff > 2 then table.insert(insure, v) end
+			if v.rotgb_Buff > 1 then table.insert(insure, v) end
 		end
 		if #insure > 0 then
 			local cash = dmginfo:GetDamage()*1000*player.GetCount()

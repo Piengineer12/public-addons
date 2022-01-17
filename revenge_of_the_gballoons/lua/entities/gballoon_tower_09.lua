@@ -31,11 +31,11 @@ ENT.UpgradeReference = {
 		Descs = {
 			"Glue slows down gBalloons more and lasts slightly longer.",
 			"Considerably increases fire rate.",
-			"Glue slows down gBalloons even more.",
-			"Glue can now affect gBlimps weaker than Purple gBlimps.",
-			"Glue causes gBalloons to lose all immunities, if they can be glued."
+			"Tremendously increases fire rate and glue slows down gBalloons even more.",
+			"Glue can now affect Green gBlimps and lower.",
+			"Colossally increases fire rate and glue causes gBalloons to lose all damage type immunities until unglued."
 		},
-		Prices = {250,500,1000,10000,150000},
+		Prices = {250,500,5000,40000,400000},
 		Funcs = {
 			function(self)
 				self.rotgb_GlueSlowdown = self.rotgb_GlueSlowdown * 1.5
@@ -45,32 +45,36 @@ ENT.UpgradeReference = {
 				self.FireRate = self.FireRate * 2
 			end,
 			function(self)
+				self.FireRate = self.FireRate * 3
 				self.rotgb_GlueSlowdown = self.rotgb_GlueSlowdown * 1.5
 			end,
 			function(self)
 				self.rotgb_GreatGlue = true
 			end,
 			function(self)
+				self.FireRate = self.FireRate * 5
 				self.rotgb_ShatterGlue = true
 			end
 		}
 	},
 	{
-		Names = {"Glue Soak","Corrosive Glue","Acid-Glue Mixture","gBalloon Dissolver","gBalloon Ultimate Solvent"},
+		Names = {"Glue Soak","Corrosive Glue","Acid-Glue Mixture","gBalloon Dissolver","gBalloon Ultimate Solvent","gBalloon Melter 2K"},
 		Descs = {
-			"Glue soaks through all layers of gBalloons.",
-			"Glue causes gBalloons to take damage over time.",
+			"Glue soaks through all gBalloon layers.",
+			"Glue causes gBalloons to take damage over time. Glue can now affect gBlimps, but it won't slow them down.",
 			"Glue pops two layers per second and lasts considerably longer.",
-			"Glue pops ten layers per second!",
-			"Glue pops 100 layers per second!"
+			"Glue pops ten layers per second.",
+			"Glue pops 100 layers per second!",
+			"Glue pops 2,000 layers per second!"
 		},
-		Prices = {250,1250,3500,17500,200000},
+		Prices = {250,1250,3500,17500,200000,4e6},
 		Funcs = {
 			function(self)
 				self.rotgb_GlueSoak = true
 			end,
 			function(self)
 				self.rotgb_GlueDamage = self.rotgb_GlueDamage + 10
+				self.rotgb_GoodGlue = true
 			end,
 			function(self)
 				self.rotgb_DoubleThink = true
@@ -81,6 +85,9 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.rotgb_GlueDamage = self.rotgb_GlueDamage + 450
+			end,
+			function(self)
+				self.rotgb_GlueDamage = self.rotgb_GlueDamage + 9500
 			end
 		}
 	},
@@ -93,7 +100,7 @@ ENT.UpgradeReference = {
 			"Any non-immune gBalloon within the tower's range gets glued! Also enables the tower to glue hidden gBalloons.",
 			"Glue lasts considerably longer. Once every 15 seconds, shooting at this tower causes ALL gBalloons to be glued, regardless of immunities!"
 		},
-		Prices = {250,1000,3500,12500,50000},
+		Prices = {250,1000,1500,7000,300000},
 		Funcs = {
 			function(self)
 				self.DetectionRadius = self.DetectionRadius * 2
@@ -116,7 +123,7 @@ ENT.UpgradeReference = {
 		}
 	}
 }
-ENT.UpgradeLimits = {5,2,0}
+ENT.UpgradeLimits = {6,2,0}
 
 function ENT:ROTGB_ApplyPerks()
 	self.FireRate = self.FireRate * (1+hook.Run("GetSkillAmount", "bishopOfGlueFireRate")/100)
@@ -182,10 +189,17 @@ function ENT:FireFunction(gBalloons)
 	end
 end
 
-function ENT:GlueBalloon(balloon)
-	if (not balloon:GetBalloonProperty("BalloonBlimp") or self.rotgb_GreatGlue and balloon:GetRgBE()<=37072) and not balloon:GetBalloonProperty("BalloonAqua") then
-		local perf,str = coroutine.resume(self.thread,self,balloon)
-		if not perf then error(str) end
+function ENT:GlueBalloon(balloon, ignoreResistances)
+	if not balloon:GetBalloonProperty("BalloonAqua") or balloon:HasRotgBStatusEffect("unimmune") or ignoreResistances then
+		if not balloon:GetBalloonProperty("BalloonBlimp") or self.rotgb_GreatGlue and balloon:GetRgBE()<=22544 or ignoreResistances then
+			local perf,str = coroutine.resume(self.thread,self,balloon)
+			if not perf then error(str) end
+		elseif self.rotgb_GoodGlue and self.rotgb_GlueDamage > 0 then
+			balloon.AcidicList = balloon.AcidicList or {}
+			balloon.AcidicList[self] = {self.rotgb_GlueDamage,CurTime()+self.rotgb_GlueDuration}
+		else
+			balloon:ShowResistEffect(5)
+		end
 	else
 		balloon:ShowResistEffect(5)
 	end
@@ -226,8 +240,7 @@ end
 
 function ENT:TriggerAbility()
 	for k,v in pairs(ROTGB_GetBalloons()) do
-		local perf,str = coroutine.resume(self.thread,self,v)
-		if not perf then error(str) end
+		self:GlueBalloon(v, true)
 	end
 end
 
