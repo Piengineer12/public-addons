@@ -52,6 +52,8 @@ ENT.rotgb_rbetab = {
 	gballoon_gman_super=500000,
 	gballoon_blimp_ggos=103896,
 	gballoon_blimp_ggos_super=2007792,
+	gballoon_hot_air=500000,
+	gballoon_hot_air_super=10000000,
 	gballoon_blimp_long_rainbow=4778176,
 	gballoon_blimp_long_rainbow_super=54556352,
 	gballoon_garrydecal=10e6,
@@ -353,7 +355,13 @@ if SERVER then
 	AccessorFunc(ENT, "StatusSendRequired", "StatusSendRequired", FORCE_BOOL)
 end
 
+function ENT:CurTime()
+	self.rotgb_PhasedTime = self.rotgb_PhasedTime or 0
+	return CurTime() - self.rotgb_PhasedTime
+end
+
 function ENT:Initialize()
+	self.Properties = self.Properties or {}
 	self:RegistergBalloon()
 	if SERVER then
 		hook.Run("gBalloonKeyValuesApply", self.Properties)
@@ -429,10 +437,18 @@ end
 
 function ENT:PreEntityCopy()
 	self.rotgb_DuplicatorTimeOffset = CurTime()
+	-- The duplicator system will incorrectly assign self.loco on the new entity to *this* entity. This WILL cause a crash if we do not step in.
+	self.ourLoco = self.loco
+	self.loco = nil
+end
+
+function ENT:PostEntityCopy()
+	self.loco = self.ourLoco
 end
 
 function ENT:PostEntityPaste(ply,ent,tab)
-	self:AddTimePhase(CurTime() - (self.rotgb_DuplicatorTimeOffset or CurTime())) -- TODO
+	self.rotgb_PhasedTime = (self.rotgb_PhasedTime or 0) + CurTime() - (self.rotgb_DuplicatorTimeOffset or CurTime())
+	self:ApplyAllBalloonProperties()
 end
 
 --[=[start of custom pathfinding
@@ -711,12 +727,12 @@ function ENT:GeneratePath(dotmesh,first,last)
 	local saved_path = self:GetSavedPath(actualfirst,actuallast)
 	if saved_path and self:BlocksStillPresent(saved_path.checks) then
 		self.GeneratedPath = self:CopyPathCarbon(saved_path)
-		self.GeneratedPathTimestamp = CurTime()
+		self.GeneratedPathTimestamp = self:CurTime()
 	else
 		local new_path = self:CalculatePath(dotmesh,actualfirst,actuallast)
 		self:SavePath(new_path,actualfirst,actuallast)
 		self.GeneratedPath = self:CopyPathCarbon(new_path)
-		self.GeneratedPathTimestamp = CurTime()
+		self.GeneratedPathTimestamp = self:CurTime()
 	end
 end
 
@@ -769,7 +785,7 @@ function ENT:MoveToTargetNew()
 		end
 	end]]
 	while self.GeneratedPath and IsValid(self:GetTarget()) and not GetConVar("ai_disabled"):GetBool() do
-		--[[if self:GetTarget():GetPos():DistToSqr(position)>ROTGB_GetConVarValue("rotgb_target_tolerance")^2 or CurTime()-self.GeneratedPathTimestamp>waitamt then
+		--[[if self:GetTarget():GetPos():DistToSqr(position)>ROTGB_GetConVarValue("rotgb_target_tolerance")^2 or self:CurTime()-self.GeneratedPathTimestamp>waitamt then
 			self.RecheckPath = nil
 			position = self:GetTarget():GetPos()
 			waitamt = SysTime()
@@ -797,17 +813,17 @@ function ENT:MoveToTargetNew()
 		end]]
 		if --[[self.loco:IsStuck() or]] self.GeneratedPath and (self.WallStuck or 0)>=4 and not self:IsStunned() then
 			self.WallStuck = nil
-			if (self.ResetStuck or 0) < CurTime() then
+			if (self.ResetStuck or 0) < self:CurTime() then
 				self.UnstuckAttempts = 0
 			end
 			self.UnstuckAttempts = self.UnstuckAttempts + 1
-			self.ResetStuck = CurTime() + 30
+			self.ResetStuck = self:CurTime() + 30
 			if self.UnstuckAttempts == 1 then
 				self.loco:Jump()
 			elseif self.UnstuckAttempts == 2 then
 				self:SetPos(self:GetPos()+vector_up*20)
 			else -- If not, just teleport us ahead on the path. (Sanic method)
-				self.LastStuck = CurTime()
+				self.LastStuck = self:CurTime()
 				local dir = self.GeneratedPath[1]-self:GetPos()
 				local deltasqr = 2^self.UnstuckAttempts
 				local lengthsqr = dir:LengthSqr()
@@ -1094,6 +1110,7 @@ function ENT:MoveToTarget()
 			end
 		end]]
 		while IsValid(path) and IsValid(self:GetTarget()) and not GetConVar("ai_disabled"):GetBool() do
+			local curTime = self:CurTime()
 			if self:GetTarget():GetPos():DistToSqr(position)>ROTGB_GetConVarValue("rotgb_target_tolerance")^2 or path:GetAge()>(self.RecheckPath and 0.5 or waitamt) then
 				self.RecheckPath = nil
 				position = self:GetTarget():GetPos()
@@ -1120,11 +1137,11 @@ function ENT:MoveToTarget()
 			end
 			if self.loco:IsStuck() or (self.WallStuck or 0)>=4 and not self:IsStunned() then
 				self.WallStuck = nil
-				if (self.ResetStuck or 0) < CurTime() then
+				if (self.ResetStuck or 0) < curTime then
 					self.UnstuckAttempts = 0
 				end
 				self.UnstuckAttempts = self.UnstuckAttempts + 1
-				self.ResetStuck = CurTime() + 10
+				self.ResetStuck = curTime + 10
 				if self.UnstuckAttempts == 1 then -- A simple jump should fix it.
 					self:ComputePathWrapper(path,position)
 					self.loco:Jump()
@@ -1135,7 +1152,7 @@ function ENT:MoveToTarget()
 				elseif self.UnstuckAttempts == 3 then -- If not, ask GMod kindly to free us.
 					self:HandleStuck()
 				else -- If not, just teleport us ahead on the path. (Sanic method)
-					self.LastStuck = CurTime()
+					self.LastStuck = curTime
 					self:SetPos(path:GetPositionOnPath(path:GetCursorPosition()+2^self.UnstuckAttempts))
 					self.loco:ClearStuck()
 				end
@@ -1305,15 +1322,15 @@ end
 function ENT:CheckForBossEffects()
 	if self:GetBalloonProperty("BalloonBoss") then
 		local bossEffects = registeredBossEffects[self:GetBalloonProperty("BalloonBossEffect")]
-		if (bossEffects and bossEffects.PerSecond) and (self.NextPerSecondEffect or 0) < CurTime() then
+		if (bossEffects and bossEffects.PerSecond) and (self.NextPerSecondEffect or 0) < self:CurTime() then
 			bossEffects.PerSecond(self)
-			self.NextPerSecondEffect = CurTime() + 1
+			self.NextPerSecondEffect = self:CurTime() + 1
 		end
 	end
 end
 
 function ENT:Stun(tim)
-	self.StunUntil = math.max(CurTime() + tim,self.StunUntil or 0)
+	self.StunUntil = math.max(self:CurTime() + tim,self.StunUntil or 0)
 end
 
 function ENT:UnStun()
@@ -1321,8 +1338,8 @@ function ENT:UnStun()
 end
 
 function ENT:Freeze(tim)
-	self:SetNWFloat("rotgb_FreezeTime",CurTime()+tim)
-	self.FreezeUntil = math.max(CurTime() + tim,self.FreezeUntil or 0)
+	self:SetNWFloat("rotgb_FreezeTime",self:CurTime()+tim)
+	self.FreezeUntil = math.max(self:CurTime() + tim,self.FreezeUntil or 0)
 end
 
 function ENT:UnFreeze()
@@ -1331,8 +1348,8 @@ function ENT:UnFreeze()
 end
 
 function ENT:Freeze2(tim)
-	self:SetNWFloat("rotgb_FreezeTime",CurTime()+tim)
-	self.FreezeUntil2 = math.max(CurTime() + tim,self.FreezeUntil2 or 0)
+	self:SetNWFloat("rotgb_FreezeTime",self:CurTime()+tim)
+	self.FreezeUntil2 = math.max(self:CurTime() + tim,self.FreezeUntil2 or 0)
 end
 
 function ENT:UnFreeze2()
@@ -1341,13 +1358,19 @@ function ENT:UnFreeze2()
 end
 
 function ENT:IsStunned()
-	return self.StunUntil and self.StunUntil>CurTime() or self.FreezeUntil and self.FreezeUntil>CurTime() or self.FreezeUntil2 and self.FreezeUntil2>CurTime() or false
+	local curTime = self:CurTime()
+	return self.StunUntil and self.StunUntil>curTime or self.FreezeUntil and self.FreezeUntil>curTime or self.FreezeUntil2 and self.FreezeUntil2>curTime or false
+end
+
+function ENT:IsFrozen()
+	return (self.FreezeUntil or 0)>self:CurTime() or (self.FreezeUntil2 or 0)>self:CurTime()
 end
 
 function ENT:CheckForSpeedMods()
 	local mul = 0.2
+	local curTime = self:CurTime()
 	for k,v in pairs(self.rotgb_SpeedMods or {}) do
-		if v[1] > CurTime() then
+		if v[1] > curTime then
 			mul = mul * v[2]
 		else
 			self.rotgb_SpeedMods[k] = nil
@@ -1361,10 +1384,10 @@ end
 function ENT:Slowdown(id,amt,tim)
 	self.rotgb_SpeedMods = self.rotgb_SpeedMods or {}
 	if self.rotgb_SpeedMods[id] then
-		tim = math.max(tim,self.rotgb_SpeedMods[id][1]-CurTime())
+		tim = math.max(tim,self.rotgb_SpeedMods[id][1]-self:CurTime())
 		amt = math.min(amt,self.rotgb_SpeedMods[id][2])
 	end
-	self.rotgb_SpeedMods[id] = {CurTime() + tim,amt}
+	self.rotgb_SpeedMods[id] = {self:CurTime() + tim,amt}
 end
 
 function ENT:UnSlowdown(id)
@@ -1374,8 +1397,9 @@ end
 
 function ENT:GetAndApplyValueMultipliers(value)
 	local total = value
+	local curTime = self:CurTime()
 	for k,v in pairs(self.rotgb_ValueMultipliers or {}) do
-		if v[1] > CurTime() then
+		if v[1] > curTime then
 			local increment = v[2]*value
 			total = total + increment
 			if IsValid(v[3]) then
@@ -1391,10 +1415,10 @@ end
 function ENT:MultiplyValue(id,tower,amt,tim)
 	self.rotgb_ValueMultipliers = self.rotgb_ValueMultipliers or {}
 	if self.rotgb_ValueMultipliers[id] then
-		tim = math.max(tim,self.rotgb_ValueMultipliers[id][1]-CurTime())
+		tim = math.max(tim,self.rotgb_ValueMultipliers[id][1]-self:CurTime())
 		amt = math.max(amt,self.rotgb_ValueMultipliers[id][2])
 	end
-	self.rotgb_ValueMultipliers[id] = {CurTime() + tim,amt,tower}
+	self.rotgb_ValueMultipliers[id] = {self:CurTime() + tim,amt,tower}
 end
 
 function ENT:CreateFire(tim)
@@ -1413,11 +1437,12 @@ local lastFireRender = 0
 function ENT:RotgB_Ignite(dmg, atk, inflictor, tim)
 	--self:Extinguish()
 	--self:Ignite(tim)
+	local curTime = self:CurTime()
 	if (self.FireData and self.FireData.damage >= dmg) then
-		if self.FireData.dietime < CurTime()+tim then
+		if self.FireData.dietime < curTime+tim then
 			self.FireData.attacker = atk
 			self.FireData.inflictor = inflictor
-			self.FireData.dietime = CurTime()+tim
+			self.FireData.dietime = curTime+tim
 			
 			if IsValid(self.RotgBFireEnt) then
 				self.RotgBFireEnt:SetKeyValue("health",tim)
@@ -1429,7 +1454,7 @@ function ENT:RotgB_Ignite(dmg, atk, inflictor, tim)
 			damage = dmg,
 			attacker = atk,
 			inflictor = inflictor,
-			dietime = CurTime()+tim
+			dietime = curTime+tim
 		}
 		self:Log("Caught on fire by "..tostring(inflictor).."!","fire")
 		if IsValid(self.RotgBFireEnt) then
@@ -1448,15 +1473,15 @@ function ENT:RotgB_Ignite(dmg, atk, inflictor, tim)
 end
 
 function ENT:InflictRotgBStatusEffect(typ,tim)
-	self["rotgb_SE_"..typ] = math.max(self["rotgb_SE_"..typ] or 0,CurTime() + tim)
+	self["rotgb_SE_"..typ] = math.max(self["rotgb_SE_"..typ] or 0,self:CurTime() + tim)
 end
 
 function ENT:HasRotgBStatusEffect(typ)
-	return (self["rotgb_SE_"..typ] or 0) >= CurTime()
+	return (self["rotgb_SE_"..typ] or 0) >= self:CurTime()
 end
 
 function ENT:GetRotgBStatusEffectDuration(typ)
-	return (self["rotgb_SE_"..typ] or 0) - CurTime()
+	return (self["rotgb_SE_"..typ] or 0) - self:CurTime()
 end
 
 function ENT:GetRgBE()
@@ -1494,6 +1519,7 @@ function ENT:ShowCritEffect()
 		effdata:SetOrigin(self:GetPos())
 		util.Effect("rotgb_crit",effdata)
 		ROTGB_LASTSHOW2 = CurTime()
+		self:EmitSound(string.format("^phx/epicmetal_hard%i.wav", math.random(7)))
 	end
 end
 
@@ -1510,7 +1536,7 @@ local function TestDamageResistances(properties,dmgbits,frozen)
 end
 
 function ENT:DamageTypeCanDamage(dmgbits)
-	local resistresults = TestDamageResistances(self.Properties,dmgbits,(self.FreezeUntil or 0)>CurTime() or (self.FreezeUntil2 or 0)>CurTime())
+	local resistresults = TestDamageResistances(self.Properties,dmgbits,self:IsFrozen())
 	return not resistresults or self:HasRotgBStatusEffect("unimmune")
 end
 
@@ -1552,13 +1578,13 @@ end
 function ENT:OnInjured(dmginfo)
 	if dmginfo:GetInflictor():GetClass()~="env_fire" then
 		hook.Run("gBalloonTakeDamage", self, dmginfo)
-		self.BalloonRegenTime = CurTime()+ROTGB_GetConVarValue("rotgb_regen_delay")
+		self.BalloonRegenTime = self:CurTime()+ROTGB_GetConVarValue("rotgb_regen_delay")
 		self.LastAttacker = dmginfo:GetAttacker()
 		self.LastInflictor = dmginfo:GetInflictor()
 		self.LastDamageType = dmginfo:GetDamageType()
 		dmginfo:SetDamage(math.ceil(dmginfo:GetDamage()*0.1*ROTGB_GetConVarValue("rotgb_damage_multiplier")))
 		self:Log("About to take "..dmginfo:GetDamage().." damage at "..self:Health().." health!","damage")
-		local resistresults = TestDamageResistances(self.Properties,self.LastDamageType,(self.FreezeUntil or 0)>CurTime() or (self.FreezeUntil2 or 0)>CurTime())
+		local resistresults = TestDamageResistances(self.Properties,self.LastDamageType,self:IsFrozen())
 		local ignoreResistances = ROTGB_GetConVarValue("rotgb_ignore_damage_resistances") or self:HasRotgBStatusEffect("unimmune")
 		if resistresults and not ignoreResistances then
 			dmginfo:SetDamage(0)
@@ -1747,7 +1773,7 @@ function ENT:Pop(damage,target,dmgbits)
 		Properties=self:GetBitflagPropertyState(),
 		PrevBalloons=self.PrevBalloons,
 		Blimp=self:GetBalloonProperty("BalloonBlimp"),
-		Frozen=(self.FreezeUntil2 or 0)>CurTime(),
+		Frozen=(self.FreezeUntil2 or 0)>self:CurTime(),
 		ExtraCash=self:GetBalloonProperty("BalloonCashBonus")
 	}}
 	local cash = 0
@@ -1907,17 +1933,17 @@ function ENT:Pop(damage,target,dmgbits)
 						lastFireRender = CurTime()
 					end
 					lastFireRender = lastFireRender+fireRenderDelay
-					spe:CreateFire(self.FireData.dietime-CurTime())
+					spe:CreateFire(self.FireData.dietime-self:CurTime())
 				end
 				
-				spe.LastBurn = CurTime()
+				spe.LastBurn = self:CurTime()
 			end
-			--[[if (self.BurnTime or 0)-0.5 >= CurTime() then
+			--[[if (self.BurnTime or 0)-0.5 >= self:CurTime() then
 				local cBurnTime = self.BurnTime
 				timer.Simple(0.5,function()
 					if IsValid(spe) then
 						spe.BurnTime = cBurnTime
-						spe:RotgB_Ignite(spe.BurnTime-CurTime())
+						spe:RotgB_Ignite(spe.BurnTime-self:CurTime())
 					end
 				end)
 			end]]
@@ -1938,15 +1964,16 @@ end
 
 function ENT:CheckForRegenAndFire()
 	if SERVER then
+		local curTime = self:CurTime()
 		if self.FireData then
-			if not (IsValid(self.FireData.attacker) and IsValid(self.FireData.inflictor) and self.FireData.dietime > CurTime()) then
+			if not (IsValid(self.FireData.attacker) and IsValid(self.FireData.inflictor) and self.FireData.dietime > curTime) then
 				self.FireData = nil
 				SafeRemoveEntity(self.RotgBFireEnt)
 				self:Log("Fire expired!","fire")
 			elseif not self.LastBurn then
-				self.LastBurn = CurTime()
-			elseif self.LastBurn + ROTGB_GetConVarValue("rotgb_fire_delay") < CurTime() then
-				self.LastBurn = CurTime()
+				self.LastBurn = curTime
+			elseif self.LastBurn + ROTGB_GetConVarValue("rotgb_fire_delay") < curTime then
+				self.LastBurn = curTime
 				local dmginfo = DamageInfo()
 				dmginfo:SetDamagePosition(self:GetPos())
 				dmginfo:SetDamageType(bit.bor(DMG_BURN,DMG_DIRECT))
@@ -1959,10 +1986,9 @@ function ENT:CheckForRegenAndFire()
 			end
 		end
 		if self:GetBalloonProperty("BalloonRegen") then
-			local curtime = CurTime()
 			local regenDelay = hook.Run("GetgBalloonRegenDelay", self) or ROTGB_GetConVarValue("rotgb_regen_delay")
-			self.BalloonRegenTime = self.BalloonRegenTime or curtime+regenDelay
-			if self.BalloonRegenTime <= curtime then
+			self.BalloonRegenTime = self.BalloonRegenTime or curTime+regenDelay
+			if self.BalloonRegenTime <= curTime then
 				if self.PrevBalloons and next(self.PrevBalloons) then
 					local prevballoon = table.remove(self.PrevBalloons)
 					self:Log("Regenerating to: "..prevballoon,"regeneration")
@@ -1986,10 +2012,10 @@ function ENT:CheckForRegenAndFire()
 					self.DeductCash = (self.DeductCash or 0) + 1
 					self:Log("Regenerated to: "..prevballoon..". Fast = "..tostring(ROTGB_HasAllBits(bits, 2))..", Shielded = "..tostring(ROTGB_HasAllBits(bits, 4))..", Hidden = "..tostring(ROTGB_HasAllBits(bits, 8)),"regeneration")
 					self:Log("This gBalloon will yield "..self.DeductCash.." less cash than usual.","regeneration")
-					self.BalloonRegenTime = curtime+regenDelay
+					self.BalloonRegenTime = curTime+regenDelay
 				elseif self:Health() < self:GetMaxHealth() then
 					self:SetHealth(self:Health() + 1)
-					self.BalloonRegenTime = curtime+regenDelay
+					self.BalloonRegenTime = curTime+regenDelay
 					self:Log("Regenerated 1 health.","regeneration")
 				end
 			end
@@ -2125,7 +2151,7 @@ hook.Add("PreDrawHalos","RotgB",function()
 		local showfrozen = ROTGB_GetConVarValue("rotgb_freeze_effect")
 		if nextsee < CurTime() then
 			visibles = ROTGB_GetBalloons()
-			nextsee = CurTime() + 0.2
+			nextsee = CurTime() + 0.1
 		end
 		table.Empty(drawtable)
 		--table.Empty(drawtable2)
@@ -2782,6 +2808,99 @@ ROTGB_RegisterBossEffect("shielding_super", {
 	end
 })
 
+list.Set("NPC","gballoon_hot_air",{
+	Name = "Rainbow Hot Air gBalloon of Hibernation",
+	Class = "gballoon_base",
+	Category = "RotgB: gBalloons Bosses",
+	KeyValues = {
+		BalloonMoveSpeed = "25",
+		BalloonScale = "0.2",
+		BalloonColor = "255 255 255 255",
+		BalloonType = "gballoon_hot_air",
+		BalloonMaterial = "!gBalloonRainbow",
+		BalloonModel = "models/balloons/hot_airballoon.mdl",
+		BalloonHealth = "500000",
+		BalloonBoss = "1",
+		BalloonRainbow = "1",
+		BalloonHealthSegments = "5",
+		BalloonBossEffect = "slow_intangible",
+		BalloonPopSound = "ambient/explosions/citadel_end_explosion1.wav"
+	}
+})
+ROTGB_RegisterBossEffect("slow_intangible", {
+	PerSecond = function(boss)
+		if not boss:GetBalloonProperty("BalloonVoid") then
+			boss.BossSlowTick = ((boss.BossSlowTick or 0) + 1) % 8
+			if boss.BossSlowTick == 0 then
+				for k,v in pairs(ents.GetAll()) do
+					if v.Base == "gballoon_tower_base" then
+						v:Stun(1)
+					end
+				end
+			end
+		end
+	end,
+	HealthSegment = function(boss)
+		boss:SetBalloonProperty("BalloonVoid", true)
+		boss:SetNoDraw(true)
+		boss.BossShields = (boss.BossShields or 0) + 1
+		timer.Simple(5, function()
+			if IsValid(boss) then
+				boss.BossShields = boss.BossShields - 1
+				if boss.BossShields <= 0 then
+					boss:SetBalloonProperty("BalloonVoid", false)
+					boss:SetNoDraw(false)
+				end
+			end
+		end)
+	end
+})
+list.Set("NPC","gballoon_hot_air_super",{
+	Name = "Super Rainbow Hot Air gBalloon of Hibernation",
+	Class = "gballoon_base",
+	Category = "RotgB: gBalloons Bosses",
+	KeyValues = {
+		BalloonMoveSpeed = "25",
+		BalloonScale = "0.2",
+		BalloonColor = "255 255 255 255",
+		BalloonType = "gballoon_hot_air_super",
+		BalloonMaterial = "!gBalloonRainbow",
+		BalloonModel = "models/balloons/hot_airballoon.mdl",
+		BalloonHealth = "10000000",
+		BalloonBoss = "1",
+		BalloonRainbow = "1",
+		BalloonHealthSegments = "10",
+		BalloonBossEffect = "slow_intangible_super",
+		BalloonPopSound = "ambient/explosions/citadel_end_explosion1.wav"
+	}
+})
+ROTGB_RegisterBossEffect("slow_intangible_super", {
+	PerSecond = function(boss)
+		boss.BossSlowTick = ((boss.BossSlowTick or 0) + 1) % 8
+		if boss.BossSlowTick == 0 then
+			for k,v in pairs(ents.GetAll()) do
+				if v.Base == "gballoon_tower_base" then
+					v:Stun(2)
+				end
+			end
+		end
+	end,
+	HealthSegment = function(boss)
+		boss:SetBalloonProperty("BalloonVoid", true)
+		boss:SetNoDraw(true)
+		boss.BossShields = (boss.BossShields or 0) + 1
+		timer.Simple(5, function()
+			if IsValid(boss) then
+				boss.BossShields = boss.BossShields - 1
+				if boss.BossShields <= 0 then
+					boss:SetBalloonProperty("BalloonVoid", false)
+					boss:SetNoDraw(false)
+				end
+			end
+		end)
+	end
+})
+
 list.Set("NPC","gballoon_blimp_long_rainbow",{
 	Name = "Rainbow Portal of Rainbow gBlimp-ing",
 	Class = "gballoon_base",
@@ -2846,7 +2965,7 @@ list.Set("NPC","gballoon_blimp_long_rainbow_super",{
 		BalloonColor = "255 255 255 255",
 		BalloonType = "gballoon_blimp_long_rainbow_super",
 		BalloonMaterial = "!gBalloonRainbow",
-		BalloonModel = "models/xqm/jetenginepropeller.mdl",
+		BalloonModel = "models/xqm/panel180.mdl",
 		BalloonHealth = "50000000",
 		BalloonBoss = "1",
 		BalloonPurple = "1",

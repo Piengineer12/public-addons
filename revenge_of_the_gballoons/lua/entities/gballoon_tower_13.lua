@@ -323,12 +323,10 @@ end
 
 function ENT:TriggerAbility()
 	local success
-	for index,ent in pairs(ents.GetAll()) do
-		if ent:GetClass()=="gballoon_base" then
-			ent:InflictRotgBStatusEffect("unimmune_fireonly",self.rotgb_FireDuration)
-			ent:RotgB_Ignite(self.rotgb_FireUptick * (ent:GetBalloonProperty("BalloonBlimp") and self.rotgb_HeavyFireUptick or 1), self:GetTowerOwner(), self, self.rotgb_FireDuration)
-			success = true
-		end
+	for index,ent in pairs(ROTGB_GetBalloons()) do
+		ent:InflictRotgBStatusEffect("unimmune_fireonly",self.rotgb_FireDuration)
+		ent:RotgB_Ignite(self.rotgb_FireUptick * (ent:GetBalloonProperty("BalloonBlimp") and self.rotgb_HeavyFireUptick or 1), self:GetTowerOwner(), self, self.rotgb_FireDuration)
+		success = true
 	end
 	if not success then return true end
 end

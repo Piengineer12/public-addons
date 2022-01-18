@@ -397,22 +397,20 @@ end
 function ENT:TriggerAbility()
 	if bit.band(self.rotgb_AbilityType, 1) ~= 0 then
 		if bit.band(self.rotgb_AbilityType, 8) == 0 then
-			self.FireRate = self.FireRate*3
-			self.rotgb_Pills = self.rotgb_Pills*2
-			timer.Simple(60, function()
-				if IsValid(self) then
-					self.FireRate = self.FireRate/3
-					self.rotgb_Pills = self.rotgb_Pills/2
-				end
+			self:ApplyBuff(self, "ROTGB_TOWER_17_ABILITY", 60, function(tower)
+				tower.FireRate = tower.FireRate * 3
+				tower.rotgb_Pills = tower.rotgb_Pills * 2
+			end, function(tower)
+				tower.FireRate = tower.FireRate / 3
+				tower.rotgb_Pills = tower.rotgb_Pills / 2
 			end)
 		else
-			self.FireRate = self.FireRate*15
-			self.rotgb_Pills = self.rotgb_Pills*6
-			timer.Simple(60, function()
-				if IsValid(self) then
-					self.FireRate = self.FireRate/15
-					self.rotgb_Pills = self.rotgb_Pills/6
-				end
+			self:ApplyBuff(self, "ROTGB_TOWER_17_ABILITY", 60, function(tower)
+				tower.FireRate = tower.FireRate * 15
+				tower.rotgb_Pills = tower.rotgb_Pills * 6
+			end, function(tower)
+				tower.FireRate = tower.FireRate / 15
+				tower.rotgb_Pills = tower.rotgb_Pills / 6
 			end)
 		end
 	end

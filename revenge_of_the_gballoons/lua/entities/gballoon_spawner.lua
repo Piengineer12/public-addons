@@ -2334,6 +2334,17 @@ for k,v in pairs(ROTGB_WAVES) do
 			rbe = 2007792,
 			duration = 10
 		}
+	elseif k == 100 then
+		ROTGB_WAVES_BOSSES[k] = {
+			{"gballoon_hot_air"},
+			rbe = 500000,
+			duration = 10
+		}
+		ROTGB_WAVES_BOSSES_SUPER[k] = {
+			{"gballoon_hot_air_super"},
+			rbe = 10000000,
+			duration = 10
+		}
 	elseif k == 120 then
 		ROTGB_WAVES_BOSSES[k] = {
 			{"gballoon_blimp_long_rainbow"},

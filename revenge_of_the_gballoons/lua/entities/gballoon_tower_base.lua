@@ -103,6 +103,7 @@ function ENT:Initialize()
 	self:SetModel(self.Model)
 	
 	if SERVER then
+		self:EmitSound(string.format("^phx/epicmetal_soft%i.wav", math.random(7)))
 		self:PhysicsInit(SOLID_VPHYSICS)
 		local physobj = self:GetPhysicsObject()
 		if IsValid(physobj) then
@@ -703,17 +704,19 @@ function ENT:Use(activator,caller,...)
 	end	
 end
 
-for k,v in pairs(scripted_ents.GetList()) do
-	if v.Base == "gballoon_tower_base" then
-		list.Set("NPC",k,{
-			Name = string.format("%s ($%i)", v.t.PrintName, v.t.Cost),
-			Class = k,
-			Category = v.t.Category
-		})
-		list.Set("SpawnableEntities",k,{
-			PrintName = string.format("%s ($%i)", v.t.PrintName, v.t.Cost),
-			ClassName = k,
-			Category = v.t.Category
-		})
+timer.Simple(0, function()
+	for k,v in pairs(scripted_ents.GetList()) do
+		if v.Base == "gballoon_tower_base" then
+			list.Set("NPC",k,{
+				Name = string.format("%s ($%i)", v.t.PrintName, v.t.Cost),
+				Class = k,
+				Category = v.t.Category
+			})
+			list.Set("SpawnableEntities",k,{
+				PrintName = string.format("%s ($%i)", v.t.PrintName, v.t.Cost),
+				ClassName = k,
+				Category = v.t.Category
+			})
+		end
 	end
-end
+end)

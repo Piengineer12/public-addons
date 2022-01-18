@@ -284,17 +284,16 @@ function ENT:ROTGB_Draw()
 end
 
 function ENT:TriggerAbility()
-	--self.FireRate = self.FireRate * 2
 	local addDamage = self.rotgb_AbilityDamage
-	self.AttackDamage = self.AttackDamage + addDamage
-	--self.rotgb_PopAqua2 = true
 	self:SetNWFloat("rotgb_CC",CurTime()+15)
-	timer.Simple(15,function()
-		if IsValid(self) then
-			--self.FireRate = self.FireRate / 2
-			self.AttackDamage = self.AttackDamage - addDamage
-			--self.rotgb_PopAqua2 = nil
-		end
+	self:ApplyBuff(self, "ROTGB_TOWER_10_ABILITY", 15, function(tower)
+		--tower.FireRate = tower.FireRate * 2
+		tower.AttackDamage = tower.AttackDamage + addDamage
+		--tower.rotgb_PopAqua2 = true
+	end, function(tower)
+		--tower.FireRate = tower.FireRate / 2
+		tower.AttackDamage = tower.AttackDamage - addDamage
+		--tower.rotgb_PopAqua2 = nil
 	end)
 end
 

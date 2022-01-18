@@ -255,22 +255,22 @@ GM.Modes						= {
 --[[
 TO DO LIST:
 
-update the readme file
-fix Multipurpose Engine buff desync - difficult to solve on client side
-sandbox saving - difficult
-gBalloon bosses
-
-sfx for upgrading and placing - how?
+fix nobuilds
+fix fade effects
+sfx for upgrading - how?
 music - how?
 
 button to sell all towers - low priority
 button to activate all abilities - low priority
-+ several others (*.txt in same directory)
+
+fix Multipurpose Engine buff desync - difficult to solve on client side
+sandbox saving - difficult
++ several others (*.txt in fan_sent_content) - no thanks
 
 GAMEMODE:
 
+fix rotgb_test1
 skill web: skill web stars?
-implement more game difficulty modes - low priority
 
 ADDON: PZDraw
 

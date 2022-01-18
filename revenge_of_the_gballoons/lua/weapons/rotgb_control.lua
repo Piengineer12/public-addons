@@ -15,7 +15,7 @@ SWEP.ViewModelFOV = 30
 --SWEP.ViewModelFlip2 = false
 SWEP.Spawnable = true
 --SWEP.AdminOnly = false
-SWEP.Slot = 5
+SWEP.Slot = 1
 --SWEP.SlotPos = 10
 --SWEP.BounceWeaponIcon = true
 --SWEP.DrawAmmo = true
@@ -114,7 +114,6 @@ function SWEP:PrimaryAttack()
 			tower:SetTowerOwner(ply)
 			tower:Spawn()
 			--util.ScreenShake(ply:GetShootPos(), 4, 20, 0.5, 64)
-			tower:EmitSound("phx/epicmetal_soft"..math.random(7)..".wav",60,100,0.5,CHAN_WEAPON)
 			if (ply:IsPlayer() and not ply:IsSprinting()) then
 				self:SetCurrentTower(0)
 				--self:SendWeaponAnim(ACT_VM_DRAW)

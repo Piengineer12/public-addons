@@ -171,13 +171,12 @@ end
 function ENT:TriggerAbility()
 	self:SetNWFloat("rotgb_CC", CurTime()+15)
 	if bit.band(self.rotgb_AbilityType, 1) == 1 then
-		self.FireRate = self.FireRate * 5
-		self.rotgb_MicrowaveAngle = self.rotgb_MicrowaveAngle * 3
-		timer.Simple(15,function()
-			if IsValid(self) then
-				self.FireRate = self.FireRate / 5
-				self.rotgb_MicrowaveAngle = self.rotgb_MicrowaveAngle / 3
-			end
+		self:ApplyBuff(self, "ROTGB_TOWER_14_ABILITY", 15, function(tower)
+			tower.FireRate = tower.FireRate * 5
+			tower.rotgb_MicrowaveAngle = tower.rotgb_MicrowaveAngle * 3
+		end, function(tower)
+			tower.FireRate = tower.FireRate / 5
+			tower.rotgb_MicrowaveAngle = tower.rotgb_MicrowaveAngle / 3
 		end)
 	end
 	if bit.band(self.rotgb_AbilityType, 2) == 2 then

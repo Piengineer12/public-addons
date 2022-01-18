@@ -38,9 +38,8 @@ function ENT:OnInjured(dmginfo)
 end
 
 function ENT:HaveEnemy()
-	if IsValid(self:GetEnemy()) then return true
-	else return self:FindEnemy()
-	end
+	local tower = self:GetSpawnedTower()
+	return IsValid(tower) and not tower:IsStunned() and (tower:ValidTargetIgnoreRange(self:GetEnemy()) or self:FindEnemy())
 end
 
 function ENT:FindEnemy()
@@ -55,8 +54,8 @@ function ENT:FindEnemy()
 		output = self.lastBalloonTrace
 	}
 	self.gBTraceData.start = selfpos
-	for k,v in pairs(ents.GetAll()) do
-		if (v:GetClass()=="gballoon_base" and (not v:GetBalloonProperty("BalloonHidden") or self:GetSpawnedTower().SeeCamo or v:HasRotgBStatusEffect("unhide"))) then
+	for k,v in pairs(ROTGB_GetBalloons()) do
+		if self:GetSpawnedTower():ValidTargetIgnoreRange(v) then
 			self.gBTraceData.endpos = v:GetPos()+v:OBBCenter()
 			util.TraceLine(self.gBTraceData)
 			if self.lastBalloonTrace.Entity == v then
@@ -122,7 +121,6 @@ function ENT:FireAtEnemy()
 				end
 				if iscrit then
 					--util.ScreenShake(self:GetShootPos(), 4, 20, 0.5, 1024)
-					self:EmitSound("phx/epicmetal_hard"..math.random(7)..".wav",60,100,0.5,CHAN_WEAPON)
 					v:ShowCritEffect()
 					--self:EmitSound("phx/epicmetal_hard"..math.random(7)..".wav",75,100,1,CHAN_WEAPON)
 				end
@@ -202,7 +200,6 @@ function ENT:FireAtEnemy()
 				if iscrit then
 					dmginfo:SetDamageType(DMG_GENERIC)
 					--util.ScreenShake(self:GetShootPos(), 4, 20, 0.5, 1024)
-					self:EmitSound("phx/epicmetal_hard"..math.random(7)..".wav",60,100,0.5,CHAN_WEAPON)
 				end
 			end
 			self:FireBullets(bulletstruct)
@@ -270,7 +267,7 @@ function ENT:MoveToEnemy()
 end
 
 function ENT:RunBehaviour()
-	while true do
+	while IsValid(self:GetSpawnedTower()) do
 		if self:HaveEnemy() and not GetConVar("ai_disabled"):GetBool() then
 			local result = self:MoveToEnemy()
 			if not IsValid(self:GetSpawnedTower()) then
@@ -289,6 +286,7 @@ function ENT:RunBehaviour()
 			coroutine.wait(0.1)
 		end
 	end
+	self:Remove()
 end
 
 function ENT:PreEntityCopy()

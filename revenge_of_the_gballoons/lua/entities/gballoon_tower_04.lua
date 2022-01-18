@@ -23,7 +23,6 @@ ENT.IsChessPiece = true
 ENT.rotgb_Spread = 60
 ENT.rotgb_Shots = 1
 ENT.rotgb_LaserDamageMul = 50
-ENT.IsChessPiece = true
 ENT.UpgradeReference = {
 	{
 		Names = {"Stabilized Barrel","Consistent Barrel Spinner","Computerized Targeting","Laser Shooter","Ray of Doom","G.R.E.E.N. Beams"},
