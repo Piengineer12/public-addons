@@ -7,14 +7,15 @@ Donate:			https://ko-fi.com/piengineer12
 Links above are confirmed working as of 2021-06-23. All dates are in ISO 8601 format. 
 ]]
 
-LUA_REPAIR_VERSION = "1.4.0"
-LUA_REPAIR_VERSION_DATE = "2021-12-05"
+-- The $ at the name of this Lua file is important so that it loads before most other Lua files
+LUA_REPAIR_VERSION = "1.5.0"
+LUA_REPAIR_VERSION_DATE = "2022-01-22"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
 
 local function Log(...)
-	local message = {color_aqua, "[Lua Repair] ", color_white, ...}
+	local message = {color_aqua, "[Lua Repair ", SERVER and "Server] " or "Client] ", color_white, ...}
 	table.insert(message, '\n')
 	MsgC(unpack(message))
 end
@@ -22,12 +23,15 @@ end
 -- aaand pretty much everything here is dangerous
 local function FixAllErrors()
 	if LUA_REPAIR_FIXED then return end
+	Log("Loading Lua Repair by Piengineer12, version "..LUA_REPAIR_VERSION.." ("..LUA_REPAIR_VERSION_DATE..")")
 	
+	Log("Patching primitives...")
 	local NIL = getmetatable(nil) or {}
 	local STRING = getmetatable("")
 	local VECTOR = FindMetaTable("Vector")
 	local CLUAEMITTER = FindMetaTable("CLuaEmitter")
 	local NULL_META = getmetatable(NULL)
+	local CTAKEDAMAGEINFO = FindMetaTable("CTakeDamageInfo")
 	local newNilMeta = {
 		__add = function(a,b)
 			return a or b
@@ -131,12 +135,57 @@ local function FixAllErrors()
 		local oldFinish = CLUAEMITTER.Finish
 		CLUAEMITTER.Finish = function(emitter,...)
 			if emitter:IsValid() then return oldFinish(emitter,...) end
-		end		
+		end
+	end
+	if CTAKEDAMAGEINFO then
+		local oldSetAttacker = CTAKEDAMAGEINFO.SetAttacker
+		function CTAKEDAMAGEINFO.SetAttacker(dmginfo, attacker, ...)
+			if not IsValid(attacker) then
+				attacker = game.GetWorld()
+			end
+			oldSetAttacker(dmginfo, attacker, ...)
+		end
 	end
 	
 	debug.setmetatable(nil,NIL)
+	Log("Primitives patched!")
 	
-	hook.Add("Initialize", "LUA_REPAIR", function()
+	Log("Patching hooks...")
+	local oldHookAdd = hook.Add
+	function hook.Add(event_name, name, func, ...)
+		if isfunction(event_name) then
+			func = event_name
+			event_name = util.CRC(string.dump(event_name))
+		end
+		if isfunction(name) then
+			func = name
+			name = util.CRC(string.dump(name))
+		elseif isnumber(name) and not DLib then
+			name = tostring(name)
+		elseif isbool(name) then
+			name = tostring(name)
+		end
+		
+		if isstring(event_name) and (isfunction(func) or DLib and type(name) == "thread") then
+			local valid = type(name) == "thread" or name.IsValid or IsValid(name)
+			if isstring(name) or valid then
+				oldHookAdd(event_name, name, func, ...)
+			end
+		end
+	end
+	if DLib then
+		DLib.MessageWarning("An addon is trying to override DLib's hook system! This is stupid and can cause errors to occur!")
+		Log("DLib, shut up and hold still...")
+	end
+	Log("Hooks patched!")
+	LUA_REPAIR_FIXED = true
+	
+	Log("Waiting for all other addons to load...")
+	local startWaitTime = SysTime()
+	timer.Simple(0,function()
+		Log(string.format("Waited %.2f seconds. Hopefully all other addons have initialized by now.", SysTime()-startWaitTime))
+		Log("Patching console commands...")
+		
 		local shouldBlockCommands = {
 			["con_filter_enable"] = true,
 			["con_filter_text_out"] = true,
@@ -212,25 +261,18 @@ local function FixAllErrors()
 			--Log("Error: ", ...)
 		end
 		
+		Log("Console commands patched!")
+	
 		if SERVER then
-			Log("Replaced server console command functions!")
+			Log("Lua has been repaired! Remember that if you are a Lua developer, please disable this addon or your users may get errors from your code!")
 		end
 		if CLIENT then
-			Log("Replaced client console command functions!")
+			Log("Lua has been repaired! If you still see errors, remember to report the full error message to the creator of Lua Repair!")
 		end
 	end)
-	
-	LUA_REPAIR_FIXED = true
 end
 
 FixAllErrors()
-
-if SERVER then
-	Log("Serverside Lua has been repaired! Remember that if you are a Lua developer, please disable this addon or your users may get errors from your code!")
-end
-if CLIENT then
-	Log("Clientside Lua has been repaired! If you still see errors remember to report the full error message to the creator of Lua Repair!")
-end
 
 --[[function SetAutoFix(bool)
 	if bool then
@@ -274,8 +316,7 @@ end)
 
 hook.Add("PopulateToolMenu","lua_repair",function()
 	spawnmenu.AddToolMenuOption("Utilities","lua_repair","lua_repair","Lua Repair","","",function(DForm)
-		local DLabel = DForm:Help("WARNING: If you are a Lua developer, make sure that this feature is OFF before testing your code!\n\n\z
-		Note that this functionality might cause slight performance issues.")
+		local DLabel = DForm:Help("WARNING: If you are a Lua developer, make sure that this whole addon is DISABLED before testing your code!")
 		DLabel:SetTextColor(Color(255,0,0))
 		DForm:Button("Run Lua Repair","lua_repair_run")
 		--[[local checkBoxLabel = vgui.Create("DCheckBoxLabel")
