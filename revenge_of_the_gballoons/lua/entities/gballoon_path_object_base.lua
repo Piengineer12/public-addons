@@ -120,6 +120,11 @@ function ENT:Initialize()
 	self:AddEFlags(EFL_FORCE_CHECK_TRANSMIT)
 end
 
-function ENT:UpdateTransmitState()	
+function ENT:UpdateTransmitState()
 	return TRANSMIT_ALWAYS 
+end
+
+function ENT:PostEntityPaste()
+	self:SetModel(self.Model)
+	self:PhysicsInit(SOLID_VPHYSICS)
 end

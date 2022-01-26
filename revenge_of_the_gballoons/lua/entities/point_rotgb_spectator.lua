@@ -51,6 +51,8 @@ function ENT:AcceptInput(input,activator,caller,data)
 end
 
 function ENT:Initialize()
+	self.WelcomePoint = self.WelcomePoint or 0
+	self.EndingPoint = self.EndingPoint or 0
 	self:UpdateUsageFlags()
 end
 

@@ -42,15 +42,17 @@ end
 
 if SERVER then
 	util.AddNetworkString("rotgb_openupgrademenu")
+	AccessorFunc(ENT, "SpawnerActive", "SpawnerActive", FORCE_BOOL)
 end
 
 function ENT:SetupDataTables()
+	--self:NetworkVar("Bool",0,"SpawnerActive")
 	self:NetworkVar("Int",0,"UpgradeStatus")
 	-- Path1 + Path2 << 4 + Path3 << 8 + Path4 << 12 + ...
 	self:NetworkVar("Int",1,"Targeting")
 	self:NetworkVar("Int",2,"Pops")
 	self:NetworkVar("Int",3,"OwnerUserID")
-	self:NetworkVar("Float",0,"AbilityNextFire")
+	self:NetworkVar("Float",0,"AbilityCharge")
 	self:NetworkVar("Float",1,"CashGenerated")
 	self:NetworkVar("Entity",0,"TowerOwner")
 end
@@ -70,12 +72,14 @@ end
 ENT.ROTGB_Initialize = function()end
 
 function ENT:Initialize()
+	if SERVER then
+		self:SetAbilityCharge(0.75)
+		self:NextThink(CurTime())
+	end
 	self:ApplyPerks()
-	local cost = ROTGB_ScaleBuyCost(self.Cost or 0, self, {type = ROTGB_TOWER_PURCHASE})
 	self:ROTGB_Initialize()
 	
 	self.LOSOffset = self.LOSOffset or vector_origin
-	self.LocalCost = cost
 	self.DetectionRadius = self.DetectionRadius * ROTGB_GetConVarValue("rotgb_tower_range_multiplier")
 	self.BuffIdentifiers = {}
 	
@@ -125,71 +129,14 @@ function ENT:Initialize()
 		if cost>ROTGB_GetCash(self:GetTowerOwner()) then
 			self:SetNoDraw(true)
 		end]]
-	end
-	if self:GetUpgradeStatus()>0 then
-		for i,v in ipairs(self.UpgradeReference) do
-			local tier = bit.rshift(self:GetUpgradeStatus(),(i-1)*4)%16
-			for j=1,tier do
-				if (v.Funcs and v.Funcs[tier]) then
-					v.Funcs[tier](self)
-					self.LocalCost = self.LocalCost + ROTGB_ScaleBuyCost(v.Prices[tier], self, {type = ROTGB_TOWER_UPGRADE, path = i, tier = j})
+		if ROTGB_BalloonsExist() then
+			self:SetSpawnerActive(true)
+		else
+			for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
+				if v:GetNextWaveTime() > CurTime() then
+					self:SetSpawnerActive(true) break
 				end
 			end
-		end
-	end
-	if CLIENT and LocalPlayer()==self:GetTowerOwner() then
-		local localPlayer = LocalPlayer()
-		local levelLocked, blacklisted, towerIndex = false, false, 0
-		local tooMany, maxCount = false, ROTGB_GetConVarValue("rotgb_tower_maxcount")
-		local chessDeny = 0
-		if engine.ActiveGamemode() == "rotgb" then
-			-- get a sorted-by-price list of all towers, then return our index from the list
-			local towers = ROTGB_GetAllTowers()
-			for k,v in pairs(towers) do
-				if v.ClassName == self:GetClass() then
-					towerIndex = k break
-				end
-			end
-			levelLocked = localPlayer:RTG_GetLevel() < towerIndex
-		end
-		for entry in string.gmatch(ROTGB_GetConVarValue("rotgb_tower_blacklist"), "%S+") do
-			if self:GetClass() == entry then
-				blacklisted = true break
-			end
-		end
-		local chessOnly = ROTGB_GetConVarValue("rotgb_tower_chess_only")
-		if chessOnly ~= 0 then
-			if chessOnly > 0 and not self.IsChessPiece then
-				chessDeny = 1
-			elseif chessOnly < 0 and self.IsChessPiece then
-				chessDeny = -1
-			end
-		end
-		if maxCount > 0 then
-			local count = 0
-			for k,v in pairs(ents.GetAll()) do
-				if v.Base=="gballoon_tower_base" then
-					count = count + 1
-				end
-			end
-			if count > maxCount then
-				tooMany = true
-			end
-		end
-		if blacklisted then
-			ROTGB_CauseNotification("That tower is blacklisted from being placed!")
-		elseif chessDeny ~= 0 then
-			if chessDeny > 0 then
-				ROTGB_CauseNotification("Only chess towers can be placed!")
-			else
-				ROTGB_CauseNotification("Only non-chess towers can be placed!")
-			end
-		elseif tooMany then
-			ROTGB_CauseNotification("You are not allowed to place any more towers!")
-		elseif levelLocked then
-			ROTGB_CauseNotification(string.format("You need to be level %i to buy this tower!", towerIndex))
-		elseif self.LocalCost>ROTGB_GetCash(localPlayer) then
-			ROTGB_CauseNotification("You need $"..string.Comma(math.ceil(self.LocalCost-ROTGB_GetCash(localPlayer))).." more to buy this tower!")
 		end
 	end
 	
@@ -242,8 +189,6 @@ function ENT:AddTimePhase(timeToAdd)
 	self.NextFire = (self.NextFire or 0) + timeToAdd
 	self.ExpensiveThinkDelay = (self.ExpensiveThinkDelay or 0) + timeToAdd
 	self.StunUntil = (self.StunUntil or 0) + timeToAdd
-	self.StunUntil2 = (self.StunUntil2 or 0) + timeToAdd
-	self:SetAbilityNextFire(self:GetAbilityNextFire() + timeToAdd)
 	self:SetNWFloat("rotgb_noupgradelimit", self:GetNWFloat("rotgb_noupgradelimit") + timeToAdd)
 	for identifier,info in pairs(self.BuffIdentifiers) do
 		info.expiry = info.expiry + timeToAdd
@@ -286,27 +231,53 @@ end
 
 ENT.ROTGB_Think = ENT.ROTGB_Initialize
 
-if engine.ActiveGamemode() == "rotgb" then
-	hook.Add("gBalloonSpawnerWaveStarted", "ROTGB_TOWER_BASE", function(spawner,cwave)
-		local maxWave = 0
-		for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
-			maxWave = math.max(maxWave, v:GetWave())
+hook.Add("gBalloonSpawnerWaveStarted", "ROTGB_TOWER_BASE", function(spawner,cwave)
+	local maxWave = 0
+	for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
+		maxWave = math.max(maxWave, cwave)
+	end
+	for k,v in pairs(ents.GetAll()) do
+		if v.Base=="gballoon_tower_base" then
+			v:SetSpawnerActive(true)
+			v.MaxWaveReached = maxWave
 		end
-		for k,v in pairs(ents.GetAll()) do
-			if v.Base=="gballoon_tower_base" then
-				v.MaxWaveReached = maxWave
-			end
+	end
+end)
+
+hook.Add("gBalloonSpawnerWaveEnded", "ROTGB_TOWER_BASE", function(spawner,cwave)
+	for k,v in pairs(ents.GetAll()) do
+		if v.Base=="gballoon_tower_base" then
+			v:SetSpawnerActive(false)
 		end
-	end)
-end
+	end
+end)
 
 function ENT:Think()
+	if not self.LocalCost then
+		local amount = ROTGB_ScaleBuyCost(self.Cost or 0, self, {type = ROTGB_TOWER_PURCHASE})
+		if self:GetUpgradeStatus()>0 then
+			for i,v in ipairs(self.UpgradeReference) do
+				local tier = bit.rshift(self:GetUpgradeStatus(),(i-1)*4)%16
+				for j=1,tier do
+					if (v.Funcs and v.Funcs[j]) then
+						v.Funcs[j](self)
+						amount = amount + ROTGB_ScaleBuyCost(v.Prices[j], self, {type = ROTGB_TOWER_UPGRADE, path = i, tier = j})
+					end
+				end
+			end
+		end
+		self.LocalCost = amount
+		if CLIENT then
+			self.SellAmount = self.LocalCost
+		end
+	end
 	if SERVER then
 		self:ROTGB_Think()
-		local towerCost = self.LocalCost
-		if not self.IsEnabled and towerCost then
+		if not self.IsEnabled and self.LocalCost then
+			local towerOwner = self:GetTowerOwner()
+			local towerCost = self.LocalCost
 			self.IsEnabled = true
-			if engine.ActiveGamemode() == "rotgb" and self:GetTowerOwner():IsPlayer() then
+			if engine.ActiveGamemode() == "rotgb" and towerOwner:IsPlayer() then
 				local towerIndex = 0
 				local towers = ROTGB_GetAllTowers()
 				for k,v in pairs(towers) do
@@ -314,28 +285,33 @@ function ENT:Think()
 						towerIndex = k break
 					end
 				end
-				if self:GetTowerOwner():RTG_GetLevel() < towerIndex then
-					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(self:GetTowerOwner()).." due to level requirement.", "towers")
+				if towerOwner:RTG_GetLevel() < towerIndex then
+					ROTGB_CauseNotification(string.format("You need to be level %i to buy this tower!", towerIndex), towerOwner)
+					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(towerOwner).." due to level requirement.", "towers")
 					return SafeRemoveEntity(self)
 				end
 			end
 			local maxCount = ROTGB_GetConVarValue("rotgb_tower_maxcount")
 			for entry in string.gmatch(ROTGB_GetConVarValue("rotgb_tower_blacklist"), "%S+") do
 				if self:GetClass() == entry then
-					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(self:GetTowerOwner()).." due to blacklist.", "towers")
+					ROTGB_CauseNotification("That tower is blacklisted from being placed!", towerOwner)
+					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(towerOwner).." due to blacklist.", "towers")
 					return SafeRemoveEntity(self)
 				end
 			end
 			local chessOnly = ROTGB_GetConVarValue("rotgb_tower_chess_only")
 			if chessOnly ~= 0 then
 				if chessOnly > 0 and not self.IsChessPiece then
-					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(self:GetTowerOwner()).." due to not being a chess tower.", "towers")
+					ROTGB_CauseNotification("Only chess towers can be placed!", towerOwner)
+					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(towerOwner).." due to not being a chess tower.", "towers")
 				elseif chessOnly < 0 and self.IsChessPiece then
-					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(self:GetTowerOwner()).." due to being a chess tower.", "towers")
+					ROTGB_CauseNotification("Only non-chess towers can be placed!", towerOwner)
+					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(towerOwner).." due to being a chess tower.", "towers")
 				end
 			end
-			if towerCost>ROTGB_GetCash(self:GetTowerOwner()) then
-				ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(self:GetTowerOwner()).." due to insufficient cash.", "towers")
+			if towerCost>ROTGB_GetCash(towerOwner) then
+				ROTGB_CauseNotification("You need $"..string.Comma(math.ceil(towerCost-ROTGB_GetCash(towerOwner))).." more to buy this tower!", towerOwner)
+				ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(towerOwner).." due to insufficient cash.", "towers")
 				return SafeRemoveEntity(self)
 			elseif maxCount>=0 then
 				local count = 0
@@ -345,24 +321,25 @@ function ENT:Think()
 					end
 				end
 				if count > maxCount then
-					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(self:GetTowerOwner()).." due to excess towers.", "towers")
+					ROTGB_CauseNotification("You are not allowed to place any more towers!", towerOwner)
+					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(towerOwner).." due to excess towers.", "towers")
 					return SafeRemoveEntity(self)
 				end
 			end
-			ROTGB_RemoveCash(towerCost,self:GetTowerOwner())
-			self.SellAmount = (self.SellAmount or 0) + towerCost
+			ROTGB_RemoveCash(towerCost,towerOwner)
+			self.SellAmount = self.LocalCost
 		end
 		local curTime = CurTime()
 		if not self:IsStunned() then
-			local shouldExpensiveThink = false
-			for k,v in pairs(ROTGB_GetBalloons()) do
-				if self:ValidTarget(v) then
-					shouldExpensiveThink = true break
+			self.ExpensiveThinkDelay = self.ExpensiveThinkDelay or curTime
+			if self.ExpensiveThinkDelay <= curTime then
+				local shouldExpensiveThink = false
+				for k,v in pairs(ROTGB_GetBalloons()) do
+					if self:ValidTarget(v) then
+						shouldExpensiveThink = true break
+					end
 				end
-			end
-			if shouldExpensiveThink then
-				self.ExpensiveThinkDelay = self.ExpensiveThinkDelay or curTime
-				if self.ExpensiveThinkDelay <= curTime then
+				if shouldExpensiveThink then
 					self.ExpensiveThinkDelay = curTime + math.min(0.5, 1/(self.FireRate or 1))
 					self:ExpensiveThink()
 				end
@@ -370,6 +347,9 @@ function ENT:Think()
 			if (self.NextFire or 0) < curTime and (self.DetectedEnemy or self.FireWhenNoEnemies) then
 				self:DoFireFunction()
 			end
+		end
+		if self.HasAbility and self:GetAbilityCharge() < 1 and self:GetSpawnerActive() then
+			self:SetAbilityCharge(math.min(1, self:GetAbilityCharge()+FrameTime()/self.AbilityCooldown))
 		end
 		self:BuffThink()
 		self:NextThink(curTime)
@@ -463,27 +443,25 @@ function ENT:ValidTargetIgnoreRange(v)
 end
 
 function ENT:ExpensiveThink(bool)
-	self.gBalloons = self.gBalloons or {}
-	self.balloonTable = self.balloonTable or {}
+	self.gBalloons = {}
+	self.balloonTable = {}
 	self.lastBalloonTrace = self.lastBalloonTrace or {}
 	--self.SolicitedgBalloon = NULL
 	self.DetectedEnemy = nil
-	table.Empty(self.gBalloons) -- saves memory
-	table.Empty(self.balloonTable)
 	local selfpos = self:GetShootPos()
-	self.gBTraceData = self.gBTraceData or {
+	local traceData = {
 		filter = self,
 		mask = MASK_SHOT,
-		output = self.lastBalloonTrace
+		output = self.lastBalloonTrace,
+		start = selfpos
 	}
-	self.gBTraceData.start = selfpos
 	local mode = self:GetTargeting()
 	for k,v in pairs(ROTGB_GetBalloons()) do
 		if self:ValidTarget(v) then
 			local LosOK = not self.UseLOS
 			if not LosOK then
-				self.gBTraceData.endpos = v:GetPos()+v:OBBCenter()
-				util.TraceLine(self.gBTraceData)
+				traceData.endpos = v:GetPos()+v:OBBCenter()
+				util.TraceLine(traceData)
 				if IsValid(self.lastBalloonTrace.Entity) and self.lastBalloonTrace.Entity:GetClass()=="gballoon_base" then
 					LosOK = true
 				end
@@ -547,7 +525,7 @@ function ENT:DrawTranslucent()
 		reqang.r = 90
 		cam.Start3D2D(selfpos,reqang,0.2)
 			surface.SetDrawColor(0,0,0,127)
-			local percent = math.Clamp(1-(self:GetAbilityNextFire()-CurTime())/self.AbilityCooldown,0,1)
+			local percent = math.Clamp(self:GetAbilityCharge(),0,1)
 			ROTGB_DrawCircle(0,0,16,percent,HSVToColor(percent*120,1,1))
 			ROTGB_DrawCircle(0,0,16,percent,HSVToColor(percent*120,1,1))
 		cam.End3D2D()
@@ -561,16 +539,14 @@ function ENT:OnTakeDamage(dmginfo)
 end
 
 function ENT:DoAbility()
-	if (self.HasAbility and (self:GetAbilityNextFire()<CurTime() or self:GetAbilityNextFire()>CurTime()+self.AbilityCooldown)) then
+	if self.HasAbility and self:GetAbilityCharge()>=1 then
 		local failed = self:TriggerAbility()
-		if failed then
-			self:SetAbilityNextFire(0)
-		else
-			self:SetAbilityNextFire(CurTime() + self.AbilityCooldown)
+		if not failed then
+			self:SetAbilityCharge(0)
 			if engine.ActiveGamemode() == "rotgb" then
 				for k,v in pairs(ents.GetAll()) do
 					if v.Base == "gballoon_tower_base" then
-						v.OtherTowerAbilityActivatedTime = math.max(v.OtherTowerAbilityActivatedTime or 0, CurTime() + self.AbilityCooldown/3)
+						v.OtherTowerAbilityActivatedTime = math.max(v.OtherTowerAbilityActivatedTime or 0, self.AbilityCooldown/3)
 					end
 				end
 			end

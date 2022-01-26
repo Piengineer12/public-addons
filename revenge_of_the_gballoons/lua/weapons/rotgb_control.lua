@@ -50,6 +50,7 @@ SWEP.Secondary = {
 	DefaultClip = -1,
 	Automatic = false
 }
+local ROTGB_TOWERPLACEMENT = 1
 local ROTGB_SETTOWER = 2
 local ROTGB_SPEED = 3
 local ROTGB_PLAY = 4
@@ -264,38 +265,112 @@ function SWEP:Think()
 			end
 		end
 	end
+	if SERVER then
+		if self:GetCurrentTower() == 0 then
+			if IsValid(self.ServersideModel) then
+				self.ServersideModel:Remove()
+			end
+			
+			--[[local viewmodel = LocalPlayer():GetViewModel()
+			if (IsValid(viewmodel) and viewmodel:GetRenderFX() ~= kRenderFxSolidFast) then
+				viewmodel:SetRenderFX(kRenderFxSolidFast)
+			end]]
+		else
+			local tower = self.TowerTable[self:GetCurrentTower()]
+			local owner = self:GetOwner()
+			if not IsValid(self.ServersideModel) then
+				local detector = ents.Create("prop_physics")
+				detector:SetModel(tower.Model)
+				detector:Spawn()
+				detector:SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER)
+				detector:SetNoDraw(true)
+				detector.TowerType = self:GetCurrentTower()
+				detector.rotgb_isDetector = true
+				
+				local physObj = detector:GetPhysicsObject()
+				if IsValid(physObj) then
+					physObj:EnableGravity(false)
+				end
+				
+				function detector:NoBuildTriggered(state)
+					timer.Simple(detector:GetCreationTime()-CurTime()+0.1, function()
+						if owner:IsPlayer() then
+							net.Start("rotgb_controller", true)
+							net.WriteUInt(ROTGB_TOWERPLACEMENT, 8)
+							net.WriteBool(not state)
+							net.Send(owner)
+						end
+					end)
+				end
+				
+				self.ServersideModel = detector
+			elseif self.ServersideModel.TowerType ~= self:GetCurrentTower() then
+				self.ServersideModel:Remove()
+			end
+			
+			if owner:IsPlayer() or owner:IsNPC() then
+				local trace = self:BuildTraceData(owner)
+				if trace.Hit then
+					self.ServersideModel:SetPos(trace.HitPos)
+					local tempang = owner:EyeAngles()
+					tempang.p = 0
+					tempang.r = 0
+					self.ServersideModel:SetAngles(tempang)
+					
+					local physObj = self.ServersideModel:GetPhysicsObject()
+					if IsValid(physObj) then
+						physObj:Wake()
+					end
+				end
+			end
+		end
+	end
 end
 
 function SWEP:OnRemove()
-	self:SetCurrentTower(0)
-	if IsValid(self.TowerMenu) then
-		self.TowerMenu:Close()
-	end
-	if IsValid(self.ClientsideModel) then
-		self.ClientsideModel:Remove()
-	end
-	--[[if CLIENT then
-		local viewmodel = LocalPlayer():GetViewModel()
-		if (IsValid(viewmodel) and viewmodel:GetRenderFX() == kRenderFxFadeFast) then
-			viewmodel:SetRenderFX(kRenderFxSolidFast)
+	if SERVER then
+		self:SetCurrentTower(0)
+		if IsValid(self.ServersideModel) then
+			self.ServersideModel:Remove()
 		end
-	end]]
+	end
+	if CLIENT then
+		if IsValid(self.TowerMenu) then
+			self.TowerMenu:Close()
+		end
+		if IsValid(self.ClientsideModel) then
+			self.ClientsideModel:Remove()
+		end
+		--[[if CLIENT then
+			local viewmodel = LocalPlayer():GetViewModel()
+			if (IsValid(viewmodel) and viewmodel:GetRenderFX() == kRenderFxFadeFast) then
+				viewmodel:SetRenderFX(kRenderFxSolidFast)
+			end
+		end]]
+	end
 end
 
 function SWEP:Holster()
-	self:SetCurrentTower(0)
-	if IsValid(self.TowerMenu) then
-		self.TowerMenu:Hide()
+	if SERVER then
+		self:SetCurrentTower(0)
+		if IsValid(self.ServersideModel) then
+			self.ServersideModel:Remove()
+		end
 	end
-	if IsValid(self.ClientsideModel) then
-		self.ClientsideModel:Remove()
+	if CLIENT then
+		if IsValid(self.TowerMenu) then
+			self.TowerMenu:Hide()
+		end
+		if IsValid(self.ClientsideModel) then
+			self.ClientsideModel:Remove()
+		end
 	end
 	return true
 end
 
-if SERVER then
-	net.Receive("rotgb_controller", function(length, ply)
-		local func = net.ReadUInt(8)
+net.Receive("rotgb_controller", function(length, ply)
+	local func = net.ReadUInt(8)
+	if SERVER then
 		local wep = ply:GetActiveWeapon()
 		if IsValid(wep) then
 			if wep:GetClass()=="rotgb_control" and func == ROTGB_SETTOWER then
@@ -307,6 +382,7 @@ if SERVER then
 						wep:SendWeaponAnim(ACT_VM_PRIMARYATTACK)
 					end]]
 					wep:SetCurrentTower(desiredtower)
+					wep:Think()
 				end
 			end
 			if wep:GetClass()=="rotgb_control" or wep:GetClass()=="rotgb_shooter" then
@@ -344,8 +420,19 @@ if SERVER then
 				end
 			end
 		end
-	end)
-end
+	end
+	if CLIENT then
+		local wep = LocalPlayer():GetActiveWeapon()
+		if (IsValid(wep) and wep:GetClass()=="rotgb_control" and IsValid(wep.ClientsideModel)) and func == ROTGB_TOWERPLACEMENT then
+			local valid = net.ReadBool()
+			if valid then
+				wep.ClientsideModel:SetColor(color_aqua)
+			else
+				wep.ClientsideModel:SetColor(color_red)
+			end
+		end
+	end
+end)
 
 function SWEP:BuildTraceData(ent)
 	self.CommonTraceData = self.CommonTraceData or {}
@@ -354,6 +441,7 @@ function SWEP:BuildTraceData(ent)
 	self.CommonTraceData.endpos = ent:GetShootPos() + ent:GetAimVector() * 32767
 	self.CommonTraceData.filter = ent
 	self.CommonTraceData.output = self.TraceResult
+	self.CommonTraceData.collisiongroup = COLLISION_GROUP_DEBRIS_TRIGGER
 	util.TraceLine(self.CommonTraceData)
 	return self.TraceResult
 end
@@ -852,7 +940,7 @@ function SWEP:CreateMiddlePanel(Main)
 				function TowerPanel:PaintOver(w, h)
 					local tower = self.Tower
 					if IsValid(tower) then
-						if self.activatable ~= (tower:GetAbilityNextFire() < CurTime()) then
+						if self.activatable == (tower:GetAbilityCharge() < 1) then
 							self.activatable = not self.activatable
 							if self.activatable then
 								self:SetColor(color_white)
@@ -866,7 +954,7 @@ function SWEP:CreateMiddlePanel(Main)
 							surface.DrawRect(0, 0, w, h)
 						end
 						if not self.activatable then
-							local percent = math.Clamp(1-(tower:GetAbilityNextFire()-CurTime())/tower.AbilityCooldown,0,1)
+							local percent = math.Clamp(tower:GetAbilityCharge(),0,1)
 							local circleColor = HSVToColor(percent*120,1,1)
 							ROTGB_DrawCircle(
 								halfSize,halfSize,halfSize,percent,

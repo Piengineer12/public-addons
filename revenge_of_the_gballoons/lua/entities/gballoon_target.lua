@@ -228,6 +228,7 @@ function ENT:PostEntityPaste(ply,ent,tab)
 	if self.CurMaxHealth then
 		self:SetMaxHealth(self.CurMaxHealth)
 	end
+	gballoon_pob.PostEntityPaste(self,ply,ent,tab)
 end
 
 function ENT:TriggerOnHealthChanged()

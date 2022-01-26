@@ -117,7 +117,7 @@ function ENT:FireAtEnemy()
 			end
 			for k,v in pairs(targets) do
 				if self:GetSpawnedTower().rotgb_TurretBucks then
-					self:GetSpawnedTower():AddCash(100, self:GetSpawnedTower():GetTowerOwner())
+					self:GetSpawnedTower():AddCash(20, self:GetSpawnedTower():GetTowerOwner())
 				end
 				if iscrit then
 					--util.ScreenShake(self:GetShootPos(), 4, 20, 0.5, 1024)
@@ -159,7 +159,7 @@ function ENT:FireAtEnemy()
 		else
 			self.rotgb_Owner = self:GetSpawnedTower()
 			if self.rotgb_Owner.rotgb_TurretBucks then
-				self.rotgb_Owner:AddCash(100)
+				self.rotgb_Owner:AddCash(20)
 			end
 			local enemy = self:GetEnemy()
 			local dir = enemy:GetPos()

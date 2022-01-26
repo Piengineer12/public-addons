@@ -277,7 +277,9 @@ abilityFunction = function(self)
 		--if not next(entities) then return true end
 		local enttab = {}
 		for index,ent in pairs(entities) do
-			enttab[ent] = ent:GetRgBE()+ent:GetDistanceTravelled()*1e-9
+			if self:ValidTargetIgnoreRange(ent) then
+				enttab[ent] = ent:GetRgBE()+ent:GetDistanceTravelled()*1e-9
+			end
 		end
 		local ent = next(entities) and self:ChooseSomething(enttab)
 		if IsValid(ent) then
@@ -335,7 +337,9 @@ abilityFunction = function(self)
 				end
 			end)
 		elseif self.UseLOS then
-			timer.Simple(math.random(),function()
+			local tryAgainTime = math.random()
+			ROTGB_Log(string.format("DASH-E Unit #%i failed to find any Orbital Friendship Cannon targets, trying again in %.2f ms...", self:GetCreationID(), tryAgainTime*1e3), "towers")
+			timer.Simple(tryAgainTime,function()
 				abilityFunction(self)
 			end)
 		end

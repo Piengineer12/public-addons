@@ -1,7 +1,7 @@
 GM.Name							= "RotgB: The Gamemode!"
-GM.Author						= "Piengineer"
-GM.Version						= "0.1.0"
-GM.VersionDate					= "2022-01-06"
+GM.Author						= "Piengineer12"
+GM.Version						= "1.0.0"
+GM.VersionDate					= "2022-01-23"
 GM.Email						= "[REDACTED]"
 GM.Website						= "https://steamcommunity.com/id/Piengineer12"
 GM.TeamBased					= true
@@ -255,8 +255,7 @@ GM.Modes						= {
 --[[
 TO DO LIST:
 
-fix nobuilds
-fix fade effects
+skill tree img
 sfx for upgrading - how?
 music - how?
 
@@ -264,18 +263,27 @@ button to sell all towers - low priority
 button to activate all abilities - low priority
 
 fix Multipurpose Engine buff desync - difficult to solve on client side
-sandbox saving - difficult
 + several others (*.txt in fan_sent_content) - no thanks
 
 GAMEMODE:
 
-fix rotgb_test1
 skill web: skill web stars?
 
 ADDON: PZDraw
 
 fonts
 rich text
+
+WPASS:
+
+fire element - flaming
+earth element - corroding
+water element - freezing
+wind element - poisonous, poison
+
+BETTER DAMAGE API:
+see above
+multiple damage objects
 ]]
 
 RTG_STAT_POPS = 1

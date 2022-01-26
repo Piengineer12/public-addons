@@ -328,12 +328,6 @@ function ROTGB_CreateBlacklistPanel(blacklist, whitelist)
 	RightText:Dock(FILL)
 end
 
-function ROTGB_CauseNotification(msg)
-	notification.AddLegacy(msg,NOTIFY_ERROR,5)
-	surface.PlaySound("buttons/button10.wav")
-end
-
-
 local function GetUserWaveCompEntry(run_func, defs)
 	local currentparams = {"gballoon_*", 255, -1, -1, -1}
 	
@@ -848,6 +842,12 @@ function ROTGB_CreateWavePanel()
 		end
 	end)):SetIcon("icon16/disk.png")
 	
+	FileMenu:AddOption("Export Preset to Clipboard", function()
+		local clipboardText = util.Base64Encode(util.Compress(util.TableToJSON(localWaves)))
+		SetClipboardText(clipboardText)
+		chat.AddText(string.format("Export successful, make sure to paste it somewhere safe. Size: %s bytes", string.Comma(#clipboardText)))
+	end):SetIcon("icon16/page_copy.png")
+	
 	FileMenu:AddOption("#GameUI_Load", Main:SupplyFileSelector("#GameUI_Load", function(path, window)
 		if not IsValid(Main) then return end
 		local rawdata = file.Read(path)
@@ -865,6 +865,19 @@ function ROTGB_CreateWavePanel()
 			Derma_Message("File not found.","#GameUI_LoadFailed","#GameUI_OK")
 		end
 	end)):SetIcon("icon16/folder_page.png")
+	
+	FileMenu:AddOption("Import Preset from Clipboard", function()
+		Derma_StringRequest("Import","Paste wave preset data below, then press \"Import\".","",function(text)
+			local data = util.JSONToTable(util.Decompress(util.Base64Decode(text) or "") or "")
+			if data then
+				localWaves = data
+				localEdited = false
+				ScrollPanel:Populate()
+			else
+				Derma_Message("Wave preset data was invalid!","#GameUI_LoadFailed","#GameUI_OK")
+			end
+		end,nil,"Import")
+	end):SetIcon("icon16/page_paste.png")
 	
 	FileMenu:AddOption("Load Default Waves", function()
 		if localEdited then

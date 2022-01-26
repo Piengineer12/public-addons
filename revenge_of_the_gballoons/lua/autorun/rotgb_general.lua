@@ -6,7 +6,7 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		5.0.0-alpha.6
+Version:		5.0.0-rc.2
 ]]
 
 local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","spawning","towers"}
@@ -65,6 +65,7 @@ ROTGB_OPERATION_WAVE_EDIT = 5
 ROTGB_OPERATION_HEALTH_EDIT = 6
 ROTGB_OPERATION_TRIGGER = 7
 ROTGB_OPERATION_BOSS = 8
+ROTGB_OPERATION_NOTIFY = 9
 
 ROTGB_TOWER_MENU = 0
 ROTGB_TOWER_UPGRADE = 1
@@ -506,45 +507,44 @@ end,nil,
 
 ROTGB_CASH = ROTGB_CASH or 0
 
-function ROTGB_UpdateCash(ply)
-	if SERVER then
-		net.Start("rotgb_cash", true)
-		net.WriteUInt(ply and ply:UserID() or 0, 16)
-		net.WriteDouble(ROTGB_GetCash(ply))
-		net.Broadcast()
-	end
-end
+
 
 function ROTGB_SetCash(num,ply)
-	if ROTGB_GetConVarValue("rotgb_individualcash") then
-		if ply then
-			ply.ROTGB_CASH = tonumber(num) or 0
-			ROTGB_UpdateCash(ply)
-		else
-			for k,v in pairs(player.GetAll()) do
-				v.ROTGB_CASH = tonumber(num) or 0
-				ROTGB_UpdateCash(v)
-			end
-		end
+	if SERVER then
+		ROTGB_GetGameEntity():SetCash(num, ply)
+		ROTGB_UpdateCash(ply)
 	else
-		ROTGB_CASH = tonumber(num) or 0
-		ROTGB_UpdateCash()
+		if ROTGB_GetConVarValue("rotgb_individualcash") then
+			if ply then
+				ply.ROTGB_CASH = tonumber(num) or 0
+			else
+				for k,v in pairs(player.GetAll()) do
+					v.ROTGB_CASH = tonumber(num) or 0
+				end
+			end
+		else
+			ROTGB_CASH = tonumber(num) or 0
+		end
 	end
 end
 
 function ROTGB_GetCash(ply)
-	if ROTGB_GetConVarValue("rotgb_individualcash") then
-		ply = ply or CLIENT and LocalPlayer()
-		if ply then return ply.ROTGB_CASH or 0
-		else
-			local average = 0
-			for k,v in pairs(player.GetAll()) do
-				average = average + (v.ROTGB_CASH or 0)
-			end
-			return average
-		end
+	if SERVER then
+		return ROTGB_GetGameEntity():GetCash(ply)
 	else
-		return ROTGB_CASH or 0
+		if ROTGB_GetConVarValue("rotgb_individualcash") then
+			ply = ply or CLIENT and LocalPlayer()
+			if ply then return ply.ROTGB_CASH or 0
+			else
+				local sum = 0
+				for k,v in pairs(player.GetAll()) do
+					sum = sum + (v.ROTGB_CASH or 0)
+				end
+				return sum
+			end
+		else
+			return ROTGB_CASH or 0
+		end
 	end
 end
 
@@ -554,8 +554,15 @@ function ROTGB_AddCash(num,ply)
 		if ply then
 			ROTGB_SetCash(ROTGB_GetCash(ply)+num,ply)
 		else
-			local count = player.GetCount()
+			local plys = {}
 			for k,v in pairs(player.GetAll()) do
+				if v:Team() ~= TEAM_SPECTATOR and v:Team() ~= TEAM_CONNECTING then
+					table.insert(plys, v)
+				end
+			end
+			
+			local count = #plys
+			for k,v in pairs(plys) do
 				ROTGB_SetCash(ROTGB_GetCash(v)+num/count,v)
 			end
 		end
@@ -570,8 +577,15 @@ function ROTGB_RemoveCash(num,ply)
 		if ply then
 			ROTGB_SetCash(ROTGB_GetCash(ply)-num,ply)
 		else
-			local count = player.GetCount()
+			local plys = {}
 			for k,v in pairs(player.GetAll()) do
+				if v:Team() ~= TEAM_SPECTATOR and v:Team() ~= TEAM_CONNECTING then
+					table.insert(plys, v)
+				end
+			end
+			
+			local count = #plys
+			for k,v in pairs(plys) do
 				ROTGB_SetCash(ROTGB_GetCash(v)-num/count,v)
 			end
 		end
@@ -596,11 +610,53 @@ function ROTGB_ScaleBuyCost(num,ent,data)
 	end
 end
 
+function ROTGB_CauseNotification(msg,ply)
+	if SERVER and ply:IsPlayer() then
+		net.Start("rotgb_generic")
+		net.WriteUInt(ROTGB_OPERATION_NOTIFY,8)
+		net.WriteString(msg)
+		net.Send(ply)
+	end
+	if CLIENT then
+		notification.AddLegacy(msg,NOTIFY_ERROR,5)
+		surface.PlaySound("buttons/button10.wav")
+	end
+end
+
 if SERVER then
 	util.AddNetworkString("rotgb_cash")
+	local cashUpdatePlayers = {}
+	
+	function ROTGB_GetGameEntity()
+		if not IsValid(ROTGB_GameEntity) then
+			ROTGB_GameEntity = ents.FindByClass("game_rotgb")[1]
+			if not IsValid(ROTGB_GameEntity) then
+				ROTGB_GameEntity = ents.Create("game_rotgb")
+				ROTGB_GameEntity:Spawn()
+			end
+		end
+		return ROTGB_GameEntity
+	end
+	
+	function ROTGB_UpdateCash(ply)
+		if ply then
+			cashUpdatePlayers[ply] = true
+		else
+			cashUpdatePlayers[game.GetWorld()] = true
+		end
+	end
+	
+	net.Receive("rotgb_cash",function(length, ply)
+		if ROTGB_GetConVarValue("rotgb_individualcash") then
+			for k,v in pairs(player.GetAll()) do
+				ROTGB_UpdateCash(v)
+			end
+		else
+			ROTGB_UpdateCash()
+		end
+	end)
 	
 	local ticktime2 = 0
-	local nextCashThink = 5
 	local cashLoaded = false
 	ROTGB_BLACKLIST = ROTGB_BLACKLIST or {}
 	ROTGB_WHITELIST = ROTGB_WHITELIST or {}
@@ -708,20 +764,23 @@ if SERVER then
 				end
 			end
 		end
-		if nextCashThink < CurTime() then
-			nextCashThink = CurTime() + 5
-			if not cashLoaded then
-				cashLoaded = true
-				ROTGB_CASH = hook.Run("GetStartingRotgBCash") or ROTGB_GetConVarValue("rotgb_starting_cash")
-				ROTGB_UpdateCash()
-			end
-			for k,v in pairs(player.GetAll()) do
-				if not v.ROTGB_cashLoaded then
-					v.ROTGB_cashLoaded = true
-					v.ROTGB_CASH = hook.Run("GetStartingRotgBCash") or ROTGB_GetConVarValue("rotgb_starting_cash")
-					ROTGB_UpdateCash(v)
+		if next(cashUpdatePlayers) then
+			local tableOfKeys = table.GetKeys(cashUpdatePlayers)
+			local worldspawn = game.GetWorld()
+			
+			net.Start("rotgb_cash")
+			net.WriteUInt(#tableOfKeys, 8)
+			for k,v in pairs(tableOfKeys) do
+				if v == worldspawn then
+					net.WriteUInt(0, 16)
+					net.WriteDouble(ROTGB_GetCash())
+				else
+					net.WriteUInt(v:UserID(), 16)
+					net.WriteDouble(ROTGB_GetCash(v))
 				end
 			end
+			net.Broadcast()
+			cashUpdatePlayers = {}
 		end
 	end)
 	
@@ -874,15 +933,23 @@ if CLIENT then
 	end
 
 	net.Receive("rotgb_cash", function()
-		local id = net.ReadUInt(16)
-		local amt = net.ReadDouble()
-		if id==0 then
-			ROTGB_CASH = amt
-		elseif IsValid(Player(id)) then
-			Player(id).ROTGB_CASH = amt
+		local iterations = net.ReadUInt(8)
+		for i=1,iterations do
+			local id = net.ReadUInt(16)
+			local amt = net.ReadDouble()
+			if id==0 then
+				ROTGB_CASH = amt
+			elseif IsValid(Player(id)) then
+				Player(id).ROTGB_CASH = amt
+			end
 		end
 	end)
-
+	
+	hook.Add("InitPostEntity", "RotgB", function()
+		net.Start("rotgb_cash")
+		net.SendToServer()
+	end)
+	
 	local hurtFeed = {}
 	local hurtFeedStaySeconds = 10
 	net.Receive("rotgb_target_received_damage", function()
@@ -1007,6 +1074,10 @@ if CLIENT then
 			if next(targets) then
 				local tX, tY = textX, yPos+size
 				for i,v in ipairs(targets) do
+					local needsBrackets = v:GetOSPs() > 0 or v:GetGoldenHealth() > 0 or v:GetPerWaveShield() > 0
+					if needsBrackets then
+						tX = tX + draw.SimpleTextOutlined("( ","RotgB_font",tX,tY,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+					end
 					tX = tX + draw.SimpleTextOutlined(string.Comma(v:Health()).." ","RotgB_font",tX,tY,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 					if v:GetOSPs() > 0 then
 						tX = tX + draw.SimpleTextOutlined("+ "..string.Comma(v:GetOSPs()).."* ","RotgB_font",tX,tY,color_magenta,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
@@ -1017,9 +1088,12 @@ if CLIENT then
 					if v:GetPerWaveShield() > 0 then
 						tX = tX + draw.SimpleTextOutlined("+ "..string.Comma(v:GetPerWaveShield()).." ","RotgB_font",tX,tY,color_aqua,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 					end
+					if needsBrackets then
+						tX = tX + draw.SimpleTextOutlined(") ","RotgB_font",tX,tY,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+					end
 					tX = tX + draw.SimpleTextOutlined("/ "..string.Comma(v:GetMaxHealth()),"RotgB_font",tX,tY,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 					if i < #targets then
-						draw.SimpleTextOutlined(" + ","RotgB_font",tX,tY,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+						tX = tX + draw.SimpleTextOutlined(" + ","RotgB_font",tX,tY,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 					end
 				end
 			else
@@ -1514,15 +1588,25 @@ if CLIENT then
 			bossData.maxHealth = net.ReadInt(32)
 			bossData.healthSegments = net.ReadUInt(8)
 			bossData.lastUpdateTime = RealTime()
+		elseif operation == ROTGB_OPERATION_NOTIFY then
+			local msg = net.ReadString()
+			ROTGB_CauseNotification(msg)
 		end
 	end)
 	
-	local drawNoBuilds = false
+	--local drawNoBuilds = false
 	function ROTGB_SetDrawNoBuilds(value)
-		drawNoBuilds = value
+		-- TODO
+		--[[for k,v in pairs(ents.FindByClass("func_rotgb_nobuild")) do
+			if value then
+				v:SetRenderFX(kRenderFxSolidSlow)
+			else
+				v:SetRenderFX(kRenderFxFadeSlow)
+			end
+		end]]
 	end
 	
-	local nextUpdate = nil
+	--[[local nextUpdate = nil
 	hook.Add("PreDrawTranslucentRenderables", "RotgB", function(depth, skybox, skybox3d)
 		if (nextUpdate or 0) < RealTime() then
 			nextUpdate = RealTime() + 0.5
@@ -1530,5 +1614,5 @@ if CLIENT then
 				v:SetNoDraw(not drawNoBuilds)
 			end
 		end
-	end)
+	end)]]
 end

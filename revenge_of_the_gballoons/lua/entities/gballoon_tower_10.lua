@@ -154,15 +154,6 @@ sound.Add({
 
 function ENT:ROTGB_Initialize()
 	--self:SetNWFloat("rotgb_Charges",self.rotgb_MaxCharges)
-	if ROTGB_BalloonsExist() then
-		self.rotgb_Charging = true
-	else
-		for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
-			if v:GetNextWaveTime() > CurTime() then
-				self.rotgb_Charging = true break
-			end
-		end
-	end
 	if CLIENT then
 		self.DispAng = AngleRand()
 		self.DispAngA = AngleRand()
@@ -224,7 +215,7 @@ ENT.thread = coroutine.create(SnipeEntity)
 coroutine.resume(ENT.thread)
 
 function ENT:FireFunction(gBalloons)
-	if self.rotgb_Charging then
+	if self:GetSpawnerActive() then
 		self:SetNWFloat("rotgb_Charges",math.min(self:GetNWFloat("rotgb_Charges") + 1/self.rotgb_ChargeDelay,self.rotgb_MaxCharges))
 	end
 	if self:GetNWFloat("rotgb_Charges") >= 1 and next(gBalloons) then
@@ -296,15 +287,3 @@ function ENT:TriggerAbility()
 		--tower.rotgb_PopAqua2 = nil
 	end)
 end
-
-hook.Add("gBalloonSpawnerWaveStarted", "ROTGB_TOWER_10", function(spawner,wave)
-	for k,v in pairs(ents.FindByClass("gballoon_tower_10")) do
-		v.rotgb_Charging = true
-	end
-end)
-
-hook.Add("gBalloonSpawnerWaveEnded", "ROTGB_TOWER_10", function(spawner,wave)
-	for k,v in pairs(ents.FindByClass("gballoon_tower_10")) do
-		v.rotgb_Charging = nil
-	end
-end)

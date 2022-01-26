@@ -1238,7 +1238,7 @@ return {
 				ref = "incomeGrower1",
 				name = "Income Grower",
 				trait = "waveWaveIncome",
-				amount = 2,
+				amount = 1,
 				tier = 1,
 				parent = "gg2",
 				links = "parent",
@@ -1250,7 +1250,7 @@ return {
 				ref = "wb1",
 				name = "Wave Bonus",
 				trait = "waveIncome",
-				amount = 5,
+				amount = 2,
 				parent = "incomeGrower1",
 				links = "parent",
 				pos = VectorTable(-1,1)
@@ -1259,7 +1259,7 @@ return {
 				ref = "wb2",
 				name = "Wave Bonus",
 				trait = "waveIncome",
-				amount = 5,
+				amount = 2,
 				parent = "wb1",
 				links = {"incomeGrower1", "wb1"},
 				pos = VectorTable(1,0)
@@ -1268,7 +1268,7 @@ return {
 				ref = "wb3",
 				name = "Wave Bonus",
 				trait = "waveIncome",
-				amount = 5,
+				amount = 2,
 				parent = "wb1",
 				links = "parent",
 				pos = VectorTable(0,1)
@@ -1277,7 +1277,7 @@ return {
 				ref = "wb4",
 				name = "Wave Bonus",
 				trait = "waveIncome",
-				amount = 5,
+				amount = 2,
 				parent = "wb2",
 				links = {"wb2", "wb3"},
 				pos = VectorTable(0,1)
@@ -1286,7 +1286,7 @@ return {
 				ref = "wb5",
 				name = "Wave Bonus",
 				trait = "waveIncome",
-				amount = 5,
+				amount = 2,
 				parent = "wb3",
 				links = "parent",
 				pos = VectorTable(0,1)
@@ -1295,7 +1295,7 @@ return {
 				ref = "wb6",
 				name = "Wave Bonus",
 				trait = "waveIncome",
-				amount = 5,
+				amount = 2,
 				parent = "wb4",
 				links = {"wb4", "wb5"},
 				pos = VectorTable(0,1)
@@ -1304,7 +1304,7 @@ return {
 				ref = "wb7",
 				name = "Wave Bonus",
 				trait = "waveIncome",
-				amount = 5,
+				amount = 2,
 				parent = "wb5",
 				links = "parent",
 				pos = VectorTable(0,1)
@@ -1313,7 +1313,7 @@ return {
 				ref = "wb8",
 				name = "Wave Bonus",
 				trait = "waveIncome",
-				amount = 5,
+				amount = 2,
 				parent = "wb6",
 				links = {"wb6", "wb7"},
 				pos = VectorTable(0,1)
@@ -1322,7 +1322,7 @@ return {
 				ref = "wb9",
 				name = "Wave Bonus",
 				trait = "waveIncome",
-				amount = 5,
+				amount = 2,
 				parent = "wb7",
 				links = "parent",
 				pos = VectorTable(0,1)
@@ -1331,7 +1331,7 @@ return {
 				ref = "wb10",
 				name = "Wave Bonus",
 				trait = "waveIncome",
-				amount = 5,
+				amount = 2,
 				parent = "wb8",
 				links = {"wb8", "wb9"},
 				pos = VectorTable(0,1)
@@ -1341,7 +1341,7 @@ return {
 			ref = "incomeGrower2",
 			name = "Income Grower",
 			trait = "waveWaveIncome",
-			amount = 2,
+			amount = 1,
 			tier = 1,
 			parent = "wb10",
 			links = {"wb9", "wb10"},

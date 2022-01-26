@@ -121,7 +121,7 @@ ENT.UpgradeReference = {
 				self.rotgb_AbilityType = bit.bor(self.rotgb_AbilityType, 4)
 			end,
 			function(self)
-				self:SetAbilityNextFire(CurTime() + self.AbilityCooldown)
+				self:SetAbilityCharge(0)
 				self.rotgb_AbilityType = bit.bor(self.rotgb_AbilityType, 16)
 			end,
 		}

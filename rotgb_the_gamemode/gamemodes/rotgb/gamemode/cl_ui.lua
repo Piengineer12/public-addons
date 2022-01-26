@@ -13,7 +13,7 @@ local color_aqua = Color(0, 255, 255)
 local color_light_blue = Color(127, 127, 255)
 local color_purple = Color(127, 0, 255)
 local color_magenta = Color(255, 0, 255)
-local color_dark_black_semiopaque = Color(0, 0, 0, 191)
+local color_dark_black_doublesemiopaque = Color(0, 0, 0, 223)
 local SQRT_2 = math.sqrt(2)
 
 local SCOREBOARD_CELL_WIDTH_MULTIPLIERS = {1, 6, 6, 3, 3, 8, {1, 3, 2}, 3}
@@ -169,7 +169,7 @@ surface.CreateFont("rotgb_skill_body", {
 })
 
 local function DrawDarkBackground(panel, w, h)
-	surface.SetDrawColor(0,0,0,191)
+	surface.SetDrawColor(0,0,0,223)
 	surface.DrawRect(0,0,w,h)
 end
 
@@ -180,7 +180,7 @@ local function DrawDebugBackground(panel, w, h)
 end
 
 local function DrawTextBoxBackground(panel, w, h)
-	surface.SetDrawColor(color_dark_black_semiopaque)
+	surface.SetDrawColor(color_dark_black_doublesemiopaque)
 	surface.DrawRect(0,0,w,h)
 	surface.SetDrawColor(color_white)
 	surface.DrawOutlinedRect(0,0,w,h,1)
@@ -189,7 +189,9 @@ end
 local function CreateMenu()
 	local Menu = vgui.Create("DFrame")
 	Menu:SetSize(ScrW(), ScrH())
+	Menu:SetTitle("")
 	Menu:SetDraggable(false)
+	Menu:ShowCloseButton(false)
 	Menu.Paint = DrawDarkBackground
 	Menu:DockPadding(indentX, indentY, indentX, indentY)
 	Menu:MakePopup()
@@ -854,7 +856,7 @@ local function RestartButtonFunction(button)
 end
 
 local function CreateGameOverButtons(parent, canContinue)
-	local ExitButton = CreateButton(nil, "Quit >", color_aqua, ExitButtonFunction)
+	local ExitButton = CreateButton(nil, "Quit >", color_red, ExitButtonFunction)
 	local ExitButtonCenteringPanel = CreateElementCenteringPanel(ExitButton, parent)
 	ExitButtonCenteringPanel:SetZPos(1)
 	ExitButtonCenteringPanel:Dock(BOTTOM)
@@ -871,12 +873,20 @@ local function CreateGameOverButtons(parent, canContinue)
 	RestartButtonCenteringPanel:SetZPos(2)
 	RestartButtonCenteringPanel:Dock(BOTTOM)
 	
+	local VoteButton = CreateButton(nil, "Start Vote >", color_green, function()
+		parent:Close()
+		RunConsoleCommand("rotgb_tg_vote")
+	end)
+	local VoteButtonCenteringPanel = CreateElementCenteringPanel(VoteButton, parent)
+	VoteButtonCenteringPanel:SetZPos(3)
+	VoteButtonCenteringPanel:Dock(BOTTOM)
+	
 	if canContinue then
-		local ContinueButton = CreateButton(nil, "Continue >", color_green, function()
+		local ContinueButton = CreateButton(nil, "Freeplay (Zero XP) >", color_aqua, function()
 			parent:Close()
 		end)
 		local ContinueButtonCenteringPanel = CreateElementCenteringPanel(ContinueButton, parent)
-		ContinueButtonCenteringPanel:SetZPos(3)
+		ContinueButtonCenteringPanel:SetZPos(4)
 		ContinueButtonCenteringPanel:Dock(BOTTOM)
 	end
 end
@@ -1141,7 +1151,7 @@ local function CreateVoteRightPanel(VoteLeftPanel, data)
 						Panel:SetVote(RTG_VOTE_CHANGEDIFFICULTY, self.VoteTarget)
 					end)
 					button.VoteTarget = v2.internalName
-					button:SetZPos(i)
+					button:SetZPos(i*10+i2)
 					button:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
 					button:Dock(TOP)
 					table.insert(Panel.TargetButtons, button)
@@ -2237,10 +2247,11 @@ function GM:CreateStartupMenu()
 	CreateText(Menu, 2, "RotgB: The Gamemode is a singleplayer / cooperative multiplayer PvE gamemode, where enemy gBalloons are spawned in waves.")
 	CreateText(Menu, 3, "Build towers to attack the gBalloons before they reach a gBalloon target or it will take damage.")
 	CreateText(Menu, 4, "The game ends when all waves have been cleared or all gBalloon Targets have been destroyed.")
-	CreateText(Menu, 5, "Everyone (except for spectators) gains experience when gBalloons are popped. Higher difficulties give less experience for earlier waves, but more experience for later waves.")
-	CreateText(Menu, 6, "\nChat commands:")
-	CreateText(Menu, 7, "!vote / !rtg_vote - opens the voting menu")
-	CreateText(Menu, 8, "!skills / !rtg_skills - opens the skills menu")
+	CreateText(Menu, 5, "Popped gBalloons will give cash and experience. Cash is distributed to all players, while experience is only given to the attacker.")
+	CreateText(Menu, 6, "Higher difficulties give less experience for earlier waves, but more experience for later waves.")
+	CreateText(Menu, 7, "\nThe following chat commands are available:")
+	CreateText(Menu, 8, "!vote / !rtg_vote - opens the voting menu")
+	CreateText(Menu, 9, "!skills / !rtg_skills - opens the skills menu")
 	
 	local NextButton = CreateButton(Menu, "Continue >", color_green, function()
 		hook.Run("ShowHelp")

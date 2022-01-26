@@ -72,7 +72,7 @@ function GM:PlayerDeath(ply, inflictor, attacker)
 	
 	player_manager.RunClass(ply, "Death", inflictor, attacker)
 	
-	-- copied from base gamemode, but don't ask me why this is like this.
+	-- copied from base gamemode, don't ask me why this is like this.
 	if attacker == ply then
 		net.Start("PlayerKilledSelf")
 		net.WriteEntity(ply)

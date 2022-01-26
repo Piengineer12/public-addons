@@ -1834,17 +1834,27 @@ function ENT:Pop(damage,target,dmgbits)
 	end
 	if IsValid(target) then
 		local damage = (pops+math.max(self:Health(), 1)-1)*ROTGB_GetConVarValue("rotgb_afflicted_damage_multiplier")
-		local dmginfo = DamageInfo()
+		self:Log("Hurting "..tostring(target).." for "..damage.." damage...","damage")
+		
+		if target:GetClass() == "gballoon_target" and target:GetOSPs() > 0 and self:GetBalloonProperty("BalloonHealthSegments") > 1 then
+			local healthPerSegment = self:GetMaxHealth() / self:GetBalloonProperty("BalloonHealthSegments")
+			local ospsLost = math.Clamp(math.floor(self:Health() / healthPerSegment), 0, target:GetOSPs())
+			
+			damage = damage - healthPerSegment*ospsLost
+			target:SetOSPs(target:GetOSPs()-ospsLost)
+		end
+		
 		local dir = target:WorldSpaceCenter() - self:GetPos()
 		dir:Normalize()
 		dir:Mul(damage)
+		
+		local dmginfo = DamageInfo()
 		dmginfo:SetDamage(damage)
 		dmginfo:SetReportedPosition(self:GetPos())
 		dmginfo:SetDamageForce(dir)
 		dmginfo:SetAttacker(self)
 		dmginfo:SetInflictor(self)
 		target:TakeDamageInfo(dmginfo)
-		self:Log("Hurting "..tostring(target).." for "..damage.." damage...","damage")
 	else
 		local baseMul = ROTGB_GetConVarValue("rotgb_cash_mul")
 		local newcash = self:GetAndApplyValueMultipliers(cash)
@@ -3069,7 +3079,7 @@ list.Set("NPC","gballoon_garrydecal_super",{
 		BalloonMoveSpeed = "25",
 		BalloonScale = "3",
 		BalloonColor = "255 255 0 255",
-		BalloonType = "gballoon_garrydecal",
+		BalloonType = "gballoon_garrydecal_super",
 		BalloonMaterial = "maxofs2d/models/balloon_classic_04",
 		BalloonHealth = "200000000",
 		BalloonBoss = "1",

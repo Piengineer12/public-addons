@@ -35,7 +35,7 @@ ENT.UpgradeReference = {
 			"Reduces turret generation delay by another second. Also allows turrets to detect Hidden gBalloons.",
 			"Turrets that are sparking fire 10 times faster!",
 			"Turrets that are sparking deal decuple (x10) damage!",
-			"Every time a turret hits a gBalloon, gain $50!",
+			"Every time a turret hits a gBalloon, gain $20!",
 			"Bullets slow down Green gBlimps and lower by 75% for 1 second!"
 		},
 		Prices = {150,1500,1750,20000,50000,5e6},
@@ -156,9 +156,7 @@ function ENT:TriggerAbility()
 end
 
 function ENT:ROTGB_Think()
-	if self:GetAbilityNextFire()<CurTime() then
+	if self:GetAbilityCharge()>=1 then
 		self:DoAbility()
-	elseif (self.HasAbility and self:GetAbilityNextFire()>CurTime()+self.AbilityCooldown) then
-		self:SetAbilityNextFire(0)
 	end
 end

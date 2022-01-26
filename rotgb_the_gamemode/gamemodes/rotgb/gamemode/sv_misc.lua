@@ -74,15 +74,11 @@ function GM:PostCleanupMapServer()
 	hook.Run("SetGameIsOver", false)
 	hook.Run("SetDefeated", false)
 	hook.Run("UpdateAppliedSkills")
+	ROTGB_UpdateCash()
 	for k,v in pairs(player.GetAll()) do
 		v:UnSpectate()
 		v:Spawn()
-		ROTGB_CASH = hook.Run("GetStartingRotgBCash") or ROTGB_GetConVarValue("rotgb_starting_cash")
-		ROTGB_UpdateCash()
-		for k,v in pairs(player.GetAll()) do
-			v.ROTGB_CASH = hook.Run("GetStartingRotgBCash") or ROTGB_GetConVarValue("rotgb_starting_cash")
-			ROTGB_UpdateCash(v)
-		end
+		ROTGB_UpdateCash(v)
 		v.rtg_gBalloonPops = 0
 		net.Start("rotgb_statchanged", true)
 		net.WriteUInt(RTG_STAT_POPS, 4)
@@ -102,9 +98,7 @@ function GM:gBalloonDamaged(bln, attacker, inflictor, damage, deductedCash, isPo
 		local scoreAdd = (damage - deductedCash) * hook.Run("GetScoreMultiplier")
 		local xpAdd = (damage - deductedCash) * hook.Run("GetXPMultiplier")
 		attacker.rtg_gBalloonPops = (attacker.rtg_gBalloonPops or 0) + scoreAdd
-		for k,v in pairs(player.GetAll()) do
-			v.rtg_XP = v.rtg_XP + xpAdd
-		end
+		attacker.rtg_XP = (attacker.rtg_XP or 0) + xpAdd
 		net.Start("rotgb_statchanged", true)
 		net.WriteUInt(RTG_STAT_POPS, 4)
 		net.WriteUInt(1, 12)

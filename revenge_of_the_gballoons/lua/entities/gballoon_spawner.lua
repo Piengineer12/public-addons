@@ -2367,7 +2367,7 @@ end
 for k,v in pairs(ROTGB_WAVES_LEGACY) do
 	local waveTable10S = {}
 	for k2,v2 in pairs(v) do
-		if k2 == "duration" then
+		if k2 == "duration" and k ~= 120 then
 			waveTable10S.duration = 10
 		else
 			waveTable10S[k2] = v2
@@ -2607,6 +2607,7 @@ end
 function ENT:PostEntityPaste(ply,ent,tab)
 	self.rotgb_ToSpawn = self.rotgb_CopiedToSpawn
 	self:AddTimePhase(CurTime() - (self.rotgb_DuplicatorTimeOffset or CurTime()))
+	gballoon_pob.PostEntityPaste(self,ply,ent,tab)
 end
 
 function ENT:AddTimePhase(timeToAdd)
@@ -2757,12 +2758,12 @@ function ENT:TriggerWaveEnded()
 	local inFreeplay = cwave > self:GetLastWave()
 	if (self.lastEndWaveTriggered or 1) ~= cwave then
 		self.lastEndWaveTriggered = cwave
-		local income = 100/self:GetSpawnDivider()*ROTGB_GetConVarValue("rotgb_cash_mul")
+		local income = 100
 		if engine.ActiveGamemode() == "rotgb" then
 			income = income + hook.Run("GetSkillAmount", "waveWaveIncome")*(cwave-1)
 			income = income * (1+hook.Run("GetSkillAmount", "waveIncome")/100)
 		end
-		ROTGB_AddCash(income)
+		ROTGB_AddCash(income/self:GetSpawnDivider()*ROTGB_GetConVarValue("rotgb_cash_mul"))
 		hook.Run("gBalloonSpawnerWaveEnded",self,cwave-1)
 		if inFreeplay and not self.WinWave then
 			self.WinWave = cwave

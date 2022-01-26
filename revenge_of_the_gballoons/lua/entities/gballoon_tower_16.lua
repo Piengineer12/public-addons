@@ -91,7 +91,7 @@ ENT.UpgradeReference = {
 			"This tower now generates interest up to $250,000 per second!",
 			"This tower no longer has a maximum interest rate! Once every 60 seconds, shooting at this tower doubles everyone's current cash!"
 		},
-		Prices = {450,1300,10000,60000,650000,7e6,250e6},
+		Prices = {450,1300,10000,60000,650000,7e6,500e6},
 		Funcs = {
 			function(self)
 				self.rotgb_HoverballLife = self.rotgb_HoverballLife * 3
@@ -122,8 +122,8 @@ ENT.UpgradeReference = {
 	{
 		Names = {"A Little Extra", "Just Pocket It", "Fuzzy Income", "King of Hearts", "Microbot Research", "Nanomachines"},
 		Descs = {
-			"At the start of each round, gain 15% of a round's worth of hoverball cash.",
-			"This tower no longer generates income. At the start of each round, gain 115% of the hoverball income and 12 seconds of non-hoverball income that would have been generated.",
+			"At the start of each round, gain 10% of a round's worth of hoverball cash.",
+			"This tower no longer generates income. At the start of each round, gain 110% of the hoverball income and 11 seconds of non-hoverball income that would have been generated.",
 			"Each round, hoverball cash production is altered to between 0% and 400%.",
 			"At the end of each round, all gBalloon Targets' health is increased by 20% of their maximum health, rounded down. This upgrade can overheal targets.",
 			"At the end of each round, the hoverball income of all Hoverball Factory towers are multiplied by 1.2!",
@@ -132,11 +132,11 @@ ENT.UpgradeReference = {
 		Prices = {450,1000,2000,5000,20000,75000},
 		Funcs = {
 			function(self)
-				self.rotgb_HoverballPostCash = 0.15
+				self.rotgb_HoverballPostCash = 0.1
 			end,
 			function(self)
 				self.rotgb_NoHoverball = true
-				self.rotgb_HoverballPostCash = 1.15
+				self.rotgb_HoverballPostCash = 1.1
 			end,
 			function(self)
 				self.rotgb_Trading = true
@@ -253,7 +253,7 @@ hook.Add("gBalloonSpawnerWaveStarted", "ROTGB_TOWER_16", function(spawner,wave)
 			*(v.rotgb_Trading and math.random()*4 or 1)*(1+(hook.Run("GetSkillAmount", "valuableHoverballs") or 0)/100), v:GetTowerOwner())
 			if v.rotgb_BankFactor > 0 and v.rotgb_NoHoverball then
 				v:PerformBank()
-				for i=1,11 do
+				for i=1,10 do
 					v:PerformBank(true)
 				end
 			end
