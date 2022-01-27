@@ -6,7 +6,7 @@ ENT.PrintName = "Particle Charger"
 ENT.Category = "RotgB: Towers"
 ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "This tower fires particles at an incredible speed, but needs time to charge."
+ENT.Purpose = "This tower fires particles at an incredible speed, but needs time to charge. Only gains charge during waves."
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -21,44 +21,46 @@ ENT.AttackDamage = 10
 ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,70)
 ENT.UserTargeting = true
-ENT.rotgb_ChargeDelay = 5
+ENT.rotgb_ChargeDelay = 10
 ENT.rotgb_MultiShot = 1
-ENT.rotgb_MaxCharges = 250
-ENT.rotgb_AbilityDamage = 3000
+ENT.rotgb_MaxCharges = 200
+ENT.rotgb_AbilityDamage = 1000
 ENT.UpgradeReference = {
 	{
 		Names = {"Faster Production", "Erratic Spinner", "Omega Battery", "Infinity Chip", "Machine Gun Module", "Showdown Module"},
 		Descs = {
-			"Particle charges are accumulated considerably faster.",
-			"Slightly increases fire rate and considerably increases maximum charges.",
-			"Considerably increases fire rate and tremendously increases maximum charges.",
-			"This tower no longer loses charge!",
-			"Once every 60 seconds, shooting at this tower increases attack damage by 300 layers for 15 seconds!",
-			"Machine Gun Module now increases damage by 6000 layers!",
+			"Considerably increases maximum charges and charge rate.",
+			"Slightly increases fire rate and tremendously increases maximum charges and charge rate.",
+			"Considerably increases fire rate and colossally increases maximum charges and charge rate.",
+			"This tower can now spend 1 extra charge per extra hit required to instantly pop gBalloons. Balloons popped by this tower do not spawn any children.",
+			"Once every 60 seconds, shooting at this tower increases attack damage by 100 layers for 15 seconds!",
+			"Machine Gun Module now increases damage by 1000 layers!",
 		},
-		Prices = {600,2000,15000,35000,250000,5e6},
+		Prices = {600,4000,45000,200000,1e6,8.5e6},
 		Funcs = {
 			function(self)
 				self.rotgb_ChargeDelay = self.rotgb_ChargeDelay / 2
-			end,
-			function(self)
-				self.FireRate = self.FireRate * 1.5
-				self.rotgb_ChargeDelay = self.rotgb_ChargeDelay * 1.5
 				self.rotgb_MaxCharges = self.rotgb_MaxCharges * 2
 			end,
 			function(self)
-				self.FireRate = self.FireRate * 2
-				self.rotgb_ChargeDelay = self.rotgb_ChargeDelay * 2
+				self.FireRate = self.FireRate * 1.5
+				self.rotgb_ChargeDelay = self.rotgb_ChargeDelay / 2
 				self.rotgb_MaxCharges = self.rotgb_MaxCharges * 3
 			end,
 			function(self)
+				self.FireRate = self.FireRate * 2
+				self.rotgb_ChargeDelay = self.rotgb_ChargeDelay / 2.5
+				self.rotgb_MaxCharges = self.rotgb_MaxCharges * 5
+			end,
+			function(self)
 				self.rotgb_NoConsume = true
+				self.rotgb_NoC = true
 			end,
 			function(self)
 				self.HasAbility = true
 			end,
 			function(self)
-				self.rotgb_AbilityDamage = self.rotgb_AbilityDamage * 20
+				self.rotgb_AbilityDamage = self.rotgb_AbilityDamage * 10
 			end
 		}
 	},
@@ -69,7 +71,7 @@ ENT.UpgradeReference = {
 			"Allows the tower to see Hidden gBalloons.",
 			"Tremendously increases attack damage.",
 			"Colossally increases attack damage! Balloons popped by this tower do not spawn any children.",
-			"Considerably reduces maximum charges... but you won't need it.",
+			"Considerably reduces maximum charges... but you probably won't need it.",
 			"This tower deals so much damage, Rainbow gBlimps are destroyed in 4 hits!"
 		},
 		Prices = {600,1500,5000,65000,650000,35e6},
@@ -101,10 +103,10 @@ ENT.UpgradeReference = {
 		Descs = {
 			"The tower now pops up to three gBalloons per shot.",
 			"Considerably increases the tower's range.",
-			"Whenever a particle from this tower hits a gBalloon, gain $1.",
+			"Whenever a particle from this tower hits a gBalloon, gain $5.",
 			"The tower now hits all gBalloons within its radius each shot.",
-			"gBalloons hit by this tower's shots permanently lose all immunities.",
-			"gBalloons hit by this tower's shots permanently take 15 more layers of damage from all sources and lose all armour."
+			"gBalloons hit by this tower's shots permanently lose all damage type immunities.",
+			"gBalloons hit by this tower's shots permanently lose all armor and take 15 more layers of damage from all sources."
 		},
 		Prices = {600,1000,3500,20000,75000,300000},
 		Funcs = {
@@ -175,7 +177,7 @@ end
 
 local function SnipeEntity()
 	while true do
-		local self,ent = coroutine.yield()
+		local self,ent,chargesSpent = coroutine.yield()
 		local startPos = self:GetShootPos()
 		local uDir = ent:LocalToWorld(ent:OBBCenter())-startPos
 		local bullet = {
@@ -183,7 +185,7 @@ local function SnipeEntity()
 			Callback = function(attacker,tracer,dmginfo)
 				dmginfo:SetDamageType(DMG_CLUB)
 			end,
-			Damage = self.AttackDamage,
+			Damage = self.AttackDamage*chargesSpent,
 			Distance = self.DetectionRadius*1.5,
 			HullSize = 1,
 			TracerName = "ToolTracer",
@@ -191,20 +193,21 @@ local function SnipeEntity()
 			Src = startPos
 		}
 		if self.rotgb_HitCredit then
-			self:AddCash(1, self:GetTowerOwner())
+			self:AddCash(5, self:GetTowerOwner())
 		end
 		if self.rotgb_NoI then
 			ent:InflictRotgBStatusEffect("unimmune",999999)
 		end
 		if self.rotgb_NoA then
-			ent.Properties.BalloonArmor = -15
+			ent:SetBalloonProperty("BalloonArmor", -15)
 		end
-		if self.rotgb_NoC and self.AttackDamage/10>=ent:Health() then
+		if self.rotgb_NoC and bullet.Damage/10*ROTGB_GetConVarValue("rotgb_damage_multiplier")>=ent:Health() then
 			bullet.Damage = ent:GetRgBE() * 1000
 			self:FireBullets(bullet)
 		else
 			self:FireBullets(bullet)
 		end
+		self:SetNWFloat("rotgb_Charges",self:GetNWFloat("rotgb_Charges")-chargesSpent)
 	end
 end
 
@@ -212,27 +215,33 @@ ENT.thread = coroutine.create(SnipeEntity)
 coroutine.resume(ENT.thread)
 
 function ENT:FireFunction(gBalloons)
-	self:SetNWFloat("rotgb_Charges",math.min(self:GetNWFloat("rotgb_Charges") + 1/self.rotgb_ChargeDelay,self.rotgb_MaxCharges))
+	if self:GetSpawnerActive() then
+		self:SetNWFloat("rotgb_Charges",math.min(self:GetNWFloat("rotgb_Charges") + 1/self.rotgb_ChargeDelay,self.rotgb_MaxCharges))
+	end
 	if self:GetNWFloat("rotgb_Charges") >= 1 and next(gBalloons) then
+		local chargesSpent = 1
 		if not self.ContFire then
 			self.ContFire = true
 			--self:EmitSound("ROTGB_TOWER_10_"..self.rotgb_SoundType)
 			self:EmitSound("ROTGB_TOWER_10_100")
 		end
-		if not self.rotgb_NoConsume then
-			self:SetNWFloat("rotgb_Charges",self:GetNWFloat("rotgb_Charges")-1)
-			self.FireWhenNoEnemies = true
+		if self.rotgb_NoConsume then
+			local highestHealth = 0
+			for k,v in pairs(gBalloons) do
+				highestHealth = math.max(highestHealth, v:Health())
+			end
+			chargesSpent = math.min(highestHealth/self.AttackDamage*10/ROTGB_GetConVarValue("rotgb_damage_multiplier"), self:GetNWFloat("rotgb_Charges"))
 		end
 		if self.UserTargeting then
 			for i=1,self.rotgb_MultiShot do
 				if IsValid(gBalloons[i]) then
-					local perf,str = coroutine.resume(self.thread,self,gBalloons[i])
+					local perf,str = coroutine.resume(self.thread,self,gBalloons[i],chargesSpent)
 					if not perf then error(str) end
 				end
 			end
 		else
 			for k,v in pairs(gBalloons) do
-				local perf,str = coroutine.resume(self.thread,self,v)
+				local perf,str = coroutine.resume(self.thread,self,v,chargesSpent)
 				if not perf then error(str) end
 			end
 		end
@@ -266,16 +275,15 @@ function ENT:ROTGB_Draw()
 end
 
 function ENT:TriggerAbility()
-	--self.FireRate = self.FireRate * 2
 	local addDamage = self.rotgb_AbilityDamage
-	self.AttackDamage = self.AttackDamage + addDamage
-	--self.rotgb_PopAqua2 = true
 	self:SetNWFloat("rotgb_CC",CurTime()+15)
-	timer.Simple(15,function()
-		if IsValid(self) then
-			--self.FireRate = self.FireRate / 2
-			self.AttackDamage = self.AttackDamage - addDamage
-			--self.rotgb_PopAqua2 = nil
-		end
+	self:ApplyBuff(self, "ROTGB_TOWER_10_ABILITY", 15, function(tower)
+		--tower.FireRate = tower.FireRate * 2
+		tower.AttackDamage = tower.AttackDamage + addDamage
+		--tower.rotgb_PopAqua2 = true
+	end, function(tower)
+		--tower.FireRate = tower.FireRate / 2
+		tower.AttackDamage = tower.AttackDamage - addDamage
+		--tower.rotgb_PopAqua2 = nil
 	end)
 end

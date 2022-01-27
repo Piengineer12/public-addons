@@ -1,73 +1,92 @@
---[[															// delete this line.
+--[[																		// delete this line.
 
-// Implementation Tutorial:										// delete this line.
+// Implementation Tutorial:													// delete this line.
 
-AddCSLuaFile() 													// don't touch this.
-ENT.Base = "gballoon_tower_base"								// don't touch this.
-ENT.Type = "anim"												// don't touch this.
-ENT.PrintName = "Custom Tower"									// specify a string as the tower name.
-ENT.Category = "RotgB: Towers"									// optional: specify a string as the custom category.
-ENT.Author = "Piengineer"										// replace "Piengineer" with yourself.
-ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"		// replace this string with your own contact link.
-ENT.Purpose = "This tower does something towards gBalloons."	// replace this string with what your tower does, displayed in the RotgB Game SWEP.
-ENT.Instructions = ""											// optional: specify a string as the instructions.
-ENT.Spawnable = false											// don't touch this, the addon will add your entity to the spawnmenu automatically.
-ENT.AdminOnly = false											// don't touch this.
-ENT.RenderGroup = RENDERGROUP_BOTH								// don't touch this.
-ENT.Model = Model("models/props_phx/empty_barrel.mdl")			// replace "models/props_phx/empty_barrel.mdl" with another model if you want to.
-ENT.FireRate = 1												// tower fire rate (how often ENT:FireFunction() gets called). default: 1
-ENT.Cost = 100													// base tower cost. default: 0
-ENT.DetectionRadius = 256										// tower radius. 
-ENT.InfiniteRange = false										// whether the tower has infinite range or not. The tower's range will be displayed in blue instead of aqua. default: false
-ENT.InfiniteRange2 = false										// similar, except range display color is not affected. default: false
-ENT.AttackDamage = 10											// tower attack damage (may be increased by other towers), should be 10 damage per layer in your code.
-ENT.UseLOS = true												// only visible gBalloons are passed to ENT:FireFunction(). default: false
-ENT.LOSOffset = Vector(0,0,0)									// offset for line-of-sight checks, passed as argument to ENT:LocalToWorld(), therefore should be the same as firing position. default: vector_origin
-ENT.UserTargeting = true										// enables the user to set the tower's targeting (visual UI change only). default: false
-ENT.FireWhenNoEnemies = false									// The tower will still fire and run ENT:FireFunction() even when there are no enemies. Use table.IsEmpty(tableOfBalloons) to check if an enemy is present. default: false
-ENT.SeeCamo = false												// whether ENT:FireFunction() will also pass hidden balloons or not. default: false
-ENT.HasAbility = false											// whether the tower has an active ability or not. The active ability is activated by shooting at the tower, which calls ENT:TriggerAbility(). default: false
-ENT.AbilityCooldown = 30										// delay between active ability activations.
-ENT.rotgb_Var2 = true											// optional: additional variables. Prefixing with rotgb_ is recommended.
-ENT.rotgb_BeamTime = 1											// optional: additional variables. Prefixing with rotgb_ is recommended.
+AddCSLuaFile() 																// don't touch this.
+ENT.Base = "gballoon_tower_base"											// don't touch this.
+ENT.Type = "anim"															// don't touch this.
+ENT.PrintName = "Custom Tower"												// specify a string as the tower name.
+ENT.Category = "RotgB: Towers"												// optional: specify a string as the custom category.
+ENT.Author = "Piengineer12"													// replace "Piengineer12" with yourself.
+ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"					// replace this string with your own contact link.
+ENT.Purpose = "This tower does something towards gBalloons."				// replace this string with what your tower does, displayed in the RotgB Game SWEP.
+ENT.Instructions = ""														// optional: specify a string as the instructions.
+ENT.Spawnable = false														// don't touch this, the addon will add your entity to the spawnmenu automatically.
+ENT.AdminOnly = false														// don't touch this.
+ENT.RenderGroup = RENDERGROUP_BOTH											// don't touch this.
+ENT.Model = Model("models/props_phx/empty_barrel.mdl")						// replace "models/props_phx/empty_barrel.mdl" with another model if you want to.
+ENT.IsChessPiece = false													// whether this tower qualifies as a chess tower or not. default: false
+ENT.FireRate = 1															// tower fire rate (how often ENT:FireFunction() gets called). default: 1
+ENT.Cost = 125																// base tower cost. default: 0
+ENT.DetectionRadius = 256													// tower radius.
+ENT.InfiniteRange = false													// whether the tower has infinite range or not. The tower's range will be displayed in blue instead of aqua. default: false
+ENT.InfiniteRange2 = false													// similar, except range display color is not affected. default: false
+ENT.AttackDamage = 10														// tower attack damage, may be increased by other towers. 10 = 1 layer
+ENT.UseLOS = true															// only gBalloons visible via line-of-sight are passed to ENT:FireFunction(). default: false
+ENT.LOSOffset = Vector(0,0,24)												// relative offset for line-of-sight checks, ideally should be the same as firing position. default: vector_origin
+ENT.UserTargeting = true													// enables the user to set the tower's targeting (visual UI change only). default: false
+ENT.FireWhenNoEnemies = false												// The tower will still fire and run ENT:FireFunction() even when there are no enemies. Use table.IsEmpty(tableOfBalloons) to check if an enemy is present. default: false
+ENT.SeeCamo = false															// whether ENT:FireFunction() will also pass Hidden gBalloons or not. default: false
+ENT.HasAbility = false														// whether the tower has an active ability or not. The active ability is activated by shooting at the tower, which calls ENT:TriggerAbility(). default: false
+ENT.AbilityCooldown = 30													// delay between active ability activations.
+ENT.rotgb_Var2 = true														// optional: additional variables. Prefixing with rotgb_ is recommended.
+ENT.rotgb_BeamTime = 1														// optional: additional variables. Prefixing with rotgb_ is recommended.
 ENT.UpgradeReference = {
-	{															// each table specifies an upgrade path
+	{																		// each table specifies an upgrade path
 		Names = {"Range Up"},
 		Descs = {
-			"Increases the tower's range."
+			"Considerably increases the tower's range."
 		},
-		Prices = {200},
+		Prices = {100},
 		Funcs = {
-			function(self)
-				self.DetectionRadius = self.DetectionRadius*2	// you can modify basic tower properties here - it will still work as expected.
+			function(ent)
+				ent.DetectionRadius = ent.DetectionRadius*2					// you can modify basic tower properties here - it will work as expected.
+				ent.rotgb_Var2 = false										// you need to specify what the additional variables do in your code. They will be available and updated on both client and server.
 			end
 		}
 	},
 	{
-		Names = {"Speed Up","Damage Up","Good Eyes"},			// make sure #Names == #Descs == #Prices == #Functions!
+		Names = {"Speed Up","Damage Up","Good Eyes","Active Ability"},		// make sure #Names == #Descs == #Prices == #Functions!
 		Descs = {
-			"Considerably increases the tower's fire rate.",	// one for each upgrade in the path.
+			"Considerably increases the tower's fire rate.",				// one for each upgrade in the path.
 			"Considerably increases damage dealt.",
-			"Allows the tower to target Hidden gBalloons."
+			"Allows the tower to target Hidden gBalloons.",
+			"Once every 30 seconds, shooting at this tower colossally \z
+				increases fire rate for 15 seconds."
 		},
-		Prices = {300,500,600},
+		Prices = {100,200,500,900},
 		Funcs = {
-			function(self)
-				self.FireRate = self.FireRate*2
+			function(ent)
+				ent.FireRate = ent.FireRate*2
 			end,
-			function(self)
-				self.AttackDamage = self.AttackDamage + 10
+			function(ent)
+				ent.AttackDamage = ent.AttackDamage + 10
 			end,
-			function(self)
-				self.SeeCamo = true
+			function(ent)
+				ent.SeeCamo = true
+			end,
+			function(ent)
+				ent.HasAbility = true
 			end
 		}
 	}
 }
-ENT.UpgradeLimits = {3,0}										// upgrade limit ({4,2} in BTD5 and {5,2,0} in BTD6). {3,0} means that only one path can be upgraded up to three times. Make sure to sort from highest to lowest!
+ENT.UpgradeLimits = {4,0}													// upgrade limit ({4,2} in BTD5 and {5,2,0} in BTD6). {4,0} means that only one path can be upgraded up to four times. Make sure to sort from highest to lowest!
 
-function ENT:FireFunction(tableOfBalloons)						// since self.SeeCamo is false, only non-hidden gBalloons will be passed here, unless the tower is an X-3.
-	tableOfBalloons[1]:TakeDamage(self.AttackDamage,self,self)	// edit the body of the function however you want.
-end																// tableOfBalloons is all gBalloons in its radius, order of entries is determined by the player.
+function ENT:FireFunction(tableOfBalloons)									// since self.SeeCamo is false, only non-hidden gBalloons will be passed here, unless the tower is an X-3.
+	tableOfBalloons[1]:TakeDamage(											// edit the body of ENT:FireFunction() however you want.
+		self.AttackDamage,													// tableOfBalloons is all gBalloons in its radius, order of entries is determined by the player.
+		self:GetTowerOwner(),												// ENT:GetTowerOwner() returns the player that owns this tower.
+		self
+	)
+end	
 
-]]																// delete this line.
+function ENT:TriggerAbility()												// called when the tower's active ability is activated.
+	self:ApplyBuff(self, "ROTGB_TOWER_ABILITY", 15, function(tower)			// ENT:ApplyBuff() takes 5 arguments: the tower giving the buff, unique identifier (to prevent buff stacking), duration, apply function and expiry function.
+		tower.FireRate = tower.FireRate * 5
+	end, function(tower)
+		tower.FireRate = tower.FireRate / 5
+	end)
+end
+
+]]																			// delete this line.

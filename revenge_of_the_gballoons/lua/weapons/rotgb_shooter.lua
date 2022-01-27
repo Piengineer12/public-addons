@@ -62,6 +62,7 @@ SWEP.BulletNum = 1
 SWEP.SpeedMultiplier = 1
 SWEP.OldSpeedMultiplier = 1
 SWEP.rotgb_AutoTargets = 0
+SWEP.rotgb_AutoTargetsMultiplier = 1
 SWEP.rotgb_Explode = 0
 SWEP.rotgb_BulletPairs = 0
 SWEP.rotgb_BlimpMul = 1
@@ -83,7 +84,7 @@ SWEP.UpgradeReference = {
 			"+1 auto-pop target",
 			"x2 auto-pop targets",
 			"x2 auto-pop targets",
-			"x4 damage"
+			"x2 auto-pop targets\nx2 damage"
 		},
 		func = {
 			function(self, level)
@@ -107,8 +108,8 @@ SWEP.UpgradeReference = {
 			function(self)
 				self.SpeedMultiplier = 1
 				self.rotgb_AutoTargets = self.rotgb_AutoTargets / 4 - 1
+				self.rotgb_AutoTargetsMultiplier = self.rotgb_AutoTargetsMultiplier * 2
 				self.rotgb_FireRate = self.rotgb_FireRate / 2
-				self.AttackDamage = self.AttackDamage * 2
 			end
 		}
 	},
@@ -201,12 +202,13 @@ if SERVER then
 		if (IsValid(wep) and wep:GetClass()=="rotgb_shooter") then
 			local operation = net.ReadUInt(4)
 			if operation == ROTGB_UPGRADE then
-				local part = wep.PartOrder[net.ReadUInt(2)]
+				local partID = net.ReadUInt(2)
+				local part = wep.PartOrder[partID]
 				if part then
 					local reftab = wep.UpgradeReference
 					for i=0, net.ReadUInt(8) do
 						local level = wep:GetPartLevel(part)
-						local cost = wep:GetCost(level)
+						local cost = wep:GetCost(level, partID)
 						if ROTGB_GetCash(ply) < cost then return end
 						wep.SellAmount = (wep.SellAmount or 0) + cost
 						
@@ -346,7 +348,10 @@ function SWEP:CanSecondaryAttack()
 end
 
 function SWEP:SecondaryAttack()
-	if game.SinglePlayer() then self:CallOnClient("SecondaryAttack") end
+	if game.SinglePlayer() then
+		self:CallOnClient("SecondaryAttack") 
+	elseif not IsFirstTimePredicted() then return
+	end
 	if self:CanSecondaryAttack() then
 		if IsValid(self.UpgradeMenu) then
 			if self.UpgradeMenu:IsVisible() then
@@ -354,6 +359,7 @@ function SWEP:SecondaryAttack()
 			else
 				self.UpgradeMenu:Show()
 				self.UpgradeMenu:MakePopup()
+				self.UpgradeMenu:OnShow()
 			end
 		else
 			self:CreateUpgradeMenu()
@@ -377,7 +383,7 @@ function SWEP:Think()
 	if self.rotgb_OwnerTemp ~= self:GetOwner() and IsValid(self:GetOwner()) then
 		self.rotgb_OwnerTemp = self:GetOwner()
 		if not self.SellAmount then
-			local cost = ROTGB_ScaleBuyCost(650)
+			local cost = ROTGB_ScaleBuyCost(650, self, {type = ROTGB_TOWER_PURCHASE})
 			if ROTGB_GetCash(self.rotgb_OwnerTemp) >= cost then
 				if SERVER then
 					ROTGB_RemoveCash(cost, self.rotgb_OwnerTemp)
@@ -426,7 +432,7 @@ function SWEP:OnRemove()
 			self.OldSpeedMultiplier = 1
 		end
 		
-		ROTGB_AddCash((self.SellAmount or 0) * 0.8 * GetConVar("rotgb_cash_mul"):GetFloat(), owner)
+		ROTGB_AddCash((self.SellAmount or 0) * 0.8 * ROTGB_GetConVarValue("rotgb_cash_mul"), owner)
 		
 	end
 end
@@ -548,7 +554,7 @@ function SWEP:DoAutoPop()
 				end
 				
 				targeted = targeted + 1
-				if targeted >= self.rotgb_AutoTargets then break end
+				if targeted >= self.rotgb_AutoTargets*self.rotgb_AutoTargetsMultiplier then break end
 			end
 		end
 	end
@@ -679,7 +685,7 @@ function SWEP:GetPartLevel(part)
 	return self.Levels[part] or 0
 end
 
-function SWEP:GetCost(level)
+function SWEP:GetCost(level, partID)
 	local resets, localLevel = math.modf(level/100)
 	localLevel = math.Round(localLevel*100 + 1)
 	local cost = localLevel*10*10^resets
@@ -687,7 +693,7 @@ function SWEP:GetCost(level)
 		cost = cost * 10
 	end
 	
-	return ROTGB_ScaleBuyCost(cost)
+	return ROTGB_ScaleBuyCost(cost, self, {type = ROTGB_TOWER_UPGRADE, path = partID, tier = level})
 end
 
 function SWEP:HasUserTargeting()
@@ -800,7 +806,7 @@ function SWEP:CreateLeftPanel(Main, RightDivider)
 		local part = self.PartOrder[i]
 		local partNiceName = part:sub(1,1):upper()..part:sub(2)
 		local level = self:GetPartLevel(part)
-		local cost = self:GetCost(level)
+		local cost = self:GetCost(level, i)
 		local curcash = ROTGB_GetCash(LocalPlayer())
 		local UpgradeButton = vgui.Create("DButton", LeftPanel)
 		local UpgradeIndicatorPanel = UpgradeButton:Add("DPanel")
@@ -835,8 +841,8 @@ function SWEP:CreateLeftPanel(Main, RightDivider)
 			curcash = ROTGB_GetCash(LocalPlayer())
 			level = wep:GetPartLevel(part)
 			local text = string.format("Level %u %s", level+1, partNiceName)
-			if cost ~= wep:GetCost(level) then
-				cost = wep:GetCost(level)
+			if cost ~= wep:GetCost(level, i) then
+				cost = wep:GetCost(level, i)
 				UpgradeIndicatorPanel:Refresh()
 			end
 			
@@ -903,8 +909,8 @@ function SWEP:CreateLeftPanel(Main, RightDivider)
 				local startLevel = level
 				local endLevel = majorLevel - 1 + resets * 100
 				local cost = 0
-				for i=level, endLevel do
-					cost = cost + wep:GetCost(i)
+				for k=level, endLevel do
+					cost = cost + wep:GetCost(k, i)
 				end
 				return cost
 			end
@@ -917,7 +923,7 @@ function SWEP:CreateLeftPanel(Main, RightDivider)
 				
 				local startLevel = level
 				local endLevel = table.KeyFromValue(reftab.majorLevels, j) - 1 + math.floor(level/100) * 100
-				if endLevel % 100 == 0 then
+				if endLevel % 100 == 99 then
 					endLevel = endLevel-1 -- don't prestige
 				end
 				for k=startLevel, endLevel do
@@ -956,7 +962,7 @@ function SWEP:CreateLeftPanel(Main, RightDivider)
 				local resets = math.floor(level/100)
 				local majorLevel = table.KeyFromValue(reftab.majorLevels, j)
 				local title = string.format("Level %u %s", majorLevel + resets*100, partNiceName)
-				local upgradeCost = wep:GetCost(majorLevel - 1 + resets*100)
+				local upgradeCost = wep:GetCost(majorLevel - 1 + resets*100, i)
 				local desc = Main:GetUpgradeDescription(part, majorLevel)
 				v:SetTooltip(string.format("%s (%s)\n%s", title, ROTGB_FormatCash(upgradeCost, true), desc))
 				v.minorLevel = minorLevel
@@ -982,7 +988,7 @@ function SWEP:CreateLeftPanel(Main, RightDivider)
 	SellButton:Dock(BOTTOM)
 	SellButton.Paint = PaintButton
 	function SellButton:UpdateText()
-		self:SetText("Sell / Remove ("..ROTGB_FormatCash((wep.SellAmount or 0)*0.8*GetConVar("rotgb_cash_mul"):GetFloat())..")")
+		self:SetText("Sell / Remove ("..ROTGB_FormatCash((wep.SellAmount or 0)*0.8*ROTGB_GetConVarValue("rotgb_cash_mul"))..")")
 	end
 	function SellButton:DoClick()
 		if not IsValid(wep) then
@@ -1135,6 +1141,11 @@ function SWEP:CreateTopRightPanel(Main, RightDivider)
 					return string.format("+%u auto-pop targets", value)
 				else return "+1 auto-pop target"
 				end
+			end
+		end},
+		{"rotgb_AutoTargetsMultiplier", function(value)
+			if value > 1 then
+				return string.format("x%u auto-pop targets", value)
 			end
 		end},
 		{"rotgb_GrayPop", function(value)

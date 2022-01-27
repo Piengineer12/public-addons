@@ -6,7 +6,7 @@ ENT.PrintName = "Sawblade Launcher"
 ENT.Category = "RotgB: Towers"
 ENT.Author = "Piengineer"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "This tower fires sawblades that can cut through multiple gBalloons, especially when placed on straight tracks."
+ENT.Purpose = "This tower fires sawblades that can cut through multiple gBalloon layers, especially when placed at the ends of straight tracks."
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -15,7 +15,7 @@ ENT.Model = Model("models/mechanics/wheels/wheel_speed_72.mdl")
 ENT.FireRate = 1
 ENT.Cost = 450
 ENT.DetectionRadius = 384
-ENT.AttackDamage = 10
+ENT.AttackDamage = 20
 ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,20)
 ENT.UserTargeting = true
@@ -44,20 +44,20 @@ ENT.UpgradeReference = {
 				self.SeeCamo = true
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 10
+				self.AttackDamage = self.AttackDamage + 20
 			end,
 			function(self)
 				self.rotgb_Explosive = true
 			end,
 			function(self)
 				self.rotgb_Size = self.rotgb_Size * 1.5
-				self.AttackDamage = self.AttackDamage + 40
+				self.AttackDamage = self.AttackDamage + 80
 				self.rotgb_Torque = self.rotgb_Torque * 3
 			end,
 			function(self)
 				self.FireRate = self.FireRate / 2
 				self.rotgb_GigaExplosive = true
-				self.AttackDamage = self.AttackDamage + 240
+				self.AttackDamage = self.AttackDamage + 480
 			end,
 		}
 	},
@@ -97,6 +97,10 @@ ENT.UpgradeReference = {
 	}
 }
 ENT.UpgradeLimits = {6,2}
+
+function ENT:ROTGB_ApplyPerks()
+	self.rotgb_MaxPierce = self.rotgb_MaxPierce + hook.Run("GetSkillAmount", "sawbladeLauncherPierce")
+end
 
 local rosqrt2 = 1/math.sqrt(2)
 
@@ -175,12 +179,12 @@ function ENT:ROTGB_Think()
 						dmginfo:SetDamage(self.AttackDamage)
 						v.rotgb_MaxPierce = v.rotgb_MaxPierce - 1
 						self.rotgb_Hits = (self.rotgb_Hits or 0) + 1
-						if self.rotgb_Electric and not v2:GetBalloonProperty("BalloonPurple") then
+						if self.rotgb_Electric and v2:DamageTypeCanDamage(DMG_SHOCK) then
 							dmginfo:SetDamageType(DMG_SHOCK)
 							dmginfo:ScaleDamage(3)
 							v2:TakeDamageInfo(dmginfo)
 							dmginfo:ScaleDamage(1/3)
-						elseif v2:GetBalloonProperty("BalloonGray") then
+						elseif not v2:DamageTypeCanDamage(DMG_SLASH) then
 							v.rotgb_MaxPierce = 0
 							self.rotgb_Hits = self.rotgb_Hits - 1
 						end
@@ -234,7 +238,7 @@ function ENT:FireFunction(tableOfBalloons)
 			local ivel = tableOfBalloons[pind]:GetPos()-self:GetShootPos()
 			ivel.z = 0
 			ivel:Normalize()
-			ivel:Mul(500+math.random()*50)
+			ivel:Mul(1000+math.random()*100)
 			physobj:SetVelocity(ivel)
 			pind = pind + 1
 		end

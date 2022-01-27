@@ -27,7 +27,7 @@ ENT.UpgradeReference = {
 	{
 		Names = {"Unstoppable Waves","Intense Waves","Thermal Detection","Concentrated Waves","Extreme Frequency Waves","Extremely Concentrated Waves"},
 		Descs = {
-			"Increases the tower's range to infinite.",
+			"Considerably increases the tower's range.",
 			"Considerably increases microwave damage.",
 			"Enables the tower to see hidden gBalloons.",
 			"Tremendously increases microwave damage, but slightly decreases microwave width.",
@@ -37,7 +37,7 @@ ENT.UpgradeReference = {
 		Prices = {650,1250,3000,5000,75000,850000},
 		Funcs = {
 			function(self)
-				self.InfiniteRange = true
+				self.DetectionRadius = self.DetectionRadius * 2
 			end,
 			function(self)
 				self.AttackDamage = self.AttackDamage + 10
@@ -63,14 +63,14 @@ ENT.UpgradeReference = {
 	{
 		Names = {"Stronger Battery","Diffractional Waves","Open Fryer","20-Star Fryer","gBalloon S.E.A.R.","Now That's Hot"},
 		Descs = {
-			"Increases the tower's fire rate.",
+			"Slightly increases the tower's fire rate.",
 			"Triples the width of microwaves.",
 			"Microwaves are now emitted in all directions.",
 			"Microwaves now have a 20% chance to set gBalloons on fire permanently. Every time the tower successfully does this, new fires from this tower pop one extra layer for 10 seconds. This effect stacks.",
 			"Microwaves are now guaranteed to set gBalloons alight. Once every 45 seconds, firing at this tower increases damage dealt for new fires by 95 layers for 15 seconds.",
 			"All fires deal 25 times more damage!"
 		},
-		Prices = {300,1750,5000,10000,50000,1.5e6},
+		Prices = {300,1750,5000,20000,100000,3e6},
 		Funcs = {
 			function(self)
 				self.FireRate = self.FireRate * 1.5
@@ -96,6 +96,10 @@ ENT.UpgradeReference = {
 	}
 }
 ENT.UpgradeLimits = {6,2}
+
+function ENT:ROTGB_ApplyPerks()
+	self.rotgb_MicrowaveAngle = self.rotgb_MicrowaveAngle * (1+hook.Run("GetSkillAmount", "microwaveGeneratorMicrowaveAngle")/100)
+end
 
 function ENT:FireFunction(gBalloons)
 	self:SetNWFloat("LastFireTime",CurTime())
@@ -167,13 +171,12 @@ end
 function ENT:TriggerAbility()
 	self:SetNWFloat("rotgb_CC", CurTime()+15)
 	if bit.band(self.rotgb_AbilityType, 1) == 1 then
-		self.FireRate = self.FireRate * 5
-		self.rotgb_MicrowaveAngle = self.rotgb_MicrowaveAngle * 3
-		timer.Simple(15,function()
-			if IsValid(self) then
-				self.FireRate = self.FireRate / 5
-				self.rotgb_MicrowaveAngle = self.rotgb_MicrowaveAngle / 3
-			end
+		self:ApplyBuff(self, "ROTGB_TOWER_14_ABILITY", 15, function(tower)
+			tower.FireRate = tower.FireRate * 5
+			tower.rotgb_MicrowaveAngle = tower.rotgb_MicrowaveAngle * 3
+		end, function(tower)
+			tower.FireRate = tower.FireRate / 5
+			tower.rotgb_MicrowaveAngle = tower.rotgb_MicrowaveAngle / 3
 		end)
 	end
 	if bit.band(self.rotgb_AbilityType, 2) == 2 then

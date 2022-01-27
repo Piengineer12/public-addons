@@ -14,7 +14,7 @@ ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/dav0r/tnt/tnttimed.mdl")
 ENT.FireRate = 0.5
 ENT.Cost = 850
-ENT.DetectionRadius = 192
+ENT.DetectionRadius = 256
 ENT.AbilityCooldown = 30
 ENT.AttackDamage = 10
 ENT.rotgb_AbilityDamage = 32768
@@ -85,22 +85,22 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"WOWsplosions","Heavy Bombs","Flex Remover","Ice Bombs","The Tsar Bomba","Meteor Nuke"},
+		Names = {"Heavy Bombs","WOWsplosions","Flex Remover","Ice Bombs","The Tsar Bomba","Meteor Nuke"},
 		Descs = {
-			"gBalloons hit by this tower move 30% slower for 3 seconds.",
-			"Tremendously increases damage versus gBlimps.",
+			"Considerably increases damage versus gBlimps.",
+			"gBalloons hit by this tower move 50% slower for 3 seconds.",
 			"Explosions strip gBalloons of their Shielded and Fast properties.",
 			"Freezes gBalloons for 2 seconds per hit. Note that White and Black gBalloons cannot be frozen by this upgrade.",
 			"Once every 30 seconds, firing at this tower deals massive damage to all gBalloons regardless of immunities.",
 			"The Tsar Bomba deals far more damage, enough to wipe out all Purple gBlimps on the map!",
 		},
-		Prices = {400,1750,3500,25000,300000,4.5e6},--{350,700,1500,4000,250000},
+		Prices = {400,3500,12500,30000,100000,1.25e6},
 		Funcs = {
 			function(self)
-				self.rotgb_AlternateExplode = true
+				self.rotgb_ExtraVsCeramic = true
 			end,
 			function(self)
-				self.rotgb_ExtraVsCeramic = true
+				self.rotgb_AlternateExplode = true
 			end,
 			function(self)
 				self.rotgb_StrengthBreaker = true
@@ -118,6 +118,10 @@ ENT.UpgradeReference = {
 	}
 }
 ENT.UpgradeLimits = {6,2,0}
+
+function ENT:ROTGB_ApplyPerks()
+	self.DetectionRadius = self.DetectionRadius * (1+hook.Run("GetSkillAmount", "proximityMineRange")/100)
+end
 
 function ENT:FireFunction(gBalloons)
 	self:EmitSound("phx/kaboom.wav", 75, math.random(80,120), 0.5)
@@ -147,6 +151,7 @@ function ENT:ROTGB_Think()
 				v.ROTGB_TOWER_02_Marks = nil
 			end
 		end
+		self.rotgb_Exploded = false
 	end
 end
 
@@ -171,32 +176,23 @@ function ENT:Explode(pos, recursion, gBalloons)
 		if self:ValidTargetIgnoreRange(v) then
 			local markedDamage = self.AttackDamage
 			if self.rotgb_ExtraVsCeramic and v:GetBalloonProperty("BalloonBlimp") then
-				markedDamage = markedDamage * 3
+				markedDamage = markedDamage * 2
 			end
 			if self.rotgb_StrengthBreaker then
-				if v:GetBalloonProperty("BalloonShielded") then
-					v:SetHealth(v:Health()/2)
-					v:SetMaxHealth(v:GetMaxHealth()/2)
-					v.Properties.BalloonShielded = false
-					v:SetNWBool("RenderShield",false)
-				end
-				if v:GetBalloonProperty("BalloonFast") then
-					v.loco:SetAcceleration(v.loco:GetAcceleration()/2)
-					v.loco:SetDesiredSpeed(v.loco:GetAcceleration()*0.2)
-					v.loco:SetDeceleration(v.loco:GetAcceleration())
-					v.Properties.BalloonFast = false
-					if IsValid(v.FastTrail) then v.FastTrail:Remove() end
-				end
+				v:SetBalloonProperty("BalloonShielded", false)
+				v:SetBalloonProperty("BalloonFast", false)
 			end
-			if not v:GetBalloonProperty("BalloonBlimp") and self.rotgb_Stun then
-				if not (v:GetBalloonProperty("BalloonWhite") or v:GetBalloonProperty("BalloonBlimp") or v:GetBalloonProperty("BalloonBlack")) or v:HasRotgBStatusEffect("unimmune") then
-					v:Freeze2(2)
-				elseif not v:GetBalloonProperty("BalloonBlack") then
-					v:ShowResistEffect(1)
+			if not v:GetBalloonProperty("BalloonBlimp") then
+				if self.rotgb_AlternateExplode then
+					v:Slowdown("ROTGB_PROX_MINE",0.5,3)
 				end
-			end
-			if self.rotgb_AlternateExplode then
-				v:Slowdown("ROTGB_PROX_MINE",0.7,3)
+				if self.rotgb_Stun then
+					if not (v:GetBalloonProperty("BalloonWhite") or v:GetBalloonProperty("BalloonBlimp") or v:GetBalloonProperty("BalloonBlack")) or v:HasRotgBStatusEffect("unimmune") then
+						v:Freeze2(2)
+					elseif not v:GetBalloonProperty("BalloonBlack") then
+						v:ShowResistEffect(1)
+					end
+				end
 			end
 			v.ROTGB_TOWER_02_Marks = (v.ROTGB_TOWER_02_Marks or 0) + markedDamage
 		end

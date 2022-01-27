@@ -32,8 +32,10 @@ function ENT:Touch(ent)
 		ent:Stun2()
 		ent:SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER)
 		PrintMessage(HUD_PRINTTALK,"Warning! A "..tostring(ent.PrintName).." is placed illegally! Move it out now or else it won't fire!")
-	elseif ent:GetNWBool("rotgb_isDetector") then
-		ent:SetNWBool("rotgb_isDetected", true)
+	elseif ent.rotgb_isDetector and not ent.rotgb_isDetected then
+		--print("A", ent)
+		ent.rotgb_isDetected = true
+		ent:NoBuildTriggered(true)
 	end
 end
 
@@ -43,7 +45,9 @@ function ENT:EndTouch(ent)
 		ent:UnStun2()
 		ent:SetCollisionGroup(COLLISION_GROUP_NONE)
 		PrintMessage(HUD_PRINTTALK,"The "..tostring(ent.PrintName).." has moved out of the illegal zone.")
-	elseif ent:GetNWBool("rotgb_isDetector") then
-		ent:SetNWBool("rotgb_isDetected", false)
+	elseif ent.rotgb_isDetector and ent.rotgb_isDetected then
+		--print("B", ent)
+		ent.rotgb_isDetected = false
+		ent:NoBuildTriggered(false)
 	end
 end

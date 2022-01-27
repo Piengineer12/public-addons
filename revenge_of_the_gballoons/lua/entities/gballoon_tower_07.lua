@@ -20,6 +20,7 @@ ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,25)
 ENT.UserTargeting = true
 ENT.AttackDamage = 10
+ENT.IsChessPiece = true
 ENT.rotgb_AbilityDamage = 0
 ENT.rotgb_Targets = 1
 ENT.UpgradeReference = {
@@ -29,12 +30,12 @@ ENT.UpgradeReference = {
 			"Slightly increases attack speed.",
 			"Considerably increases attack speed.",
 			"Attacks deal one additional layer of damage and can pop Gray gBalloons.",
-			"Fires searing hot shots that set their victims on fire for 5 seconds.",
+			"Fires searing hot shots that set their victims on fire, dealing 10 layers of damage over 5 seconds.",
 			"All gBalloons within the tower's range get set on fire. Also considerably increases fire duration.",
-			"Once every 30 seconds, shooting at this tower causes it to erupt with a deadly flame, dealing damage to all gBalloons regardless of immunities and setting them on fire that deals 200 layers of damage over 10 seconds.",
-			"Hellfire Hearth's fire damage is increased to 4000 layers of damage over 10 seconds!"
+			"Once every 30 seconds, shooting at this tower causes it to erupt with a deadly flame, dealing large damage to all gBalloons regardless of immunities and setting them on fire that deals 2,000 layers of damage over 10 seconds.",
+			"Hellfire Hearth's fire damage is increased to 50,000 layers of damage over 10 seconds!"
 		},
-		Prices = {100,300,1750,4000,20000,100000,2000000},
+		Prices = {100,300,1750,3500,20000,100000,2e6},
 		Funcs = {
 			function(self)
 				self.FireRate = self.FireRate * 1.5
@@ -54,10 +55,10 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.HasAbility = true
-				self.rotgb_AbilityDamage = 200
+				self.rotgb_AbilityDamage = 2000
 			end,
 			function(self)
-				self.rotgb_AbilityDamage = self.rotgb_AbilityDamage * 20
+				self.rotgb_AbilityDamage = self.rotgb_AbilityDamage * 25
 			end
 		}
 	},
@@ -67,8 +68,8 @@ ENT.UpgradeReference = {
 			"Slightly increases tower range.",
 			"Allows the tower to see Hidden gBalloons.",
 			"Considerably increases tower range. This tower now fires two shots at once.",
-			"This tower fires an additional shot. Once every 60 seconds, shooting at this tower causes all Ally Pawns within its range to turn into Ally Queens, increasing damage dealt by 10 layers for 20 seconds.",
-			"Once every 60 seconds, shooting at this tower causes all Ally Pawns within its range to turn into Rainbow Beamer Prisms, increasing fire rate by 300%, simultaneous hits by 200% and damage dealt by 30 layers for 20 seconds."
+			"This tower fires an additional shot. Once every 30 seconds, shooting at this tower causes all Ally Pawns within its range to turn into Ally Queens, increasing damage dealt by 10 layers for 20 seconds.",
+			"Once every 30 seconds, shooting at this tower causes all Ally Pawns within its range to turn into Rainbow Beamer Prisms, increasing fire rate by 300%, simultaneous hits by 200% and damage dealt by 30 layers for 20 seconds."
 		},
 		Prices = {100,400,2000,40000,350000},
 		Funcs = {
@@ -95,6 +96,21 @@ ENT.UpgradeReference = {
 }
 ENT.UpgradeLimits = {7,2}
 
+function ENT:ROTGB_ApplyPerks()
+	--self.FireRate = self.FireRate * (1+hook.Run("GetSkillAmount", "allyPawnFireRate")/100)
+	--self.DetectionRadius = self.DetectionRadius * (1+hook.Run("GetSkillAmount", "allyPawnRange")/100)
+	--self.rotgb_Targets = self.rotgb_Targets + (1+hook.Run("GetSkillAmount", "allyPawnTargets")/100)
+	if not RTG_FirstAllyPawnFreeDone and hook.Run("GetSkillAmount", "allyPawnFirstFree") > 0 then
+		self.Cost = 0
+	end
+end
+
+function ENT:ROTGB_Initialize()
+	if engine.ActiveGamemode() == "rotgb" then
+		RTG_FirstAllyPawnFreeDone = true
+	end
+end
+
 local function SnipeEntity()
 	while true do
 		local self,ent = coroutine.yield()
@@ -107,7 +123,7 @@ local function SnipeEntity()
 				Callback = function(attacker,tracer,dmginfo)
 					dmginfo:SetDamageType(self.rotgb_CanPopGray and DMG_SNIPER or DMG_BULLET)
 					if IsValid(ent) and self.rotgb_DoFire then
-						ent:RotgB_Ignite(10, self:GetTowerOwner(), self, self.rotgb_DoFireAura and 10 or 5)
+						ent:RotgB_Ignite(20, self:GetTowerOwner(), self, self.rotgb_DoFireAura and 10 or 5)
 					end
 				end,
 				Damage = self.AttackDamage,
@@ -167,14 +183,12 @@ local function SnipeEntity()
 end
 
 function ENT:ROTGB_Think()
-	if (self.rotgb_NextThink or 0) <= CurTime() then
-		self.rotgb_NextThink = CurTime() + 0.1
-		if self.rotgb_DoFireAura then
-			for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
-				if self:ValidTargetIgnoreRange(v) then
-					v:RotgB_Ignite(10, self:GetTowerOwner(), self, 10)
-					--v.FireSusceptibility = (v.FireSusceptibility or 0) + 0.1
-				end
+	if (self.NextLocalThink or 0) < CurTime() and self.rotgb_DoFireAura then
+		self.NextLocalThink = CurTime() + 0.1
+		for k,v in pairs(ROTGB_GetBalloons()) do
+			if self:ValidTarget(v) then
+				v:RotgB_Ignite(20, self:GetTowerOwner(), self, 10)
+				--v.FireSusceptibility = (v.FireSusceptibility or 0) + 0.1
 			end
 		end
 	end
@@ -204,7 +218,7 @@ function ENT:TriggerAbility()
 				effdata:SetStart(Vector(ent:GetPos()))
 				effdata:SetEntity(ent)
 				util.Effect("Explosion",effdata,true,true)
-				ent:TakeDamage(64,self:GetTowerOwner(),self)
+				ent:TakeDamage(8192,self:GetTowerOwner(),self)
 				--ent.FireSusceptibility = (ent.FireSusceptibility or 0) + 99
 				ent:RotgB_Ignite(self.rotgb_AbilityDamage, self:GetTowerOwner(), self, 10)
 			end
@@ -212,41 +226,41 @@ function ENT:TriggerAbility()
 	end
 	if self.rotgb_Transformation then
 		for index,ent in pairs(ents.FindInSphere(self:GetShootPos(), self.DetectionRadius)) do
-			if ent:GetClass()=="gballoon_tower_07" and not ent.rotgb_Transformed then
-				success = true
-				local effdata = EffectData()
-				effdata:SetOrigin(Vector(ent:GetPos()))
-				effdata:SetStart(Vector(ent:GetPos()))
-				effdata:SetEntity(ent)
-				effdata:SetMagnitude(1)
-				effdata:SetScale(1)
-				effdata:SetRadius(1)
-				util.Effect("Sparks",effdata,true,true)
-				ent.rotgb_Transformed = self.rotgb_Transformation
-				local oldMaterial = ent:GetMaterial()
-				
-				if self.rotgb_Transformation == 1 then
-					ent.AttackDamage = ent.AttackDamage + 100
-					ent:SetModel("models/props_phx/games/chess/white_queen.mdl")
-				else
-					ent.AttackDamage = ent.AttackDamage + 300
-					ent.FireRate = ent.FireRate * 4
-					ent.rotgb_Targets = ent.rotgb_Targets * 3
-					ent:SetMaterial("!gBalloonRainbow")
-				end
-				timer.Simple(10, function()
-					if IsValid(ent) then
-						if ent.rotgb_Transformed == 1 then
-							ent.AttackDamage = ent.AttackDamage - 100
-						else
-							ent.AttackDamage = ent.AttackDamage - 300
-							ent.FireRate = ent.FireRate / 4
-							ent.rotgb_Targets = ent.rotgb_Targets / 3
-						end
-						ent.rotgb_Transformed = nil
-						ent:SetMaterial(oldMaterial)
-						ent:SetModel("models/props_phx/games/chess/white_pawn.mdl")
+			if ent:GetClass()=="gballoon_tower_07" then
+				ent:ApplyBuff(self, "ROTGB_TOWER_07_TRANSFORM", 10, function(tower)
+					success = true
+					local effdata = EffectData()
+					effdata:SetOrigin(Vector(tower:GetPos()))
+					effdata:SetStart(Vector(tower:GetPos()))
+					effdata:SetEntity(tower)
+					effdata:SetMagnitude(1)
+					effdata:SetScale(1)
+					effdata:SetRadius(1)
+					util.Effect("Sparks",effdata,true,true)
+					
+					tower.rotgb_OldMaterial = tower:GetMaterial()
+					tower.rotgb_Transformed = self.rotgb_Transformation
+					
+					if tower.rotgb_Transformed == 1 then
+						tower.AttackDamage = tower.AttackDamage + 100
+						tower:SetModel("models/props_phx/games/chess/white_queen.mdl")
+					else
+						tower.AttackDamage = tower.AttackDamage + 300
+						tower.FireRate = tower.FireRate * 4
+						tower.rotgb_Targets = tower.rotgb_Targets * 3
+						tower:SetMaterial("!gBalloonRainbow")
 					end
+				end, function(tower)
+					if tower.rotgb_Transformed == 1 then
+						tower.AttackDamage = tower.AttackDamage - 100
+					else
+						tower.AttackDamage = tower.AttackDamage - 300
+						tower.FireRate = tower.FireRate / 4
+						tower.rotgb_Targets = tower.rotgb_Targets / 3
+					end
+					tower.rotgb_Transformed = nil
+					tower:SetMaterial(tower.rotgb_OldMaterial)
+					tower:SetModel("models/props_phx/games/chess/white_pawn.mdl")
 				end)
 			end
 		end

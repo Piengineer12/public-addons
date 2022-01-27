@@ -15,11 +15,11 @@ SWEP.ViewModelFOV = 30
 --SWEP.ViewModelFlip2 = false
 SWEP.Spawnable = true
 --SWEP.AdminOnly = false
-SWEP.Slot = 5
+SWEP.Slot = 1
 --SWEP.SlotPos = 10
 --SWEP.BounceWeaponIcon = true
 --SWEP.DrawAmmo = true
-SWEP.DrawCrosshair = false
+--SWEP.DrawCrosshair = true
 --SWEP.AccurateCrosshair = false
 --SWEP.DrawWeaponInfoBox = true
 --SWEP.WepSelectIcon = surface.GetTextureID("weapons/swep")
@@ -50,6 +50,7 @@ SWEP.Secondary = {
 	DefaultClip = -1,
 	Automatic = false
 }
+local ROTGB_TOWERPLACEMENT = 1
 local ROTGB_SETTOWER = 2
 local ROTGB_SPEED = 3
 local ROTGB_PLAY = 4
@@ -75,7 +76,7 @@ local color_light_blue = Color(127, 127, 255)
 
 local padding = 8
 local buttonHeight = 48
-local screenMaterial = Material("models/screenspace")
+--local screenMaterial = Material("models/screenspace")
 
 if CLIENT then
 	surface.CreateFont("RotgBUIFont",{
@@ -94,11 +95,11 @@ end
 
 function SWEP:PrimaryAttack()
 	if not IsFirstTimePredicted() then return end
-	if IsValid(self:GetOwner()) and self:GetCurrentTower() ~= 0 and SERVER then
-		self:SetNextPrimaryFire(CurTime()+0.2)
+	if IsValid(self:GetOwner()) and SERVER then
 		local ply = self:GetOwner()
+		self:SetNextPrimaryFire(CurTime()+0.2)
 		local trace = self:BuildTraceData(ply)
-		if trace.Hit then
+		if self:GetCurrentTower() ~= 0 and trace.Hit then
 			if not self.TowerTable then
 				self.TowerTable = ROTGB_GetAllTowers()
 			end
@@ -114,13 +115,17 @@ function SWEP:PrimaryAttack()
 			tower:SetTowerOwner(ply)
 			tower:Spawn()
 			--util.ScreenShake(ply:GetShootPos(), 4, 20, 0.5, 64)
-			tower:EmitSound("phx/epicmetal_soft"..math.random(7)..".wav",60,100,0.5,CHAN_WEAPON)
 			if (ply:IsPlayer() and not ply:IsSprinting()) then
 				self:SetCurrentTower(0)
 				--self:SendWeaponAnim(ACT_VM_DRAW)
 			end
 		else
-			ply:EmitSound("items/medshotno1.wav",60,100,1,CHAN_WEAPON)
+			local tower = trace.Entity
+			if (IsValid(tower) and tower.Base == "gballoon_tower_base" and tower.HasAbility) then
+				tower:DoAbility()
+			else
+				ply:EmitSound("items/medshotno1.wav",60,100,1,CHAN_WEAPON)
+			end
 		end
 	end
 end
@@ -136,12 +141,24 @@ function SWEP:SecondaryAttack()
 	end
 	if self:CanSecondaryAttack() then
 		self:SetNextSecondaryFire(CurTime()+0.2)
+		-- FIXME: This is kind of a bad way to get the modified amounts!
+		self.TowerTable = table.Copy(ROTGB_GetAllTowers())
+		for k,v in pairs(self.TowerTable) do
+			if not self.BaseTowerTable then	
+				self.BaseTowerTable = scripted_ents.GetStored("gballoon_tower_base")
+			end
+			table.Inherit(v, self.BaseTowerTable.t)
+			self.BaseTowerTable.t.ApplyPerks(v)
+		end
 		if IsValid(self.TowerMenu) then
 			if self.TowerMenu:IsVisible() then
 				self.TowerMenu:Hide()
 			else
 				self.TowerMenu:Show()
 				self.TowerMenu:MakePopup()
+				self.TowerMenu.TowerScrollPanel:Refresh()
+				self.TowerMenu.AbilityScrollPanel:Refresh()
+				self.TowerMenu:OnShow()
 			end
 		else
 			self:CreateTowerMenu()
@@ -155,8 +172,18 @@ function SWEP:PostDrawViewModel(viewmodel, weapon, ply)
 			local renderPos, renderAngles = LocalToWorld(Vector(26.6,2,-2.5), Angle(1,-95,47), viewmodel:GetPos(), viewmodel:GetAngles())
 			cam.Start3D2D(renderPos, renderAngles, 0.01)
 			-- screen is 3.8 x 2.0
-			draw.SimpleText("Secondary Fire", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
-			draw.SimpleText(IsValid(self.TowerMenu) and self.TowerMenu:IsVisible() and "to Hide Menu" or "to Show Menu", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+			if IsValid(self.TowerMenu) and self.TowerMenu:IsVisible() then
+				draw.SimpleText("Secondary Fire", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+				draw.SimpleText("to Hide Menu", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+			else
+				if RealTime() % 10 < 5 then
+					draw.SimpleText("Secondary Fire", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+					draw.SimpleText("to Show Menu", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+				else
+					draw.SimpleText("Primary Fire to", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+					draw.SimpleText("Trigger Abilities", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+				end
+			end
 			cam.End3D2D()
 		--[[else
 			local renderPos, renderAngles = LocalToWorld(Vector(19.15,1.3,0.2), Angle(-3,-92,69), viewmodel:GetPos(), viewmodel:GetAngles())
@@ -171,10 +198,22 @@ function SWEP:PostDrawViewModel(viewmodel, weapon, ply)
 	end
 end
 
+local function HideAllNoBuilds()
+	ROTGB_SetDrawNoBuilds(false)
+end
+
 function SWEP:Think()
 	if not self.TowerTable then
-		self.TowerTable = ROTGB_GetAllTowers()
 		self:SetHoldType("slam")
+		-- FIXME: duplication of above FIXME
+		self.TowerTable = table.Copy(ROTGB_GetAllTowers())
+		for k,v in pairs(self.TowerTable) do
+			if not self.BaseTowerTable then	
+				self.BaseTowerTable = scripted_ents.GetStored("gballoon_tower_base")
+			end
+			table.Inherit(v, self.BaseTowerTable.t)
+			self.BaseTowerTable.t.ApplyPerks(v)
+		end
 	end
 	if CLIENT then
 		if self:GetCurrentTower() == 0 then
@@ -196,18 +235,22 @@ function SWEP:Think()
 				self.ClientsideModel.TowerType = self:GetCurrentTower()
 				self.ClientsideModel.RenderOverride = function(self)
 					self:DrawModel()
-					if tower.DetectionRadius < 16384 and GetConVar("rotgb_range_enable_indicators"):GetBool() then
-						local fadeout = GetConVar("rotgb_range_fade_time"):GetFloat()
-						self.DrawFadeNext = RealTime()+fadeout+GetConVar("rotgb_range_hold_time"):GetFloat()
+					if tower.DetectionRadius < 16384 and ROTGB_GetConVarValue("rotgb_range_enable_indicators") then
+						local fadeout = ROTGB_GetConVarValue("rotgb_range_fade_time")
+						self.DrawFadeNext = RealTime()+fadeout+ROTGB_GetConVarValue("rotgb_range_hold_time")
 						if (self.DrawFadeNext or 0)>RealTime() then
-							local ConA = GetConVar("rotgb_range_alpha")
+							local maxAlpha = ROTGB_GetConVarValue("rotgb_range_alpha")
 							local scol = self:GetColor() == color_aqua and tower.InfiniteRange and color_blue or self:GetColor()
-							local alpha = math.Clamp(math.Remap(self.DrawFadeNext-RealTime(),fadeout,0,ConA:GetFloat(),0),0,ConA:GetFloat())
+							local alpha = math.Clamp(math.Remap(self.DrawFadeNext-RealTime(),fadeout,0,maxAlpha,0),0,maxAlpha)
 							scol = Color(scol.r,scol.g,scol.b,alpha)
 							render.DrawWireframeSphere(self:LocalToWorld(tower.LOSOffset or vector_origin),-tower.DetectionRadius,32,17,scol,true)
 						end
 					end
+					--local mins, maxs = self:GetCollisionBounds()
+					--render.DrawWireframeBox(self:GetPos(), self:GetAngles(), mins, maxs, color_white, true)
 				end
+				ROTGB_SetDrawNoBuilds(true)
+				self.ClientsideModel:CallOnRemove("ROTGB_SetDrawNoBuilds", HideAllNoBuilds)
 			elseif self.ClientsideModel.TowerType ~= self:GetCurrentTower() then
 				self.ClientsideModel:Remove()
 			end
@@ -222,38 +265,112 @@ function SWEP:Think()
 			end
 		end
 	end
+	if SERVER then
+		if self:GetCurrentTower() == 0 then
+			if IsValid(self.ServersideModel) then
+				self.ServersideModel:Remove()
+			end
+			
+			--[[local viewmodel = LocalPlayer():GetViewModel()
+			if (IsValid(viewmodel) and viewmodel:GetRenderFX() ~= kRenderFxSolidFast) then
+				viewmodel:SetRenderFX(kRenderFxSolidFast)
+			end]]
+		else
+			local tower = self.TowerTable[self:GetCurrentTower()]
+			local owner = self:GetOwner()
+			if not IsValid(self.ServersideModel) then
+				local detector = ents.Create("prop_physics")
+				detector:SetModel(tower.Model)
+				detector:Spawn()
+				detector:SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER)
+				detector:SetNoDraw(true)
+				detector.TowerType = self:GetCurrentTower()
+				detector.rotgb_isDetector = true
+				
+				local physObj = detector:GetPhysicsObject()
+				if IsValid(physObj) then
+					physObj:EnableGravity(false)
+				end
+				
+				function detector:NoBuildTriggered(state)
+					timer.Simple(detector:GetCreationTime()-CurTime()+0.1, function()
+						if owner:IsPlayer() then
+							net.Start("rotgb_controller", true)
+							net.WriteUInt(ROTGB_TOWERPLACEMENT, 8)
+							net.WriteBool(not state)
+							net.Send(owner)
+						end
+					end)
+				end
+				
+				self.ServersideModel = detector
+			elseif self.ServersideModel.TowerType ~= self:GetCurrentTower() then
+				self.ServersideModel:Remove()
+			end
+			
+			if owner:IsPlayer() or owner:IsNPC() then
+				local trace = self:BuildTraceData(owner)
+				if trace.Hit then
+					self.ServersideModel:SetPos(trace.HitPos)
+					local tempang = owner:EyeAngles()
+					tempang.p = 0
+					tempang.r = 0
+					self.ServersideModel:SetAngles(tempang)
+					
+					local physObj = self.ServersideModel:GetPhysicsObject()
+					if IsValid(physObj) then
+						physObj:Wake()
+					end
+				end
+			end
+		end
+	end
 end
 
 function SWEP:OnRemove()
-	self:SetCurrentTower(0)
-	if IsValid(self.TowerMenu) then
-		self.TowerMenu:Close()
-	end
-	if IsValid(self.ClientsideModel) then
-		self.ClientsideModel:Remove()
-	end
-	--[[if CLIENT then
-		local viewmodel = LocalPlayer():GetViewModel()
-		if (IsValid(viewmodel) and viewmodel:GetRenderFX() == kRenderFxFadeFast) then
-			viewmodel:SetRenderFX(kRenderFxSolidFast)
+	if SERVER then
+		self:SetCurrentTower(0)
+		if IsValid(self.ServersideModel) then
+			self.ServersideModel:Remove()
 		end
-	end]]
+	end
+	if CLIENT then
+		if IsValid(self.TowerMenu) then
+			self.TowerMenu:Close()
+		end
+		if IsValid(self.ClientsideModel) then
+			self.ClientsideModel:Remove()
+		end
+		--[[if CLIENT then
+			local viewmodel = LocalPlayer():GetViewModel()
+			if (IsValid(viewmodel) and viewmodel:GetRenderFX() == kRenderFxFadeFast) then
+				viewmodel:SetRenderFX(kRenderFxSolidFast)
+			end
+		end]]
+	end
 end
 
 function SWEP:Holster()
-	self:SetCurrentTower(0)
-	if IsValid(self.TowerMenu) then
-		self.TowerMenu:Hide()
+	if SERVER then
+		self:SetCurrentTower(0)
+		if IsValid(self.ServersideModel) then
+			self.ServersideModel:Remove()
+		end
 	end
-	if IsValid(self.ClientsideModel) then
-		self.ClientsideModel:Remove()
+	if CLIENT then
+		if IsValid(self.TowerMenu) then
+			self.TowerMenu:Hide()
+		end
+		if IsValid(self.ClientsideModel) then
+			self.ClientsideModel:Remove()
+		end
 	end
 	return true
 end
 
-if SERVER then
-	net.Receive("rotgb_controller", function(length, ply)
-		local func = net.ReadUInt(8)
+net.Receive("rotgb_controller", function(length, ply)
+	local func = net.ReadUInt(8)
+	if SERVER then
 		local wep = ply:GetActiveWeapon()
 		if IsValid(wep) then
 			if wep:GetClass()=="rotgb_control" and func == ROTGB_SETTOWER then
@@ -265,12 +382,13 @@ if SERVER then
 						wep:SendWeaponAnim(ACT_VM_PRIMARYATTACK)
 					end]]
 					wep:SetCurrentTower(desiredtower)
+					wep:Think()
 				end
 			end
 			if wep:GetClass()=="rotgb_control" or wep:GetClass()=="rotgb_shooter" then
 				if func == ROTGB_SPEED then
 					local shouldGoFaster = net.ReadBool()
-					local newSpeed = math.Clamp(game.GetTimeScale() * (shouldGoFaster and 2 or 0.5), 1, 8)
+					local newSpeed = math.Clamp(game.GetTimeScale() * (shouldGoFaster and 2 or 0.5), 1, 4)
 					game.SetTimeScale(newSpeed)
 					if shouldGoFaster then
 						ply:EmitSound("buttons/combine_button5.wav",60,80+math.log(game.GetTimeScale(),2)*20,1,CHAN_WEAPON)
@@ -284,7 +402,7 @@ if SERVER then
 						return ply:PrintMessage(HUD_PRINTTALK, "Place one gBalloon Spawner first!")
 					end
 					for k,v in pairs(spawners) do
-						v:Fire("Use")
+						v:Fire("Use",nil,nil,ply)
 					end
 					ply:EmitSound("buttons/button14.wav",60,100,1,CHAN_WEAPON)
 				elseif func == ROTGB_AUTOSTART then
@@ -302,8 +420,19 @@ if SERVER then
 				end
 			end
 		end
-	end)
-end
+	end
+	if CLIENT then
+		local wep = LocalPlayer():GetActiveWeapon()
+		if (IsValid(wep) and wep:GetClass()=="rotgb_control" and IsValid(wep.ClientsideModel)) and func == ROTGB_TOWERPLACEMENT then
+			local valid = net.ReadBool()
+			if valid then
+				wep.ClientsideModel:SetColor(color_aqua)
+			else
+				wep.ClientsideModel:SetColor(color_red)
+			end
+		end
+	end
+end)
 
 function SWEP:BuildTraceData(ent)
 	self.CommonTraceData = self.CommonTraceData or {}
@@ -312,6 +441,7 @@ function SWEP:BuildTraceData(ent)
 	self.CommonTraceData.endpos = ent:GetShootPos() + ent:GetAimVector() * 32767
 	self.CommonTraceData.filter = ent
 	self.CommonTraceData.output = self.TraceResult
+	self.CommonTraceData.collisiongroup = COLLISION_GROUP_DEBRIS_TRIGGER
 	util.TraceLine(self.CommonTraceData)
 	return self.TraceResult
 end
@@ -327,7 +457,14 @@ local function PaintBackground(self, w, h)
 	draw.RoundedBox(8, 0, 0, w, h, color_black_semiopaque)
 end
 
+function SWEP:DeterminePowerOfTwoSize(size)
+	return bit.lshift(1, math.floor(math.log(size,2)))
+end
+
 function SWEP:InstallMenuFunctions(Main)
+	function Main:OnShow()
+		self.AutoStartCheckBox:Refresh()
+	end
 	function Main:CreateButton(text, parent, color1, color2, color3)
 		local Button = vgui.Create("DButton", parent)
 		Button:SetFont("RotgBUIFont")
@@ -378,15 +515,16 @@ function SWEP:CreateTowerMenu()
 	local LeftDivider = vgui.Create("DHorizontalDivider", Main)
 	LeftDivider:Dock(FILL)
 	LeftDivider:SetDividerWidth(padding)
-	LeftDivider:SetLeftWidth(ScrW()*0.2-padding/2)
+	LeftDivider:SetLeftWidth(ScrW()*0.2-padding*1.5)
 	
 	local RightDivider = vgui.Create("DHorizontalDivider")
 	LeftDivider:SetRight(RightDivider)
 	RightDivider:SetDividerWidth(padding)
-	RightDivider:SetLeftWidth(ScrW()*0.6-padding/2)
+	RightDivider:SetLeftWidth(ScrW()*0.6-padding)
 	
 	LeftDivider:SetLeft(self:CreateLeftPanel(Main))
 	RightDivider:SetRight(self:CreateRightPanel(Main))
+	RightDivider:SetLeft(self:CreateMiddlePanel(Main))
 	function Main:Think()
 		if IsValid(wep) then
 			local selectedTower = wep:GetCurrentTower()
@@ -410,21 +548,6 @@ function SWEP:CreateTowerMenu()
 	function Main:SignalTowerUnselected(wep)
 		LeftDivider:GetLeft():Remove()
 		LeftDivider:SetLeft(wep:CreateLeftPanel(self))
-	end
-	
-	local MiddlePanel = vgui.Create("DPanel")
-	--MiddlePanel:DockPadding(padding,padding,padding,padding)
-	RightDivider:SetLeft(MiddlePanel)
-	MiddlePanel.Paint = nil
-	MiddlePanel:SetWorldClicker(true)
-	
-	local CloseButton = Main:CreateButton("Hide Menu", MiddlePanel, color_red, color_light_red, color_white)
-	CloseButton:SizeToContentsX(buttonHeight-24)
-	function CloseButton:DoClick()
-		Main:Hide()
-	end
-	function MiddlePanel:PerformLayout(w, h)
-		CloseButton:SetPos(w/2-CloseButton:GetWide()/2, h-CloseButton:GetTall())
 	end
 	
 	--Main:AddHeader("Secondary Fire to Hide Menu", MiddlePanel)
@@ -458,7 +581,7 @@ function SWEP:CreateLeftPanel(Main)
 			local text = SearchBox:GetValue():lower()
 			
 			for k,v in pairs(player.GetAll()) do
-				if v:Nick():lower():find(text) --[[and v ~=LocalPlayer()]] then
+				if v:Nick():lower():find(text, 1, true) --[[and v ~=LocalPlayer()]] then
 					local NameButton = Main:CreateButton("", ScrollPanel, color_aqua, color_light_aqua, color_white)
 					NameButton:DockMargin(0,0,0,padding)
 					NameButton:Dock(TOP)
@@ -469,7 +592,7 @@ function SWEP:CreateLeftPanel(Main)
 							net.WriteEntity(v)
 							net.SendToServer()
 							
-							if not GetConVar("rotgb_individualcash"):GetBool() then
+							if not ROTGB_GetConVarValue("rotgb_individualcash") then
 								chat.AddText(color_aqua, "It is pointless to use this option while Individual Cash\nis disabled (ConVar rotgb_individualcash).")
 							end
 						else
@@ -571,78 +694,88 @@ function SWEP:CreateRightPanel(Main)
 	TowersPanel:SetSpaceX(padding)
 	TowersPanel:SetSpaceY(padding)
 	TowersPanel:Dock(FILL)
-	local oldThink = ScrollPanel.Think
+	--[[local oldThink = ScrollPanel.Think
 	function ScrollPanel:Think(...)
-		if self.Difficulty ~= GetConVar("rotgb_difficulty"):GetFloat() then
-			self.Difficulty = GetConVar("rotgb_difficulty"):GetFloat()
+		if self.Difficulty ~= ROTGB_GetConVarValue("rotgb_difficulty") then
+			self.Difficulty = ROTGB_GetConVarValue("rotgb_difficulty")
 			self:Refresh()
 		end
 		if oldThink then
 			oldThink(self, ...)
 		end
-	end
+	end]]
 	function ScrollPanel:Refresh()
 		TowersPanel:Clear()
+		local towerPanelSize = wep:DeterminePowerOfTwoSize((ScrW()*0.2-padding*4.5)/2)
 		
+		local blacklisted = {}
+		for entry in string.gmatch(ROTGB_GetConVarValue("rotgb_tower_blacklist"), "%S+") do
+			blacklisted[entry] = true
+		end
+		local chessOnly = ROTGB_GetConVarValue("rotgb_tower_chess_only")
 		for i,v in ipairs(wep.TowerTable) do
-			local TowerPanel = vgui.Create("DImageButton", TowersPanel)
-			TowerPanel:SetMaterial("vgui/entities/"..v.ClassName)
-			TowerPanel:SetSize(ScrW()/16, ScrW()/16)
-			TowerPanel:SetColor(color_gray)
-			TowerPanel.affordable = false
-			TowerPanel.minimumLevel = engine.ActiveGamemode() == "rotgb" and i or 0
-			TowerPanel.levelLocked = false
-			TowerPanel.cashText = ROTGB_FormatCash(ROTGB_ScaleBuyCost(v.Cost), true)
-			TowerPanel:SetTooltip(v.PrintName)
-			
-			function TowerPanel:PaintOver(w, h)
-				local drawColor = color_white
-				local isLevelLocked = false
-				if self.minimumLevel > 0 then
-					isLevelLocked = LocalPlayer():ROTGB_GetLevel() < self.minimumLevel
-				end
-				if isLevelLocked then
-					drawColor = color_red
-					if not self.levelLocked then
-						self.levelLocked = true
-						self:SetColor(color_gray)
-						TowerPanel.cashText = string.format("Level %u", self.minimumLevel)
+			if not (blacklisted[v.ClassName] or chessOnly > 0 and not v.IsChessPiece or chessOnly < 0 and v.IsChessPiece) then
+				local TowerPanel = vgui.Create("DImageButton", TowersPanel)
+				TowerPanel:SetMaterial("vgui/entities/"..v.ClassName)
+				TowerPanel:SetSize(towerPanelSize, towerPanelSize)
+				TowerPanel:SetColor(color_gray)
+				TowerPanel.affordable = false
+				TowerPanel.minimumLevel = engine.ActiveGamemode() == "rotgb" and i or 0
+				TowerPanel.levelLocked = false
+				TowerPanel.price = ROTGB_ScaleBuyCost(v.Cost, v, {type = ROTGB_TOWER_PURCHASE})
+				TowerPanel.cashText = ROTGB_FormatCash(TowerPanel.price, true)
+				TowerPanel:SetTooltip(v.PrintName)
+				
+				function TowerPanel:PaintOver(w, h)
+					local drawColor = color_white
+					local isLevelLocked = false
+					if self.minimumLevel > 0 then
+						isLevelLocked = LocalPlayer():RTG_GetLevel() < self.minimumLevel
 					end
-				elseif self.levelLocked then
-					self.levelLocked = false
-					TowerPanel.cashText = ROTGB_FormatCash(ROTGB_ScaleBuyCost(v.Cost), true)
-					if self.affordable and not self.levelLocked then
-						self:SetColor(color_white)
+					if isLevelLocked then
+						drawColor = color_red
+						if not self.levelLocked then
+							self.levelLocked = true
+							self:SetColor(color_gray)
+							TowerPanel.cashText = string.format("Level %u", self.minimumLevel)
+						end
+					elseif self.levelLocked then
+						self.levelLocked = false
+						TowerPanel.cashText = ROTGB_FormatCash(self.price, true)
+						if self.affordable and not self.levelLocked then
+							self:SetColor(color_white)
+						end
 					end
+					
+					if ROTGB_GetCash() < self.price then
+						drawColor = color_red
+						if self.affordable then
+							self.affordable = false
+							self:SetColor(color_gray)
+						end
+					elseif not self.affordable then
+						self.affordable = true
+						if self.affordable and not self.levelLocked then
+							self:SetColor(color_white)
+						end
+					end
+					
+					if self:IsHovered() then
+						surface.SetDrawColor(drawColor.r, drawColor.g, drawColor.b, 31)
+						surface.DrawRect(0, 0, w, h)
+					end
+					
+					draw.SimpleTextOutlined(self.cashText, "RotgB_font", w/2, h, drawColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM, 2, color_black)
 				end
 				
-				if ROTGB_GetCash() < ROTGB_ScaleBuyCost(v.Cost) then
-					drawColor = color_red
-					if self.affordable then
-						self.affordable = false
-						self:SetColor(color_gray)
-					end
-				elseif not self.affordable then
-					self.affordable = true
-					if self.affordable and not self.levelLocked then
-						self:SetColor(color_white)
-					end
+				function TowerPanel:DoClick()
+					wep:DoTowerSelector(i)
 				end
-				
-				if self:IsHovered() then
-					surface.SetDrawColor(drawColor.r, drawColor.g, drawColor.b, 31)
-					surface.DrawRect(0, 0, w, h)
-				end
-				
-				draw.SimpleTextOutlined(self.cashText, "RotgB_font", w/2, h, drawColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM, 2, color_black)
-			end
-			
-			function TowerPanel:DoClick()
-				wep:DoTowerSelector(i)
 			end
 		end
 	end
 	ScrollPanel:Refresh()
+	Main.TowerScrollPanel = ScrollPanel
 	
 	RightDivider:SetBottom(self:CreateBottomRightPanel(Main))
 	
@@ -677,17 +810,23 @@ function SWEP:CreateBottomRightPanel(Main)
 	AutoCheckBox:SizeToContentsY()
 	AutoCheckBox:Dock(BOTTOM)
 	AutoCheckBox:DockMargin(0,padding,0,0)
-	for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
-		if v:GetAutoStart() then
-			AutoCheckBox:SetChecked(true)
-		end
-	end
 	function AutoCheckBox:OnChange(value)
 		net.Start("rotgb_controller")
 		net.WriteUInt(ROTGB_AUTOSTART, 8)
 		net.WriteBool(value)
 		net.SendToServer()
 	end
+	function AutoCheckBox:Refresh()
+		self:SetChecked(false)
+		for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
+			if v:GetAutoStart() then
+				self:SetChecked(true)
+				break
+			end
+		end
+	end
+	AutoCheckBox:Refresh()
+	Main.AutoStartCheckBox = AutoCheckBox
 	
 	local ButtonDivider = vgui.Create("DHorizontalDivider", BottomPanel)
 	ButtonDivider:Dock(FILL)
@@ -700,7 +839,7 @@ function SWEP:CreateBottomRightPanel(Main)
 	local FastButton = Main:CreateButton("", SpeedPanel, color_aqua, color_light_aqua, color_white)
 	FastButton:DockMargin(0,0,0,padding)
 	FastButton:Dock(TOP)
-	FastButton:SetEnabled(game.GetTimeScale() < 8)
+	FastButton:SetEnabled(game.GetTimeScale() < 4)
 	function FastButton:PaintOver(w,h)
 		local y = h/2
 		local size = math.min(w/8,h/4)
@@ -722,7 +861,7 @@ function SWEP:CreateBottomRightPanel(Main)
 	function SpeedPanel:Think()
 		if self.CurrentSpeed ~= game.GetTimeScale() then
 			self.CurrentSpeed = game.GetTimeScale()
-			FastButton:SetEnabled(self.CurrentSpeed < 8)
+			FastButton:SetEnabled(self.CurrentSpeed < 4)
 			SlowButton:SetEnabled(self.CurrentSpeed > 1)
 		end
 	end
@@ -752,4 +891,116 @@ function SWEP:CreateBottomRightPanel(Main)
 	end
 	
 	return BottomPanel
+end
+
+function SWEP:CreateMiddlePanel(Main)
+	local wep = self
+	local MiddleDivider = vgui.Create("DVerticalDivider")
+	MiddleDivider:SetDividerHeight(padding)
+	MiddleDivider:SetTopHeight(ScrH()*0.15-padding*1.5)
+	
+	local UpperPanel = vgui.Create("DPanel")
+	MiddleDivider:SetTop(UpperPanel)
+	UpperPanel.Paint = PaintBackground
+	UpperPanel:DockPadding(padding,padding,padding,padding)
+	Main:AddHeader("Activated Abilities", UpperPanel)
+	
+	local ScrollPanel = vgui.Create("DScrollPanel", UpperPanel)
+	ScrollPanel:Dock(FILL)
+	
+	local TowersPanel = vgui.Create("DIconLayout", ScrollPanel)
+	TowersPanel:SetSpaceX(padding)
+	TowersPanel:SetSpaceY(padding)
+	TowersPanel:Dock(FILL)
+	
+	function ScrollPanel:Refresh()
+		TowersPanel:Clear()
+		local towerPanelSize = wep:DeterminePowerOfTwoSize(ScrH()*0.15-padding*4.5-24)
+		local halfSize = towerPanelSize/2
+		local success = false
+		
+		for k,v in pairs(ents.GetAll()) do
+			if v.Base == "gballoon_tower_base" and v.HasAbility then
+				success = true
+				local TowerPanel = vgui.Create("DImageButton", TowersPanel)
+				TowerPanel.Tower = v
+				TowerPanel:SetMaterial("vgui/entities/"..v:GetClass())
+				TowerPanel:SetSize(towerPanelSize, towerPanelSize)
+				TowerPanel:SetColor(color_gray)
+				TowerPanel.activatable = false
+				TowerPanel.upgradeText = ""
+				
+				local reference = v.UpgradeReference
+				local upgradeAmounts = {}
+				for i=1,#reference do
+					upgradeAmounts[i] = bit.rshift(v:GetUpgradeStatus(),(i-1)*4)%16
+				end
+				TowerPanel.upgradeText = table.concat(upgradeAmounts, "-")
+				
+				function TowerPanel:PaintOver(w, h)
+					local tower = self.Tower
+					if IsValid(tower) then
+						if self.activatable == (tower:GetAbilityCharge() < 1) then
+							self.activatable = not self.activatable
+							if self.activatable then
+								self:SetColor(color_white)
+							else
+								self:SetColor(color_gray)
+							end
+						end
+						local drawColor = self.activatable and color_white or color_red
+						if self:IsHovered() then
+							surface.SetDrawColor(drawColor.r, drawColor.g, drawColor.b, 31)
+							surface.DrawRect(0, 0, w, h)
+						end
+						if not self.activatable then
+							local percent = math.Clamp(tower:GetAbilityCharge(),0,1)
+							local circleColor = HSVToColor(percent*120,1,1)
+							ROTGB_DrawCircle(
+								halfSize,halfSize,halfSize,percent,
+								circleColor.r,circleColor.g,circleColor.b,circleColor.a
+							)
+						end
+						draw.SimpleTextOutlined(self.upgradeText, "RotgBUIFont", w/2, h, drawColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM, 1, color_black)
+					else
+						self:Remove()
+					end
+				end
+				
+				function TowerPanel:DoClick()
+					if self.activatable then
+						net.Start("rotgb_generic")
+						net.WriteUInt(ROTGB_OPERATION_TRIGGER, 8)
+						net.WriteEntity(self.Tower)
+						net.SendToServer()
+					end
+				end
+			end
+		end
+		
+		if not success then
+			Main:AddHeader("(Towers with \"shooting at this tower\" effects will appear here.)", TowersPanel)
+		end
+		TowersPanel:InvalidateLayout(true)
+		ScrollPanel:InvalidateLayout(true)
+	end
+	ScrollPanel:Refresh()
+	Main.AbilityScrollPanel = ScrollPanel
+	
+	local LowerPanel = vgui.Create("DPanel")
+	MiddleDivider:SetBottom(LowerPanel)
+	--MiddlePanel:DockPadding(padding,padding,padding,padding)
+	LowerPanel.Paint = nil
+	LowerPanel:SetWorldClicker(true)
+	
+	local CloseButton = Main:CreateButton("Hide Menu", LowerPanel, color_red, color_light_red, color_white)
+	CloseButton:SizeToContentsX(buttonHeight-24)
+	function CloseButton:DoClick()
+		Main:Hide()
+	end
+	function LowerPanel:PerformLayout(w, h)
+		CloseButton:SetPos(w/2-CloseButton:GetWide()/2, h-CloseButton:GetTall())
+	end
+	
+	return MiddleDivider
 end

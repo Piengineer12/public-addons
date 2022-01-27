@@ -21,6 +21,7 @@ ENT.LOSOffset = Vector(0,0,150)
 ENT.UserTargeting = true
 ENT.AttackDamage = 10
 ENT.rotgb_BeamWidth = 8
+ENT.rotgb_DamageMul = 10
 ENT.UpgradeReference = {
 	{
 		Names = {"Super Range","Enhanced Prisms","Secondary Spectrum","Fury of the Radiant Sun","Rainbow Overlord","Orbital Friendship Cannon","Dyson Sphere","INFINITE POWER!"},
@@ -30,31 +31,32 @@ ENT.UpgradeReference = {
 			"Tremendously increases attack damage. gBalloons popped by this tower do not spawn any children.",
 			"Colossally increases attack damage and enables the tower to pop Hidden gBalloons.",
 			"This tower now hits ALL gBalloons within sight.",
-			"Once every 60 seconds, shooting at this tower OBLITERATES the strongest gBalloon on the map after 5 seconds. You still get the cash.",
-			"Reduces Orbital Friendship Cannon's cooldown by 30 seconds and you gain $10,000,000 for every use.",
+			"Once every 60 seconds, shooting at this tower inflicts x1,000 damage per tick at the location of the strongest gBalloon on the map after 5 seconds.",
+			"Reduces Orbital Friendship Cannon's cooldown by 30 seconds and you gain $50,000,000 for every use.",
 			"It's worth it."
 		},
-		Prices = {2000,15000,100000,1.25e6,5e6,10e6,50e6,1e9},
+		Prices = {2000,5000,30000,150000,1.25e6,10e6,50e6,1e9},--{2000,15000,100000,1.25e6,5e6,10e6,50e6,1e9},
 		Funcs = {
 			function(self)
 				self.InfiniteRange = true
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 20
-				self.rotgb_BeamWidth = self.rotgb_BeamWidth * 1.5
+				self.AttackDamage = self.AttackDamage + 10
+				self.rotgb_BeamWidth = self.rotgb_BeamWidth * math.sqrt(2)
 				self.rotgb_UseAltLaser = true
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 80
-				self.rotgb_BeamWidth = self.rotgb_BeamWidth * 1.5
+				self.AttackDamage = self.AttackDamage + 40
+				self.rotgb_BeamWidth = self.rotgb_BeamWidth * math.sqrt(3)
 				self.rotgb_BeamNoChildren = true
 			end,
 			function(self)
 				self.AttackDamage = self.AttackDamage + 240
-				self.rotgb_BeamWidth = self.rotgb_BeamWidth * 1.5
+				self.rotgb_BeamWidth = self.rotgb_BeamWidth * math.sqrt(5)
 				self.SeeCamo = true
 			end,
 			function(self)
+				--self.AttackDamage = self.AttackDamage + 300
 				self.UserTargeting = false
 			end,
 			function(self)
@@ -65,7 +67,7 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.rotgb_Infinite = true
-				self.AbilityCooldown = self.AbilityCooldown - 30
+				self.AbilityCooldown = self.AbilityCooldown / 2
 			end,
 			function(self)
 				self.HasAbility = nil
@@ -79,6 +81,10 @@ ENT.UpgradeReference = {
 	}
 }
 ENT.UpgradeLimits = {99}
+
+function ENT:ROTGB_ApplyPerks()
+	self.rotgb_DamageMul = self.rotgb_DamageMul * (1+hook.Run("GetSkillAmount", "rainbowBeamerDamage")/100)
+end
 
 local function SnipeEntity()
 	while true do
@@ -195,7 +201,7 @@ function ENT:ROTGB_Think()
 	if IsValid(self.KillDamagePos) then
 		for k,v in pairs(ents.FindInSphere(self.KillDamagePos:GetPos(),32)) do
 			if v:GetClass()=="gballoon_base" then
-				v:TakeDamage(v:GetRgBE()*1000, self:GetTowerOwner(), self)
+				v:TakeDamage(self.AttackDamage*1000, self:GetTowerOwner(), self)
 			end
 		end
 	end
@@ -228,7 +234,7 @@ function ENT:FireFunction(gBalloons)
 		end
 		if self.rotgb_NextFire > CurTime() + self.rotgb_BeamDelay then]]
 			if self.UserTargeting then
-				local perf,str = coroutine.resume(self.thread,self,gBalloons[1],10)
+				local perf,str = coroutine.resume(self.thread,self,gBalloons[1],self.rotgb_DamageMul)
 				if not perf then error(str) end
 			else
 				--[[local damagemul = 10
@@ -238,13 +244,16 @@ function ENT:FireFunction(gBalloons)
 						damagemul = damagemul + v:GetRgBE() / 10
 					end
 				end]]
+				--local i = 1
 				for k,v in pairs(gBalloons) do
-					local perf,str = coroutine.resume(self.thread,self,v,10)
+					local perf,str = coroutine.resume(self.thread,self,v,self.rotgb_DamageMul)
 					if not perf then error(str) end
+					--i = i + 1
+					--if i > 10 then break end
 				end
 			end
 		--end
-		if self.rotgb_OtherBonus then
+		--[[if self.rotgb_OtherBonus then
 			self.rotgb_OtherBy = self.rotgb_OtherBy or 0
 			self.FireRate = self.FireRate / (1+self.rotgb_OtherBy*0.2)
 			self.rotgb_OtherBy = ents.FindInSphere(self:GetShootPos(),512)
@@ -255,7 +264,7 @@ function ENT:FireFunction(gBalloons)
 			end
 			self.rotgb_OtherBy = #self.rotgb_OtherBy
 			self.FireRate = self.FireRate * (1+self.rotgb_OtherBy*0.2)
-		end
+		end]]
 	end
 end
 
@@ -263,71 +272,77 @@ local ShotSound = Sound("Airboat.FireGunHeavy")
 local AlertSound = Sound("npc/attack_helicopter/aheli_megabomb_siren1.wav")
 
 abilityFunction = function(self)
-	local entities = ROTGB_GetBalloons()
-	--if not next(entities) then return true end
-	local enttab = {}
-	for index,ent in pairs(entities) do
-		enttab[ent] = ent:GetRgBE()+ent:GetDistanceTravelled()*1e-9
-	end
-	local ent = next(entities) and self:ChooseSomething(enttab)
-	if IsValid(self) and IsValid(ent) then
-		if self.rotgb_Infinite then
-			self:AddCash(1e7, self:GetTowerOwner())
+	if IsValid(self) then
+		local entities = ROTGB_GetBalloons()
+		--if not next(entities) then return true end
+		local enttab = {}
+		for index,ent in pairs(entities) do
+			if self:ValidTargetIgnoreRange(ent) then
+				enttab[ent] = ent:GetRgBE()+ent:GetDistanceTravelled()*1e-9
+			end
 		end
-		ent:EmitSound("ambient/explosions/explode_6.wav",100)
-		local startPos = ents.Create("info_target")
-		local ecp = ent:GetPos()
-		ecp.z = 16000
-		startPos:SetPos(ecp)
-		startPos:SetName("ROTGB08_"..startPos:GetCreationID())
-		local endPos = ents.Create("info_target")
-		ecp = ent:GetPos()
-		ecp.z = ecp.z + ent:OBBMins().z
-		endPos:SetPos(ecp)
-		endPos:SetName("ROTGB08_"..endPos:GetCreationID())
-		self.KillDamagePos = endPos
-		local effdata = EffectData()
-		ecp.z = ecp.z + 24
-		effdata:SetOrigin(ecp)
-		util.Effect("rainbow_wave",effdata)
-		util.ScreenShake(ecp,5,5,6,1024)
-		local beam = ents.Create("env_beam")
-		beam:SetPos(ecp)
-		beam:SetKeyValue("renderamt","255")
-		beam:SetKeyValue("rendercolor","255 255 255")
-		beam:SetKeyValue("BoltWidth","64")
-		beam:SetKeyValue("NoiseAmplitude","0")
-		beam:SetKeyValue("texture","beams/rainbow1.vmt")
-		beam:SetKeyValue("TextureScroll","100")
-		beam:SetKeyValue("LightningStart",startPos:GetName())
-		beam:SetKeyValue("LightningEnd",endPos:GetName())
-		beam:SetKeyValue("HDRColorScale","1")
-		beam:SetKeyValue("spawnflags","1")
-		--beam:SetKeyValue("damage","999999")
-		beam:Spawn()
-		beam:Activate()
-		beam:Fire("TurnOn")
-		timer.Create("ROTGB_08_AB_"..endPos:GetCreationID(),0.05,120,function()
-			if IsValid(beam) then
-				beam.CurAlpha = (beam.CurAlpha or 255) - 0.05/6*255
-				beam:Fire("Alpha",beam.CurAlpha)
+		local ent = next(entities) and self:ChooseSomething(enttab)
+		if IsValid(ent) then
+			if self.rotgb_Infinite then
+				self:AddCash(5e7, self:GetTowerOwner())
 			end
-		end)
-		timer.Simple(6,function()
-			if IsValid(startPos) then
-				startPos:Remove()
-			end
-			if IsValid(endPos) then
-				endPos:Remove()
-			end
-			if IsValid(beam) then
-				beam:Remove()
-			end
-		end)
-	elseif IsValid(self) then
-		timer.Simple(math.random(),function()
-			abilityFunction(self)
-		end)
+			ent:EmitSound("ambient/explosions/explode_6.wav",100,100,0.5)
+			local startPos = ents.Create("info_target")
+			local ecp = ent:GetPos()
+			ecp.z = 16000
+			startPos:SetPos(ecp)
+			startPos:SetName("ROTGB08_"..startPos:GetCreationID())
+			local endPos = ents.Create("info_target")
+			ecp = ent:GetPos()
+			ecp.z = ecp.z + ent:OBBMins().z
+			endPos:SetPos(ecp)
+			endPos:SetName("ROTGB08_"..endPos:GetCreationID())
+			self.KillDamagePos = endPos
+			local effdata = EffectData()
+			ecp.z = ecp.z + 24
+			effdata:SetOrigin(ecp)
+			util.Effect("rainbow_wave",effdata)
+			util.ScreenShake(ecp,5,5,6,1024)
+			local beam = ents.Create("env_beam")
+			beam:SetPos(ecp)
+			beam:SetKeyValue("renderamt","255")
+			beam:SetKeyValue("rendercolor","255 255 255")
+			beam:SetKeyValue("BoltWidth","64")
+			beam:SetKeyValue("NoiseAmplitude","0")
+			beam:SetKeyValue("texture","beams/rainbow1.vmt")
+			beam:SetKeyValue("TextureScroll","100")
+			beam:SetKeyValue("LightningStart",startPos:GetName())
+			beam:SetKeyValue("LightningEnd",endPos:GetName())
+			beam:SetKeyValue("HDRColorScale","1")
+			beam:SetKeyValue("spawnflags","1")
+			--beam:SetKeyValue("damage","999999")
+			beam:Spawn()
+			beam:Activate()
+			beam:Fire("TurnOn")
+			timer.Create("ROTGB_08_AB_"..endPos:GetCreationID(),0.05,120,function()
+				if IsValid(beam) then
+					beam.CurAlpha = (beam.CurAlpha or 255) - 0.05/6*255
+					beam:Fire("Alpha",beam.CurAlpha)
+				end
+			end)
+			timer.Simple(6,function()
+				if IsValid(startPos) then
+					startPos:Remove()
+				end
+				if IsValid(endPos) then
+					endPos:Remove()
+				end
+				if IsValid(beam) then
+					beam:Remove()
+				end
+			end)
+		elseif self.UseLOS then
+			local tryAgainTime = math.random()
+			ROTGB_Log(string.format("DASH-E Unit #%i failed to find any Orbital Friendship Cannon targets, trying again in %.2f ms...", self:GetCreationID(), tryAgainTime*1e3), "towers")
+			timer.Simple(tryAgainTime,function()
+				abilityFunction(self)
+			end)
+		end
 	end
 end
 
