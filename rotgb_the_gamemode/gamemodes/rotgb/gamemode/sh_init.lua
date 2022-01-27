@@ -256,6 +256,7 @@ GM.Modes						= {
 TO DO LIST:
 
 skill tree img
+
 sfx for upgrading - how?
 music - how?
 

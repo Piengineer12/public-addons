@@ -26,7 +26,7 @@ ENT.rotgb_rbetab = {
 	gballoon_zebra=23,
 	gballoon_gray=23,
 	gballoon_aqua=23,
-	gballoon_error=23,
+	gballoon_error=24,
 	gballoon_rainbow=93,
 	gballoon_ceramic=196,
 	gballoon_brick=427,
@@ -1330,7 +1330,9 @@ function ENT:CheckForBossEffects()
 end
 
 function ENT:Stun(tim)
-	self.StunUntil = math.max(self:CurTime() + tim,self.StunUntil or 0)
+	if not self:GetBalloonProperty("BalloonBoss") then
+		self.StunUntil = math.max(self:CurTime() + tim,self.StunUntil or 0)
+	end
 end
 
 function ENT:UnStun()
@@ -1338,8 +1340,10 @@ function ENT:UnStun()
 end
 
 function ENT:Freeze(tim)
-	self:SetNWFloat("rotgb_FreezeTime",self:CurTime()+tim)
-	self.FreezeUntil = math.max(self:CurTime() + tim,self.FreezeUntil or 0)
+	if not self:GetBalloonProperty("BalloonBoss") then
+		self:SetNWFloat("rotgb_FreezeTime",self:CurTime()+tim)
+		self.FreezeUntil = math.max(self:CurTime() + tim,self.FreezeUntil or 0)
+	end
 end
 
 function ENT:UnFreeze()
@@ -1348,8 +1352,10 @@ function ENT:UnFreeze()
 end
 
 function ENT:Freeze2(tim)
-	self:SetNWFloat("rotgb_FreezeTime",self:CurTime()+tim)
-	self.FreezeUntil2 = math.max(self:CurTime() + tim,self.FreezeUntil2 or 0)
+	if not self:GetBalloonProperty("BalloonBoss") then
+		self:SetNWFloat("rotgb_FreezeTime",self:CurTime()+tim)
+		self.FreezeUntil2 = math.max(self:CurTime() + tim,self.FreezeUntil2 or 0)
+	end
 end
 
 function ENT:UnFreeze2()
@@ -1382,12 +1388,14 @@ end
 
 -- "Slowdown" isn't accurate anymore as multipliers > 1 are now accepted
 function ENT:Slowdown(id,amt,tim)
-	self.rotgb_SpeedMods = self.rotgb_SpeedMods or {}
-	if self.rotgb_SpeedMods[id] then
-		tim = math.max(tim,self.rotgb_SpeedMods[id][1]-self:CurTime())
-		amt = math.min(amt,self.rotgb_SpeedMods[id][2])
+	if not self:GetBalloonProperty("BalloonBoss") or amt > 1 then
+		self.rotgb_SpeedMods = self.rotgb_SpeedMods or {}
+		if self.rotgb_SpeedMods[id] then
+			tim = math.max(tim,self.rotgb_SpeedMods[id][1]-self:CurTime())
+			amt = math.min(amt,self.rotgb_SpeedMods[id][2])
+		end
+		self.rotgb_SpeedMods[id] = {self:CurTime() + tim,amt}
 	end
-	self.rotgb_SpeedMods[id] = {self:CurTime() + tim,amt}
 end
 
 function ENT:UnSlowdown(id)

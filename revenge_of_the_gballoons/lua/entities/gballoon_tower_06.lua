@@ -12,7 +12,7 @@ ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/maxofs2d/hover_propeller.mdl")
-ENT.FireRate = 0
+ENT.FireRate = 100
 ENT.Cost = 600
 ENT.AbilityCooldown = 30
 ENT.LOSOffset = Vector(0,0,25)
@@ -65,7 +65,7 @@ ENT.UpgradeReference = {
 			"This tower can now instantly pop Red gBlimps, Monochrome gBlimps and anything lower!",
 			"This tower can now instantly pop Green gBlimps, Magenta gBlimps and anything lower!",
 		},
-		Prices = {2000,3000,18000,170000,780000,3.65e6,17.5e6},
+		Prices = {2000,3000,19000,170000,780000,3.65e6,17.5e6},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 20
@@ -74,10 +74,10 @@ ENT.UpgradeReference = {
 				self.AttackDamage = self.AttackDamage + 30
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 180
+				self.AttackDamage = self.AttackDamage + 190
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 1730
+				self.AttackDamage = self.AttackDamage + 1720
 			end,
 			function(self)
 				self.AttackDamage = self.AttackDamage + 7880
@@ -137,11 +137,11 @@ ENT.UpgradeLimits = {7,2,0}
 	end
 end]]
 
-function ENT:ROTGB_Think()
+function ENT:FireFunction(gBalloons)
 	local anotherfired = 0
 	local radiusTowers = {}
 	for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
-		if v:GetClass()=="gballoon_base" then
+		if self:ValidTargetIgnoreRange(v) and v:LocalToWorld(v:OBBCenter()):DistToSqr(self:GetShootPos()) <= self.DetectionRadius * self.DetectionRadius then
 			if self.rotgb_NoRegen then
 				v:SetBalloonProperty("BalloonRegen", false)
 			end
@@ -162,14 +162,14 @@ function ENT:ROTGB_Think()
 			end
 		elseif v.Base=="gballoon_tower_base" then
 			if self.rotgb_Buff > 0 then
-				v:ApplyBuff(self, "ROTGB_TOWER_06_PASSIVE", 999999, function(tower)
+				v:ApplyBuff(self, "ROTGB_TOWER_06_PASSIVE", 1, function(tower)
 					tower.FireRate = tower.FireRate * 1.2
 				end, function(tower)
 					tower.FireRate = tower.FireRate / 1.2
 				end)
 			end
 			if self.rotgb_Buff > 2 then
-				v:ApplyBuff(self, "ROTGB_TOWER_06_PASSIVE_2", 999999, function(tower)
+				v:ApplyBuff(self, "ROTGB_TOWER_06_PASSIVE_2", 1, function(tower)
 					tower.AttackDamage = (tower.AttackDamage or 0) + 10
 				end, function(tower)
 					tower.AttackDamage = (tower.AttackDamage or 0) - 10

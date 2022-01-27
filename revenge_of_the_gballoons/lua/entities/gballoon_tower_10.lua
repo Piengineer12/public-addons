@@ -105,7 +105,7 @@ ENT.UpgradeReference = {
 			"Considerably increases the tower's range.",
 			"Whenever a particle from this tower hits a gBalloon, gain $5.",
 			"The tower now hits all gBalloons within its radius each shot.",
-			"gBalloons hit by this tower's shots permanently lose all immunities except for armor.",
+			"gBalloons hit by this tower's shots permanently lose all damage type immunities.",
 			"gBalloons hit by this tower's shots permanently lose all armor and take 15 more layers of damage from all sources."
 		},
 		Prices = {600,1000,3500,20000,75000,300000},

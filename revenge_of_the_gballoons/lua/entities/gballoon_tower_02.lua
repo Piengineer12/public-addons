@@ -182,15 +182,17 @@ function ENT:Explode(pos, recursion, gBalloons)
 				v:SetBalloonProperty("BalloonShielded", false)
 				v:SetBalloonProperty("BalloonFast", false)
 			end
-			if not v:GetBalloonProperty("BalloonBlimp") and self.rotgb_Stun then
-				if not (v:GetBalloonProperty("BalloonWhite") or v:GetBalloonProperty("BalloonBlimp") or v:GetBalloonProperty("BalloonBlack")) or v:HasRotgBStatusEffect("unimmune") then
-					v:Freeze2(2)
-				elseif not v:GetBalloonProperty("BalloonBlack") then
-					v:ShowResistEffect(1)
+			if not v:GetBalloonProperty("BalloonBlimp") then
+				if self.rotgb_AlternateExplode then
+					v:Slowdown("ROTGB_PROX_MINE",0.5,3)
 				end
-			end
-			if self.rotgb_AlternateExplode then
-				v:Slowdown("ROTGB_PROX_MINE",0.5,3)
+				if self.rotgb_Stun then
+					if not (v:GetBalloonProperty("BalloonWhite") or v:GetBalloonProperty("BalloonBlimp") or v:GetBalloonProperty("BalloonBlack")) or v:HasRotgBStatusEffect("unimmune") then
+						v:Freeze2(2)
+					elseif not v:GetBalloonProperty("BalloonBlack") then
+						v:ShowResistEffect(1)
+					end
+				end
 			end
 			v.ROTGB_TOWER_02_Marks = (v.ROTGB_TOWER_02_Marks or 0) + markedDamage
 		end

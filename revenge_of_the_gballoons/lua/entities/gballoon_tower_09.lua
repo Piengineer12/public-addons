@@ -32,7 +32,7 @@ ENT.UpgradeReference = {
 			"Glue slows down gBalloons more and lasts slightly longer.",
 			"Considerably increases fire rate.",
 			"Tremendously increases fire rate and glue slows down gBalloons even more.",
-			"Glue can now affect Green gBlimps and lower.",
+			"Glue can now slow down Green gBlimps and lower.",
 			"Colossally increases fire rate and glue causes gBalloons to lose all damage type immunities until unglued."
 		},
 		Prices = {250,500,5000,40000,400000},

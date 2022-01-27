@@ -1,6 +1,0 @@
-VertexlitGeneric
-{
-	$basetexture maps/rotgb_heatwave/credit
-	$model 1
-	$halflambert 1
-}

@@ -6,7 +6,7 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		5.0.0-rc.2
+Version:		5.0.0-rc.3
 ]]
 
 local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","spawning","towers"}
@@ -371,8 +371,7 @@ RegisterConVar("rotgb_use_custom_ai","0",R_BOOL,
  - This may increase performance but is otherwise EXPERIMENTAL. Use at your own risk.]])
 
 RegisterConVar("rotgb_starting_cash","650",R_FLOAT,
-[[Amount of starting cash every player gets.
- - Cash is reset upon leaving the server.]])
+[[Amount of starting cash every player gets.]])
 
 RegisterConVar("rotgb_crit_effect_delay","0",R_FLOAT,
 [[Sets the delay between "Crit!" text effects shown by the gBalloons.
