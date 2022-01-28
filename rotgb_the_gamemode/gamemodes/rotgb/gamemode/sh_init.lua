@@ -1,7 +1,7 @@
 GM.Name							= "RotgB: The Gamemode!"
 GM.Author						= "Piengineer12"
 GM.Version						= "1.0.0"
-GM.VersionDate					= "2022-01-23"
+GM.VersionDate					= "2022-01-28"
 GM.Email						= "[REDACTED]"
 GM.Website						= "https://steamcommunity.com/id/Piengineer12"
 GM.TeamBased					= true
@@ -11,7 +11,7 @@ GM.NetSendInterval				= 0.2 -- this is also the scoreboard refresh rate, but if 
 GM.DatabaseFormatVersion		= 1
 GM.DatabaseSaveInterval			= 30
 GM.VoteTime						= 15
-GM.DebugMode					= true
+GM.DebugMode					= false
 GM.ModeCategories				= {Easy = 1, Medium = 2, Hard = 3, Insane = 4, Impossible = 5}
 GM.Modes						= {
 	__common = {
@@ -252,41 +252,6 @@ GM.Modes						= {
 	},
 }
 
---[[
-TO DO LIST:
-
-skill tree img
-
-sfx for upgrading - how?
-music - how?
-
-button to sell all towers - low priority
-button to activate all abilities - low priority
-
-fix Multipurpose Engine buff desync - difficult to solve on client side
-+ several others (*.txt in fan_sent_content) - no thanks
-
-GAMEMODE:
-
-skill web: skill web stars?
-
-ADDON: PZDraw
-
-fonts
-rich text
-
-WPASS:
-
-fire element - flaming
-earth element - corroding
-water element - freezing
-wind element - poisonous, poison
-
-BETTER DAMAGE API:
-see above
-multiple damage objects
-]]
-
 RTG_STAT_POPS = 1
 RTG_STAT_INIT = 2
 RTG_STAT_VOTES = 3
@@ -380,6 +345,7 @@ for i,v in ipairs(sharedFiles) do
 end
 
 if SERVER then
+	resource.AddWorkshop("1616333917")
 	for i,v in ipairs(serverFiles) do
 		include(v)
 	end

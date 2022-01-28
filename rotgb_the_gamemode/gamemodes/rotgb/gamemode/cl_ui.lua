@@ -1931,7 +1931,7 @@ local function CreateSkillWebSurface(parent)
 		DisableClipping(false)
 		
 		local skillPoints = ply:RTG_GetSkillPoints()
-		SKILL_LEFT_TEXTS[1][4] = string.format("%i", ply:RTG_GetSkillPoints())
+		SKILL_LEFT_TEXTS[1][4] = string.Comma(ply:RTG_GetSkillPoints())
 		if skillPoints > 0 then
 			SKILL_LEFT_TEXTS[1][3] = color_yellow
 		else
@@ -2243,20 +2243,31 @@ end
 
 function GM:CreateStartupMenu()
 	local Menu = CreateMenu()
-	CreateHeader(Menu, 1, "Welcome to Revenge of the gBalloons: The Gamemode!")
-	CreateText(Menu, 2, "RotgB: The Gamemode is a singleplayer / cooperative multiplayer PvE gamemode, where enemy gBalloons are spawned in waves.")
-	CreateText(Menu, 3, "Build towers to attack the gBalloons before they reach a gBalloon target or it will take damage.")
-	CreateText(Menu, 4, "The game ends when all waves have been cleared or all gBalloon Targets have been destroyed.")
-	CreateText(Menu, 5, "Popped gBalloons will give cash and experience. Cash is distributed to all players, while experience is only given to the attacker.")
-	CreateText(Menu, 6, "Higher difficulties give less experience for earlier waves, but more experience for later waves.")
-	CreateText(Menu, 7, "\nThe following chat commands are available:")
-	CreateText(Menu, 8, "!vote / !rtg_vote - opens the voting menu")
-	CreateText(Menu, 9, "!skills / !rtg_skills - opens the skills menu")
-	
-	local NextButton = CreateButton(Menu, "Continue >", color_green, function()
-		hook.Run("ShowHelp")
-	end)
-	NextButton:SetPos(Menu:GetWide()-NextButton:GetWide()-indentX, Menu:GetTall()-NextButton:GetTall()-indentY)
+	if ROTGB_SetCash then
+		CreateHeader(Menu, 1, "Welcome to Revenge of the gBalloons: The Gamemode!")
+		CreateText(Menu, 2, "RotgB: The Gamemode is a singleplayer / cooperative multiplayer PvE gamemode, where enemy gBalloons are spawned in waves.")
+		CreateText(Menu, 3, "Build towers to attack the gBalloons before they reach a gBalloon target or it will take damage.")
+		CreateText(Menu, 4, "The game ends when all waves have been cleared or all gBalloon Targets have been destroyed.")
+		CreateText(Menu, 5, "Popped gBalloons will give cash and experience. Cash is distributed to all players, while experience is only given to the attacker.")
+		CreateText(Menu, 6, "Higher difficulties give less experience for earlier waves, but more experience for later waves.")
+		CreateText(Menu, 7, "\nThe following chat commands are available:")
+		CreateText(Menu, 8, "!vote / !rtg_vote - opens the voting menu")
+		CreateText(Menu, 9, "!skills / !rtg_skills - opens the skills menu")
+		
+		local NextButton = CreateButton(Menu, "Continue >", color_green, function()
+			hook.Run("ShowHelp")
+		end)
+		NextButton:SetPos(Menu:GetWide()-NextButton:GetWide()-indentX, Menu:GetTall()-NextButton:GetTall()-indentY)
+	else
+		CreateHeader(Menu, 1, "The Revenge of the gBalloons addon is missing!")
+		CreateText(Menu, 2, "RotgB (not the gamemode, the standalone addon) is required for this gamemode to work.")
+		CreateText(Menu, 3, "Please tell the server owner to include the addon ID 1616333917 to the list of required addons.")
+		
+		local OpenButton = CreateButton(Menu, "Open Addon Workshop Page >", color_green, function()
+			gui.OpenURL("https://steamcommunity.com/sharedfiles/filedetails/?id=1616333917")
+		end)
+		OpenButton:SetPos(Menu:GetWide()-OpenButton:GetWide()-indentX, Menu:GetTall()-OpenButton:GetTall()-indentY)
+	end
 	
 	return Menu
 end

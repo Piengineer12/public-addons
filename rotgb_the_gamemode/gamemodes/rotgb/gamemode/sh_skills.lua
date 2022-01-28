@@ -412,7 +412,7 @@ end
 local cachedTowers
 function PLAYER:RTG_GetSkillPoints()
 	if not cachedTowers then
-		cachedTowers = ROTGB_GetAllTowers()
+		cachedTowers = ROTGB_GetAllTowers and ROTGB_GetAllTowers() or {}
 	end
-	return math.min(self:RTG_GetLevel(), 999) - self:RTG_GetSkillAmount() - #cachedTowers
+	return math.max(self:RTG_GetLevel() - self:RTG_GetSkillAmount() - #cachedTowers, 0)
 end

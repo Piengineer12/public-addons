@@ -1,0 +1,12 @@
+{
+	"title": "RotgB: The Gamemode! Public Beta",
+	"type": "gamemode",
+	"tags": [
+		"fun",
+		"build"
+	],
+	"ignore": [
+		"gamemodes/rotgb/gamemode/fan_sent_content/*",
+		"*.pdn"
+	]
+}

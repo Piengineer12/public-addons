@@ -74,11 +74,9 @@ function GM:PostCleanupMapServer()
 	hook.Run("SetGameIsOver", false)
 	hook.Run("SetDefeated", false)
 	hook.Run("UpdateAppliedSkills")
-	ROTGB_UpdateCash()
 	for k,v in pairs(player.GetAll()) do
 		v:UnSpectate()
 		v:Spawn()
-		ROTGB_UpdateCash(v)
 		v.rtg_gBalloonPops = 0
 		net.Start("rotgb_statchanged", true)
 		net.WriteUInt(RTG_STAT_POPS, 4)
