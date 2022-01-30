@@ -23,6 +23,15 @@ net.Receive("rotgb_statchanged", function()
 			local no = net.ReadUInt(8)
 			voteWindow:SetValues(yes, no)
 		end
+	elseif func == RTG_STAT_FULLUPDATE then
+		for i=1,net.ReadUInt(12) do
+			local ply = Player(net.ReadInt(16))
+			if IsValid(ply) then
+				ply.rtg_gBalloonPops = net.ReadDouble()
+				ply.rtg_PreviousXP = net.ReadDouble()
+				ply.rtg_XP = net.ReadDouble()
+			end
+		end
 	end
 end)
 
@@ -42,6 +51,11 @@ net.Receive("rotgb_gamemode", function()
 		compiledVote.reason = net.ReadString()
 		compiledVote.agrees = 0
 		compiledVote.disagrees = 0
+		
+		-- RealTime() is not synchronized, so force it to be in sync
+		compiledVote.expiry = compiledVote.expiry - compiledVote.startTime + RealTime()
+		compiledVote.startTime = RealTime()
+		
 		hook.Run("StartVote", compiledVote)
 	elseif operation == RTG_OPERATION_VOTEEND then
 		local result = net.ReadUInt(4)

@@ -159,6 +159,7 @@ function GM:gBalloonSpawnerPostSpawn(spawner, bln, keyValues)
 		end
 	end
 	bln:SetBalloonProperty("BalloonArmor", (bln:GetBalloonProperty("BalloonArmor") or 0)+math.ceil(hook.Run("GetSkillAmount", "gBalloonOuterArmor")))
+	hook.Run("SetPreventPlayerPhysgun", true)
 end
 
 -- defined in gballoon_target.lua

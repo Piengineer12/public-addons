@@ -1,6 +1,6 @@
 GM.Name							= "RotgB: The Gamemode!"
 GM.Author						= "Piengineer12"
-GM.Version						= "1.0.0"
+GM.Version						= "1.1.0-rc.2"
 GM.VersionDate					= "2022-01-28"
 GM.Email						= "[REDACTED]"
 GM.Website						= "https://steamcommunity.com/id/Piengineer12"
@@ -46,6 +46,7 @@ GM.Modes						= {
 			rotgb_tower_ignore_physgun = true,
 			rotgb_spawner_force_auto_start = true,
 			rotgb_spawner_no_multi_start = 1,
+			rotgb_individualcash = 1,
 			
 			rotgb_difficulty = true,
 			rotgb_default_wave_preset = true,
@@ -255,6 +256,7 @@ GM.Modes						= {
 RTG_STAT_POPS = 1
 RTG_STAT_INIT = 2
 RTG_STAT_VOTES = 3
+RTG_STAT_FULLUPDATE = 4
 
 RTG_OPERATION_KICK = 1
 RTG_OPERATION_GAMEOVER = 2

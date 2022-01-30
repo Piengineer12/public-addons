@@ -3,6 +3,7 @@ local nextUpdate = 0
 AccessorFunc(GM, "GameIsOver", "GameIsOver", FORCE_BOOL)
 AccessorFunc(GM, "Defeated", "Defeated", FORCE_BOOL)
 AccessorFunc(GM, "StatRebroadcastRequired", "StatRebroadcastRequired", FORCE_BOOL)
+AccessorFunc(GM, "PreventPlayerPhysgun", "PreventPlayerPhysgun", FORCE_BOOL)
 
 function GM:Initialize()
 	hook.Run("SetGameIsOver", false)
@@ -35,6 +36,14 @@ function GM:Think()
 		end
 		
 		hook.Run("CurrentVoteThink")
+	end
+	if hook.Run("GetPreventPlayerPhysgun") then
+		hook.Run("SetPreventPlayerPhysgun", false)
+		for k,v in pairs(ents.GetAll()) do
+			if v.Base == "gballoon_tower_base" then
+				v:ForcePlayerDrop()
+			end
+		end
 	end
 end
 

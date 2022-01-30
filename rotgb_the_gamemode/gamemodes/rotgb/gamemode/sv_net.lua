@@ -11,11 +11,39 @@ net.Receive("rotgb_statchanged", function(length, ply)
 			if not ply.rtg_PreviousXP then
 				ply.rtg_PreviousXP = net.ReadDouble()
 				hook.Run("ReadSkillMessage", ply)
+				
 				net.Start("rotgb_statchanged")
 				net.WriteUInt(RTG_STAT_INIT, 4)
 				net.WriteEntity(ply)
 				net.WriteDouble(ply.rtg_PreviousXP)
 				net.Broadcast()
+				
+				local plys = player.GetAll()
+				net.Start("rotgb_statchanged")
+				net.WriteUInt(RTG_STAT_FULLUPDATE, 4)
+				net.WriteUInt(#plys, 12)
+				for k,v in pairs(plys) do
+					net.WriteInt(v:UserID(), 16)
+					net.WriteDouble(v.rtg_gBalloonPops)
+					net.WriteDouble(v.rtg_PreviousXP)
+					net.WriteDouble(v.rtg_XP)
+				end
+				net.Send(ply)
+				
+				local appliedSkills = hook.Run("GetAppliedSkills")
+				net.Start("rotgb_gamemode")
+				net.WriteUInt(RTG_OPERATION_SKILLS, 4)
+				net.WriteBool(false)
+				if next(appliedSkills) then
+					net.WriteUInt(RTG_SKILL_MULTIPLE, 2)
+					net.WriteUInt(table.Count(appliedSkills)-1, 12)
+					for k,v in pairs(appliedSkills) do
+						net.WriteUInt(k-1, 12)
+					end
+				else
+					net.WriteUInt(RTG_SKILL_CLEAR, 2)
+				end
+				net.Send(ply)
 			end
 		elseif func == RTG_STAT_VOTES then
 			local currentVote = hook.Run("GetCurrentVote")

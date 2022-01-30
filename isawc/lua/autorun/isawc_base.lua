@@ -10,12 +10,13 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "4.9.1"
-ISAWC._VERSIONDATE = "2022-01-12"
+ISAWC._VERSION = "5.0.0"
+ISAWC._VERSIONDATE = "2022-01-30"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
 local color_dark_red_semitransparent = Color(127,0,0,63)
+local color_yellow = Color(255,255,0)
 local color_dark_green_semitransparent = Color(0,127,0,63)
 local color_aqua = Color(0,255,255)
 local color_dark_blue_semitransparent = Color(0,0,127,63)
@@ -25,43 +26,43 @@ local color_black_semiopaque = Color(0,0,0,191)
 local color_black_semitransparent = Color(0,0,0,63)
 
 ISAWC.MESSAGE_TYPES = {
-	pickup				= 1,
-	pickup_denied		= 2,
-	inventory			= 3,
-	inventory_l			= 4,
-	inventory_r			= 5,
-	open_container		= 6,
-	close_container		= 7,
-	moving_items		= 8,
-	moving_items_l		= 9,
-	moving_items_r		= 10,
-	transfer_to			= 11,
-	transfer_from		= 12,
-	spawn				= 13,
-	spawn_l				= 14,
-	spawn_r				= 15,
-	spawn_self			= 16,
-	spawn_self_l		= 17,
-	spawn_self_r		= 18,
-	delete				= 19,
-	delete_l			= 20,
-	delete_r			= 21,
-	delete_full			= 22,
-	delete_full_l		= 23,
-	delete_full_r		= 24,
-	drop_all			= 25,
-	drop_all_l			= 26,
-	drop_all_r			= 27,
-	empty_weapon		= 28,
-	empty_weapon_l		= 29,
-	empty_weapon_r		= 30,
-	store_weapon		= 31,
-	store_weapon_l		= 32,
-	store_weapon_r		= 33,
-	exporter			= 34,
-	exporter_disconnect	= 35,
-	send_maker_data		= 36,
-	set_public			= 37,
+	close_container		= 1,
+	delete				= 2,
+	delete_full			= 3,
+	delete_full_l		= 4,
+	delete_full_r		= 5,
+	delete_l			= 6,
+	delete_r			= 7,
+	drop_all			= 8,
+	drop_all_l			= 9,
+	drop_all_r			= 10,
+	empty_weapon		= 11,
+	empty_weapon_l		= 12,
+	empty_weapon_r		= 13,
+	exporter			= 14,
+	exporter_disconnect	= 15,
+	inventory			= 16,
+	inventory_l			= 17,
+	inventory_r			= 18,
+	moving_items		= 19,
+	moving_items_l		= 20,
+	moving_items_r		= 21,
+	open_container		= 22,
+	pickup				= 23,
+	pickup_denied		= 24,
+	send_maker_data		= 25,
+	set_public			= 26,
+	spawn				= 27,
+	spawn_l				= 28,
+	spawn_r				= 29,
+	spawn_self			= 30,
+	spawn_self_l		= 31,
+	spawn_self_r		= 32,
+	store_weapon		= 33,
+	store_weapon_l		= 34,
+	store_weapon_r		= 35,
+	transfer_from		= 36,
+	transfer_to			= 37,
 }
 
 ISAWC.DoNothing = function()end
@@ -413,7 +414,7 @@ ISAWC:CreateListConCommand("isawc_stacklist", {
 			if i%3==1 then -- every 1st
 				v = v:lower()
 				if v=="*" then
-					table.Empty(ISAWC.Stacklist)
+					ISAWC.Stacklist = {}
 					ISAWC:Log("Removed everything from the stack list.") break
 				end
 				curName = v
@@ -459,7 +460,7 @@ ISAWC:CreateListConCommand("isawc_masslist", {
 	help_small = "Usage: isawc_masslist <model/class1> <kg1> <model/class2> <kg2> ...",
 	exe = function(args)
 		if args[1]=="*" then
-			table.Empty(ISAWC.Masslist)
+			ISAWC.Masslist = {}
 			ISAWC:Log("Removed everything from the custom mass list.")
 		elseif #args%2~=0 then
 			ISAWC:Log("Usage: isawc_masslist <model/class1> <kg1> <model/class2> <kg2> ...")
@@ -503,7 +504,7 @@ ISAWC:CreateListConCommand("isawc_player_usergroupmassmullist", {
 	help_small = "Usage: isawc_player_usergroupmassmullist <usergroup1> <mul1> <usergroup2> <mul2> ...",
 	exe = function(args)
 		if args[1]=="*" then
-			table.Empty(ISAWC.MassMultiList)
+			ISAWC.MassMultiList = {}
 			ISAWC:Log("Removed everything from the usergroup mass multiplier list.")
 		elseif #args%2~=0 then
 			ISAWC:Log("Usage: isawc_player_usergroupmassmullist <usergroup1> <mul1> <usergroup2> <mul2> ...")
@@ -546,7 +547,7 @@ ISAWC:CreateListConCommand("isawc_volumelist", {
 	help_small = "Usage: isawc_volumelist <model/class1> <vol1> <model/class2> <vol2> ...",
 	exe = function(args)
 		if args[1]=="*" then
-			table.Empty(ISAWC.Volumelist)
+			ISAWC.Volumelist = {}
 			ISAWC:Log("Removed everything from the custom volume list.")
 		elseif #args%2~=0 then
 			ISAWC:Log("Usage: isawc_volumelist <model/class1> <vol1> <model/class2> <vol2> ...")
@@ -590,7 +591,7 @@ ISAWC:CreateListConCommand("isawc_player_usergroupvolumemullist", {
 	help_small = "Usage: isawc_player_usergroupvolumemullist <usergroup1> <mul1> <usergroup2> <mul2> ...",
 	exe = function(args)
 		if args[1]=="*" then
-			table.Empty(ISAWC.VolumeMultiList)
+			ISAWC.VolumeMultiList = {}
 			ISAWC:Log("Removed everything from the usergroup volume multiplier list.")
 		elseif #args%2~=0 then
 			ISAWC:Log("Usage: isawc_player_usergroupvolumemullist <usergroup1> <mul1> <usergroup2> <mul2> ...")
@@ -633,7 +634,7 @@ ISAWC:CreateListConCommand("isawc_countlist", {
 	help_small = "Usage: isawc_countlist <model/class1> <count1> <model/class2> <count2> ...",
 	exe = function(args)
 		if args[1]=="*" then
-			table.Empty(ISAWC.Countlist)
+			ISAWC.Countlist = {}
 			ISAWC:Log("Removed everything from the custom amount list.")
 		elseif #args%2~=0 then
 			ISAWC:Log("Usage: isawc_countlist <model/class1> <count1> <model/class2> <count2> ...")
@@ -677,7 +678,7 @@ ISAWC:CreateListConCommand("isawc_player_usergroupcountmullist", {
 	help_small = "Usage: isawc_player_usergroupcountmullist <usergroup1> <mul1> <usergroup2> <mul2> ...",
 	exe = function(args)
 		if args[1]=="*" then
-			table.Empty(ISAWC.CountMultiList)
+			ISAWC.CountMultiList = {}
 			ISAWC:Log("Removed everything from the usergroup count multiplier list.")
 		elseif #args%2~=0 then
 			ISAWC:Log("Usage: isawc_player_usergroupcountmullist <usergroup1> <mul1> <usergroup2> <mul2> ...")
@@ -719,7 +720,7 @@ ISAWC:CreateListConCommand("isawc_remaplist", {
 	help_small = "Usage: isawc_remaplist <oldClass1> <newClass1> <oldClass2> <newClass2> ...",
 	exe = function(args)
 		if args[1]=="*" then
-			table.Empty(ISAWC.Remaplist)
+			ISAWC.Remaplist = {}
 			ISAWC:Log("Removed everything from the class remap list.")
 		elseif #args%2~=0 then
 			ISAWC:Log("Usage: isawc_remaplist <oldClass1> <newClass1> <oldClass2> <newClass2> ...")
@@ -908,6 +909,16 @@ Note that the actual lockpicking time is multiplied with the container's Lock Mu
 ISAWC.ConLockpickTimeBump = CreateConVar("isawc_container_lockpicktimedifference", "10", FCVAR_REPLICATED,
 "DarkRP only. Randomly adds or subtracts the amount of time it takes to lockpick a container, in seconds.")
 
+ISAWC.ConEditPropertiesPermissionLevel = CreateConVar("isawc_container_editpropertiespermissionlevel", "0", FCVAR_REPLICATED,
+"Determines the admin level required to edit the container's properties.\
+If 1, only admins can edit container properties.\
+If 2, only superadmins can edit container properties.\
+If 3, no one can edit container properties.\
+Note that the Container Maker SWEP can still edit container properties even if this is set to 3.")
+
+ISAWC.ConAllowHeldWeapons = CreateConVar("isawc_pickup_heldweapons", "1", FCVAR_REPLICATED,
+"If enabled, players will be able to store their currently held weapons into their inventory and into containers.")
+
 local function BasicAutoComplete(cmd, argStr)
 	local possibilities = {}
 	local namesearch = argStr:Trim():lower()
@@ -924,7 +935,7 @@ local lastSQLACTime = 0
 local function PlayerSQLAutoComplete(cmd, argStr)
 	if lastSQLACTime+10 < RealTime() then
 		lastSQLACTime = RealTime()+10
-		table.Empty(lastSQLACResult)
+		lastSQLACResult = {}
 		local results = ISAWC:SQL("SELECT \"steamID\" FROM \"isawc_player_data\";")
 		if results then
 			for k,v in pairs(results) do
@@ -951,10 +962,6 @@ if SERVER then
 			if IsValid(ply) and not ply:IsAdmin() then
 				ISAWC:Log("Access denied.")
 			else
-				for k,v in pairs(file.Find("isawc_containers/*.dat","DATA")) do
-					file.Delete("isawc_containers/"..v)
-				end
-				file.Delete("isawc_containers")
 				ISAWC:SQL("BEGIN; DELETE FROM \"isawc_container_data\";")
 				for k,v in pairs(ents.GetAll()) do
 					if (IsValid(v) and v.Base=="isawc_container_base") then
@@ -973,7 +980,7 @@ if SERVER then
 				ISAWC:Log("Access denied. If you wish to delete your own items, and the server has enabled item delection, please use the option within the inventory GUI.")
 			elseif argStr=="*" then
 				for k,v in pairs(player.GetAll()) do
-					table.Empty(v.ISAWC_Inventory)
+					v.ISAWC_Inventory = {}
 					-- TODO: ISAWC_Inventory init problem?
 				end
 				ISAWC:Log("You have deleted everyone's inventory.")
@@ -982,7 +989,7 @@ if SERVER then
 				for k,v in pairs(player.GetAll()) do
 					if v:Nick() == argStr then
 						success = true
-						table.Empty(v.ISAWC_Inventory)
+						v.ISAWC_Inventory = {}
 						ISAWC:Log("You have deleted the inventory of " .. argStr .. ".")
 						break
 					end
@@ -1051,7 +1058,7 @@ if SERVER then
 						if ply == v then
 							ISAWC:Log("You can't copy your own inventory!")
 						else
-							table.Empty(ply.ISAWC_Inventory)
+							ply.ISAWC_Inventory = {}
 							for i2,v2 in ipairs(v.ISAWC_Inventory) do
 								table.insert(ply.ISAWC_Inventory, v2)
 							end
@@ -1084,7 +1091,7 @@ if SERVER then
 						if ply == v then
 							ISAWC:Log("You can't paste into your own inventory!")
 						else
-							table.Empty(v.ISAWC_Inventory)
+							v.ISAWC_Inventory = {}
 							for i2,v2 in ipairs(ply.ISAWC_Inventory) do
 								table.insert(v.ISAWC_Inventory, v2)
 							end
@@ -1365,6 +1372,8 @@ ISAWC.PopulateDFormPickup = function(DForm)
 	DForm:Help(" - "..ISAWC.ConOverride:GetHelpText().."\n")
 	DForm:CheckBox("Hide Pickup Fail Events",ISAWC.ConPickupDenyLogs:GetName())
 	DForm:Help(" - "..ISAWC.ConPickupDenyLogs:GetHelpText().."\n")
+	DForm:CheckBox("Allow Held Weapons",ISAWC.ConAllowHeldWeapons:GetName())
+	DForm:Help(" - "..ISAWC.ConAllowHeldWeapons:GetHelpText().."\n")
 	DForm:CheckBox("Allow Constrained Entities",ISAWC.ConAllowConstrained:GetName())
 	DForm:Help(" - "..ISAWC.ConAllowConstrained:GetHelpText().."\n")
 	DForm:CheckBox("Allow PhysGunned Entities",ISAWC.ConAllowPickupOnPhysgun:GetName())
@@ -1443,6 +1452,12 @@ ISAWC.PopulateDFormPlayer = function(DForm)
 end
 
 ISAWC.PopulateDFormContainer = function(DForm)
+	local combox = DForm:ComboBox("Properties Editing Permission Level",ISAWC.ConEditPropertiesPermissionLevel:GetName())
+	combox:AddChoice("0 - Anyone", 0)
+	combox:AddChoice("1 - Admins Only", 1)
+	combox:AddChoice("2 - Superadmins Only", 2)
+	combox:AddChoice("3 - No One", 3)
+	DForm:Help(" - "..ISAWC.ConEditPropertiesPermissionLevel:GetHelpText().."\n")
 	DForm:NumSlider("Mass Carrying Multiplier",ISAWC.ConMassMul2:GetName(),0,10,2)
 	DForm:Help(" - "..ISAWC.ConMassMul2:GetHelpText().."\n")
 	DForm:NumSlider("Volume Carrying Multiplier",ISAWC.ConVolMul2:GetName(),0,10,2)
@@ -1451,7 +1466,7 @@ ISAWC.PopulateDFormContainer = function(DForm)
 	DForm:Help(" - "..ISAWC.ConCount2:GetHelpText().."\n")
 	--DForm:NumSlider("Max Items per Stack",ISAWC.ConStackLimit2:GetName(),0,1000,0)
 	--DForm:Help(" - "..ISAWC.ConStackLimit2:GetHelpText().."\n")
-	local combox = DForm:ComboBox("Auto Pickup on Touch",ISAWC.ConDragAndDropOntoContainer:GetName())
+	combox = DForm:ComboBox("Auto Pickup on Touch",ISAWC.ConDragAndDropOntoContainer:GetName())
 	combox:AddChoice("0 - Don't", 0)
 	combox:AddChoice("1 - Use Touch", 1)
 	combox:AddChoice("2 - Use StartTouch", 2)
@@ -1557,13 +1572,15 @@ ISAWC.InstallSortFunctions = function(self,panel,InvPanel,delname,wepstorename,d
 				end
 			end
 		end):SetIcon("icon16/shape_move_backwards.png")
-		sOptions:AddOption("Store Held Weapon",function()
-			ISAWC:StartNetMessage(wepstorename)
-			if IsValid(container) then
-				net.WriteEntity(container)
-			end
-			net.SendToServer()
-		end):SetIcon("icon16/gun.png")
+		if ISAWC.ConAllowHeldWeapons:GetBool() then
+			sOptions:AddOption("Store Held Weapon",function()
+				ISAWC:StartNetMessage(wepstorename)
+				if IsValid(container) then
+					net.WriteEntity(container)
+				end
+				net.SendToServer()
+			end):SetIcon("icon16/gun.png")
+		end
 		local sortOptions,sortOption = sOptions:AddSubMenu("Sort Items")
 		sortOption:SetIcon("icon16/book.png")
 		do
@@ -1680,13 +1697,15 @@ ISAWC.InstallSortFunctions = function(self,panel,InvPanel,delname,wepstorename,d
 				selfOptions:AddCVar("Disable Hint Messages", "isawc_hide_hintnotifications", "1", "0"):SetIcon("icon16/comment_delete.png")
 			end
 		end
-		sOptions:AddOption("Drop All Items",function()
-			ISAWC:StartNetMessage(dropname)
-			if IsValid(container) then
-				net.WriteEntity(container)
-			end
-			net.SendToServer()
-		end):SetIcon("icon16/package_go.png")
+		if ISAWC.ConDropAllAllowed:GetBool() then
+			sOptions:AddOption("Drop All Items",function()
+				ISAWC:StartNetMessage(dropname)
+				if IsValid(container) then
+					net.WriteEntity(container)
+				end
+				net.SendToServer()
+			end):SetIcon("icon16/package_go.png")
+		end
 		if ISAWC.ConAllowDelete:GetBool() then
 			local SubOptions,SubOption = sOptions:AddSubMenu("Delete All")
 			Option = SubOptions:AddOption("Confirm Deletion",function()
@@ -2099,6 +2118,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 	InvFittingRight:SetSelectionCanvas(true)
 	
 	local InvRight = InvFittingRight:Add("DIconLayout")
+	InvRight:SetZPos(2)
 	InvRight:Dock(TOP)
 	InvRight:SetStretchHeight(true)
 	InvRight:SetStretchWidth(false)
@@ -2147,6 +2167,24 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 	function Main:ReceiveInventory(inv1,inv2)
 		InvLeft:Clear()
 		InvRight:Clear()
+		if IsValid(container) then
+			if (container:GetIsPublic() and not ISAWC.ConAlwaysPublic:GetBool()) ~= IsValid(InvFittingRight.UnlockedWarning) then
+				if IsValid(InvFittingRight.UnlockedWarning) then
+					InvFittingRight.UnlockedWarning:Remove()
+				else
+					local WarningText = InvFittingRight:Add("DLabel")
+					WarningText:SetTextColor(color_yellow)
+					WarningText:SetText("This container is currently unlocked and access restriction is not enforced.\nAccess restriction can be enabled in the Container Options menu below.")
+					WarningText:SizeToContentsY()
+					WarningText:SetZPos(1)
+					WarningText:Dock(TOP)
+					InvFittingRight.UnlockedWarning = WarningText
+				end
+			end
+		else
+			self:Close()
+			return ISAWC:NoPickup("The container is missing!")
+		end
 		if next(inv1) then
 			for i,v in ipairs(inv1) do
 				--local enum,info = next(v)
@@ -2699,6 +2737,7 @@ ISAWC.SendInventory2 = function(self,ply,container)
 		net.WriteUInt(stats[i],16)
 	end
 	net.Send(ply)
+	ISAWC:UpdateContainerInventories(container)
 	ISAWC:SaveContainerInventory(container)
 end
 
@@ -2882,20 +2921,10 @@ end
 ISAWC.SaveContainerInventory = function(self,container)
 	container:SendInventoryUpdate()
 	local inv = {ISAWC_Inventory = container.ISAWC_Inventory, ISAWC_PlayerLocalizedInventories = container.ISAWC_PlayerLocalizedInventories}
-	local endername = container:GetEnderInvName()
-	if (endername or "")~="" then
-		for k,v in pairs(ents.GetAll()) do
-			if (v.Base=="isawc_container_base" and v:GetEnderInvName()==endername) then
-				v.ISAWC_Inventory = container.ISAWC_Inventory
-				v.ISAWC_PlayerLocalizedInventories = container.ISAWC_PlayerLocalizedInventories
-				v:SendInventoryUpdate()
-			end
-		end
-	end
-	if self:RemoveRecursions(inv) then
-		self:Log("Warning! " .. tostring(container) .. " had an item with recursive tables! This may cause errors to occur!")
-	end
 	if self.ConSaveIntoFile:GetBool() then
+		if self:RemoveRecursions(inv) then
+			self:Log("Warning! " .. tostring(container) .. " had an item with recursive tables! This may cause errors to occur!")
+		end
 		if container:GetFileID() == "" then
 			self:Log("Warning! " .. tostring(container) .. " failed to save as no ID was associated with the container!")
 		else
@@ -2918,6 +2947,20 @@ ISAWC.SaveContainerInventory = function(self,container)
 				self:SQL("INSERT INTO \"isawc_container_data\" (\"containerID\", \"data\") VALUES (%s, %s);", container:GetFileID(), data)
 			else
 				self:SQL("DELETE FROM \"isawc_container_data\" WHERE \"containerID\" = %s;", container:GetFileID())
+			end
+		end
+	end
+end
+
+ISAWC.UpdateContainerInventories = function(self,container)
+	local endername = container:GetEnderInvName()
+	if (endername or "")~="" then
+		for k,v in pairs(ents.GetAll()) do
+			if v~=container and (v.Base=="isawc_container_base" and v:GetEnderInvName()==endername) then
+				v.ISAWC_Inventory = container.ISAWC_Inventory
+				v.ISAWC_PlayerLocalizedInventories = container.ISAWC_PlayerLocalizedInventories
+				v:SendInventoryUpdate()
+				ISAWC:SaveContainerInventory(v)
 			end
 		end
 	end
@@ -2959,7 +3002,7 @@ ISAWC.DropAll = function(self,container,ply)
 					table.insert(briefcase.ISAWC_Inventory,dupe)
 				end
 			end
-			table.Empty(inv)
+			container:SetInventory({}, ply)
 			
 			ply.ISAWC_DropAllContainers = self:FilterSequentialTable(ply.ISAWC_DropAllContainers or {}, self.FilterIsValid)
 			table.insert(ply.ISAWC_DropAllContainers, briefcase)
@@ -2973,29 +3016,6 @@ ISAWC.DropAll = function(self,container,ply)
 end
 
 ISAWC.PerformCompatibilityLoad = function(self, data)
-	do -- compatibility for 4.0.0 to 4.1.0 versions, remove this in a 5.X.X release
-		ISAWC.BWLists.General.Blacklist = data.Blacklist or ISAWC.BWLists.General.Blacklist
-		ISAWC.BWLists.ContainerMagnetContainer.Blacklist = data.BlackContainerMagnetList or ISAWC.BWLists.ContainerMagnetContainer.Blacklist
-		ISAWC.BWLists.DropOnDeath.Blacklist = data.BlackDeathBoxList or ISAWC.BWLists.DropOnDeath.Blacklist
-		
-		ISAWC.BWLists.General.Whitelist = data.Whitelist or ISAWC.BWLists.General.Whitelist
-		ISAWC.BWLists.Exporter.Whitelist = data.WhiteExtractList or ISAWC.BWLists.Exporter.Whitelist
-		ISAWC.BWLists.ContainerMagnet.Whitelist = data.WhiteMagnetList or ISAWC.BWLists.ContainerMagnet.Whitelist
-		ISAWC.BWLists.DropOnDeath.Whitelist = data.WhiteDeathBoxList or ISAWC.BWLists.DropOnDeath.Whitelist
-		
-		if data.ConUseWhitelist then
-			ISAWC.ConGeneralWhitelistEnabled:SetString(data.ConUseWhitelist)
-		end
-		if data.ConUseExportWhitelist then
-			ISAWC.ConExporterWhitelistEnabled:SetString(data.ConUseExportWhitelist)
-		end
-		if data.ConUseMagnetWhitelist then
-			ISAWC.ConContainerMagnetWhitelistEnabled:SetString(data.ConUseMagnetWhitelist)
-		end
-		if data.ConUseDeathBoxWhitelist then
-			ISAWC.ConDropOnDeathWhitelistEnabled:SetString(data.ConUseDeathBoxWhitelist)
-		end
-	end
 end
 
 ISAWC.PlayerCollisionCallback = function(ply, data)
@@ -3129,7 +3149,7 @@ ISAWC.PlayerDeath = function(ply)
 			else
 				SafeRemoveEntity(briefcase)
 			end
-			table.Empty(ply.ISAWC_Inventory)
+			ply.ISAWC_Inventory = {}
 			ISAWC:SendInventory(ply)
 			ISAWC:SaveInventory(ply)
 		end
@@ -3691,7 +3711,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			end
 		elseif self:IsMessageType(func, "delete_full") or self:IsMessageType(func, "delete_full_l") then
 			if self.ConAllowDelete:GetBool() then
-				table.Empty(ply.ISAWC_Inventory)
+				ply.ISAWC_Inventory = {}
 			else
 				self:NoPickup("You can't delete inventory items!",ply)
 			end
@@ -3707,7 +3727,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			local container = net.ReadEntity()
 			if self:IsLegalContainer(container,ply) then
 				if self.ConAllowDelete:GetBool() then
-					table.Empty(container:GetInventory(ply))
+					container:SetInventory({}, ply)
 				else
 					self:NoPickup("You can't delete inventory items!",ply)
 				end
@@ -3767,46 +3787,58 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 				self:SendInventory2(ply,container)
 			end
 		elseif self:IsMessageType(func, "store_weapon") then
-			local ent = ply:GetActiveWeapon()
-			if IsValid(ent) then
-				if self:CanPickup(ply,ent,true) then
-					ply:DropWeapon(ent)
-					if self:CanProperty(ply,ent) then
-						self:PropPickup(ply,ent)
-					end
-				end
-			else
-				self:NoPickup("You don't have any weapons equipped!",ply)
-			end
-		elseif self:IsMessageType(func, "store_weapon_l") then
-			local container = net.ReadEntity()
-			if self:IsLegalContainer(container,ply) then
+			if ISAWC.ConAllowHeldWeapons:GetBool() then
 				local ent = ply:GetActiveWeapon()
 				if IsValid(ent) then
 					if self:CanPickup(ply,ent,true) then
 						ply:DropWeapon(ent)
 						if self:CanProperty(ply,ent) then
-							self:PropPickup(ply,ent,container)
+							self:PropPickup(ply,ent)
 						end
 					end
 				else
 					self:NoPickup("You don't have any weapons equipped!",ply)
 				end
+			else
+				self:NoPickup("You can't put held weapons into containers!",ply)
+			end
+		elseif self:IsMessageType(func, "store_weapon_l") then
+			if ISAWC.ConAllowHeldWeapons:GetBool() then
+				local container = net.ReadEntity()
+				if self:IsLegalContainer(container,ply) then
+					local ent = ply:GetActiveWeapon()
+					if IsValid(ent) then
+						if self:CanPickup(ply,ent,true) then
+							ply:DropWeapon(ent)
+							if self:CanProperty(ply,ent) then
+								self:PropPickup(ply,ent,container)
+							end
+						end
+					else
+						self:NoPickup("You don't have any weapons equipped!",ply)
+					end
+				end
+			else
+				self:NoPickup("You can't put held weapons into containers!",ply)
 			end
 		elseif self:IsMessageType(func, "store_weapon_r") then
-			local container = net.ReadEntity()
-			if self:IsLegalContainer(container,ply) then
-				local ent = ply:GetActiveWeapon()
-				if IsValid(ent) then
-					if self:CanPickup(container,ent,true) then
-						ply:DropWeapon(ent)
-						if self:CanProperty(container,ent) then
-							self:PropPickup(container,ent,ply)
+			if ISAWC.ConAllowHeldWeapons:GetBool() then
+				local container = net.ReadEntity()
+				if self:IsLegalContainer(container,ply) then
+					local ent = ply:GetActiveWeapon()
+					if IsValid(ent) then
+						if self:CanPickup(container,ent,true) then
+							ply:DropWeapon(ent)
+							if self:CanProperty(container,ent) then
+								self:PropPickup(container,ent,ply)
+							end
 						end
+					else
+						self:NoPickup("You don't have any weapons equipped!",ply)
 					end
-				else
-					self:NoPickup("You don't have any weapons equipped!",ply)
 				end
+			else
+				self:NoPickup("You can't put held weapons into containers!",ply)
 			end
 		elseif self:IsMessageType(func, "exporter") then
 			local exporter = net.ReadEntity()
@@ -3849,6 +3881,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			local container = net.ReadEntity()
 			if self:IsLegalContainer(container,ply) then
 				container:SetIsPublic(isPublic)
+				self:SendInventory2(ply,container)
 			end
 		else
 			self:Log("Received unrecognised message header \"" .. func .. "\" from " .. ply:Nick() .. ". Assuming data packet corrupted.")
@@ -4104,6 +4137,12 @@ end
 ISAWC.OldCanProperty = function(ply,name,ent)
 	if name=="isawc_pickup" then
 		return ISAWC:CanPickup(ply,ent)
+	elseif name=="editentity" and IsValid(ply) and (IsValid(ent) and ent.Base == "isawc_container_base") then
+		local permissionValue = ISAWC.ConEditPropertiesPermissionLevel:GetInt()
+		if permissionValue > 2 then return false
+		elseif permissionValue > 1 and not ply:IsSuperAdmin() then return false
+		elseif permissionValue > 0 and not ply:IsAdmin() then return false
+		end
 	end
 end
 
@@ -4289,7 +4328,7 @@ ISAWC.Tick = function()
 				}
 				local traceresult = util.TraceLine(tracedata)
 				if traceresult.HitWorld then
-					table.Empty(tracedata)
+					tracedata = {}
 					local hitpos = traceresult.HitPos
 					for k,v in pairs(ents.FindInSphere(hitpos,16)) do
 						tracedata[v] = -v:GetPos():DistToSqr(hitpos)
@@ -4439,6 +4478,10 @@ ISAWC.PropPickup = function(self,ply,ent,container)
 			v:SetMoveType(MOVETYPE_NONE)
 			self.StoredInAltSaveProps[v] = true
 		else
+			-- clear out inventories to prevent item duplication
+			if v.ISAWC_Inventory then
+				v.ISAWC_Inventory = {}
+			end
 			v:Fire("Kill")
 		end
 	end

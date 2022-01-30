@@ -97,6 +97,20 @@ function SWEP:PrimaryAttack()
 			ent:Remove()
 			self:EmitSound("buttons/button17.wav")
 			ply:PrintMessage(HUD_PRINTTALK, "The physics prop has been turned into a transformed container!")
+		elseif ent:GetClass()=="isawc_container_template" then
+			ent.ContainerMassMul = self:GetMassMul()
+			ent.ContainerVolumeMul = self:GetVolumeMul()
+			ent.ContainerConstants = {
+				Mass = self:GetMassConstant(),
+				Volume = self:GetVolumeConstant()
+			}
+			ent:SetCountMul(self:GetCountMul())
+			ent:SetLockMul(self:GetLockMul())
+			ent.OpenSounds = string.Split(self:GetOpenSounds(), '|')
+			ent.CloseSounds = string.Split(self:GetCloseSounds(), '|')
+			ent:InterpretAdditionalAccess(self:GetAdditionalAccess(), ply)
+			self:EmitSound("buttons/button17.wav")
+			ply:PrintMessage(HUD_PRINTTALK, "The transformed container has been updated!")
 		else
 			self:EmitSound("items/medshotno1.wav")
 			ply:PrintMessage(HUD_PRINTTALK, "That is not a physics prop!")

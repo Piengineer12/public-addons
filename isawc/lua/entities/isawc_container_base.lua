@@ -79,7 +79,7 @@ function ENT:Initialize()
 		if IsValid(physobj) then
 			physobj:Wake()
 			if ISAWC.ConAutoHealth:GetFloat() > 0 and self:GetContainerHealth()==0 then
-				self:SetContainerHealth(math.max(math.Round(physobj:GetVolume()*0.001*ISAWC.ConAutoHealth:GetFloat(),-1),10))
+				self:SetContainerHealth(math.max(math.Round(physobj:GetVolume()/1e3*ISAWC.ConAutoHealth:GetFloat(),-1),10))
 			end
 		end
 		self:PrecacheGibs()
@@ -111,12 +111,15 @@ function ENT:Initialize()
 		if creator:IsPlayer() and self:GetOwnerAccountID()==0 then
 			self:SetOwnerAccountID(creator:AccountID() or 0)
 		end
-		-- compatibility, remove for version 5.0.0+
-		if self:GetPlayerTeam()~=0 then
-			self:SetTeam(self:GetPlayerTeam())
-		end
+		self:CheckAndCopyFromEnderContainer()
 	end
 	
+	self.MagnetScale = self:BoundingRadius()
+	self.NextRegenThink = CurTime()
+	self.MagnetTraceResult = {}
+end
+
+function ENT:CheckAndCopyFromEnderContainer()
 	local endername = self:GetEnderInvName()
 	if (endername or "")~="" then
 		local invNeedsLoad = table.IsEmpty(self.ISAWC_Inventory)
@@ -134,9 +137,6 @@ function ENT:Initialize()
 			end
 		end
 	end
-	self.MagnetScale = self:BoundingRadius()
-	self.NextRegenThink = CurTime()
-	self.MagnetTraceResult = {}
 end
 
 function ENT:InterpretAdditionalAccess(accessStr, ply)
@@ -171,7 +171,9 @@ end
 
 function ENT:PostEntityPaste(ply,ent,entities)
 	self:SetModel(self.ContainerModel)
-	self:PhysicsInit(SOLID_VPHYSICS)
+	if self.ISAWC_Template then
+		self:PhysicsInit(SOLID_VPHYSICS)
+	end
 	self.ISAWC_PermittedPlayersObject = ISAWC:CreatePermissionsObject(self.ISAWC_PermittedPlayersObject)
 	
 	local baseClass = scripted_ents.Get("base_wire_entity")
@@ -207,6 +209,7 @@ function ENT:PickUpTouchedProp(ent)
 				or player.GetByAccountID(self:GetOwnerAccountID())
 			)
 			ISAWC:PropPickup(self,ent,pickupPlayer)
+			ISAWC:UpdateContainerInventories(self)
 			ISAWC:SaveContainerInventory(self)
 		end
 	end
@@ -223,6 +226,7 @@ function ENT:Use(activator,caller,typ,data)
 		if self:GetOwnerAccountID()==0 then
 			self:SetOwnerAccountID(activator:AccountID() or 0)
 		end
+		self:CheckAndCopyFromEnderContainer()
 		if SERVER and ISAWC.ConSaveIntoFile:GetBool() and (table.IsEmpty(self.ISAWC_Inventory) or table.IsEmpty(self.ISAWC_PlayerLocalizedInventories)) then
 			local chosenFileID = self:GetFileID()
 			local result = ISAWC:SQL("SELECT \"containerID\", \"data\" FROM \"isawc_container_data\" WHERE \"containerID\" = %s;", chosenFileID)
@@ -238,8 +242,6 @@ function ENT:Use(activator,caller,typ,data)
 				if table.IsEmpty(self.ISAWC_PlayerLocalizedInventories) then
 					self.ISAWC_PlayerLocalizedInventories = data.ISAWC_PlayerLocalizedInventories or {}
 				end
-			elseif file.Exists("isawc_containers/"..chosenFileID..".dat","DATA") then
-				self.ISAWC_Inventory = util.JSONToTable(util.Decompress(file.Read("isawc_containers/"..chosenFileID..".dat") or "")) or {}
 			end
 		end
 		if ISAWC:IsLegalContainer(self, activator, true) then
@@ -290,7 +292,7 @@ function ENT:OnTakeDamage(dmginfo)
 end
 
 function ENT:OnRemove()
-	if SERVER and self.ISAWC_Inventory and ISAWC.ConDropOnDeathContainer:GetBool() then
+	if SERVER and ISAWC.ConDropOnDeathContainer:GetBool() and (IsValid(self) and self.ISAWC_Inventory) then
 		local ply = player.GetByAccountID(self:GetOwnerAccountID())
 		if IsValid(ply) then
 			ISAWC:SetSuppressUndo(true)
@@ -301,14 +303,22 @@ function ENT:OnRemove()
 				end
 			end
 			ISAWC:SetSuppressUndo(false)
-			table.Empty(self.ISAWC_Inventory)
-			ISAWC:SaveContainerInventory(self)
+			
+			-- a restart would've triggered this, clearing out container inventories before they get saved
+			--table.Empty(self.ISAWC_Inventory)
+			--ISAWC:SaveContainerInventory(self)
+			
+			-- instead, keep our inventory, but signal others that we've been cleared out
+			local tempInv = self.ISAWC_Inventory
+			self.ISAWC_Inventory = {}
+			ISAWC:UpdateContainerInventories(self)
+			self.ISAWC_Inventory = tempInv
 		else
 			ISAWC:Log(string.format("Warning! Owner of container %s was missing, so items couldn't be dropped!", tostring(self)))
 		end
-		if self.ISAWC_OnRemove then
-			self:ISAWC_OnRemove()
-		end
+	end
+	if self.ISAWC_OnRemove then
+		self:ISAWC_OnRemove()
 	end
 end
 
@@ -350,7 +360,7 @@ function ENT:Think()
 			while invalid do
 				local chosenFileID = GenStringFile()
 				local result = ISAWC:SQL("SELECT \"containerID\" FROM \"isawc_container_data\" WHERE \"containerID\" = %s;", chosenFileID)
-				invalid = file.Exists("isawc_containers/"..chosenFileID..".dat","DATA") or container_ents[chosenFileID] or (result and next(result))
+				invalid = container_ents[chosenFileID] or (result and next(result))
 				if not invalid then
 					self:SetFileID(chosenFileID)
 				end
@@ -483,13 +493,13 @@ function ENT:GetInventory(ply)
 	end
 end
 
-hook.Add("canLockpick", "ISAWC X DarkRP", function(ply, ent, trace)
+hook.Add("canLockpick", "ISAWC × DarkRP", function(ply, ent, trace)
 	if ent.Base == "isawc_container_base" then
 		return ISAWC.ConLockpickTime:GetFloat() >= 0 and ent:GetLockMul() > 0 and not ent:GetIsPublic()
 	end
 end)
 
-hook.Add("lockpickTime", "ISAWC X DarkRP", function(ply, ent)
+hook.Add("lockpickTime", "ISAWC × DarkRP", function(ply, ent)
 	if ent.Base == "isawc_container_base" then
 		local averageTime = ISAWC.ConLockpickTime:GetFloat()
 		
@@ -505,8 +515,9 @@ hook.Add("lockpickTime", "ISAWC X DarkRP", function(ply, ent)
 	end
 end)
 
-hook.Add("onLockpickCompleted", "ISAWC X DarkRP", function(ply, success, ent)
+hook.Add("onLockpickCompleted", "ISAWC × DarkRP", function(ply, success, ent)
 	if ent.Base == "isawc_container_base" and success then
 		ent:SetIsPublic(true)
+		ISAWC:SendInventory2(ply,ent)
 	end
 end)
