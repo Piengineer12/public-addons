@@ -176,8 +176,10 @@ function ENT:PostEntityPaste(ply,ent,entities)
 	end
 	self.ISAWC_PermittedPlayersObject = ISAWC:CreatePermissionsObject(self.ISAWC_PermittedPlayersObject)
 	
-	local baseClass = scripted_ents.Get("base_wire_entity")
-	baseClass.PostEntityPaste(self,ply,ent,entities)
+	if WireLib then
+		local baseClass = scripted_ents.Get("base_wire_entity")
+		baseClass.PostEntityPaste(self,ply,ent,entities)
+	end
 end
 
 function ENT:Touch(ent)
