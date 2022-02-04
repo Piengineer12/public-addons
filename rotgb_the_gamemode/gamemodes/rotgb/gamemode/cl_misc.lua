@@ -80,9 +80,19 @@ end
 
 concommand.Add("rotgb_tg_difficulty_menu", function()
 	hook.Run("ShowDifficultySelection")
-end, nil, "Opens the Difficulty Selection Menu. Only works for admins.")
+end, nil, "#command.rotgb_tg_difficulty_menu.help")
 
 function GM:StartVote(voteInfo)
 	hook.Run("SetCurrentVote", voteInfo)
 	hook.Run("ShowVoterMenu")
+end
+
+function GM:InsertRichTextWithMulticoloredString(RichText, multiColoredString)
+	for i,v in ipairs(multiColoredString) do
+		if istable(v) then
+			RichText:InsertColorChange(v.r,v.g,v.b,v.a)
+		else
+			RichText:AppendText(tostring(v))
+		end
+	end
 end

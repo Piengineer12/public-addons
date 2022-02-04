@@ -1,4 +1,5 @@
 -- Checks if the table has value duplicates
+-- This assumes that all values in the table can be compared for equality to one another
 -- bool <- table tab
 function table.HasDuplicates(tab)
 	local encountered = {}
@@ -12,6 +13,7 @@ function table.HasDuplicates(tab)
 end
 
 -- Checks if any two tables within the provided table have the same value for a given member
+-- This assumes that all member values in the tables can be compared for equality to one another
 -- bool <- table tab, any member
 function table.HasMemberDuplicates(tab, member)
 	local encountered = {}
@@ -26,6 +28,7 @@ end
 
 -- Returns a table containing value-count pairs, indicating the number of times the values
 -- appeared in the given table
+-- This assumes that all values in the table can be compared for equality to one another
 -- table <- table tab
 function table.GetValuesCount(tab)
 	local encountered = {}
@@ -37,6 +40,7 @@ end
 
 -- Returns a table containing value-count pairs, indicating the number of times the values
 -- appeared for a specific member across all tables within the given table
+-- This assumes that all member values in the tables can be compared for equality to one another
 -- table <- table tab, any member
 function table.GetMemberValuesCount(tab, member)
 	local encountered = {}
@@ -44,6 +48,27 @@ function table.GetMemberValuesCount(tab, member)
 		encountered[v[member]] = (encountered[v[member]] or 0) + 1
 	end
 	return encountered
+end
+
+-- Interweaves all passed sequential tables into a new table and returns it
+-- The values that are inserted are tab1[1], then tab2[1], then tab3[1], etc.,
+-- followed by tab1[2], then tab2[2], then tab3[2], etc., and so on until a nil is encountered in any table
+-- table <- table tab1, table tab2, ...
+function table.Interweave(tab1, ...)
+	local returnTable = {}
+	local tablesToWeave = {tab1, ...}
+	local index = 1
+	for i=1,#tab1 do
+		for j,tableToWeave in ipairs(tablesToWeave) do
+			local element = tableToWeave[i]
+			if element then
+				table.insert(returnTable, element)
+			else
+				return returnTable
+			end
+		end
+	end
+	return returnTable
 end
 
 -- Linearly interpolates between two Colors, constructs and returns a new Color object
@@ -98,6 +123,27 @@ end
 	end
 	return newColor, isGood
 end]]
+
+-- Same as string.Explode, except that the seperators are included in the resulting table
+-- table <- string seperator, string toExplode, bool withpattern = false
+function string.ExplodeIncludeSeperators(seperator, toExplode, withpattern)
+	if seperator == "" then return totable(toExplode) end
+	withpattern = withpattern or false
+	
+	local ret = {}
+	local current_pos = 1
+	
+	for i=1,#toExplode do
+		local start_pos, end_pos = string.find(toExplode, seperator, current_pos, not withpattern)
+		if not start_pos then break end
+		table.insert(ret, string.sub(toExplode, current_pos, start_pos-1))
+		table.insert(ret, string.sub(toExplode, start_pos, end_pos))
+		current_pos = end_pos + 1
+	end
+	
+	table.insert(ret, string.sub(toExplode, current_pos))
+	return ret
+end
 
 VectorTable = VectorTable or {}
 

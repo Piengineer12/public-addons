@@ -360,7 +360,7 @@ if engine.ActiveGamemode() == "rotgb" then
 		if hook.Run("GetSkillAmount", "targetRegeneration") > 0 then
 			for k,v in pairs(ents.FindByClass("gballoon_target")) do
 				v:SetPerWaveShield(v:GetMaxHealth()*v:GetPerWaveShieldPercent()/100)
-				local healing = math.min(v:GetMaxHealth()-v:Health(), math.floor(hook.Run("GetSkillAmount", "targetRegeneration")))
+				local healing = math.max(math.min(v:GetMaxHealth()-v:Health(), math.floor(hook.Run("GetSkillAmount", "targetRegeneration"))), 0)
 				v:SetHealth(v:Health()+healing)
 				if healing > 0 then
 					net.Start("rotgb_target_received_damage")

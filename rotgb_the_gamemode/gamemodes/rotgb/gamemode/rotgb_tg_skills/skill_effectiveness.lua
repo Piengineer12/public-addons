@@ -7,7 +7,7 @@ for i=1,99 do
 		local yPos = math.cos(angle)*distance
 		local skill = {
 			ref = string.format("se%i", i),
-			name = "Skill Effectiveness",
+			name = "#rotgb_tg.skills.names.skill_effectiveness",
 			trait = "skillEffectiveness",
 			amount = 1,
 			links = {string.format("se%i", i-1)},
@@ -28,7 +28,7 @@ for i=1,99 do
 end
 table.insert(skillEffectivenessSkills, {
 	ref = "se50",
-	name = "Skill Effectiveness",
+	name = "#rotgb_tg.skills.names.skill_effectiveness",
 	trait = "skillEffectiveness",
 	amount = 1,
 	links = {"se25", "ydihylh"},
@@ -37,7 +37,7 @@ table.insert(skillEffectivenessSkills, {
 })
 table.insert(skillEffectivenessSkills, {
 	ref = "se100",
-	name = "Skill Effectiveness",
+	name = "#rotgb_tg.skills.names.skill_effectiveness",
 	trait = "skillEffectiveness",
 	amount = 1,
 	links = {"se75", "hdtgpqa"},

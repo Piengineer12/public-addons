@@ -105,5 +105,44 @@ net.Receive("rotgb_gamemode", function()
 		if IsValid(hook.Run("GetVoteMenu")) then
 			hook.Run("GetVoteMenu"):UpdateRightPanel(RTG_VOTE_MAP)
 		end
+	elseif operation == RTG_OPERATION_TEAM then
+		local suboperation = net.ReadUInt(4)
+		if suboperation == RTG_TEAM_WAIT then
+			chat.AddText(unpack(hook.Run(
+				"GetLocalizedMulticoloredString",
+				"rotgb_tg.teams.too_fast",
+				{string.format("%.2f", net.ReadFloat())},
+				color_white,
+				{color_yellow}
+			)))
+		elseif suboperation == RTG_TEAM_SAME then
+			chat.AddText(color_white, "#rotgb_tg.teams.already_on_team")
+		elseif suboperation == RTG_TEAM_INVALID then
+			chat.AddText(color_white, "#rotgb_tg.teams.invalid_team")
+		elseif suboperation == RTG_TEAM_REJECTED then
+			chat.AddText(color_white, "#rotgb_tg.teams.rejected_from_team")
+		elseif suboperation == RTG_TEAM_CHANGED then
+			local ply = Player(net.ReadUInt(16))
+			local oldTeam = net.ReadInt(32)
+			local newTeam = net.ReadInt(32)
+			
+			if oldTeam == TEAM_UNASSIGNED then
+				chat.AddText(unpack(hook.Run(
+					"GetLocalizedMulticoloredString",
+					"rotgb_tg.teams.joined",
+					{ply:Nick(), language.GetPhrase(team.GetName(newTeam))},
+					color_white,
+					{team.GetColor(oldTeam), team.GetColor(newTeam)}
+				)))
+			else
+				chat.AddText(unpack(hook.Run(
+					"GetLocalizedMulticoloredString",
+					"rotgb_tg.teams.joined_from",
+					{ply:Nick(), language.GetPhrase(team.GetName(oldTeam)), language.GetPhrase(team.GetName(newTeam))},
+					color_white,
+					{team.GetColor(oldTeam), team.GetColor(oldTeam), team.GetColor(newTeam)}
+				)))
+			end
+		end
 	end
 end)

@@ -17,6 +17,13 @@ if SERVER then
 	util.AddNetworkString("RotgB_Bestiary")
 end
 
+if CLIENT then
+	concommand.Add("rotgb_bestiary", function()
+		net.Start("RotgB_Bestiary", true)
+		net.SendToServer()
+	end)
+end
+
 function ENT:SpawnFunction(ply,trace,classname)
 	if not trace.Hit then return end
 	
@@ -226,21 +233,21 @@ RotgB Guide Book (Entities > RotgB: Miscellaneous)
 gBalloons (NPCs > RotgB)
 	17 basic types (NPCs > RotgB: gBalloons)
 	7 blimp types (NPCs > RotgB: gBlimps)
+	7 boss types, with super variants for each (NPCs > RotgB: gBalloons Bosses)
 	4 miscellaneous types (NPCs > RotgB: gBalloons Miscellaneous)
 	4 different modifiers (non-misc. only)
 
 Anti-gBalloon Towers (Entities > RotgB: Towers)
-	16 different types
+	17 different types
 
 gBalloon Spawner (Entities > RotgB: Miscellaneous)
 	Can be set to spawn a custom wave (see rotgb_waveeditor ConCommand)
 	Can be set to also start all other spawners
 	Initial wave can be adjusted
-	Spawn rate can be set
 	Can be set to auto-start
+	Has many more editable properties
 
 gBalloon Targets (Entities > RotgB: Miscellaneous)
-	5 different health amounts
 	Can be set to be waypoints (gBalloons approach, then ignore)
 	Can be linked to other waypoints
 	Waypoint links can be set as gBlimp-only
@@ -285,6 +292,11 @@ local creditsUnimplemented = {
 }
 
 net.Receive("RotgB_Bestiary",function(length,ply)
+	if SERVER then
+		net.Start("RotgB_Bestiary", true)
+		net.Send(ply)
+	end
+	
 	if CLIENT then
 		local Main = vgui.Create("DFrame")
 		Main:SetSize(ScrW()/2,ScrH()/2)

@@ -11,7 +11,7 @@ return {
 		{
 			{
 				ref = "fr1",
-				name = "Fire Rate",
+				name = "#rotgb_tg.skills.names.fire_rate",
 				trait = "towerFireRate",
 				amount = 1,
 				parent = "physgun",
@@ -20,7 +20,7 @@ return {
 			},
 			{
 				ref = "fr2",
-				name = "Fire Rate",
+				name = "#rotgb_tg.skills.names.fire_rate",
 				trait = "towerFireRate",
 				amount = 1,
 				parent = "fr1",
@@ -29,7 +29,7 @@ return {
 			},
 			{
 				ref = "fr3",
-				name = "Fire Rate",
+				name = "#rotgb_tg.skills.names.fire_rate",
 				trait = "towerFireRate",
 				amount = 1,
 				parent = "fr1",
@@ -38,7 +38,7 @@ return {
 			},
 			{
 				ref = "fr4",
-				name = "Fire Rate",
+				name = "#rotgb_tg.skills.names.fire_rate",
 				trait = "towerFireRate",
 				amount = 1,
 				parent = "fr2",
@@ -47,7 +47,7 @@ return {
 			},
 			{
 				ref = "fr5",
-				name = "Fire Rate",
+				name = "#rotgb_tg.skills.names.fire_rate",
 				trait = "towerFireRate",
 				amount = 1,
 				parent = "fr3",
@@ -56,7 +56,7 @@ return {
 			},
 			{
 				ref = "fr6",
-				name = "Fire Rate",
+				name = "#rotgb_tg.skills.names.fire_rate",
 				trait = "towerFireRate",
 				amount = 1,
 				parent = "fr4",
@@ -65,7 +65,7 @@ return {
 			},
 			{
 				ref = "fr7",
-				name = "Fire Rate",
+				name = "#rotgb_tg.skills.names.fire_rate",
 				trait = "towerFireRate",
 				amount = 1,
 				parent = "fr5",
@@ -74,7 +74,7 @@ return {
 			},
 			{
 				ref = "fr8",
-				name = "Fire Rate",
+				name = "#rotgb_tg.skills.names.fire_rate",
 				trait = "towerFireRate",
 				amount = 1,
 				parent = "fr6",
@@ -83,7 +83,7 @@ return {
 			},
 			{
 				ref = "fr9",
-				name = "Fire Rate",
+				name = "#rotgb_tg.skills.names.fire_rate",
 				trait = "towerFireRate",
 				amount = 1,
 				parent = "fr7",
@@ -92,7 +92,7 @@ return {
 			},
 			{
 				ref = "fr10",
-				name = "Fire Rate",
+				name = "#rotgb_tg.skills.names.fire_rate",
 				trait = "towerFireRate",
 				amount = 1,
 				parent = "fr8",
@@ -101,7 +101,7 @@ return {
 			},
 			{
 				ref = "fr11",
-				name = "Fire Rate",
+				name = "#rotgb_tg.skills.names.fire_rate",
 				trait = "towerFireRate",
 				amount = 1,
 				parent = "fr9",
@@ -112,7 +112,7 @@ return {
 		{
 			{
 				ref = "fr12",
-				name = "Fire Rate",
+				name = "#rotgb_tg.skills.names.fire_rate",
 				trait = "towerFireRate",
 				amount = 1,
 				parent = "fr6",
@@ -121,7 +121,7 @@ return {
 			},
 			{
 				ref = "extraBatteries",
-				name = "Extra Batteries",
+				name = "#rotgb_tg.skills.names.extra_batteries",
 				trait = "electrostaticBarrelBounces",
 				amount = 1,
 				tier = 1,
@@ -133,7 +133,7 @@ return {
 		{
 			{
 				ref = "fastCaliberTechnique",
-				name = "Fast Caliber Technique",
+				name = "#rotgb_tg.skills.names.fast_caliber_technique",
 				trait = "sniperQueenFireRate",
 				amount = 15,
 				tier = 1,
@@ -143,7 +143,7 @@ return {
 			},
 			{
 				ref = "bigBombs",
-				name = "Bigger Bombs",
+				name = "#rotgb_tg.skills.names.bigger_bombs",
 				trait = "mortarTowerBombRadius",
 				amount = 25,
 				tier = 1,
@@ -155,7 +155,7 @@ return {
 		{
 			{
 				ref = "range1",
-				name = "Range",
+				name = "#rotgb_tg.skills.names.range",
 				trait = "towerRange",
 				amount = 2,
 				parent = "fastCaliberTechnique",
@@ -164,7 +164,7 @@ return {
 			},
 			{
 				ref = "range3",
-				name = "Range",
+				name = "#rotgb_tg.skills.names.range",
 				trait = "towerRange",
 				amount = 2,
 				parent = "range1",
@@ -173,7 +173,7 @@ return {
 			},
 			{
 				ref = "range5",
-				name = "Range",
+				name = "#rotgb_tg.skills.names.range",
 				trait = "towerRange",
 				amount = 2,
 				parent = "range3",
@@ -182,7 +182,7 @@ return {
 			},
 			{
 				ref = "range2",
-				name = "Range",
+				name = "#rotgb_tg.skills.names.range",
 				trait = "towerRange",
 				amount = 2,
 				parent = "bigBombs",
@@ -191,7 +191,7 @@ return {
 			},
 			{
 				ref = "range4",
-				name = "Range",
+				name = "#rotgb_tg.skills.names.range",
 				trait = "towerRange",
 				amount = 2,
 				parent = "range2",
@@ -200,7 +200,7 @@ return {
 			},
 			{
 				ref = "range6",
-				name = "Range",
+				name = "#rotgb_tg.skills.names.range",
 				trait = "towerRange",
 				amount = 2,
 				parent = "range4",
@@ -211,7 +211,7 @@ return {
 		{
 			{
 				ref = "biggerMines",
-				name = "Bigger Mines",
+				name = "#rotgb_tg.skills.names.bigger_mines",
 				trait = "proximityMineRange",
 				amount = 25,
 				tier = 1,
@@ -221,7 +221,7 @@ return {
 			},
 			{
 				ref = "betterGattlerDesign",
-				name = "Better Gattler Design",
+				name = "#rotgb_tg.skills.names.better_gattler_design",
 				trait = "gatlingGunKnightSpread",
 				amount = -15,
 				tier = 1,
@@ -233,7 +233,7 @@ return {
 		{
 			{
 				ref = "range7",
-				name = "Range",
+				name = "#rotgb_tg.skills.names.range",
 				trait = "towerRange",
 				amount = 2,
 				parent = "biggerMines",
@@ -242,7 +242,7 @@ return {
 			},
 			{
 				ref = "range9",
-				name = "Range",
+				name = "#rotgb_tg.skills.names.range",
 				trait = "towerRange",
 				amount = 2,
 				parent = "range7",
@@ -251,7 +251,7 @@ return {
 			},
 			{
 				ref = "range11",
-				name = "Range",
+				name = "#rotgb_tg.skills.names.range",
 				trait = "towerRange",
 				amount = 2,
 				parent = "range9",
@@ -260,7 +260,7 @@ return {
 			},
 			{
 				ref = "range8",
-				name = "Range",
+				name = "#rotgb_tg.skills.names.range",
 				trait = "towerRange",
 				amount = 2,
 				parent = "betterGattlerDesign",
@@ -269,7 +269,7 @@ return {
 			},
 			{
 				ref = "range10",
-				name = "Range",
+				name = "#rotgb_tg.skills.names.range",
 				trait = "towerRange",
 				amount = 2,
 				parent = "range8",
@@ -278,7 +278,7 @@ return {
 			},
 			{
 				ref = "range12",
-				name = "Range",
+				name = "#rotgb_tg.skills.names.range",
 				trait = "towerRange",
 				amount = 2,
 				parent = "range10",
@@ -289,7 +289,7 @@ return {
 		{
 			{
 				ref = "strongerSawblades",
-				name = "Stronger Sawblades",
+				name = "#rotgb_tg.skills.names.stronger_sawblades",
 				trait = "sawbladeLauncherPierce",
 				amount = 1,
 				tier = 1,
@@ -299,7 +299,7 @@ return {
 			},
 			{
 				ref = "pyroTraining",
-				name = "Pyro Training",
+				name = "#rotgb_tg.skills.names.pyro_training",
 				trait = {"fireCubeFireRate", "fireCubeRange"},
 				amount = {10, 15},
 				tier = 1,
@@ -311,7 +311,7 @@ return {
 		{
 			{
 				ref = "motivation1",
-				name = "Motivation",
+				name = "#rotgb_tg.skills.names.motivation",
 				trait = "towerEarlyFireRate",
 				amount = 3,
 				parent = "range11",
@@ -320,7 +320,7 @@ return {
 			},
 			{
 				ref = "motivation2",
-				name = "Motivation",
+				name = "#rotgb_tg.skills.names.motivation",
 				trait = "towerEarlyFireRate",
 				amount = 3,
 				parent = "motivation1",
@@ -329,7 +329,7 @@ return {
 			},
 			{
 				ref = "motivation3",
-				name = "Motivation",
+				name = "#rotgb_tg.skills.names.motivation",
 				trait = "towerEarlyFireRate",
 				amount = 3,
 				parent = "motivation2",
@@ -338,7 +338,7 @@ return {
 			},
 			{
 				ref = "motivation4",
-				name = "Motivation",
+				name = "#rotgb_tg.skills.names.motivation",
 				trait = "towerEarlyFireRate",
 				amount = 3,
 				parent = "motivation3",
@@ -347,7 +347,7 @@ return {
 			},
 			{
 				ref = "motivation5",
-				name = "Motivation",
+				name = "#rotgb_tg.skills.names.motivation",
 				trait = "towerEarlyFireRate",
 				amount = 3,
 				parent = "motivation4",
@@ -356,7 +356,7 @@ return {
 			},
 			{
 				ref = "motivation6",
-				name = "Motivation",
+				name = "#rotgb_tg.skills.names.motivation",
 				trait = "towerEarlyFireRate",
 				amount = 3,
 				parent = "motivation5",
@@ -365,7 +365,7 @@ return {
 			},
 			{
 				ref = "motivation7",
-				name = "Motivation",
+				name = "#rotgb_tg.skills.names.motivation",
 				trait = "towerEarlyFireRate",
 				amount = 3,
 				parent = "motivation6",
@@ -374,7 +374,7 @@ return {
 			},
 			{
 				ref = "motivation8",
-				name = "Motivation",
+				name = "#rotgb_tg.skills.names.motivation",
 				trait = "towerEarlyFireRate",
 				amount = 3,
 				parent = "motivation7",
@@ -385,7 +385,7 @@ return {
 		{
 			{
 				ref = "warHorn1",
-				name = "War Horn",
+				name = "#rotgb_tg.skills.names.war_horn",
 				trait = "towerAbilityD3FireRate",
 				amount = 5,
 				parent = "strongerSawblades",
@@ -394,7 +394,7 @@ return {
 			},
 			{
 				ref = "warHorn2",
-				name = "War Horn",
+				name = "#rotgb_tg.skills.names.war_horn",
 				trait = "towerAbilityD3FireRate",
 				amount = 5,
 				parent = "warHorn1",
@@ -403,7 +403,7 @@ return {
 			},
 			{
 				ref = "warHorn3",
-				name = "War Horn",
+				name = "#rotgb_tg.skills.names.war_horn",
 				trait = "towerAbilityD3FireRate",
 				amount = 5,
 				parent = "warHorn2",
@@ -412,7 +412,7 @@ return {
 			},
 			{
 				ref = "warHorn4",
-				name = "War Horn",
+				name = "#rotgb_tg.skills.names.war_horn",
 				trait = "towerAbilityD3FireRate",
 				amount = 5,
 				parent = "warHorn3",
@@ -421,7 +421,7 @@ return {
 			},
 			{
 				ref = "warHorn5",
-				name = "War Horn",
+				name = "#rotgb_tg.skills.names.war_horn",
 				trait = "towerAbilityD3FireRate",
 				amount = 5,
 				parent = "warHorn4",
@@ -430,7 +430,7 @@ return {
 			},
 			{
 				ref = "warHorn6",
-				name = "War Horn",
+				name = "#rotgb_tg.skills.names.war_horn",
 				trait = "towerAbilityD3FireRate",
 				amount = 5,
 				parent = "warHorn5",
@@ -439,7 +439,7 @@ return {
 			},
 			{
 				ref = "warHorn7",
-				name = "War Horn",
+				name = "#rotgb_tg.skills.names.war_horn",
 				trait = "towerAbilityD3FireRate",
 				amount = 5,
 				parent = "warHorn6",
@@ -448,7 +448,7 @@ return {
 			},
 			{
 				ref = "warHorn8",
-				name = "War Horn",
+				name = "#rotgb_tg.skills.names.war_horn",
 				trait = "towerAbilityD3FireRate",
 				amount = 5,
 				parent = "warHorn7",
@@ -459,7 +459,7 @@ return {
 		{
 			{
 				ref = "mip1",
-				name = "Money Is Power",
+				name = "#rotgb_tg.skills.names.money_is_power",
 				trait = "towerMoneyFireRate",
 				amount = 0.15,
 				parent = "range12",
@@ -468,7 +468,7 @@ return {
 			},
 			{
 				ref = "mip2",
-				name = "Money Is Power",
+				name = "#rotgb_tg.skills.names.money_is_power",
 				trait = "towerMoneyFireRate",
 				amount = 0.15,
 				parent = "mip1",
@@ -477,7 +477,7 @@ return {
 			},
 			{
 				ref = "mip3",
-				name = "Money Is Power",
+				name = "#rotgb_tg.skills.names.money_is_power",
 				trait = "towerMoneyFireRate",
 				amount = 0.15,
 				parent = "mip2",
@@ -486,7 +486,7 @@ return {
 			},
 			{
 				ref = "mip4",
-				name = "Money Is Power",
+				name = "#rotgb_tg.skills.names.money_is_power",
 				trait = "towerMoneyFireRate",
 				amount = 0.15,
 				parent = "mip3",
@@ -495,7 +495,7 @@ return {
 			},
 			{
 				ref = "mip5",
-				name = "Money Is Power",
+				name = "#rotgb_tg.skills.names.money_is_power",
 				trait = "towerMoneyFireRate",
 				amount = 0.15,
 				parent = "mip4",
@@ -504,7 +504,7 @@ return {
 			},
 			{
 				ref = "mip6",
-				name = "Money Is Power",
+				name = "#rotgb_tg.skills.names.money_is_power",
 				trait = "towerMoneyFireRate",
 				amount = 0.15,
 				parent = "mip5",
@@ -513,7 +513,7 @@ return {
 			},
 			{
 				ref = "mip7",
-				name = "Money Is Power",
+				name = "#rotgb_tg.skills.names.money_is_power",
 				trait = "towerMoneyFireRate",
 				amount = 0.15,
 				parent = "mip6",
@@ -522,7 +522,7 @@ return {
 			},
 			{
 				ref = "mip8",
-				name = "Money Is Power",
+				name = "#rotgb_tg.skills.names.money_is_power",
 				trait = "towerMoneyFireRate",
 				amount = 0.15,
 				parent = "mip7",
@@ -533,7 +533,7 @@ return {
 		{
 			{
 				ref = "betterDiffraction",
-				name = "Better Diffraction",
+				name = "#rotgb_tg.skills.names.better_diffraction",
 				trait = "microwaveGeneratorMicrowaveAngle",
 				amount = 25,
 				tier = 1,
@@ -543,7 +543,7 @@ return {
 			},
 			{
 				ref = "fasterAssembly",
-				name = "Faster Assembly",
+				name = "#rotgb_tg.skills.names.faster_assembly",
 				trait = "turretFactoryAbilityCooldown",
 				amount = -15,
 				tier = 1,
@@ -553,7 +553,7 @@ return {
 			},
 			{
 				ref = "reshapedPills",
-				name = "Reshaped Pills",
+				name = "#rotgb_tg.skills.names.reshaped_pills",
 				trait = {"pillLobberFlyTime", "pillLobberExploRadius", "pillLobberDirectDamage"},
 				amount = {-15, 15, 1},
 				tier = 1,
@@ -564,7 +564,7 @@ return {
 		},
 		{
 			ref = "rcmb",
-			name = "RAINBOW COLOURED MASTER BEAM",
+			name = "#rotgb_tg.skills.names.rainbow_coloured_master_beam",
 			trait = "rainbowBeamerDamage",
 			amount = 100,
 			tier = 2,
@@ -576,7 +576,7 @@ return {
 	{
 		{
 			ref = "dr1",
-			name = "Defence",
+			name = "#rotgb_tg.skills.names.defence",
 			trait = "targetDefence",
 			amount = 2,
 			parent = "physgun",
@@ -587,7 +587,7 @@ return {
 		{
 			{
 				ref = "dr2",
-				name = "Defence",
+				name = "#rotgb_tg.skills.names.defence",
 				trait = "targetDefence",
 				amount = 2,
 				parent = "dr1",
@@ -596,7 +596,7 @@ return {
 			},
 			{
 				ref = "dr3",
-				name = "Defence",
+				name = "#rotgb_tg.skills.names.defence",
 				trait = "targetDefence",
 				amount = 2,
 				parent = "dr2",
@@ -605,7 +605,7 @@ return {
 			},
 			{
 				ref = "dr4",
-				name = "Defence",
+				name = "#rotgb_tg.skills.names.defence",
 				trait = "targetDefence",
 				amount = 2,
 				parent = "dr3",
@@ -614,7 +614,7 @@ return {
 			},
 			{
 				ref = "dr5",
-				name = "Defence",
+				name = "#rotgb_tg.skills.names.defence",
 				trait = "targetDefence",
 				amount = 2,
 				parent = "dr4",
@@ -623,7 +623,7 @@ return {
 			},
 			{
 				ref = "dr6",
-				name = "Defence",
+				name = "#rotgb_tg.skills.names.defence",
 				trait = "targetDefence",
 				amount = 2,
 				parent = "dr5",
@@ -632,7 +632,7 @@ return {
 			},
 			{
 				ref = "dr7",
-				name = "Defence",
+				name = "#rotgb_tg.skills.names.defence",
 				trait = "targetDefence",
 				amount = 2,
 				parent = "dr1",
@@ -641,7 +641,7 @@ return {
 			},
 			{
 				ref = "dr8",
-				name = "Defence",
+				name = "#rotgb_tg.skills.names.defence",
 				trait = "targetDefence",
 				amount = 2,
 				parent = "dr7",
@@ -650,7 +650,7 @@ return {
 			},
 			{
 				ref = "dr9",
-				name = "Defence",
+				name = "#rotgb_tg.skills.names.defence",
 				trait = "targetDefence",
 				amount = 2,
 				parent = "dr8",
@@ -659,7 +659,7 @@ return {
 			},
 			{
 				ref = "dr10",
-				name = "Defence",
+				name = "#rotgb_tg.skills.names.defence",
 				trait = "targetDefence",
 				amount = 2,
 				parent = "dr9",
@@ -668,7 +668,7 @@ return {
 			},
 			{
 				ref = "dr11",
-				name = "Defence",
+				name = "#rotgb_tg.skills.names.defence",
 				trait = "targetDefence",
 				amount = 2,
 				parent = "dr10",
@@ -679,7 +679,7 @@ return {
 		{
 			{
 				ref = "mh1",
-				name = "Maximum Health",
+				name = "#rotgb_tg.skills.names.maximum_health",
 				trait = "targetHealth",
 				amount = 2,
 				parent = "dr1",
@@ -688,7 +688,7 @@ return {
 			},
 			{
 				ref = "oneShotProtection1",
-				name = "One Shot Protection",
+				name = "#rotgb_tg.skills.names.one_shot_protection",
 				trait = "targetOSP",
 				amount = 1,
 				tier = 1,
@@ -698,7 +698,7 @@ return {
 			},
 			{
 				ref = "regeneration1",
-				name = "Regeneration",
+				name = "#rotgb_tg.skills.names.regeneration",
 				trait = "targetRegeneration",
 				amount = 1,
 				tier = 1,
@@ -708,7 +708,7 @@ return {
 			},
 			{
 				ref = "oneShotProtection2",
-				name = "One Shot Protection",
+				name = "#rotgb_tg.skills.names.one_shot_protection",
 				trait = "targetOSP",
 				amount = 1,
 				tier = 1,
@@ -720,7 +720,7 @@ return {
 		{
 			{
 				ref = "es1",
-				name = "Energy Shield",
+				name = "#rotgb_tg.skills.names.energy_shield",
 				trait = "targetShield",
 				amount = 0.5,
 				parent = "oneShotProtection1",
@@ -729,7 +729,7 @@ return {
 			},
 			{
 				ref = "es2",
-				name = "Energy Shield",
+				name = "#rotgb_tg.skills.names.energy_shield",
 				trait = "targetShield",
 				amount = 0.5,
 				parent = "es1",
@@ -738,7 +738,7 @@ return {
 			},
 			{
 				ref = "es3",
-				name = "Energy Shield",
+				name = "#rotgb_tg.skills.names.energy_shield",
 				trait = "targetShield",
 				amount = 0.5,
 				parent = "es2",
@@ -747,7 +747,7 @@ return {
 			},
 			{
 				ref = "es4",
-				name = "Energy Shield",
+				name = "#rotgb_tg.skills.names.energy_shield",
 				trait = "targetShield",
 				amount = 0.5,
 				parent = "es3",
@@ -756,7 +756,7 @@ return {
 			},
 			{
 				ref = "es5",
-				name = "Energy Shield",
+				name = "#rotgb_tg.skills.names.energy_shield",
 				trait = "targetShield",
 				amount = 0.5,
 				parent = "es4",
@@ -765,7 +765,7 @@ return {
 			},
 			{
 				ref = "es6",
-				name = "Energy Shield",
+				name = "#rotgb_tg.skills.names.energy_shield",
 				trait = "targetShield",
 				amount = 0.5,
 				parent = "oneShotProtection2",
@@ -774,7 +774,7 @@ return {
 			},
 			{
 				ref = "es7",
-				name = "Energy Shield",
+				name = "#rotgb_tg.skills.names.energy_shield",
 				trait = "targetShield",
 				amount = 0.5,
 				parent = "es6",
@@ -783,7 +783,7 @@ return {
 			},
 			{
 				ref = "es8",
-				name = "Energy Shield",
+				name = "#rotgb_tg.skills.names.energy_shield",
 				trait = "targetShield",
 				amount = 0.5,
 				parent = "es7",
@@ -792,7 +792,7 @@ return {
 			},
 			{
 				ref = "es9",
-				name = "Energy Shield",
+				name = "#rotgb_tg.skills.names.energy_shield",
 				trait = "targetShield",
 				amount = 0.5,
 				parent = "es8",
@@ -801,7 +801,7 @@ return {
 			},
 			{
 				ref = "es10",
-				name = "Energy Shield",
+				name = "#rotgb_tg.skills.names.energy_shield",
 				trait = "targetShield",
 				amount = 0.5,
 				parent = "es9",
@@ -812,7 +812,7 @@ return {
 		{
 			{
 				ref = "mh2",
-				name = "Maximum Health",
+				name = "#rotgb_tg.skills.names.maximum_health",
 				trait = "targetHealth",
 				amount = 2,
 				parent = "regeneration1",
@@ -821,7 +821,7 @@ return {
 			},
 			{
 				ref = "mh3",
-				name = "Maximum Health",
+				name = "#rotgb_tg.skills.names.maximum_health",
 				trait = "targetHealth",
 				amount = 2,
 				parent = "mh2",
@@ -830,7 +830,7 @@ return {
 			},
 			{
 				ref = "mh4",
-				name = "Maximum Health",
+				name = "#rotgb_tg.skills.names.maximum_health",
 				trait = "targetHealth",
 				amount = 2,
 				parent = "mh3",
@@ -839,7 +839,7 @@ return {
 			},
 			{
 				ref = "mh5",
-				name = "Maximum Health",
+				name = "#rotgb_tg.skills.names.maximum_health",
 				trait = "targetHealth",
 				amount = 2,
 				parent = "mh4",
@@ -848,7 +848,7 @@ return {
 			},
 			{
 				ref = "mh6",
-				name = "Maximum Health",
+				name = "#rotgb_tg.skills.names.maximum_health",
 				trait = "targetHealth",
 				amount = 2,
 				parent = "mh5",
@@ -857,7 +857,7 @@ return {
 			},
 			{
 				ref = "mh7",
-				name = "Maximum Health",
+				name = "#rotgb_tg.skills.names.maximum_health",
 				trait = "targetHealth",
 				amount = 2,
 				parent = "regeneration1",
@@ -866,7 +866,7 @@ return {
 			},
 			{
 				ref = "mh8",
-				name = "Maximum Health",
+				name = "#rotgb_tg.skills.names.maximum_health",
 				trait = "targetHealth",
 				amount = 2,
 				parent = "mh7",
@@ -875,7 +875,7 @@ return {
 			},
 			{
 				ref = "mh9",
-				name = "Maximum Health",
+				name = "#rotgb_tg.skills.names.maximum_health",
 				trait = "targetHealth",
 				amount = 2,
 				parent = "mh8",
@@ -884,7 +884,7 @@ return {
 			},
 			{
 				ref = "mh10",
-				name = "Maximum Health",
+				name = "#rotgb_tg.skills.names.maximum_health",
 				trait = "targetHealth",
 				amount = 2,
 				parent = "mh9",
@@ -893,7 +893,7 @@ return {
 			},
 			{
 				ref = "mh11",
-				name = "Maximum Health",
+				name = "#rotgb_tg.skills.names.maximum_health",
 				trait = "targetHealth",
 				amount = 2,
 				parent = "mh10",
@@ -904,7 +904,7 @@ return {
 		{
 			{
 				ref = "targetArmor1",
-				name = "Target Armor",
+				name = "#rotgb_tg.skills.names.armor",
 				trait = "targetArmor",
 				amount = 1,
 				tier = 1,
@@ -914,7 +914,7 @@ return {
 			},
 			{
 				ref = "targetArmor2",
-				name = "Target Armor",
+				name = "#rotgb_tg.skills.names.armor",
 				trait = "targetArmor",
 				amount = 1,
 				tier = 1,
@@ -924,7 +924,7 @@ return {
 			},
 			{
 				ref = "regeneration2",
-				name = "Regeneration",
+				name = "#rotgb_tg.skills.names.regeneration",
 				trait = "targetRegeneration",
 				amount = 1,
 				tier = 1,
@@ -934,7 +934,7 @@ return {
 			},
 			{
 				ref = "regeneration3",
-				name = "Regeneration",
+				name = "#rotgb_tg.skills.names.regeneration",
 				trait = "targetRegeneration",
 				amount = 1,
 				tier = 1,
@@ -946,7 +946,7 @@ return {
 		{
 			{
 				ref = "dodge1",
-				name = "Desperate Measures",
+				name = "#rotgb_tg.skills.names.desperate_measures",
 				trait = "targetDodge",
 				amount = 1,
 				parent = "targetArmor1",
@@ -955,7 +955,7 @@ return {
 			},
 			{
 				ref = "dodge2",
-				name = "Desperate Measures",
+				name = "#rotgb_tg.skills.names.desperate_measures",
 				trait = "targetDodge",
 				amount = 1,
 				parent = "dodge1",
@@ -964,7 +964,7 @@ return {
 			},
 			{
 				ref = "dodge3",
-				name = "Desperate Measures",
+				name = "#rotgb_tg.skills.names.desperate_measures",
 				trait = "targetDodge",
 				amount = 1,
 				parent = "dodge2",
@@ -973,7 +973,7 @@ return {
 			},
 			{
 				ref = "dodge4",
-				name = "Desperate Measures",
+				name = "#rotgb_tg.skills.names.desperate_measures",
 				trait = "targetDodge",
 				amount = 1,
 				parent = "dodge3",
@@ -982,7 +982,7 @@ return {
 			},
 			{
 				ref = "dodge5",
-				name = "Desperate Measures",
+				name = "#rotgb_tg.skills.names.desperate_measures",
 				trait = "targetDodge",
 				amount = 1,
 				parent = "dodge4",
@@ -991,7 +991,7 @@ return {
 			},
 			{
 				ref = "dodge6",
-				name = "Desperate Measures",
+				name = "#rotgb_tg.skills.names.desperate_measures",
 				trait = "targetDodge",
 				amount = 1,
 				parent = "dodge5",
@@ -1000,7 +1000,7 @@ return {
 			},
 			{
 				ref = "dodge7",
-				name = "Desperate Measures",
+				name = "#rotgb_tg.skills.names.desperate_measures",
 				trait = "targetDodge",
 				amount = 1,
 				parent = "targetArmor2",
@@ -1009,7 +1009,7 @@ return {
 			},
 			{
 				ref = "dodge8",
-				name = "Desperate Measures",
+				name = "#rotgb_tg.skills.names.desperate_measures",
 				trait = "targetDodge",
 				amount = 1,
 				parent = "dodge7",
@@ -1018,7 +1018,7 @@ return {
 			},
 			{
 				ref = "dodge9",
-				name = "Desperate Measures",
+				name = "#rotgb_tg.skills.names.desperate_measures",
 				trait = "targetDodge",
 				amount = 1,
 				parent = "dodge8",
@@ -1027,7 +1027,7 @@ return {
 			},
 			{
 				ref = "dodge10",
-				name = "Desperate Measures",
+				name = "#rotgb_tg.skills.names.desperate_measures",
 				trait = "targetDodge",
 				amount = 1,
 				parent = "dodge9",
@@ -1036,7 +1036,7 @@ return {
 			},
 			{
 				ref = "dodge11",
-				name = "Desperate Measures",
+				name = "#rotgb_tg.skills.names.desperate_measures",
 				trait = "targetDodge",
 				amount = 1,
 				parent = "dodge10",
@@ -1045,7 +1045,7 @@ return {
 			},
 			{
 				ref = "dodge12",
-				name = "Desperate Measures",
+				name = "#rotgb_tg.skills.names.desperate_measures",
 				trait = "targetDodge",
 				amount = 1,
 				parent = "dodge11",
@@ -1056,7 +1056,7 @@ return {
 		{
 			{
 				ref = "gh1",
-				name = "Golden Health",
+				name = "#rotgb_tg.skills.names.golden_health",
 				trait = "targetGoldenHealth",
 				amount = 2,
 				parent = "regeneration2",
@@ -1065,7 +1065,7 @@ return {
 			},
 			{
 				ref = "gh2",
-				name = "Golden Health",
+				name = "#rotgb_tg.skills.names.golden_health",
 				trait = "targetGoldenHealth",
 				amount = 2,
 				parent = "gh1",
@@ -1074,7 +1074,7 @@ return {
 			},
 			{
 				ref = "gh3",
-				name = "Golden Health",
+				name = "#rotgb_tg.skills.names.golden_health",
 				trait = "targetGoldenHealth",
 				amount = 2,
 				parent = "gh2",
@@ -1083,7 +1083,7 @@ return {
 			},
 			{
 				ref = "gh4",
-				name = "Golden Health",
+				name = "#rotgb_tg.skills.names.golden_health",
 				trait = "targetGoldenHealth",
 				amount = 2,
 				parent = "gh3",
@@ -1092,7 +1092,7 @@ return {
 			},
 			{
 				ref = "gh5",
-				name = "Golden Health",
+				name = "#rotgb_tg.skills.names.golden_health",
 				trait = "targetGoldenHealth",
 				amount = 2,
 				parent = "gh4",
@@ -1101,7 +1101,7 @@ return {
 			},
 			{
 				ref = "gh6",
-				name = "Golden Health",
+				name = "#rotgb_tg.skills.names.golden_health",
 				trait = "targetGoldenHealth",
 				amount = 2,
 				parent = "gh5",
@@ -1110,7 +1110,7 @@ return {
 			},
 			{
 				ref = "gh7",
-				name = "Golden Health",
+				name = "#rotgb_tg.skills.names.golden_health",
 				trait = "targetGoldenHealth",
 				amount = 2,
 				parent = "regeneration3",
@@ -1119,7 +1119,7 @@ return {
 			},
 			{
 				ref = "gh8",
-				name = "Golden Health",
+				name = "#rotgb_tg.skills.names.golden_health",
 				trait = "targetGoldenHealth",
 				amount = 2,
 				parent = "gh7",
@@ -1128,7 +1128,7 @@ return {
 			},
 			{
 				ref = "gh9",
-				name = "Golden Health",
+				name = "#rotgb_tg.skills.names.golden_health",
 				trait = "targetGoldenHealth",
 				amount = 2,
 				parent = "gh8",
@@ -1137,7 +1137,7 @@ return {
 			},
 			{
 				ref = "gh10",
-				name = "Golden Health",
+				name = "#rotgb_tg.skills.names.golden_health",
 				trait = "targetGoldenHealth",
 				amount = 2,
 				parent = "gh9",
@@ -1146,7 +1146,7 @@ return {
 			},
 			{
 				ref = "gh11",
-				name = "Golden Health",
+				name = "#rotgb_tg.skills.names.golden_health",
 				trait = "targetGoldenHealth",
 				amount = 2,
 				parent = "gh10",
@@ -1155,7 +1155,7 @@ return {
 			},
 			{
 				ref = "gh12",
-				name = "Golden Health",
+				name = "#rotgb_tg.skills.names.golden_health",
 				trait = "targetGoldenHealth",
 				amount = 2,
 				parent = "gh11",
@@ -1166,7 +1166,7 @@ return {
 		{
 			{
 				ref = "queenOfHearts",
-				name = "Hail The Heart King",
+				name = "#rotgb_tg.skills.names.hail_the_heart_king",
 				trait = "hoverballFactoryHealthAmplifier",
 				amount = 20,
 				tier = 1,
@@ -1176,7 +1176,7 @@ return {
 			},
 			{
 				ref = "gh13",
-				name = "Golden Health",
+				name = "#rotgb_tg.skills.names.golden_health",
 				trait = "targetGoldenHealth",
 				amount = 2,
 				parent = "queenOfHearts",
@@ -1185,7 +1185,7 @@ return {
 			},
 			{
 				ref = "gh14",
-				name = "Golden Health",
+				name = "#rotgb_tg.skills.names.golden_health",
 				trait = "targetGoldenHealth",
 				amount = 2,
 				parent = "gh13",
@@ -1194,7 +1194,7 @@ return {
 			},
 			{
 				ref = "gh15",
-				name = "Golden Health",
+				name = "#rotgb_tg.skills.names.golden_health",
 				trait = "targetGoldenHealth",
 				amount = 2,
 				parent = "gh14",
@@ -1204,7 +1204,7 @@ return {
 		},
 		{
 			ref = "ydihylh",
-			name = "YO DAWG I HEARD YOU LIKE HEALTH",
+			name = "#rotgb_tg.skills.names.ydihylh",
 			trait = {"targetHealth", "targetHealthEffectiveness"},
 			amount = {50, 100},
 			tier = 2,
@@ -1217,7 +1217,7 @@ return {
 		{
 			{
 				ref = "gg1",
-				name = "Gold Glitters",
+				name = "#rotgb_tg.skills.names.gold_glitters",
 				trait = "cashFromBalloons",
 				amount = 1,
 				parent = "physgun",
@@ -1227,7 +1227,7 @@ return {
 			},
 			{
 				ref = "gg2",
-				name = "Gold Glitters",
+				name = "#rotgb_tg.skills.names.gold_glitters",
 				trait = "cashFromBalloons",
 				amount = 1,
 				parent = "gg1",
@@ -1236,7 +1236,7 @@ return {
 			},
 			{
 				ref = "incomeGrower1",
-				name = "Income Grower",
+				name = "#rotgb_tg.skills.names.income_grower",
 				trait = "waveWaveIncome",
 				amount = 1,
 				tier = 1,
@@ -1248,7 +1248,7 @@ return {
 		{
 			{
 				ref = "wb1",
-				name = "Wave Bonus",
+				name = "#rotgb_tg.skills.names.wave_bonus",
 				trait = "waveIncome",
 				amount = 2,
 				parent = "incomeGrower1",
@@ -1257,7 +1257,7 @@ return {
 			},
 			{
 				ref = "wb2",
-				name = "Wave Bonus",
+				name = "#rotgb_tg.skills.names.wave_bonus",
 				trait = "waveIncome",
 				amount = 2,
 				parent = "wb1",
@@ -1266,7 +1266,7 @@ return {
 			},
 			{
 				ref = "wb3",
-				name = "Wave Bonus",
+				name = "#rotgb_tg.skills.names.wave_bonus",
 				trait = "waveIncome",
 				amount = 2,
 				parent = "wb1",
@@ -1275,7 +1275,7 @@ return {
 			},
 			{
 				ref = "wb4",
-				name = "Wave Bonus",
+				name = "#rotgb_tg.skills.names.wave_bonus",
 				trait = "waveIncome",
 				amount = 2,
 				parent = "wb2",
@@ -1284,7 +1284,7 @@ return {
 			},
 			{
 				ref = "wb5",
-				name = "Wave Bonus",
+				name = "#rotgb_tg.skills.names.wave_bonus",
 				trait = "waveIncome",
 				amount = 2,
 				parent = "wb3",
@@ -1293,7 +1293,7 @@ return {
 			},
 			{
 				ref = "wb6",
-				name = "Wave Bonus",
+				name = "#rotgb_tg.skills.names.wave_bonus",
 				trait = "waveIncome",
 				amount = 2,
 				parent = "wb4",
@@ -1302,7 +1302,7 @@ return {
 			},
 			{
 				ref = "wb7",
-				name = "Wave Bonus",
+				name = "#rotgb_tg.skills.names.wave_bonus",
 				trait = "waveIncome",
 				amount = 2,
 				parent = "wb5",
@@ -1311,7 +1311,7 @@ return {
 			},
 			{
 				ref = "wb8",
-				name = "Wave Bonus",
+				name = "#rotgb_tg.skills.names.wave_bonus",
 				trait = "waveIncome",
 				amount = 2,
 				parent = "wb6",
@@ -1320,7 +1320,7 @@ return {
 			},
 			{
 				ref = "wb9",
-				name = "Wave Bonus",
+				name = "#rotgb_tg.skills.names.wave_bonus",
 				trait = "waveIncome",
 				amount = 2,
 				parent = "wb7",
@@ -1329,7 +1329,7 @@ return {
 			},
 			{
 				ref = "wb10",
-				name = "Wave Bonus",
+				name = "#rotgb_tg.skills.names.wave_bonus",
 				trait = "waveIncome",
 				amount = 2,
 				parent = "wb8",
@@ -1339,7 +1339,7 @@ return {
 		},
 		{
 			ref = "incomeGrower2",
-			name = "Income Grower",
+			name = "#rotgb_tg.skills.names.income_grower",
 			trait = "waveWaveIncome",
 			amount = 1,
 			tier = 1,
@@ -1350,7 +1350,7 @@ return {
 		{
 			{
 				ref = "sc1",
-				name = "Starting Cash",
+				name = "#rotgb_tg.skills.names.starting_cash",
 				trait = "startingCash",
 				amount = 25,
 				parent = "incomeGrower1",
@@ -1359,7 +1359,7 @@ return {
 			},
 			{
 				ref = "sc2",
-				name = "Starting Cash",
+				name = "#rotgb_tg.skills.names.starting_cash",
 				trait = "startingCash",
 				amount = 25,
 				parent = "sc1",
@@ -1368,7 +1368,7 @@ return {
 			},
 			{
 				ref = "sc3",
-				name = "Starting Cash",
+				name = "#rotgb_tg.skills.names.starting_cash",
 				trait = "startingCash",
 				amount = 25,
 				parent = "sc1",
@@ -1377,7 +1377,7 @@ return {
 			},
 			{
 				ref = "sc4",
-				name = "Starting Cash",
+				name = "#rotgb_tg.skills.names.starting_cash",
 				trait = "startingCash",
 				amount = 25,
 				parent = "sc2",
@@ -1386,7 +1386,7 @@ return {
 			},
 			{
 				ref = "sc5",
-				name = "Starting Cash",
+				name = "#rotgb_tg.skills.names.starting_cash",
 				trait = "startingCash",
 				amount = 25,
 				parent = "sc3",
@@ -1395,7 +1395,7 @@ return {
 			},
 			{
 				ref = "sc6",
-				name = "Starting Cash",
+				name = "#rotgb_tg.skills.names.starting_cash",
 				trait = "startingCash",
 				amount = 25,
 				parent = "sc4",
@@ -1404,7 +1404,7 @@ return {
 			},
 			{
 				ref = "sc7",
-				name = "Starting Cash",
+				name = "#rotgb_tg.skills.names.starting_cash",
 				trait = "startingCash",
 				amount = 25,
 				parent = "sc5",
@@ -1413,7 +1413,7 @@ return {
 			},
 			{
 				ref = "sc8",
-				name = "Starting Cash",
+				name = "#rotgb_tg.skills.names.starting_cash",
 				trait = "startingCash",
 				amount = 25,
 				parent = "sc6",
@@ -1422,7 +1422,7 @@ return {
 			},
 			{
 				ref = "sc9",
-				name = "Starting Cash",
+				name = "#rotgb_tg.skills.names.starting_cash",
 				trait = "startingCash",
 				amount = 25,
 				parent = "sc7",
@@ -1431,7 +1431,7 @@ return {
 			},
 			{
 				ref = "sc10",
-				name = "Starting Cash",
+				name = "#rotgb_tg.skills.names.starting_cash",
 				trait = "startingCash",
 				amount = 25,
 				parent = "sc8",
@@ -1441,7 +1441,7 @@ return {
 		},
 		{
 			ref = "outsourcedHoverballParts",
-			name = "Outsourced Hoverball Parts",
+			name = "#rotgb_tg.skills.names.outsourced_hoverball_parts",
 			trait = "hoverballFactoryCosts",
 			amount = -10,
 			tier = 1,
@@ -1452,7 +1452,7 @@ return {
 		{
 			{
 				ref = "gg3",
-				name = "Gold Glitters",
+				name = "#rotgb_tg.skills.names.gold_glitters",
 				trait = "cashFromBalloons",
 				amount = 1,
 				parent = "incomeGrower1",
@@ -1461,7 +1461,7 @@ return {
 			},
 			{
 				ref = "gg4",
-				name = "Gold Glitters",
+				name = "#rotgb_tg.skills.names.gold_glitters",
 				trait = "cashFromBalloons",
 				amount = 1,
 				parent = "gg3",
@@ -1470,7 +1470,7 @@ return {
 			},
 			{
 				ref = "gg5",
-				name = "Gold Glitters",
+				name = "#rotgb_tg.skills.names.gold_glitters",
 				trait = "cashFromBalloons",
 				amount = 1,
 				parent = "gg4",
@@ -1479,7 +1479,7 @@ return {
 			},
 			{
 				ref = "gg6",
-				name = "Gold Glitters",
+				name = "#rotgb_tg.skills.names.gold_glitters",
 				trait = "cashFromBalloons",
 				amount = 1,
 				parent = "gg5",
@@ -1488,7 +1488,7 @@ return {
 			},
 			{
 				ref = "rainbowMassProduction",
-				name = "Rainbow Mass Production",
+				name = "#rotgb_tg.skills.names.rainbow_factorization",
 				trait = "rainbowBeamerCosts",
 				amount = -10,
 				tier = 1,
@@ -1497,8 +1497,8 @@ return {
 				pos = VectorTable(1,1)
 			},
 			{
-				ref = "cheaperMines", -- prox mine cost
-				name = "Cheaper Mines",
+				ref = "cheaperMines",
+				name = "#rotgb_tg.skills.names.cheaper_mines",
 				trait = "proximityMineCosts",
 				amount = -10,
 				tier = 1,
@@ -1510,7 +1510,7 @@ return {
 		{
 			{
 				ref = "sc11",
-				name = "Starting Cash",
+				name = "#rotgb_tg.skills.names.starting_cash",
 				trait = "startingCash",
 				amount = 25,
 				parent = "cheaperMines",
@@ -1519,7 +1519,7 @@ return {
 			},
 			{
 				ref = "sc12",
-				name = "Starting Cash",
+				name = "#rotgb_tg.skills.names.starting_cash",
 				trait = "startingCash",
 				amount = 25,
 				parent = "sc11",
@@ -1528,7 +1528,7 @@ return {
 			},
 			{
 				ref = "sc13",
-				name = "Starting Cash",
+				name = "#rotgb_tg.skills.names.starting_cash",
 				trait = "startingCash",
 				amount = 25,
 				parent = "sc11",
@@ -1537,7 +1537,7 @@ return {
 			},
 			{
 				ref = "sc14",
-				name = "Starting Cash",
+				name = "#rotgb_tg.skills.names.starting_cash",
 				trait = "startingCash",
 				amount = 25,
 				parent = "sc12",
@@ -1546,7 +1546,7 @@ return {
 			},
 			{
 				ref = "sc15",
-				name = "Starting Cash",
+				name = "#rotgb_tg.skills.names.starting_cash",
 				trait = "startingCash",
 				amount = 25,
 				parent = "sc13",
@@ -1555,7 +1555,7 @@ return {
 			},
 			{
 				ref = "sc16",
-				name = "Starting Cash",
+				name = "#rotgb_tg.skills.names.starting_cash",
 				trait = "startingCash",
 				amount = 25,
 				parent = "sc14",
@@ -1564,7 +1564,7 @@ return {
 			},
 			{
 				ref = "sc17",
-				name = "Starting Cash",
+				name = "#rotgb_tg.skills.names.starting_cash",
 				trait = "startingCash",
 				amount = 25,
 				parent = "sc15",
@@ -1573,7 +1573,7 @@ return {
 			},
 			{
 				ref = "sc18",
-				name = "Starting Cash",
+				name = "#rotgb_tg.skills.names.starting_cash",
 				trait = "startingCash",
 				amount = 25,
 				parent = "sc16",
@@ -1582,7 +1582,7 @@ return {
 			},
 			{
 				ref = "sc19",
-				name = "Starting Cash",
+				name = "#rotgb_tg.skills.names.starting_cash",
 				trait = "startingCash",
 				amount = 25,
 				parent = "sc17",
@@ -1591,7 +1591,7 @@ return {
 			},
 			{
 				ref = "sc20",
-				name = "Starting Cash",
+				name = "#rotgb_tg.skills.names.starting_cash",
 				trait = "startingCash",
 				amount = 25,
 				parent = "sc18",
@@ -1602,7 +1602,7 @@ return {
 		{
 			{
 				ref = "tcg1",
-				name = "Tower Cash Generation",
+				name = "#rotgb_tg.skills.names.tower_cash_generation",
 				trait = "towerIncome",
 				amount = 1,
 				parent = "rainbowMassProduction",
@@ -1611,7 +1611,7 @@ return {
 			},
 			{
 				ref = "tcg2",
-				name = "Tower Cash Generation",
+				name = "#rotgb_tg.skills.names.tower_cash_generation",
 				trait = "towerIncome",
 				amount = 1,
 				parent = "tcg1",
@@ -1620,7 +1620,7 @@ return {
 			},
 			{
 				ref = "tcg3",
-				name = "Tower Cash Generation",
+				name = "#rotgb_tg.skills.names.tower_cash_generation",
 				trait = "towerIncome",
 				amount = 1,
 				parent = "tcg1",
@@ -1629,7 +1629,7 @@ return {
 			},
 			{
 				ref = "tcg4",
-				name = "Tower Cash Generation",
+				name = "#rotgb_tg.skills.names.tower_cash_generation",
 				trait = "towerIncome",
 				amount = 1,
 				parent = "tcg2",
@@ -1638,7 +1638,7 @@ return {
 			},
 			{
 				ref = "tcg5",
-				name = "Tower Cash Generation",
+				name = "#rotgb_tg.skills.names.tower_cash_generation",
 				trait = "towerIncome",
 				amount = 1,
 				parent = "tcg3",
@@ -1647,7 +1647,7 @@ return {
 			},
 			{
 				ref = "tcg6",
-				name = "Tower Cash Generation",
+				name = "#rotgb_tg.skills.names.tower_cash_generation",
 				trait = "towerIncome",
 				amount = 1,
 				parent = "tcg4",
@@ -1656,7 +1656,7 @@ return {
 			},
 			{
 				ref = "tcg7",
-				name = "Tower Cash Generation",
+				name = "#rotgb_tg.skills.names.tower_cash_generation",
 				trait = "towerIncome",
 				amount = 1,
 				parent = "tcg5",
@@ -1665,7 +1665,7 @@ return {
 			},
 			{
 				ref = "tcg8",
-				name = "Tower Cash Generation",
+				name = "#rotgb_tg.skills.names.tower_cash_generation",
 				trait = "towerIncome",
 				amount = 1,
 				parent = "tcg6",
@@ -1674,7 +1674,7 @@ return {
 			},
 			{
 				ref = "tcg9",
-				name = "Tower Cash Generation",
+				name = "#rotgb_tg.skills.names.tower_cash_generation",
 				trait = "towerIncome",
 				amount = 1,
 				parent = "tcg7",
@@ -1683,7 +1683,7 @@ return {
 			},
 			{
 				ref = "tcg10",
-				name = "Tower Cash Generation",
+				name = "#rotgb_tg.skills.names.tower_cash_generation",
 				trait = "towerIncome",
 				amount = 1,
 				parent = "tcg8",
@@ -1693,7 +1693,7 @@ return {
 		},
 		{
 			ref = "valuableHoverballs",
-			name = "Valuable Hoverballs",
+			name = "#rotgb_tg.skills.names.valuable_hoverballs",
 			trait = "hoverballFactoryIncome",
 			amount = 15,
 			tier = 1,
@@ -1704,7 +1704,7 @@ return {
 		{
 			{
 				ref = "tcg11",
-				name = "Tower Cash Generation",
+				name = "#rotgb_tg.skills.names.tower_cash_generation",
 				trait = "towerIncome",
 				amount = 1,
 				parent = "valuableHoverballs",
@@ -1713,7 +1713,7 @@ return {
 			},
 			{
 				ref = "tcg12",
-				name = "Tower Cash Generation",
+				name = "#rotgb_tg.skills.names.tower_cash_generation",
 				trait = "towerIncome",
 				amount = 1,
 				parent = "tcg11",
@@ -1722,7 +1722,7 @@ return {
 			},
 			{
 				ref = "tcg13",
-				name = "Tower Cash Generation",
+				name = "#rotgb_tg.skills.names.tower_cash_generation",
 				trait = "towerIncome",
 				amount = 1,
 				parent = "tcg11",
@@ -1731,7 +1731,7 @@ return {
 			},
 			{
 				ref = "tcg14",
-				name = "Tower Cash Generation",
+				name = "#rotgb_tg.skills.names.tower_cash_generation",
 				trait = "towerIncome",
 				amount = 1,
 				parent = "tcg12",
@@ -1740,7 +1740,7 @@ return {
 			},
 			{
 				ref = "tcg15",
-				name = "Tower Cash Generation",
+				name = "#rotgb_tg.skills.names.tower_cash_generation",
 				trait = "towerIncome",
 				amount = 1,
 				parent = "tcg13",
@@ -1749,7 +1749,7 @@ return {
 			},
 			{
 				ref = "tcg16",
-				name = "Tower Cash Generation",
+				name = "#rotgb_tg.skills.names.tower_cash_generation",
 				trait = "towerIncome",
 				amount = 1,
 				parent = "tcg14",
@@ -1758,7 +1758,7 @@ return {
 			},
 			{
 				ref = "tcg17",
-				name = "Tower Cash Generation",
+				name = "#rotgb_tg.skills.names.tower_cash_generation",
 				trait = "towerIncome",
 				amount = 1,
 				parent = "tcg15",
@@ -1767,7 +1767,7 @@ return {
 			},
 			{
 				ref = "tcg18",
-				name = "Tower Cash Generation",
+				name = "#rotgb_tg.skills.names.tower_cash_generation",
 				trait = "towerIncome",
 				amount = 1,
 				parent = "tcg16",
@@ -1776,7 +1776,7 @@ return {
 			},
 			{
 				ref = "tcg19",
-				name = "Tower Cash Generation",
+				name = "#rotgb_tg.skills.names.tower_cash_generation",
 				trait = "towerIncome",
 				amount = 1,
 				parent = "tcg17",
@@ -1785,7 +1785,7 @@ return {
 			},
 			{
 				ref = "tcg20",
-				name = "Tower Cash Generation",
+				name = "#rotgb_tg.skills.names.tower_cash_generation",
 				trait = "towerIncome",
 				amount = 1,
 				parent = "tcg18",
@@ -1796,7 +1796,7 @@ return {
 		{
 			{
 				ref = "gg7",
-				name = "Gold Glitters",
+				name = "#rotgb_tg.skills.names.gold_glitters",
 				trait = "cashFromBalloons",
 				amount = 1,
 				parent = "cheaperMines",
@@ -1805,7 +1805,7 @@ return {
 			},
 			{
 				ref = "gg8",
-				name = "Gold Glitters",
+				name = "#rotgb_tg.skills.names.gold_glitters",
 				trait = "cashFromBalloons",
 				amount = 1,
 				parent = "gg7",
@@ -1814,7 +1814,7 @@ return {
 			},
 			{
 				ref = "gg9",
-				name = "Gold Glitters",
+				name = "#rotgb_tg.skills.names.gold_glitters",
 				trait = "cashFromBalloons",
 				amount = 1,
 				parent = "gg8",
@@ -1823,7 +1823,7 @@ return {
 			},
 			{
 				ref = "gg10",
-				name = "Gold Glitters",
+				name = "#rotgb_tg.skills.names.gold_glitters",
 				trait = "cashFromBalloons",
 				amount = 1,
 				parent = "gg9",
@@ -1832,7 +1832,7 @@ return {
 			},
 			{
 				ref = "freeAllyPawn",
-				name = "Free Ally Pawn",
+				name = "#rotgb_tg.skills.names.free_ally_pawn",
 				trait = "allyPawnFirstFree",
 				amount = 1,
 				tier = 1,
@@ -1844,7 +1844,7 @@ return {
 		{
 			{
 				ref = "tc1",
-				name = "Tower Costs",
+				name = "#rotgb_tg.skills.names.tower_costs",
 				trait = "towerCosts",
 				amount = -1,
 				parent = "freeAllyPawn",
@@ -1853,7 +1853,7 @@ return {
 			},
 			{
 				ref = "tc2",
-				name = "Tower Costs",
+				name = "#rotgb_tg.skills.names.tower_costs",
 				trait = "towerCosts",
 				amount = -1,
 				parent = "tc1",
@@ -1862,7 +1862,7 @@ return {
 			},
 			{
 				ref = "tc3",
-				name = "Tower Costs",
+				name = "#rotgb_tg.skills.names.tower_costs",
 				trait = "towerCosts",
 				amount = -1,
 				parent = "tc1",
@@ -1871,7 +1871,7 @@ return {
 			},
 			{
 				ref = "tc4",
-				name = "Tower Costs",
+				name = "#rotgb_tg.skills.names.tower_costs",
 				trait = "towerCosts",
 				amount = -1,
 				parent = "tc2",
@@ -1880,7 +1880,7 @@ return {
 			},
 			{
 				ref = "tc5",
-				name = "Tower Costs",
+				name = "#rotgb_tg.skills.names.tower_costs",
 				trait = "towerCosts",
 				amount = -1,
 				parent = "tc3",
@@ -1889,7 +1889,7 @@ return {
 			},
 			{
 				ref = "tc6",
-				name = "Tower Costs",
+				name = "#rotgb_tg.skills.names.tower_costs",
 				trait = "towerCosts",
 				amount = -1,
 				parent = "tc4",
@@ -1898,7 +1898,7 @@ return {
 			},
 			{
 				ref = "tc7",
-				name = "Tower Costs",
+				name = "#rotgb_tg.skills.names.tower_costs",
 				trait = "towerCosts",
 				amount = -1,
 				parent = "tc5",
@@ -1907,7 +1907,7 @@ return {
 			},
 			{
 				ref = "tc8",
-				name = "Tower Costs",
+				name = "#rotgb_tg.skills.names.tower_costs",
 				trait = "towerCosts",
 				amount = -1,
 				parent = "tc6",
@@ -1916,7 +1916,7 @@ return {
 			},
 			{
 				ref = "tc9",
-				name = "Tower Costs",
+				name = "#rotgb_tg.skills.names.tower_costs",
 				trait = "towerCosts",
 				amount = -1,
 				parent = "tc7",
@@ -1925,7 +1925,7 @@ return {
 			},
 			{
 				ref = "tc10",
-				name = "Tower Costs",
+				name = "#rotgb_tg.skills.names.tower_costs",
 				trait = "towerCosts",
 				amount = -1,
 				parent = "tc8",
@@ -1935,7 +1935,7 @@ return {
 		},
 		{
 			ref = "modularMicrowaveEmitters",
-			name = "Modular Microwave Emitters",
+			name = "#rotgb_tg.skills.names.modular_microwave_emitters",
 			trait = "microwaveGeneratorCosts",
 			amount = -10,
 			tier = 1,
@@ -1946,7 +1946,7 @@ return {
 		{
 			{
 				ref = "gg11",
-				name = "Gold Glitters",
+				name = "#rotgb_tg.skills.names.gold_glitters",
 				trait = "cashFromBalloons",
 				amount = 1,
 				parent = "freeAllyPawn",
@@ -1955,7 +1955,7 @@ return {
 			},
 			{
 				ref = "atgig",
-				name = "ALL THAT GLITTERS IS GOLD",
+				name = "#rotgb_tg.skills.names.all_that_glitters_is_gold",
 				trait = "gBlimpOuterHealthCash",
 				amount = 100,
 				tier = 2,
@@ -1969,7 +1969,7 @@ return {
 		{
 			{
 				ref = "mgb1",
-				name = "Misconfigured gBalloons",
+				name = "#rotgb_tg.skills.names.misconfigured_gballoons",
 				trait = "gBalloonMissingProperty",
 				amount = 1,
 				links = "parent",
@@ -1979,7 +1979,7 @@ return {
 			},
 			{
 				ref = "mgb2",
-				name = "Misconfigured gBalloons",
+				name = "#rotgb_tg.skills.names.misconfigured_gballoons",
 				trait = "gBalloonMissingProperty",
 				amount = 1,
 				links = "parent",
@@ -1988,7 +1988,7 @@ return {
 			},
 			{
 				ref = "mgb3",
-				name = "Misconfigured gBalloons",
+				name = "#rotgb_tg.skills.names.misconfigured_gballoons",
 				trait = "gBalloonMissingProperty",
 				amount = 1,
 				links = "parent",
@@ -1997,7 +1997,7 @@ return {
 			},
 			{
 				ref = "mgb4",
-				name = "Misconfigured gBalloons",
+				name = "#rotgb_tg.skills.names.misconfigured_gballoons",
 				trait = "gBalloonMissingProperty",
 				amount = 1,
 				links = "parent",
@@ -2006,7 +2006,7 @@ return {
 			},
 			{
 				ref = "mgb5",
-				name = "Misconfigured gBalloons",
+				name = "#rotgb_tg.skills.names.misconfigured_gballoons",
 				trait = "gBalloonMissingProperty",
 				amount = 1,
 				links = "parent",
@@ -2015,7 +2015,7 @@ return {
 			},
 			{
 				ref = "mgb6",
-				name = "Misconfigured gBalloons",
+				name = "#rotgb_tg.skills.names.misconfigured_gballoons",
 				trait = "gBalloonMissingProperty",
 				amount = 1,
 				links = "parent",
@@ -2024,7 +2024,7 @@ return {
 			},
 			{
 				ref = "mgb7",
-				name = "Misconfigured gBalloons",
+				name = "#rotgb_tg.skills.names.misconfigured_gballoons",
 				trait = "gBalloonMissingProperty",
 				amount = 1,
 				links = "parent",
@@ -2033,7 +2033,7 @@ return {
 			},
 			{
 				ref = "mgb8",
-				name = "Misconfigured gBalloons",
+				name = "#rotgb_tg.skills.names.misconfigured_gballoons",
 				trait = "gBalloonMissingProperty",
 				amount = 1,
 				links = "parent",
@@ -2042,7 +2042,7 @@ return {
 			},
 			{
 				ref = "mgb9",
-				name = "Misconfigured gBalloons",
+				name = "#rotgb_tg.skills.names.misconfigured_gballoons",
 				trait = "gBalloonMissingProperty",
 				amount = 1,
 				links = "parent",
@@ -2053,7 +2053,7 @@ return {
 		{
 			{
 				ref = "cloglessGlueNozzle",
-				name = "Clogless Glue Nozzle",
+				name = "#rotgb_tg.skills.names.clogless_glue_nozzle",
 				trait = "bishopOfGlueFireRate",
 				amount = 15,
 				tier = 1,
@@ -2063,7 +2063,7 @@ return {
 			},
 			{
 				ref = "excessFreezing",
-				name = "Excess Freezing",
+				name = "#rotgb_tg.skills.names.excess_freezing",
 				trait = "orbOfColdSpeedPercent",
 				amount = -15,
 				tier = 1,
@@ -2073,7 +2073,7 @@ return {
 			},
 			{
 				ref = "gbs1",
-				name = "gBalloon Sabotage",
+				name = "#rotgb_tg.skills.names.gballoon_sabotage",
 				trait = "gBalloonSpeed",
 				amount = -1,
 				links = {"cloglessGlueNozzle", "excessFreezing"},
@@ -2084,7 +2084,7 @@ return {
 		{
 			{
 				ref = "gbs2",
-				name = "gBalloon Sabotage",
+				name = "#rotgb_tg.skills.names.gballoon_sabotage",
 				trait = "gBalloonSpeed",
 				amount = -1,
 				links = "parent",
@@ -2093,7 +2093,7 @@ return {
 			},
 			{
 				ref = "gbs3",
-				name = "gBalloon Sabotage",
+				name = "#rotgb_tg.skills.names.gballoon_sabotage",
 				trait = "gBalloonSpeed",
 				amount = -1,
 				links = "parent",
@@ -2102,7 +2102,7 @@ return {
 			},
 			{
 				ref = "gbs4",
-				name = "gBalloon Sabotage",
+				name = "#rotgb_tg.skills.names.gballoon_sabotage",
 				trait = "gBalloonSpeed",
 				amount = -1,
 				links = "parent",
@@ -2111,7 +2111,7 @@ return {
 			},
 			{
 				ref = "gbs5",
-				name = "gBalloon Sabotage",
+				name = "#rotgb_tg.skills.names.gballoon_sabotage",
 				trait = "gBalloonSpeed",
 				amount = -1,
 				links = "parent",
@@ -2120,7 +2120,7 @@ return {
 			},
 			{
 				ref = "gbs6",
-				name = "gBalloon Sabotage",
+				name = "#rotgb_tg.skills.names.gballoon_sabotage",
 				trait = "gBalloonSpeed",
 				amount = -1,
 				links = "parent",
@@ -2129,7 +2129,7 @@ return {
 			},
 			{
 				ref = "gbs7",
-				name = "gBalloon Sabotage",
+				name = "#rotgb_tg.skills.names.gballoon_sabotage",
 				trait = "gBalloonSpeed",
 				amount = -1,
 				links = "parent",
@@ -2138,7 +2138,7 @@ return {
 			},
 			{
 				ref = "gbs8",
-				name = "gBalloon Sabotage",
+				name = "#rotgb_tg.skills.names.gballoon_sabotage",
 				trait = "gBalloonSpeed",
 				amount = -1,
 				links = "parent",
@@ -2149,7 +2149,7 @@ return {
 		{
 			{
 				ref = "gbs9",
-				name = "gBalloon Sabotage",
+				name = "#rotgb_tg.skills.names.gballoon_sabotage",
 				trait = "gBalloonSpeed",
 				amount = -1,
 				links = "parent",
@@ -2158,7 +2158,7 @@ return {
 			},
 			{
 				ref = "gbs10",
-				name = "gBalloon Sabotage",
+				name = "#rotgb_tg.skills.names.gballoon_sabotage",
 				trait = "gBalloonSpeed",
 				amount = -1,
 				links = "parent",
@@ -2167,7 +2167,7 @@ return {
 			},
 			{
 				ref = "gbs11",
-				name = "gBalloon Sabotage",
+				name = "#rotgb_tg.skills.names.gballoon_sabotage",
 				trait = "gBalloonSpeed",
 				amount = -1,
 				links = "parent",
@@ -2176,7 +2176,7 @@ return {
 			},
 			{
 				ref = "gbs12",
-				name = "gBalloon Sabotage",
+				name = "#rotgb_tg.skills.names.gballoon_sabotage",
 				trait = "gBalloonSpeed",
 				amount = -1,
 				links = "parent",
@@ -2185,7 +2185,7 @@ return {
 			},
 			{
 				ref = "gbs13",
-				name = "gBalloon Sabotage",
+				name = "#rotgb_tg.skills.names.gballoon_sabotage",
 				trait = "gBalloonSpeed",
 				amount = -1,
 				links = "parent",
@@ -2194,7 +2194,7 @@ return {
 			},
 			{
 				ref = "gbs14",
-				name = "gBalloon Sabotage",
+				name = "#rotgb_tg.skills.names.gballoon_sabotage",
 				trait = "gBalloonSpeed",
 				amount = -1,
 				links = "parent",
@@ -2203,7 +2203,7 @@ return {
 			},
 			{
 				ref = "gbs15",
-				name = "gBalloon Sabotage",
+				name = "#rotgb_tg.skills.names.gballoon_sabotage",
 				trait = "gBalloonSpeed",
 				amount = -1,
 				links = "parent",
@@ -2214,7 +2214,7 @@ return {
 		{
 			{
 				ref = "notSoFast",
-				name = "Not So Fast",
+				name = "#rotgb_tg.skills.names.not_so_fast",
 				trait = "gBalloonFastSpeed",
 				amount = -15,
 				tier = 1,
@@ -2224,7 +2224,7 @@ return {
 			},
 			{
 				ref = "notSoHealthy",
-				name = "Not So Healthy",
+				name = "#rotgb_tg.skills.names.not_so_healthy",
 				trait = "gBalloonRegenRate",
 				amount = -15,
 				tier = 1,
@@ -2236,7 +2236,7 @@ return {
 		{
 			{
 				ref = "agbs1",
-				name = "Advanced gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.advanced_gballoon_sabotage",
 				trait = "gBlimpOuterHealth",
 				amount = -1,
 				links = "parent",
@@ -2245,7 +2245,7 @@ return {
 			},
 			{
 				ref = "agbs2",
-				name = "Advanced gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.advanced_gballoon_sabotage",
 				trait = "gBlimpOuterHealth",
 				amount = -1,
 				links = "parent",
@@ -2254,7 +2254,7 @@ return {
 			},
 			{
 				ref = "agbs3",
-				name = "Advanced gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.advanced_gballoon_sabotage",
 				trait = "gBlimpOuterHealth",
 				amount = -1,
 				links = "parent",
@@ -2263,7 +2263,7 @@ return {
 			},
 			{
 				ref = "agbs4",
-				name = "Advanced gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.advanced_gballoon_sabotage",
 				trait = "gBlimpOuterHealth",
 				amount = -1,
 				links = "parent",
@@ -2272,7 +2272,7 @@ return {
 			},
 			{
 				ref = "agbs5",
-				name = "Advanced gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.advanced_gballoon_sabotage",
 				trait = "gBlimpOuterHealth",
 				amount = -1,
 				links = "parent",
@@ -2281,7 +2281,7 @@ return {
 			},
 			{
 				ref = "agbs6",
-				name = "Advanced gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.advanced_gballoon_sabotage",
 				trait = "gBlimpOuterHealth",
 				amount = -1,
 				links = "parent",
@@ -2290,7 +2290,7 @@ return {
 			},
 			{
 				ref = "causalityExplosions",
-				name = "Causality Explosions",
+				name = "#rotgb_tg.skills.names.causality_explosions",
 				trait = "gBalloonErrorExplosionUnimmune",
 				amount = 1,
 				tier = 1,
@@ -2302,7 +2302,7 @@ return {
 		{
 			{
 				ref = "agbs7",
-				name = "Advanced gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.advanced_gballoon_sabotage",
 				trait = "gBlimpOuterHealth",
 				amount = -1,
 				links = "parent",
@@ -2311,7 +2311,7 @@ return {
 			},
 			{
 				ref = "agbs8",
-				name = "Advanced gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.advanced_gballoon_sabotage",
 				trait = "gBlimpOuterHealth",
 				amount = -1,
 				links = "parent",
@@ -2320,7 +2320,7 @@ return {
 			},
 			{
 				ref = "bigArmorMalfunction",
-				name = "Big Armor Malfunction",
+				name = "#rotgb_tg.skills.names.big_armor_malfunction",
 				trait = "gBlimpArmoredArmor",
 				amount = -2,
 				tier = 1,
@@ -2330,7 +2330,7 @@ return {
 			},
 			{
 				ref = "agbs9",
-				name = "Advanced gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.advanced_gballoon_sabotage",
 				trait = "gBlimpOuterHealth",
 				amount = -1,
 				links = "parent",
@@ -2339,7 +2339,7 @@ return {
 			},
 			{
 				ref = "agbs10",
-				name = "Advanced gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.advanced_gballoon_sabotage",
 				trait = "gBlimpOuterHealth",
 				amount = -1,
 				links = "parent",
@@ -2348,7 +2348,7 @@ return {
 			},
 			{
 				ref = "fimtrtm",
-				name = "Fire Is More Technological Rather Than Magical",
+				name = "#rotgb_tg.skills.names.fimtrtm",
 				trait = "gBalloonFireGeneric",
 				amount = 1,
 				tier = 1,
@@ -2360,7 +2360,7 @@ return {
 		{
 			{
 				ref = "fab1",
-				name = "Fair And Balanced",
+				name = "#rotgb_tg.skills.names.fair_and_balanced",
 				trait = "gBalloonCritChance",
 				amount = 1,
 				links = "parent",
@@ -2369,7 +2369,7 @@ return {
 			},
 			{
 				ref = "fab2",
-				name = "Fair And Balanced",
+				name = "#rotgb_tg.skills.names.fair_and_balanced",
 				trait = "gBalloonCritChance",
 				amount = 1,
 				links = "parent",
@@ -2378,7 +2378,7 @@ return {
 			},
 			{
 				ref = "fab3",
-				name = "Fair And Balanced",
+				name = "#rotgb_tg.skills.names.fair_and_balanced",
 				trait = "gBalloonCritChance",
 				amount = 1,
 				links = "parent",
@@ -2387,7 +2387,7 @@ return {
 			},
 			{
 				ref = "wip1",
-				name = "WIP",
+				name = "#rotgb_tg.skills.names.wip",
 				trait = "",
 				amount = 1,
 				tier = 1,
@@ -2399,7 +2399,7 @@ return {
 		{
 			{
 				ref = "fab4",
-				name = "Fair And Balanced",
+				name = "#rotgb_tg.skills.names.fair_and_balanced",
 				trait = "gBalloonCritChance",
 				amount = 1,
 				links = "parent",
@@ -2408,7 +2408,7 @@ return {
 			},
 			{
 				ref = "fab5",
-				name = "Fair And Balanced",
+				name = "#rotgb_tg.skills.names.fair_and_balanced",
 				trait = "gBalloonCritChance",
 				amount = 1,
 				links = "parent",
@@ -2417,7 +2417,7 @@ return {
 			},
 			{
 				ref = "fab6",
-				name = "Fair And Balanced",
+				name = "#rotgb_tg.skills.names.fair_and_balanced",
 				trait = "gBalloonCritChance",
 				amount = 1,
 				links = "parent",
@@ -2426,7 +2426,7 @@ return {
 			},
 			{
 				ref = "wip2",
-				name = "WIP",
+				name = "#rotgb_tg.skills.names.wip",
 				trait = "",
 				amount = 1,
 				tier = 1,
@@ -2438,7 +2438,7 @@ return {
 		{
 			{
 				ref = "fab7",
-				name = "Fair And Balanced",
+				name = "#rotgb_tg.skills.names.fair_and_balanced",
 				trait = "gBalloonCritChance",
 				amount = 1,
 				links = "parent",
@@ -2447,7 +2447,7 @@ return {
 			},
 			{
 				ref = "fab8",
-				name = "Fair And Balanced",
+				name = "#rotgb_tg.skills.names.fair_and_balanced",
 				trait = "gBalloonCritChance",
 				amount = 1,
 				links = "parent",
@@ -2456,7 +2456,7 @@ return {
 			},
 			{
 				ref = "fab9",
-				name = "Fair And Balanced",
+				name = "#rotgb_tg.skills.names.fair_and_balanced",
 				trait = "gBalloonCritChance",
 				amount = 1,
 				links = "parent",
@@ -2465,7 +2465,7 @@ return {
 			},
 			{
 				ref = "wip3",
-				name = "WIP",
+				name = "#rotgb_tg.skills.names.wip",
 				trait = "",
 				amount = 1,
 				tier = 1,
@@ -2477,7 +2477,7 @@ return {
 		{
 			{
 				ref = "fab10",
-				name = "Fair And Balanced",
+				name = "#rotgb_tg.skills.names.fair_and_balanced",
 				trait = "gBalloonCritChance",
 				amount = 1,
 				links = "parent",
@@ -2486,7 +2486,7 @@ return {
 			},
 			{
 				ref = "fab11",
-				name = "Fair And Balanced",
+				name = "#rotgb_tg.skills.names.fair_and_balanced",
 				trait = "gBalloonCritChance",
 				amount = 1,
 				links = "parent",
@@ -2495,7 +2495,7 @@ return {
 			},
 			{
 				ref = "fab12",
-				name = "Fair And Balanced",
+				name = "#rotgb_tg.skills.names.fair_and_balanced",
 				trait = "gBalloonCritChance",
 				amount = 1,
 				links = "parent",
@@ -2504,7 +2504,7 @@ return {
 			},
 			{
 				ref = "wip4",
-				name = "WIP",
+				name = "#rotgb_tg.skills.names.wip",
 				trait = "",
 				amount = 1,
 				tier = 1,
@@ -2516,7 +2516,7 @@ return {
 		{
 			{
 				ref = "gbls1",
-				name = "gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.gblimp_sabotage",
 				trait = "gBlimpSpeed",
 				amount = -1,
 				links = "parent",
@@ -2525,7 +2525,7 @@ return {
 			},
 			{
 				ref = "gbls2",
-				name = "gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.gblimp_sabotage",
 				trait = "gBlimpSpeed",
 				amount = -1,
 				links = "parent",
@@ -2534,7 +2534,7 @@ return {
 			},
 			{
 				ref = "gbls3",
-				name = "gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.gblimp_sabotage",
 				trait = "gBlimpSpeed",
 				amount = -1,
 				links = "parent",
@@ -2543,7 +2543,7 @@ return {
 			},
 			{
 				ref = "gbls4",
-				name = "gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.gblimp_sabotage",
 				trait = "gBlimpSpeed",
 				amount = -1,
 				links = "parent",
@@ -2552,7 +2552,7 @@ return {
 			},
 			{
 				ref = "gbls5",
-				name = "gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.gblimp_sabotage",
 				trait = "gBlimpSpeed",
 				amount = -1,
 				links = "parent",
@@ -2561,7 +2561,7 @@ return {
 			},
 			{
 				ref = "gbls6",
-				name = "gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.gblimp_sabotage",
 				trait = "gBlimpSpeed",
 				amount = -1,
 				links = "parent",
@@ -2570,7 +2570,7 @@ return {
 			},
 			{
 				ref = "gbls7",
-				name = "gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.gblimp_sabotage",
 				trait = "gBlimpSpeed",
 				amount = -1,
 				links = "parent",
@@ -2579,7 +2579,7 @@ return {
 			},
 			{
 				ref = "gbls8",
-				name = "gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.gblimp_sabotage",
 				trait = "gBlimpSpeed",
 				amount = -1,
 				links = "parent",
@@ -2590,7 +2590,7 @@ return {
 		{
 			{
 				ref = "gbls9",
-				name = "gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.gblimp_sabotage",
 				trait = "gBlimpSpeed",
 				amount = -1,
 				links = "parent",
@@ -2599,7 +2599,7 @@ return {
 			},
 			{
 				ref = "gbls10",
-				name = "gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.gblimp_sabotage",
 				trait = "gBlimpSpeed",
 				amount = -1,
 				links = "parent",
@@ -2608,7 +2608,7 @@ return {
 			},
 			{
 				ref = "gbls11",
-				name = "gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.gblimp_sabotage",
 				trait = "gBlimpSpeed",
 				amount = -1,
 				links = "parent",
@@ -2617,7 +2617,7 @@ return {
 			},
 			{
 				ref = "gbls12",
-				name = "gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.gblimp_sabotage",
 				trait = "gBlimpSpeed",
 				amount = -1,
 				links = "parent",
@@ -2626,7 +2626,7 @@ return {
 			},
 			{
 				ref = "gbls13",
-				name = "gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.gblimp_sabotage",
 				trait = "gBlimpSpeed",
 				amount = -1,
 				links = "parent",
@@ -2635,7 +2635,7 @@ return {
 			},
 			{
 				ref = "gbls14",
-				name = "gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.gblimp_sabotage",
 				trait = "gBlimpSpeed",
 				amount = -1,
 				links = "parent",
@@ -2644,7 +2644,7 @@ return {
 			},
 			{
 				ref = "gbls15",
-				name = "gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.gblimp_sabotage",
 				trait = "gBlimpSpeed",
 				amount = -1,
 				links = "parent",
@@ -2653,7 +2653,7 @@ return {
 			},
 			{
 				ref = "gbls16",
-				name = "gBlimp Sabotage",
+				name = "#rotgb_tg.skills.names.gblimp_sabotage",
 				trait = "gBlimpSpeed",
 				amount = -1,
 				links = "parent",
@@ -2663,7 +2663,7 @@ return {
 		},
 		{
 			ref = "hdtgpqa",
-			name = "HOW DID THIS GET PAST QUALITY ASSURANCE",
+			name = "#rotgb_tg.skills.names.hdtgpqa",
 			trait = "gBalloonOuterArmor",
 			amount = -1,
 			tier = 2,

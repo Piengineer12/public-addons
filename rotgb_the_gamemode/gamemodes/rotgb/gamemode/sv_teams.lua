@@ -2,12 +2,19 @@ function GM:PlayerCanJoinTeam(ply, teamID)
 	local TimeBetweenSwitches = self.SecondsBetweenTeamSwitches
 	if ply.LastTeamSwitch and RealTime() < ply.LastTeamSwitch + TimeBetweenSwitches then
 		local delay = TimeBetweenSwitches + ply.LastTeamSwitch - RealTime()
-		ply:ChatPrint(string.format("Please wait %.2f more seconds before switching teams!", delay))
+		net.Start("rotgb_gamemode")
+		net.WriteUInt(RTG_OPERATION_TEAM, 4)
+		net.WriteUInt(RTG_TEAM_WAIT, 4)
+		net.WriteFloat(delay)
+		net.Send(ply)
 		return false
 	end
 	
 	if ply:Team() == teamID then
-		ply:ChatPrint("You're already on that team!")
+		net.Start("rotgb_gamemode")
+		net.WriteUInt(RTG_OPERATION_TEAM, 4)
+		net.WriteUInt(RTG_TEAM_SAME, 4)
+		net.Send(ply)
 		return false
 	end
 	
@@ -16,9 +23,15 @@ end
 
 function GM:PlayerRequestTeam(ply, teamID)
 	if not team.Valid(teamID) then
-		ply:ChatPrint("That team does not exist!")
+		net.Start("rotgb_gamemode")
+		net.WriteUInt(RTG_OPERATION_TEAM, 4)
+		net.WriteUInt(RTG_TEAM_INVALID, 4)
+		net.Send(ply)
 	elseif not team.Joinable(teamID) then
-		ply:ChatPrint("You can't join that team!")
+		net.Start("rotgb_gamemode")
+		net.WriteUInt(RTG_OPERATION_TEAM, 4)
+		net.WriteUInt(RTG_TEAM_REJECTED, 4)
+		net.Send(ply)
 	elseif hook.Run("PlayerCanJoinTeam", ply, teamID) then
 		hook.Run("PlayerJoinTeam", ply, teamID)
 	end
@@ -40,8 +53,8 @@ function GM:PlayerJoinTeam(ply, teamID)
 	
 	if teamID == TEAM_BUILDER then
 		player_manager.SetPlayerClass(ply, "Builder")
-	elseif teamID == TEAM_HUNTER then
-		player_manager.SetPlayerClass(ply, "Hunter")
+	--[[elseif teamID == TEAM_HUNTER then
+		player_manager.SetPlayerClass(ply, "Hunter")]]
 	end
 	
 	hook.Run("OnPlayerChangedTeam", ply, oldTeam, teamID)
@@ -58,9 +71,11 @@ function GM:OnPlayerChangedTeam(ply, oldTeam, newTeam)
 		ply:Spawn()
 	end
 	
-	if oldTeam == TEAM_UNASSIGNED then
-		PrintMessage(HUD_PRINTTALK, string.format("%s has joined the %s team", ply:Nick(), team.GetName(newTeam)))
-	else
-		PrintMessage(HUD_PRINTTALK, string.format("%s has switched from the %s team to the %s team", ply:Nick(), team.GetName(oldTeam), team.GetName(newTeam)))
-	end
+	net.Start("rotgb_gamemode")
+	net.WriteUInt(RTG_OPERATION_TEAM, 4)
+	net.WriteUInt(RTG_TEAM_CHANGED, 4)
+	net.WriteUInt(ply:UserID(), 16)
+	net.WriteInt(oldTeam, 32)
+	net.WriteInt(newTeam, 32)
+	net.Broadcast()
 end

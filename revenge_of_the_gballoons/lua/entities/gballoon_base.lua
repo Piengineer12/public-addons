@@ -1937,7 +1937,6 @@ function ENT:Pop(damage,target,dmgbits)
 			end
 			spe.DeductCash = self.DeductCash
 			--spe.BeaconsReached = table.Copy(self.BeaconsReached)
-			spe.LastBeacon = self.LastBeacon
 			if self.FireData then
 				spe.FireData = {
 					damage = self.FireData.damage,
@@ -1965,6 +1964,7 @@ function ENT:Pop(damage,target,dmgbits)
 					end
 				end)
 			end]]
+			spe.LastBeacon = self.LastBeacon
 			spe:SetTarget(self:GetTarget())
 			--[[timer.Simple(0,function()
 				if (IsValid(spe) and spe:Health()<=0) then spe:Pop(-spe:Health()) end
@@ -2634,6 +2634,8 @@ ROTGB_RegisterBossEffect("ceramicity", {
 				hook.Run("gBalloonSpawnerPreSpawn", boss, bln, keyValues)
 				bln:Spawn()
 				bln.TravelledDistance = boss.TravelledDistance
+				bln.LastBeacon = boss.LastBeacon
+				bln:SetTarget(boss:GetTarget())
 				hook.Run("gBalloonSpawnerPostSpawn", boss, bln, keyValues)
 				bln:Activate()
 			end
@@ -2672,6 +2674,8 @@ ROTGB_RegisterBossEffect("ceramicity_super", {
 				hook.Run("gBalloonSpawnerPreSpawn", boss, bln, keyValues)
 				bln:Spawn()
 				bln.TravelledDistance = boss.TravelledDistance
+				bln.LastBeacon = boss.LastBeacon
+				bln:SetTarget(boss:GetTarget())
 				hook.Run("gBalloonSpawnerPostSpawn", boss, bln, keyValues)
 				bln:Activate()
 			end
@@ -2967,6 +2971,8 @@ ROTGB_RegisterBossEffect("long_rainbow", {
 				hook.Run("gBalloonSpawnerPreSpawn", boss, bln, keyValues)
 				bln:Spawn()
 				bln.TravelledDistance = boss.TravelledDistance
+				bln.LastBeacon = boss.LastBeacon
+				bln:SetTarget(boss:GetTarget())
 				hook.Run("gBalloonSpawnerPostSpawn", boss, bln, keyValues)
 				bln:Activate()
 			end
@@ -3021,6 +3027,8 @@ ROTGB_RegisterBossEffect("long_rainbow_super", {
 				hook.Run("gBalloonSpawnerPreSpawn", boss, bln, keyValues)
 				bln:Spawn()
 				bln.TravelledDistance = boss.TravelledDistance
+				bln.LastBeacon = boss.LastBeacon
+				bln:SetTarget(boss:GetTarget())
 				hook.Run("gBalloonSpawnerPostSpawn", boss, bln, keyValues)
 				bln:Activate()
 			end

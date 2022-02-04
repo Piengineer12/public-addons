@@ -6,7 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		5.0.0
+Version:		5.1.1
+Version Date:	2022-02-04
 ]]
 
 local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","spawning","towers"}
@@ -443,6 +444,12 @@ RegisterConVar("rotgb_max_fires_per_second","20",R_FLOAT,
  - Note that invisible fires can still deal fire damage to gBalloons.
  - This may also be a decimal value.]])
 
+RegisterConVar("rotgb_tower_force_charge","0",R_BOOL,
+[[If set, active abilities will charge even no waves are currently in progress.]])
+
+RegisterConVar("rotgb_tower_charge_rate","1",R_FLOAT,
+[[Multiplier for how fast towers recharge their active abilities.]])
+
 concommand.Add("rotgb_health_param_internal",function(ply,cmd,args,argStr) if (not IsValid(ply) or ply:IsAdmin()) then ROTGB_CVARS["rotgb_health_param"][1]:SetInt(tonumber(args[1]) or 0) end end,nil,nil,FCVAR_UNREGISTERED)
 
 local function CreateHfunction(iname,vname)
@@ -790,6 +797,13 @@ if SERVER then
 		end
 		if other_data.whitelist then
 			ROTGB_WHITELIST = other_data.whitelist
+		end
+	end)
+	
+	hook.Add("PostCleanupMap","RotgB",function()
+		ROTGB_UpdateCash()
+		for k,v in pairs(player.GetAll()) do
+			ROTGB_UpdateCash(v)
 		end
 	end)
 end
@@ -1282,10 +1296,12 @@ if CLIENT then
 			DForm:Help(" - "..GetConVar("rotgb_cash_mul"):GetHelpText().."\n")
 			DForm:CheckBox("Split Cash Between Players","rotgb_individualcash")
 			DForm:Help(" - "..GetConVar("rotgb_individualcash"):GetHelpText().."\n")
-			DForm:NumSlider("Starting Cash","rotgb_starting_cash",0,1000,0)
+			DForm:NumSlider("Starting Cash","rotgb_starting_cash",0,10000,0)
 			DForm:Help(" - "..GetConVar("rotgb_starting_cash"):GetHelpText().."\n")
 		end)
 		spawnmenu.AddToolMenuOption("RotgB","Server","RotgB_Server2","gBalloons","","",function(DForm)
+			DForm:NumSlider("Difficulty","rotgb_difficulty",0,3,0)
+			DForm:Help(" - "..GetConVar("rotgb_difficulty"):GetHelpText().."\n")
 			DForm:NumSlider("Fire Damage Delay","rotgb_fire_delay",0,10,3)
 			DForm:Help(" - "..GetConVar("rotgb_fire_delay"):GetHelpText().."\n")
 			DForm:NumSlider("Regen Delay","rotgb_regen_delay",0,10,3)
@@ -1379,12 +1395,14 @@ if CLIENT then
 			DForm:Help(" - "..GetConVar("rotgb_tower_chess_only"):GetHelpText().."\n")
 			DForm:CheckBox("Hurt Non-gBalloons","rotgb_tower_damage_others")
 			DForm:Help(" - "..GetConVar("rotgb_tower_damage_others"):GetHelpText().."\n")
+			DForm:CheckBox("Force Charge Abilities","rotgb_tower_force_charge")
+			DForm:Help(" - "..GetConVar("rotgb_tower_force_charge"):GetHelpText().."\n")
+			DForm:NumSlider("Charge Rate Multiplier","rotgb_tower_charge_rate",0,10,3)
+			DForm:Help(" - "..GetConVar("rotgb_tower_charge_rate"):GetHelpText().."\n")
 			DForm:CheckBox("Ignore Upgrade Limits","rotgb_ignore_upgrade_limits")
 			DForm:Help(" - "..GetConVar("rotgb_ignore_upgrade_limits"):GetHelpText().."\n")
 			DForm:CheckBox("Ignore Physics Gun","rotgb_tower_ignore_physgun")
 			DForm:Help(" - "..GetConVar("rotgb_tower_ignore_physgun"):GetHelpText().."\n")
-			DForm:NumSlider("Difficulty","rotgb_difficulty",0,3,0)
-			DForm:Help(" - "..GetConVar("rotgb_difficulty"):GetHelpText().."\n")
 			DForm:NumSlider("Damage Multiplier","rotgb_damage_multiplier",0,10,3)
 			DForm:Help(" - "..GetConVar("rotgb_damage_multiplier"):GetHelpText().."\n")
 			DForm:NumSlider("Range Multiplier","rotgb_tower_range_multiplier",0,10,3)

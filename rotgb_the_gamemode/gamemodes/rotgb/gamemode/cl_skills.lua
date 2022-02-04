@@ -1,6 +1,6 @@
 concommand.Add("rotgb_tg_skill_web", function()
 	hook.Run("ShowSkillWeb")
-end, nil, "Opens the skill web menu.")
+end, nil, "#command.rotgb_tg_skill_web.help")
 
 function GM:PlayerAddSkills(ply, skillIDs)
 	local skillsMenu = hook.Run("GetSkillWebMenu")

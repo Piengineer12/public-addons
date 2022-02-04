@@ -110,7 +110,7 @@ function GM:ResolveCurrentVote()
 			target = Player(tonumber(target) or -1)
 			if IsValid(target) then
 				timer.Simple(0.5,function()
-					target:Kick("Voted out of the server")
+					target:Kick("#rotgb_tg.voting.result.kick.recipient")
 				end)
 			else
 				return hook.Run("ClearAndSendVoteResult", RTG_VOTERESULT_NOTARGET)

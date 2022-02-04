@@ -348,8 +348,8 @@ function ENT:Think()
 				self:DoFireFunction()
 			end
 		end
-		if self.HasAbility and self:GetAbilityCharge() < 1 and self:GetSpawnerActive() then
-			self:SetAbilityCharge(math.min(1, self:GetAbilityCharge()+FrameTime()/self.AbilityCooldown))
+		if self.HasAbility and self:GetAbilityCharge() < 1 and (self:GetSpawnerActive() or ROTGB_GetConVarValue("rotgb_tower_force_charge")) then
+			self:SetAbilityCharge(math.min(1, self:GetAbilityCharge()+FrameTime()/self.AbilityCooldown*ROTGB_GetConVarValue("rotgb_tower_charge_rate")))
 		end
 		self:BuffThink()
 		self:NextThink(curTime)

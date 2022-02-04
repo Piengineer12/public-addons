@@ -1,6 +1,6 @@
 function GM:InitializeTeams()
 	TEAM_BUILDER = 1
-	team.SetUp(TEAM_BUILDER, "Builder", Color(255,255,0))
+	team.SetUp(TEAM_BUILDER, "#rotgb_tg.teams.builder.name", Color(255,255,0))
 	team.SetClass(TEAM_BUILDER, "Builder")
 	team.SetSpawnPoint(TEAM_BUILDER, "info_player_start")
 	
@@ -17,9 +17,11 @@ function GM:InitializeTeams()
 	
 	TEAM_DESCRIPTIONS = {
 		[TEAM_BUILDER] = {
-			"You start with the RotgB Game Tool.",
-			"Use the RotgB Game Tool to build towers that pop gBalloons.",
-			"You are unable to pop gBalloons yourself."
+			"#rotgb_tg.teams.builder.description.1",
+			"#rotgb_tg.teams.builder.description.2",
+			"#rotgb_tg.teams.builder.description.3",
+			"#rotgb_tg.teams.builder.description.4",
+			"#rotgb_tg.teams.builder.description.5"
 		},
 		--[[[TEAM_HUNTER] = {
 			"You start with the Balloon Shooter and $650 less than normal.",
@@ -27,11 +29,11 @@ function GM:InitializeTeams()
 			"Use the Balloon Shooter to pop gBalloons."
 		},]]
 		[TEAM_SPECTATOR] = {
-			"You start with nothing and do not gain any cash nor experience.",
-			"You are invisible and can freely roam around the map.",
-			"Press the Primary Fire key to cycle forward between views. Most views disable free roaming.",
-			"Press the Secondary Fire key to cycle backward.",
-			"While spectating a player, press the Crouch key to toggle between first person mode and third person mode."
+			"#rotgb_tg.teams.spectator.description.1",
+			"#rotgb_tg.teams.spectator.description.2",
+			"#rotgb_tg.teams.spectator.description.3",
+			"#rotgb_tg.teams.spectator.description.4",
+			"#rotgb_tg.teams.spectator.description.5"
 		}
 	}
 end

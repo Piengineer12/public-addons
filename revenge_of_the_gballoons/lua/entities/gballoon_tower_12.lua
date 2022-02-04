@@ -105,7 +105,7 @@ end
 local rosqrt2 = 1/math.sqrt(2)
 
 local function ExpirySaw(ent,tower)
-	ent:EmitSound(string.format("physics/metal/sawblade_stick%u.wav",math.random(3)),60)
+	ent:EmitSound(string.format("physics/metal/sawblade_stick%u.wav",math.random(3)))
 	if tower.rotgb_Explosive then
 		local pos = ent:GetPos()
 		local dmginfo = DamageInfo()
@@ -122,11 +122,9 @@ local function ExpirySaw(ent,tower)
 		dmginfo:SetMaxDamage(dmginfo:GetDamage())
 		dmginfo:SetReportedPosition(pos)
 		local effdata = EffectData()
-		effdata:SetMagnitude(2)
-		effdata:SetScale(2)
 		effdata:SetOrigin(pos)
-		effdata:SetStart(pos)
-		util.Effect("Explosion",effdata,true,true)
+		util.Effect("HelicopterMegaBomb",effdata,true,true)
+		ent:EmitSound("phx/kaboom.wav")
 		for k,v in pairs(ents.FindInSphere(pos,256)) do
 			if (tower:ValidTargetIgnoreRange(v) and not v:GetBalloonProperty("BalloonBlack")) then
 				dmginfo:SetDamagePosition(v:GetPos())

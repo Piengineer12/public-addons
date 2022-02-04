@@ -2,7 +2,7 @@ AddCSLuaFile()
 
 local PLAYER = {}
 
-PLAYER.DisplayName			= "Builder"
+PLAYER.DisplayName			= "#rotgb_tg.teams.builder.name"
 PLAYER.WalkSpeed			= 200
 PLAYER.RunSpeed				= 400
 

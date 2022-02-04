@@ -16,6 +16,30 @@ function GM:HUDDrawXP()
 	
 	local level = ply:RTG_GetLevel()
 	
+	if level ~= oldLevel and ply.rtg_PreviousXP then
+		if oldLevel>0 then
+			local towers = ROTGB_GetAllTowers()
+			if level<=#towers then
+				local towerUnlocked = towers[level]
+				levelUpText = hook.Run("GetLocalizedString", "rotgb_tg.level_up.tower", towerUnlocked.PrintName)
+			else
+				levelUpText = "#rotgb_tg.level_up.skill_point"
+				if level == #towers + 1 then
+					chat.AddText(unpack(hook.Run(
+						"GetLocalizedMulticoloredString",
+						"rotgb_tg.skills.hint",
+						{"!skills", "!rtg_skills"},
+						color_white,
+						{color_aqua, color_aqua}
+					)))
+				end
+			end
+			levelDisplayExpiryTime = RealTime() + 10
+			surface.PlaySound("ambient/levels/canals/windchime2.wav")
+		end
+		oldLevel = level
+	end
+	
 	surface.SetDrawColor(0,0,0)
 	surface.DrawRect(barX-2, barY-2, barWidth+4, barHeight+4)
 	surface.SetDrawColor(63,0,127)
@@ -23,34 +47,16 @@ function GM:HUDDrawXP()
 	surface.SetDrawColor(127,0,255)
 	surface.DrawRect(barX, barY, barWidth * ply:RTG_GetLevelFraction(), barHeight)
 	
-	draw.SimpleTextOutlined("Level "..string.Comma(level), "rotgb_level", barX, barY, color_purple, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
+	local levelString = hook.Run("GetLocalizedString", "rotgb_tg.level", string.Comma(level))
+	draw.SimpleTextOutlined(levelString, "rotgb_level", barX, barY, color_purple, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
 	if levelDisplayExpiryTime < RealTime() then
-		local experienceText = string.Comma(math.floor(ply:RTG_GetExperience()))
-		--if ply:RTG_GetExperienceNeeded() < math.huge then
-			experienceText = experienceText.." / "..string.Comma(math.ceil(ply:RTG_GetExperienceNeeded()))
-		--end
+		local xp = string.Comma(math.floor(ply:RTG_GetExperience()))
+		local requiredXp = string.Comma(math.ceil(ply:RTG_GetExperienceNeeded()))
+		local experienceText = hook.Run("GetLocalizedString", "rotgb_tg.experience", xp, requiredXp) 
 		draw.SimpleTextOutlined(experienceText, "rotgb_experience", barX+barWidth, barY, color_purple, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
 	else
 		local textColor = Color(255,math.sin(RealTime()*math.pi)*127+128,255)
 		draw.SimpleTextOutlined(levelUpText, "rotgb_experience", barX+barWidth, barY, textColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
-	end
-	
-	if level ~= oldLevel and ply.rtg_PreviousXP then
-		if oldLevel>0 then
-			local towers = ROTGB_GetAllTowers()
-			if level<=#towers then
-				local towerUnlocked = towers[level]
-				levelUpText = "Level Up! "..towerUnlocked.PrintName.." unlocked!"
-			else
-				levelUpText = "Level Up! Skill point gained!"
-				if level == #towers + 1 then
-					chat.AddText(color_white, "Reminder: Type ", color_aqua, "!skills", color_white, " or ", color_aqua, "!rtg_skills", color_white, " in chat to open the skill web.")
-				end
-			end
-			levelDisplayExpiryTime = RealTime() + 10
-			surface.PlaySound("ambient/levels/canals/windchime2.wav")
-		end
-		oldLevel = level
 	end
 end
 

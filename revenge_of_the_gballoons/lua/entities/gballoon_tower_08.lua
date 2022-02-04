@@ -71,7 +71,7 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.HasAbility = nil
-				self.FireRate = self.FireRate / 10
+				self.FireRate = self.FireRate / 40
 				if SERVER and IsValid(self.InternalLaser) then
 					self.InternalLaser:Fire("Alpha",255)
 				end
@@ -199,8 +199,8 @@ end
 
 function ENT:ROTGB_Think()
 	if IsValid(self.KillDamagePos) then
-		for k,v in pairs(ents.FindInSphere(self.KillDamagePos:GetPos(),32)) do
-			if v:GetClass()=="gballoon_base" then
+		for k,v in pairs(ROTGB_GetBalloons()) do
+			if self:ValidTargetIgnoreRange(v) and v:WorldSpaceCenter():DistToSqr(self.KillDamagePos:GetPos()) <= 65536 then
 				v:TakeDamage(self.AttackDamage*1000, self:GetTowerOwner(), self)
 			end
 		end
@@ -286,7 +286,7 @@ abilityFunction = function(self)
 			if self.rotgb_Infinite then
 				self:AddCash(5e7, self:GetTowerOwner())
 			end
-			ent:EmitSound("ambient/explosions/explode_6.wav",100,100,0.5)
+			sound.Play("ambient/explosions/explode_6.wav", ent:GetPos(), 100)
 			local startPos = ents.Create("info_target")
 			local ecp = ent:GetPos()
 			ecp.z = 16000
@@ -302,12 +302,12 @@ abilityFunction = function(self)
 			ecp.z = ecp.z + 24
 			effdata:SetOrigin(ecp)
 			util.Effect("rainbow_wave",effdata)
-			util.ScreenShake(ecp,5,5,6,1024)
+			util.ScreenShake(ecp,1.25,5,6,5000)
 			local beam = ents.Create("env_beam")
 			beam:SetPos(ecp)
 			beam:SetKeyValue("renderamt","255")
 			beam:SetKeyValue("rendercolor","255 255 255")
-			beam:SetKeyValue("BoltWidth","64")
+			beam:SetKeyValue("BoltWidth","50")
 			beam:SetKeyValue("NoiseAmplitude","0")
 			beam:SetKeyValue("texture","beams/rainbow1.vmt")
 			beam:SetKeyValue("TextureScroll","100")
@@ -389,47 +389,51 @@ if CLIENT then
 	local EFFECT = {}
 	function EFFECT:Init(data)
 		local start = data:GetOrigin()
+		sound.Play("ambient/explosions/explode_6.wav", start, 100)
 		local emitter = ParticleEmitter(start)
 		local pi2 = math.pi*2
-		for i=1,360 do
+		for i=1/3,360,1/3 do
 			local particle = emitter:Add("particle/smokesprites_0009",start)
 			if particle then
 				local radians = math.rad(i)
 				local sine,cosine = math.sin(radians),math.cos(radians)
-				local vellgh = math.random(340,400)
+				local vellgh = math.random(425,500)
 				local vel = Vector(sine,cosine,0)*vellgh
 				particle:SetVelocity(vel)
 				local col = HSVToColor(math.Remap(sine,-1,1,0,360),1,1)
 				particle:SetColor(col.r,col.g,col.b)
 				particle:SetDieTime(5+math.random())
-				particle:SetStartSize((vellgh-320)*0.25)
-				particle:SetEndSize(vellgh-320)
+                particle:SetLifeTime(1+math.random())
+				particle:SetStartSize((vellgh-400)/4)
+				particle:SetEndSize(vellgh-400)
 				particle:SetAirResistance(5)
-				particle:SetRollDelta(math.random(-2,2))
+				particle:SetRollDelta(4*math.random()-2)
 			end
 		end
-		for i=1,100 do
+		for i=1,512 do
 			local particle = emitter:Add("particle/smokesprites_0010",start)
 			if particle then
-				local vel = Vector(math.random(-100,100),math.random(-100,100),math.random(-3,3)):GetNormal()*math.random(20,480)
+				local vel = Vector(math.random(-100,100),math.random(-100,100),math.random(-3,3)):GetNormal()*math.random(25,600)
 				local vellgh = vel:Length2D()
 				particle:SetVelocity(vel)
 				particle:SetColor(255,255,255)
 				particle:SetDieTime(5+math.random())
-				particle:SetStartSize(30-vellgh/16)
-				particle:SetEndSize(120-vellgh/4)
+                particle:SetLifeTime(0.3+math.random()/5)
+				particle:SetStartSize(37.5-vellgh/16)
+				particle:SetEndSize(150-vellgh/4)
 				particle:SetAirResistance(50)
-				particle:SetRollDelta(math.random(-2,2))
+				particle:SetRollDelta(4*math.random()-2)
 			end
 			particle = emitter:Add("particle/smokesprites_0010",start)
 			if particle then
-				particle:SetVelocity(Vector(math.random(-10,10),math.random(-10,10),0):GetNormal()*400)
+				particle:SetVelocity(Vector(math.random(-10,10),math.random(-10,10),0):GetNormal()*500)
 				particle:SetColor(255,255,255)
 				particle:SetDieTime(5+math.random())
-				particle:SetStartSize(5)
-				particle:SetEndSize(16+8*math.random())
+                particle:SetLifeTime(0.5+math.random()/2)
+				particle:SetStartSize(2.5)
+				particle:SetEndSize(20+10*math.random())
 				particle:SetAirResistance(30+math.random())
-				particle:SetRollDelta(math.random(-2,2))
+				particle:SetRollDelta(4*math.random()-2)
 			end
 		end
 		emitter:Finish()

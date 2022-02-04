@@ -1,10 +1,5 @@
 GM.BaseSkills = {}
-local skillLuaFiles, skillLuaDirs = file.Find("rotgb/gamemode/rotgb_tg_skills/*.lua", "LUA") -- FIXME: this doesn't work on client, we have to hardcode this for now
-
---[[local skillLuaFiles = {
-	"base.lua",
-	"skill_effectiveness.lua"
-}]]
+local skillLuaFiles, skillLuaDirs = file.Find("rotgb/gamemode/rotgb_tg_skills/*.lua", "LUA")
 
 for k,v in pairs(skillLuaFiles) do
 	AddCSLuaFile("rotgb_tg_skills/"..v)
@@ -15,73 +10,6 @@ for k,v in pairs(skillLuaFiles) do
 		hook.Run("RTG_Log", "Return value of skill file \"rotgb_tg_skills/"..v.."\" was "..tostring(skills), RTG_LOGGING_ERROR)
 	end
 end
-
-local color_yellow = Color(255, 255, 0)
-GM.BaseTraitsText = {
-	[""] = {color_white, "This perk does nothing."},
-	skillEffectiveness = {color_white, "All ", color_yellow, "yellow", color_white, " skill effects are increased by ", 1, "%."},
-	
-	towerPrice = {color_yellow, 1, color_white, "% tower cost"},
-	physgun = {color_white, "Gain the Physics Gun, which can be used to move towers, but only while there are no gBalloons on the map."},
-	towerFireRate = {color_yellow, 1, color_white, "% tower fire rate"},
-	towerEarlyFireRate = {color_yellow, 1, color_white, "% tower fire rate, but gradually reduces down to +0.00% after Wave 40."},
-	towerAbilityD3FireRate = {color_yellow, 1, color_white, "% tower fire rate when an activated ability is triggered, for 1/3 of the cooldown duration."},
-	towerMoneyFireRate = {color_yellow, 1, color_white, "% tower fire rate, multiplied by the natural logarithm of the tower's price."},
-	sniperQueenFireRate = {color_yellow, 1, color_white, "% Sniper Queen fire rate"},
-	allyPawnFireRate = {color_yellow, 1, color_white, "% Ally Pawn fire rate"},
-	fireCubeFireRate = {color_yellow, 1, color_white, "% Fire Cube fire rate"},
-	towerRange = {color_yellow, 1, color_white, "% tower range"},
-	proximityMineRange = {color_yellow, 1, color_white, "% Proximity Mine range"},
-	allyPawnRange = {color_yellow, 1, color_white, "% Ally Pawn range"},
-	fireCubeRange = {color_yellow, 1, color_white, "% Fire Cube range"},
-	electrostaticBarrelBounces = {color_yellow, 1, color_white, " Electrostatic Barrel arcs (rounded down)"},
-	gatlingGunKnightSpread = {color_yellow, 1, color_white, "% Gatling Gun Knight bullet spread"},
-	mortarTowerBombRadius = {color_yellow, 1, color_white, "% Mortar Tower explosion radius"},
-	sawbladeLauncherPierce = {color_yellow, 1, color_white, " Sawblade Launcher pierce (rounded down)"},
-	microwaveGeneratorMicrowaveAngle = {color_yellow, 1, color_white, "% Microwave Generator fire angle"},
-	turretFactoryAbilityCooldown = {color_yellow, 1, color_white, "% Turret Factory generation delay"},
-	pillLobberFlyTime = {color_yellow, 1, color_white, "% Pill Lobber pill travel time"},
-	pillLobberExploRadius = {color_yellow, 1, color_white, "% Pill Lobber pill splash radius"},
-	pillLobberDirectDamage = {color_yellow, 1, color_white, " Pill Lobber direct hit damage (rounded down)"},
-	rainbowBeamerDamage = {color_yellow, 1, color_white, "% Rainbow Beamer damage (rounding up)"},
-	targetDefence = {color_yellow, 1, color_white, "% gBalloon Target defence. Damage taken is divided by defence (rounding up)."},
-	targetHealth = {color_yellow, 1, color_white, "% gBalloon Target health (rounded down)"},
-	targetOSP = {color_yellow, 1, color_white, " gBalloon Target fatal damage negations (rounded down). For bosses, each boss health segment consumes one negation."},
-	targetRegeneration = {color_white, "All damaged gBalloon Targets gain ", color_yellow, 1, color_white, " health at the end of each wave (rounded down)."},
-	hoverballFactoryHealthAmplifier = {color_yellow, 1, color_white, "% X-X-4+ Hoverball Factory health generation"},
-	targetShield = {color_white, "All gBalloon Targets are shielded by ", color_yellow, 1, color_white, "% of their maximum health (rounded down). Shields fully recharge at the end of each wave."},
-	targetGoldenHealth = {color_yellow, 1, color_white, " gBalloon Target golden health (rounded down)"},
-	targetArmor = {color_yellow, 1, color_white, " gBalloon Target armor. Damage taken is subtracted by armor (rounding up)."},
-	targetDodge = {color_yellow, 1, color_white, "% chance to completely prevent damage"},
-	targetHealthEffectiveness = {color_yellow, 1, color_white, "% gBalloon Target health health effects"},
-	cashFromBalloons = {color_yellow, 1, color_white, "% cash from gBalloons"},
-	waveIncome = {color_yellow, 1, color_white, "% bonus cash per wave"},
-	waveWaveIncome = {color_yellow, 1, color_white, " bonus cash per wave, per wave"},
-	startingCash = {color_yellow, 1, color_white, " starting cash"},
-	hoverballFactoryCosts = {color_yellow, 1, color_white, "% Hoverball Factory tower and upgrade costs"},
-	proximityMineCosts = {color_yellow, 1, color_white, "% Proximity Mine tower and upgrade costs"},
-	rainbowBeamerCosts = {color_yellow, 1, color_white, "% Rainbow Beamer tower and upgrade costs"},
-	towerCosts = {color_yellow, 1, color_white, "% tower and upgrade costs"},
-	microwaveGeneratorCosts = {color_yellow, 1, color_white, "% Microwave Generator tower and upgrade costs"},
-	towerIncome = {color_yellow, 1, color_white, "% tower cash generation"},
-	allyPawnFirstFree = {color_white, "The first Ally Pawn placed by one player is absolutely free."},
-	hoverballFactoryIncome = {color_yellow, 1, color_white, "% Hoverball Factory cash generation"},
-	gBlimpOuterHealthCash = {color_white, "All spawned gBlimps' outermost layer yields extra cash when popped, equal to ", color_yellow, 1, color_white, "% of the outer layer's health."},
-	bishopOfGlueFireRate = {color_yellow, 1, color_white, "% Bishop of Glue fire rate"},
-	orbOfColdSpeedPercent = {color_yellow, 1, color_white, "% gBalloon speed after frozen by Orbs Of Cold, for 3 seconds"},
-	gBalloonMissingProperty = {color_yellow, 1, color_white, "% chance for gBalloons to be missing Fast, Hidden, Regen or Shielded properties"},
-	gBalloonSpeed = {color_yellow, 1, color_white, "% gBalloon speed"},
-	gBalloonFastSpeed = {color_yellow, 1, color_white, "% Fast gBalloon speed modifier"},
-	gBalloonRegenRate = {color_yellow, 1, color_white, "% Regen gBalloon regeneration rate"},
-	gBlimpSpeed = {color_yellow, 1, color_white, "% gBlimp speed"},
-	gBalloonOuterArmor = {color_white, "All spawned gBalloons' outermost layer has ", color_yellow, 1, color_white, " armor (rounding up)."},
-	gBlimpOuterHealth = {color_yellow, 1, color_white, "% gBlimp outermost layer health (rounded down)"},
-	gBalloonErrorExplosionUnimmune = {color_white, "Error gBalloons are no longer immune to explosions."},
-	gBlimpArmoredArmor = {color_yellow, 1, color_white, " armor on armored gBlimps (rounding up)"},
-	gBalloonFireGeneric = {color_white, "Purple gBalloons and Rainbow gBlimps are no longer immune to fire."},
-	gBalloonCritChance = {color_yellow, 1, color_white, "% chance to deal double damage"},
-	--targetRevenge = {color_yellow, 1, color_white, " damage dealt (rounded down) to all gBalloons whenever any gBalloon Target takes damage."},
-}
 
 GM.AppliedSkills = {}
 
@@ -111,7 +39,6 @@ experience gain [from gBlimps] [in freeplay] (meta)
 AccessorFunc(GM, "CachedSkillAmounts", "CachedSkillAmounts")
 AccessorFunc(GM, "SkillNames", "SkillNames")
 AccessorFunc(GM, "Skills", "Skills")
-AccessorFunc(GM, "TraitsText", "TraitsText")
 
 function GM:RebuildSkills()
 	hook.Run("RTG_Log", "Building skill web...", RTG_LOGGING_INFO)
@@ -161,13 +88,6 @@ function GM:RebuildSkills()
 			end
 		end
 	end
-	local skillsText = {}
-	for k,v in pairs(self.BaseTraitsText) do
-		skillsText[k] = v
-	end
-	hook.Run("ROTGB:TG_GatherCustomTraitsText", skillsText)
-	hook.Run("SetTraitsText", skillsText)
-	--PrintTable(hook.Run("GetSkills"))
 	hook.Run("RTG_Log", string.format("Finished building skill web in %.2f mcs.", (SysTime()-buildTime)*1e6), RTG_LOGGING_INFO)
 	hook.Run("RTG_Log", string.format("Nodes: %i, Links: %i", #skills, links/2), RTG_LOGGING_INFO)
 end
@@ -352,7 +272,6 @@ function PLAYER:RTG_GetLevel()
 end
 
 function PLAYER:RTG_GetLevelFraction()
-	-- 1.797693134e+308
 	if getExperienceNeeded(self:RTG_GetLevel()) < math.huge then
 		return math.Remap(self:RTG_GetExperience(), getExperienceNeeded(self:RTG_GetLevel()-1), getExperienceNeeded(self:RTG_GetLevel()), 0, 1)
 	elseif self:RTG_GetExperience() < math.huge then

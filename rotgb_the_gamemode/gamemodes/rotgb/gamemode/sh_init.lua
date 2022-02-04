@@ -1,7 +1,7 @@
 GM.Name							= "RotgB: The Gamemode!"
 GM.Author						= "Piengineer12"
-GM.Version						= "1.1.0-rc.2"
-GM.VersionDate					= "2022-01-28"
+GM.Version						= "1.2.0"
+GM.VersionDate					= "2022-02-04"
 GM.Email						= "[REDACTED]"
 GM.Website						= "https://steamcommunity.com/id/Piengineer12"
 GM.TeamBased					= true
@@ -12,7 +12,7 @@ GM.DatabaseFormatVersion		= 1
 GM.DatabaseSaveInterval			= 30
 GM.VoteTime						= 15
 GM.DebugMode					= false
-GM.ModeCategories				= {Easy = 1, Medium = 2, Hard = 3, Insane = 4, Impossible = 5}
+GM.ModeCategories				= {easy = 1, medium = 2, hard = 3, insane = 4, impossible = 5}
 GM.Modes						= {
 	__common = {
 		convars = {
@@ -47,6 +47,8 @@ GM.Modes						= {
 			rotgb_spawner_force_auto_start = true,
 			rotgb_spawner_no_multi_start = 1,
 			rotgb_individualcash = 1,
+			rotgb_tower_force_charge = true,
+			rotgb_tower_charge_rate = true,
 			
 			rotgb_difficulty = true,
 			rotgb_default_wave_preset = true,
@@ -55,9 +57,7 @@ GM.Modes						= {
 		}
 	},
 	easy_regular = {
-		category = "Easy",
-		name = "Regular",
-		description = "Easy difficulty, ends at Wave 40. Towers and upgrades are 20% cheaper and gBalloons move 10% slower.",
+		category = "easy",
 		place = 1,
 		xpmul = 1,
 		convars = {
@@ -67,9 +67,7 @@ GM.Modes						= {
 		}
 	},
 	easy_chessonly = {
-		category = "Easy",
-		name = "Chess Only",
-		description = "Easy difficulty, but only chess towers can be placed. Experience gain is increased by 20%.",
+		category = "easy",
 		place = 2,
 		xpmul = 1.2,
 		convars = {
@@ -80,9 +78,7 @@ GM.Modes						= {
 		}
 	},
 	easy_halfcash = {
-		category = "Easy",
-		name = "Half Cash",
-		description = "Easy difficulty, but all income and cash gains are halved. Experience gain is increased by 100%.",
+		category = "easy",
 		place = 3,
 		xpmul = 2,
 		convars = {
@@ -94,9 +90,7 @@ GM.Modes						= {
 		}
 	},
 	medium_regular = {
-		name = "Regular",
-		category = "Medium",
-		description = "Medium difficulty, ends at Wave 60.",
+		category = "medium",
 		place = 1,
 		xpmul = 0.5,
 		convars = {
@@ -106,9 +100,7 @@ GM.Modes						= {
 		}
 	},
 	medium_rainstorm = {
-		name = "Rainstorm",
-		category = "Medium",
-		description = "Medium difficulty, but waves always start immediately one after another, regardless of Auto-Start settings. Experience gain is increased by 20%.",
+		category = "medium",
 		place = 2,
 		xpmul = 0.6,
 		convars = {
@@ -119,9 +111,7 @@ GM.Modes						= {
 		}
 	},
 	medium_strategic = {
-		name = "Strategic",
-		category = "Medium",
-		description = "Medium difficulty, but starts at Wave 51. You also start with 20,000 cash instead of 650, but you cannot gain cash from any sources. Experience gain is increased by 40%.",
+		category = "medium",
 		place = 3,
 		xpmul = 0.7,
 		convars = {
@@ -134,9 +124,7 @@ GM.Modes						= {
 		}
 	},
 	hard_regular = {
-		name = "Regular",
-		category = "Hard",
-		description = "Hard difficulty, ends at Wave 80. Towers and upgrades are 20% more expensive and gBalloons move 10% faster.",
+		category = "hard",
 		place = 1,
 		xpmul = 0.25,
 		convars = {
@@ -146,9 +134,7 @@ GM.Modes						= {
 		}
 	},
 	hard_doublehpblimps = {
-		name = "Double HP gBlimps",
-		category = "Hard",
-		description = "Hard difficulty, except all gBlimps have double health. Experience gain is increased by 20%.",
+		category = "hard",
 		place = 2,
 		xpmul = 0.3,
 		convars = {
@@ -159,9 +145,7 @@ GM.Modes						= {
 		}
 	},
 	hard_legacy = {
-		name = "Legacy Monsoon",
-		category = "Hard",
-		description = "Hard difficulty, but ends at Wave 120, waves start every 10 seconds and pre-Update 4.0.0 waves are used instead. Experience gain is decreased by 98%.",
+		category = "hard",
 		place = 3,
 		xpmul = 0.005,
 		convars = {
@@ -173,9 +157,7 @@ GM.Modes						= {
 		}
 	},
 	insane_regular = {
-		name = "Regular",
-		category = "Insane",
-		description = "Insane difficulty, ends at Wave 100. Towers and upgrades are 40% more expensive and gBalloons move 20% faster.",
+		category = "insane",
 		place = 1,
 		xpmul = 0.125,
 		convars = {
@@ -185,9 +167,7 @@ GM.Modes						= {
 		}
 	},
 	insane_doublehp = {
-		name = "Double HP gBalloons",
-		category = "Insane",
-		description = "Insane difficulty, except ALL gBalloons have double health. Experience gain is increased by 20%.",
+		category = "insane",
 		place = 2,
 		xpmul = 0.15,
 		convars = {
@@ -198,9 +178,7 @@ GM.Modes						= {
 		}
 	},
 	insane_bosses = {
-		name = "Bosses",
-		category = "Insane",
-		description = "Insane difficulty, but waves always start immediately one after another and a boss gBalloon spawns once every 20 waves. Experience gain is increased by 40%.",
+		category = "insane",
 		place = 3,
 		xpmul = 0.175,
 		convars = {
@@ -212,9 +190,7 @@ GM.Modes						= {
 		}
 	},
 	impossible_regular = {
-		name = "Regular",
-		category = "Impossible",
-		description = "Impossible difficulty, ends at Wave 120. Towers and upgrades are 60% more expensive and gBalloons move 30% faster.",
+		category = "impossible",
 		place = 1,
 		xpmul = 0.0625,
 		convars = {
@@ -224,9 +200,7 @@ GM.Modes						= {
 		}
 	},
 	impossible_monsoon = {
-		name = "Monsoon",
-		category = "Impossible",
-		description = "Impossible difficulty, but waves always start two seconds apart from each other, regardless of Auto-Start settings. Experience gain is increased by 20%.",
+		category = "impossible",
 		place = 2,
 		xpmul = 0.075,
 		convars = {
@@ -238,9 +212,7 @@ GM.Modes						= {
 		}
 	},
 	impossible_bosses = {
-		name = "Super Bosses",
-		category = "Impossible",
-		description = "Impossible difficulty, but with super bosses and ends at Wave 140. Hopefully. Experience gain is decreased by 92%.",
+		category = "impossible",
 		place = 3,
 		xpmul = 0.005,
 		convars = {
@@ -265,6 +237,7 @@ RTG_OPERATION_VOTESTART = 4
 RTG_OPERATION_VOTEEND = 5
 RTG_OPERATION_SKILLS = 6
 RTG_OPERATION_MAPS = 7
+RTG_OPERATION_TEAM = 8
 
 RTG_VOTE_KICK = 1
 RTG_VOTE_CHANGEDIFFICULTY = 2
@@ -280,6 +253,12 @@ RTG_VOTERESULT_KICKBYCHANGEDNICK = 5
 RTG_SKILL_CLEAR = 1
 RTG_SKILL_ONE = 2
 RTG_SKILL_MULTIPLE = 3
+
+RTG_TEAM_WAIT = 1
+RTG_TEAM_SAME = 2
+RTG_TEAM_INVALID = 3
+RTG_TEAM_REJECTED = 4
+RTG_TEAM_CHANGED = 5
 
 RTG_LOGGING_INFO = 1
 RTG_LOGGING_ERROR = 2
@@ -302,6 +281,7 @@ end
 local clientFiles = {
 	"cl_common_functions.lua",
 	"cl_hud.lua",
+	"cl_localization.lua",
 	"cl_misc.lua",
 	"cl_net.lua",
 	"cl_player.lua",
