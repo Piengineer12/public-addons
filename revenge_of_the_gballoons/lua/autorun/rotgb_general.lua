@@ -907,7 +907,8 @@ if CLIENT then
 	
 	local function CreateGBFont(fontsize)
 		surface.CreateFont("RotgB_font",{
-			font="Luckiest Guy",
+			font="Luckiest Guy Rotgb",
+			extended=true,
 			size=fontsize
 		})
 	end

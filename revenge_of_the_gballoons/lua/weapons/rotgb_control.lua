@@ -84,7 +84,8 @@ if CLIENT then
 		size=24
 	})
 	surface.CreateFont("RotgBUITitleFont",{
-		font="Luckiest Guy",
+		font="Luckiest Guy Rotgb",
+		extended=true,
 		size=48
 	})
 end

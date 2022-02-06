@@ -121,7 +121,8 @@ surface.CreateFont("rotgb_header", {
 })
 
 surface.CreateFont("rotgb_body", {
-	font = "Bombardier",
+	font = "Bombardier Rotgb",
+	extended = true,
 	size = FONT_BODY_HEIGHT
 })
 
@@ -131,7 +132,8 @@ surface.CreateFont("rotgb_level", {
 })
 
 surface.CreateFont("rotgb_experience", {
-	font = "Bombardier",
+	font = "Bombardier Rotgb",
+	extended = true,
 	size = FONT_EXPERIENCE_HEIGHT
 })
 
@@ -151,7 +153,8 @@ surface.CreateFont("rotgb_level_small", {
 })
 
 surface.CreateFont("rotgb_skill_body", {
-	font = "Bombardier",
+	font = "Bombardier Rotgb",
+	extended = true,
 	size = FONT_SKILL_BODY_HEIGHT
 })
 
