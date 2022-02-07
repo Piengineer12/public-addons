@@ -16,7 +16,7 @@ local color_magenta = Color(255, 0, 255)
 local color_dark_black_doublesemiopaque = Color(0, 0, 0, 223)
 local SQRT_2 = math.sqrt(2)
 
-local SCOREBOARD_CELL_WIDTH_MULTIPLIERS = {1, 6, 6, 3, 3, 8, {1, 3, 2}, 3}
+local SCOREBOARD_CELL_WIDTH_MULTIPLIERS = {1, 6, 6, 3, 3, 9, {1, 3, 2}, 6}
 local SCOREBOARD_PADDING = 2
 local SCOREBOARD_CELL_SPACE = 1
 local SCOREBOARD_FIELDS = {
@@ -146,7 +146,8 @@ surface.CreateFont("rotgb_scoreboard_header", {
 })
 
 surface.CreateFont("rotgb_scoreboard_body", {
-	font = "Luckiest Guy",
+	font = "Luckiest Guy Rotgb",
+	extended = true,
 	size = FONT_SCOREBOARD_BODY_HEIGHT
 })
 

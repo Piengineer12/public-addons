@@ -1,7 +1,7 @@
 GM.Name							= "RotgB: The Gamemode!"
 GM.Author						= "Piengineer12"
-GM.Version						= "1.2.2-pre.1"
-GM.VersionDate					= "2022-02-06"
+GM.Version						= "1.2.2"
+GM.VersionDate					= "2022-02-07"
 GM.Email						= "[REDACTED]"
 GM.Website						= "https://steamcommunity.com/id/Piengineer12"
 GM.TeamBased					= true
