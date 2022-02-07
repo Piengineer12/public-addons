@@ -1,13 +1,14 @@
 GM.Name							= "RotgB: The Gamemode!"
 GM.Author						= "Piengineer12"
-GM.Version						= "1.2.1"
-GM.VersionDate					= "2022-02-04"
+GM.Version						= "1.2.2-pre.1"
+GM.VersionDate					= "2022-02-06"
 GM.Email						= "[REDACTED]"
 GM.Website						= "https://steamcommunity.com/id/Piengineer12"
 GM.TeamBased					= true
 GM.SecondsBetweenTeamSwitches	= 1
 GM.SpawnDelay					= 2
 GM.NetSendInterval				= 0.2 -- this is also the scoreboard refresh rate, but if this is too low, messages might be sent to the client so fast that the client might crash!
+GM.NetFullUpdateInterval		= 15
 GM.DatabaseFormatVersion		= 1
 GM.DatabaseSaveInterval			= 30
 GM.VoteTime						= 15

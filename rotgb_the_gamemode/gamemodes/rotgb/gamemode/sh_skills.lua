@@ -283,7 +283,7 @@ end
 function PLAYER:RTG_GetExperience()
 	-- experience is stored clientside, so it's impossible to completely prevent clients from modifying their experience value
 	-- especially with open source code, it's better to just not bother about it rather then losing sleep over it
-	return (self.rtg_PreviousXP or 0) + self.rtg_XP
+	return (self.rtg_PreviousXP or 0) + (self.rtg_XP or 0)
 end
 
 function PLAYER:RTG_GetExperienceNeeded()

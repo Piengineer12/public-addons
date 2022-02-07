@@ -1,4 +1,5 @@
 local nextUpdate = 0
+local nextFullUpdate = 0
 
 AccessorFunc(GM, "GameIsOver", "GameIsOver", FORCE_BOOL)
 AccessorFunc(GM, "Defeated", "Defeated", FORCE_BOOL)
@@ -36,6 +37,20 @@ function GM:Think()
 		end
 		
 		hook.Run("CurrentVoteThink")
+	end
+	if nextFullUpdate < RealTime() then
+		nextFullUpdate = RealTime() + self.NetFullUpdateInterval
+		local playersToUpdate = player.GetAll()
+		net.Start("rotgb_statchanged", true)
+		net.WriteUInt(RTG_STAT_FULLUPDATE, 4)
+		net.WriteUInt(#playersToUpdate, 12)
+		for k,v in pairs(playersToUpdate) do
+			net.WriteInt(v:UserID(), 16)
+			net.WriteDouble(v.rtg_gBalloonPops or 0)
+			net.WriteDouble(v.rtg_PreviousXP or 0)
+			net.WriteDouble(v.rtg_XP)
+		end
+		net.Broadcast()
 	end
 	if hook.Run("GetPreventPlayerPhysgun") then
 		hook.Run("SetPreventPlayerPhysgun", false)
