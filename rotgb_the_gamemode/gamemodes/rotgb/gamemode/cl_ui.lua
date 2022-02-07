@@ -117,26 +117,31 @@ AccessorFunc(GM, "SkillWebMenu", "SkillWebMenu")
 
 surface.CreateFont("rotgb_header", {
 	font = "Audiowide",
+	extended = true,
 	size = FONT_HEADER_HEIGHT
 })
 
 surface.CreateFont("rotgb_body", {
-	font = "Bombardier",
+	font = "Bombardier Rotgb",
+	extended = true,
 	size = FONT_BODY_HEIGHT
 })
 
 surface.CreateFont("rotgb_level", {
 	font = "Audiowide",
+	extended = true,
 	size = FONT_LEVEL_HEIGHT
 })
 
 surface.CreateFont("rotgb_experience", {
-	font = "Bombardier",
+	font = "Bombardier Rotgb",
+	extended = true,
 	size = FONT_EXPERIENCE_HEIGHT
 })
 
 surface.CreateFont("rotgb_scoreboard_header", {
 	font = "Audiowide",
+	extended = true,
 	size = FONT_SCOREBOARD_HEADER_HEIGHT
 })
 
@@ -147,11 +152,13 @@ surface.CreateFont("rotgb_scoreboard_body", {
 
 surface.CreateFont("rotgb_level_small", {
 	font = "Audiowide",
+	extended = true,
 	size = FONT_LEVEL_SMALL_HEIGHT
 })
 
 surface.CreateFont("rotgb_skill_body", {
-	font = "Bombardier",
+	font = "Bombardier Rotgb",
+	extended = true,
 	size = FONT_SKILL_BODY_HEIGHT
 })
 
