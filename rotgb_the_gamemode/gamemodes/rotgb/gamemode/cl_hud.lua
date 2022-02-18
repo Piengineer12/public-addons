@@ -21,12 +21,11 @@ function GM:HUDDrawXP()
 			local towers = ROTGB_GetAllTowers()
 			if level<=#towers then
 				local towerUnlocked = towers[level]
-				levelUpText = hook.Run("GetLocalizedString", "rotgb_tg.level_up.tower", towerUnlocked.PrintName)
+				levelUpText = ROTGB_LocalizeString("rotgb_tg.level_up.tower", towerUnlocked.PrintName)
 			else
 				levelUpText = "#rotgb_tg.level_up.skill_point"
 				if level == #towers + 1 then
-					chat.AddText(unpack(hook.Run(
-						"GetLocalizedMulticoloredString",
+					chat.AddText(unpack(ROTGB_LocalizeMulticoloredString(
 						"rotgb_tg.skills.hint",
 						{"!skills", "!rtg_skills"},
 						color_white,
@@ -47,12 +46,12 @@ function GM:HUDDrawXP()
 	surface.SetDrawColor(127,0,255)
 	surface.DrawRect(barX, barY, barWidth * ply:RTG_GetLevelFraction(), barHeight)
 	
-	local levelString = hook.Run("GetLocalizedString", "rotgb_tg.level", string.Comma(level))
+	local levelString = ROTGB_LocalizeString("rotgb_tg.level", string.Comma(level))
 	draw.SimpleTextOutlined(levelString, "rotgb_level", barX, barY, color_purple, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
 	if levelDisplayExpiryTime < RealTime() then
 		local xp = string.Comma(math.floor(ply:RTG_GetExperience()))
 		local requiredXp = string.Comma(math.ceil(ply:RTG_GetExperienceNeeded()))
-		local experienceText = hook.Run("GetLocalizedString", "rotgb_tg.experience", xp, requiredXp) 
+		local experienceText = ROTGB_LocalizeString("rotgb_tg.experience", xp, requiredXp) 
 		draw.SimpleTextOutlined(experienceText, "rotgb_experience", barX+barWidth, barY, color_purple, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
 	else
 		local textColor = Color(255,math.sin(RealTime()*math.pi)*127+128,255)

@@ -3,10 +3,10 @@ AddCSLuaFile()
 ENT.Base = "gballoon_tower_base"
 ENT.Type = "anim"
 ENT.PrintName = "Orb of Cold"
-ENT.Category = "RotgB: Towers"
-ENT.Author = "Piengineer"
+ENT.Category = "#rotgb.category.tower"
+ENT.Author = "Piengineer12"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "This tower freezes gBalloons in its radius, but deals zero damage. Frozen gBalloons are immune to anything that cannot pop Gray gBalloons."
+ENT.Purpose = "#rotgb.tower.gballoon_tower_05.purpose"
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -144,7 +144,7 @@ function ENT:DoFreeze(ent)
 		if self.rotgb_FireLight then
 			ent:RotgB_Ignite(1000, self:GetTowerOwner(), self, 5)
 		end
-		if not ent:GetBalloonProperty("BalloonBlimp") or self.rotgb_Intense and ent:GetRgBE()<=984 then
+		if not ent:GetBalloonProperty("BalloonBlimp") or self.rotgb_Intense and ent:GetRgBE()<=ent:GetRgBEByType("gballoon_blimp_blue") then
 			if self.rotgb_Intense then
 				ent:Freeze2(self.rotgb_FreezeTime)
 			else
@@ -174,7 +174,7 @@ function ENT:FireFunction(gBalloons)
 		if self.AttackDamage > 0 then
 			for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
 				if self:ValidTargetIgnoreRange(v) and v:GetPos():DistToSqr(self:GetShootPos())<=drrt then
-					if not v:GetBalloonProperty("BalloonBlimp") or self.rotgb_Intense and v:GetRgBE()<=984 then
+					if not v:GetBalloonProperty("BalloonBlimp") or self.rotgb_Intense and v:GetRgBE()<=v:GetRgBEByType("gballoon_blimp_blue") then
 						v:TakeDamage(self.AttackDamage,self:GetTowerOwner(),self)
 					else
 						v:ShowResistEffect(1)
@@ -245,7 +245,7 @@ function ENT:ROTGB_Think()
 				end
 			else
 				for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
-					if v:GetClass()=="gballoon_base" and v:GetRgBE() <= 4636 then
+					if v:GetClass()=="gballoon_base" and v:GetRgBE() <= v:GetRgBEByType("gballoon_blimp_red") then
 						v:Slowdown("ROTGB_ICE_TOWER_ARCTIC",0.5,0.25)
 					end
 				end
@@ -276,7 +276,7 @@ function ENT:TriggerAbility()
 			if self.rotgb_FireLight then
 				ent:RotgB_Ignite(1000, self:GetTowerOwner(), self, 5)
 			end
-			if not ent:GetBalloonProperty("BalloonBlimp") or ent:GetRgBE()<=22544 then
+			if not ent:GetBalloonProperty("BalloonBlimp") or ent:GetRgBE()<=ent:GetRgBEByType("gballoon_blimp_green") then
 				if self.rotgb_Intense then
 					ent:Freeze2(15)
 				else

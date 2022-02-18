@@ -3,10 +3,10 @@ AddCSLuaFile()
 ENT.Base = "gballoon_tower_base"
 ENT.Type = "anim"
 ENT.PrintName = "Turret Factory"
-ENT.Category = "RotgB: Towers"
-ENT.Author = "Piengineer"
+ENT.Category = "#rotgb.category.tower"
+ENT.Author = "Piengineer12"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "This tower creates turrets that seek out gBalloons. Turrets have a range of 256 Hu."
+ENT.Purpose = "#rotgb.tower.gballoon_tower_15.purpose"
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false

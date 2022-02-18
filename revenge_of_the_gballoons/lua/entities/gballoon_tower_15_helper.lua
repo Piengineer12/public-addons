@@ -173,7 +173,7 @@ function ENT:FireAtEnemy()
 				end]]
 				enemy:ShowCritEffect()
 			end
-			if self.rotgb_Owner.rotgb_Slowdown and enemy:GetRgBE() <= 22544 then
+			if self.rotgb_Owner.rotgb_Slowdown and enemy:GetRgBE() <= enemy:GetRgBEByType("gballoon_blimp_green") then
 				enemy:Slowdown("ROTGB_TOWER_15",0.25,1)
 			end
 			local bulletstruct = {

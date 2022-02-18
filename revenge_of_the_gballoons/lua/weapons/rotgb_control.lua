@@ -1,12 +1,12 @@
 AddCSLuaFile()
 
 --SWEP.Base = "weapon_base"
-SWEP.PrintName = "RotgB Game SWEP"
-SWEP.Category = "RotgB"
-SWEP.Author = "Piengineer"
+SWEP.PrintName = "#rotgb.game_swep.name"
+SWEP.Category = "#rotgb.category.rotgb"
+SWEP.Author = "Piengineer12"
 SWEP.Contact = "http://steamcommunity.com/id/Piengineer12/"
-SWEP.Purpose = "The SWEP for RotgB, successor to the Multitool."
-SWEP.Instructions = "See the on-screen HUD for instructions."
+SWEP.Purpose = "#rotgb.game_swep.purpose"
+SWEP.Instructions = "#rotgb.game_swep.instructions"
 SWEP.WorldModel = "models/weapons/w_c4.mdl"
 SWEP.ViewModel = "models/weapons/cstrike/c_c4.mdl"
 SWEP.ViewModelFOV = 30
@@ -79,7 +79,11 @@ local buttonHeight = 48
 --local screenMaterial = Material("models/screenspace")
 
 if CLIENT then
-	surface.CreateFont("RotgBUIFont",{
+	surface.CreateFont("RotgBUIHeader",{
+		font="Orbitron Medium",
+		size=24
+	})
+	surface.CreateFont("RotgBUIBody",{
 		font="Roboto",
 		size=24
 	})
@@ -174,15 +178,15 @@ function SWEP:PostDrawViewModel(viewmodel, weapon, ply)
 			cam.Start3D2D(renderPos, renderAngles, 0.01)
 			-- screen is 3.8 x 2.0
 			if IsValid(self.TowerMenu) and self.TowerMenu:IsVisible() then
-				draw.SimpleText("Secondary Fire", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
-				draw.SimpleText("to Hide Menu", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+				draw.SimpleText("#rotgb.game_swep.instructions.secondary_close.1", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+				draw.SimpleText("#rotgb.game_swep.instructions.secondary_close.2", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
 			else
 				if RealTime() % 10 < 5 then
-					draw.SimpleText("Secondary Fire", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
-					draw.SimpleText("to Show Menu", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+					draw.SimpleText("#rotgb.game_swep.instructions.secondary_open.1", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+					draw.SimpleText("#rotgb.game_swep.instructions.secondary_open.2", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
 				else
-					draw.SimpleText("Primary Fire to", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
-					draw.SimpleText("Trigger Abilities", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+					draw.SimpleText("#rotgb.game_swep.instructions.primary.1", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+					draw.SimpleText("#rotgb.game_swep.instructions.primary.2", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
 				end
 			end
 			cam.End3D2D()
@@ -400,7 +404,10 @@ net.Receive("rotgb_controller", function(length, ply)
 					local spawners = ents.FindByClass("gballoon_spawner")
 					if table.IsEmpty(spawners) then
 						ply:EmitSound("buttons/button18.wav",60,100,1,CHAN_WEAPON)
-						return ply:PrintMessage(HUD_PRINTTALK, "Place one gBalloon Spawner first!")
+						net.Start("rotgb_generic")
+						net.WriteUInt(ROTGB_OPERATION_NOTIFYCHAT, 8)
+						net.WriteUInt(ROTGB_NOTIFYCHAT_NOSPAWNERS, 8)
+						net.Send(ply)
 					end
 					for k,v in pairs(spawners) do
 						v:Fire("Use",nil,nil,ply)
@@ -412,7 +419,10 @@ net.Receive("rotgb_controller", function(length, ply)
 					local spawners = ents.FindByClass("gballoon_spawner")
 					if table.IsEmpty(spawners) then
 						ply:EmitSound("buttons/button18.wav",60,100,1,CHAN_WEAPON)
-						return ply:PrintMessage(HUD_PRINTTALK, "Place one gBalloon Spawner first!")
+						net.Start("rotgb_generic")
+						net.WriteUInt(ROTGB_OPERATION_NOTIFYCHAT, 8)
+						net.WriteUInt(ROTGB_NOTIFYCHAT_NOSPAWNERS, 8)
+						net.Send(ply)
 					end
 					for k,v in pairs(spawners) do
 						v:SetAutoStart(shouldAutoStart)
@@ -468,7 +478,7 @@ function SWEP:InstallMenuFunctions(Main)
 	end
 	function Main:CreateButton(text, parent, color1, color2, color3)
 		local Button = vgui.Create("DButton", parent)
-		Button:SetFont("RotgBUIFont")
+		Button:SetFont("RotgBUIHeader")
 		Button:SetText(text)
 		Button:SetColor(color_black)
 		Button:SetTall(buttonHeight)
@@ -481,7 +491,7 @@ function SWEP:InstallMenuFunctions(Main)
 	end
 	function Main:AddHeader(text, parent)
 		local Label = vgui.Create("DLabel", parent)
-		Label:SetFont("RotgBUIFont")
+		Label:SetFont("RotgBUIHeader")
 		Label:SetText(text)
 		Label:DockMargin(0,0,0,padding)
 		Label:SetColor(color_aqua)
@@ -492,8 +502,8 @@ function SWEP:InstallMenuFunctions(Main)
 	end
 	function Main:AddSearchBox(parent)
 		local TextEntry = vgui.Create("DTextEntry", parent)
-		TextEntry:SetFont("RotgBUIFont")
-		TextEntry:SetPlaceholderText("Search...")
+		TextEntry:SetFont("RotgBUIBody")
+		TextEntry:SetPlaceholderText("#rotgb.game_swep.transfer.search")
 		TextEntry:SetTall(buttonHeight)
 		TextEntry:Dock(TOP)
 		
@@ -562,9 +572,9 @@ function SWEP:CreateLeftPanel(Main)
 	local LeftPanel = vgui.Create("DPanel")
 	LeftPanel.Paint = PaintBackground
 	LeftPanel:DockPadding(padding,padding,padding,padding)
-	local TransferHeader = Main:AddHeader("Transfer $? To...", LeftPanel)
+	local TransferHeader = Main:AddHeader("", LeftPanel)
 	
-	local RefreshButton = Main:CreateButton("Refresh List", LeftPanel, color_green, color_light_green, color_white)
+	local RefreshButton = Main:CreateButton("#rotgb.game_swep.transfer.refresh", LeftPanel, color_green, color_light_green, color_white)
 	RefreshButton:DockMargin(0,0,0,padding)
 	RefreshButton:Dock(TOP)
 	
@@ -594,7 +604,10 @@ function SWEP:CreateLeftPanel(Main)
 							net.SendToServer()
 							
 							if not ROTGB_GetConVarValue("rotgb_individualcash") then
-								chat.AddText(color_aqua, "It is pointless to use this option while Individual Cash\nis disabled (ConVar rotgb_individualcash).")
+								net.Start("rotgb_generic")
+								net.WriteUInt(ROTGB_OPERATION_NOTIFYCHAT, 8)
+								net.WriteUInt(ROTGB_NOTIFYCHAT_TRANSFERSHARED, 8)
+								net.Send(ply)
 							end
 						else
 							ScrollPanel:Refresh()
@@ -602,7 +615,7 @@ function SWEP:CreateLeftPanel(Main)
 					end
 					function NameButton:PaintOver(w,h)
 						if IsValid(v) then
-							draw.SimpleText(v:Nick().." ("..ROTGB_FormatCash(ROTGB_GetCash(v))..")", "RotgBUIFont", w/2, h/2, color_black, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+							draw.SimpleText(ROTGB_LocalizeString("rotgb.game_swep.transfer.target", v:Nick(), ROTGB_FormatCash(ROTGB_GetCash(v))), "RotgBUIBody", w/2, h/2, color_black, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 						else -- eee!
 							ScrollPanel:Refresh()
 						end
@@ -624,7 +637,7 @@ function SWEP:CreateLeftPanel(Main)
 		local oldCash = self.cash
 		if newCash ~= oldCash and (oldCash == oldCash or newCash == newCash) then -- needed to weed out NaNs, otherwise this will try to change the text EVERY FRAME
 			self.cash = newCash
-			self:SetText(string.format("Transfer %s To...", ROTGB_FormatCash(ROTGB_GetTransferAmount(LocalPlayer())))) -- this many brackets might be confusing
+			self:SetText(ROTGB_LocalizeString("rotgb.game_swep.transfer.header", ROTGB_FormatCash(ROTGB_GetTransferAmount(LocalPlayer())))) -- this many brackets might be confusing
 		end
 	end
 	ScrollPanel:Refresh()
@@ -634,40 +647,41 @@ end
 
 function SWEP:CreateLeftTowerPanel(Main, data)
 	local wep = self
+	local class = data.ClassName
 	local LeftPanel = vgui.Create("DPanel")
 	LeftPanel.Paint = PaintBackground
 	LeftPanel:DockPadding(padding,padding,padding,padding)
-	Main:AddHeader(data.PrintName, LeftPanel)
+	Main:AddHeader(language.GetPhrase("rotgb.tower."..class..".name"), LeftPanel)
 	
 	local DescLabel = vgui.Create("DLabel", LeftPanel)
 	DescLabel:Dock(TOP)
 	DescLabel:SetWrap(true)
 	DescLabel:SetAutoStretchVertical(true)
-	DescLabel:SetFont("RotgBUIFont")
-	DescLabel:SetText(data.Purpose)
+	DescLabel:SetFont("RotgBUIBody")
+	DescLabel:SetText(language.GetPhrase("rotgb.tower."..class..".purpose"))
 	
 	local DamageLabel = vgui.Create("DLabel", LeftPanel)
 	DamageLabel:Dock(TOP)
-	DamageLabel:SetFont("RotgBUIFont")
-	DamageLabel:SetText(string.format("Damage: %u", data.AttackDamage/10))
+	DamageLabel:SetFont("RotgBUIBody")
+	DamageLabel:SetText(ROTGB_LocalizeString("rotgb.game_swep.tower.damage", string.format("%u", data.AttackDamage/10)))
 	DamageLabel:SetTextColor(color_light_red)
 	DamageLabel:SizeToContents()
 	
 	local FireRateLabel = vgui.Create("DLabel", LeftPanel)
 	FireRateLabel:Dock(TOP)
-	FireRateLabel:SetFont("RotgBUIFont")
-	FireRateLabel:SetText(string.format("Fire Rate: %.2f/s", data.FireRate))
+	FireRateLabel:SetFont("RotgBUIBody")
+	FireRateLabel:SetText(ROTGB_LocalizeString("rotgb.game_swep.tower.fire_rate", string.format("%.2f", data.FireRate)))
 	FireRateLabel:SetTextColor(color_light_green)
 	FireRateLabel:SizeToContents()
 	
 	local RangePanel = vgui.Create("DLabel", LeftPanel)
 	RangePanel:Dock(TOP)
-	RangePanel:SetFont("RotgBUIFont")
-	RangePanel:SetText(string.format("Range: %u Hu", data.DetectionRadius))
+	RangePanel:SetFont("RotgBUIBody")
+	RangePanel:SetText(ROTGB_LocalizeString("rotgb.game_swep.tower.range", string.format("%u", data.DetectionRadius)))
 	RangePanel:SetTextColor(color_light_blue)
 	RangePanel:SizeToContents()
 	
-	local CancelButton = Main:CreateButton("Cancel Placement", LeftPanel, color_red, color_light_red, color_white)
+	local CancelButton = Main:CreateButton("#rotgb.game_swep.tower.cancel", LeftPanel, color_red, color_light_red, color_white)
 	CancelButton:Dock(BOTTOM)
 	function CancelButton:DoClick()
 		wep:DoTowerSelector(0)
@@ -686,7 +700,7 @@ function SWEP:CreateRightPanel(Main)
 	RightDivider:SetTop(UpperPanel)
 	UpperPanel.Paint = PaintBackground
 	UpperPanel:DockPadding(padding,padding,padding,padding)
-	Main:AddHeader("Build...", UpperPanel)
+	Main:AddHeader("#rotgb.game_swep.tower.header", UpperPanel)
 	
 	local ScrollPanel = vgui.Create("DScrollPanel", UpperPanel)
 	ScrollPanel:Dock(FILL)
@@ -738,7 +752,7 @@ function SWEP:CreateRightPanel(Main)
 						if not self.levelLocked then
 							self.levelLocked = true
 							self:SetColor(color_gray)
-							TowerPanel.cashText = string.format("Level %u", self.minimumLevel)
+							TowerPanel.cashText = ROTGB_LocalizeString("rotgb.game_swep.tower.level_required", string.format("%u", self.minimumLevel)) 
 						end
 					elseif self.levelLocked then
 						self.levelLocked = false
@@ -806,8 +820,8 @@ function SWEP:CreateBottomRightPanel(Main)
 	BottomPanel:DockPadding(padding,padding,padding,padding)
 	
 	local AutoCheckBox = vgui.Create("DCheckBoxLabel", BottomPanel)
-	AutoCheckBox:SetFont("RotgBUIFont")
-	AutoCheckBox:SetText("Auto Start")
+	AutoCheckBox:SetFont("RotgBUIHeader")
+	AutoCheckBox:SetText("#rotgb.game_swep.auto_start")
 	AutoCheckBox:SizeToContentsY()
 	AutoCheckBox:Dock(BOTTOM)
 	AutoCheckBox:DockMargin(0,padding,0,0)
@@ -904,7 +918,7 @@ function SWEP:CreateMiddlePanel(Main)
 	MiddleDivider:SetTop(UpperPanel)
 	UpperPanel.Paint = PaintBackground
 	UpperPanel:DockPadding(padding,padding,padding,padding)
-	Main:AddHeader("Activated Abilities", UpperPanel)
+	Main:AddHeader("#rotgb.game_swep.abilities.header", UpperPanel)
 	
 	local ScrollPanel = vgui.Create("DScrollPanel", UpperPanel)
 	ScrollPanel:Dock(FILL)
@@ -934,7 +948,7 @@ function SWEP:CreateMiddlePanel(Main)
 				local reference = v.UpgradeReference
 				local upgradeAmounts = {}
 				for i=1,#reference do
-					upgradeAmounts[i] = bit.rshift(v:GetUpgradeStatus(),(i-1)*4)%16
+					upgradeAmounts[i] = string.format("%u", bit.rshift(v:GetUpgradeStatus(),(i-1)*4)%16)
 				end
 				TowerPanel.upgradeText = table.concat(upgradeAmounts, "-")
 				
@@ -962,7 +976,7 @@ function SWEP:CreateMiddlePanel(Main)
 								circleColor.r,circleColor.g,circleColor.b,circleColor.a
 							)
 						end
-						draw.SimpleTextOutlined(self.upgradeText, "RotgBUIFont", w/2, h, drawColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM, 1, color_black)
+						draw.SimpleTextOutlined(self.upgradeText, "RotgBUIBody", w/2, h, drawColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM, 1, color_black)
 					else
 						self:Remove()
 					end
@@ -980,7 +994,7 @@ function SWEP:CreateMiddlePanel(Main)
 		end
 		
 		if not success then
-			Main:AddHeader("(Towers with \"shooting at this tower\" effects will appear here.)", TowersPanel)
+			Main:AddHeader("#rotgb.game_swep.abilities.description", TowersPanel)
 		end
 		TowersPanel:InvalidateLayout(true)
 		ScrollPanel:InvalidateLayout(true)
@@ -994,7 +1008,7 @@ function SWEP:CreateMiddlePanel(Main)
 	LowerPanel.Paint = nil
 	LowerPanel:SetWorldClicker(true)
 	
-	local CloseButton = Main:CreateButton("Hide Menu", LowerPanel, color_red, color_light_red, color_white)
+	local CloseButton = Main:CreateButton("#rotgb.game_swep.hide", LowerPanel, color_red, color_light_red, color_white)
 	CloseButton:SizeToContentsX(buttonHeight-24)
 	function CloseButton:DoClick()
 		Main:Hide()

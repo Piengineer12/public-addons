@@ -3,10 +3,10 @@ AddCSLuaFile()
 ENT.Base = "gballoon_tower_base"
 ENT.Type = "anim"
 ENT.PrintName = "Sawblade Launcher"
-ENT.Category = "RotgB: Towers"
-ENT.Author = "Piengineer"
+ENT.Category = "#rotgb.category.tower"
+ENT.Author = "Piengineer12"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "This tower fires sawblades that can cut through multiple gBalloon layers, especially when placed at the ends of straight tracks."
+ENT.Purpose = "#rotgb.tower.gballoon_tower_12.purpose"
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false

@@ -2,11 +2,11 @@ AddCSLuaFile()
 
 ENT.Type 				= "anim"
 ENT.Base 				= "base_anim"
-ENT.PrintName			= "RotgB Guide Book"
-ENT.Purpose				= "The compendium of knowledge all about RotgB."
-ENT.Instructions		= ""
-ENT.Category			= "RotgB: Miscellaneous"
-ENT.Author				= "Piengineer"
+ENT.PrintName			= "#rotgb.guide"
+ENT.Purpose				= "#rotgb.guide.purpose"
+ENT.Instructions		= "#rotgb.guide.instructions"
+ENT.Category			= "#rotgb.category.miscellaneous"
+ENT.Author				= "Piengineer12"
 ENT.Contact				= "http://steamcommunity.com/id/Piengineer12/"
 ENT.Spawnable			= false
 ENT.AdminOnly			= false
@@ -18,7 +18,7 @@ if SERVER then
 end
 
 if CLIENT then
-	concommand.Add("rotgb_bestiary", function()
+	concommand.Add("rotgb_guide_book", function()
 		net.Start("RotgB_Bestiary", true)
 		net.SendToServer()
 	end)
@@ -93,6 +93,7 @@ local order = {
 local function AddBalloon(ColumnSheet,class)
 	local npcprops = list.GetForEdit("NPC")[class]
 	local cvals = npcprops.KeyValues
+	local typ = cvals.BalloonType
 	local Label = ColumnSheet:Add("RichText")
 	local hasimms,haspops
 	Label:Dock(FILL)
@@ -103,68 +104,67 @@ local function AddBalloon(ColumnSheet,class)
 	v1 = (v1 + 1) / 2
 	local col2 = HSVToColor(h1,s1,v1)
 	Label:InsertColorChange(col2.r,col2.g,col2.b,col2.a)
-	Label:AppendText(npcprops.Name.."\n\n")
+	Label:AppendText(language.GetPhrase("rotgb.gballoon."..typ).."\n")
 	Label:InsertColorChange(255,127,127,255)
-	Label:AppendText("Hit Points: "..(cvals.BalloonHealth or 1))
+	Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.health", cvals.BalloonHealth or 1))
 	Label:InsertColorChange(255,255,127,255)
-	Label:AppendText("\nRgBE: "..baseclass.Get("gballoon_base").rotgb_rbetab[class])
+	Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.rgbe", scripted_ents.Get("gballoon_base").rotgb_rbetab[class]))
 	Label:InsertColorChange(127,255,127,255)
-	Label:AppendText("\nSize: "..(cvals.BalloonScale or 1)*(tobool(cvals.BalloonBlimp) and 10 or 1).."x")
+	Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.size", cvals.BalloonScale or 1))
 	Label:InsertColorChange(127,255,255,255)
-	Label:AppendText("\nSpeed: "..(cvals.BalloonMoveSpeed or 100).." Hu/s")
+	Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.speed", cvals.BalloonMoveSpeed or 100))
 	Label:InsertColorChange(127,127,255,255)
-	Label:AppendText("\nOn pop, spawns the following:")
+	Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.children"))
 	for k,v in pairs(baseclass.Get("gballoon_base").rotgb_spawns[class] or {}) do
-		local npcprops2 = list.GetForEdit("NPC")[k]
-		local h1,s1,v1 = ColorToHSV(string.ToColor(npcprops2.KeyValues.BalloonColor))
+		local keyValues = list.GetForEdit("NPC")[k].KeyValues
+		local h1,s1,v1 = ColorToHSV(string.ToColor(keyValues.BalloonColor))
 		if s1 == 1 then v1 = 1 end
 		s1 = s1 / 2
 		v1 = (v1 + 1) / 2
 		local col2 = HSVToColor(h1,s1,v1)
 		for i=1,v do
 			Label:InsertColorChange(col2.r,col2.g,col2.b,col2.a)
-			Label:AppendText("\n\t"..npcprops2.Name)
+			Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.children.entry", ROTGB_GetBalloonName(keyValues.BalloonType, keyValues.BalloonFast, keyValues.BalloonHidden, keyValues.BalloonRegen, keyValues.BalloonShielded)))
 		end
 		haspops = true
 	end
 	if not haspops then
 		Label:InsertColorChange(255,127,127,255)
-		Label:AppendText("\n\t-")
+		Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.children.no_entries"))
 	end
 	Label:InsertColorChange(255,127,255,255)
-	Label:AppendText("\nExtra Properties: ")
+	Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.extra_properties"))
 	if cvals.BalloonWhite then
 		Label:InsertColorChange(255,255,255,255)
-		Label:AppendText("\n\tFrost Immunity")
+		Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.extra_properties.white"))
 		hasimms = true
 	end
 	if cvals.BalloonBlimp then
 		Label:InsertColorChange(255,255,255,255)
-		Label:AppendText("\n\tFrost Immunity")
+		Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.extra_properties.white"))
 		Label:InsertColorChange(255,255,127,255)
-		Label:AppendText("\n\tGlue Immunity")
+		Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.extra_properties.aqua"))
 		hasimms = true
 	end
 	if cvals.BalloonBlack then
 		Label:InsertColorChange(127,127,127,255)
-		Label:AppendText("\n\tExplosion Immunity")
+		Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.extra_properties.black"))
 		hasimms = true
 	end
 	if cvals.BalloonPurple then
 		Label:InsertColorChange(191,127,255,255)
-		Label:AppendText("\n\tMagic Immunity")
+		Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.extra_properties.purple"))
 		hasimms = true
 	end
 	if cvals.BalloonGray then
 		Label:InsertColorChange(191,191,191,255)
-		Label:AppendText("\n\tBullet Immunity")
-		Label:AppendText("\n\tLaceration Immunity")
+		Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.extra_properties.gray"))
 		hasimms = true
 	end
 	if cvals.BalloonAqua then
 		if not cvals.BalloonBlimp then
 			Label:InsertColorChange(255,255,127,255)
-			Label:AppendText("\n\tGlue Immunity")
+			Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.extra_properties.aqua"))
 		end
 		--[[Label:InsertColorChange(127,255,255,255)
 		Label:AppendText("\n\tMelee Immunity")]]
@@ -172,17 +172,17 @@ local function AddBalloon(ColumnSheet,class)
 	end
 	if cvals.BalloonArmor then
 		Label:InsertColorChange(255,127,255,255)
-		Label:AppendText("\n\tIgnores damage < "..(cvals.BalloonArmor+1).." layers")
+		Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.extra_properties.armor", cvals.BalloonArmor+1))
 		hasimms = true
 	end
 	if cvals.BalloonMaxDamage then
 		Label:InsertColorChange(255,191,127,255)
-		Label:AppendText("\n\tIgnores damage > "..cvals.BalloonMaxDamage.." layers")
+		Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.extra_properties.max_damage", cvals.BalloonMaxDamage))
 		hasimms = true
 	end
 	if cvals.BalloonGlass then
-		Label:AppendText("\n\t")
-		local text = "Complete Immunity"
+		Label:AppendText("\n")
+		local text = ROTGB_LocalizeString("rotgb.guide.gballoon.extra_properties.glass")
 		for i=1,#text do
 			local hue = math.Remap(i,1,#text,0,360)
 			local color = HSVToColor(hue,0.5,1)
@@ -192,8 +192,8 @@ local function AddBalloon(ColumnSheet,class)
 		hasimms = true
 	end
 	if cvals.BalloonVoid then
-		Label:AppendText("\n\t")
-		local text = "Cannot be detected by towers"
+		Label:AppendText("\n")
+		local text = ROTGB_LocalizeString("rotgb.guide.gballoon.extra_properties.void")
 		for i=1,#text do
 			local lum = math.Remap(i,1,#text,1,0.5)
 			local color = HSVToColor(0,0,lum)
@@ -202,11 +202,11 @@ local function AddBalloon(ColumnSheet,class)
 		end
 		hasimms = true
 	end
-	if class == "gballoon_blimp_rainbow" then
-		Label:AppendText("\n\t")
-		local text = "Regenerates "..math.Round(ROTGB_GetConVarValue("rotgb_rainbow_gblimp_regen_rate")*200/3,2).." Health Per Second"
+	if cvals.BalloonSuperRegen then
+		Label:AppendText("\n")
+		local text = ROTGB_LocalizeString("rotgb.guide.gballoon.extra_properties.super_regen", string.format("%.2f", 200*cvals.BalloonSuperRegen))
 		for i=1,#text do
-			local hue = math.Remap(i,1,#text,0,720)
+			local hue = math.Remap(i,1,#text,0,720)%360
 			local color = HSVToColor(hue,0.5,1)
 			Label:InsertColorChange(color.r, color.g, color.b, color.a)
 			Label:AppendText(text[i])
@@ -214,81 +214,46 @@ local function AddBalloon(ColumnSheet,class)
 	end
 	if not hasimms then
 		Label:InsertColorChange(255,127,127,255)
-		Label:AppendText("\n\t-")
+		Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.extra_properties.none"))
 	end
 	function Label:PerformLayout()
 		self:SetBGColor(0,0,0,191)
 		self:SetFontInternal("Trebuchet24")
 	end
-	ColumnSheet:AddSheet(npcprops.Name,Label)
+	ColumnSheet:AddSheet("#rotgb.gballoon."..typ,Label)
 end
 
-local addonoffers = [[What This Addon Offers:
-
-RotgB Guide Book (Entities > RotgB: Miscellaneous)
-
-1 weapon (Weapons > RotgB)
-	RotgB Game SWEP
-
-gBalloons (NPCs > RotgB)
-	17 basic types (NPCs > RotgB: gBalloons)
-	7 blimp types (NPCs > RotgB: gBlimps)
-	7 boss types, with super variants for each (NPCs > RotgB: gBalloons Bosses)
-	4 miscellaneous types (NPCs > RotgB: gBalloons Miscellaneous)
-	4 different modifiers (non-misc. only)
-
-Anti-gBalloon Towers (Entities > RotgB: Towers)
-	17 different types
-
-gBalloon Spawner (Entities > RotgB: Miscellaneous)
-	Can be set to spawn a custom wave (see rotgb_waveeditor ConCommand)
-	Can be set to also start all other spawners
-	Initial wave can be adjusted
-	Can be set to auto-start
-	Has many more editable properties
-
-gBalloon Targets (Entities > RotgB: Miscellaneous)
-	Can be set to be waypoints (gBalloons approach, then ignore)
-	Can be linked to other waypoints
-	Waypoint links can be set as gBlimp-only
-	Can be set as teleportation waypoints
-	Can be set to be damaged only by gBalloons
-
-2 tool gun modes (Options > RotgB)
-	RotgB Avoidance Editor
-	gBalloon Target Waypoint Editor
-]]
-
 local credits = {
-	{"Piengineer", "76561198144438879", "Creating most parts of the addon."},
-	{"zorich_michael", "76561198196764081", "Suggested the waypoint system (2019-01-16)."},
-	{"Sergius", "76561198293518598", "Suggested the Ally Pawn (2019-01-19)."},
-	{"Fifu the Random Tribal Idiot", "76561198102225296", "Suggested the Orb of Cold (2019-01-28) and Microwave Tower (2019-02-10)."},
-	{"Obsidian_The_Tempered", "76561198348095161", "Suggested the Ally Pawn (2019-02-07) and waypoint system (2019-03-03)."},
-	{"Platless", "76561198822619008", "Suggested the Rainbow Beamer (2019-02-13)."},
-	{"Sir. Vapenation", "76561198143774099", "Suggested the waypoint system (2019-03-18), Hoverball Factory (2019-03-18) and Turret Factory (2019-03-18)."},
-	{"mushroom", "76561198337193083", "Suggested the Bishop of Glue (2019-05-06)."},
-	{"Devro", "76561198363697889", "Suggested the Mortar Tower (2019-05-06)."},
-	{"itachi209", "76561198352896173", "Suggested the Glass gBalloon (2019-05-29)."},
-	{"PDA Expert", "76561198024198604", "Suggested the Sawblade Launcher (2019-07-12), Turret Factory (2020-02-13) and Pill Lobber (2020-12-26)."},
-	{"Conga Dispenser", "76561198361428640", "Suggested the Mortar Tower (2019-07-17), waypoint multi-path system (2019-09-01), individual cash system (2019-09-01), custom wave editor (2019-09-24) and gBalloon Target instant teleportation (2020-10-29)."},
-	{"SkyanUltra", "76561198147466564", "Suggested option to bypass upgrade path restrictions (2019-07-21)."},
-	{"BFR2005", "76561198089249743", "Suggested the Fire Cube (2019-07-30)."},
-	{"PoopStomp9000", "76561198274942231", "Suggested the custom wave editor (2019-09-24)."},
-	{"fansided", "76561198117057248", "Suggested multi-gBalloon Spawner activation (2020-03-03)."},
-	{"PuggleLeDog", "76561198120548061", "Suggested BTD4 Camo gBalloon (2020-10-04) and gBlimps with attributes (2020-10-04)."},
-	{"Ryankz11", "76561198004803429", "Suggested removal of annoying NavMesh missing message (2020-10-04)."},
-	{"Fatal Error Sans", "id/legosilverking", "Suggested many, many bug fixes, balance changes and ideas, as well as playtesting experimental addon versions (2021-08-02)."},
-	{"<various people>", nil, "For reporting many of the other bugs and balance changes with this addon."}
+	{"Piengineer12", "76561198144438879"},
+	{"zorich_michael", "76561198196764081"},
+	{"Sergius", "76561198293518598"},
+	{"DreamySaeneryth", "76561198102225296"},
+	{"Obsidian_The_Tempered", "76561198348095161"},
+	{"Upsilon_The_Unchained", "76561198822619008"},
+	{"Sir. Vapenation", "76561198143774099"},
+	{"Joseph with the neko girls", "76561198337193083"},
+	{"Devro", "76561198363697889"},
+	{"itachi209", "76561198352896173"},
+	{"PDA Expert", "76561198024198604"},
+	{"Conga Dispenser", "76561198361428640"},
+	{"SkyanUltra", "76561198147466564"},
+	{"BFR2005", "76561198089249743"},
+	{"The Reddit Mogul", "76561198274942231"},
+	{"fansided", "76561198117057248"},
+	{"PuggleLeDog", "76561198120548061"},
+	{"Bender™", "76561198004803429"},
+	{"FallenVoid", "id/legosilverking"},
+	{"berry", "id/ingmodsince2008"},
+	{"<various people>"}
 }
 
 local creditsUnimplemented = {
-	{"Xtrah962", "76561198853380897", "Suggested a crowbar / melee tower (2019-01-28)."},
-	{"SarnieMuncher", "76561198154658331", "Suggested for holdable gBalloons (2019-08-29)."},
-	{"[WLS] Ziggy Gaming", "id/ziggyevolved", "Suggested many, many more gBalloon types (2020-04-21)."},
-	{"dogethedoggo", "76561198857378000", "Suggested the Gravity Blaster (2020-08-11)."},
-	{"Goat Child", "76561199014467773", "Suggested for gBalloons to be availble for the Balloon tool (2020-12-12)."},
-	{"<various people>", nil, "Many other suggestions that ultimately did not make it."}
+	{"Xtrah962", "76561198853380897"},
+	{"SarnieMuncher", "76561198154658331"},
+	{"[WLS] Ziggy Gaming", "id/ziggyevolved"},
+	{"Ralsei smoking a fat doobie", "76561198857378000"},
+	{"Dr. Science guy dude", "76561199014467773"},
+	{"<various people>"}
 }
 
 net.Receive("RotgB_Bestiary",function(length,ply)
@@ -301,7 +266,7 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 		local Main = vgui.Create("DFrame")
 		Main:SetSize(ScrW()/2,ScrH()/2)
 		Main:SetSizable(true)
-		Main:SetTitle("RotgB Guide Book")
+		Main:SetTitle("#rotgb.guide")
 		Main:Center()
 		Main:MakePopup()
 		
@@ -312,34 +277,29 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 		RichText:Dock(FILL)
 		RichText:SetText("")
 		RichText:InsertColorChange(127,127,127,255)
-		RichText:AppendText("Introduction\n\n")
+		RichText:AppendText(ROTGB_LocalizeString("rotgb.guide.introduction"))
 		RichText:InsertColorChange(255,255,255,255)
-		RichText:AppendText("This is the guide book for RotgB, which aims to tell about how to use the addon effectively,\z
-		as well as listing the gBalloons statistics, immunities and weaknesses.\n\n\z
-		Each gBalloon page describes about a gBalloon as well as its Hit Points, Red gBalloon Equivalent (RgBE), Size, Speed, Pop Products and Extra Properties. \z
-		It should be noted that the gBalloons' statistics shown in the Guide Book are only accurate \z
-		if the gBalloon server settings are set to their defaults (see Options > RotgB > Server Settings).\n\n\z
-		More information will be added to this book if deemed neccessary.\n\n")
+		RichText:AppendText(ROTGB_LocalizeString("rotgb.guide.description"))
 		RichText:InsertColorChange(127,127,127,255)
-		RichText:AppendText("- Piengineer")
+		RichText:AppendText("- Piengineer12")
 		function RichText:PerformLayout()
 			self:SetBGColor(0,0,0,191)
 			self:SetFontInternal("Trebuchet24")
 		end
-		ColumnSheet:AddSheet("Introduction",RichText)
+		ColumnSheet:AddSheet("#rotgb.guide.page.introduction",RichText)
 		
 		RichText = ColumnSheet:Add("RichText")
 		RichText:Dock(FILL)
 		RichText:SetText("")
 		RichText:InsertColorChange(255,255,255,255)
-		RichText:AppendText(addonoffers)
+		RichText:AppendText(ROTGB_LocalizeString("rotgb.guide.what_this_addon_offers"))
 		RichText:InsertColorChange(127,127,127,255)
-		RichText:AppendText("\n-- if one or more features listed here are not available in this addon, please contact the customer service department of where you received this addon --")
+		RichText:AppendText(ROTGB_LocalizeString("rotgb.guide.what_this_addon_offers.customer_support"))
 		function RichText:PerformLayout()
 			self:SetBGColor(0,0,0,191)
 			self:SetFontInternal("Trebuchet24")
 		end
-		ColumnSheet:AddSheet("Addon Contents",RichText)
+		ColumnSheet:AddSheet("#rotgb.guide.page.what_this_addon_offers",RichText)
 		
 		local CreditsPanel = ColumnSheet:Add("DScrollPanel")
 		CreditsPanel:Dock(FILL)
@@ -348,7 +308,7 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 			surface.SetDrawColor(0,0,0,191)
 			surface.DrawRect(0,0,w,h)
 		end
-		function CreditsPanel:CreateCredit(tab)
+		function CreditsPanel:CreateCredit(tab, creditString)
 			local CreditPanel = CreditsPanel:Add("DPanel")
 			CreditPanel:SetTall(36)
 			CreditPanel:Dock(TOP)
@@ -372,34 +332,34 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 			
 			local ContributionText = CreditPanel:Add("DLabel")
 			ContributionText:DockMargin(8,0,0,0)
-			ContributionText:SetText(tab[3])
+			ContributionText:SetText(ROTGB_LocalizeString(creditString))
 			ContributionText:SetTextColor(color_white)
 			ContributionText:SetWrap(true)
 			ContributionText:Dock(FILL)
 		end
-		ColumnSheet:AddSheet("Credits",CreditsPanel)
+		ColumnSheet:AddSheet("#rotgb.guide.page.contributors",CreditsPanel)
 		
 		local CreditsText = CreditsPanel:Add("DLabel")
-		CreditsText:SetText("Credits:")
+		CreditsText:SetText("#rotgb.guide.contributors")
 		CreditsText:SetTextColor(color_white)
 		CreditsText:SetFont("Trebuchet24")
 		CreditsText:SizeToContentsY()
 		CreditsText:Dock(TOP)
 		
 		for i,v in ipairs(credits) do
-			CreditsPanel:CreateCredit(v)
+			CreditsPanel:CreateCredit(v, string.format("rotgb.guide.contributors.%i", i))
 		end
 		
 		CreditsText = CreditsPanel:Add("DLabel")
 		CreditsText:DockMargin(0,12,0,0)
-		CreditsText:SetText("Honourable mentions, who's suggestions I liked but are not present in the addon:")
+		CreditsText:SetText("#rotgb.guide.contributors.unimplemented")
 		CreditsText:SetTextColor(color_white)
 		CreditsText:SetFont("Trebuchet24")
 		CreditsText:SizeToContentsY()
 		CreditsText:Dock(TOP)
 		
 		for i,v in ipairs(creditsUnimplemented) do
-			CreditsPanel:CreateCredit(v)
+			CreditsPanel:CreateCredit(v, string.format("rotgb.guide.contributors.unimplemented.%i", i))
 		end
 		
 		for i,v in ipairs(order) do
@@ -411,7 +371,7 @@ end)
 function ENT:DrawTranslucent()
 	self:Draw()
 	--self:DrawModel()
-	local text1 = "Press 'Use' to read."
+	local text1 = "#rotgb.guide.instructions"
 	surface.SetFont("DermaLarge")
 	local t1x,t1y = surface.GetTextSize(text1)
 	local reqang = (self:GetPos()-LocalPlayer():GetShootPos()):Angle()
@@ -428,12 +388,12 @@ function ENT:DrawTranslucent()
 end
 
 list.Set("NPC","gballoon_bestiary",{
-	Name = "RotgB Guide Book",
+	Name = "#rotgb.guide",
 	Class = "gballoon_bestiary",
-	Category = "RotgB: Miscellaneous"
+	Category = "#rotgb.category.miscellaneous"
 })
 list.Set("SpawnableEntities","gballoon_bestiary",{
-	PrintName = "RotgB Guide Book",
+	PrintName = "#rotgb.guide",
 	ClassName = "gballoon_bestiary",
-	Category = "RotgB: Miscellaneous"
+	Category = "#rotgb.category.miscellaneous"
 })

@@ -1212,6 +1212,24 @@ return {
 			links = {"dodge6", "dodge12", "gh15"},
 			pos = VectorTable(0,1),
 		},
+		{
+			ref = "mh12",
+			name = "#rotgb_tg.skills.names.maximum_health",
+			trait = "targetHealth",
+			amount = 2,
+			parent = "ydihylh",
+			links = "parent",
+			pos = VectorTable(1,1),
+		},
+		{
+			ref = "mh13",
+			name = "#rotgb_tg.skills.names.maximum_health",
+			trait = "targetHealth",
+			amount = 2,
+			parent = "mh12",
+			links = "parent",
+			pos = VectorTable(1,1),
+		},
 	},
 	{
 		{
@@ -2364,7 +2382,7 @@ return {
 				trait = "gBalloonCritChance",
 				amount = 1,
 				links = "parent",
-				pos = VectorTable(0,1),
+				pos = VectorTable(0,math.sqrt(2)),
 				parent = "causalityExplosions"
 			},
 			{
@@ -2373,47 +2391,59 @@ return {
 				trait = "gBalloonCritChance",
 				amount = 1,
 				links = "parent",
-				pos = VectorTable(0,1),
+				pos = VectorTable(0,math.sqrt(2)),
 				parent = "fab1"
 			},
+			{
+				ref = "id1",
+				name = "#rotgb_tg.skills.names.instant_deflator",
+				trait = "gBalloonChildrenSuppressChance",
+				amount = 5,
+				tier = 1,
+				links = "parent",
+				pos = VectorTable(0,math.sqrt(2)),
+				parent = "fab2"
+			}
+		},
+		{
 			{
 				ref = "fab3",
 				name = "#rotgb_tg.skills.names.fair_and_balanced",
 				trait = "gBalloonCritChance",
 				amount = 1,
 				links = "parent",
-				pos = VectorTable(0,1),
-				parent = "fab2"
+				pos = VectorTable(math.sqrt(2),0),
+				parent = "causalityExplosions"
 			},
-			{
-				ref = "wip1",
-				name = "#rotgb_tg.skills.names.wip",
-				trait = "",
-				amount = 1,
-				tier = 1,
-				links = "parent",
-				pos = VectorTable(0,1),
-				parent = "fab3"
-			}
-		},
-		{
 			{
 				ref = "fab4",
 				name = "#rotgb_tg.skills.names.fair_and_balanced",
 				trait = "gBalloonCritChance",
 				amount = 1,
 				links = "parent",
-				pos = VectorTable(1,0),
-				parent = "causalityExplosions"
+				pos = VectorTable(math.sqrt(2),0),
+				parent = "fab3"
 			},
+			{
+				ref = "id2",
+				name = "#rotgb_tg.skills.names.instant_deflator",
+				trait = "gBalloonChildrenSuppressChance",
+				amount = 5,
+				tier = 1,
+				links = "parent",
+				pos = VectorTable(math.sqrt(2),0),
+				parent = "fab4"
+			}
+		},
+		{
 			{
 				ref = "fab5",
 				name = "#rotgb_tg.skills.names.fair_and_balanced",
 				trait = "gBalloonCritChance",
 				amount = 1,
 				links = "parent",
-				pos = VectorTable(1,0),
-				parent = "fab4"
+				pos = VectorTable(0,-math.sqrt(2)),
+				parent = "causalityExplosions"
 			},
 			{
 				ref = "fab6",
@@ -2421,17 +2451,17 @@ return {
 				trait = "gBalloonCritChance",
 				amount = 1,
 				links = "parent",
-				pos = VectorTable(1,0),
+				pos = VectorTable(0,-math.sqrt(2)),
 				parent = "fab5"
 			},
 			{
-				ref = "wip2",
-				name = "#rotgb_tg.skills.names.wip",
-				trait = "",
-				amount = 1,
+				ref = "id3",
+				name = "#rotgb_tg.skills.names.instant_deflator",
+				trait = "gBalloonChildrenSuppressChance",
+				amount = 5,
 				tier = 1,
 				links = "parent",
-				pos = VectorTable(1,0),
+				pos = VectorTable(0,-math.sqrt(2)),
 				parent = "fab6"
 			}
 		},
@@ -2442,7 +2472,7 @@ return {
 				trait = "gBalloonCritChance",
 				amount = 1,
 				links = "parent",
-				pos = VectorTable(0,-1),
+				pos = VectorTable(-math.sqrt(2),0),
 				parent = "causalityExplosions"
 			},
 			{
@@ -2451,66 +2481,18 @@ return {
 				trait = "gBalloonCritChance",
 				amount = 1,
 				links = "parent",
-				pos = VectorTable(0,-1),
+				pos = VectorTable(-math.sqrt(2),0),
 				parent = "fab7"
 			},
 			{
-				ref = "fab9",
-				name = "#rotgb_tg.skills.names.fair_and_balanced",
-				trait = "gBalloonCritChance",
-				amount = 1,
+				ref = "id4",
+				name = "#rotgb_tg.skills.names.instant_deflator",
+				trait = "gBalloonChildrenSuppressChance",
+				amount = 5,
+				tier = 1,
 				links = "parent",
-				pos = VectorTable(0,-1),
+				pos = VectorTable(-math.sqrt(2),0),
 				parent = "fab8"
-			},
-			{
-				ref = "wip3",
-				name = "#rotgb_tg.skills.names.wip",
-				trait = "",
-				amount = 1,
-				tier = 1,
-				links = "parent",
-				pos = VectorTable(0,-1),
-				parent = "fab9"
-			}
-		},
-		{
-			{
-				ref = "fab10",
-				name = "#rotgb_tg.skills.names.fair_and_balanced",
-				trait = "gBalloonCritChance",
-				amount = 1,
-				links = "parent",
-				pos = VectorTable(-1,0),
-				parent = "causalityExplosions"
-			},
-			{
-				ref = "fab11",
-				name = "#rotgb_tg.skills.names.fair_and_balanced",
-				trait = "gBalloonCritChance",
-				amount = 1,
-				links = "parent",
-				pos = VectorTable(-1,0),
-				parent = "fab10"
-			},
-			{
-				ref = "fab12",
-				name = "#rotgb_tg.skills.names.fair_and_balanced",
-				trait = "gBalloonCritChance",
-				amount = 1,
-				links = "parent",
-				pos = VectorTable(-1,0),
-				parent = "fab11"
-			},
-			{
-				ref = "wip4",
-				name = "#rotgb_tg.skills.names.wip",
-				trait = "",
-				amount = 1,
-				tier = 1,
-				links = "parent",
-				pos = VectorTable(-1,0),
-				parent = "fab12"
 			}
 		},
 		{

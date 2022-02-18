@@ -3,10 +3,10 @@ AddCSLuaFile()
 ENT.Base = "gballoon_tower_base"
 ENT.Type = "anim"
 ENT.PrintName = "Particle Charger"
-ENT.Category = "RotgB: Towers"
-ENT.Author = "Piengineer"
+ENT.Category = "#rotgb.category.tower"
+ENT.Author = "Piengineer12"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "This tower fires particles at an incredible speed, but needs time to charge. Only gains charge during waves."
+ENT.Purpose = "#rotgb.tower.gballoon_tower_10.purpose"
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -201,7 +201,7 @@ local function SnipeEntity()
 		if self.rotgb_NoA then
 			ent:SetBalloonProperty("BalloonArmor", -15)
 		end
-		if self.rotgb_NoC and bullet.Damage/10*ROTGB_GetConVarValue("rotgb_damage_multiplier")>=ent:Health() then
+		if self.rotgb_NoC and math.ceil(bullet.Damage/10*ROTGB_GetConVarValue("rotgb_damage_multiplier"))>=ent:Health() then
 			bullet.Damage = ent:GetRgBE() * 1000
 			self:FireBullets(bullet)
 		else

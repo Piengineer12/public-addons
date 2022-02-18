@@ -1,4 +1,4 @@
-AccessorFunc(GM, "CachedLocalizations", "CachedLocalizations")
+--[=[AccessorFunc(GM, "CachedLocalizations", "CachedLocalizations")
 
 function GM:GetLocalizedString(token, ...)
 	local pieces = {["%"] = "%"}
@@ -55,4 +55,14 @@ function GM:GetLocalizedMulticoloredString(token, replacements, defaultColor, re
 		end
 	end
 	return returnTable
+end]=]
+
+function GM:InsertRichTextWithMulticoloredString(RichText, multiColoredString)
+	for i,v in ipairs(multiColoredString) do
+		if istable(v) then
+			RichText:InsertColorChange(v.r,v.g,v.b,v.a)
+		else
+			RichText:AppendText(tostring(v))
+		end
+	end
 end

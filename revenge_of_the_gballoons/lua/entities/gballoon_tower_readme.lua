@@ -5,11 +5,11 @@
 AddCSLuaFile() 																// don't touch this.
 ENT.Base = "gballoon_tower_base"											// don't touch this.
 ENT.Type = "anim"															// don't touch this.
-ENT.PrintName = "Custom Tower"												// specify a string as the tower name.
-ENT.Category = "RotgB: Towers"												// optional: specify a string as the custom category.
+ENT.PrintName = "Custom Tower"												// tower name, can't be a localization string as the spawnmenu isn't dynamic.
+ENT.Category = "#rotgb.category.tower"										// optional: specify a string as the custom category.
 ENT.Author = "Piengineer12"													// replace "Piengineer12" with yourself.
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"					// replace this string with your own contact link.
-ENT.Purpose = "This tower does something towards gBalloons."				// replace this string with what your tower does, displayed in the RotgB Game SWEP.
+ENT.Purpose = "#rotgb.tower.gballoon_tower_readme.purpose"					// replace gballoon_tower_readme with your tower class.
 ENT.Instructions = ""														// optional: specify a string as the instructions.
 ENT.Spawnable = false														// don't touch this, the addon will add your entity to the spawnmenu automatically.
 ENT.AdminOnly = false														// don't touch this.
@@ -33,10 +33,6 @@ ENT.rotgb_Var2 = true														// optional: additional variables. Prefixing 
 ENT.rotgb_BeamTime = 1														// optional: additional variables. Prefixing with rotgb_ is recommended.
 ENT.UpgradeReference = {
 	{																		// each table specifies an upgrade path
-		Names = {"Range Up"},
-		Descs = {
-			"Considerably increases the tower's range."
-		},
 		Prices = {100},
 		Funcs = {
 			function(ent)
@@ -46,16 +42,8 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Speed Up","Damage Up","Good Eyes","Active Ability"},		// make sure #Names == #Descs == #Prices == #Functions!
-		Descs = {
-			"Considerably increases the tower's fire rate.",				// one for each upgrade in the path.
-			"Considerably increases damage dealt.",
-			"Allows the tower to target Hidden gBalloons.",
-			"Once every 30 seconds, shooting at this tower colossally \z
-				increases fire rate for 15 seconds."
-		},
-		Prices = {100,200,500,900},
-		Funcs = {
+		Prices = {100,200,500,900},											// make sure #Prices == #Funcs!
+		Funcs = {															// one for each upgrade in the path.
 			function(ent)
 				ent.FireRate = ent.FireRate*2
 			end,
@@ -90,3 +78,12 @@ function ENT:TriggerAbility()												// called when the tower's active abili
 end
 
 ]]																			// delete this line.
+
+
+
+--[[
+ADDITIONAL NOTES:
+
+You must also have .properties localization files, see https://wiki.facepunch.com/gmod/Addon_Localization for an introduction.
+You can find a sample under `revenge_of_the_gballoons/resource/localization/en`.
+]]

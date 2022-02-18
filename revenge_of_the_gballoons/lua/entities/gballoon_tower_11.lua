@@ -3,10 +3,10 @@ AddCSLuaFile()
 ENT.Base = "gballoon_tower_base"
 ENT.Type = "anim"
 ENT.PrintName = "Mortar Tower"
-ENT.Category = "RotgB: Towers"
-ENT.Author = "Piengineer"
+ENT.Category = "#rotgb.category.tower"
+ENT.Author = "Piengineer12"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "This tower fires explosive mortars at gBalloons without requiring line-of-sight, as long as they are within its radius."
+ENT.Purpose = "#rotgb.tower.gballoon_tower_11.purpose"
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -129,25 +129,24 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.rotgb_Stun = self.rotgb_Stun + 2
-				self.rotgb_StunMaxRgBE = self.rotgb_StunMaxRgBE + 193
 				self.rotgb_StunVulnerability = true
 			end,
 			function(self)
 				self.rotgb_HeavyMultiplier = self.rotgb_HeavyMultiplier * 3
 				self.rotgb_GrayHeavy = true
-				self.rotgb_StunMaxRgBE = self.rotgb_StunMaxRgBE + 2955
+				self.rotgb_StunMaxRgBE = self.rotgb_StunMaxRgBE + 4668
 				self.rotgb_FireDamage = self.rotgb_FireDamage + 20
 				self.rotgb_FireDuration = self.rotgb_FireDuration + 10
 			end,
 			function(self)
 				self.rotgb_Fragments = self.rotgb_Fragments * 3
 				self.rotgb_FireDamage = self.rotgb_FireDamage + 20
-				self.rotgb_StunMaxRgBE = self.rotgb_StunMaxRgBE + 13444
+				self.rotgb_StunMaxRgBE = self.rotgb_StunMaxRgBE + 22672 - 4668
 				self.HasAbility = true
 				self.rotgb_AbilityType = bit.bor(self.rotgb_AbilityType, 2)
 			end,
 			function(self)
-				self.rotgb_StunMaxRgBE = self.rotgb_StunMaxRgBE + 38536
+				self.rotgb_StunMaxRgBE = self.rotgb_StunMaxRgBE + 74000 - 22672
 				self.rotgb_WeakenStun = true
 				self.rotgb_FireDamage = self.rotgb_FireDamage + 80
 				self.AbilityCooldown = self.AbilityCooldown / 1.5
@@ -211,7 +210,7 @@ function ENT:Bombshell(poses)
 				for k,v in pairs(ents.FindInSphere(pos,self.rotgb_ExploRadius)) do
 					if self:ValidTargetIgnoreRange(v) then
 						dmginfo:SetDamagePosition(v:GetPos())
-						if self.rotgb_Stun > 0 and v:DamageTypeCanDamage(dmginfo:GetDamageType()) and (v:GetRgBE() <= self.rotgb_StunMaxRgBE*2 or self.rotgb_StunMaxRgBE >= 1e9) then
+						if self.rotgb_Stun > 0 and v:DamageTypeCanDamage(dmginfo:GetDamageType()) and (not v:GetBalloonProperty("BalloonBlimp") or v:GetRgBE() <= self.rotgb_StunMaxRgBE) then
 							v:Stun(self.rotgb_Stun)
 							if self.rotgb_StunVulnerability then
 								v:InflictRotgBStatusEffect("shell_shocked", self.rotgb_Stun)
@@ -329,12 +328,12 @@ function ENT:TriggerAbility()
 		for k,v in pairs(ents.FindByClass("gballoon_tower_11")) do
 			v:ApplyBuff(self, "ROTGB_TOWER_11_GFC_OTHER", 10, function(tower)
 				tower.rotgb_Stun = tower.rotgb_Stun + 2
-				tower.rotgb_StunMaxRgBE = tower.rotgb_StunMaxRgBE + 3148
+				tower.rotgb_StunMaxRgBE = tower.rotgb_StunMaxRgBE + 4668
 				tower.rotgb_FireDamage = tower.rotgb_FireDamage + 20
 				tower.rotgb_FireDuration = tower.rotgb_FireDuration + 10
 			end, function(tower)
 				tower.rotgb_Stun = tower.rotgb_Stun - 2
-				tower.rotgb_StunMaxRgBE = tower.rotgb_StunMaxRgBE - 3148
+				tower.rotgb_StunMaxRgBE = tower.rotgb_StunMaxRgBE - 4668
 				tower.rotgb_FireDamage = tower.rotgb_FireDamage - 20
 				tower.rotgb_FireDuration = tower.rotgb_FireDuration - 10
 			end)

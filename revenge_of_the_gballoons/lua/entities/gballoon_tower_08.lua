@@ -3,10 +3,10 @@ AddCSLuaFile()
 ENT.Base = "gballoon_tower_base"
 ENT.Type = "anim"
 ENT.PrintName = "Rainbow Beamer"
-ENT.Category = "RotgB: Towers"
-ENT.Author = "Piengineer"
+ENT.Category = "#rotgb.category.tower"
+ENT.Author = "Piengineer12"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "This tower shoots a rainbow beam that shreds gBalloons."
+ENT.Purpose = "#rotgb.tower.gballoon_tower_08.purpose"
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -71,7 +71,7 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.HasAbility = nil
-				self.FireRate = self.FireRate / 40
+				self.FireRate = self.FireRate / 60
 				if SERVER and IsValid(self.InternalLaser) then
 					self.InternalLaser:Fire("Alpha",255)
 				end
@@ -286,7 +286,9 @@ abilityFunction = function(self)
 			if self.rotgb_Infinite then
 				self:AddCash(5e7, self:GetTowerOwner())
 			end
-			sound.Play("ambient/explosions/explode_6.wav", ent:GetPos(), 100)
+			if ent.UseLOS then
+				sound.Play("ambient/explosions/explode_6.wav", ent:GetPos(), 100)
+			end
 			local startPos = ents.Create("info_target")
 			local ecp = ent:GetPos()
 			ecp.z = 16000

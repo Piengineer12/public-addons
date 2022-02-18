@@ -2,11 +2,11 @@ AddCSLuaFile()
 
 local gballoon_pob = baseclass.Get("gballoon_path_object_base") -- internally sets ENT.Base and ENT.Type too
 ENT.PrintName = "gBalloon Spawner"
-ENT.Category = "RotgB: Miscellaneous"
+ENT.Category = "#rotgb.category.miscellaneous"
 ENT.ScriptedEntityType = "entity"
-ENT.Author = "Piengineer"
+ENT.Author = "Piengineer12"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "Spawns gBalloons in a nostalgic way."
+ENT.Purpose = "#rotgb.gballoon_spawner.purpose"
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -2367,7 +2367,7 @@ end
 for k,v in pairs(ROTGB_WAVES_LEGACY) do
 	local waveTable10S = {}
 	for k2,v2 in pairs(v) do
-		if k2 == "duration" and k ~= 120 then
+		if k2 == "duration" then
 			waveTable10S.duration = 10
 		else
 			waveTable10S[k2] = v2
@@ -2399,20 +2399,20 @@ function ENT:GetWaveDuration(wave)
 end
 
 function ENT:SetupDataTables()
-	self:NetworkVar("Int", 0, "Wave", {KeyName="start_wave", Edit={title="Wave To Spawn", type="Int", min=1, max=200, order=1}})
-	self:NetworkVar("Int", 1, "SpawnDivider", {KeyName="spawn_divider", Edit={title="Spawn Divider", type="Int", min=1, max=100, order=5}})
-	self:NetworkVar("Int", 2, "DividerDelay", {KeyName="divider_delay", Edit={title="Divider Delay", type="Int", min=0, max=100, order=6}})
-	self:NetworkVar("Int", 3, "LastWave", {KeyName="end_wave", Edit={title="Last Wave", type="Int", min=1, max=200, order=2}})
-	self:NetworkVar("Bool", 0, "AutoStartInternal", {KeyName="auto_start", Edit={title="Auto-Start", type="Boolean", order=7}})
-	self:NetworkVar("Bool", 1, "ForceNextWave", {KeyName="force_next", Edit={title="Force Auto-Start", type="Boolean", order=9}})
-	self:NetworkVar("Bool", 2, "StartAll", {KeyName="start_all", Edit={title="Start All Others", type="Boolean", order=10}})
+	self:NetworkVar("Int", 0, "Wave", {KeyName="start_wave", Edit={title="#rotgb.gballoon_spawner.properties.start_wave", type="Int", min=1, max=200, order=1}})
+	self:NetworkVar("Int", 1, "SpawnDivider", {KeyName="spawn_divider", Edit={title="#rotgb.gballoon_spawner.properties.spawn_divider", type="Int", min=1, max=100, order=5}})
+	self:NetworkVar("Int", 2, "DividerDelay", {KeyName="divider_delay", Edit={title="#rotgb.gballoon_spawner.properties.divider_delay", type="Int", min=0, max=100, order=6}})
+	self:NetworkVar("Int", 3, "LastWave", {KeyName="end_wave", Edit={title="#rotgb.gballoon_spawner.properties.end_wave", type="Int", min=1, max=200, order=2}})
+	self:NetworkVar("Bool", 0, "AutoStartInternal", {KeyName="auto_start", Edit={title="#rotgb.gballoon_spawner.properties.auto_start", type="Boolean", order=7}})
+	self:NetworkVar("Bool", 1, "ForceNextWave", {KeyName="force_next", Edit={title="#rotgb.gballoon_spawner.properties.force_next", type="Boolean", order=9}})
+	self:NetworkVar("Bool", 2, "StartAll", {KeyName="start_all", Edit={title="#rotgb.gballoon_spawner.properties.start_all", type="Boolean", order=10}})
 	self:NetworkVar("Bool", 3, "UnSpectatable")
-	self:NetworkVar("Bool", 4, "HideWave", {KeyName="hide_wave", Edit={title="Hide Wave", type="Boolean", order=12}})
-	self:NetworkVar("Bool", 5, "AllowMultiStart", {KeyName="allow_multi_start", Edit={title="Allow Multiple Waves", type="Boolean", order=3}})
-	self:NetworkVar("Float", 0, "AutoStartDelay", {KeyName="auto_start_delay", Edit={title="Auto-Start Delay", type="Float", min=0, max=60, order=8}})
-	self:NetworkVar("Float", 1, "SpeedMul", {KeyName="spawn_rate_mul", Edit={title="Spawn Rate", type="Float", min=0.1, max=10, order=4}})
+	self:NetworkVar("Bool", 4, "HideWave", {KeyName="hide_wave", Edit={title="#rotgb.gballoon_spawner.properties.hide_wave", type="Boolean", order=12}})
+	self:NetworkVar("Bool", 5, "AllowMultiStart", {KeyName="allow_multi_start", Edit={title="#rotgb.gballoon_spawner.properties.allow_multi_start", type="Boolean", order=3}})
+	self:NetworkVar("Float", 0, "AutoStartDelay", {KeyName="auto_start_delay", Edit={title="#rotgb.gballoon_spawner.properties.auto_start_delay", type="Float", min=0, max=60, order=8}})
+	self:NetworkVar("Float", 1, "SpeedMul", {KeyName="spawn_rate_mul", Edit={title="#rotgb.gballoon_spawner.properties.spawn_rate_mul", type="Float", min=0.1, max=10, order=4}})
 	self:NetworkVar("Float", 2, "NextWaveTime")
-	self:NetworkVar("String", 0, "WaveFile", {KeyName="wave_preset", Edit={title="Wave Preset", type="Generic", order=11}})
+	self:NetworkVar("String", 0, "WaveFile", {KeyName="wave_preset", Edit={title="#rotgb.gballoon_spawner.properties.wave_preset", type="Generic", order=11}})
 	self:NetworkVar("Entity", 0, "NextTarget1")
 	self:NetworkVar("Entity", 1, "NextTarget2")
 	self:NetworkVar("Entity", 2, "NextTarget3")
@@ -2562,10 +2562,7 @@ local notifshown
 function ENT:Initialize()
 	if SERVER then
 		if not (navmesh.IsLoaded() or notifshown) and game.SinglePlayer() then
-			PrintMessage(HUD_PRINTTALK, "No NavMesh found! Please generate one first!")
-			--[[net.Start("NavmeshMissing")
-			net.WriteBool(false)
-			net.Broadcast()]]
+			ROTGB_CauseNotification("#rotgb.navmesh.missing")
 			notifshown = true
 		end
 		self.OutputShortlyThreshold = tonumber(self.OutputShortlyThreshold) or 7.5
@@ -2638,7 +2635,10 @@ function ENT:Use(activator)
 			if cwave == self:GetLastWave() + 1 then return
 			elseif not self:GetAllowMultiStart() then
 				if activator:IsPlayer() then
-					activator:PrintMessage(HUD_PRINTTALK, "You cannot start multiple waves at once!")
+					net.Start("rotgb_generic")
+					net.WriteUInt(ROTGB_OPERATION_NOTIFYCHAT, 8)
+					net.WriteUInt(ROTGB_NOTIFYCHAT_NOMULTISTART, 8)
+					net.Send(activator)
 				end
 				return
 			end
@@ -2667,9 +2667,6 @@ function ENT:Use(activator)
 		self:SetNextWaveTime(CurTime()+self:GetWaveDuration(cwave)/self:GetSpeedMul())
 		hook.Run("gBalloonSpawnerWaveStarted",self,cwave)
 		self:TriggerOutput("OnWaveStart",activator,cwave)
-		if not self.NoMessages then
-			PrintMessage(HUD_PRINTTALK,"Wave "..cwave.." started!")
-		end
 		self:SpawnWave(cwave)
 		self.EnableBalloonChecking = true
 		self:SetWave(cwave+1)
@@ -2681,7 +2678,12 @@ function ENT:SpawnWave(cwave)
 	local totalAmount, tablesToInsert = 0, {}
 	for k,v in pairs(self:GetWaveTable()[cwave] or {}) do
 		if k=="rbe" and not self.NoMessages then
-			PrintMessage(HUD_PRINTTALK,"RgBE: "..v)
+			net.Start("rotgb_generic")
+			net.WriteUInt(ROTGB_OPERATION_NOTIFYCHAT, 8)
+			net.WriteUInt(ROTGB_NOTIFYCHAT_WAVESTART, 8)
+			net.WriteInt(cwave, 16)
+			net.WriteDouble(v)
+			net.Broadcast()
 		elseif tonumber(k) then
 			local balloontype,amount,timeframe,delay = unpack(v)
 			totalAmount = totalAmount + (amount or 1)
@@ -2769,11 +2771,10 @@ function ENT:TriggerWaveEnded()
 			self.WinWave = cwave
 			if not self.NoMessages then
 				hook.Run("AllBalloonsDestroyed")
-				PrintMessage(HUD_PRINTTALK,"All standard waves cleared! Congratulations, you win!")
-				PrintMessage(HUD_PRINTTALK,"If you want a harder challenge, try doubling the gBalloons' health, spawn rate or halving the cash multiplier.")
-				if ROTGB_GetConVarValue("rotgb_freeplay") then
-					PrintMessage(HUD_PRINTTALK,"BEWARE! The gBalloons become exponentially faster and faster after each wave!")
-				end
+				net.Start("rotgb_generic")
+				net.WriteUInt(ROTGB_OPERATION_NOTIFYCHAT, 8)
+				net.WriteUInt(ROTGB_NOTIFYCHAT_WIN, 8)
+				net.Broadcast()
 			end
 		end
 	end
@@ -2857,12 +2858,22 @@ function ENT:Think()
 		self.CustomWaveName = self:GetWaveFile()
 		if ROTGB_CUSTOM_WAVES[self.CustomWaveName] then
 			self:SetNWString("rotgb_validwave",self.CustomWaveName)
-			PrintMessage(HUD_PRINTTALK, "\""..self:GetWaveFile().."\" loaded successfully.")
+			if not self.NoMessages then
+				net.Start("rotgb_generic")
+				net.WriteUInt(ROTGB_OPERATION_NOTIFYCHAT, 8)
+				net.WriteUInt(ROTGB_NOTIFYCHAT_WAVELOADED, 8)
+				net.WriteString(self:GetWaveFile())
+				net.Broadcast()
+			end
 		elseif SERVER and file.Exists("rotgb_wavedata/"..self:GetWaveFile()..".dat", "DATA") then
 			local rawdata = util.JSONToTable(util.Decompress(file.Read("rotgb_wavedata/"..self:GetWaveFile()..".dat","DATA") or ""))
 			if rawdata then
 				if not self.NoMessages then
-					PrintMessage(HUD_PRINTTALK, "\""..self:GetWaveFile().."\" loaded successfully.")
+					net.Start("rotgb_generic")
+					net.WriteUInt(ROTGB_OPERATION_NOTIFYCHAT, 8)
+					net.WriteUInt(ROTGB_NOTIFYCHAT_WAVELOADED, 8)
+					net.WriteString(self:GetWaveFile())
+					net.Broadcast()
 				end
 				local packetlength = 60000
 				local textdata = file.Read("rotgb_wavedata/"..self:GetWaveFile()..".dat","DATA")
@@ -2962,9 +2973,10 @@ function ENT:DrawTranslucent()
 	reqang.y = reqang.y-90
 	reqang.r = 90
 	if not self:GetHideWave() then
-		local text1 = "Next Wave: "..cwave
-		local text2 = "RgBE: "..self:GetWaveTable()[cwave].rbe
-		local text3 = "Press 'Use' on this entity to start the wave."
+		local rbe = self:GetWaveTable()[cwave].rbe
+		local text1 = ROTGB_LocalizeString("rotgb.gballoon_spawner.hologram.1", cwave, rbe)
+		local text2 = ROTGB_LocalizeString("rotgb.gballoon_spawner.hologram.2", cwave, rbe)
+		local text3 = ROTGB_LocalizeString("rotgb.gballoon_spawner.hologram.3", cwave, rbe)
 		surface.SetFont("DermaLarge")
 		local t1x,t1y = surface.GetTextSize(text1)
 		local t2x,t2y = surface.GetTextSize(text2)
@@ -3026,12 +3038,12 @@ hook.Add("CanProperty","RotgB",function(ply,event,ent)
 end)]]
 
 list.Set("NPC","gballoon_spawner",{
-	Name = "gBalloon Spawner",
+	Name = "#rotgb.gballoon_spawner",
 	Class = "gballoon_spawner",
-	Category = "RotgB: Miscellaneous"
+	Category = "#rotgb.category.miscellaneous"
 })
 list.Set("SpawnableEntities","gballoon_spawner",{
-	PrintName = "gBalloon Spawner",
+	PrintName = "#rotgb.gballoon_spawner",
 	ClassName = "gballoon_spawner",
-	Category = "RotgB: Miscellaneous"
+	Category = "#rotgb.category.miscellaneous"
 })

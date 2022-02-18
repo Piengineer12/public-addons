@@ -3,10 +3,10 @@ AddCSLuaFile()
 ENT.Base = "gballoon_tower_base"
 ENT.Type = "anim"
 ENT.PrintName = "Bishop of Glue"
-ENT.Category = "RotgB: Towers"
-ENT.Author = "Piengineer"
+ENT.Category = "#rotgb.category.tower"
+ENT.Author = "Piengineer12"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "This tower slows gBalloons that it hits, but deals zero damage."
+ENT.Purpose = "#rotgb.tower.gballoon_tower_09.purpose"
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -191,7 +191,7 @@ end
 
 function ENT:GlueBalloon(balloon, ignoreResistances)
 	if not balloon:GetBalloonProperty("BalloonAqua") or balloon:HasRotgBStatusEffect("unimmune") or ignoreResistances then
-		if not balloon:GetBalloonProperty("BalloonBlimp") or self.rotgb_GreatGlue and balloon:GetRgBE()<=22544 or ignoreResistances then
+		if not balloon:GetBalloonProperty("BalloonBlimp") or self.rotgb_GreatGlue and balloon:GetRgBE()<=balloon:GetRgBEByType("gballoon_blimp_green") or ignoreResistances then
 			local perf,str = coroutine.resume(self.thread,self,balloon)
 			if not perf then error(str) end
 		elseif self.rotgb_GoodGlue and self.rotgb_GlueDamage > 0 then

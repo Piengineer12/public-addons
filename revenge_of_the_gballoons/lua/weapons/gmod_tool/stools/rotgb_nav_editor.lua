@@ -1,7 +1,7 @@
 AddCSLuaFile()
 
 TOOL.Category = "RotgB"
-TOOL.Name = "#tool.nav_editor_rotgb.name"
+TOOL.Name = "#tool.rotgb_nav_editor.name"
 TOOL.Information = {
 	{name="left"},
 	{name="right"},
@@ -10,26 +10,17 @@ TOOL.Information = {
 }
 TOOL.AddToMenu = false
 
-if CLIENT then
-	language.Add("tool.nav_editor_rotgb.name","RotgB Avoidance Editor")
-	language.Add("tool.nav_editor_rotgb.desc","Makes gBalloons avoid certain areas. Can be used to route gBalloons to use another path.")
-	language.Add("tool.nav_editor_rotgb.left","Mark Area To Be Avoided")
-	language.Add("tool.nav_editor_rotgb.right","Unmark Area To Be Avoided")
-	language.Add("tool.nav_editor_rotgb.reload","Save NavMesh Changes")
-	language.Add("tool.nav_editor_rotgb.use","While Held, LMB And RMB Affect ALL Areas")
-end
-
 TOOL.BuildCPanel = function(form)
 	if game.SinglePlayer() then
-		form:Help("#tool.nav_editor_rotgb.desc")
-		local label = form:Help("This tool is only available in single player.")
+		form:Help("#tool.rotgb_nav_editor.desc")
+		local label = form:Help("#tool.rotgb_nav_editor.singleplayer")
 		label:SetTextColor(Color(255,0,0))
-		form:ControlHelp("NOTE: You can also mark the area to be avoided using the Easy Navmesh Editor by adding the AVOID attribute.")
-		form:Button("Equip the Easy Navmesh Editor (if available)","gmod_tool","rb655_easy_navedit")
-		local Button = form:Button("Get The Easy Navmesh Editor On Workshop")
+		form:ControlHelp("#tool.rotgb_nav_editor.rb655_easy_navedit.hint")
+		form:Button("#tool.rotgb_nav_editor.rb655_easy_navedit.equip","gmod_tool","rb655_easy_navedit")
+		local Button = form:Button("#tool.rotgb_nav_editor.rb655_easy_navedit.get")
 		Button.DoClick = function() gui.OpenURL("https://steamcommunity.com/sharedfiles/filedetails/?id=527885257") end
 	else
-		local label = form:Help("This tool is only available in single player.")
+		local label = form:Help("#tool.rotgb_nav_editor.singleplayer")
 		label:SetTextColor(Color(255,0,0))
 	end
 end

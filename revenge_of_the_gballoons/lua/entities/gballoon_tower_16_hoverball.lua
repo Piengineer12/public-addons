@@ -25,13 +25,33 @@ function ENT:Initialize()
 		self:StartMotionController()
 
 		self:SetTargetZ(self:GetPos().z)
+		self.rotgb_Collectable = true
 		self:SetTrigger(true)
 	end
-	self:UseTriggerBounds(true,64)
+end
+
+function ENT:Think()
+	if self.rotgb_Collectable then
+		for k,v in pairs(player.GetAll()) do
+			if self:WorldSpaceCenter():DistToSqr(v:WorldSpaceCenter()) <= self.rotgb_Range^2 then
+				self.rotgb_Collectable = false
+				self:SetTrigger(false)
+				self:SetNotSolid(true)
+				self:SetMoveType(MOVETYPE_NONE)
+				self:SetNoDraw(true)
+				local effdata = EffectData()
+				effdata:SetEntity(self)
+				util.Effect("entity_remove",effdata,true,true)
+				self:GiveCash()
+				SafeRemoveEntityDelayed(self,1)
+			end
+		end
+	end
 end
 
 function ENT:StartTouch(ent)
-	if (IsValid(ent) and ent:IsPlayer()) then
+	if (IsValid(ent) and ent:IsPlayer()) and self.rotgb_Collectable then
+		self.rotgb_Collectable = false
 		self:SetTrigger(false)
 		self:SetNotSolid(true)
 		self:SetMoveType(MOVETYPE_NONE)

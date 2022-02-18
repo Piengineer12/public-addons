@@ -177,7 +177,9 @@ end
 
 function GM:AllBalloonsDestroyed()
 	timer.Simple(1, function()
-		hook.Run("GameOver", true)
+		if not hook.Run("GetGameIsOver") then
+			hook.Run("GameOver", true)
+		end
 	end)
 end
 

@@ -1,12 +1,12 @@
 AddCSLuaFile()
 
 local gballoon_pob = baseclass.Get("gballoon_path_object_base") -- internally sets ENT.Base and ENT.Type too
-ENT.PrintName = "gBalloon Target"
-ENT.Category = "RotgB: Miscellaneous"
+ENT.PrintName = "#rotgb.gballoon_target"
+ENT.Category = "#rotgb.category.miscellaneous"
 ENT.ScriptedEntityType = "entity"
-ENT.Author = "Piengineer"
+ENT.Author = "Piengineer12"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "As a target for rouge gBalloons."
+ENT.Purpose = "#rotgb.gballoon_target.purpose"
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -19,18 +19,18 @@ if SERVER then
 end
 
 function ENT:SetupDataTables()
-	self:NetworkVar("Bool",0,"GBOnly",{KeyName="gballoon_damage_only",Edit={title="Only gBalloon Damage",type="Boolean"}})
-	self:NetworkVar("Bool",1,"IsBeacon",{KeyName="is_beacon",Edit={title="Is Waypoint",type="Boolean"}})
-	self:NetworkVar("Bool",2,"Teleport",{KeyName="teleport_to",Edit={title="Teleport Here",type="Boolean"}})
+	self:NetworkVar("Bool",0,"GBOnly",{KeyName="gballoon_damage_only",Edit={title="#rotgb.gballoon_target.properties.gballoon_damage_only",type="Boolean"}})
+	self:NetworkVar("Bool",1,"IsBeacon",{KeyName="is_beacon",Edit={title="#rotgb.gballoon_target.properties.is_beacon",type="Boolean"}})
+	self:NetworkVar("Bool",2,"Teleport",{KeyName="teleport_to",Edit={title="#rotgb.gballoon_target.properties.teleport_to",type="Boolean"}})
 	self:NetworkVar("Bool",3,"UnSpectatable")
 	self:NetworkVar("Bool",4,"NonVital")
 	self:NetworkVar("Bool",5,"HideHealth")
-	self:NetworkVar("Int",0,"Weight",{KeyName="weight",Edit={title="Weight (highest = first)",type="Int",min=0,max=100}})
-	self:NetworkVar("Int",1,"GoldenHealth",{KeyName="golden_health",Edit={title="Golden Health",type="Int",min=0,max=100}})
-	self:NetworkVar("Int",2,"OSPs",{KeyName="fatal_damage_negations",Edit={title="Fatal Damage Negations",type="Int",min=0,max=100}})
+	self:NetworkVar("Int",0,"Weight",{KeyName="weight",Edit={title="#rotgb.gballoon_target.properties.weight",type="Int",min=0,max=100}})
+	self:NetworkVar("Int",1,"GoldenHealth",{KeyName="golden_health",Edit={title="#rotgb.gballoon_target.properties.golden_health",type="Int",min=0,max=100}})
+	self:NetworkVar("Int",2,"OSPs",{KeyName="fatal_damage_negations",Edit={title="#rotgb.gballoon_target.properties.fatal_damage_negations",type="Int",min=0,max=100}})
 	self:NetworkVar("Int",4,"PerWaveShield")
 	self:NetworkVar("Float",0,"NaturalHealthMultiplier")
-	self:NetworkVar("Float",1,"PerWaveShieldPercent",{KeyName="per_wave_shield_percent",Edit={title="Per-Wave Shield %",type="Float",min=0,max=100}})
+	self:NetworkVar("Float",1,"PerWaveShieldPercent",{KeyName="per_wave_shield_percent",Edit={title="#rotgb.gballoon_target.properties.per_wave_shield_percent",type="Float",min=0,max=100}})
 	self:NetworkVar("Entity",0,"NextTarget1")
 	self:NetworkVar("Entity",1,"NextTarget2")
 	self:NetworkVar("Entity",2,"NextTarget3")
@@ -75,14 +75,10 @@ function ENT:KeyValue(key,value)
 		self:SetHideHealth(tobool(value))
 	elseif lkey=="non_vital" then
 		self:SetNonVital(tobool(value))
-	elseif lkey=="is_beacon" then -- TODO: DEPRECATED
-		self:SetIsBeacon(tobool(value))
 	elseif lkey=="is_waypoint" then
 		self:SetIsBeacon(tobool(value))
 	elseif lkey=="teleport_to" then
 		self:SetTeleport(tobool(value))
-	elseif lkey=="is_visible" then -- TODO: DEPRECATED
-		self.TempIsHidden = not tobool(value)
 	elseif lkey=="weight" then
 		self:SetWeight(tonumber(value) or 0)
 	elseif lkey=="onbreak" then
@@ -121,8 +117,6 @@ function ENT:AcceptInput(input,activator,caller,data)
 			self:SetHealth(self:Health() * multiplier)
 		end
 		self:SetNaturalHealthMultiplier(newMul)
-	elseif input=="setiswaypoint" then -- TODO: DEPRECATED
-		self:SetIsBeacon(tobool(data))
 	elseif input=="setweight" then
 		self:SetWeight(tonumber(data) or 0)
 	elseif input=="sethealth" then
@@ -338,7 +332,7 @@ function ENT:DrawTranslucent()
 		--self:DrawModel()
 		local actualHealth = --[[self.rotgb_ActualHealth or]] self:Health()
 		local actualMaxHealth = --[[self.rotgb_ActualMaxHealth or]] self:GetMaxHealth()
-		local text1 = "Health: "..actualHealth
+		local text1 = ROTGB_LocalizeString("rotgb.gballoon_target.health", actualHealth)
 		surface.SetFont("DermaLarge")
 		local t1x,t1y = surface.GetTextSize(text1)
 		local reqang = (self:GetPos()-LocalPlayer():GetShootPos()):Angle()
@@ -368,7 +362,7 @@ if engine.ActiveGamemode() == "rotgb" then
 					--net.WriteInt(v:Health(), 32)
 					--net.WriteInt(v:GetGoldenHealth(), 32)
 					net.WriteUInt(0, 8)
-					net.WriteString("Regeneration")
+					net.WriteString("rotgb_tg.skills.names.regeneration")
 					net.WriteInt(-healing, 32)
 					net.Broadcast()
 				end
@@ -405,59 +399,59 @@ local function PopulateHealthMenu(menu,data,ent)
 end
 
 properties.Add("rotgb_modhealth", {
-	MenuLabel = "Modify Health...",
+	MenuLabel = "#rotgb.gballoon_target.health.modify",
 	StructureField = 3000,
 	Filter = function(tab,ent) return ent:GetClass()=="gballoon_target" and LocalPlayer():IsAdmin() end,
 	MenuOpen = function(tab,menuOpt,ent,trace)
 		local modOpt = menuOpt:AddSubMenu()
-		PopulateHealthMenu(modOpt:AddSubMenu("Set Health..."), ROTGB_HEALTH_SET, ent)
-		PopulateHealthMenu(modOpt:AddSubMenu("Heal Health..."), ROTGB_HEALTH_HEAL, ent)
-		PopulateHealthMenu(modOpt:AddSubMenu("Add Health..."), ROTGB_HEALTH_ADD, ent)
-		PopulateHealthMenu(modOpt:AddSubMenu("Remove Health..."), ROTGB_HEALTH_SUB, ent)
+		PopulateHealthMenu(modOpt:AddSubMenu("#rotgb.gballoon_target.health.set"), ROTGB_HEALTH_SET, ent)
+		PopulateHealthMenu(modOpt:AddSubMenu("#rotgb.gballoon_target.health.heal"), ROTGB_HEALTH_HEAL, ent)
+		PopulateHealthMenu(modOpt:AddSubMenu("#rotgb.gballoon_target.health.add"), ROTGB_HEALTH_ADD, ent)
+		PopulateHealthMenu(modOpt:AddSubMenu("#rotgb.gballoon_target.health.sub"), ROTGB_HEALTH_SUB, ent)
 	end
 })
 
 properties.Add("rotgb_modmaxhealth", {
-	MenuLabel = "Modify Maximum Health...",
+	MenuLabel = "#rotgb.gballoon_target.max_health.modify",
 	StructureField = 3001,
 	Filter = function(tab,ent) return ent:GetClass()=="gballoon_target" and LocalPlayer():IsAdmin() end,
 	MenuOpen = function(tab,menuOpt,ent,trace)
 		local modOpt = menuOpt:AddSubMenu()
-		PopulateHealthMenu(modOpt:AddSubMenu("Set Max Health..."), ROTGB_MAXHEALTH_SET, ent)
-		PopulateHealthMenu(modOpt:AddSubMenu("Add Max Health..."), ROTGB_MAXHEALTH_ADD, ent)
-		PopulateHealthMenu(modOpt:AddSubMenu("Remove Max Health..."), ROTGB_MAXHEALTH_SUB, ent)
+		PopulateHealthMenu(modOpt:AddSubMenu("#rotgb.gballoon_target.max_health.set"), ROTGB_MAXHEALTH_SET, ent)
+		PopulateHealthMenu(modOpt:AddSubMenu("#rotgb.gballoon_target.max_health.add"), ROTGB_MAXHEALTH_ADD, ent)
+		PopulateHealthMenu(modOpt:AddSubMenu("#rotgb.gballoon_target.max_health.sub"), ROTGB_MAXHEALTH_SUB, ent)
 	end
 })
 
 list.Set("NPC","gballoon_target_100",{
-	Name = "gBalloon Target",
+	Name = "#rotgb.gballoon_target",
 	Class = "gballoon_target",
-	Category = "RotgB: Miscellaneous",
+	Category = "#rotgb.category.miscellaneous",
 	KeyValues = {
 		natural_health_multiplier = "1"
 	}
 })
 list.Set("NPC","gballoon_target_op",{
-	Name = "Sandbox gBalloon Target",
+	Name = "#rotgb.gballoon_target.sandbox",
 	Class = "gballoon_target",
-	Category = "RotgB: Miscellaneous",
+	Category = "#rotgb.category.miscellaneous",
 	KeyValues = {
 		health = "999999999",
 		max_health = "999999999"
 	}
 })
 list.Set("SpawnableEntities","gballoon_target_100",{
-	PrintName = "gBalloon Target",
+	PrintName = "#rotgb.gballoon_target",
 	ClassName = "gballoon_target",
-	Category = "RotgB: Miscellaneous",
+	Category = "#rotgb.category.miscellaneous",
 	KeyValues = {
 		natural_health_multiplier = "1"
 	}
 })
 list.Set("SpawnableEntities","gballoon_target_op",{
-	PrintName = "Sandbox gBalloon Target",
+	PrintName = "#rotgb.gballoon_target.sandbox",
 	ClassName = "gballoon_target",
-	Category = "RotgB: Miscellaneous",
+	Category = "#rotgb.category.miscellaneous",
 	KeyValues = {
 		health = "999999999",
 		max_health = "999999999"

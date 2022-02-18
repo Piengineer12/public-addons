@@ -3,10 +3,10 @@ AddCSLuaFile()
 ENT.Base = "gballoon_tower_base"
 ENT.Type = "anim"
 ENT.PrintName = "Hoverball Factory"
-ENT.Category = "RotgB: Towers"
-ENT.Author = "Piengineer"
+ENT.Category = "#rotgb.category.tower"
+ENT.Author = "Piengineer12"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "This tower creates hoverballs that can be sold / removed for $20 each, but only while a gBalloon Spawner is active. You can touch hoverballs to remove them."
+ENT.Purpose = "#rotgb.tower.gballoon_tower_16.purpose"
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -30,6 +30,7 @@ ENT.rotgb_HoverballPostCash = 0
 ENT.rotgb_Buff = 0
 ENT.rotgb_HoverballSkin = 0
 ENT.rotgb_HoverballSize = 1
+ENT.rotgb_HoverballRange = 64
 ENT.rotgb_HoverballModel = "models/maxofs2d/hover_classic.mdl"
 ENT.UpgradeReference = {
 	{
@@ -91,7 +92,7 @@ ENT.UpgradeReference = {
 			"This tower now generates interest up to $250,000 per second!",
 			"This tower no longer has a maximum interest rate! Once every 60 seconds, shooting at this tower doubles everyone's current cash!"
 		},
-		Prices = {450,1300,10000,60000,650000,7e6,500e6},
+		Prices = {450,1300,10000,60000,650000,7e6,1e9},
 		Funcs = {
 			function(self)
 				self.rotgb_HoverballLife = self.rotgb_HoverballLife * 3
@@ -104,14 +105,14 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.rotgb_BankFactor = 0.01
-				self.rotgb_BankMax = 5000
+				self.rotgb_BankMax = self.rotgb_BankMax * 5
 			end,
 			function(self)
-				self.rotgb_BankMax = 25000
+				self.rotgb_BankMax = self.rotgb_BankMax * 5
 				self.rotgb_BankBonus = true
 			end,
 			function(self)
-				self.rotgb_BankMax = 250000
+				self.rotgb_BankMax = self.rotgb_BankMax * 10
 			end,
 			function(self)
 				self.rotgb_BankMax = math.huge
@@ -129,14 +130,16 @@ ENT.UpgradeReference = {
 			"At the end of each round, the hoverball income of all Hoverball Factory towers are multiplied by 1.2!",
 			"At the end of each round, all gBalloon Targets' health is increased by 20% of their health, rounded down. This upgrade can overheal targets."
 		},
-		Prices = {450,1000,2000,5000,20000,75000},
+		Prices = {450,1000,2000,5000,75000},
 		Funcs = {
 			function(self)
 				self.rotgb_HoverballPostCash = 0.1
 			end,
 			function(self)
-				self.rotgb_NoHoverball = true
-				self.rotgb_HoverballPostCash = 1.1
+				--self.rotgb_NoHoverball = true
+				--self.rotgb_HoverballPostCash = 1.1
+				self.rotgb_HoverballRange = self.rotgb_HoverballRange * 3
+				self.rotgb_BankPlus = true
 			end,
 			function(self)
 				self.rotgb_Trading = true
@@ -146,9 +149,6 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.rotgb_Buff = 2
-			end,
-			function(self)
-				self.rotgb_Buff = 3
 			end
 		}
 	}
@@ -158,7 +158,7 @@ ENT.UpgradeLimits = {7,2,0}
 function ENT:FireFunction(gBalloons)
 	if IsValid(self.rotgb_Spawner) then
 		local delayBetweenBalls = self.rotgb_HoverballDelay * 10 / self.FireRate / self.BonusFireRate
-		if self:DetermineCharge(self.rotgb_Spawner) - self.rotgb_LastCharge >= delayBetweenBalls and self.rotgb_HoverballWorth > 0 and not self.rotgb_NoHoverball then
+		if self:DetermineCharge(self.rotgb_Spawner) - self.rotgb_LastCharge >= delayBetweenBalls and self.rotgb_HoverballWorth > 0 --[[and not self.rotgb_NoHoverball]] then
 			self.rotgb_LastCharge = self.rotgb_LastCharge + delayBetweenBalls
 			local should10x = self.rotgb_10Chance and math.random() < 0.1
 			local hoverballAmount = self.rotgb_HoverballWorth * (should10x and 10 or 1)
@@ -186,10 +186,11 @@ function ENT:FireFunction(gBalloons)
 				if IsValid(physobj) then
 					local randnum = math.random()*math.pi*2
 					local dirvec = Vector(math.sin(randnum), math.cos(randnum), 0)
-					dirvec:Mul(10)
+					dirvec:Mul(10/delayBetweenBalls)
 					physobj:Wake()
 					physobj:SetVelocity(dirvec)
 				end
+				hoverball.rotgb_Range = self.rotgb_HoverballRange*self.rotgb_HoverballSize
 				hoverball.rotgb_Value = hoverballAmount
 				hoverball.rotgb_Tower = self
 				timer.Simple(self.rotgb_HoverballLife,function()
@@ -208,7 +209,7 @@ function ENT:FireFunction(gBalloons)
 			self.rotgb_BankCharge = self:DetermineCharge(self.rotgb_Spawner)
 		end
 	end
-	if self.rotgb_BankFactor > 0 and not self.rotgb_NoHoverball and IsValid(gBalloons[1]) then
+	if self.rotgb_BankFactor > 0 --[[and not self.rotgb_NoHoverball]] and IsValid(gBalloons[1]) then
 		self.rotgb_BankCharge = (self.rotgb_BankCharge or 0) + 1
 		if self.rotgb_BankCharge >= 10 then 
 			self.rotgb_BankCharge = 0
@@ -251,24 +252,38 @@ hook.Add("gBalloonSpawnerWaveStarted", "ROTGB_TOWER_16", function(spawner,wave)
 			local buff = v.rotgb_Buff
 			v:AddCash(v.rotgb_HoverballWorth*(v.rotgb_10Chance and 1.9 or 1)/v.rotgb_HoverballDelay*v.FireRate*v.BonusFireRate/10*v.rotgb_HoverballPostCash
 			*(v.rotgb_Trading and math.random()*4 or 1)*(1+(hook.Run("GetSkillAmount", "valuableHoverballs") or 0)/100), v:GetTowerOwner())
-			if v.rotgb_BankFactor > 0 and v.rotgb_NoHoverball then
+			--[[if v.rotgb_BankFactor > 0 and v.rotgb_NoHoverball then
 				v:PerformBank()
 				for i=1,10 do
 					v:PerformBank(true)
 				end
+			end]]
+			-- rotgb_BankPlus
+			if v.rotgb_BankFactor > 0 and v.rotgb_BankPlus then
+				v:PerformBank()
 			end
 			if buff > 0 then
-				local healthProvide = v.rotgb_AutoHoverball and 0.4 or 0.2
+				local healthProvide = v.rotgb_AutoHoverball and 0.04 or 0.02
 				if engine.ActiveGamemode() == "rotgb" then
 					healthProvide = healthProvide*(1+hook.Run("GetSkillAmount", "hoverballFactoryHealthAmplifier")/100)
 				end
-				if buff > 1 then
+				--[[if buff > 1 then
 					v.rotgb_HoverballWorth = v.rotgb_HoverballWorth * 1.2
-				end
-				for k2,v2 in pairs(ents.FindByClass("gballoon_target")) do
+				end]]
+				local targets = ents.FindByClass("gballoon_target")
+				for k2,v2 in pairs(targets) do
 					v2:SetHealth(math.min(v2:Health()+v2:GetMaxHealth()*healthProvide, 999999999))
-					if buff > 2 then
-						v2:SetHealth(math.min(v2:Health()*(1+healthProvide), 999999999))
+					if buff > 1 then
+						local healing = math.floor(ROTGB_GetCash(v:GetTowerOwner())/2000)
+						if v2:Health()+healing > 999999999 then
+							healing = 999999999-v2:Health()
+						end
+						ROTGB_RemoveCash(healing*100, v:GetTowerOwner())
+						
+						if engine.ActiveGamemode() == "rotgb" then
+							healing = healing*(1+hook.Run("GetSkillAmount", "hoverballFactoryHealthAmplifier")/100)
+						end
+						v2:SetHealth(math.min(v2:Health()+healing, 999999999))
 					end
 				end
 			end

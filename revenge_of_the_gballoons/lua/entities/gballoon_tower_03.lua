@@ -3,10 +3,10 @@ AddCSLuaFile()
 ENT.Base = "gballoon_tower_base"
 ENT.Type = "anim"
 ENT.PrintName = "Sniper Queen"
-ENT.Category = "RotgB: Towers"
-ENT.Author = "Piengineer"
+ENT.Category = "#rotgb.category.tower"
+ENT.Author = "Piengineer12"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "This tower slowly fires bullets that deal high damage."
+ENT.Purpose = "#rotgb.tower.gballoon_tower_03.purpose"
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -119,7 +119,7 @@ local function SnipeEntity()
 			Dir = uDir,
 			Src = startPos
 		}
-		if self.rotgb_StunBlimp and ent:GetBalloonProperty("BalloonBlimp") and ent:GetRgBE()<53680 then
+		if self.rotgb_StunBlimp and ent:GetBalloonProperty("BalloonBlimp") and ent:GetRgBE()<ent:GetRgBEByType("gballoon_blimp_purple")-20e3 then
 			ent:Stun(1)
 		end
 		if self.rotgb_MarkingShots then

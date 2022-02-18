@@ -3,8 +3,8 @@ AddCSLuaFile()
 ENT.Base = "base_anim"
 ENT.Type = "anim"
 ENT.PrintName = "Anti-gBalloon Tower"
-ENT.Category = "RotgB: Towers"
-ENT.Author = "Piengineer"
+ENT.Category = "#rotgb.category.tower"
+ENT.Author = "Piengineer12"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "AN ACTUAL TOWER! FINALLY!"
 ENT.Instructions = ""
@@ -17,7 +17,7 @@ ENT.UpgradeLimits = {}
 ENT.LOSOffset = vector_origin
 ENT.BonusFireRate = 1
 
-local buttonlabs = {"First","Last","Strong","Weak","Close","Far","Fast","Slow"}
+local targetings = 8
 
 local color_red = Color(255,0,0)
 local color_aqua = Color(0,255,255)
@@ -163,7 +163,7 @@ hook.Add("EntityTakeDamage","ROTGB_TOWERS",function(vic,dmginfo)
 		end
 		if laser.rotgb_UseLaser==2 then
 			dmginfo:SetDamageType(DMG_GENERIC)
-			if dmginfo:GetDamage()>=vic:Health() and vic:GetClass()=="gballoon_base" and laser.rotgb_NoChildren then
+			if math.ceil(dmginfo:GetDamage()/10*ROTGB_GetConVarValue("rotgb_damage_multiplier"))>=vic:Health() and vic:GetClass()=="gballoon_base" and laser.rotgb_NoChildren then
 				dmginfo:SetDamage(vic:GetRgBE() * 1000)
 			end
 		end
@@ -286,7 +286,11 @@ function ENT:Think()
 					end
 				end
 				if towerOwner:RTG_GetLevel() < towerIndex then
-					ROTGB_CauseNotification(string.format("You need to be level %i to buy this tower!", towerIndex), towerOwner)
+					net.Start("rotgb_generic")
+					net.WriteUInt(ROTGB_OPERATION_NOTIFYARG,8)
+					net.WriteUInt(ROTGB_NOTIFYARG_TOWERLEVEL,8)
+					net.WriteUInt(towerIndex, 8)
+					net.Send(towerOwner)
 					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(towerOwner).." due to level requirement.", "towers")
 					return SafeRemoveEntity(self)
 				end
@@ -294,7 +298,7 @@ function ENT:Think()
 			local maxCount = ROTGB_GetConVarValue("rotgb_tower_maxcount")
 			for entry in string.gmatch(ROTGB_GetConVarValue("rotgb_tower_blacklist"), "%S+") do
 				if self:GetClass() == entry then
-					ROTGB_CauseNotification("That tower is blacklisted from being placed!", towerOwner)
+					ROTGB_CauseNotification("#rotgb.tower.no_place.blacklist", towerOwner)
 					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(towerOwner).." due to blacklist.", "towers")
 					return SafeRemoveEntity(self)
 				end
@@ -302,15 +306,21 @@ function ENT:Think()
 			local chessOnly = ROTGB_GetConVarValue("rotgb_tower_chess_only")
 			if chessOnly ~= 0 then
 				if chessOnly > 0 and not self.IsChessPiece then
-					ROTGB_CauseNotification("Only chess towers can be placed!", towerOwner)
+					ROTGB_CauseNotification("#rotgb.tower.no_place.chess", towerOwner)
 					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(towerOwner).." due to not being a chess tower.", "towers")
 				elseif chessOnly < 0 and self.IsChessPiece then
-					ROTGB_CauseNotification("Only non-chess towers can be placed!", towerOwner)
+					ROTGB_CauseNotification("#rotgb.tower.no_place.no_chess", towerOwner)
 					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(towerOwner).." due to being a chess tower.", "towers")
 				end
 			end
 			if towerCost>ROTGB_GetCash(towerOwner) then
-				ROTGB_CauseNotification("You need $"..string.Comma(math.ceil(towerCost-ROTGB_GetCash(towerOwner))).." more to buy this tower!", towerOwner)
+				if towerOwner:IsPlayer() then
+					net.Start("rotgb_generic")
+					net.WriteUInt(ROTGB_OPERATION_NOTIFYARG,8)
+					net.WriteUInt(ROTGB_NOTIFYARG_TOWERCASH,8)
+					net.WriteFloat(towerCost-ROTGB_GetCash(towerOwner))
+					net.Send(towerOwner)
+				end
 				ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(towerOwner).." due to insufficient cash.", "towers")
 				return SafeRemoveEntity(self)
 			elseif maxCount>=0 then
@@ -321,7 +331,7 @@ function ENT:Think()
 					end
 				end
 				if count > maxCount then
-					ROTGB_CauseNotification("You are not allowed to place any more towers!", towerOwner)
+					ROTGB_CauseNotification("#rotgb.tower.no_place.no_more", towerOwner)
 					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(towerOwner).." due to excess towers.", "towers")
 					return SafeRemoveEntity(self)
 				end
@@ -567,6 +577,14 @@ function ENT:AddCash(cash, ply)
 	self:SetCashGenerated(self:GetCashGenerated()+incomeCash)
 end
 
+function ENT:GetUpgradeName(path, tier)
+	return language.GetPhrase(string.format("rotgb.tower.%s.upgrades.%i.%i.name", self:GetClass(), path, tier))
+end
+
+function ENT:GetUpgradeDescription(path, tier)
+	return language.GetPhrase(string.format("rotgb.tower.%s.upgrades.%i.%i.description", self:GetClass(), path, tier))
+end
+
 ENT.ROTGB_OnRemove = ENT.ROTGB_Initialize
 
 function ENT:OnRemove()
@@ -601,7 +619,7 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 				end
 			end
 		else
-			ROTGB_CauseNotification("You can't tamper with someone else's tower!")
+			ROTGB_CauseNotification("#rotgb.tower.upgrade.not_owner")
 		end
 	end
 	if SERVER then
@@ -610,11 +628,11 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 		if ent.Base ~= "gballoon_tower_base" then return end
 		local path = net.ReadUInt(4) -- we actually only use 0-7; 8-10 are for targeting, 11 is for deletion and 12-15 are for other special cases.
 		if path==8 then
-			return ent:SetTargeting((ent:GetTargeting()+1)%#buttonlabs)
+			return ent:SetTargeting((ent:GetTargeting()+1)%targetings)
 		elseif path==9 then
-			return ent:SetTargeting((ent:GetTargeting()-1)%#buttonlabs)
+			return ent:SetTargeting((ent:GetTargeting()-1)%targetings)
 		elseif path==10 then
-			return ent:SetTargeting(net.ReadUInt(4)%#buttonlabs)
+			return ent:SetTargeting(net.ReadUInt(4)%targetings)
 		elseif path==11 then
 			constraint.RemoveAll(ent)
 			ent:SetNotSolid(true)
@@ -677,7 +695,7 @@ function ENT:Use(activator,caller,...)
 		net.WriteEntity(self)
 		net.WriteUInt(ROTGB_TOWER_MENU, 2)
 		net.Send(caller)
-	end	
+	end
 end
 
 timer.Simple(0, function()

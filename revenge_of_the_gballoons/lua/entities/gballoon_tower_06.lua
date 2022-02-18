@@ -3,10 +3,10 @@ AddCSLuaFile()
 ENT.Base = "gballoon_tower_base"
 ENT.Type = "anim"
 ENT.PrintName = "Multipurpose Engine"
-ENT.Category = "RotgB: Towers"
-ENT.Author = "Piengineer"
+ENT.Category = "#rotgb.category.tower"
+ENT.Author = "Piengineer12"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "This tower does nothing until upgraded. Most upgrades are focused on assisting other towers."
+ENT.Purpose = "#rotgb.tower.gballoon_tower_06.purpose"
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -65,7 +65,7 @@ ENT.UpgradeReference = {
 			"This tower can now instantly pop Red gBlimps, Monochrome gBlimps and anything lower!",
 			"This tower can now instantly pop Green gBlimps, Magenta gBlimps and anything lower!",
 		},
-		Prices = {2000,3000,19000,170000,780000,3.65e6,17.5e6},
+		Prices = {2000,3000,19000,170000,790000,3.65e6,18e6},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 20
@@ -77,16 +77,16 @@ ENT.UpgradeReference = {
 				self.AttackDamage = self.AttackDamage + 190
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 1720
+				self.AttackDamage = self.AttackDamage + 1740
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 7880
+				self.AttackDamage = self.AttackDamage + 7940
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 36520
+				self.AttackDamage = self.AttackDamage + 36760
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 179080
+				self.AttackDamage = self.AttackDamage + 180040
 			end
 		}
 	},

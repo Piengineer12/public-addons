@@ -1,13 +1,13 @@
 AddCSLuaFile()
 
 local base_nextbot = baseclass.Get("base_nextbot")
-ENT.PrintName = "Rouge gBalloon"
-ENT.Category = "RotgB: Basic"
+ENT.PrintName = "gBalloon"
+ENT.Category = "#rotgb.category.gballoon"
 -- ENT.ScriptedEntityType = "entity"
-ENT.Author = "Piengineer"
+ENT.Author = "Piengineer12"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "To conquer the world!"
-ENT.Instructions = ""
+ENT.Purpose = "#rotgb.gballoon.purpose"
+ENT.Instructions = "#rotgb.gballoon.instructions"
 ENT.Spawnable = false
 ENT.AdminOnly = false
 ENT.Editable = false
@@ -27,35 +27,36 @@ ENT.rotgb_rbetab = {
 	gballoon_gray=23,
 	gballoon_aqua=23,
 	gballoon_error=24,
-	gballoon_rainbow=93,
-	gballoon_ceramic=196,
-	gballoon_brick=427,
-	gballoon_marble=974,
+	gballoon_rainbow=94,
+	gballoon_ceramic=198,
+	gballoon_brick=431,
+	gballoon_marble=982,
 	
-	gballoon_blimp_blue=984,
-	gballoon_blimp_red=4636,
-	gballoon_blimp_green=22544,
-	gballoon_blimp_gray=4296,
-	gballoon_blimp_purple=73680,
-	gballoon_blimp_magenta=18699,
-	gballoon_blimp_rainbow=284772,
+	gballoon_blimp_blue=992,
+	gballoon_blimp_red=4668,
+	gballoon_blimp_green=22672,
+	gballoon_blimp_gray=4328,
+	gballoon_blimp_purple=74000,
+	gballoon_blimp_magenta=18827,
+	gballoon_blimp_rainbow=285668,
 	
 	gballoon_glass=1,
 	gballoon_void=1,
 	gballoon_cfiber=999999999,
+	gballoon_hidden=11,
 	
 	gballoon_melon=1000,
 	gballoon_melon_super=20000,
-	gballoon_mossman=8920,
-	gballoon_mossman_super=117640,
-	gballoon_gman=25e3,
+	gballoon_mossman=5000,
+	gballoon_mossman_super=100000,
+	gballoon_gman=25000,
 	gballoon_gman_super=500000,
-	gballoon_blimp_ggos=103896,
-	gballoon_blimp_ggos_super=2007792,
+	gballoon_blimp_ggos=103928,
+	gballoon_blimp_ggos_super=2007856,
 	gballoon_hot_air=500000,
 	gballoon_hot_air_super=10000000,
-	gballoon_blimp_long_rainbow=4778176,
-	gballoon_blimp_long_rainbow_super=54556352,
+	gballoon_blimp_long_rainbow=2.5e6,
+	gballoon_blimp_long_rainbow_super=50e6,
 	gballoon_garrydecal=10e6,
 	gballoon_garrydecal_super=200e6
 }
@@ -71,7 +72,7 @@ ENT.rotgb_spawns = {
 	gballoon_gray={gballoon_black=2},
 	gballoon_zebra={gballoon_white=2},
 	gballoon_aqua={gballoon_white=2},
-	gballoon_error={gballoon_purple=2},
+	gballoon_error={gballoon_purple=1,gballoon_orange=1},
 	gballoon_rainbow={gballoon_gray=1,gballoon_zebra=1,gballoon_aqua=1,gballoon_error=1},
 	gballoon_ceramic={gballoon_rainbow=2},
 	gballoon_brick={gballoon_ceramic=2},
@@ -84,6 +85,8 @@ ENT.rotgb_spawns = {
 	gballoon_blimp_purple={gballoon_blimp_green=2,gballoon_hidden_regen_blimp_gray=2},
 	gballoon_blimp_magenta={gballoon_hidden_regen_blimp_gray=4},
 	gballoon_blimp_rainbow={gballoon_blimp_purple=2,gballoon_fast_blimp_magenta=2},
+	
+	gballoon_hidden={gballoon_pink=2},
 	
 	gballoon_blimp_ggos={gballoon_marble=4},
 	gballoon_blimp_ggos_super={gballoon_fast_hidden_regen_shielded_marble=4},
@@ -396,7 +399,7 @@ function ENT:Initialize()
 			end
 		end
 		if not (navmesh.IsLoaded() or notifshown) and game.SinglePlayer() then
-			PrintMessage(HUD_PRINTTALK, "No NavMesh found! Please generate one first!")
+			ROTGB_CauseNotification("#rotgb.navmesh.missing")
 			notifshown = true
 		end
 		hook.Run("gBalloonPreInitialize", self)
@@ -1232,9 +1235,8 @@ function ENT:RunBehaviour()
 			coroutine.wait(1)
 		else
 			if IsValid(self:GetTarget()) then
-				self.loco:SetAcceleration(self:GetBalloonProperty("BalloonMoveSpeed")*(self:GetBalloonProperty("BalloonFast") and 2 or 1)*ROTGB_GetConVarValue("rotgb_speed_mul")*5)
-				self.DesiredSpeed = self.loco:GetAcceleration()*0.2
-				self.loco:SetDesiredSpeed(self.DesiredSpeed)
+				self.loco:SetAcceleration(self:GetBalloonProperty("BalloonMoveSpeed")*(self:GetBalloonProperty("BalloonFast") and 2 or 1)*5)
+				self.loco:SetDesiredSpeed(self.loco:GetAcceleration()/5)
 				self.loco:SetDeceleration(self.loco:GetAcceleration())
 				self.loco:SetJumpHeight(58)
 				self.loco:SetStepHeight(18)
@@ -1373,7 +1375,7 @@ function ENT:IsFrozen()
 end
 
 function ENT:CheckForSpeedMods()
-	local mul = 0.2
+	local mul = 5
 	local curTime = self:CurTime()
 	for k,v in pairs(self.rotgb_SpeedMods or {}) do
 		if v[1] > curTime then
@@ -1382,8 +1384,10 @@ function ENT:CheckForSpeedMods()
 			self.rotgb_SpeedMods[k] = nil
 		end
 	end
-	self.DesiredSpeed = self.loco:GetAcceleration()*mul
-	self.loco:SetDesiredSpeed(self.DesiredSpeed)
+	mul = mul*ROTGB_GetConVarValue("rotgb_speed_mul")*(self:GetBalloonProperty("BalloonFast") and 2 or 1)
+	self.loco:SetAcceleration(self:GetBalloonProperty("BalloonMoveSpeed")*mul)
+	self.loco:SetDesiredSpeed(self.loco:GetAcceleration()/5)
+	self.loco:SetDeceleration(self.loco:GetAcceleration())
 end
 
 -- "Slowdown" isn't accurate anymore as multipliers > 1 are now accepted
@@ -1496,6 +1500,10 @@ function ENT:GetRgBE()
 	return self.rotgb_rbetab[self:GetBalloonProperty("BalloonType")]*(self:GetBalloonProperty("BalloonShielded") and 2 or 1)+math.max(self:Health(), 1)-self:GetMaxHealth()
 end
 
+function ENT:GetRgBEByType(typ)
+	return self.rotgb_rbetab[typ]
+end
+
 function ENT:GetDistanceTravelled()
 	return self.TravelledDistance or 0
 end
@@ -1590,7 +1598,7 @@ function ENT:OnInjured(dmginfo)
 		self.LastAttacker = dmginfo:GetAttacker()
 		self.LastInflictor = dmginfo:GetInflictor()
 		self.LastDamageType = dmginfo:GetDamageType()
-		dmginfo:SetDamage(math.ceil(dmginfo:GetDamage()*0.1*ROTGB_GetConVarValue("rotgb_damage_multiplier")))
+		dmginfo:SetDamage(math.ceil(dmginfo:GetDamage()/10*ROTGB_GetConVarValue("rotgb_damage_multiplier")))
 		self:Log("About to take "..dmginfo:GetDamage().." damage at "..self:Health().." health!","damage")
 		local resistresults = TestDamageResistances(self.Properties,self.LastDamageType,self:IsFrozen())
 		local ignoreResistances = ROTGB_GetConVarValue("rotgb_ignore_damage_resistances") or self:HasRotgBStatusEffect("unimmune")
@@ -1789,7 +1797,7 @@ function ENT:Pop(damage,target,dmgbits)
 	local pops = 0
 	local balloonnum = ROTGB_GetBalloonCount()
 	--local nextsasstring = self:GetPopSaveString(nexts[1],damage,dmgbits or 0)
-	if damage < 0 or damage>self:GetRgBE()*10 then damage = math.huge end
+	if damage < 0 or damage>self:GetRgBE() then damage = math.huge end
 	if ROTGB_LoggingEnabled("popping") then
 		self:Log("Before Popping: "..util.TableToJSON(nexts,true),"popping")
 	end
@@ -1831,13 +1839,8 @@ function ENT:Pop(damage,target,dmgbits)
 		self:Log("Time taken: "..(SysTime()-ctime)*1000 .." ms","popping")
 	end
 	if (IsValid(self.LastAttacker) and self.LastAttacker:IsPlayer()) then
-		if doAchievement == 1 then
+		if doAchievement then
 			self.LastAttacker:SendLua("achievements.BalloonPopped()") -- What? It's a balloon, right?
-		elseif doAchievement > 1 then
-			net.Start("rotgb_generic")
-			net.WriteUInt(ROTGB_OPERATION_ACHIEVEMENT, 8)
-			net.WriteUInt(cash, 32)
-			net.Send(self.LastAttacker)
 		end
 	end
 	if IsValid(target) then
@@ -2231,7 +2234,6 @@ local minuteclass = {Base = "base_anim", Type = "anim"}
 
 local registerkeys = {
 	red = {
-		Name = "Red gBalloon",
 		KeyValues = {
 			BalloonMoveSpeed = "100",
 			BalloonScale = "1",
@@ -2240,7 +2242,6 @@ local registerkeys = {
 		}
 	},
 	blue = {
-		Name = "Blue gBalloon",
 		KeyValues = {
 			BalloonMoveSpeed = "125",
 			BalloonScale = "1.25",
@@ -2249,7 +2250,6 @@ local registerkeys = {
 		}
 	},
 	green = {
-		Name = "Green gBalloon",
 		KeyValues = {
 			BalloonMoveSpeed = "150",
 			BalloonScale = "1.5",
@@ -2258,7 +2258,6 @@ local registerkeys = {
 		}
 	},
 	yellow = {
-		Name = "Yellow gBalloon",
 		KeyValues = {
 			BalloonMoveSpeed = "175",
 			BalloonScale = "1.75",
@@ -2267,7 +2266,6 @@ local registerkeys = {
 		}
 	},
 	pink = {
-		Name = "Pink gBalloon",
 		KeyValues = {
 			BalloonMoveSpeed = "200",
 			BalloonScale = "2",
@@ -2276,7 +2274,6 @@ local registerkeys = {
 		}
 	},
 	white = {
-		Name = "White gBalloon",
 		KeyValues = {
 			BalloonMoveSpeed = "150",
 			BalloonScale = "0.75",
@@ -2286,7 +2283,6 @@ local registerkeys = {
 		}
 	},
 	black = {
-		Name = "Black gBalloon",
 		KeyValues = {
 			BalloonMoveSpeed = "150",
 			BalloonScale = "0.75",
@@ -2296,7 +2292,6 @@ local registerkeys = {
 		}
 	},
 	purple = {
-		Name = "Purple gBalloon",
 		KeyValues = {
 			BalloonMoveSpeed = "150",
 			BalloonScale = "1.5",
@@ -2306,7 +2301,6 @@ local registerkeys = {
 		}
 	},
 	orange = {
-		Name = "Orange gBalloon",
 		KeyValues = {
 			BalloonMoveSpeed = "250",
 			BalloonScale = "2.5",
@@ -2315,7 +2309,6 @@ local registerkeys = {
 		}
 	},
 	gray = {
-		Name = "Gray gBalloon",
 		KeyValues = {
 			BalloonMoveSpeed = "175",
 			BalloonScale = "1.75",
@@ -2326,7 +2319,6 @@ local registerkeys = {
 		}
 	},
 	zebra = {
-		Name = "Zebra gBalloon",
 		KeyValues = {
 			BalloonMoveSpeed = "175",
 			BalloonScale = "1.75",
@@ -2338,7 +2330,6 @@ local registerkeys = {
 		}
 	},
 	aqua = {
-		Name = "Aqua gBalloon",
 		KeyValues = {
 			BalloonMoveSpeed = "175",
 			BalloonScale = "1.75",
@@ -2348,7 +2339,6 @@ local registerkeys = {
 		}
 	},
 	error = {
-		Name = "Error gBalloon",
 		KeyValues = {
 			BalloonMoveSpeed = "175",
 			BalloonScale = "1.75",
@@ -2360,7 +2350,6 @@ local registerkeys = {
 		}
 	},
 	rainbow = {
-		Name = "Rainbow gBalloon",
 		KeyValues = {
 			BalloonMoveSpeed = "200",
 			BalloonScale = "2",
@@ -2371,7 +2360,6 @@ local registerkeys = {
 		}
 	},
 	ceramic = {
-		Name = "Ceramic gBalloon",
 		KeyValues = {
 			BalloonMoveSpeed = "225",
 			BalloonScale = "2.25",
@@ -2382,7 +2370,6 @@ local registerkeys = {
 		}
 	},
 	brick = {
-		Name = "Brick gBalloon",
 		KeyValues = {
 			BalloonMoveSpeed = "250",
 			BalloonScale = "2.5",
@@ -2394,7 +2381,6 @@ local registerkeys = {
 		}
 	},
 	marble = {
-		Name = "Marble gBalloon",
 		KeyValues = {
 			BalloonMoveSpeed = "275",
 			BalloonScale = "2.75",
@@ -2406,7 +2392,6 @@ local registerkeys = {
 		}
 	},
 	blimp_blue = {
-		Name = "Blue gBlimp",
 		KeyValues = {
 			BalloonMoveSpeed = "100",
 			BalloonScale = "2",
@@ -2420,7 +2405,6 @@ local registerkeys = {
 		}
 	},
 	blimp_red = {
-		Name = "Red gBlimp",
 		KeyValues = {
 			BalloonMoveSpeed = "50",
 			BalloonScale = "2.25",
@@ -2434,7 +2418,6 @@ local registerkeys = {
 		}
 	},
 	blimp_green = {
-		Name = "Green gBlimp",
 		KeyValues = {
 			BalloonMoveSpeed = "25",
 			BalloonScale = "2.5",
@@ -2448,7 +2431,6 @@ local registerkeys = {
 		}
 	},
 	blimp_gray = {
-		Name = "Monochrome gBlimp",
 		KeyValues = {
 			BalloonMoveSpeed = "200",
 			BalloonScale = "2",
@@ -2464,7 +2446,6 @@ local registerkeys = {
 		}
 	},
 	blimp_purple = {
-		Name = "Purple gBlimp",
 		KeyValues = {
 			BalloonMoveSpeed = "25",
 			BalloonScale = "2.75",
@@ -2478,7 +2459,6 @@ local registerkeys = {
 		}
 	},
 	blimp_magenta = {
-		Name = "Magenta gBlimp",
 		KeyValues = {
 			BalloonMoveSpeed = "300",
 			BalloonScale = "2.25",
@@ -2493,7 +2473,6 @@ local registerkeys = {
 		}
 	},
 	blimp_rainbow = {
-		Name = "Rainbow gBlimp",
 		KeyValues = {
 			BalloonMoveSpeed = "50",
 			BalloonScale = "3",
@@ -2513,33 +2492,64 @@ local registerkeys = {
 	}
 }
 
+local tokenKeys = {
+	"gballoon",
+	"gballoon_fast",
+	"gballoon_hidden",
+	"gballoon_fast_hidden",
+	"gballoon_regen",
+	"gballoon_fast_regen",
+	"gballoon_hidden_regen",
+	"gballoon_fast_hidden_regen",
+	"gballoon_shielded",
+	"gballoon_fast_shielded",
+	"gballoon_hidden_shielded",
+	"gballoon_fast_hidden_shielded",
+	"gballoon_regen_shielded",
+	"gballoon_fast_regen_shielded",
+	"gballoon_hidden_regen_shielded",
+	"gballoon_fast_hidden_regen_shielded",
+	"gballoon_blimp",
+	"gballoon_blimp_fast",
+	"gballoon_blimp_hidden",
+	"gballoon_blimp_fast_hidden",
+	"gballoon_blimp_regen",
+	"gballoon_blimp_fast_regen",
+	"gballoon_blimp_hidden_regen",
+	"gballoon_blimp_fast_hidden_regen",
+	"gballoon_blimp_shielded",
+	"gballoon_blimp_fast_shielded",
+	"gballoon_blimp_hidden_shielded",
+	"gballoon_blimp_fast_hidden_shielded",
+	"gballoon_blimp_regen_shielded",
+	"gballoon_blimp_fast_regen_shielded",
+	"gballoon_blimp_hidden_regen_shielded",
+	"gballoon_blimp_fast_hidden_regen_shielded"
+}
+
 for i=0,15 do
 	for k,v in pairs(table.Copy(registerkeys)) do
-		local cat = v.KeyValues.BalloonBlimp and "RotgB: gBlimps" or "RotgB: gBalloons"
+		local isBlimp = tobool(v.KeyValues.BalloonBlimp)
 		local prefix = "gballoon_"
 		if bit.band(i,1)==1 then
 			v.KeyValues.BalloonFast = "1"
-			cat = cat.." Fast"
 			prefix = prefix.."fast_"
 		end
 		if bit.band(i,2)==2 then
 			v.KeyValues.BalloonHidden = "1"
-			cat = cat.." Hidden"
 			prefix = prefix.."hidden_"
 		end
 		if bit.band(i,4)==4 then
 			v.KeyValues.BalloonRegen = "1"
-			cat = cat.." Regen"
 			prefix = prefix.."regen_"
 		end
 		if bit.band(i,8)==8 then
 			v.KeyValues.BalloonShielded = "1"
-			cat = cat.." Shielded"
 			prefix = prefix.."shielded_"
 		end
-		if i==0 then cat = cat.." Basic" end
+		v.Name = "#rotgb.gballoon.gballoon_"..k
 		v.Class = "gballoon_base"
-		v.Category = cat
+		v.Category = "#rotgb.category."..tokenKeys[i+(isBlimp and 17 or 1)]
 		list.Set("NPC",prefix..k,v)
 		scripted_ents.Register(minuteclass,prefix..k)
 	end
@@ -2552,9 +2562,9 @@ function ROTGB_RegisterBossEffect(effectNum, data)
 end
 
 list.Set("NPC","gballoon_melon",{
-	Name = "gMelloon of Swiftness",
+	Name = "#rotgb.gballoon.gballoon_melon",
 	Class = "gballoon_base",
-	Category = "RotgB: gBalloons Bosses",
+	Category = "#rotgb.category.gballoon_boss",
 	KeyValues = {
 		BalloonMoveSpeed = "25",
 		BalloonScale = "1",
@@ -2577,9 +2587,9 @@ ROTGB_RegisterBossEffect("swiftness", {
 	end
 })
 list.Set("NPC","gballoon_melon_super",{
-	Name = "Super gMelloon of Swiftness",
+	Name = "#rotgb.gballoon.gballoon_melon_super",
 	Class = "gballoon_base",
-	Category = "RotgB: gBalloons Bosses",
+	Category = "#rotgb.category.gballoon_boss_super",
 	KeyValues = {
 		BalloonMoveSpeed = "25",
 		BalloonScale = "1",
@@ -2603,9 +2613,9 @@ ROTGB_RegisterBossEffect("swiftness_super", {
 })
 
 list.Set("NPC","gballoon_mossman",{
-	Name = "Mossman gBalloon of Ceramicity",
+	Name = "#rotgb.gballoon.gballoon_mossman",
 	Class = "gballoon_base",
-	Category = "RotgB: gBalloons Bosses",
+	Category = "#rotgb.category.gballoon_boss",
 	KeyValues = {
 		BalloonMoveSpeed = "25",
 		BalloonScale = "3",
@@ -2643,9 +2653,9 @@ ROTGB_RegisterBossEffect("ceramicity", {
 	end
 })
 list.Set("NPC","gballoon_mossman_super",{
-	Name = "Super Mossman gBalloon of Ceramicity",
+	Name = "#rotgb.gballoon.gballoon_mossman_super",
 	Class = "gballoon_base",
-	Category = "RotgB: gBalloons Bosses",
+	Category = "#rotgb.category.gballoon_boss_super",
 	KeyValues = {
 		BalloonMoveSpeed = "25",
 		BalloonScale = "3",
@@ -2684,9 +2694,9 @@ ROTGB_RegisterBossEffect("ceramicity_super", {
 })
 
 list.Set("NPC","gballoon_gman",{
-	Name = "GMan gBalloon of Stasis",
+	Name = "#rotgb.gballoon.gballoon_gman",
 	Class = "gballoon_base",
-	Category = "RotgB: gBalloons Bosses",
+	Category = "#rotgb.category.gballoon_boss",
 	KeyValues = {
 		BalloonMoveSpeed = "25",
 		BalloonScale = "3",
@@ -2721,9 +2731,9 @@ ROTGB_RegisterBossEffect("stasis", {
 	end
 })
 list.Set("NPC","gballoon_gman_super",{
-	Name = "Super GMan gBalloon of Stasis",
+	Name = "#rotgb.gballoon.gballoon_gman_super",
 	Class = "gballoon_base",
-	Category = "RotgB: gBalloons Bosses",
+	Category = "#rotgb.category.gballoon_boss_super",
 	KeyValues = {
 		BalloonMoveSpeed = "25",
 		BalloonScale = "3",
@@ -2756,9 +2766,9 @@ ROTGB_RegisterBossEffect("stasis_super", {
 })
 
 list.Set("NPC","gballoon_blimp_ggos",{
-	Name = "Fat Monochrome gBlimp of Shielding",
+	Name = "#rotgb.gballoon.gballoon_blimp_ggos",
 	Class = "gballoon_base",
-	Category = "RotgB: gBalloons Bosses",
+	Category = "#rotgb.category.gballoon_boss",
 	KeyValues = {
 		BalloonMoveSpeed = "25",
 		BalloonScale = "1",
@@ -2791,9 +2801,9 @@ ROTGB_RegisterBossEffect("shielding", {
 	end
 })
 list.Set("NPC","gballoon_blimp_ggos_super",{
-	Name = "Super Fat Monochrome gBlimp of Shielding",
+	Name = "#rotgb.gballoon.gballoon_blimp_ggos_super",
 	Class = "gballoon_base",
-	Category = "RotgB: gBalloons Bosses",
+	Category = "#rotgb.category.gballoon_boss_super",
 	KeyValues = {
 		BalloonMoveSpeed = "25",
 		BalloonScale = "1",
@@ -2831,9 +2841,9 @@ ROTGB_RegisterBossEffect("shielding_super", {
 })
 
 list.Set("NPC","gballoon_hot_air",{
-	Name = "Rainbow Hot Air gBalloon of Hibernation",
+	Name = "#rotgb.gballoon.gballoon_hot_air",
 	Class = "gballoon_base",
-	Category = "RotgB: gBalloons Bosses",
+	Category = "#rotgb.category.gballoon_boss",
 	KeyValues = {
 		BalloonMoveSpeed = "25",
 		BalloonScale = "0.2",
@@ -2878,9 +2888,9 @@ ROTGB_RegisterBossEffect("slow_intangible", {
 	end
 })
 list.Set("NPC","gballoon_hot_air_super",{
-	Name = "Super Rainbow Hot Air gBalloon of Hibernation",
+	Name = "#rotgb.gballoon.gballoon_hot_air_super",
 	Class = "gballoon_base",
-	Category = "RotgB: gBalloons Bosses",
+	Category = "#rotgb.category.gballoon_boss_super",
 	KeyValues = {
 		BalloonMoveSpeed = "25",
 		BalloonScale = "0.2",
@@ -2924,9 +2934,9 @@ ROTGB_RegisterBossEffect("slow_intangible_super", {
 })
 
 list.Set("NPC","gballoon_blimp_long_rainbow",{
-	Name = "Rainbow Portal of Rainbow gBlimp-ing",
+	Name = "#rotgb.gballoon.gballoon_blimp_long_rainbow",
 	Class = "gballoon_base",
-	Category = "RotgB: gBalloons Bosses",
+	Category = "#rotgb.category.gballoon_boss",
 	KeyValues = {
 		BalloonMoveSpeed = "50",
 		BalloonScale = "1",
@@ -2980,9 +2990,9 @@ ROTGB_RegisterBossEffect("long_rainbow", {
 	end
 })
 list.Set("NPC","gballoon_blimp_long_rainbow_super",{
-	Name = "Super Rainbow Portal of Rainbow gBlimp-ing",
+	Name = "#rotgb.gballoon.gballoon_blimp_long_rainbow_super",
 	Class = "gballoon_base",
-	Category = "RotgB: gBalloons Bosses",
+	Category = "#rotgb.category.gballoon_boss_super",
 	KeyValues = {
 		BalloonMoveSpeed = "50",
 		BalloonScale = "1",
@@ -3037,9 +3047,9 @@ ROTGB_RegisterBossEffect("long_rainbow_super", {
 })
 
 list.Set("NPC","gballoon_garrydecal",{
-	Name = "garry-decaled gBalloon of awesomeness",
+	Name = "#rotgb.gballoon.gballoon_garrydecal",
 	Class = "gballoon_base",
-	Category = "RotgB: gBalloons Bosses",
+	Category = "#rotgb.category.gballoon_boss",
 	KeyValues = {
 		BalloonMoveSpeed = "25",
 		BalloonScale = "3",
@@ -3088,9 +3098,9 @@ ROTGB_RegisterBossEffect("kicker", {
 	end
 })
 list.Set("NPC","gballoon_garrydecal_super",{
-	Name = "Super garry-decaled gBalloon of awesomeness",
+	Name = "#rotgb.gballoon.gballoon_garrydecal_super",
 	Class = "gballoon_base",
-	Category = "RotgB: gBalloons Bosses",
+	Category = "#rotgb.category.gballoon_boss_super",
 	KeyValues = {
 		BalloonMoveSpeed = "25",
 		BalloonScale = "3",
@@ -3138,9 +3148,9 @@ ROTGB_RegisterBossEffect("kicker_super", {
 
 -- special
 list.Set("NPC","gballoon_void",{
-	Name = "Void gBalloon",
+	Name = "#rotgb.gballoon.gballoon_void",
 	Class = "gballoon_base",
-	Category = "RotgB: gBalloons Miscellaneous",
+	Category = "#rotgb.category.gballoon_miscellaneous",
 	KeyValues = {
 		BalloonMoveSpeed = "500",
 		BalloonScale = "3",
@@ -3151,9 +3161,9 @@ list.Set("NPC","gballoon_void",{
 	}
 })
 list.Set("NPC","gballoon_glass",{
-	Name = "Glass gBalloon",
+	Name = "#rotgb.gballoon.gballoon_glass",
 	Class = "gballoon_base",
-	Category = "RotgB: gBalloons Miscellaneous",
+	Category = "#rotgb.category.gballoon_miscellaneous",
 	KeyValues = {
 		BalloonMoveSpeed = "100",
 		BalloonScale = "3",
@@ -3164,9 +3174,9 @@ list.Set("NPC","gballoon_glass",{
 	}
 })
 list.Set("NPC","gballoon_cfiber",{
-	Name = "Carbon Fiber gBalloon",
+	Name = "#rotgb.gballoon.gballoon_cfiber",
 	Class = "gballoon_base",
-	Category = "RotgB: gBalloons Miscellaneous",
+	Category = "#rotgb.category.gballoon_miscellaneous",
 	KeyValues = {
 		BalloonMoveSpeed = "100",
 		BalloonScale = "3",
@@ -3179,14 +3189,14 @@ list.Set("NPC","gballoon_cfiber",{
 	}
 })
 list.Set("NPC","gballoon_hidden",{
-	Name = "Hidden gBalloon",
+	Name = "#rotgb.gballoon.gballoon_hidden",
 	Class = "gballoon_base",
-	Category = "RotgB: gBalloons Miscellaneous",
+	Category = "#rotgb.category.gballoon_miscellaneous",
 	KeyValues = {
 		BalloonMoveSpeed = "150",
 		BalloonScale = "1.5",
 		BalloonColor = "0 255 0 255",
-		BalloonType = "gballoon_orange",
+		BalloonType = "gballoon_hidden",
 		BalloonMaterial = "models/xqm/cellshadedcamo_diffuse",
 		BalloonHidden = "1"
 	}

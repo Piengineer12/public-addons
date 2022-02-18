@@ -31,9 +31,9 @@ table.insert(skillEffectivenessSkills, {
 	name = "#rotgb_tg.skills.names.skill_effectiveness",
 	trait = "skillEffectiveness",
 	amount = 1,
-	links = {"se25", "ydihylh"},
-	pos = VectorTable(2,2),
-	parent = "ydihylh"
+	links = {"se25", "mh13"},
+	pos = VectorTable(1,1),
+	parent = "mh13"
 })
 table.insert(skillEffectivenessSkills, {
 	ref = "se100",

@@ -3,10 +3,10 @@ AddCSLuaFile()
 ENT.Base = "gballoon_tower_base"
 ENT.Type = "anim"
 ENT.PrintName = "Proximity Mine"
-ENT.Category = "RotgB: Towers"
-ENT.Author = "Piengineer"
+ENT.Category = "#rotgb.category.tower"
+ENT.Author = "Piengineer12"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "This tower very slowly creates explosions that deal damage to everything in its radius."
+ENT.Purpose = "#rotgb.tower.gballoon_tower_02.purpose"
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -171,7 +171,7 @@ function ENT:Explode(pos, recursion, gBalloons)
 		effdata:SetRadius(3)
 	end
 	effdata:SetStart(pos)
-	util.Effect(recursion == self.rotgb_Recursion and "HelicopterMegaBomb" or "StunstickImpact",effdata,true,true)
+	util.Effect(--[[recursion == self.rotgb_Recursion and "HelicopterMegaBomb" or ]]"StunstickImpact",effdata,true,true)
 	for k,v in pairs(gBalloons) do
 		if self:ValidTargetIgnoreRange(v) then
 			local markedDamage = self.AttackDamage

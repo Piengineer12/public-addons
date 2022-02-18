@@ -3,10 +3,10 @@ AddCSLuaFile()
 ENT.Base = "gballoon_tower_base"
 ENT.Type = "anim"
 ENT.PrintName = "Electrostatic Barrel"
-ENT.Category = "RotgB: Towers"
-ENT.Author = "Piengineer"
+ENT.Category = "#rotgb.category.tower"
+ENT.Author = "Piengineer12"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
-ENT.Purpose = "This tower fires electrical sparks that arc from one gBalloon to another, provided that they are close enough to each other."
+ENT.Purpose = "#rotgb.tower.gballoon_tower_01.purpose"
 ENT.Instructions = ""
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -21,14 +21,14 @@ ENT.rotgb_Radius = 64
 ENT.rotgb_Bounces = 4
 ENT.UpgradeReference = {
 	{
-		Names = {"High Voltage","Faster Recharge","Instant Discharger","Recursive Zap","Extreme Voltage"},
+		--[[Names = {"High Voltage","Faster Recharge","Instant Discharger","Recursive Zap","Extreme Voltage"},
 		Descs = {
 			"Considerably increases the number of electrostatic jumps.",
 			"Static electricity is generated considerably faster.",
 			"Static electricity is generated tremendously faster and deals considerably more damage.",
 			"Static electricity can now hit multiple gBalloons and bounce on the same gBalloon multiple times, resulting in extremely large amounts of damage per hit.",
 			"Tremendously increases the number of electrostatic jumps. Enables the tower to pop Purple gBalloons.",
-		},
+		},]]
 		Prices = {450,850,7500,125000,1.2e6},
 		Funcs = {
 			function(self)
@@ -51,14 +51,14 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Long Spark","Wild Sparks","Heart Stopper","Electromagnetic Pulser","Supercell"},
+		--[[Names = {"Long Spark","Wild Sparks","Heart Stopper","Electromagnetic Pulser","Supercell"},
 		Descs = {
 			"Considerably increases the travel distance of electrostatic jumps.",
 			"Electrostatic jumps can hit hidden gBalloons.",
 			"On hit, stuns gBalloons for 0.25s and Regen gBalloons may only regenerate up to their current tier.",
 			"This tower now radiates an electric field that shocks all gBalloons within its radius. Also considerably increases range and enables the tower to pop Purple gBalloons.",
 			"Tremendously increases attack damage, fire rate and range."
-		},
+		},]]
 		Prices = {450,1000,2000,25000,750000},
 		Funcs = {
 			function(self)

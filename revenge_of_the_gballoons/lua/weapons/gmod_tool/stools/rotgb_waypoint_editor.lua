@@ -1,7 +1,7 @@
-AddCSLuaFile() -- TODO: HELP ME FINISH THIS MULTI-WAYPOINTER
+AddCSLuaFile()
 
 TOOL.Category = "RotgB"
-TOOL.Name = "#tool.waypoint_editor_rotgb.name"
+TOOL.Name = "#tool.rotgb_waypoint_editor.name"
 TOOL.Information = {
 	{name="left",op=1},
 	{name="right",op=1},
@@ -32,68 +32,44 @@ TOOL.ClientConVar = {
 }
 TOOL.AddToMenu = false
 
-if CLIENT then
-	language.Add("tool.waypoint_editor_rotgb.name","gBalloon Target Waypoint Editor")
-	language.Add("tool.waypoint_editor_rotgb.desc","Defines gBalloon Target waypoints to be used by the gBalloons.")
-	language.Add("tool.waypoint_editor_rotgb.left","Place / Link a gBalloon Spawner / gBalloon Target waypoint")
-	language.Add("tool.waypoint_editor_rotgb.right","Remove an outgoing waypoint link")
-	language.Add("tool.waypoint_editor_rotgb.reload","Remove a gBalloon Target waypoint")
-	language.Add("tool.waypoint_editor_rotgb.left_2","Set gBalloon Target as next destination (+Crouch: Only for gBlimps)")
-	language.Add("tool.waypoint_editor_rotgb.right_2","Cancel")
-	language.Add("tool.waypoint_editor_rotgb.left_3","Cancel")
-	language.Add("tool.waypoint_editor_rotgb.right_3","Remove connection towards gBalloon Target")
-	language.Add("tool.waypoint_editor_rotgb.reload_3","Remove ALL outbound connections")
-end
-
 TOOL.BuildCPanel = function(form)
-	form:Help("#tool.waypoint_editor_rotgb.desc")
-	form:CheckBox("Teleport Instantly","waypoint_editor_rotgb_teleport")
-	form:NumSlider("Weight","waypoint_editor_rotgb_weight",0,100,0)
-	form:Help("gBalloon Targets with higher weights are targeted first if the gBalloons do not have a target.")
-	form:Help("If weighted targets are linked up, gBalloons are divided among the targets based on their weights.")
-	form:Help("If all linked targets have a weight of 0, gBalloons will randomly pick one of the targets.")
-	form:CheckBox("Always Show Paths","waypoint_editor_rotgb_indicator_always")
-	local choicelist = form:ComboBox("Path Sprite","waypoint_editor_rotgb_indicator_effect")
+	form:Help("#tool.rotgb_waypoint_editor.desc")
+	form:CheckBox("#rotgb.convar.rotgb_waypoint_editor_teleport.name","rotgb_waypoint_editor_teleport")
+	form:NumSlider("#rotgb.convar.rotgb_waypoint_editor_weight.name","rotgb_waypoint_editor_weight",0,100,0)
+	form:Help(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_weight.description"))
+	form:CheckBox("#rotgb.convar.rotgb_waypoint_editor_indicator_always.name","rotgb_waypoint_editor_indicator_always")
+	local choicelist = form:ComboBox("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.name","rotgb_waypoint_editor_indicator_effect")
 	choicelist:SetSortItems(false)
-	choicelist:AddChoice("Glow","sprites/glow04_noz")
-	choicelist:AddChoice("Glow 2","sprites/light_ignorez")
-	choicelist:AddChoice("PhysGun Glow","sprites/physg_glow1")
-	choicelist:AddChoice("PhysGun Glow 2","sprites/physg_glow2")
-	choicelist:AddChoice("Comic Balls","sprites/sent_ball")
-	choicelist:AddChoice("Rings","effects/select_ring")
-	choicelist:AddChoice("Crosses","effects/select_dot")
-	choicelist:AddChoice("Circled Crosses","gui/close_32")
-	choicelist:AddChoice("Circled Crosses 2","icon16/circlecross.png")
-	choicelist:AddChoice("Cogs","gui/progress_cog.png")
-	form:NumSlider("Sprite Scale","waypoint_editor_rotgb_indicator_scale",0,10)
-	form:NumSlider("Sprite Speed","waypoint_editor_rotgb_indicator_speed",0.1,10)
-	form:CheckBox("Target-to-Target Sprite Bounce","waypoint_editor_rotgb_indicator_bounce")
-	choicelist = form:ComboBox("Path Colour","waypoint_editor_rotgb_indicator_color")
-	choicelist:AddChoice("Rainbow",0)
-	choicelist:AddChoice("Rainbow (Fade In Out)",1)
-	choicelist:AddChoice("Rainbow (Fade Middle)",2)
-	choicelist:AddChoice("Solid",3)
-	choicelist:AddChoice("Solid (Fade In Out)",4)
-	choicelist:AddChoice("Solid (Fade Middle)",5)
-	choicelist:AddChoice("Rainbow, Solid for Blimps",6)
-	choicelist:AddChoice("Rainbow, Solid for Blimps (Fade In Out)",7)
-	choicelist:AddChoice("Rainbow, Solid for Blimps (Fade Middle)",8)
-	choicelist:AddChoice("Solid, Rainbow for Blimps",9)
-	choicelist:AddChoice("Solid, Rainbow for Blimps (Fade In Out)",10)
-	choicelist:AddChoice("Solid, Rainbow for Blimps (Fade Middle)",11)
+	choicelist:AddChoice("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.sprites.glow04_noz","sprites/glow04_noz")
+	choicelist:AddChoice("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.sprites.light_ignorez","sprites/light_ignorez")
+	choicelist:AddChoice("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.sprites.physg_glow1","sprites/physg_glow1")
+	choicelist:AddChoice("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.sprites.physg_glow2","sprites/physg_glow2")
+	choicelist:AddChoice("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.sprites.sent_ball","sprites/sent_ball")
+	choicelist:AddChoice("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.effects.select_ring","effects/select_ring")
+	choicelist:AddChoice("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.effects.select_dot","effects/select_dot")
+	choicelist:AddChoice("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.gui.close_32","gui/close_32")
+	choicelist:AddChoice("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.icon16.circlecross.png","icon16/circlecross.png")
+	choicelist:AddChoice("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.gui.progress_cog.png","gui/progress_cog.png")
+	form:NumSlider("#rotgb.convar.rotgb_waypoint_editor_indicator_scale.name","rotgb_waypoint_editor_indicator_scale",0,10)
+	form:NumSlider("#rotgb.convar.rotgb_waypoint_editor_indicator_speed.name","rotgb_waypoint_editor_indicator_speed",0.1,10)
+	form:CheckBox("#rotgb.convar.rotgb_waypoint_editor_indicator_bounce.name","rotgb_waypoint_editor_indicator_bounce")
+	choicelist = form:ComboBox("#rotgb.convar.rotgb_waypoint_editor_indicator_color.name","rotgb_waypoint_editor_indicator_color")
+	for i=0,11 do
+		choicelist:AddChoice(string.format("rotgb.convar.rotgb_waypoint_editor_indicator_color.%i", i), i)
+	end
 	local mixer = vgui.Create("DColorMixer")
-	mixer:SetLabel("Solid Colour")
-	mixer:SetConVarR("waypoint_editor_rotgb_indicator_r")
-	mixer:SetConVarG("waypoint_editor_rotgb_indicator_g")
-	mixer:SetConVarB("waypoint_editor_rotgb_indicator_b")
-	mixer:SetConVarA("waypoint_editor_rotgb_indicator_a")
+	mixer:SetLabel("#rotgb.convar.rotgb_waypoint_editor_indicator_color.solid_selection")
+	mixer:SetConVarR("rotgb_waypoint_editor_indicator_r")
+	mixer:SetConVarG("rotgb_waypoint_editor_indicator_g")
+	mixer:SetConVarB("rotgb_waypoint_editor_indicator_b")
+	mixer:SetConVarA("rotgb_waypoint_editor_indicator_a")
 	form:AddItem(mixer)
 	mixer = vgui.Create("DColorMixer")
-	mixer:SetLabel("Solid Colour for Blimps")
-	mixer:SetConVarR("waypoint_editor_rotgb_indicator_boss_r")
-	mixer:SetConVarG("waypoint_editor_rotgb_indicator_boss_g")
-	mixer:SetConVarB("waypoint_editor_rotgb_indicator_boss_b")
-	mixer:SetConVarA("waypoint_editor_rotgb_indicator_boss_a")
+	mixer:SetLabel("#rotgb.convar.rotgb_waypoint_editor_indicator_color.solid_gblimp_selection")
+	mixer:SetConVarR("rotgb_waypoint_editor_indicator_boss_r")
+	mixer:SetConVarG("rotgb_waypoint_editor_indicator_boss_g")
+	mixer:SetConVarB("rotgb_waypoint_editor_indicator_boss_b")
+	mixer:SetConVarA("rotgb_waypoint_editor_indicator_boss_a")
 	form:AddItem(mixer)
 end
 
@@ -121,7 +97,7 @@ TOOL.GenerateNextTargetFunction = function(self,ent,func,blimp)
 	end
 	if blimp=="both" then
 		for i=1,16 do
-			local ret = func(ent["GetNextTarget"..i](ent),i,true)
+			local ret = func(ent[string.format("GetNextTarget%i", i)](ent),i,true)
 			if ret then return true end
 		end
 	end
@@ -166,9 +142,9 @@ TOOL.LeftClick = function(self,trace)
 					end
 				end,true) then
 					if placepos == 17 then
-						self:GetOwner():PrintMessage(HUD_PRINTTALK, "Cannot exceed 16 gBlimp waypoints!")
+						ROTGB_CauseNotification("#tool.rotgb_waypoint_editor.max_16_waypoints.gblimp", self:GetOwner())
 					else
-						start["SetNextBlimpTarget"..placepos](start,ent)
+						start[string.format("SetNextBlimpTarget%i", placepos)](start,ent)
 						ent:SetTeleport(tobool(self:GetClientInfo("teleport")))
 						self:ClearObjects()
 						self:SetOperation(1)
@@ -184,9 +160,9 @@ TOOL.LeftClick = function(self,trace)
 					end
 				end) then
 					if placepos == 17 then
-						self:GetOwner():PrintMessage(HUD_PRINTTALK, "Cannot exceed 16 non-gBlimp waypoints!")
+						ROTGB_CauseNotification("#tool.rotgb_waypoint_editor.max_16_waypoints", self:GetOwner())
 					else
-						start["SetNextTarget"..placepos](start,ent)
+						start[string.format("SetNextTarget%i", placepos)](start,ent)
 						ent:SetTeleport(tobool(self:GetClientInfo("teleport")))
 						self:ClearObjects()
 						self:SetOperation(1)
@@ -224,7 +200,7 @@ TOOL.RightClick = function(self,trace)
 		if self:IsValidEndPoint(ent) and self:IsValidStartPoint(start) and ent~=start then
 			return self:GenerateNextTargetFunction(start,function(target,num,nonblimp)
 				if target == ent then
-					start[(nonblimp and "SetNextTarget" or "SetNextBlimpTarget")..num](start,NULL)
+					start[string.format(nonblimp and "SetNextTarget%i" or "SetNextBlimpTarget%i", num)](start,NULL)
 					self:ClearObjects()
 					self:SetOperation(1)
 					return true
@@ -239,8 +215,8 @@ TOOL.Reload = function(self,trace)
 		local start = self:GetEnt(1)
 		if self:IsValidStartPoint(start) then
 			self:GenerateNextTargetFunction(start,function(target,num)
-				start["SetNextTarget"..num](start,NULL)
-				start["SetNextBlimpTarget"..num](start,NULL)
+				start[string.format("SetNextTarget%i", num)](start,NULL)
+				start[string.format("SetNextBlimpTarget%i", num)](start,NULL)
 			end)
 			self:ClearObjects()
 			self:SetOperation(1)
@@ -348,8 +324,8 @@ TOOL.DrawDedicatedHUD = function(self)
 		end
 	end
 	local ent = LocalPlayer():GetEyeTrace().Entity
-	if (self:IsValidStartPoint(ent) and IsValid(LocalPlayer():GetActiveWeapon()) and LocalPlayer():GetActiveWeapon().Mode=="waypoint_editor_rotgb") then
-		AddWorldTip(nil,"Left Click to Link",nil,vector_origin,ent)
+	if (self:IsValidStartPoint(ent) and IsValid(LocalPlayer():GetActiveWeapon()) and LocalPlayer():GetActiveWeapon().Mode=="rotgb_waypoint_editor") then
+		AddWorldTip(nil,"#tool.rotgb_waypoint_editor.left.hint",nil,vector_origin,ent)
 	end
 end
 
@@ -360,8 +336,8 @@ TOOL.DrawHUD = function(self)
 end
 
 hook.Add("HUDPaint","RotgB_waypoints",function()
-	local TOOL = LocalPlayer():GetTool("waypoint_editor_rotgb")
-	if (TOOL and GetConVar("waypoint_editor_rotgb_indicator_always"):GetBool()) then
+	local TOOL = LocalPlayer():GetTool("rotgb_waypoint_editor")
+	if (TOOL and GetConVar("rotgb_waypoint_editor_indicator_always"):GetBool()) then
 		TOOL:DrawDedicatedHUD()
 	end
 end)

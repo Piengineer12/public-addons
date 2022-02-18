@@ -37,7 +37,7 @@ local SCOREBOARD_FUNCS = {
 		return string.Comma(math.floor(ply.rtg_gBalloonPops or 0))
 	end,
 	[4] = function(ply)
-		return hook.Run("GetLocalizedString", "rotgb_tg.scoreboard.ping_ms", string.Comma(ply:Ping()))
+		return ROTGB_LocalizeString("rotgb_tg.scoreboard.ping_ms", string.Comma(ply:Ping()))
 	end
 }
 local SKILL_SIZE = 64
@@ -116,7 +116,7 @@ AccessorFunc(GM, "VoterMenu", "VoterMenu")
 AccessorFunc(GM, "SkillWebMenu", "SkillWebMenu")
 
 surface.CreateFont("rotgb_header", {
-	font = "Audiowide",
+	font = "Orbitron Medium",
 	extended = true,
 	size = FONT_HEADER_HEIGHT
 })
@@ -128,7 +128,7 @@ surface.CreateFont("rotgb_body", {
 })
 
 surface.CreateFont("rotgb_level", {
-	font = "Audiowide",
+	font = "Orbitron Medium",
 	extended = true,
 	size = FONT_LEVEL_HEIGHT
 })
@@ -140,7 +140,7 @@ surface.CreateFont("rotgb_experience", {
 })
 
 surface.CreateFont("rotgb_scoreboard_header", {
-	font = "Audiowide",
+	font = "Orbitron Medium",
 	extended = true,
 	size = FONT_SCOREBOARD_HEADER_HEIGHT
 })
@@ -152,7 +152,7 @@ surface.CreateFont("rotgb_scoreboard_body", {
 })
 
 surface.CreateFont("rotgb_level_small", {
-	font = "Audiowide",
+	font = "Orbitron Medium",
 	extended = true,
 	size = FONT_LEVEL_SMALL_HEIGHT
 })
@@ -341,8 +341,7 @@ local function CreateTeamLeftPanel()
 				RunConsoleCommand("changeteam", k)
 			end)
 			function TeamButton:RefreshText()
-				local text = hook.Run(
-					"GetLocalizedString",
+				local text = ROTGB_LocalizeString(
 					"rotgb_tg.buttons.team",
 					language.GetPhrase(v.Name),
 					string.format("%u", team.NumPlayers(k))
@@ -453,8 +452,7 @@ local function CreateScoreboardOtherLevelCell(parent, ply)
 			self.Level = ply:RTG_GetLevel()
 			self.LevelFrac = ply:RTG_GetLevelFraction()
 			self:SetTooltip(
-				hook.Run(
-					"GetLocalizedString",
+				ROTGB_LocalizeString(
 					"rotgb_tg.experience",
 					string.Comma(curXP),
 					string.Comma(neededXP)
@@ -488,8 +486,7 @@ local function CreateScoreboardTransferCell(parent, ply)
 	
 	function TransferButton:Update()
 		self:SetText(
-			hook.Run(
-				"GetLocalizedString",
+			ROTGB_LocalizeString(
 				"rotgb_tg.buttons.transfer_cash",
 				ROTGB_FormatCash(ROTGB_GetTransferAmount(LocalPlayer()))
 			)
@@ -911,8 +908,7 @@ local function CreateDifficultyDescriptionPanel()
 	
 	function Panel:DifficultySelected(difficulty)
 		if difficulty then
-			Header:SetText(hook.Run(
-				"GetLocalizedString",
+			Header:SetText(ROTGB_LocalizeString(
 				"rotgb_tg.difficulty.subcategory",
 				language.GetPhrase("rotgb_tg.difficulty.category."..GAMEMODE.Modes[difficulty].category),
 				language.GetPhrase("rotgb_tg.difficulty."..difficulty..".name")
@@ -1145,13 +1141,11 @@ local function CreateVoteRightPanel(VoteLeftPanel, data)
 			end)
 			-- so now we have a sorted player table, now actually make the buttons
 			for i,v in ipairs(playerTable) do
-				local plyString = v.duped and hook.Run(
-					"GetLocalizedString",
+				local plyString = v.duped and ROTGB_LocalizeString(
 					"rotgb_tg.voting.kick.player_with_join_time",
 					v.name,
 					string.format("%i", CurTime()-v.joinTime)
-				) or hook.Run(
-					"GetLocalizedString",
+				) or ROTGB_LocalizeString(
 					"rotgb_tg.voting.kick.player",
 					v.name
 				)
@@ -1170,8 +1164,7 @@ local function CreateVoteRightPanel(VoteLeftPanel, data)
 		elseif voteType == RTG_VOTE_CHANGEDIFFICULTY then
 			for i,v in ipairs(hook.Run("GetGamemodeDifficultyNodes")) do
 				for i2,v2 in ipairs(v.subnodes) do
-					local difficultyString = hook.Run(
-						"GetLocalizedString",
+					local difficultyString = ROTGB_LocalizeString(
 						"rotgb_tg.difficulty.subcategory",
 						language.GetPhrase("rotgb_tg.difficulty.category."..v.name),
 						language.GetPhrase("rotgb_tg.difficulty."..v2.name..".name")
@@ -1322,7 +1315,7 @@ local function CreateVoterStatementPanel(parent, voteInfo)
 		local targetPlayer = Player(tonumber(voteInfo.target) or -1)
 		if IsValid(targetPlayer) then
 			table.insert(colorFragments, team.GetColor(targetPlayer:Team()))
-			table.insert(replacementFragments, (hook.Run("GetLocalizedString", "rotgb_tg.voting.initiated.kick", targetPlayer:Nick())))
+			table.insert(replacementFragments, (ROTGB_LocalizeString("rotgb_tg.voting.initiated.kick", targetPlayer:Nick())))
 		else
 			table.insert(colorFragments, color_white)
 			table.insert(replacementFragments, language.GetPhrase("rotgb_tg.voting.initiated.kick.missing_player"))
@@ -1332,11 +1325,9 @@ local function CreateVoterStatementPanel(parent, voteInfo)
 		local targetMode = GAMEMODE.Modes[targetDifficulty] or {}
 		local category = targetMode.category
 		table.insert(colorFragments, category and CATEGORY_COLORS[GAMEMODE.ModeCategories[category]] or color_white)
-		table.insert(replacementFragments, (hook.Run(
-			"GetLocalizedString",
+		table.insert(replacementFragments, (ROTGB_LocalizeString(
 			"rotgb_tg.voting.initiated.difficulty",
-			hook.Run(
-				"GetLocalizedString",
+			ROTGB_LocalizeString(
 				"rotgb_tg.difficulty.subcategory",
 				language.GetPhrase(category and "rotgb_tg.difficulty.category."..category or "rotgb_tg.difficulty.subcategory.invalid.1"),
 				language.GetPhrase(category and "rotgb_tg.difficulty."..targetDifficulty..".name" or "rotgb_tg.difficulty.subcategory.invalid.2")
@@ -1356,7 +1347,7 @@ local function CreateVoterStatementPanel(parent, voteInfo)
 		end
 	elseif voteType == RTG_VOTE_MAP then
 		table.insert(colorFragments, color_green)
-		table.insert(replacementFragments, (hook.Run("GetLocalizedString", "rotgb_tg.voting.initiated.change_map", voteInfo.target)))
+		table.insert(replacementFragments, (ROTGB_LocalizeString("rotgb_tg.voting.initiated.change_map", voteInfo.target)))
 	end
 	
 	if voteInfo.reason=="" then
@@ -1364,15 +1355,14 @@ local function CreateVoterStatementPanel(parent, voteInfo)
 		table.insert(replacementFragments, language.GetPhrase("rotgb_tg.voting.initiated.no_reason"))
 	else
 		table.insert(colorFragments, color_yellow)
-		table.insert(replacementFragments, (hook.Run("GetLocalizedString", "rotgb_tg.voting.initiated.reason", voteInfo.reason)))
+		table.insert(replacementFragments, (ROTGB_LocalizeString("rotgb_tg.voting.initiated.reason", voteInfo.reason)))
 	end
 	table.insert(colorFragments, color_green)
 	table.insert(replacementFragments, language.GetPhrase("rotgb_tg.voting.initiated.hint.yes"))
 	table.insert(colorFragments, color_red)
 	table.insert(replacementFragments, language.GetPhrase("rotgb_tg.voting.initiated.hint.no"))
 	
-	hook.Run("InsertRichTextWithMulticoloredString", RichText, hook.Run(
-		"GetLocalizedMulticoloredString",
+	hook.Run("InsertRichTextWithMulticoloredString", RichText, ROTGB_LocalizeMulticoloredString(
 		"rotgb_tg.voting.initiated",
 		replacementFragments,
 		color_white,
@@ -1402,8 +1392,7 @@ local function CreateVoterTimerPanel(parent, zPos, voteInfo)
 		local timeLeft = voteInfo.expiry-RealTime()
 		local timeLeftFraction = math.Remap(RealTime(), voteInfo.startTime, voteInfo.expiry, 1, 0)
 		
-		TextPanel:SetText(hook.Run(
-			"GetLocalizedString",
+		TextPanel:SetText(ROTGB_LocalizeString(
 			"rotgb_tg.voting.initiated.time_left",
 			string.format("%.1f", math.max(timeLeft, 0))
 		))
@@ -1523,8 +1512,7 @@ local function CreateVoterResultStatementPanel(parent, voteInfo, result)
 			local target = Player(voteInfo.target)
 			local userName = IsValid(target) and target:Nick() or "<already kicked>"
 			local appendColor = IsValid(target) and team.GetColor(target:Team()) or color_gray
-			table.Add(multiColoredText, hook.Run(
-				"GetLocalizedMulticoloredString",
+			table.Add(multiColoredText, ROTGB_LocalizeMulticoloredString(
 				"rotgb_tg.voting.result.kick",
 				{userName},
 				color_white,
@@ -1533,15 +1521,13 @@ local function CreateVoterResultStatementPanel(parent, voteInfo, result)
 		elseif typ == RTG_VOTE_CHANGEDIFFICULTY then
 			local difficulty = voteInfo.target
 			local target = GAMEMODE.Modes[difficulty]
-			local difficultyName = hook.Run(
-				"GetLocalizedString",
+			local difficultyName = ROTGB_LocalizeString(
 				"rotgb_tg.difficulty.subcategory",
 				language.GetPhrase(target and "rotgb_tg.difficulty.category."..target.category or "rotgb_tg.difficulty.subcategory.invalid.1"),
 				language.GetPhrase("rotgb_tg.difficulty."..difficulty..".name" or "rotgb_tg.difficulty.subcategory.invalid.2")
 			)
 			local appendColor = CATEGORY_COLORS[GAMEMODE.ModeCategories[target.category]]
-			table.Add(multiColoredText, hook.Run(
-				"GetLocalizedMulticoloredString",
+			table.Add(multiColoredText, ROTGB_LocalizeMulticoloredString(
 				"rotgb_tg.voting.result.difficulty",
 				{difficultyName},
 				color_white,
@@ -1550,8 +1536,7 @@ local function CreateVoterResultStatementPanel(parent, voteInfo, result)
 		elseif typ == RTG_VOTE_RESTART then
 			table.insert(multiColoredText, language.GetPhrase("rotgb_tg.voting.result.restart"))
 		elseif typ == RTG_VOTE_MAP then
-			table.Add(multiColoredText, hook.Run(
-				"GetLocalizedMulticoloredString",
+			table.Add(multiColoredText, ROTGB_LocalizeMulticoloredString(
 				"rotgb_tg.voting.result.map",
 				{voteInfo.target},
 				color_white,
@@ -1647,16 +1632,14 @@ end
 
 local function CreateTraitDescription(trait, amount)
 	if trait=="skillEffectiveness" then
-		return hook.Run(
-			"GetLocalizedMulticoloredString",
+		return ROTGB_LocalizeMulticoloredString(
 			"rotgb_tg.skills.traits.skillEffectiveness",
 			{language.GetPhrase("rotgb_tg.skills.traits.skillEffectiveness.1"), string.format("%+.2f", amount)},
 			color_white,
 			{color_yellow, color_white}
 		)
 	else
-		return hook.Run(
-			"GetLocalizedMulticoloredString",
+		return ROTGB_LocalizeMulticoloredString(
 			"rotgb_tg.skills.traits."..trait,
 			{string.format("%+.2f", amount)},
 			color_white,
@@ -1839,22 +1822,19 @@ end
 
 local function CreateSkillWebSurface(parent)
 	local SKILL_RIGHT_TEXTS = {
-		hook.Run(
-			"GetLocalizedMulticoloredString",
+		ROTGB_LocalizeMulticoloredString(
 			"rotgb_tg.skills.hint.drag",
 			{"#rotgb_tg.skills.hint.drag.1", "#rotgb_tg.skills.hint.drag.2"},
 			color_white,
 			{color_yellow, color_yellow}
 		),
-		hook.Run(
-			"GetLocalizedMulticoloredString",
+		ROTGB_LocalizeMulticoloredString(
 			"rotgb_tg.skills.hint.keyboard",
 			{"#rotgb_tg.skills.hint.keyboard.1", "#rotgb_tg.skills.hint.keyboard.2"},
 			color_white,
 			{color_yellow, color_yellow}
 		),
-		hook.Run(
-			"GetLocalizedMulticoloredString",
+		ROTGB_LocalizeMulticoloredString(
 			"rotgb_tg.skills.hint.keyboard.reset",
 			{"#rotgb_tg.skills.hint.keyboard.reset.1"},
 			color_white,
@@ -1984,8 +1964,7 @@ local function CreateSkillWebSurface(parent)
 		DisableClipping(false)
 		
 		local skillPoints = ply:RTG_GetSkillPoints()
-		SKILL_LEFT_TEXTS[1] = hook.Run(
-			"GetLocalizedMulticoloredString",
+		SKILL_LEFT_TEXTS[1] = ROTGB_LocalizeMulticoloredString(
 			"rotgb_tg.skills.skill_points",
 			{string.Comma(skillPoints)},
 			color_white,
@@ -2016,29 +1995,30 @@ local function CreateSkillWebSurface(parent)
 			self.rtg_ZoomPos:SetUnpacked(x,y)
 		end
 		if bit.band(self.rtg_KeyFlags, 255) ~= 0 then
+			local rft = RealFrameTime()
 			if bit.band(self.rtg_KeyFlags, 1) ~= 0 then
-				self:DragSkillWeb(0, 15)
+				self:DragSkillWeb(0, 1e3*rft)
 			end
 			if bit.band(self.rtg_KeyFlags, 2) ~= 0 then
-				self:DragSkillWeb(15, 0)
+				self:DragSkillWeb(1e3*rft, 0)
 			end
 			if bit.band(self.rtg_KeyFlags, 4) ~= 0 then
-				self:DragSkillWeb(0, -15)
+				self:DragSkillWeb(0, -1e3*rft)
 			end
 			if bit.band(self.rtg_KeyFlags, 8) ~= 0 then
-				self:DragSkillWeb(-15, 0)
+				self:DragSkillWeb(-1e3*rft, 0)
 			end
 			if bit.band(self.rtg_KeyFlags, 16) ~= 0 then
-				self:ZoomSkillWeb(0, -5)
+				self:ZoomSkillWeb(0, -250*rft)
 			end
 			if bit.band(self.rtg_KeyFlags, 32) ~= 0 then
-				self:ZoomSkillWeb(0, 5)
+				self:ZoomSkillWeb(0, 250*rft)
 			end
 			if bit.band(self.rtg_KeyFlags, 64) ~= 0 then
-				self:ZoomSkillWeb(-5, 0)
+				self:ZoomSkillWeb(-250*rft, 0)
 			end
 			if bit.band(self.rtg_KeyFlags, 128) ~= 0 then
-				self:ZoomSkillWeb(5, 0)
+				self:ZoomSkillWeb(250*rft, 0)
 			end
 		end
 	end

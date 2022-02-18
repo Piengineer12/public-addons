@@ -108,8 +108,7 @@ net.Receive("rotgb_gamemode", function()
 	elseif operation == RTG_OPERATION_TEAM then
 		local suboperation = net.ReadUInt(4)
 		if suboperation == RTG_TEAM_WAIT then
-			chat.AddText(unpack(hook.Run(
-				"GetLocalizedMulticoloredString",
+			chat.AddText(unpack(ROTGB_LocalizeMulticoloredString(
 				"rotgb_tg.teams.too_fast",
 				{string.format("%.2f", net.ReadFloat())},
 				color_white,
@@ -127,16 +126,14 @@ net.Receive("rotgb_gamemode", function()
 			local newTeam = net.ReadInt(32)
 			
 			if oldTeam == TEAM_UNASSIGNED then
-				chat.AddText(unpack(hook.Run(
-					"GetLocalizedMulticoloredString",
+				chat.AddText(unpack(ROTGB_LocalizeMulticoloredString(
 					"rotgb_tg.teams.joined",
 					{ply:Nick(), language.GetPhrase(team.GetName(newTeam))},
 					color_white,
 					{team.GetColor(oldTeam), team.GetColor(newTeam)}
 				)))
 			else
-				chat.AddText(unpack(hook.Run(
-					"GetLocalizedMulticoloredString",
+				chat.AddText(unpack(ROTGB_LocalizeMulticoloredString(
 					"rotgb_tg.teams.joined_from",
 					{ply:Nick(), language.GetPhrase(team.GetName(oldTeam)), language.GetPhrase(team.GetName(newTeam))},
 					color_white,

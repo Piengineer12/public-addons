@@ -32,7 +32,7 @@ function draw.GetMultiColoredTextSize(data, font)
 		if not istable(v) then
 			local dW, dH = surface.GetTextSize(tostring(v))
 			w = w + dW
-			h = h + dH
+			h = math.max(h, dH)
 		end
 	end
 	return w, h

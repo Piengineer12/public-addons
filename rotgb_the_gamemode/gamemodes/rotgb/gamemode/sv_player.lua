@@ -43,8 +43,8 @@ function GM:PlayerSay(ply, message, forTeam)
 	elseif message == "!vote" or message == "!rtg_vote" then
 		ply:ConCommand("rotgb_tg_vote")
 		return ""
-	elseif message == "!bestiary" or message == "!rtg_bestiary" then
-		ply:ConCommand("rotgb_bestiary")
+	elseif message == "!guide" or message == "!rtg_guide" then
+		ply:ConCommand("rotgb_guide_book")
 		return ""
 	end
 	return message

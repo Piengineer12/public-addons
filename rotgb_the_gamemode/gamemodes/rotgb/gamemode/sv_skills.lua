@@ -216,12 +216,16 @@ end
 function GM:gBalloonTakeDamage(bln, dmginfo)
 	if math.random()*100 < hook.Run("GetSkillAmount", "gBalloonCritChance") then
 		dmginfo:ScaleDamage(2)
-		bln:ShowCritEffect()
 	end
 	if hook.Run("GetSkillAmount", "gBalloonFireGeneric") > 0 then
 		local exclude = bit.bor(DMG_BURN,DMG_SLOWBURN,DMG_DIRECT)
 		local newFlags = bit.band(dmginfo:GetDamageType(), bit.bnot(exclude))
 		dmginfo:SetDamageType(newFlags)
+	end
+	local isFatal = math.ceil(dmginfo:GetDamage()/10*ROTGB_GetConVarValue("rotgb_damage_multiplier"))>=bln:Health()
+	if isFatal and not bln:GetBalloonProperty("BalloonBoss") and bln:DamageTypeCanDamage(dmginfo:GetDamageType()) and math.random()*100 < hook.Run("GetSkillAmount", "gBalloonChildrenSuppressChance") then
+		dmginfo:SetDamage(bln:GetRgBE() * 1000)
+		dmginfo:SetDamageType(DMG_GENERIC)
 	end
 end
 function GM:GetgBalloonRegenDelay(bln)
