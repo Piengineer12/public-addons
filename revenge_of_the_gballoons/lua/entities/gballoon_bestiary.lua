@@ -22,6 +22,12 @@ if CLIENT then
 		net.Start("RotgB_Bestiary", true)
 		net.SendToServer()
 	end)
+	
+	surface.CreateFont("RotgBGuideBook", {
+		font = "Trebuchet MS",
+		extended = true,
+		size = 24
+	})
 end
 
 function ENT:SpawnFunction(ply,trace,classname)
@@ -183,8 +189,9 @@ local function AddBalloon(ColumnSheet,class)
 	if cvals.BalloonGlass then
 		Label:AppendText("\n")
 		local text = ROTGB_LocalizeString("rotgb.guide.gballoon.extra_properties.glass")
-		for i=1,#text do
-			local hue = math.Remap(i,1,#text,0,360)
+		local size = utf8.len(text) or #text
+		for i=1,size do
+			local hue = math.Remap(i,1,size,0,360)
 			local color = HSVToColor(hue,0.5,1)
 			Label:InsertColorChange(color.r, color.g, color.b, color.a)
 			Label:AppendText(text[i])
@@ -194,8 +201,9 @@ local function AddBalloon(ColumnSheet,class)
 	if cvals.BalloonVoid then
 		Label:AppendText("\n")
 		local text = ROTGB_LocalizeString("rotgb.guide.gballoon.extra_properties.void")
-		for i=1,#text do
-			local lum = math.Remap(i,1,#text,1,0.5)
+		local size = utf8.len(text) or #text
+		for i=1,size do
+			local lum = math.Remap(i,1,size,1,0.5)
 			local color = HSVToColor(0,0,lum)
 			Label:InsertColorChange(color.r, color.g, color.b, color.a)
 			Label:AppendText(text[i])
@@ -205,8 +213,9 @@ local function AddBalloon(ColumnSheet,class)
 	if cvals.BalloonSuperRegen then
 		Label:AppendText("\n")
 		local text = ROTGB_LocalizeString("rotgb.guide.gballoon.extra_properties.super_regen", string.format("%.2f", 200*cvals.BalloonSuperRegen))
-		for i=1,#text do
-			local hue = math.Remap(i,1,#text,0,720)%360
+		local size = utf8.len(text) or #text
+		for i=1,size do
+			local hue = math.Remap(i,1,size,0,720)%360
 			local color = HSVToColor(hue,0.5,1)
 			Label:InsertColorChange(color.r, color.g, color.b, color.a)
 			Label:AppendText(text[i])
@@ -218,7 +227,7 @@ local function AddBalloon(ColumnSheet,class)
 	end
 	function Label:PerformLayout()
 		self:SetBGColor(0,0,0,191)
-		self:SetFontInternal("Trebuchet24")
+		self:SetFontInternal("RotgBGuideBook")
 	end
 	ColumnSheet:AddSheet("#rotgb.gballoon."..typ,Label)
 end
@@ -284,7 +293,7 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 		RichText:AppendText("- Piengineer12")
 		function RichText:PerformLayout()
 			self:SetBGColor(0,0,0,191)
-			self:SetFontInternal("Trebuchet24")
+			self:SetFontInternal("RotgBGuideBook")
 		end
 		ColumnSheet:AddSheet("#rotgb.guide.page.introduction",RichText)
 		
@@ -297,7 +306,7 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 		RichText:AppendText(ROTGB_LocalizeString("rotgb.guide.what_this_addon_offers.customer_support"))
 		function RichText:PerformLayout()
 			self:SetBGColor(0,0,0,191)
-			self:SetFontInternal("Trebuchet24")
+			self:SetFontInternal("RotgBGuideBook")
 		end
 		ColumnSheet:AddSheet("#rotgb.guide.page.what_this_addon_offers",RichText)
 		
@@ -342,7 +351,7 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 		local CreditsText = CreditsPanel:Add("DLabel")
 		CreditsText:SetText("#rotgb.guide.contributors")
 		CreditsText:SetTextColor(color_white)
-		CreditsText:SetFont("Trebuchet24")
+		CreditsText:SetFont("RotgBGuideBook")
 		CreditsText:SizeToContentsY()
 		CreditsText:Dock(TOP)
 		
@@ -354,7 +363,7 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 		CreditsText:DockMargin(0,12,0,0)
 		CreditsText:SetText("#rotgb.guide.contributors.unimplemented")
 		CreditsText:SetTextColor(color_white)
-		CreditsText:SetFont("Trebuchet24")
+		CreditsText:SetFont("RotgBGuideBook")
 		CreditsText:SizeToContentsY()
 		CreditsText:Dock(TOP)
 		

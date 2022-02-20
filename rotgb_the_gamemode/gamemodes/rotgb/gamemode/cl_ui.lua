@@ -386,7 +386,7 @@ local function CreateTeamRightPanel()
 			v:Remove()
 		end
 		
-		Header:SetText(team.GetName(teamID))
+		Header:SetText(hook.Run("GetTeamName", teamID))
 		for k,v in pairs(TEAM_DESCRIPTIONS[teamID]) do
 			table.insert(DescriptionPanels, CreateText(Panel, k+1, v))
 		end
@@ -1672,16 +1672,16 @@ local function CreateSkillTooltip(skillTreeSurface)
 		end
 		table.Empty(self.rtg_DescTexts)
 		
-		local traits = table.Copy(istable(skill.trait) and skill.trait or {skill.trait})
-		local amounts = table.Copy(istable(skill.amount) and skill.amount or {skill.amount})
+		local traits = istable(skill.trait) and table.Copy(skill.trait) or {skill.trait}
+		local amounts = istable(skill.amount) and table.Copy(skill.amount) or {skill.amount}
 		local skillEffectivenessMul = 1+hook.Run("GetSkillAmount", "skillEffectiveness")/100
+		local targetHealthEffectivenessMul = 1+hook.Run("GetSkillAmount", "targetHealthEffectiveness")/100
 		for k,v in pairs(amounts) do
-			if istable(v) then
-				for k2,v2 in pairs(v) do
-					v[k2] = v2 * skillEffectivenessMul
-				end
-			elseif traits[k] == "skillEffectiveness" then
+			local trait = traits[k]
+			if trait == "skillEffectiveness" then
 				amounts[k] = v
+			elseif trait == "targetHealth" then
+				amounts[k] = v * skillEffectivenessMul * targetHealthEffectivenessMul
 			else
 				amounts[k] = v * skillEffectivenessMul
 			end

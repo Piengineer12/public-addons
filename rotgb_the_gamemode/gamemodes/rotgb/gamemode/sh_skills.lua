@@ -159,6 +159,10 @@ function GM:CreateSkillAmountsCache(extraTrait)
 			traits[k] = v*(1+(traits.skillEffectiveness or 0)/100)
 		end
 	end
+	if traits.targetHealth then
+		traits.targetHealth = traits.targetHealth*(1+(traits.targetHealthEffectiveness or 0)/100)
+	end
+	
 	hook.Run("SetCachedSkillAmounts", traits)
 end
 
@@ -220,7 +224,7 @@ function GM:gBalloonTargetHealthAdjust(ent, health)
 	ent:SetGoldenHealth(hook.Run("GetSkillAmount", "targetGoldenHealth"))
 	ent:SetPerWaveShieldPercent(hook.Run("GetSkillAmount", "targetShield"))
 	ent:SetOSPs(hook.Run("GetSkillAmount", "targetOSP"))
-	local newHealth = health * (1+hook.Run("GetSkillAmount", "targetHealth")/100*(1+hook.Run("GetSkillAmount", "targetHealthEffectiveness")/100))
+	local newHealth = health * (1+hook.Run("GetSkillAmount", "targetHealth")/100)
 	ent:SetPerWaveShield(newHealth*ent:GetPerWaveShieldPercent()/100)
 	return newHealth
 end

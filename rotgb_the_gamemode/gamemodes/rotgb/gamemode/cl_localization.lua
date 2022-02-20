@@ -66,3 +66,13 @@ function GM:InsertRichTextWithMulticoloredString(RichText, multiColoredString)
 		end
 	end
 end
+
+function GM:GetTeamName(teamID)
+	if teamID == TEAM_BUILDER then
+		return language.GetPhrase("rotgb_tg.teams.builder.name")
+	elseif teamID == TEAM_SPECTATOR then
+		return language.GetPhrase("rotgb_tg.teams.spectator.name")
+	else
+		return language.GetPhrase(team.GetName(teamID))
+	end
+end

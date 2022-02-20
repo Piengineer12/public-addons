@@ -128,14 +128,14 @@ net.Receive("rotgb_gamemode", function()
 			if oldTeam == TEAM_UNASSIGNED then
 				chat.AddText(unpack(ROTGB_LocalizeMulticoloredString(
 					"rotgb_tg.teams.joined",
-					{ply:Nick(), language.GetPhrase(team.GetName(newTeam))},
+					{ply:Nick(), hook.Run("GetTeamName", newTeam)},
 					color_white,
 					{team.GetColor(oldTeam), team.GetColor(newTeam)}
 				)))
 			else
 				chat.AddText(unpack(ROTGB_LocalizeMulticoloredString(
 					"rotgb_tg.teams.joined_from",
-					{ply:Nick(), language.GetPhrase(team.GetName(oldTeam)), language.GetPhrase(team.GetName(newTeam))},
+					{ply:Nick(), hook.Run("GetTeamName", oldTeam), hook.Run("GetTeamName", newTeam)},
 					color_white,
 					{team.GetColor(oldTeam), team.GetColor(oldTeam), team.GetColor(newTeam)}
 				)))
