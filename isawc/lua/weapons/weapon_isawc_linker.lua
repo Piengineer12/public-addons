@@ -50,6 +50,7 @@ SWEP.AccurateCrosshair	= true
 
 local DEFAULT = 0
 local EXPORTER_SELECTED = 1
+local color_yellow = Color(255, 255, 0)
 local color_gray = Color(127, 127, 127)
 
 function SWEP:SetupDataTables()
@@ -258,29 +259,38 @@ local function DrawLinks(exporter, active)
 	if isContainer then
 		if (exporter.GetEnderInvName and exporter:GetEnderInvName()~='') then
 			for k,v in pairs(allEnts) do
-				if (v.Base=="isawc_container_base" and v:GetEnderInvName()==exporter:GetEnderInvName()) then
-					table.insert(containerPosTable, v:WorldSpaceCenter():ToScreen())
+				if v~=exporter and (v.Base=="isawc_container_base" and v:GetEnderInvName()==exporter:GetEnderInvName()) then
+					local posData = v:WorldSpaceCenter():ToScreen()
+					posData.entity = v
+					table.insert(containerPosTable, posData)
 				end
 			end
 		end
 	else
 		for i=1,32 do
-			local dEnt = exporter["GetStorageEntity"..i](exporter)
+			local dEnt = exporter[string.format("GetStorageEntity%u",i)](exporter)
 			if IsValid(dEnt) then
-				table.insert(containerPosTable, dEnt:WorldSpaceCenter():ToScreen())
+				local posData = dEnt:WorldSpaceCenter():ToScreen()
+				posData.entity = dEnt
+				table.insert(containerPosTable, posData)
 			end
 		end
 	end
 	cam.End3D()
 	local firstX, firstY = containerPosTable[1].x, containerPosTable[1].y
+	local textY = firstY
 	if containerPosTable[1].visible then
 		if active then
 			surface.DrawCircle(firstX, firstY, math.abs(math.sin(RealTime()*3))*maxSize, 255, 255, 0)
 		end
 		for k,v in pairs(containerPosTable) do
-			if k~=1 and v.visible then
-				surface.SetDrawColor(255, 255, 0)
-				surface.DrawLine(firstX, firstY, v.x, v.y)
+			if k~=1 then
+				local pX, pY = draw.SimpleTextOutlined(string.format("%s: %s", tostring(v.entity), v.entity:IsPlayer() and v.entity:Nick() or language.GetPhrase(v.entity:GetClass())), "DebugFixed", firstX, textY, color_yellow, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 1, color_black)
+				textY = textY + pY
+				if v.visible then
+					surface.SetDrawColor(255, 255, 0)
+					surface.DrawLine(firstX, firstY, v.x, v.y)
+				end
 			end
 		end
 	end

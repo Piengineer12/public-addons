@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "5.0.1"
-ISAWC._VERSIONDATE = "2022-01-30"
+ISAWC._VERSION = "5.0.2"
+ISAWC._VERSIONDATE = "2022-02-24"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -1743,7 +1743,7 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 	ISAWC:BuildClientVars()
 	Main:SetSize(ISAWC.SW/4,ISAWC.SH/2)
 	Main:Center()
-	Main:SetTitle("Inventory")
+	Main:SetTitle(string.format("Inventory - %s (%s)", LocalPlayer():Nick(), tostring(LocalPlayer())))
 	Main:SetSizable(true)
 	Main:Receiver("ISAWC.ItemMoveOut", ISAWC.DoNothing) -- This is so that items don't accidentally get dropped into the world
 	function Main:Paint(w,h)
@@ -1987,7 +1987,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 	local Main = vgui.Create("DFrame")
 	Main:SetSize(ISAWC.SW/2,ISAWC.SH/2)
 	Main:Center()
-	Main:SetTitle("Inventories")
+	Main:SetTitle(string.format("Inventories - %s (%s), %s (%s)", LocalPlayer():Nick(), tostring(LocalPlayer()), language.GetPhrase(container:GetClass()), tostring(container)))
 	Main:SetSizable(true)
 	Main:MakePopup()
 	Main:SetKeyboardInputEnabled(false)
@@ -4431,6 +4431,10 @@ ISAWC.PropPickup = function(self,ply,ent,container)
 		inv = ply:GetInventory(container)
 	else
 		inv = ply.ISAWC_Inventory
+	end
+	if not inv then
+		inv = ply.ISAWC_Inventory or {}
+		self:Log(string.format("%s grabbed %s without having an inventory!", tostring(ply), tostring(ent)))
 	end
 	local tpos = ent:GetPos()
 	tpos.z = tpos.z+ent:OBBMins().z
