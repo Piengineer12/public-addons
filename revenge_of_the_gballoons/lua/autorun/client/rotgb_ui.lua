@@ -1147,7 +1147,7 @@ function ROTGB_UpgradeMenu(ent)
 
 	if not IsValid(ent) then return end
 	if not ent.SellAmount then
-		ent.SellAmount = ent.Cost and ROTGB_ScaleBuyCost(ent.Cost, ent, {type = ROTGB_TOWER_PURCHASE}) or 0
+		ent.SellAmount = ent.Cost and ROTGB_ScaleBuyCost(ent.Cost, ent, {type = ROTGB_TOWER_PURCHASE, ply = ent:GetTowerOwner()}) or 0
 	end
 	
 	local Main = vgui.Create("DFrame")

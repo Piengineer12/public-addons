@@ -215,10 +215,11 @@ function ENT:ApplyBalloonProperty(key, value)
 	elseif key == "BalloonMaterial" then
 		self:SetMaterial(value)
 	elseif key == "BalloonHealth" then
-		local hp = self:GetBalloonProperty("BalloonHealth")
+		local hp = value
 		*(self.OldBalloonShielded and 2 or 1)
 		*(self:GetBalloonProperty("BalloonBlimp") and ROTGB_GetConVarValue("rotgb_blimp_health_multiplier") or 1)
 		*ROTGB_GetConVarValue("rotgb_health_multiplier")
+		hp = hook.Run("GetgBalloonHealth", self:GetBalloonProperty("BalloonType"), hp) or hp
 		
 		self:SetHealth(hp)
 		self:SetMaxHealth(hp)
@@ -280,6 +281,8 @@ function ENT:ApplyAllBalloonProperties()
 		hp = hp * 2
 		self:SetNWBool("RenderShield", true)
 	end
+	hp = hook.Run("GetgBalloonHealth", self:GetBalloonProperty("BalloonType"), hp) or hp
+	
 	self:SetHealth(hp)
 	self:SetMaxHealth(hp)
 	if self:GetBalloonProperty("BalloonBoss") then
@@ -1497,7 +1500,7 @@ function ENT:GetRotgBStatusEffectDuration(typ)
 end
 
 function ENT:GetRgBE()
-	return self.rotgb_rbetab[self:GetBalloonProperty("BalloonType")]*(self:GetBalloonProperty("BalloonShielded") and 2 or 1)+math.max(self:Health(), 1)-self:GetMaxHealth()
+	return self.rotgb_rbetab[self:GetBalloonProperty("BalloonType")]*self:GetMaxHealth()/self:GetBalloonProperty("BalloonHealth")+math.max(self:Health(), 1)-self:GetMaxHealth()
 end
 
 function ENT:GetRgBEByType(typ)
@@ -1733,6 +1736,7 @@ function ENT:DetermineNextBalloons(blns,dmgbits,damageLeft,instant)
 					Armor=tonumber(keyvals2.BalloonArmor),
 					Properties=v.Properties
 				}
+				crt.Health = hook.Run("GetgBalloonHealth", keyvals2.BalloonType, crt.Health) or crt.Health
 				if ROTGB_HasAllBits(v.Properties, 1) and not v.Blimp then
 					crt.PrevBalloons=table.Copy(v.PrevBalloons or {})
 					table.insert(crt.PrevBalloons,class)

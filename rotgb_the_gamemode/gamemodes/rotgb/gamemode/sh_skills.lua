@@ -71,20 +71,28 @@ function GM:RebuildSkills()
 		else -- table of refs
 			local newLinks = {}
 			for k2,v2 in pairs(v.links) do
-				local skillID = hook.Run("GetSkillNames")[v2]
-				if skillID then
-					newLinks[skillID] = true
-					links = links + 1
+				if v2 == true then
+					newLinks[k2] = true
 				else
-					hook.Run("RTG_Log", "Unknown linked skill \""..tostring(v2).."\" in skill \""..tostring(v.ref).."\"!", RTG_LOGGING_ERROR)
+					local skillID = hook.Run("GetSkillNames")[v2]
+					if skillID then
+						newLinks[skillID] = true
+						links = links + 1
+					else
+						hook.Run("RTG_Log", "Unknown linked skill \""..tostring(v2).."\" in skill \""..tostring(v.ref).."\"!", RTG_LOGGING_ERROR)
+					end
 				end
 			end
 			v.links = newLinks
 		end
 		for k2,v2 in pairs(v.links) do
-			if (skills[k2] and not skills[k2].links[k]) then
-				skills[k2].links[k] = true
-				links = links + 1
+			if skills[k2] then
+				if not skills[k2].links[k] then
+					skills[k2].links[k] = true
+					links = links + 1
+				end
+			else
+				hook.Run("RTG_Log", "Skill link to #"..tostring(k2).." in skill \""..tostring(v.ref).."\" established, but linked skill is missing?!", RTG_LOGGING_ERROR)
 			end
 		end
 	end
@@ -114,12 +122,20 @@ function GM:CompileSkillTable(unprocessedSkill)
 			if not skillTable.ang then
 				skillTable.ang = 0
 			end
-			if not skillTable.pos then
-				skillTable.pos = VectorTable(0,0)
+			if skillTable.pos then
+				skillTable.pos = VectorTable(skillTable.pos[1], -skillTable.pos[2])
 			else
-				skillTable.pos[2] = -skillTable.pos[2]
+				skillTable.pos = VectorTable(0,0)
 			end
-			if not skillTable.links then
+			if skillTable.links then
+				if istable(skillTable.links) then
+					local copiedLinks = {}
+					for k,v in pairs(skillTable.links) do
+						copiedLinks[k] = v
+					end
+					skillTable.links = copiedLinks
+				end
+			else
 				skillTable.links = {}
 			end
 			hook.Run("GetSkills")[skillNum] = skillTable
@@ -161,6 +177,12 @@ function GM:CreateSkillAmountsCache(extraTrait)
 	end
 	if traits.targetHealth then
 		traits.targetHealth = traits.targetHealth*(1+(traits.targetHealthEffectiveness or 0)/100)
+	end
+	if traits.skillExperience then
+		traits.skillExperience = traits.skillExperience*(1+(traits.skillExperienceEffectiveness or 0)/100)
+	end
+	if traits.skillExperiencePerWave then
+		traits.skillExperiencePerWave = traits.skillExperiencePerWave*(1+(traits.skillExperiencePerWaveEffectiveness or 0)/100)
 	end
 	
 	hook.Run("SetCachedSkillAmounts", traits)
@@ -214,6 +236,8 @@ function GM:RotgBScaleBuyCost(num,ent,data)
 			newAmount = newAmount * (1+hook.Run("GetSkillAmount", "microwaveGeneratorCosts")/100)
 		elseif class == "gballoon_tower_16" then
 			newAmount = newAmount * (1+hook.Run("GetSkillAmount", "hoverballFactoryCosts")/100)
+		elseif class == "gballoon_tower_07" and typ == ROTGB_TOWER_PURCHASE and IsValid(data.ply) and hook.Run("GetSkillAmount", "allyPawnFirstFree")>0 then
+			if not data.ply.rotgb_allyPawnFirstFreeDone then return 0 end
 		end
 	end
 	return newAmount
@@ -236,17 +260,25 @@ function GM:RotgBTowerPlaced(tower)
 		maxWave = math.max(maxWave, v:GetWave())
 	end
 	tower.MaxWaveReached = maxWave
+	if tower:GetClass() == "gballoon_tower_07" then
+		tower:GetTowerOwner().rotgb_allyPawnFirstFreeDone = true
+	end
+end
+function GM:GetMaxRotgBTowerCount(tower)
+	if hook.Run("GetSkillAmount", "towerFiveOnly")>0 then return 5 end
+	return ROTGB_GetConVarValue("rotgb_tower_maxcount")
 end
 
 local PLAYER = FindMetaTable("Player")
 
+local maxLevel = 999
 local experienceNeeded = {
 	100, 250, 500, 1000
 }
 local function getExperienceNeeded(currentLevel)
 	currentLevel = math.floor(currentLevel)
 	if currentLevel < 1 then return 0
-	--elseif currentLevel >= 999 then return math.huge
+	elseif currentLevel >= maxLevel then return math.huge
 	elseif experienceNeeded[currentLevel] then return experienceNeeded[currentLevel]
 	else
 		local n = currentLevel-4
@@ -255,7 +287,8 @@ local function getExperienceNeeded(currentLevel)
 end
 local function getLevel(currentExperience)
 	local experienceNeededLength = #experienceNeeded
-	if currentExperience < experienceNeeded[experienceNeededLength] then
+	if currentExperience >= math.huge then return math.huge
+	elseif currentExperience < experienceNeeded[experienceNeededLength] then
 		local level = 1
 		for i,v in ipairs(experienceNeeded) do
 			if v > currentExperience then break end
@@ -263,7 +296,7 @@ local function getLevel(currentExperience)
 		end
 		return level
 	else
-		return math.floor(4.5 + math.sqrt(currentExperience/500 - 1.75))
+		return math.min(math.floor(4.5 + math.sqrt(currentExperience/500 - 1.75)), maxLevel)
 	end
 end
 

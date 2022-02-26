@@ -7,11 +7,11 @@ for i=1,99 do
 		local yPos = math.cos(angle)*distance
 		local skill = {
 			ref = string.format("se%i", i),
-			name = "#rotgb_tg.skills.names.skill_effectiveness",
+			name = "skill_effectiveness",
 			trait = "skillEffectiveness",
 			amount = 1,
 			links = {string.format("se%i", i-1)},
-			pos = VectorTable(xPos,yPos),
+			pos = {xPos,yPos},
 			parent = "physgun"
 		}
 		if i == 1 then
@@ -28,20 +28,20 @@ for i=1,99 do
 end
 table.insert(skillEffectivenessSkills, {
 	ref = "se50",
-	name = "#rotgb_tg.skills.names.skill_effectiveness",
+	name = "skill_effectiveness",
 	trait = "skillEffectiveness",
 	amount = 1,
 	links = {"se25", "mh13"},
-	pos = VectorTable(1,1),
+	pos = {1,1},
 	parent = "mh13"
 })
 table.insert(skillEffectivenessSkills, {
 	ref = "se100",
-	name = "#rotgb_tg.skills.names.skill_effectiveness",
+	name = "skill_effectiveness",
 	trait = "skillEffectiveness",
 	amount = 1,
 	links = {"se75", "hdtgpqa"},
-	pos = VectorTable(1,1),
+	pos = {1,1},
 	parent = "hdtgpqa"
 })
 

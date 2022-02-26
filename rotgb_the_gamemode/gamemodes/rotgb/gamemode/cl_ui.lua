@@ -1658,7 +1658,7 @@ local function CreateSkillTooltip(skillTreeSurface)
 		local tierPalette = SKILL_TOOLTIP_TIERS[self.rtg_SkillTier+1]
 		local maxWidth = 0
 		
-		self.rtg_TitleText:SetText(skill.name)
+		self.rtg_TitleText:SetText("#rotgb_tg.skills.names."..skill.name)
 		self.rtg_TitleText:SetTextColor(tierPalette[2])
 		self.rtg_TitleText:SizeToContentsX()
 		maxWidth = self.rtg_TitleText:GetWide()
@@ -1676,12 +1676,18 @@ local function CreateSkillTooltip(skillTreeSurface)
 		local amounts = istable(skill.amount) and table.Copy(skill.amount) or {skill.amount}
 		local skillEffectivenessMul = 1+hook.Run("GetSkillAmount", "skillEffectiveness")/100
 		local targetHealthEffectivenessMul = 1+hook.Run("GetSkillAmount", "targetHealthEffectiveness")/100
+		local skillExperienceEffectiveness = 1+hook.Run("GetSkillAmount", "skillExperienceEffectiveness")/100
+		local skillExperiencePerWaveEffectiveness = 1+hook.Run("GetSkillAmount", "skillExperiencePerWaveEffectiveness")/100
 		for k,v in pairs(amounts) do
 			local trait = traits[k]
 			if trait == "skillEffectiveness" then
 				amounts[k] = v
 			elseif trait == "targetHealth" then
 				amounts[k] = v * skillEffectivenessMul * targetHealthEffectivenessMul
+			elseif trait == "skillExperience" then
+				amounts[k] = v * skillEffectivenessMul * skillExperienceEffectiveness
+			elseif trait == "skillExperiencePerWave" then
+				amounts[k] = v * skillEffectivenessMul * skillExperiencePerWaveEffectiveness
 			else
 				amounts[k] = v * skillEffectivenessMul
 			end

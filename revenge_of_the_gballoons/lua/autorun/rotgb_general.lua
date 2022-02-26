@@ -6,11 +6,11 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		6.0.1
-Version Date:	2022-02-20
+Version:		6.1.0
+Version Date:	2022-02-26
 ]]
 
-local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","spawning","towers"}
+local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","spawning","towers","music"}
 
 function ROTGB_Log(message,attrib)
 	if ROTGB_GetConVarValue("rotgb_debug"):find(attrib) then

@@ -78,6 +78,7 @@ function ENT:Initialize()
 	end
 	self:ApplyPerks()
 	self:ROTGB_Initialize()
+	self.SellAmount = 0
 	
 	self.LOSOffset = self.LOSOffset or vector_origin
 	self.DetectionRadius = self.DetectionRadius * ROTGB_GetConVarValue("rotgb_tower_range_multiplier")
@@ -139,8 +140,6 @@ function ENT:Initialize()
 			end
 		end
 	end
-	
-	hook.Run("RotgBTowerPlaced", self)
 end
 
 ENT.ROTGB_ApplyPerks = ENT.ROTGB_Initialize
@@ -232,14 +231,9 @@ end
 ENT.ROTGB_Think = ENT.ROTGB_Initialize
 
 hook.Add("gBalloonSpawnerWaveStarted", "ROTGB_TOWER_BASE", function(spawner,cwave)
-	local maxWave = 0
-	for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
-		maxWave = math.max(maxWave, cwave)
-	end
 	for k,v in pairs(ents.GetAll()) do
 		if v.Base=="gballoon_tower_base" then
 			v:SetSpawnerActive(true)
-			v.MaxWaveReached = maxWave
 		end
 	end
 end)
@@ -253,9 +247,9 @@ hook.Add("gBalloonSpawnerWaveEnded", "ROTGB_TOWER_BASE", function(spawner,cwave)
 end)
 
 function ENT:Think()
-	if not self.LocalCost then
-		local amount = ROTGB_ScaleBuyCost(self.Cost or 0, self, {type = ROTGB_TOWER_PURCHASE})
-		if self:GetUpgradeStatus()>0 then
+	if not self.LocalCost and IsValid(self:GetTowerOwner()) then
+		local amount = ROTGB_ScaleBuyCost(self.Cost or 0, self, {type = ROTGB_TOWER_PURCHASE, ply = self:GetTowerOwner()})
+		if self:GetUpgradeStatus()~=0 then
 			for i,v in ipairs(self.UpgradeReference) do
 				local tier = bit.rshift(self:GetUpgradeStatus(),(i-1)*4)%16
 				for j=1,tier do
@@ -270,6 +264,8 @@ function ENT:Think()
 		if CLIENT then
 			self.SellAmount = self.LocalCost
 		end
+		
+		hook.Run("RotgBTowerPlaced", self)
 	end
 	if SERVER then
 		self:ROTGB_Think()
@@ -295,7 +291,6 @@ function ENT:Think()
 					return SafeRemoveEntity(self)
 				end
 			end
-			local maxCount = ROTGB_GetConVarValue("rotgb_tower_maxcount")
 			for entry in string.gmatch(ROTGB_GetConVarValue("rotgb_tower_blacklist"), "%S+") do
 				if self:GetClass() == entry then
 					ROTGB_CauseNotification("#rotgb.tower.no_place.blacklist", towerOwner)
@@ -313,6 +308,7 @@ function ENT:Think()
 					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(towerOwner).." due to being a chess tower.", "towers")
 				end
 			end
+			local maxCount = hook.Run("GetMaxRotgBTowerCount") or ROTGB_GetConVarValue("rotgb_tower_maxcount")
 			if towerCost>ROTGB_GetCash(towerOwner) then
 				if towerOwner:IsPlayer() then
 					net.Start("rotgb_generic")
@@ -373,7 +369,7 @@ function ENT:DoFireFunction()
 		if engine.ActiveGamemode() == "rotgb" then
 			local bonusMultiplier = 1
 			if hook.Run("GetSkillAmount", "towerEarlyFireRate") ~= 0 then
-				local waveFireRateFractionBonus = math.max(math.Remap(self.MaxWaveReached or 0, 1, 41, 1, 0), 0)
+				local waveFireRateFractionBonus = math.max(math.Remap(hook.Run("GetMaxWaveReached") or 0, 1, 41, 1, 0), 0)
 				local mul = 1+hook.Run("GetSkillAmount", "towerEarlyFireRate")/100*waveFireRateFractionBonus
 				--print("A", mul)
 				bonusMultiplier = bonusMultiplier * mul
@@ -572,6 +568,9 @@ function ENT:AddCash(cash, ply)
 	local incomeCash = cash * ROTGB_GetConVarValue("rotgb_tower_income_mul") * ROTGB_GetConVarValue("rotgb_cash_mul")
 	if engine.ActiveGamemode() == "rotgb" then
 		incomeCash = incomeCash * (1+hook.Run("GetSkillAmount", "towerIncome")/100)
+		if hook.Run("GetSkillAmount", "towerHalfIncome") > 0 then
+			incomeCash = incomeCash / 2
+		end
 	end
 	ROTGB_AddCash(incomeCash, ply)
 	self:SetCashGenerated(self:GetCashGenerated()+incomeCash)

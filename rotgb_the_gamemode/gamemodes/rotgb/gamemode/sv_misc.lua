@@ -5,6 +5,7 @@ AccessorFunc(GM, "GameIsOver", "GameIsOver", FORCE_BOOL)
 AccessorFunc(GM, "Defeated", "Defeated", FORCE_BOOL)
 AccessorFunc(GM, "StatRebroadcastRequired", "StatRebroadcastRequired", FORCE_BOOL)
 AccessorFunc(GM, "PreventPlayerPhysgun", "PreventPlayerPhysgun", FORCE_BOOL)
+AccessorFunc(GM, "MaxWaveReached", "MaxWaveReached", FORCE_NUMBER)
 
 function GM:Initialize()
 	hook.Run("SetGameIsOver", false)
@@ -98,6 +99,7 @@ function GM:PostCleanupMapServer()
 	hook.Run("SetGameIsOver", false)
 	hook.Run("SetDefeated", false)
 	hook.Run("UpdateAppliedSkills")
+	hook.Run("SetMaxWaveReached", 0)
 	for k,v in pairs(player.GetAll()) do
 		v:UnSpectate()
 		v:Spawn()
@@ -144,6 +146,10 @@ function GM:GetXPMultiplier()
 	local currentDifficulty = hook.Run("GetDifficulty")
 	if currentDifficulty and self.Modes[currentDifficulty] then
 		multiplier = multiplier * (self.Modes[currentDifficulty].xpmul or 1)
+	end
+	multiplier = multiplier * (1+hook.Run("GetSkillAmount", "skillExperience")/100)
+	if hook.Run("GetMaxWaveReached") then
+		multiplier = multiplier * (1+hook.Run("GetSkillAmount", "skillExperiencePerWave")*hook.Run("GetMaxWaveReached")/100)
 	end
 	return multiplier
 end

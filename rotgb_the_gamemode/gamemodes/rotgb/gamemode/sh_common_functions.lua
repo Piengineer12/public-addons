@@ -367,9 +367,13 @@ local VECTORTABLE_META = {
 }
 
 -- Creates a new VectorTable, number of elements is equal to the number of arguments
+-- The first argument may be a table, which will be unpacked to fill in the rest of the arguments
 -- VectorTable <- number x = nil, number y = nil, ...
 function VectorTable(...)
 	local vectorTable = {...}
+	if istable(vectorTable[1]) then
+		vectorTable = vectorTable[1]
+	end
 	setmetatable(vectorTable, VECTORTABLE_META)
 	return vectorTable
 end

@@ -96,7 +96,7 @@ ENT.UpgradeReference = {
 }
 ENT.UpgradeLimits = {7,2}
 
-function ENT:ROTGB_ApplyPerks()
+--[[function ENT:ROTGB_ApplyPerks()
 	--self.FireRate = self.FireRate * (1+hook.Run("GetSkillAmount", "allyPawnFireRate")/100)
 	--self.DetectionRadius = self.DetectionRadius * (1+hook.Run("GetSkillAmount", "allyPawnRange")/100)
 	--self.rotgb_Targets = self.rotgb_Targets + (1+hook.Run("GetSkillAmount", "allyPawnTargets")/100)
@@ -109,7 +109,7 @@ function ENT:ROTGB_Initialize()
 	if engine.ActiveGamemode() == "rotgb" then
 		RTG_FirstAllyPawnFreeDone = true
 	end
-end
+end]]
 
 local function SnipeEntity()
 	while true do

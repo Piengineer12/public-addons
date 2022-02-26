@@ -2413,6 +2413,7 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Float", 1, "SpeedMul", {KeyName="spawn_rate_mul", Edit={title="#rotgb.gballoon_spawner.properties.spawn_rate_mul", type="Float", min=0.1, max=10, order=4}})
 	self:NetworkVar("Float", 2, "NextWaveTime")
 	self:NetworkVar("String", 0, "WaveFile", {KeyName="wave_preset", Edit={title="#rotgb.gballoon_spawner.properties.wave_preset", type="Generic", order=11}})
+	self:NetworkVar("String", 1, "MusicString", {KeyName="music_string", Edit={title="#rotgb.gballoon_spawner.properties.music_string", type="Generic", order=13}})
 	self:NetworkVar("Entity", 0, "NextTarget1")
 	self:NetworkVar("Entity", 1, "NextTarget2")
 	self:NetworkVar("Entity", 2, "NextTarget3")
@@ -2489,6 +2490,27 @@ function ENT:KeyValue(key,value)
 		self.DontTriggerWaveRelays = value
 	elseif lkey=="no_messages" then
 		self.NoMessages = tobool(value)
+	elseif string.match(lkey, "^music_file_%d+$") then
+		if value ~= "" then
+			local num = (tonumber(string.match(lkey, "^music_file_(%d+)$")) or 0) + 1
+			self.TempMusic = self.TempMusic or {}
+			self.TempMusic[num] = value
+		end
+	elseif string.match(lkey, "^music_wave_%d+$") then
+		if (tonumber(value)) or -1 >= 0 then
+			local num = (tonumber(string.match(lkey, "^music_wave_(%d+)$")) or 0) + 1
+			self.TempMusicWave = self.TempMusicWave or {}
+			self.TempMusicWave[num] = tonumber(value)
+		end
+	elseif string.match(lkey, "^music_text_%d+_%d+$") then
+		if value ~= "" then
+			local index, line = string.match(lkey, "^music_text_(%d+)_(%d+)$")
+			index = (tonumber(index) or 0) + 1
+			line = (tonumber(line) or 0) + 1
+			self.MusicText = self.MusicText or {}
+			self.MusicText[index] = self.MusicText[index] or {}
+			self.MusicText[index][line] = value
+		end
 	elseif lkey=="onwavestart" then
 		self:StoreOutput(key,value)
 	elseif lkey=="onwavefinished" then
@@ -2592,6 +2614,15 @@ function ENT:Initialize()
 			self:SetAutoStart(true)
 		end
 		self.rotgb_ToSpawn = {}
+		if self.TempMusic then
+			local assembledStrings = {}
+			for i,v in ipairs(self.TempMusic) do
+				table.insert(assembledStrings, string.format(
+					"%u,%s", self.TempMusicWave[i] or 0, v
+				))
+			end
+			self:SetMusicString(table.concat(assembledStrings, ";"))
+		end
 		gballoon_pob.Initialize(self)
 	end
 end
@@ -2652,6 +2683,8 @@ function ENT:Use(activator)
 			end
 			self.LoopPrevent = false
 		end
+		if self:TriggerWaveEnded() then return self:Remove() end
+		
 		self:SetNWBool("HasShownUsage",true)
 		if not self:GetWaveTable()[cwave] then
 			self:GenerateNextWave(cwave)
@@ -2663,7 +2696,12 @@ function ENT:Use(activator)
 				trigent.RotgB_HasFired = true
 			end
 		end
-		if self:TriggerWaveEnded() then return self:Remove() end
+		self:CheckForMusicPlay(cwave)
+		if self.OldMusicIndex ~= self.NewMusicIndex and self.MusicText[self.NewMusicIndex] then
+			self.OldMusicIndex = self.NewMusicIndex
+			PrintMessage(HUD_PRINTTALK, table.concat(self.MusicText[self.NewMusicIndex], "\n"))
+		end
+		
 		self:SetNextWaveTime(CurTime()+self:GetWaveDuration(cwave)/self:GetSpeedMul())
 		hook.Run("gBalloonSpawnerWaveStarted",self,cwave)
 		self:TriggerOutput("OnWaveStart",activator,cwave)
@@ -2894,17 +2932,84 @@ function ENT:Think()
 			end
 		end
 	end
-	if CLIENT and self:GetNWString("rotgb_validwave")~=self.CustomWaveName then
-		if ROTGB_CUSTOM_WAVES[self:GetNWString("rotgb_validwave")] then
-			self.CustomWaveName = self:GetNWString("rotgb_validwave")
-		elseif ((ROTGB_CLIENTWAVES[self:GetWaveFile()] or {})[1] or {}).rbe then
-			self.CustomWaveName = self:GetNWString("rotgb_validwave")
-			self.CustomWaveData = ROTGB_CLIENTWAVES[self:GetWaveFile()]
+	if CLIENT then
+		if self:GetNWString("rotgb_validwave")~=self.CustomWaveName then
+			if ROTGB_CUSTOM_WAVES[self:GetNWString("rotgb_validwave")] then
+				self.CustomWaveName = self:GetNWString("rotgb_validwave")
+			elseif ((ROTGB_CLIENTWAVES[self:GetWaveFile()] or {})[1] or {}).rbe then
+				self.CustomWaveName = self:GetNWString("rotgb_validwave")
+				self.CustomWaveData = ROTGB_CLIENTWAVES[self:GetWaveFile()]
+			end
 		end
+		self:MusicThink()
 	end
 	
 	self:NextThink(CurTime())
 	return true
+end
+
+function ENT:CheckForMusicPlay(cwave)
+	if self.OldMusicString ~= self:GetMusicString() then
+		self.OldMusicString = self:GetMusicString()
+		self.MusicTable = {}
+		local i = 1
+		for wave,filename in string.gmatch(self.OldMusicString.."\0", "([^;]+),([^%z;]+)") do
+			table.insert(self.MusicTable, {tonumber(wave) or 0, filename, i})
+			i = i + 1
+		end
+		table.SortByMember(self.MusicTable, 1)
+	end
+	
+	self.NewMusic = nil
+	self.NewMusicIndex = nil
+	for i,v in ipairs(self.MusicTable) do
+		if cwave >= v[1] then
+			self.NewMusic = v[2]
+			self.NewMusicIndex = v[3] break
+		end
+	end
+end
+
+function ENT:MusicThink()
+	local streamPlaying = IsValid(self.MusicStream) and self.MusicStream:GetState()==GMOD_CHANNEL_PLAYING
+	if self.NewMusic ~= self.CurrentMusic or not streamPlaying then
+		if streamPlaying then
+			if self.MusicStream:GetVolume()>0 then
+				self.MusicStream:SetVolume(math.max(self.MusicStream:GetVolume()-RealFrameTime()/2, 0))
+			else
+				self.MusicStream:Stop()
+			end
+		elseif self.NewMusic and not self.MusicStreamLoading then
+			ROTGB_EntityLog(self, string.format("Loading stream for file \"%s\"...", self.NewMusic), "music")
+			local startTime = SysTime()
+			sound.PlayFile("sound/"..self.NewMusic, "", function(stream, err, errStr)
+				if IsValid(self) then
+					if stream then
+						ROTGB_EntityLog(self, string.format("Received stream from BASS library in %.2fms.", (SysTime()-startTime)*1e3), "music")
+						self.MusicStream = stream
+					else
+						ROTGB_EntityLogError(self, string.format("BASS Error! %i - %s", err, errStr), "music")
+						ROTGB_EntityLog(self, string.format("Transaction time: %.2fms", (SysTime()-startTime)*1e3), "music")
+					end
+				else
+					if stream then
+						stream:Stop()
+					end
+					ROTGB_LogError(string.format("Stream %s loaded, but gBalloon Spawner is gone?", tostring(stream)), "music")
+					ROTGB_Log(string.format("Transaction time: %.2fms", (SysTime()-startTime)*1e3), "music")
+				end
+				self.MusicStreamLoading = nil
+			end)
+			self.CurrentMusic = self.NewMusic
+			self.MusicStreamLoading = true
+		end
+	elseif (streamPlaying and self.MusicStream:GetVolume()<=1) then
+		self.MusicStream:SetVolume(math.min(self.MusicStream:GetVolume()+RealFrameTime()/2, 1))
+	end
+	if self.OldMusicWave ~= self:GetWave() then
+		self.OldMusicWave = self:GetWave()
+		self:CheckForMusicPlay(self.OldMusicWave-1)
+	end
 end
 
 function ENT:SpawnByTable(spawnTable)

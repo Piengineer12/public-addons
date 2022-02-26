@@ -100,7 +100,7 @@ end
 
 function SWEP:PrimaryAttack()
 	if not IsFirstTimePredicted() then return end
-	if IsValid(self:GetOwner()) and SERVER then
+	if IsValid(self:GetOwner()) and SERVER and self:GetNextPrimaryFire()<=CurTime() then
 		local ply = self:GetOwner()
 		self:SetNextPrimaryFire(CurTime()+0.2)
 		local trace = self:BuildTraceData(ply)
@@ -737,7 +737,7 @@ function SWEP:CreateRightPanel(Main)
 				TowerPanel.affordable = false
 				TowerPanel.minimumLevel = engine.ActiveGamemode() == "rotgb" and i or 0
 				TowerPanel.levelLocked = false
-				TowerPanel.price = ROTGB_ScaleBuyCost(v.Cost, v, {type = ROTGB_TOWER_PURCHASE})
+				TowerPanel.price = ROTGB_ScaleBuyCost(v.Cost, v, {type = ROTGB_TOWER_PURCHASE, ply = LocalPlayer()})
 				TowerPanel.cashText = ROTGB_FormatCash(TowerPanel.price, true)
 				TowerPanel:SetTooltip(v.PrintName)
 				

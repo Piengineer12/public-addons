@@ -303,7 +303,8 @@ abilityFunction = function(self)
 			local effdata = EffectData()
 			ecp.z = ecp.z + 24
 			effdata:SetOrigin(ecp)
-			util.Effect("rainbow_wave",effdata)
+			effdata:SetFlags(self.UseLOS and 0 or 1)
+			util.Effect("gballoon_tower_08_wave",effdata)
 			util.ScreenShake(ecp,1.25,5,6,5000)
 			local beam = ents.Create("env_beam")
 			beam:SetPos(ecp)
@@ -391,7 +392,7 @@ if CLIENT then
 	local EFFECT = {}
 	function EFFECT:Init(data)
 		local start = data:GetOrigin()
-		sound.Play("ambient/explosions/explode_6.wav", start, 100)
+		sound.Play("ambient/explosions/explode_6.wav", start, 100, 100, bit.band(data:GetFlags(),1)==1 and 0.5 or 1)
 		local emitter = ParticleEmitter(start)
 		local pi2 = math.pi*2
 		for i=1/3,360,1/3 do
@@ -442,5 +443,5 @@ if CLIENT then
 	end
 	function EFFECT:Think() end
 	function EFFECT:Render() end
-	effects.Register(EFFECT,"rainbow_wave")
+	effects.Register(EFFECT,"gballoon_tower_08_wave")
 end

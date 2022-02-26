@@ -35,7 +35,9 @@ function GM:CanProperty(ply, property, ent)
 end
 
 function GM:PostCleanupMap()
-	RTG_FirstAllyPawnFreeDone = nil
+	for k,v in pairs(player.GetAll()) do
+		v.rotgb_allyPawnFirstFreeDone = nil
+	end
 	if SERVER then
 		hook.Run("PostCleanupMapServer")
 	end

@@ -161,6 +161,13 @@ function GM:gBalloonSpawnerPostSpawn(spawner, bln, keyValues)
 	bln:SetBalloonProperty("BalloonArmor", (bln:GetBalloonProperty("BalloonArmor") or 0)+math.ceil(hook.Run("GetSkillAmount", "gBalloonOuterArmor")))
 	hook.Run("SetPreventPlayerPhysgun", true)
 end
+function GM:gBalloonSpawnerWaveStarted(spawner, cwave)
+	local maxWave = cwave
+	for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
+		maxWave = math.max(maxWave, v:GetWave()-1)
+	end
+	hook.Run("SetMaxWaveReached", maxWave)
+end
 
 -- defined in gballoon_target.lua
 function GM:gballoonTargetTakeDamage(target, dmginfo)
@@ -199,6 +206,9 @@ function GM:gBalloonPostInitialize(bln)
 	if bln:GetBalloonProperty("BalloonFast") then	
 		bln:Slowdown("BalloonFast", 2+hook.Run("GetSkillAmount", "gBalloonFastSpeed")/100, 9999)
 	end
+	if hook.Run("GetSkillAmount", "gBalloonDoubleSpeed") > 0 then
+		bln:Slowdown("gBalloonDoubleSpeedSkill", 2, 9999)
+	end
 end
 function GM:gBalloonKeyValuesApply(keyValues)
 	if keyValues.BalloonType == "gballoon_error" and hook.Run("GetSkillAmount", "gBalloonErrorExplosionUnimmune") > 0 then
@@ -230,4 +240,7 @@ function GM:gBalloonTakeDamage(bln, dmginfo)
 end
 function GM:GetgBalloonRegenDelay(bln)
 	return ROTGB_GetConVarValue("rotgb_regen_delay") / (1+hook.Run("GetSkillAmount", "gBalloonRegenRate")/100)
+end
+function GM:GetgBalloonHealth(typ, health)
+	return health * (hook.Run("GetSkillAmount", "gBalloonDoubleHealth") > 0 and 2 or 1)
 end
