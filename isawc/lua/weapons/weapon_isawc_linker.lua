@@ -255,6 +255,7 @@ local function DrawLinks(exporter, active)
 	
 	cam.Start3D()
 	containerPosTable[1] = selfPos:ToScreen()
+	containerPosTable[1].entity = exporter
 	
 	if isContainer then
 		if (exporter.GetEnderInvName and exporter:GetEnderInvName()~='') then
@@ -278,19 +279,24 @@ local function DrawLinks(exporter, active)
 	end
 	cam.End3D()
 	local firstX, firstY = containerPosTable[1].x, containerPosTable[1].y
-	local textY = firstY
 	if containerPosTable[1].visible then
 		if active then
 			surface.DrawCircle(firstX, firstY, math.abs(math.sin(RealTime()*3))*maxSize, 255, 255, 0)
 		end
 		for k,v in pairs(containerPosTable) do
-			if k~=1 then
-				local pX, pY = draw.SimpleTextOutlined(string.format("%s: %s", tostring(v.entity), v.entity:IsPlayer() and v.entity:Nick() or language.GetPhrase(v.entity:GetClass())), "DebugFixed", firstX, textY, color_yellow, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 1, color_black)
-				textY = textY + pY
-				if v.visible then
+			if v.visible then
+				if k~=1 then
 					surface.SetDrawColor(255, 255, 0)
 					surface.DrawLine(firstX, firstY, v.x, v.y)
 				end
+				draw.SimpleTextOutlined(
+					string.format(
+						"%s: %s",
+						tostring(v.entity),
+						v.entity:IsPlayer() and v.entity:Nick() or language.GetPhrase(v.entity:GetClass())
+					),
+					"DebugFixed", v.x, v.y, color_yellow, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 1, color_black
+				)
 			end
 		end
 	end

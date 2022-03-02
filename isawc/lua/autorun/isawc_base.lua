@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "5.0.2"
-ISAWC._VERSIONDATE = "2022-02-24"
+ISAWC._VERSION = "5.0.3"
+ISAWC._VERSIONDATE = "2022-03-02"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -739,6 +739,48 @@ ISAWC:CreateListConCommand("isawc_remaplist", {
 						ISAWC.Remaplist[v] = newMap
 						ISAWC:Log("Added \""..v.."\" into the class remap list.")
 					end
+				end
+			end
+		end
+	end
+})
+
+ISAWC.DescList = ISAWC.DescList or {}
+ISAWC:CreateListConCommand("isawc_desclist", {
+	display = "The item description list is as follows: ",
+	display_table = "DescList",
+	display_function = function(k,v)
+		ISAWC:Log("\t"..string.format("%q=%u",k,v)..",")
+	end,
+	purpose = "Adds or removes entity classes or models from the item description list. Item descriptions will be displayed on the item tooltip. Supports \\n sequences.",
+	help = {
+		"Use \"isawc_desclist <model/class1> <description>\" to update or add a class or model into the list. \z
+		If no description is provided, it will be removed from the list instead.",
+		"* and ? wildcards are supported.",
+		"Use \"isawc_desclist *\" to clear the list."
+	},
+	help_small = "Usage: isawc_desclist <model/class> <description>",
+	exe = function(args)
+		if args[1]=="*" then
+			ISAWC.DescList = {}
+			ISAWC:Log("Removed everything from the item description list.")
+		elseif #args%2~=0 then
+			ISAWC:Log("Usage: isawc_desclist <model/class> <description>")
+		else
+			local class = args[1]
+			local description = table.concat(args, ' ', 2)
+			
+			if class then
+				class = class:lower()
+				if description=="" then
+					ISAWC.DescList[class] = nil
+					ISAWC:Log("Removed \""..class.."\" from the item description list.")
+				elseif ISAWC.DescList[class] then
+					ISAWC.DescList[class] = description
+					ISAWC:Log("Updated \""..class.."\" in the item description list.")
+				else
+					ISAWC.DescList[class] = description
+					ISAWC:Log("Added \""..class.."\" into the item description list.")
 				end
 			end
 		end
@@ -1528,6 +1570,8 @@ if CLIENT then
 	ISAWC.DrawSelectionBox = GWEN.CreateTextureBorder(border, border, 64-border*2, 64-border*2, border_w, border_w, border_w, border_w, matSelect2)
 end
 
+ISAWC.DescReplacements = {["\\"]="\\", ["n"]="\n"}
+
 ISAWC.GetPercentageColor = function(self,percent)
 	return HSVToColor(math.Clamp(math.Remap(percent,0,1,180,0),0,180),1,1)
 end
@@ -1826,8 +1870,15 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 					Item:Droppable("ISAWC.ItemMove")
 					Item:Droppable("ISAWC.ItemMoveOut")
 					Item.MdlInfo = info
+					
 					if info.Class ~= "prop_physics" and info.Class ~= "prop_ragdoll" then
-						Item:SetTooltip(language.GetPhrase(info.Class))
+						if info.Desc == "" then
+							Item:SetTooltip(language.GetPhrase(info.Class))
+						else
+							Item:SetTooltip(language.GetPhrase(info.Class).."\n"..string.gsub(info.Desc, "\\(.)", ISAWC.DescReplacements))
+						end
+					elseif info.Desc ~= "" then
+						Item:SetTooltip(info.Model.."\n"..string.gsub(info.Desc, "\\(.)", ISAWC.DescReplacements))
 					end
 					function Item:PaintOver(w,h)
 						local hasClip1 = false
@@ -2197,8 +2248,15 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 					Item:Droppable("ISAWC.ItemMoveContainer")
 					Item:Droppable("ISAWC.ItemMoveOut")
 					Item.MdlInfo = info
+					
 					if info.Class ~= "prop_physics" and info.Class ~= "prop_ragdoll" then
-						Item:SetTooltip(language.GetPhrase(info.Class))
+						if info.Desc == "" then
+							Item:SetTooltip(language.GetPhrase(info.Class))
+						else
+							Item:SetTooltip(language.GetPhrase(info.Class).."\n"..string.gsub(info.Desc, "\\(.)", ISAWC.DescReplacements))
+						end
+					elseif info.Desc ~= "" then
+						Item:SetTooltip(info.Model.."\n"..string.gsub(info.Desc, "\\(.)", ISAWC.DescReplacements))
 					end
 					function Item:PaintOver(w,h)
 						local hasClip1 = false
@@ -2389,8 +2447,15 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 					Item:Droppable("ISAWC.ItemMoveContainer2")
 					Item:Droppable("ISAWC.ItemMoveOut")
 					Item.MdlInfo = info
+					
 					if info.Class ~= "prop_physics" and info.Class ~= "prop_ragdoll" then
-						Item:SetTooltip(language.GetPhrase(info.Class))
+						if info.Desc == "" then
+							Item:SetTooltip(language.GetPhrase(info.Class))
+						else
+							Item:SetTooltip(language.GetPhrase(info.Class).."\n"..string.gsub(info.Desc, "\\(.)", ISAWC.DescReplacements))
+						end
+					elseif info.Desc ~= "" then
+						Item:SetTooltip(info.Model.."\n"..string.gsub(info.Desc, "\\(.)", ISAWC.DescReplacements))
 					end
 					function Item:PaintOver(w,h)
 						local hasClip1 = false
@@ -2613,6 +2678,7 @@ ISAWC.WriteModelFromDupeTable = function(self,dupe)
 	net.WriteString(ent.EntityMods and ent.EntityMods.WireName and ent.EntityMods.WireName.name~="" and ent.EntityMods.WireName.name
 	or ent.Name~="" and ent.Name or ent.name~="" and ent.name or ent.PrintName~="" and ent.PrintName~="Scripted Weapon" and ent.PrintName
 	or ent.Class or "worldspawn")
+	net.WriteString(self:StringMatchParams(ent.Class, self.DescList) or "")
 	net.WriteUInt(ent.Skin or 0, 16)
 	net.WriteString(bodyGroups)
 	net.WriteInt(ent.SavedClip1 or -1, 32)
@@ -3901,7 +3967,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					self.reliantwindow:ReceiveInventory(util.JSONToTable(net.ReadData(bytes)))]]
 					local data = {}
 					for i=1,net.ReadUInt(16) do
-						data[i] = {Model=net.ReadString(), Class=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
+						data[i] = {Model=net.ReadString(), Class=net.ReadString(), Desc=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
 						Clip1=net.ReadInt(32), Clip2=net.ReadInt(32), MaxClip1=net.ReadInt(32), MaxClip2=net.ReadInt(32)}
 					end
 					self.reliantwindow:ReceiveInventory(data)
@@ -3943,11 +4009,11 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					local data2 = util.JSONToTable(net.ReadData(bytes2))]]
 					local nt1, nt2 = {}, {}
 					for i=1,net.ReadUInt(16) do
-						nt1[i] = {Model=net.ReadString(), Class=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
+						nt1[i] = {Model=net.ReadString(), Class=net.ReadString(), Desc=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
 						Clip1=net.ReadInt(32), Clip2=net.ReadInt(32), MaxClip1=net.ReadInt(32), MaxClip2=net.ReadInt(32)}
 					end
 					for i=1,net.ReadUInt(16) do
-						nt2[i] = {Model=net.ReadString(), Class=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
+						nt2[i] = {Model=net.ReadString(), Class=net.ReadString(), Desc=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
 						Clip1=net.ReadInt(32), Clip2=net.ReadInt(32), MaxClip1=net.ReadInt(32), MaxClip2=net.ReadInt(32)}
 					end
 					self.reliantwindow:ReceiveInventory(nt1,nt2)

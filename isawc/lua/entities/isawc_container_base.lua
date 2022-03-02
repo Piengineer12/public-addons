@@ -1,5 +1,4 @@
-ENT.Base = "base_anim"
-ENT.Type = "anim"
+local base_anim = baseclass.Get("base_anim")
 ENT.PrintName = "Base Container"
 ENT.Category = "ISAWC"
 ENT.Author = "Piengineer"
@@ -194,26 +193,25 @@ function ENT:StartTouch(ent) -- no longer works?
 	end
 end
 
-function ENT:PhysicsCollide(data)
+function ENT:PhysicsCollide(data, ...)
 	local ent = data.HitEntity
 	if ISAWC.ConDragAndDropOntoContainer:GetInt()==3 then
 		self:PickUpTouchedProp(ent)
 	end
+	return base_anim.PhysicsCollide(self, data, ...)
 end
 
 function ENT:PickUpTouchedProp(ent)
-	if not self.ISAWC_Disabled then
-		if ISAWC:CanProperty(self,ent) then
-			local pickupPlayer = (
-				IsValid(ent:GetPhysicsAttacker(5)) and ent:GetPhysicsAttacker(5)
-				or IsValid(ent:GetOwner()) and ent:GetOwner()
-				or IsValid(ent:GetCreator()) and ent:GetCreator()
-				or player.GetByAccountID(self:GetOwnerAccountID())
-			)
-			ISAWC:PropPickup(self,ent,pickupPlayer)
-			ISAWC:UpdateContainerInventories(self)
-			ISAWC:SaveContainerInventory(self)
-		end
+	if (not self.ISAWC_Disabled and ISAWC:CanProperty(self,ent)) then
+		local pickupPlayer = (
+			IsValid(ent:GetPhysicsAttacker(5)) and ent:GetPhysicsAttacker(5)
+			or IsValid(ent:GetOwner()) and ent:GetOwner()
+			or IsValid(ent:GetCreator()) and ent:GetCreator()
+			or player.GetByAccountID(self:GetOwnerAccountID())
+		)
+		ISAWC:PropPickup(self,ent,pickupPlayer)
+		ISAWC:UpdateContainerInventories(self)
+		ISAWC:SaveContainerInventory(self)
 	end
 end
 
