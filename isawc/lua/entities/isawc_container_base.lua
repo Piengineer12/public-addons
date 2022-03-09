@@ -1,7 +1,7 @@
 local base_anim = baseclass.Get("base_anim")
 ENT.PrintName = "Base Container"
 ENT.Category = "ISAWC"
-ENT.Author = "Piengineer"
+ENT.Author = "Piengineer12"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Base container for the Inventory System."
 ENT.Instructions = "Link this container to something."

@@ -3,7 +3,7 @@ AddCSLuaFile()
 --SWEP.Base = "weapon_base"
 SWEP.PrintName = "Container Maker"
 SWEP.Category = "ISAWC"
-SWEP.Author = "Piengineer"
+SWEP.Author = "Piengineer12"
 SWEP.Contact = "http://steamcommunity.com/id/Piengineer12/"
 SWEP.Purpose = "Convert a Physics Prop into an ISAWC container!"
 SWEP.Instructions = "Primary Fire transforms a prop into a container. Secondary Fire does the opposite. Reload to view options."

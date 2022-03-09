@@ -6,7 +6,7 @@ SWEP.Spawnable			= true
 SWEP.PrintName			= "ISAWC MultiConnector"
 --	SWEP.Base				= weapon_base
 --	SWEP.m_WeaponDeploySpeed= 1
-SWEP.Author				= "Piengineer"
+SWEP.Author				= "Piengineer12"
 SWEP.Contact			= "http://steamcommunity.com/id/Piengineer12/"
 SWEP.Purpose			= "Connects a single Inventory Exporter or container to multiple containers."
 SWEP.Instructions		= "Follow the on-screen instructions."
@@ -245,7 +245,6 @@ local allEnts = {}
 local function DrawLinks(exporter, active)
 	local isContainer = exporter.Base == "isawc_container_base"
 	local selfPos = exporter:WorldSpaceCenter()
-	local maxSize = 10000/selfPos:Distance(EyePos())
 	local containerPosTable = {}
 	
 	if nextRefresh < RealTime() then
@@ -281,6 +280,7 @@ local function DrawLinks(exporter, active)
 	local firstX, firstY = containerPosTable[1].x, containerPosTable[1].y
 	if containerPosTable[1].visible then
 		if active then
+			local maxSize = 10000/selfPos:Distance(EyePos())
 			surface.DrawCircle(firstX, firstY, math.abs(math.sin(RealTime()*3))*maxSize, 255, 255, 0)
 		end
 		for k,v in pairs(containerPosTable) do

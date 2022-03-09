@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "5.0.3"
-ISAWC._VERSIONDATE = "2022-03-02"
+ISAWC._VERSION = "5.0.4"
+ISAWC._VERSIONDATE = "2022-03-09"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -77,10 +77,10 @@ ISAWC:Log(string.format("Loading ISAWC by Piengineer12, version %s (%s)", ISAWC.
 
 ISAWC.StringMatchParams = function(self,str,params)
 	for k,v in pairs(params) do
-		local findStr = string.PatternSafe(k)
+		local findStr = string.lower(string.PatternSafe(k))
 		findStr = string.Replace(findStr, "%*", ".+")
 		findStr = string.Replace(findStr, "%?", ".")
-		if string.find(str, "^"..findStr.."$") then return v end
+		if string.find(string.lower(str), "^"..findStr.."$") then return v end
 	end
 	return false
 end
@@ -750,11 +750,12 @@ ISAWC:CreateListConCommand("isawc_desclist", {
 	display = "The item description list is as follows: ",
 	display_table = "DescList",
 	display_function = function(k,v)
-		ISAWC:Log("\t"..string.format("%q=%u",k,v)..",")
+		local value = string.gsub(string.format("%q", v), "\\\n", "\\n")
+		ISAWC:Log("\t"..string.format("%q=%s",k,value)..",")
 	end,
 	purpose = "Adds or removes entity classes or models from the item description list. Item descriptions will be displayed on the item tooltip. Supports \\n sequences.",
 	help = {
-		"Use \"isawc_desclist <model/class1> <description>\" to update or add a class or model into the list. \z
+		"Use \"isawc_desclist <model/class> <description>\" to update or add a class or model into the list. \\n sequences are supported. \z
 		If no description is provided, it will be removed from the list instead.",
 		"* and ? wildcards are supported.",
 		"Use \"isawc_desclist *\" to clear the list."
@@ -768,7 +769,7 @@ ISAWC:CreateListConCommand("isawc_desclist", {
 			ISAWC:Log("Usage: isawc_desclist <model/class> <description>")
 		else
 			local class = args[1]
-			local description = table.concat(args, ' ', 2)
+			local description = string.gsub(table.concat(args, ' ', 2), "\\(.)", ISAWC.DescReplacements)
 			
 			if class then
 				class = class:lower()
@@ -1787,7 +1788,7 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 	ISAWC:BuildClientVars()
 	Main:SetSize(ISAWC.SW/4,ISAWC.SH/2)
 	Main:Center()
-	Main:SetTitle(string.format("Inventory - %s (%s)", LocalPlayer():Nick(), tostring(LocalPlayer())))
+	Main:SetTitle(string.format("Inventory - %s", LocalPlayer():Nick()))
 	Main:SetSizable(true)
 	Main:Receiver("ISAWC.ItemMoveOut", ISAWC.DoNothing) -- This is so that items don't accidentally get dropped into the world
 	function Main:Paint(w,h)
@@ -1875,10 +1876,10 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 						if info.Desc == "" then
 							Item:SetTooltip(language.GetPhrase(info.Class))
 						else
-							Item:SetTooltip(language.GetPhrase(info.Class).."\n"..string.gsub(info.Desc, "\\(.)", ISAWC.DescReplacements))
+							Item:SetTooltip(language.GetPhrase(info.Class).."\n"..info.Desc)
 						end
 					elseif info.Desc ~= "" then
-						Item:SetTooltip(info.Model.."\n"..string.gsub(info.Desc, "\\(.)", ISAWC.DescReplacements))
+						Item:SetTooltip(info.Model.."\n"..info.Desc)
 					end
 					function Item:PaintOver(w,h)
 						local hasClip1 = false
@@ -2038,7 +2039,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 	local Main = vgui.Create("DFrame")
 	Main:SetSize(ISAWC.SW/2,ISAWC.SH/2)
 	Main:Center()
-	Main:SetTitle(string.format("Inventories - %s (%s), %s (%s)", LocalPlayer():Nick(), tostring(LocalPlayer()), language.GetPhrase(container:GetClass()), tostring(container)))
+	Main:SetTitle(string.format("Inventories - %s, %s", LocalPlayer():Nick(), language.GetPhrase(container:GetClass())))
 	Main:SetSizable(true)
 	Main:MakePopup()
 	Main:SetKeyboardInputEnabled(false)
@@ -2253,10 +2254,10 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 						if info.Desc == "" then
 							Item:SetTooltip(language.GetPhrase(info.Class))
 						else
-							Item:SetTooltip(language.GetPhrase(info.Class).."\n"..string.gsub(info.Desc, "\\(.)", ISAWC.DescReplacements))
+							Item:SetTooltip(language.GetPhrase(info.Class).."\n"..info.Desc)
 						end
 					elseif info.Desc ~= "" then
-						Item:SetTooltip(info.Model.."\n"..string.gsub(info.Desc, "\\(.)", ISAWC.DescReplacements))
+						Item:SetTooltip(info.Model.."\n"..info.Desc)
 					end
 					function Item:PaintOver(w,h)
 						local hasClip1 = false
@@ -2452,10 +2453,10 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 						if info.Desc == "" then
 							Item:SetTooltip(language.GetPhrase(info.Class))
 						else
-							Item:SetTooltip(language.GetPhrase(info.Class).."\n"..string.gsub(info.Desc, "\\(.)", ISAWC.DescReplacements))
+							Item:SetTooltip(language.GetPhrase(info.Class).."\n"..info.Desc)
 						end
 					elseif info.Desc ~= "" then
-						Item:SetTooltip(info.Model.."\n"..string.gsub(info.Desc, "\\(.)", ISAWC.DescReplacements))
+						Item:SetTooltip(info.Model.."\n"..info.Desc)
 					end
 					function Item:PaintOver(w,h)
 						local hasClip1 = false
@@ -2678,7 +2679,7 @@ ISAWC.WriteModelFromDupeTable = function(self,dupe)
 	net.WriteString(ent.EntityMods and ent.EntityMods.WireName and ent.EntityMods.WireName.name~="" and ent.EntityMods.WireName.name
 	or ent.Name~="" and ent.Name or ent.name~="" and ent.name or ent.PrintName~="" and ent.PrintName~="Scripted Weapon" and ent.PrintName
 	or ent.Class or "worldspawn")
-	net.WriteString(self:StringMatchParams(ent.Class, self.DescList) or "")
+	net.WriteString(self:StringMatchParams(ent.Class, self.DescList) or self:StringMatchParams(ent.Model or "models/error.mdl", self.DescList) or "")
 	net.WriteUInt(ent.Skin or 0, 16)
 	net.WriteString(bodyGroups)
 	net.WriteInt(ent.SavedClip1 or -1, 32)
@@ -2903,9 +2904,11 @@ ISAWC.SaveData = function(self)
 		data.Volumelist = self.Volumelist or {}
 		data.Countlist = self.Countlist or {}
 		data.Remaplist = self.Remaplist or {}
+		data.DescList = self.DescList or {}
 		data.MassMultiList = self.MassMultiList or {}
 		data.VolumeMultiList = self.VolumeMultiList or {}
 		data.CountMultiList = self.CountMultiList or {}
+		data.Version = self._VERSION
 		
 		data.BWLists = {}
 		for k,v in pairs(self.BWLists) do
@@ -3082,6 +3085,12 @@ ISAWC.DropAll = function(self,container,ply)
 end
 
 ISAWC.PerformCompatibilityLoad = function(self, data)
+	-- version < 5.0.4
+	if not data.Version and data.DescList then
+		for k,v in pairs(data.DescList) do
+			data.DescList[k] = string.gsub(v, "\\n", "\n")
+		end
+	end
 end
 
 ISAWC.PlayerCollisionCallback = function(ply, data)
@@ -3104,6 +3113,7 @@ ISAWC.Initialize = function()
 		ISAWC.Volumelist = data.Volumelist or ISAWC.Volumelist
 		ISAWC.Countlist = data.Countlist or ISAWC.Countlist
 		ISAWC.Remaplist = data.Remaplist or ISAWC.Remaplist
+		ISAWC.DescList = data.DescList or ISAWC.DescList
 		ISAWC.MassMultiList = data.MassMultiList or ISAWC.MassMultiList
 		ISAWC.VolumeMultiList = data.VolumeMultiList or ISAWC.VolumeMultiList
 		ISAWC.CountMultiList = data.CountMultiList or ISAWC.CountMultiList
