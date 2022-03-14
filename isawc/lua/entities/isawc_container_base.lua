@@ -474,6 +474,22 @@ function ENT:SetInventory(inv, ply)
 end
 
 function ENT:GetInventory(ply)
+	if not self.ISAWC_Inventory then
+		self.ISAWC_Inventory = {}
+		ISAWC:Log(string.format(
+			"Warning! Main inventory of container %s appears to still be missing despite container setup!",
+			tostring(self)
+		))
+		ISAWC:Log("The inventory will be reset, expect item loss!")
+	end
+	if not self.ISAWC_PlayerLocalizedInventories then
+		self.ISAWC_PlayerLocalizedInventories = {}
+		ISAWC:Log(string.format(
+			"Warning! Player-Specific inventories of container %s appear to still be missing despite container setup!",
+			tostring(self)
+		))
+		ISAWC:Log("The inventory will be reset, expect item loss!")
+	end
 	if self:GetIsPlayerLocalized() then
 		if ply:IsPlayer() then
 			local steamID = ply:SteamID()

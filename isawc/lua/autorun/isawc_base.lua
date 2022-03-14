@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "5.0.4"
-ISAWC._VERSIONDATE = "2022-03-09"
+ISAWC._VERSION = "5.1.0"
+ISAWC._VERSIONDATE = "2022-03-14"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -391,6 +391,11 @@ ISAWC:CreateBWListPair("DropOnDeath", "dropondeath_", "player death box", {
 	whitelistConVarDesc = "If set, only entity classes that are in the whitelist can be transferred to player death boxes if isawc_dropondeath_enabled is enabled."
 })
 
+ISAWC:CreateBWListPair("AltSave", "use_altsave_", "alternate saving", {
+	blacklistDesc = "Classes in the blacklist will not be saved alternately even if isawc_use_altsave is enabled.",
+	whitelistConVarDesc = "If set, only entity classes that are in the whitelist will be saved alternately if isawc_use_altsave is enabled."
+})
+
 ISAWC.Stacklist = ISAWC.Stacklist or {}
 ISAWC:CreateListConCommand("isawc_stacklist", {
 	display = "The stacking list is as follows: ",
@@ -406,7 +411,7 @@ ISAWC:CreateListConCommand("isawc_stacklist", {
 		"* and ? wildcards are supported.",
 		"Use \"isawc_stacklist *\" to clear the list."
 	},
-	help_small = "Usage: isawc_whitelist <class1> <class2> ...",
+	help_small = "Usage: isawc_stacklist <class1> <class2> ...",
 	exe = function(args)
 		local builttabs = {}
 		local curName = ""
@@ -3316,7 +3321,7 @@ ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 	for k,v in pairs(dupe.Entities) do
 		local ent = Entity(k)
 		if sSpawn then
-			if not (IsValid(ent) and self.StoredInAltSaveProps[ent]) then
+			if not (IsValid(ent) and self.StoredInAltSaveProps[ent] and ISAWC:SatisfiesBWLists(ent:GetClass(), "AltSave")) then
 				altSaveSpawnable = false
 			end
 		elseif canDel then
@@ -3412,7 +3417,7 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 	for k,v in pairs(dupe.Entities) do
 		local ent = Entity(k)
 		if sSpawn then
-			if not (IsValid(ent) and self.StoredInAltSaveProps[ent]) then
+			if not (IsValid(ent) and self.StoredInAltSaveProps[ent] and ISAWC:SatisfiesBWLists(ent:GetClass(), "AltSave")) then
 				altSaveSpawnable = false
 			end
 		elseif canDel then
@@ -3504,7 +3509,7 @@ ISAWC.SpawnDupeWeak = function(self,dupe,spawnpos,spawnangles,ply)
 	local altSaveSpawnable = true
 	for k,v in pairs(dupe.Entities) do
 		local ent = Entity(k)
-		if not (IsValid(ent) and self.StoredInAltSaveProps[ent]) then
+		if not (IsValid(ent) and self.StoredInAltSaveProps[ent] and ISAWC:SatisfiesBWLists(ent:GetClass(), "AltSave")) then
 			altSaveSpawnable = false
 		end
 	end
@@ -4550,7 +4555,7 @@ ISAWC.PropPickup = function(self,ply,ent,container)
 	duplicator.SetLocalAng(angle_zero)
 	dupe.TotalMass, dupe.TotalVolume, dupe.TotalCount = self:CalculateEntitySpace(ent)
 	for k,v in pairs(constraint.GetAllConstrainedEntities(ent)) do
-		if ISAWC.ConAltSave:GetBool() then
+		if ISAWC.ConAltSave:GetBool() and ISAWC:SatisfiesBWLists(v:GetClass(), "AltSave") then
 			v.ISAWC_OldPos,v.ISAWC_OldAngles,v.ISAWC_OldNoDraw,v.ISAWC_OldSolid,v.ISAWC_OldMoveType = v:GetPos()-tpos,v:GetAngles()-ply:GetAngles(),v:GetNoDraw(),v:IsSolid(),v:GetMoveType()
 			v:SetPos(Vector(16000,16000,16000))
 			v:SetNoDraw(true)
@@ -4592,7 +4597,7 @@ ISAWC.PropertyTable = {
 	MenuIcon = "icon16/basket_put.png",
 	Order = 46,
 	Filter = function(self,ent)
-		return ISAWC:CanProperty(LocalPlayer(),ent)
+		return true
 	end,
 	Action = function(self,ent,trace)
 		ISAWC:StartNetMessage("pickup")
