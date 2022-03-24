@@ -18,6 +18,7 @@ ENT.OpenSounds = {}
 ENT.CloseSounds = {}
 
 ENT.ISAWC_Openers = {}
+ENT.ISAWC_LastOpenedTime = {}
 
 AddCSLuaFile()
 
@@ -174,6 +175,8 @@ function ENT:PostEntityPaste(ply,ent,entities)
 		self:PhysicsInit(SOLID_VPHYSICS)
 	end
 	self.ISAWC_PermittedPlayersObject = ISAWC:CreatePermissionsObject(self.ISAWC_PermittedPlayersObject)
+	self.ISAWC_LastUpdateTime = nil
+	self.ISAWC_LastOpenedTime = {}
 	
 	if WireLib then
 		local baseClass = scripted_ents.Get("base_wire_entity")
@@ -248,12 +251,20 @@ function ENT:Use(activator,caller,typ,data)
 			for k,v in pairs(self.ISAWC_Openers) do
 				if not IsValid(k) then self.ISAWC_Openers[k] = nil end
 			end
+			for k,v in pairs(self.ISAWC_LastOpenedTime) do
+				if not IsValid(k) then self.ISAWC_LastOpenedTime[k] = nil end
+			end
 			if not next(self.ISAWC_Openers) then
 				ISAWC:StartNetMessage("open_container")
 				net.WriteEntity(self)
-				if self.ISAWC_Template then -- This is a really bad way to make sure clients know the sounds this container makes... I can't be bothered to make this better though.
-					net.WriteString(table.concat(self.OpenSounds,'|'))
-					net.WriteString(table.concat(self.CloseSounds,'|'))
+				if self.ISAWC_Template then
+					if (self.ISAWC_LastUpdateTime or self:GetCreationTime()) > (self.ISAWC_LastOpenedTime[activator] or 0) then
+						net.WriteBool(true)
+						net.WriteString(table.concat(self.OpenSounds,'|'))
+						net.WriteString(table.concat(self.CloseSounds,'|'))
+					else
+						net.WriteBool(false)
+					end
 				end
 				net.SendPAS(self:GetPos())
 			end

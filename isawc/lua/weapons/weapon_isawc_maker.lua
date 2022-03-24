@@ -109,6 +109,7 @@ function SWEP:PrimaryAttack()
 			ent.OpenSounds = string.Split(self:GetOpenSounds(), '|')
 			ent.CloseSounds = string.Split(self:GetCloseSounds(), '|')
 			ent:InterpretAdditionalAccess(self:GetAdditionalAccess(), ply)
+			ent.ISAWC_LastUpdateTime = CurTime()
 			self:EmitSound("buttons/button17.wav")
 			ply:PrintMessage(HUD_PRINTTALK, "The transformed container has been updated!")
 		else

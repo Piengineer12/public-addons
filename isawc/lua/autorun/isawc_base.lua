@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "5.1.0"
-ISAWC._VERSIONDATE = "2022-03-14"
+ISAWC._VERSION = "5.2.0"
+ISAWC._VERSIONDATE = "2022-03-24"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -26,43 +26,46 @@ local color_black_semiopaque = Color(0,0,0,191)
 local color_black_semitransparent = Color(0,0,0,63)
 
 ISAWC.MESSAGE_TYPES = {
-	close_container		= 1,
-	delete				= 2,
-	delete_full			= 3,
-	delete_full_l		= 4,
-	delete_full_r		= 5,
-	delete_l			= 6,
-	delete_r			= 7,
-	drop_all			= 8,
-	drop_all_l			= 9,
-	drop_all_r			= 10,
-	empty_weapon		= 11,
-	empty_weapon_l		= 12,
-	empty_weapon_r		= 13,
-	exporter			= 14,
-	exporter_disconnect	= 15,
-	inventory			= 16,
-	inventory_l			= 17,
-	inventory_r			= 18,
-	moving_items		= 19,
-	moving_items_l		= 20,
-	moving_items_r		= 21,
-	open_container		= 22,
-	pickup				= 23,
-	pickup_denied		= 24,
-	send_maker_data		= 25,
-	set_public			= 26,
-	spawn				= 27,
-	spawn_l				= 28,
-	spawn_r				= 29,
-	spawn_self			= 30,
-	spawn_self_l		= 31,
-	spawn_self_r		= 32,
-	store_weapon		= 33,
-	store_weapon_l		= 34,
-	store_weapon_r		= 35,
-	transfer_from		= 36,
-	transfer_to			= 37,
+	ammo_item_stamp		= 1,
+	ammo_item_stamp_l	= 2,
+	ammo_item_stamp_r	= 3,
+	close_container		= 4,
+	delete				= 5,
+	delete_full			= 6,
+	delete_full_l		= 7,
+	delete_full_r		= 8,
+	delete_l			= 9,
+	delete_r			= 10,
+	drop_all			= 11,
+	drop_all_l			= 12,
+	drop_all_r			= 13,
+	empty_weapon		= 14,
+	empty_weapon_l		= 15,
+	empty_weapon_r		= 16,
+	exporter			= 17,
+	exporter_disconnect	= 18,
+	inventory			= 19,
+	inventory_l			= 20,
+	inventory_r			= 21,
+	moving_items		= 22,
+	moving_items_l		= 23,
+	moving_items_r		= 24,
+	open_container		= 25,
+	pickup				= 26,
+	pickup_denied		= 27,
+	send_maker_data		= 28,
+	set_public			= 29,
+	spawn				= 30,
+	spawn_l				= 31,
+	spawn_r				= 32,
+	spawn_self			= 33,
+	spawn_self_l		= 34,
+	spawn_self_r		= 35,
+	store_weapon		= 36,
+	store_weapon_l		= 37,
+	store_weapon_r		= 38,
+	transfer_from		= 39,
+	transfer_to			= 40,
 }
 
 ISAWC.DoNothing = function()end
@@ -209,7 +212,7 @@ ISAWC.CreateListConCommand = function(self, name, data)
 				self:Log("Access denied.")
 			else
 				if next(args) then
-					data.exe(args)
+					data.exe(args,ply)
 					self:SaveData()
 				else
 					self:Log(data.display.."{")
@@ -452,7 +455,7 @@ ISAWC:CreateListConCommand("isawc_masslist", {
 	display = "The custom mass list is as follows: ",
 	display_table = "Masslist",
 	display_function = function(k,v)
-		ISAWC:Log("\t"..string.format("%q=%g",k,v)..",")
+		ISAWC:Log(string.format("\t%q=%g,",k,v))
 	end,
 	purpose = "Adds or removes entity classes or models from the mass list. Can be used to change the amount of mass needed to store an entity.",
 	help = {
@@ -496,7 +499,7 @@ ISAWC:CreateListConCommand("isawc_player_usergroupmassmullist", {
 	display_table = "MassMultiList",
 	display_function = function(k,v)
 		if v == 0 then v = math.huge end
-		ISAWC:Log("\t"..string.format("%q=%g",k,v)..",")
+		ISAWC:Log(string.format("\t%q=%g,",k,v))
 	end,
 	purpose = "Adds or removes usergroups from the usergroup mass multiplier list. Can be used to change the maximum amount of mass a certain usergroup is allowed to carry.",
 	help = {
@@ -539,7 +542,7 @@ ISAWC:CreateListConCommand("isawc_volumelist", {
 	display = "The custom volume list is as follows: ",
 	display_table = "Volumelist",
 	display_function = function(k,v)
-		ISAWC:Log("\t"..string.format("%q=%g",k,v)..",")
+		ISAWC:Log(string.format("\t%q=%g,",k,v))
 	end,
 	purpose = "Adds or removes entity classes or models from the volume list. Can be used to change the amount of volume needed to store an entity.",
 	help = {
@@ -583,7 +586,7 @@ ISAWC:CreateListConCommand("isawc_player_usergroupvolumemullist", {
 	display_table = "VolumeMultiList",
 	display_function = function(k,v)
 		if v == 0 then v = math.huge end
-		ISAWC:Log("\t"..string.format("%q=%g",k,v)..",")
+		ISAWC:Log(string.format("\t%q=%g,",k,v))
 	end,
 	purpose = "Adds or removes usergroups from the usergroup volume multiplier list. Can be used to change the maximum amount of volume a certain usergroup is allowed to carry.",
 	help = {
@@ -626,7 +629,7 @@ ISAWC:CreateListConCommand("isawc_countlist", {
 	display = "The custom count list is as follows: ",
 	display_table = "Countlist",
 	display_function = function(k,v)
-		ISAWC:Log("\t"..string.format("%q=%u",k,v)..",")
+		ISAWC:Log(string.format("\t%q=%u,",k,v))
 	end,
 	purpose = "Adds or removes entity classes or models from the custom count list. Can be used to change the amount of slots needed to store an entity.",
 	help = {
@@ -670,7 +673,7 @@ ISAWC:CreateListConCommand("isawc_player_usergroupcountmullist", {
 	display_table = "CountMultiList",
 	display_function = function(k,v)
 		if v == 0 then v = math.huge end
-		ISAWC:Log("\t"..string.format("%q=%g",k,v)..",")
+		ISAWC:Log(string.format("\t%q=%g,",k,v))
 	end,
 	purpose = "Adds or removes usergroups from the usergroup count multiplier list. Can be used to change the maximum amount of items a certain usergroup is allowed to carry.",
 	help = {
@@ -713,7 +716,7 @@ ISAWC:CreateListConCommand("isawc_remaplist", {
 	display = "The class remapping list is as follows: ",
 	display_table = "Remaplist",
 	display_function = function(k,v)
-		ISAWC:Log("\t"..string.format("%q=%q",k,v)..",")
+		ISAWC:Log(string.format("\t%q=%q,",k,v))
 	end,
 	purpose = "Adds or removes entity classes from the class remap list. Can be used to change the class a certain entity becomes when stored.",
 	help = {
@@ -756,7 +759,7 @@ ISAWC:CreateListConCommand("isawc_desclist", {
 	display_table = "DescList",
 	display_function = function(k,v)
 		local value = string.gsub(string.format("%q", v), "\\\n", "\\n")
-		ISAWC:Log("\t"..string.format("%q=%s",k,value)..",")
+		ISAWC:Log(string.format("\t%q=%s,",k,value))
 	end,
 	purpose = "Adds or removes entity classes or models from the item description list. Item descriptions will be displayed on the item tooltip. Supports \\n sequences.",
 	help = {
@@ -770,7 +773,7 @@ ISAWC:CreateListConCommand("isawc_desclist", {
 		if args[1]=="*" then
 			ISAWC.DescList = {}
 			ISAWC:Log("Removed everything from the item description list.")
-		elseif #args%2~=0 then
+		elseif args < 1 then
 			ISAWC:Log("Usage: isawc_desclist <model/class> <description>")
 		else
 			local class = args[1]
@@ -788,6 +791,114 @@ ISAWC:CreateListConCommand("isawc_desclist", {
 					ISAWC.DescList[class] = description
 					ISAWC:Log("Added \""..class.."\" into the item description list.")
 				end
+			end
+		end
+	end
+})
+
+ISAWC.AmmoItemStampList = ISAWC.AmmoItemStampList or {}
+ISAWC.AmmoItemStampListLastUpdate = {}
+-- format: [id] = {ammoID, amount, stamp, display}
+local entryDisplayFormat = {
+	"\t%q={",
+	"\t\t\"Ammo Type\"=%q,",
+	"\t\t\"Ammo Amount\"=%u,",
+	"\t\t\"Stamp Name\"=%q,",
+	"\t\t\"Display Name\"=%q,",
+	"\t},"
+}
+ISAWC:CreateListConCommand("isawc_stamps_asammo", {
+	display = "The ammunition item stamp list is as follows: ",
+	display_table = "AmmoItemStampList",
+	display_function = function(k,v)
+		local arguments = {k, game.GetAmmoName(v[1]), v[2], v[3], v[4]}
+		for i=1,6 do
+			ISAWC:Log(string.format(entryDisplayFormat[i], arguments[i]))
+		end
+	end,
+	purpose = "Adds or removes entries from the ammunition item stamp list. Entries in this list will allow any player to turn ammo into items.",
+	help = {
+		"Use \"isawc_stamps_asammo <id> <ammo type> <ammo amount> <stamp name> [display name]\" to add or update an entry into the list. \z
+		If an argument contains spaces, surround it with double quote marks (\").",
+		"Use \"isawc_stamps_asammo *\" to clear the list.",
+		"The ammo type supports both full names and IDs. If the ammo type is *, the entry will be removed from the list instead.",
+		"You can also insert \"&Np\" or \"&Ns\" as the ammo type, where N is a number, to set it to the ammo type of the weapon on the Nth slot of your inventory \z
+		(e.g. \"&1p\" = primary ammo for first item, \"&2s\" = secondary ammo for second item, etc).",
+		"A display name like \"Buckshot x 24\" will be automatically generated if it is not provided. Might sometimes be ugly.",
+	},
+	help_small = "Usage: isawc_stamps_asammo <id> <ammo type> <ammo amount> <stamp name> [display name]\nIf an argument contains spaces, surround it with double quote marks (\").",
+	exe = function(args, ply)
+		if args[1]=="*" then
+			ISAWC.AmmoItemStampList = {}
+			ISAWC:Log("Removed everything from the ammunition item stamp list.")
+		elseif args[2]=="*" then
+			ISAWC.AmmoItemStampList[args[1]] = nil
+			ISAWC:Log("Removed \""..args[1].."\" from the ammunition item stamp list.")
+		elseif #args < 4 then
+			ISAWC:Log("Usage: isawc_stamps_asammo <id> <ammo type> <ammo amount> <stamp name> [display name]")
+		else
+			local ammoType = game.GetAmmoID(args[2])
+			if ammoType == -1 then
+				local slotNum, pOrS = string.match(args[2], "^&(%d+)([ps])$")
+				if slotNum then
+					local item = ply.ISAWC_Inventory and tonumber(slotNum) and ply.ISAWC_Inventory[tonumber(slotNum)]
+					if item then
+						local isPrimary = pOrS == 'p'
+						if isPrimary then
+							for index,data in pairs(item.Entities) do
+								if (data.SavedAmmoType1 and data.SavedAmmoType1 ~= -1) then
+									ammoType = data.SavedAmmoType1 break
+								end
+							end
+							if ammoType == -1 then
+								ISAWC:Log(string.format("The item in slot %s does not have a primary ammo type!", slotNum))
+							end
+						else
+							for index,data in pairs(item.Entities) do
+								if (data.SavedAmmoType2 and data.SavedAmmoType2 ~= -1) then
+									ammoType = data.SavedAmmoType2 break
+								end
+							end
+							if ammoType == -1 then
+								ISAWC:Log(string.format("The item in slot %s does not have a secondary ammo type!", slotNum))
+							end
+						end
+					else
+						ISAWC:Log(string.format("You don't have an item in slot %s!", slotNum))
+					end
+				elseif tonumber(args[2]) and game.GetAmmoName(tonumber(args[2])) then
+					ammoType = tonumber(args[2])
+				else
+					ISAWC:Log(string.format("\"%s\" is not a valid ammo type!", args[2]))
+				end
+			end
+			
+			local argumentsValid = ammoType ~= -1
+			
+			local ammoAmount = tonumber(args[3]) or 0
+			if ammoAmount <= 0 and argumentsValid then
+				ISAWC:Log(string.format("\"%s\" is not a valid ammo amount!", args[3]))
+				argumentsValid = false
+			end
+			
+			if argumentsValid then
+				local displayName = ""
+				if args[5] then
+					displayName = table.concat(args, ' ', 5)
+				else
+					displayName = string.format("%s x %u", game.GetAmmoName(ammoType), ammoAmount)
+				end
+				
+				local id = args[1]
+				local ammoItemStamp = {ammoType, ammoAmount, args[4], displayName}
+				if ISAWC.AmmoItemStampList[id] then
+					ISAWC.AmmoItemStampList[id] = ammoItemStamp
+					ISAWC:Log("Updated \""..id.."\" in the ammunition item stamp list.")
+				else
+					ISAWC.AmmoItemStampList[id] = ammoItemStamp
+					ISAWC:Log("Added \""..id.."\" into the ammunition item stamp list.")
+				end
+				ISAWC.AmmoItemStampListLastUpdate._ = RealTime()
 			end
 		end
 	end
@@ -1002,6 +1113,30 @@ local function PlayerSQLAutoComplete(cmd, argStr)
 	return possibilities
 end
 
+local lastSQLAC2Result = {}
+local lastSQLAC2Time = 0
+local function ItemStampAutoComplete(cmd, argStr)
+	if lastSQLAC2Time+10 < RealTime() then
+		lastSQLAC2Time = RealTime()+10
+		lastSQLAC2Result = {}
+		local results = ISAWC:SQL("SELECT \"name\" FROM \"isawc_item_stamps\";")
+		if results then
+			for k,v in pairs(results) do
+				table.insert(lastSQLAC2Result, v.name)
+			end
+		end
+	end
+	
+	local possibilities = {}
+	local namesearch = argStr:Trim():lower()
+	for k,v in pairs(lastSQLAC2Result) do
+		if string.StartWith(v:lower(), namesearch) then
+			table.insert(possibilities, cmd .. " " .. v)
+		end
+	end
+	return possibilities
+end
+
 local clearcachemessage = "Clears inventories saved from Alternate Saving. Containers that aren't \z
 presently in the map will have their contents wiped out."
 if SERVER then
@@ -1168,7 +1303,91 @@ if SERVER then
 				ISAWC:SaveData()
 			end
 		end,
-		help = "Saves all ISAWC ConVars and lists."
+		help = "Saves all ISAWC ConVars and lists.\nAll ConVars and lists are generally saved automatically when the server shuts down, so you probably don't need to invoke this command."
+	})
+	
+	ISAWC:AddConCommand("isawc_stamps_create", {
+		exec = function(ply,cmd,args,argStr)
+			if IsValid(ply) and not ply:IsAdmin() then
+				ISAWC:Log("Access denied.")
+			elseif #args > 1 then
+				local invnum = tonumber(args[1])
+				if not (invnum and ply.ISAWC_Inventory[invnum]) then
+					ISAWC:Log("You don't have an item in slot "..args[1].."!")
+				end
+				local name = table.concat(args, ' ', 2)
+				ISAWC:CreateItemStamp(name, ply.ISAWC_Inventory[invnum])
+				ISAWC:Log(string.format("Added / updated item stamp \"%s\".", name))
+			else
+				ISAWC:Log("Usage: isawc_stamps_add <slot: 1-65535> <name>")
+			end
+		end,
+		help = "Creates an item stamp from an item in your inventory, allowing you to restore it infinitely until deleted.\nItem stamps persist through map changes and are shared with all admins.",
+		help_small = "Usage: isawc_stamps_create <slot: 1-65535> <name>"
+	})
+	
+	ISAWC:AddConCommand("isawc_stamps_restore", {
+		exec = function(ply,cmd,args,argStr)
+			if IsValid(ply) and not ply:IsAdmin() then
+				ISAWC:Log("Access denied.")
+			elseif next(args) then
+				local code = ISAWC:RestoreItemStamp(argStr, ply)
+				if code == 0 then
+					ISAWC:Log(string.format("Restored item from item stamp \"%s\". You may need to re-open your inventory to view the item.", argStr))
+				elseif code == 1 then
+					ISAWC:Log(string.format("Could not find item stamp \"%s\".", argStr))
+				elseif code == 2 then
+					ISAWC:Log(string.format("Found item stamp \"%s\" but failed to reconstruct item. The item stamp may have been corrupted.", argStr))
+				end
+			else
+				ISAWC:Log("Usage: isawc_stamps_restore <name>")
+			end
+		end,
+		autocomplete = ItemStampAutoComplete,
+		help = "Creates an inventory item from an item stamp. The created item will be put into your inventory.",
+		help_small = "Usage: isawc_stamps_restore <name>"
+	})
+	
+	ISAWC:AddConCommand("isawc_stamps_delete", {
+		exec = function(ply,cmd,args,argStr)
+			if IsValid(ply) and not ply:IsAdmin() then
+				ISAWC:Log("Access denied.")
+			elseif next(args) then
+				ISAWC:DeleteItemStamp(argStr)
+				ISAWC:Log(string.format("Deleted item stamp \"%s\".", argStr))
+			else
+				ISAWC:Log("Usage: isawc_stamps_delete <name>")
+			end
+		end,
+		autocomplete = ItemStampAutoComplete,
+		help = "Deletes an item stamp from the entire server. Will not remove any inventory items created from the stamp.",
+		help_small = "Usage: isawc_stamps_delete <name>"
+	})
+	
+	ISAWC:AddConCommand("isawc_stamps_list", {
+		exec = function(ply,cmd,args,argStr)
+			if IsValid(ply) and not ply:IsAdmin() then
+				ISAWC:Log("Access denied.")
+			else
+				lastSQLAC2Time = RealTime()+10
+				lastSQLAC2Result = {}
+				local results = ISAWC:SQL("SELECT \"name\" FROM \"isawc_item_stamps\";")
+				if results then
+					for k,v in pairs(results) do
+						table.insert(lastSQLAC2Result, v.name)
+					end
+				end
+				
+				ISAWC:Log("The item stamp list is as follows: {")
+				for k,v in SortedPairsByValue(lastSQLAC2Result) do
+					ISAWC:Log(string.format("\t%q,",v))
+				end
+				ISAWC:Log("}")
+				ISAWC:Log("")
+				ISAWC:Log("Use \"isawc_stamps_create <slot: 1-65535> <name>\" to add or update an inventory item into the list.")
+			end
+		end,
+		help = "Displays all available item stamps in the server."
 	})
 end
 
@@ -1603,7 +1822,7 @@ ISAWC.DrawInfos = function(self,invinfo,w,h)
 	end
 end
 
-ISAWC.InstallSortFunctions = function(self,panel,InvPanel,delname,wepstorename,dropname,container,displayContainerOptions)
+ISAWC.InstallSortFunctions = function(self,panel,InvPanel,messageSuffix,container,displayContainerOptions)
 	local allowdel = self.ConAllowDelete:GetBool()
 	panel:SetText(allowdel and "    Options / Delete All" or "    Options")
 	panel:SetTextColor(color_white)
@@ -1624,13 +1843,16 @@ ISAWC.InstallSortFunctions = function(self,panel,InvPanel,delname,wepstorename,d
 		end):SetIcon("icon16/shape_move_backwards.png")
 		if ISAWC.ConAllowHeldWeapons:GetBool() then
 			sOptions:AddOption("Store Held Weapon",function()
-				ISAWC:StartNetMessage(wepstorename)
+				ISAWC:StartNetMessage("store_weapon"..messageSuffix)
 				if IsValid(container) then
 					net.WriteEntity(container)
 				end
 				net.SendToServer()
 			end):SetIcon("icon16/gun.png")
 		end
+		local ammoItemStampOptions,ammoItemStampOption = sOptions:AddSubMenu("Store Ammo")
+		ammoItemStampOption:SetIcon("icon16/color_swatch.png")
+		self:PopulateAmmoItemStampOptions(ammoItemStampOptions)
 		local sortOptions,sortOption = sOptions:AddSubMenu("Sort Items")
 		sortOption:SetIcon("icon16/book.png")
 		do
@@ -1749,7 +1971,7 @@ ISAWC.InstallSortFunctions = function(self,panel,InvPanel,delname,wepstorename,d
 		end
 		if ISAWC.ConDropAllAllowed:GetBool() then
 			sOptions:AddOption("Drop All Items",function()
-				ISAWC:StartNetMessage(dropname)
+				ISAWC:StartNetMessage("drop_all"..messageSuffix)
 				if IsValid(container) then
 					net.WriteEntity(container)
 				end
@@ -1759,7 +1981,7 @@ ISAWC.InstallSortFunctions = function(self,panel,InvPanel,delname,wepstorename,d
 		if ISAWC.ConAllowDelete:GetBool() then
 			local SubOptions,SubOption = sOptions:AddSubMenu("Delete All")
 			Option = SubOptions:AddOption("Confirm Deletion",function()
-				ISAWC:StartNetMessage(delname)
+				ISAWC:StartNetMessage("delete_full"..messageSuffix)
 				if IsValid(container) then
 					net.WriteEntity(container)
 				end
@@ -1769,6 +1991,53 @@ ISAWC.InstallSortFunctions = function(self,panel,InvPanel,delname,wepstorename,d
 			Option:SetIcon("icon16/accept.png")
 		end
 		sOptions:Open()
+	end
+	function panel:PopulateAmmoItemStampOptions(ammoItemStampOptions)
+		if self.ISAWC_AmmoItemStampsLoaded then
+			if IsValid(ammoItemStampOptions.ISAWC_Loading) then
+				ammoItemStampOptions.ISAWC_Loading:Remove()
+			end
+			if next(ISAWC.AmmoItemStampList) then
+				for k,v in SortedPairs(ISAWC.AmmoItemStampList) do
+					ammoItemStampOptions:AddOption(v[3], function()
+						Derma_StringRequest("Store Ammo", "How many? (-1 = as much as possible)", -1, function(text)
+							local amount = tonumber(text)
+							if amount then
+								ISAWC:StartNetMessage("ammo_item_stamp"..messageSuffix)
+								if IsValid(container) then
+									net.WriteEntity(container)
+								end
+								net.WriteString(k)
+								net.WriteInt(math.floor(amount), 16)
+								net.SendToServer()
+							else
+								Derma_Message(
+									string.format("%s is not a valid number!", text),
+									"Store Ammo",
+									"OK"
+								)
+							end
+						end)
+					end)
+				end
+			else
+				ammoItemStampOptions:AddOption("#addons.none")
+			end
+		else
+			ammoItemStampOptions.ISAWC_Loading = ammoItemStampOptions:AddOption("#gmod_loading_title")
+			self.ISAWC_AmmoItemStampOptions = ammoItemStampOptions
+		end
+	end
+	function panel:ReceiveAmmoItemStamps(ammoItemStamps)
+		self.ISAWC_AmmoItemStampsLoaded = true
+		if ammoItemStamps then
+			ISAWC.AmmoItemStampList = ammoItemStamps
+		end
+		
+		local ammoItemStampOptions = self.ISAWC_AmmoItemStampOptions
+		if IsValid(ammoItemStampOptions) then
+			self:PopulateAmmoItemStampOptions(ammoItemStampOptions)
+		end
 	end
 	panel.DoRightClick = panel.DoClick
 end
@@ -1851,7 +2120,7 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 	
 	local SortOptions = Main:Add("DButton")
 	SortOptions:Dock(BOTTOM)
-	ISAWC:InstallSortFunctions(SortOptions,InvPanel,"delete_full","store_weapon","drop_all")
+	ISAWC:InstallSortFunctions(SortOptions,InvPanel,"")
 	
 	local LoadingPanel = InvPanel:Add("DLabel")
 	LoadingPanel:SetText(language.GetPhrase("gmod_loading_title"))
@@ -1861,7 +2130,9 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 	function Main:ReceiveStats(data)
 		ISAWC.InvData = data
 	end
-	
+	function Main:ReceiveAmmoItemStamps(...)
+		SortOptions:ReceiveAmmoItemStamps(...)
+	end
 	function Main:ReceiveInventory(inv)
 		InvPanel:Clear()
 		if next(inv) then
@@ -1966,7 +2237,7 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 									for k2,v2 in SortedPairsByMemberValue(InvPanel:GetSelectedItems(), "ID", true) do
 										self:AddSignal(v2.ID)
 									end
-									self:SendSignal("empty")
+									self:SendSignal("empty_weapon")
 								end
 							end)
 							Option:SetIcon("icon16/basket_remove.png")
@@ -2139,7 +2410,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 	
 	local SortLeft = InvBaseLeft:Add("DButton")
 	SortLeft:Dock(BOTTOM)
-	ISAWC:InstallSortFunctions(SortLeft,InvLeft,"delete_full_l","store_weapon_l","drop_all_l",container)
+	ISAWC:InstallSortFunctions(SortLeft,InvLeft,"_l",container)
 	
 	local LoadingLeft = InvLeft:Add("DLabel")
 	LoadingLeft:SetText(language.GetPhrase("gmod_loading_title"))
@@ -2214,13 +2485,21 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 	
 	local SortRight = InvBaseRight:Add("DButton")
 	SortRight:Dock(BOTTOM)
-	ISAWC:InstallSortFunctions(SortRight,InvRight,"delete_full_r","store_weapon_r","drop_all_r",container,true)
+	ISAWC:InstallSortFunctions(SortRight,InvRight,"_r",container,true)
 	
 	local LoadingRight = InvRight:Add("DLabel")
 	LoadingRight:SetText(language.GetPhrase("gmod_loading_title"))
 	LoadingRight:SetFont("DermaLarge")
 	LoadingRight:SizeToContents()
 	
+	function Main:ReceiveStats(data1,data2)
+		ISAWC.InvData = data1
+		ISAWC.InvData2 = data2
+	end
+	function Main:ReceiveAmmoItemStamps(...)
+		SortLeft:ReceiveAmmoItemStamps(...)
+		SortRight:ReceiveAmmoItemStamps(...)
+	end
 	function Main:ReceiveInventory(inv1,inv2)
 		InvLeft:Clear()
 		InvRight:Clear()
@@ -2643,11 +2922,6 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 		end
 	end
 	
-	function Main:ReceiveStats(data1,data2)
-		ISAWC.InvData = data1
-		ISAWC.InvData2 = data2
-	end
-	
 	self:StartNetMessage("inventory_l")
 	net.WriteEntity(container)
 	net.SendToServer()
@@ -2765,6 +3039,49 @@ ISAWC.GetStatsFromDupeTable = function(self,dupe)
 	return tonumber(dupe.TotalMass) or 0,tonumber(dupe.TotalVolume) or 0,tonumber(dupe.TotalCount) or 1
 end
 
+ISAWC.WriteAmmoItemStamps = function(self,ply)
+	--print(self.AmmoItemStampListLastUpdate[ply], self.AmmoItemStampListLastUpdate._, "a")
+	--debug.Trace()
+	if not (self.AmmoItemStampListLastUpdate[ply] and (self.AmmoItemStampListLastUpdate._ or 0) <= self.AmmoItemStampListLastUpdate[ply]) then
+		net.WriteBool(true)
+		
+		local count = 0
+		local sendKeys = {}
+		for k,v in pairs(self.AmmoItemStampList) do
+			count = count + 1
+			table.insert(sendKeys, k)
+		end
+		
+		net.WriteUInt(count, 16)
+		for k,v in pairs(sendKeys) do
+			local data = self.AmmoItemStampList[v]
+			net.WriteString(v)
+			net.WriteUInt(data[1]-1, 8)
+			net.WriteUInt(data[2], 16)
+			net.WriteString(data[4])
+		end
+		
+		self.AmmoItemStampListLastUpdate[ply] = RealTime()
+	else
+		net.WriteBool(false)
+	end
+end
+
+ISAWC.ReadAmmoItemStamps = function(self)
+	if net.ReadBool() then
+		local ammoItemStamps = {}
+		
+		for i=1,net.ReadUInt(16) do
+			local id = net.ReadString()
+			local ammoItemStamp = {net.ReadUInt(8)+1, net.ReadUInt(16), net.ReadString()}
+			ammoItemStamps[id] = ammoItemStamp
+		end
+		
+		return ammoItemStamps
+		-- TODO: clientside list
+	end
+end
+
 ISAWC.SendInventory = function(self,ply)
 	self:StartNetMessage("inventory")
 	--[[local data = util.Compress(util.TableToJSON(self:GetClientInventory(ply)))
@@ -2780,6 +3097,7 @@ ISAWC.SendInventory = function(self,ply)
 	for i=5,6 do
 		net.WriteUInt(stats[i],16)
 	end
+	self:WriteAmmoItemStamps(ply)
 	net.Send(ply)
 end
 
@@ -2808,6 +3126,7 @@ ISAWC.SendInventory2 = function(self,ply,container)
 	for i=5,6 do
 		net.WriteUInt(stats[i],16)
 	end
+	self:WriteAmmoItemStamps(ply)
 	net.Send(ply)
 	ISAWC:UpdateContainerInventories(container)
 	ISAWC:SaveContainerInventory(container)
@@ -2910,6 +3229,7 @@ ISAWC.SaveData = function(self)
 		data.Countlist = self.Countlist or {}
 		data.Remaplist = self.Remaplist or {}
 		data.DescList = self.DescList or {}
+		data.AmmoItemStampList = self.AmmoItemStampList or {}
 		data.MassMultiList = self.MassMultiList or {}
 		data.VolumeMultiList = self.VolumeMultiList or {}
 		data.CountMultiList = self.CountMultiList or {}
@@ -3076,7 +3396,11 @@ ISAWC.DropAll = function(self,container,ply)
 					table.insert(briefcase.ISAWC_Inventory,dupe)
 				end
 			end
-			container:SetInventory({}, ply)
+			if container.Base == "isawc_container_base" then
+				container:SetInventory({}, ply)
+			else
+				container.ISAWC_Inventory = {}
+			end
 			
 			ply.ISAWC_DropAllContainers = self:FilterSequentialTable(ply.ISAWC_DropAllContainers or {}, self.FilterIsValid)
 			table.insert(ply.ISAWC_DropAllContainers, briefcase)
@@ -3119,6 +3443,7 @@ ISAWC.Initialize = function()
 		ISAWC.Countlist = data.Countlist or ISAWC.Countlist
 		ISAWC.Remaplist = data.Remaplist or ISAWC.Remaplist
 		ISAWC.DescList = data.DescList or ISAWC.DescList
+		ISAWC.AmmoItemStampList = data.AmmoItemStampList or ISAWC.AmmoItemStampList
 		ISAWC.MassMultiList = data.MassMultiList or ISAWC.MassMultiList
 		ISAWC.VolumeMultiList = data.VolumeMultiList or ISAWC.VolumeMultiList
 		ISAWC.CountMultiList = data.CountMultiList or ISAWC.CountMultiList
@@ -3139,6 +3464,11 @@ ISAWC.Initialize = function()
 		elseif replacements > 0 then
 			ISAWC:Log("ConVar file loaded, 1 ConVar value updated.")
 		end
+		
+		ISAWC:SQL([[CREATE TABLE IF NOT EXISTS "isawc_item_stamps" (
+			"name" TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
+			"data" TEXT NOT NULL
+		);]])
 		
 		ISAWC.LastLoadedData = data
 	end
@@ -3171,6 +3501,7 @@ ISAWC.PlayerSpawn = function(ply)
 				ply.ISAWC_AttachedCollisionInterface = ply:AddCallback("PhysicsCollide", ISAWC.PlayerCollisionCallback)
 			end
 			ISAWC:SendInventory(ply)
+			ISAWC.AmmoItemStampListLastUpdate = {}
 		end
 	end)
 end
@@ -3251,6 +3582,7 @@ end
 if SERVER then
 	for k,v in pairs(player.GetAll()) do
 		ISAWC:SendInventory(v)
+		ISAWC.AmmoItemStampListLastUpdate = {}
 	end
 end
 
@@ -3320,90 +3652,96 @@ ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 	local altSaveSpawnable = true
 	for k,v in pairs(dupe.Entities) do
 		local ent = Entity(k)
-		if sSpawn then
-			if not (IsValid(ent) and self.StoredInAltSaveProps[ent] and ISAWC:SatisfiesBWLists(ent:GetClass(), "AltSave")) then
-				altSaveSpawnable = false
+		if sSpawn and not (IsValid(ent) and self.StoredInAltSaveProps[ent]) then
+			altSaveSpawnable = false break
+		end
+	end
+	for k,v in pairs(dupe.Entities) do
+		local ent = Entity(k)
+		if canDel or not altSaveSpawnable then
+			if (IsValid(ent) and self.StoredInAltSaveProps[ent]) then
+				ent:Remove()
 			end
-		elseif canDel then
-			SafeRemoveEntity(ent)
 		else
 			table.insert(ply.ISAWC_Inventory,invnum,dupe)
 			self:NoPickup("You can't delete inventory items!",ply)
 		end
 	end
-	if self.ConAltSave:GetBool() and altSaveSpawnable then
-		for k,v in pairs(dupe.Entities) do
-			local ent = Entity(k)
-			if self.ConSaveTable:GetBool() then
-				for k,v in pairs(ent.ISAWC_SaveTable or {}) do
-					ent:SetSaveValue(k,v)
+	if sSpawn then
+		if self.ConAltSave:GetBool() and altSaveSpawnable then
+			for k,v in pairs(dupe.Entities) do
+				local ent = Entity(k)
+				if self.ConSaveTable:GetBool() then
+					for k,v in pairs(ent.ISAWC_SaveTable or {}) do
+						ent:SetSaveValue(k,v)
+					end
 				end
-			end
-			self.StoredInAltSaveProps[ent] = nil
-			ent:SetNoDraw(ent.ISAWC_OldNoDraw or false)
-			ent:SetNotSolid(not ent.ISAWC_OldSolid or false)
-			ent:SetMoveType(ent.ISAWC_OldMoveType or MOVETYPE_VPHYSICS)
-			ent:PhysWake()
-			timer.Simple(0,function()
-				if IsValid(ent) then
-					ent:SetAngles((ent.ISAWC_OldAngles or angle_zero)+ply:GetAngles())
-					ent:SetPos((ent.ISAWC_OldPos or vector_origin)+spawnpos)
-				end
-			end)
-		end
-	elseif sSpawn then
-		duplicator.SetLocalPos(spawnpos)
-		duplicator.SetLocalAng(Angle(0,ply:EyeAngles().y,0))
-		local entTab,conTab = duplicator.Paste(ply,dupe.Entities,dupe.Constraints)
-		duplicator.SetLocalPos(vector_origin)
-		duplicator.SetLocalAng(angle_zero)
-		for k,v in pairs(entTab) do
-			self:RecursiveToNumbering(v)
-			v:SetCreator(ply)
-			if self.ConSaveTable:GetBool() then
-				for k2,v2 in pairs(v.ISAWC_SaveTable or {}) do
-					v:SetSaveValue(k2,v2)
-				end
-			end
-			if v:IsWeapon() then
-				local newent = ents.Create(v:GetClass())
-				newent:SetPos(v:GetPos())
-				newent:SetAngles(v:GetAngles())
-				newent:SetCreator(ply)
-				entTab[k] = newent
-				newent:Spawn()
-				newent:SetClip1(self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
-				newent:SetClip2(self.ConNoAmmo:GetBool() and 0 or v.SavedClip2 or v:Clip2())
-				v:Remove()
-			end
-			v.Entity = v
-			if not isSpawn then
-				v:Use(ply)
-			end
-			v.NextPickup2 = CurTime() + 0.5
-		end
-		if not self:GetSuppressUndo() then
-			if not self:GetSuppressUndoHeaders() then
-				undo.Create("Spawn From Inventory")
-			end
-			for k,v in pairs(table.Add(entTab,conTab)) do
-				undo.AddEntity(v)
-			end
-			if self.ConUndoIntoContain:GetBool() then
-				undo.AddFunction(function(undoInfo)
-					if IsValid(ply) then
-						if IsTableOfEntitiesValid(entTab) then
-							table.insert(ply.ISAWC_Inventory,dupe)
-						else
-							self:NoPickup("Can't undo deleted entity!",ply)
-						end
+				self.StoredInAltSaveProps[ent] = nil
+				ent:SetNoDraw(ent.ISAWC_OldNoDraw or false)
+				ent:SetNotSolid(not ent.ISAWC_OldSolid or false)
+				ent:SetMoveType(ent.ISAWC_OldMoveType or MOVETYPE_VPHYSICS)
+				ent:PhysWake()
+				timer.Simple(0,function()
+					if IsValid(ent) then
+						ent:SetAngles((ent.ISAWC_OldAngles or angle_zero)+ply:GetAngles())
+						ent:SetPos((ent.ISAWC_OldPos or vector_origin)+spawnpos)
 					end
 				end)
 			end
-			if not self:GetSuppressUndoHeaders() then
-				undo.SetCustomUndoText("Undone Spawn From Inventory")
-				undo.SetPlayer(ply)
-				undo.Finish()
+		else
+			duplicator.SetLocalPos(spawnpos)
+			duplicator.SetLocalAng(Angle(0,ply:EyeAngles().y,0))
+			local entTab,conTab = duplicator.Paste(ply,dupe.Entities,dupe.Constraints)
+			duplicator.SetLocalPos(vector_origin)
+			duplicator.SetLocalAng(angle_zero)
+			for k,v in pairs(entTab) do
+				self:RecursiveToNumbering(v)
+				v:SetCreator(ply)
+				if self.ConSaveTable:GetBool() then
+					for k2,v2 in pairs(v.ISAWC_SaveTable or {}) do
+						v:SetSaveValue(k2,v2)
+					end
+				end
+				if v:IsWeapon() then
+					local newent = ents.Create(v:GetClass())
+					newent:SetPos(v:GetPos())
+					newent:SetAngles(v:GetAngles())
+					newent:SetCreator(ply)
+					entTab[k] = newent
+					newent:Spawn()
+					newent:SetClip1(self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
+					newent:SetClip2(self.ConNoAmmo:GetBool() and 0 or v.SavedClip2 or v:Clip2())
+					v:Remove()
+				end
+				v.Entity = v
+				if not isSpawn then
+					v:Use(ply)
+				end
+				v.NextPickup2 = CurTime() + 0.5
+			end
+			if not self:GetSuppressUndo() then
+				if not self:GetSuppressUndoHeaders() then
+					undo.Create("Spawn From Inventory")
+				end
+				for k,v in pairs(table.Add(entTab,conTab)) do
+					undo.AddEntity(v)
+				end
+				if self.ConUndoIntoContain:GetBool() then
+					undo.AddFunction(function(undoInfo)
+						if IsValid(ply) then
+							if IsTableOfEntitiesValid(entTab) then
+								table.insert(ply.ISAWC_Inventory,dupe)
+							else
+								self:NoPickup("Can't undo deleted entity!",ply)
+							end
+						end
+					end)
+				end
+				if not self:GetSuppressUndoHeaders() then
+					undo.SetCustomUndoText("Undone Spawn From Inventory")
+					undo.SetPlayer(ply)
+					undo.Finish()
+				end
 			end
 		end
 	end
@@ -3416,90 +3754,96 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 	local altSaveSpawnable = true
 	for k,v in pairs(dupe.Entities) do
 		local ent = Entity(k)
-		if sSpawn then
-			if not (IsValid(ent) and self.StoredInAltSaveProps[ent] and ISAWC:SatisfiesBWLists(ent:GetClass(), "AltSave")) then
-				altSaveSpawnable = false
+		if sSpawn and not (IsValid(ent) and self.StoredInAltSaveProps[ent]) then
+			altSaveSpawnable = false break
+		end
+	end
+	for k,v in pairs(dupe.Entities) do
+		local ent = Entity(k)
+		if canDel or not altSaveSpawnable then
+			if (IsValid(ent) and self.StoredInAltSaveProps[ent]) then
+				ent:Remove()
 			end
-		elseif canDel then
-			SafeRemoveEntity(ent)
 		else
-			table.insert(container.ISAWC_Inventory,invnum,dupe)
+			table.insert(ply.ISAWC_Inventory,invnum,dupe)
 			self:NoPickup("You can't delete inventory items!",ply)
 		end
 	end
-	if self.ConAltSave:GetBool() and altSaveSpawnable then
-		for k,v in pairs(dupe.Entities) do
-			local ent = Entity(k)
-			if self.ConSaveTable:GetBool() then
-				for k,v in pairs(ent.ISAWC_SaveTable or {}) do
-					ent:SetSaveValue(k,v)
+	if sSpawn then
+		if self.ConAltSave:GetBool() and altSaveSpawnable then
+			for k,v in pairs(dupe.Entities) do
+				local ent = Entity(k)
+				if self.ConSaveTable:GetBool() then
+					for k,v in pairs(ent.ISAWC_SaveTable or {}) do
+						ent:SetSaveValue(k,v)
+					end
 				end
-			end
-			self.StoredInAltSaveProps[ent] = nil
-			ent:SetNoDraw(ent.ISAWC_OldNoDraw or false)
-			ent:SetNotSolid(not ent.ISAWC_OldSolid or false)
-			ent:SetMoveType(ent.ISAWC_OldMoveType or MOVETYPE_VPHYSICS)
-			ent:PhysWake()
-			timer.Simple(0,function()
-				if IsValid(ent) then
-					ent:SetAngles((ent.ISAWC_OldAngles or angle_zero)+ply:GetAngles())
-					ent:SetPos((ent.ISAWC_OldPos or vector_origin)+spawnpos)
-				end
-			end)
-		end
-	elseif sSpawn then
-		duplicator.SetLocalPos(spawnpos)
-		duplicator.SetLocalAng(Angle(0,ply:EyeAngles().y,0))
-		local entTab,conTab = duplicator.Paste(ply,dupe.Entities,dupe.Constraints)
-		duplicator.SetLocalPos(vector_origin)
-		duplicator.SetLocalAng(angle_zero)
-		for k,v in pairs(entTab) do
-			self:RecursiveToNumbering(v)
-			v:SetCreator(ply)
-			if self.ConSaveTable:GetBool() then
-				for k2,v2 in pairs(v.ISAWC_SaveTable or {}) do
-					v:SetSaveValue(k2,v2)
-				end
-			end
-			if v:IsWeapon() then
-				local newent = ents.Create(v:GetClass())
-				newent:SetPos(v:GetPos())
-				newent:SetAngles(v:GetAngles())
-				newent:SetCreator(ply)
-				entTab[k] = newent
-				newent:Spawn()
-				newent:SetClip1(self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
-				newent:SetClip2(self.ConNoAmmo:GetBool() and 0 or v.SavedClip2 or v:Clip2())
-				v:Remove()
-			end
-			v.Entity = v
-			if not isSpawn then
-				v:Use(ply)
-			end
-			v.NextPickup2 = CurTime() + 0.5
-		end
-		if not self:GetSuppressUndo() then
-			if not self:GetSuppressUndoHeaders() then
-				undo.Create("Spawn From Container")
-			end
-			for k,v in pairs(table.Add(entTab,conTab)) do
-				undo.AddEntity(v)
-			end
-			if self.ConUndoIntoContain:GetBool() then
-				undo.AddFunction(function(undoInfo)
-					if IsValid(container) then
-						if IsTableOfEntitiesValid(entTab) then
-							table.insert(container.ISAWC_Inventory,dupe)
-						else
-							self:NoPickup("Can't undo deleted entity!",ply)
-						end
+				self.StoredInAltSaveProps[ent] = nil
+				ent:SetNoDraw(ent.ISAWC_OldNoDraw or false)
+				ent:SetNotSolid(not ent.ISAWC_OldSolid or false)
+				ent:SetMoveType(ent.ISAWC_OldMoveType or MOVETYPE_VPHYSICS)
+				ent:PhysWake()
+				timer.Simple(0,function()
+					if IsValid(ent) then
+						ent:SetAngles((ent.ISAWC_OldAngles or angle_zero)+ply:GetAngles())
+						ent:SetPos((ent.ISAWC_OldPos or vector_origin)+spawnpos)
 					end
 				end)
 			end
-			if not self:GetSuppressUndoHeaders() then
-				undo.SetCustomUndoText("Undone Spawn From Container",ply)
-				undo.SetPlayer(ply)
-				undo.Finish()
+		else
+			duplicator.SetLocalPos(spawnpos)
+			duplicator.SetLocalAng(Angle(0,ply:EyeAngles().y,0))
+			local entTab,conTab = duplicator.Paste(ply,dupe.Entities,dupe.Constraints)
+			duplicator.SetLocalPos(vector_origin)
+			duplicator.SetLocalAng(angle_zero)
+			for k,v in pairs(entTab) do
+				self:RecursiveToNumbering(v)
+				v:SetCreator(ply)
+				if self.ConSaveTable:GetBool() then
+					for k2,v2 in pairs(v.ISAWC_SaveTable or {}) do
+						v:SetSaveValue(k2,v2)
+					end
+				end
+				if v:IsWeapon() then
+					local newent = ents.Create(v:GetClass())
+					newent:SetPos(v:GetPos())
+					newent:SetAngles(v:GetAngles())
+					newent:SetCreator(ply)
+					entTab[k] = newent
+					newent:Spawn()
+					newent:SetClip1(self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
+					newent:SetClip2(self.ConNoAmmo:GetBool() and 0 or v.SavedClip2 or v:Clip2())
+					v:Remove()
+				end
+				v.Entity = v
+				if not isSpawn then
+					v:Use(ply)
+				end
+				v.NextPickup2 = CurTime() + 0.5
+			end
+			if not self:GetSuppressUndo() then
+				if not self:GetSuppressUndoHeaders() then
+					undo.Create("Spawn From Container")
+				end
+				for k,v in pairs(table.Add(entTab,conTab)) do
+					undo.AddEntity(v)
+				end
+				if self.ConUndoIntoContain:GetBool() then
+					undo.AddFunction(function(undoInfo)
+						if IsValid(container) then
+							if IsTableOfEntitiesValid(entTab) then
+								table.insert(container.ISAWC_Inventory,dupe)
+							else
+								self:NoPickup("Can't undo deleted entity!",ply)
+							end
+						end
+					end)
+				end
+				if not self:GetSuppressUndoHeaders() then
+					undo.SetCustomUndoText("Undone Spawn From Container",ply)
+					undo.SetPlayer(ply)
+					undo.Finish()
+				end
 			end
 		end
 	end
@@ -3509,8 +3853,14 @@ ISAWC.SpawnDupeWeak = function(self,dupe,spawnpos,spawnangles,ply)
 	local altSaveSpawnable = true
 	for k,v in pairs(dupe.Entities) do
 		local ent = Entity(k)
-		if not (IsValid(ent) and self.StoredInAltSaveProps[ent] and ISAWC:SatisfiesBWLists(ent:GetClass(), "AltSave")) then
-			altSaveSpawnable = false
+		if not (IsValid(ent) and self.StoredInAltSaveProps[ent]) then
+			altSaveSpawnable = false break
+		end
+	end
+	for k,v in pairs(dupe.Entities) do
+		local ent = Entity(k)
+		if not altSaveSpawnable and (IsValid(ent) and self.StoredInAltSaveProps[ent]) then
+			ent:Remove()
 		end
 	end
 	if self.ConAltSave:GetBool() and altSaveSpawnable then
@@ -3964,6 +4314,84 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 				container:SetIsPublic(isPublic)
 				self:SendInventory2(ply,container)
 			end
+		elseif self:IsMessageType(func, "ammo_item_stamp") or self:IsMessageType(func, "ammo_item_stamp_l") or self:IsMessageType(func, "ammo_item_stamp_r") then
+			local container
+			if self:IsMessageType(func, "ammo_item_stamp_l") or self:IsMessageType(func, "ammo_item_stamp_r") then
+				container = net.ReadEntity()
+				if not self:IsLegalContainer(container,ply) then return end
+			end
+			local id = net.ReadString()
+			local maximum = net.ReadInt(16)
+			local ammoItemStamp = self.AmmoItemStampList[id]
+			if ammoItemStamp then
+				local stampAmount = math.floor(ply:GetAmmoCount(ammoItemStamp[1]) / ammoItemStamp[2])
+				if maximum >= 0 then
+					stampAmount = math.min(stampAmount, maximum)
+				end
+				if stampAmount > 0 then
+					local results = ISAWC:SQL("SELECT \"name\", \"data\" FROM \"isawc_item_stamps\" WHERE \"name\" = %s;", ammoItemStamp[3])
+					if (results and results[1]) then
+						local item = util.JSONToTable(results[1].data)
+						if not item then
+							item = util.JSONToTable(util.Decompress(util.Base64Decode(results[1].data)))
+						end
+						if item then
+							local isContainer = self:IsMessageType(func, "ammo_item_stamp_r")
+							local targetInventory = isContainer and container or ply
+							local data = self:GetClientStats(targetInventory)
+							
+							if data[5]+item.TotalCount>data[6] then
+								local required = math.ceil(data[5]+item.TotalCount-data[6])
+								if isContainer then
+									self:NoPickup(string.format("The container needs %u more slot(s) before it can accept the item!", required), ply)
+								else
+									self:NoPickup(string.format("You need %u more slot(s) to take that item!", required), ply)
+								end
+							elseif data[3]+item.TotalVolume>data[4] then
+								local required = (data[3]+item.TotalVolume-data[4])*self.dm3perHu
+								if isContainer then
+									self:NoPickup(string.format("The container needs %.2f dm³ more before it can accept the item!", required), ply)
+								else
+									self:NoPickup(string.format("You need %.2f dm³ more to take that item!", required), ply)
+								end
+							elseif data[1]+item.TotalMass>data[2] then
+								local required = data[1]+item.TotalMass-data[2]
+								if isContainer then
+									self:NoPickup(string.format("The container needs %.2f kg more before it can accept the item!", required), ply)
+								else
+									self:NoPickup(string.format("You need %.2f kg more to take that item!", required), ply)
+								end
+							else
+								if item.TotalMass > 0 then
+									stampAmount = math.min(stampAmount, (data[2]-data[1]) / item.TotalMass)
+								end
+								if item.TotalVolume > 0 then
+									stampAmount = math.min(stampAmount, (data[4]-data[3]) / item.TotalVolume)
+								end
+								if item.TotalCount > 0 then
+									stampAmount = math.min(stampAmount, (data[6]-data[5]) / item.TotalCount)
+								end
+								for i=1, stampAmount do
+									table.insert(targetInventory.ISAWC_Inventory, item)
+								end
+								ply:SetAmmo(ply:GetAmmoCount(ammoItemStamp[1]) - stampAmount * ammoItemStamp[2], ammoItemStamp[1])
+							end
+							
+							if container then
+								self:SendInventory2(ply,container)
+							else
+								self:SendInventory(ply)
+							end
+						else
+							self:NoPickup("The server's stamp required to store that ammo is corrupted!", ply)
+						end
+					else
+						self:NoPickup("The server is missing the stamp required to store that ammo!", ply)
+					end
+				elseif maximum >= 0 then
+					self:NoPickup("You don't have enough ammo!", ply)
+				end
+			end
 		else
 			self:Log("Received unrecognised message header \"" .. func .. "\" from " .. ply:Nick() .. ". Assuming data packet corrupted.")
 			return
@@ -3987,6 +4415,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					end
 					self.reliantwindow:ReceiveInventory(data)
 					self.reliantwindow:ReceiveStats({net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadUInt(16),net.ReadUInt(16)})
+					self.reliantwindow:ReceiveAmmoItemStamps(self:ReadAmmoItemStamps())
 				end
 			end
 		elseif self:IsMessageType(func, "pickup_denied") then
@@ -4000,7 +4429,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			local container = net.ReadEntity()
 			if IsValid(container) then
 				container.FinishOpenAnimTime = CurTime() + (container.OpenAnimTime or 0)
-				if container.ISAWC_Template then
+				if (container.ISAWC_Template and net.ReadBool()) then
 					container.OpenSounds = string.Split(net.ReadString(),'|')
 					container.CloseSounds = string.Split(net.ReadString(),'|')
 				end
@@ -4033,6 +4462,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					end
 					self.reliantwindow:ReceiveInventory(nt1,nt2)
 					self.reliantwindow:ReceiveStats({net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadUInt(16),net.ReadUInt(16)},{net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadUInt(16),net.ReadUInt(16)})
+					self.reliantwindow:ReceiveAmmoItemStamps(self:ReadAmmoItemStamps())
 				else
 					self.reliantwindow:Close()
 				end
@@ -4337,6 +4767,35 @@ ISAWC.CreatePermissionsObject = function(self, oldTable)
 	return permissionsObject
 end
 
+ISAWC.CreateItemStamp = function(self, name, item)
+	local data
+	if self.ConUseCompression:GetBool() then
+		data = util.Base64Encode(util.Compress(util.TableToJSON(item)))
+	else
+		data = util.TableToJSON(item)
+	end
+	self:SQL("INSERT INTO \"isawc_item_stamps\" (\"name\", \"data\") VALUES (%s, %s);", name, data)
+end
+
+ISAWC.RestoreItemStamp = function(self, name, ply)
+	local results = ISAWC:SQL("SELECT \"name\", \"data\" FROM \"isawc_item_stamps\" WHERE \"name\" = %s;", name)
+	if (results and results[1]) then
+		local item = util.JSONToTable(results[1].data)
+		if not item then
+			item = util.JSONToTable(util.Decompress(util.Base64Decode(results[1].data)))
+		end
+		if item then
+			return 0, table.insert(ply.ISAWC_Inventory, item)
+		else return 2
+		end
+	else return 1
+	end
+end
+
+ISAWC.DeleteItemStamp = function(self, name)
+	self:SQL("DELETE FROM \"isawc_item_stamps\" WHERE \"name\" = %s;", name)
+end
+
 local invcooldown = 0
 local nextsave = 0
 local nextAltSaveCheck = 0
@@ -4520,7 +4979,9 @@ ISAWC.PropPickup = function(self,ply,ent,container)
 	local tpos = ent:GetPos()
 	tpos.z = tpos.z+ent:OBBMins().z
 	for k,v in pairs(constraint.GetAllConstrainedEntities(ent)) do
-		v.ISAWC_SaveTable = v:GetSaveTable()
+		if self.ConSaveTable:GetBool() then
+			v.ISAWC_SaveTable = v:GetSaveTable()
+		end
 		if not duplicator.FindEntityClass(ent:GetClass()) then
 			duplicator.RegisterEntityClass(ent:GetClass(),function(ply, data)
 				local ent = ents.Create(data.Class)
