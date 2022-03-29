@@ -10,8 +10,8 @@ Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "5.2.0"
-ISAWC._VERSIONDATE = "2022-03-24"
+ISAWC._VERSION = "5.2.1"
+ISAWC._VERSIONDATE = "2022-03-29"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -195,8 +195,7 @@ AccessorFunc(ISAWC,"SuppressNoPickup","SuppressNoPickup",FORCE_BOOL)
 
 ISAWC.ConAltSave = CreateConVar("isawc_use_altsave","0",FCVAR_REPLICATED,
 "If set, entities that are put into containers are stored and retrieved somewhere safe rather than being deleted and recreated.\
-Enabling this option can fix many bugs relating to items not being stored properly, however it might cause other issues.\
-This feature is in beta - use it at your own risk.")
+Enabling this option can fix many bugs relating to items not being stored properly, but it might cause other issues.")
 
 ISAWC.ConDropOnDeath = CreateConVar("isawc_dropondeath_enabled","1",FCVAR_REPLICATED,
 "If set, players drop a box containing their inventory on death.")
@@ -773,7 +772,7 @@ ISAWC:CreateListConCommand("isawc_desclist", {
 		if args[1]=="*" then
 			ISAWC.DescList = {}
 			ISAWC:Log("Removed everything from the item description list.")
-		elseif args < 1 then
+		elseif #args < 1 then
 			ISAWC:Log("Usage: isawc_desclist <model/class> <description>")
 		else
 			local class = args[1]
