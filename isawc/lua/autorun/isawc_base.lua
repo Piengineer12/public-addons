@@ -4,14 +4,14 @@ Profile Page:	https://steamcommunity.com/id/Piengineer12
 GitHub Page:	https://github.com/Piengineer12/public-addons/tree/master/isawc
 Donate:			https://ko-fi.com/piengineer12
 
-Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format. 
+Links above are confirmed working as of 2022-04-16. All dates are in ISO 8601 format. 
 ]]
 
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "5.2.1"
-ISAWC._VERSIONDATE = "2022-03-29"
+ISAWC._VERSION = "5.2.2"
+ISAWC._VERSIONDATE = "2022-04-16"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -207,7 +207,7 @@ Turning on this option is not recommended as players might pick up normally immo
 ISAWC.CreateListConCommand = function(self, name, data)
 	self:AddConCommand(name, {
 		exec = function(ply,cmd,args)
-			if IsValid(ply) and not ply:IsAdmin() then
+			if (IsValid(ply) and not ply:IsAdmin()) then
 				self:Log("Access denied.")
 			else
 				if next(args) then
@@ -261,7 +261,7 @@ ISAWC.CreateBWListPair = function(self, name, commandPrefix, displayName, data)
 	self:AddConCommand(blacklistConCommand, {
 		exec = function(ply,cmd,args)
 			local blacklistTable = self.BWLists[name].Blacklist
-			if IsValid(ply) and not ply:IsAdmin() then
+			if (IsValid(ply) and not ply:IsAdmin()) then
 				self:Log("Access denied.")
 			else
 				if next(args) then
@@ -311,7 +311,7 @@ ISAWC.CreateBWListPair = function(self, name, commandPrefix, displayName, data)
 	self:AddConCommand(whitelistConCommand, {
 		exec = function(ply,cmd,args)
 			local whitelistTable = self.BWLists[name].Whitelist
-			if IsValid(ply) and not ply:IsAdmin() then
+			if (IsValid(ply) and not ply:IsAdmin()) then
 				self:Log("Access denied.")
 			else
 				if next(args) then
@@ -1141,7 +1141,7 @@ presently in the map will have their contents wiped out."
 if SERVER then
 	ISAWC:AddConCommand("isawc_container_clearcache", {
 		exec = function(ply,cmd,args)
-			if IsValid(ply) and not ply:IsAdmin() then
+			if (IsValid(ply) and not ply:IsAdmin()) then
 				ISAWC:Log("Access denied.")
 			else
 				ISAWC:SQL("BEGIN; DELETE FROM \"isawc_container_data\";")
@@ -1158,7 +1158,7 @@ if SERVER then
 	
 	ISAWC:AddConCommand("isawc_delete", {
 		exec = function(ply,cmd,args,argStr)
-			if IsValid(ply) and not ply:IsAdmin() then
+			if (IsValid(ply) and not ply:IsAdmin()) then
 				ISAWC:Log("Access denied. If you wish to delete your own items, and the server has enabled item delection, please use the option within the inventory GUI.")
 			elseif argStr=="*" then
 				for k,v in pairs(player.GetAll()) do
@@ -1190,7 +1190,7 @@ if SERVER then
 	
 	ISAWC:AddConCommand("isawc_delete_offline", {
 		exec = function(ply,cmd,args,argStr)
-			if IsValid(ply) and not ply:IsAdmin() then
+			if (IsValid(ply) and not ply:IsAdmin()) then
 				ISAWC:Log("Access denied.")
 			elseif argStr=="*" then
 				ISAWC:SQL("DELETE FROM \"isawc_player_data\";")
@@ -1214,7 +1214,7 @@ if SERVER then
 	
 	ISAWC:AddConCommand("isawc_reset_convars", {
 		exec = function(ply,cmd,args,argStr)
-			if IsValid(ply) and not ply:IsAdmin() then
+			if (IsValid(ply) and not ply:IsAdmin()) then
 				ISAWC:Log("Access denied.")
 			else
 				for k,v in pairs(ISAWC) do
@@ -1230,7 +1230,9 @@ if SERVER then
 	
 	ISAWC:AddConCommand("isawc_copy", {
 		exec = function(ply,cmd,args,argStr)
-			if IsValid(ply) and not ply:IsAdmin() then
+			if not IsValid(ply) then
+				ISAWC:Log("You must be a player to execute this command.")
+			elseif not ply:IsAdmin() then
 				ISAWC:Log("Access denied.")
 			elseif next(args) then
 				local success = false
@@ -1263,7 +1265,9 @@ if SERVER then
 	
 	ISAWC:AddConCommand("isawc_paste", {
 		exec = function(ply,cmd,args,argStr)
-			if IsValid(ply) and not ply:IsAdmin() then
+			if not IsValid(ply) then
+				ISAWC:Log("You must be a player to execute this command.")
+			elseif not ply:IsAdmin() then
 				ISAWC:Log("Access denied.")
 			elseif next(args) then
 				local success = false
@@ -1296,7 +1300,7 @@ if SERVER then
 	
 	ISAWC:AddConCommand("isawc_save_options", {
 		exec = function(ply,cmd,args,argStr)
-			if IsValid(ply) and not ply:IsAdmin() then
+			if (IsValid(ply) and not ply:IsAdmin()) then
 				ISAWC:Log("Access denied.")
 			else
 				ISAWC:SaveData()
@@ -1307,7 +1311,9 @@ if SERVER then
 	
 	ISAWC:AddConCommand("isawc_stamps_create", {
 		exec = function(ply,cmd,args,argStr)
-			if IsValid(ply) and not ply:IsAdmin() then
+			if not IsValid(ply) then
+				ISAWC:Log("You must be a player to execute this command.")
+			elseif not ply:IsAdmin() then
 				ISAWC:Log("Access denied.")
 			elseif #args > 1 then
 				local invnum = tonumber(args[1])
@@ -1327,7 +1333,9 @@ if SERVER then
 	
 	ISAWC:AddConCommand("isawc_stamps_restore", {
 		exec = function(ply,cmd,args,argStr)
-			if IsValid(ply) and not ply:IsAdmin() then
+			if not IsValid(ply) then
+				ISAWC:Log("You must be a player to execute this command.")
+			elseif not ply:IsAdmin() then
 				ISAWC:Log("Access denied.")
 			elseif next(args) then
 				local code = ISAWC:RestoreItemStamp(argStr, ply)
@@ -1349,7 +1357,7 @@ if SERVER then
 	
 	ISAWC:AddConCommand("isawc_stamps_delete", {
 		exec = function(ply,cmd,args,argStr)
-			if IsValid(ply) and not ply:IsAdmin() then
+			if (IsValid(ply) and not ply:IsAdmin()) then
 				ISAWC:Log("Access denied.")
 			elseif next(args) then
 				ISAWC:DeleteItemStamp(argStr)
@@ -1365,7 +1373,7 @@ if SERVER then
 	
 	ISAWC:AddConCommand("isawc_stamps_list", {
 		exec = function(ply,cmd,args,argStr)
-			if IsValid(ply) and not ply:IsAdmin() then
+			if (IsValid(ply) and not ply:IsAdmin()) then
 				ISAWC:Log("Access denied.")
 			else
 				lastSQLAC2Time = RealTime()+10
@@ -1405,10 +1413,13 @@ end
 
 ISAWC:AddConCommand("isawc_help", {
 	exec = function(ply,cmd,args,argStr)
-		if not ply:IsAdmin() and ply.ISAWC_HelpCooldown > RealTime() then
-			ISAWC:NoPickup(string.format("You need to wait for %.2f seconds before calling this command again!", ply.ISAWC_HelpCooldown - RealTime()), ply)
+		local plyValid = IsValid(ply)
+		if (plyValid and not ply:IsAdmin() and (ply.ISAWC_HelpCooldown or 0) > RealTime()) then
+			ISAWC:NoPickup(string.format("You need to wait for %.2f seconds before calling this command again!", (ply.ISAWC_HelpCooldown or 0) - RealTime()), ply)
 		else
-			ply.ISAWC_HelpCooldown = RealTime() + 10
+			if plyValid then
+				ply.ISAWC_HelpCooldown = RealTime() + 10
+			end
 			if next(args) then
 				argStr = string.Trim(argStr)
 				local success = false
@@ -3220,39 +3231,37 @@ ISAWC.SQL = function(self,query,...)
 end
 
 ISAWC.SaveData = function(self)
-	if next(self.LastLoadedData) then
-		local data = {}
-		data.Stacklist = self.Stacklist or {}
-		data.Masslist = self.Masslist or {}
-		data.Volumelist = self.Volumelist or {}
-		data.Countlist = self.Countlist or {}
-		data.Remaplist = self.Remaplist or {}
-		data.DescList = self.DescList or {}
-		data.AmmoItemStampList = self.AmmoItemStampList or {}
-		data.MassMultiList = self.MassMultiList or {}
-		data.VolumeMultiList = self.VolumeMultiList or {}
-		data.CountMultiList = self.CountMultiList or {}
-		data.Version = self._VERSION
-		
-		data.BWLists = {}
-		for k,v in pairs(self.BWLists) do
-			data.BWLists[k] = {
-				Blacklist = v.Blacklist,
-				Whitelist = v.Whitelist
-			}
+	local data = {}
+	data.Stacklist = self.Stacklist or {}
+	data.Masslist = self.Masslist or {}
+	data.Volumelist = self.Volumelist or {}
+	data.Countlist = self.Countlist or {}
+	data.Remaplist = self.Remaplist or {}
+	data.DescList = self.DescList or {}
+	data.AmmoItemStampList = self.AmmoItemStampList or {}
+	data.MassMultiList = self.MassMultiList or {}
+	data.VolumeMultiList = self.VolumeMultiList or {}
+	data.CountMultiList = self.CountMultiList or {}
+	data.Version = self._VERSION
+	
+	data.BWLists = {}
+	for k,v in pairs(self.BWLists) do
+		data.BWLists[k] = {
+			Blacklist = v.Blacklist,
+			Whitelist = v.Whitelist
+		}
+	end
+	
+	for k,v in pairs(self) do
+		if TypeID(v) == TYPE_CONVAR then
+			data[k] = v:GetString()
 		end
-		
-		for k,v in pairs(self) do
-			if TypeID(v) == TYPE_CONVAR then
-				data[k] = v:GetString()
-			end
-		end
-		
-		if self.ConUseCompression:GetBool() then
-			file.Write("isawc_data.dat",util.Compress(util.TableToJSON(data)))
-		else
-			file.Write("isawc_data.dat",util.TableToJSON(data))
-		end
+	end
+	
+	if self.ConUseCompression:GetBool() then
+		file.Write("isawc_data.dat",util.Compress(util.TableToJSON(data)))
+	else
+		file.Write("isawc_data.dat",util.TableToJSON(data))
 	end
 end
 
@@ -3427,9 +3436,8 @@ ISAWC.PlayerCollisionCallback = function(ply, data)
 	end
 end
 
-ISAWC.LastLoadedData = ISAWC.LastLoadedData or {}
 ISAWC.Initialize = function()
-	if table.IsEmpty(ISAWC.LastLoadedData) and SERVER then
+	if SERVER then
 		local data = util.JSONToTable(file.Read("isawc_data.dat") or "") or {}
 		if table.IsEmpty(data) then
 			data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "") or "") or {}
@@ -3468,8 +3476,6 @@ ISAWC.Initialize = function()
 			"name" TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
 			"data" TEXT NOT NULL
 		);]])
-		
-		ISAWC.LastLoadedData = data
 	end
 end
 
@@ -3477,23 +3483,16 @@ ISAWC.PlayerSpawn = function(ply)
 	timer.Simple(0.5,function()
 		if IsValid(ply) then
 			local steamID = ply:SteamID() or ""
-			if (ply.ISAWC_Inventory and next(ply.ISAWC_Inventory)) then
-				ISAWC.LastLoadedData[steamID] = nil
-			elseif ISAWC.ConDoSave:GetInt() > 0 then
-				if steamID ~= "" then
-					local results = ISAWC:SQL("SELECT \"steamID\", \"data\" FROM \"isawc_player_data\" WHERE \"steamID\" = %s;", steamID)
-					if (results and results[1]) then
-						ply.ISAWC_Inventory = util.JSONToTable(results[1].data)
+			if ISAWC.ConDoSave:GetInt() > 0 and steamID ~= "" then
+				local results = ISAWC:SQL("SELECT \"steamID\", \"data\" FROM \"isawc_player_data\" WHERE \"steamID\" = %s;", steamID)
+				if (results and results[1]) then
+					ply.ISAWC_Inventory = util.JSONToTable(results[1].data)
+					if not ply.ISAWC_Inventory then
+						ply.ISAWC_Inventory = util.JSONToTable(util.Decompress(results[1].data) or "")
 						if not ply.ISAWC_Inventory then
-							ply.ISAWC_Inventory = util.JSONToTable(util.Decompress(results[1].data) or "")
-							if not ply.ISAWC_Inventory then
-								ply.ISAWC_Inventory = util.JSONToTable(util.Decompress(util.Base64Decode(results[1].data) or "") or "")
-							end
+							ply.ISAWC_Inventory = util.JSONToTable(util.Decompress(util.Base64Decode(results[1].data) or "") or "")
 						end
 					end
-				end
-				if not (ply.ISAWC_Inventory and next(ply.ISAWC_Inventory)) and ISAWC.LastLoadedData[steamID] then
-					ply.ISAWC_Inventory = ISAWC.LastLoadedData[steamID]
 				end
 			end
 			if not ply.ISAWC_AttachedCollisionInterface then
@@ -4289,11 +4288,13 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 		elseif self:IsMessageType(func, "send_maker_data") then
 			local weapon = ply:GetActiveWeapon()
 			if (IsValid(weapon) and weapon:GetClass()=="weapon_isawc_maker") then
+				local localized = net.ReadBool()
 				local massMul, volumeMul, countMul, lockMul = net.ReadFloat(), net.ReadFloat(), net.ReadFloat(), net.ReadFloat()
 				local massConstant, volumeConstant = net.ReadFloat(), net.ReadFloat()
 				local openSounds, closeSounds = net.ReadString(), net.ReadString()
 				local additionalAccess = net.ReadString()
 				--print(massMul, volumeMul, massConstant, volumeConstant, openSounds, closeSounds)
+				weapon:SetIsPlayerLocalized(localized)
 				weapon:SetMassMul(massMul)
 				weapon:SetVolumeMul(volumeMul)
 				weapon:SetCountMul(countMul)
@@ -4833,9 +4834,6 @@ ISAWC.Tick = function()
 		-- the following is needed to make sure the stashed props don't just walk off the map!
 		if nextAltSaveCheck < RealTime() then
 			nextAltSaveCheck = RealTime() + 2
-			if table.IsEmpty(ISAWC.LastLoadedData) then -- Initialize failed to be called for some reason
-				ISAWC:Initialize()
-			end
 			allPlayers = player.GetAll()
 			for k,v in pairs(ISAWC.StoredInAltSaveProps) do
 				if IsValid(k) and not k:IsPlayer() then

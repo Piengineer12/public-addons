@@ -8,7 +8,7 @@ SWEP.Contact = "http://steamcommunity.com/id/Piengineer12/"
 SWEP.Purpose = "Convert a Physics Prop into an ISAWC container!"
 SWEP.Instructions = "Primary Fire transforms a prop into a container. Secondary Fire does the opposite. Reload to view options."
 SWEP.WorldModel = "models/weapons/w_pistol.mdl"
---SWEP.ViewModel = "models/weapons/v_pistol.mdl"
+SWEP.ViewModel = "models/weapons/v_pistol.mdl"
 --SWEP.ViewModelFOV = 62
 --SWEP.ViewModelFlip = false
 --SWEP.ViewModelFlip1 = false
@@ -52,6 +52,7 @@ SWEP.Secondary = {
 }
 
 function SWEP:SetupDataTables()
+	self:NetworkVar("Bool",0,"IsPlayerLocalized")
 	self:NetworkVar("Float",0,"MassMul")
 	self:NetworkVar("Float",1,"VolumeMul")
 	self:NetworkVar("Float",2,"CountMul")
@@ -94,6 +95,7 @@ function SWEP:PrimaryAttack()
 			container:SetAngles(ent:GetAngles())
 			container:Spawn()
 			container:InterpretAdditionalAccess(self:GetAdditionalAccess(), ply)
+			container:SetIsPlayerLocalized(self:GetIsPlayerLocalized())
 			ent:Remove()
 			self:EmitSound("buttons/button17.wav")
 			ply:PrintMessage(HUD_PRINTTALK, "The physics prop has been turned into a transformed container!")
@@ -109,6 +111,7 @@ function SWEP:PrimaryAttack()
 			ent.OpenSounds = string.Split(self:GetOpenSounds(), '|')
 			ent.CloseSounds = string.Split(self:GetCloseSounds(), '|')
 			ent:InterpretAdditionalAccess(self:GetAdditionalAccess(), ply)
+			ent:SetIsPlayerLocalized(self:GetIsPlayerLocalized())
 			ent.ISAWC_LastUpdateTime = CurTime()
 			self:EmitSound("buttons/button17.wav")
 			ply:PrintMessage(HUD_PRINTTALK, "The transformed container has been updated!")
@@ -154,6 +157,7 @@ function SWEP:OpenMakerMenu()
 	if (self.cooldown or 0) > RealTime() then return end
 	
 	self.cooldown = RealTime() + 1
+	local localized = self:GetIsPlayerLocalized()
 	local massMul, volumeMul, countMul, lockMul = self:GetMassMul(), self:GetVolumeMul(), self:GetCountMul(), self:GetLockMul()
 	local massConstant, volumeConstant = self:GetMassConstant(), self:GetVolumeConstant()
 	local openSounds, closeSounds = self:GetOpenSounds(), self:GetCloseSounds()
@@ -239,6 +243,14 @@ function SWEP:OpenMakerMenu()
 		volumeConstant = value
 	end
 	
+	local LocalizedCheckBox = ScrollPanel:Add("DCheckBoxLabel")
+	LocalizedCheckBox:SetText("Serve different inventory for each player")
+	LocalizedCheckBox:SetValue(localized)
+	LocalizedCheckBox:Dock(TOP)
+	function LocalizedCheckBox:OnChange(value)
+		localized = value
+	end
+	
 	local Label = ScrollPanel:Add("DLabel")
 	Label:SetText("Use '|' to separate each sound. One will be selected randomly when the container is opened / closed.")
 	Label:Dock(TOP)
@@ -298,6 +310,7 @@ function SWEP:OpenMakerMenu()
 			ISAWC:NoPickup("The weapon is missing!",LocalPlayer())
 		elseif weapon.cooldown <= RealTime() then
 			ISAWC:StartNetMessage("send_maker_data")
+			net.WriteBool(localized)
 			net.WriteFloat(massMul)
 			net.WriteFloat(volumeMul)
 			net.WriteFloat(countMul)
