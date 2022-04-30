@@ -1,6 +1,7 @@
 AccessorFunc(GM, "StartupState", "StartupState", FORCE_NUMBER)
 AccessorFunc(GM, "NextSave", "NextSave", FORCE_NUMBER)
 AccessorFunc(GM, "MapTable", "MapTable")
+AccessorFunc(GM, "CompletedDifficulties", "CompletedDifficulties")
 
 function GM:Initialize()
 	--[[local creationNeeded = not sql.TableExists("rotgb_data")
@@ -28,6 +29,8 @@ function GM:Initialize()
 	hook.Run("SetStartupState", 0)
 	hook.Run("SetNextSave", 0)
 	hook.Run("SharedInitialize")
+	hook.Run("SetCompletedDifficulties", {})
+	hook.Run("SetUnlockedAchievements", {})
 	
 	-- taken from base gamemode, wtf does this do?
 	GAMEMODE.ShowScoreboard = false
@@ -80,9 +83,54 @@ end
 
 concommand.Add("rotgb_tg_difficulty_menu", function()
 	hook.Run("ShowDifficultySelection")
-end, nil, "#command.rotgb_tg_difficulty_menu.help")
+end, nil, "Opens the Difficulty Selection Menu. Only works for admins.")
 
 function GM:StartVote(voteInfo)
 	hook.Run("SetCurrentVote", voteInfo)
 	hook.Run("ShowVoterMenu")
+end
+
+function GM:AddCompletedDifficulties(map, difficulty, state)
+	local completedDifficulties = hook.Run("GetCompletedDifficulties")
+	completedDifficulties[map] = completedDifficulties[map] or {}
+	completedDifficulties[map][difficulty] = bit.bor(completedDifficulties[map][difficulty] or 0, state)
+	
+	local difficultyNodes = hook.Run("GetGamemodeDifficultyNodes")
+	local completeds = 0
+	
+	for k,v in pairs(completedDifficulties) do
+		local allComplete = true
+		
+		for k2,v2 in pairs(difficultyNodes) do
+			for k3,v3 in pairs(v2.subnodes) do
+				if v3.name ~= "__common" and (v[v3.name] or 0) == 0 then
+					allComplete = false break
+				end
+			end
+			
+			if not allComplete then break end
+		end
+		
+		if allComplete then
+			completeds = completeds + 1
+		end
+	end
+	
+	if allComplete then
+		net.Start("rotgb_gamemode")
+		net.WriteUInt(RTG_OPERATION_ACHIEVEMENT, 4)
+		net.WriteUInt(hook.Run("GetStatisticID", "success.all")-1, 16)
+		net.WriteDouble(completeds)
+		net.SendToServer()
+	end
+end
+
+function GM:GameOver(success)
+	if success then
+		self.GameOverMenu = hook.Run("CreateSuccessMenu")
+		hook.Run("AddCompletedDifficulties", game.GetMap(), hook.Run("GetDifficulty"), 1)
+	else
+		self.GameOverMenu = hook.Run("CreateFailureMenu")
+	end
+	hook.Run("SaveClient", LocalPlayer())
 end

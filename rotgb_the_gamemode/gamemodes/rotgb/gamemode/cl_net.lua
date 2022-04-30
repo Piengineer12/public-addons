@@ -32,9 +32,18 @@ net.Receive("rotgb_statchanged", function()
 				ply.rtg_XP = net.ReadDouble()
 			end
 		end
+	elseif func == RTG_STAT_ACHIEVEMENTS then
+		for i=1,net.ReadUInt(16) do
+			local stat = net.ReadUInt(16)+1
+			LocalPlayer():RTG_SetStat(stat, net.ReadDouble())
+		end
 	end
 end)
 
+local color_yellow = Color(255,255,0)
+local color_light_orange = Color(255,191,127)
+local color_light_green = Color(127,255,127)
+local color_light_blue = Color(127,127,255)
 net.Receive("rotgb_gamemode", function()
 	local operation = net.ReadUInt(4)
 	if operation == RTG_OPERATION_GAMEOVER then
@@ -140,6 +149,28 @@ net.Receive("rotgb_gamemode", function()
 					{team.GetColor(oldTeam), team.GetColor(oldTeam), team.GetColor(newTeam)}
 				)))
 			end
+		end
+	elseif operation == RTG_OPERATION_ACHIEVEMENT then
+		local achievementID = net.ReadUInt(16)+1
+		local ply = Player(net.ReadInt(12))
+		
+		if IsValid(ply) then
+			local achievement = hook.Run("GetAchievementByID", achievementID)
+			local tierColor = achievement.tier == 3 and color_light_orange or achievement.tier == 2 and color_light_blue or color_light_green
+			chat.AddText(unpack(ROTGB_LocalizeMulticoloredString(
+				"rotgb_tg.achievement.unlocked.player",
+				{
+					ply:Nick(),
+					language.GetPhrase("rotgb_tg.achievement."..achievement.name..".name"),
+					ROTGB_LocalizeString("rotgb_tg.achievement.unlocked.player.reward.xp", string.Comma(achievement.xp))
+				},
+				color_white,
+				{
+					team.GetColor(ply:Team()),
+					tierColor,
+					color_light_green
+				}
+			)))
 		end
 	end
 end)

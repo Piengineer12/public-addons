@@ -10,8 +10,8 @@ Links above are confirmed working as of 2022-04-16. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "5.2.2"
-ISAWC._VERSIONDATE = "2022-04-16"
+ISAWC._VERSION = "5.2.4"
+ISAWC._VERSIONDATE = "2022-04-30"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -338,7 +338,7 @@ ISAWC.CreateBWListPair = function(self, name, commandPrefix, displayName, data)
 	if not data.excludeWhitelistConCommandFromDesc then
 		whitelistConVarDesc = whitelistConVarDesc.."\nSee the ConCommand \""..whitelistConCommand.."\" to manipulate the list."
 	end
-	self[whitelistConVarName] = CreateConVar(whitelistConVar, "0", FCVAR_REPLICATED, data.whitelistConVarDesc)
+	self[whitelistConVarName] = CreateConVar(whitelistConVar, "0", FCVAR_NONE, data.whitelistConVarDesc)
 	self.BWLists[name].WhitelistConVar = self[whitelistConVarName]
 end
 
@@ -1077,6 +1077,14 @@ Note that the Container Maker SWEP can still edit container properties even if t
 ISAWC.ConAllowHeldWeapons = CreateConVar("isawc_pickup_heldweapons", "1", FCVAR_REPLICATED,
 "If enabled, players will be able to store their currently held weapons into their inventory and into containers.")
 
+--[[ISAWC.ConPickupViewModel = CreateConVar("isawc_pickup_weapon_viewmodel", "models/weapons/v_pistol.mdl", FCVAR_REPLICATED,
+"View model used by the Pickup SWEP.\
+A server restart is required for this to take effect.")
+
+ISAWC.ConPickupWorldModel = CreateConVar("isawc_pickup_weapon_worldmodel", "models/weapons/w_357.mdl", FCVAR_REPLICATED,
+"World model used by the Pickup SWEP.\
+A server restart is required for this to take effect.")]]
+
 local function BasicAutoComplete(cmd, argStr)
 	local possibilities = {}
 	local namesearch = argStr:Trim():lower()
@@ -1667,6 +1675,10 @@ ISAWC.PopulateDFormPickup = function(DForm)
 	DForm:Help(" - "..ISAWC.ConDistance:GetHelpText().."\n")
 	DForm:CheckBox("Use Whitelist",ISAWC.ConGeneralWhitelistEnabled:GetName())
 	DForm:Help(" - "..ISAWC.ConGeneralWhitelistEnabled:GetHelpText().."\n")
+	--[[DForm:TextEntry("SWEP View Model",ISAWC.ConPickupViewModel:GetName())
+	DForm:Help(" - "..ISAWC.ConPickupViewModel:GetHelpText().."\n")
+	DForm:TextEntry("SWEP World Model",ISAWC.ConPickupWorldModel:GetName())
+	DForm:Help(" - "..ISAWC.ConPickupWorldModel:GetHelpText().."\n")]]
 end
 
 ISAWC.PopulateDFormDrop = function(DForm)
@@ -4886,11 +4898,9 @@ ISAWC.Tick = function()
 				effectiveUseDelay = effectiveUseDelay == -2 and ISAWC.ConDelay:GetFloat() or effectiveUseDelay
 				if ent.ISAWC_UseStreak >= effectiveUseDelay/engine.TickInterval() and effectiveUseDelay>=0 then
 					ent.ISAWC_UseStreak = 0
-					if ISAWC:CanProperty(ply,ent) then
-						ISAWC:StartNetMessage("pickup")
-						net.WriteEntity(ent)
-						net.SendToServer()
-					end
+					ISAWC:StartNetMessage("pickup")
+					net.WriteEntity(ent)
+					net.SendToServer()
 				end
 			end
 		elseif input.IsKeyDown(invToggleKey) and noOtherUIs and invcooldown < RealTime() then
@@ -5099,7 +5109,7 @@ hook.Add("ShutDown","ISAWC",ISAWC.PlayerDisconnect)
 hook.Add("CanProperty","ISAWC",ISAWC.OldCanProperty)
 hook.Add("Tick","ISAWC",ISAWC.Tick)
 
-list.Set("DesktopWindows","Open Inventory",ISAWC.DesktopTable)
+list.Set("DesktopWindows","ISAWC_OpenInventory",ISAWC.DesktopTable)
 
 if SERVER then
 	ISAWC:Log(string.format("All server code successfully initialized in %.2f ms!", (SysTime()-startLoadTime)*1e3))

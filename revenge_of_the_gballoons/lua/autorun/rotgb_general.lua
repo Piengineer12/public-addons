@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		6.1.0
-Version Date:	2022-02-26
+Version:		6.2.0
+Version Date:	2022-04-23
 ]]
 
 local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","spawning","towers","music"}
@@ -789,8 +789,16 @@ if SERVER then
 			end
 		elseif operation == ROTGB_OPERATION_TRIGGER then
 			local tower = net.ReadEntity()
-			if (IsValid(tower) and tower.Base == "gballoon_tower_base") then
-				tower:DoAbility()
+			if IsValid(tower) then
+				if tower.Base == "gballoon_tower_base" then
+					tower:DoAbility()
+				elseif tower == ply then
+					for k,v in pairs(ents.GetAll()) do
+						if v.Base == "gballoon_tower_base" then
+							v:DoAbility()
+						end
+					end
+				end
 			end
 		end
 	end)
@@ -1714,7 +1722,7 @@ if CLIENT then
 			form:CheckBox("#rotgb.convar.rotgb_waypoint_editor_indicator_bounce.name","rotgb_waypoint_editor_indicator_bounce")
 			choicelist = form:ComboBox("#rotgb.convar.rotgb_waypoint_editor_indicator_color.name","rotgb_waypoint_editor_indicator_color")
 			for i=0,11 do
-				choicelist:AddChoice(string.format("rotgb.convar.rotgb_waypoint_editor_indicator_color.%i", i), i)
+				choicelist:AddChoice(string.format("#rotgb.convar.rotgb_waypoint_editor_indicator_color.%i", i), i)
 			end
 			local mixer = vgui.Create("DColorMixer")
 			mixer:SetLabel("#rotgb.convar.rotgb_waypoint_editor_indicator_color.solid_selection")

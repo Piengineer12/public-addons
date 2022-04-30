@@ -24,18 +24,7 @@ ENT.rotgb_BeamWidth = 8
 ENT.rotgb_DamageMul = 10
 ENT.UpgradeReference = {
 	{
-		Names = {"Super Range","Enhanced Prisms","Secondary Spectrum","Fury of the Radiant Sun","Rainbow Overlord","Orbital Friendship Cannon","Dyson Sphere","INFINITE POWER!"},
-		Descs = {
-			"Increases range to infinite.",
-			"Considerably increases attack damage and enables the tower to pop purple gBalloons.",
-			"Tremendously increases attack damage. gBalloons popped by this tower do not spawn any children.",
-			"Colossally increases attack damage and enables the tower to pop Hidden gBalloons.",
-			"This tower now hits ALL gBalloons within sight.",
-			"Once every 60 seconds, shooting at this tower inflicts x1,000 damage per tick at the location of the strongest gBalloon on the map after 5 seconds.",
-			"Reduces Orbital Friendship Cannon's cooldown by 30 seconds and you gain $50,000,000 for every use.",
-			"It's worth it."
-		},
-		Prices = {2000,5000,30000,150000,1.25e6,10e6,50e6,1e9},--{2000,15000,100000,1.25e6,5e6,10e6,50e6,1e9},
+		Prices = {2000,5000,30000,150000,1.25e6,10e6,50e6,1e9},
 		Funcs = {
 			function(self)
 				self.InfiniteRange = true
@@ -56,11 +45,12 @@ ENT.UpgradeReference = {
 				self.SeeCamo = true
 			end,
 			function(self)
-				--self.AttackDamage = self.AttackDamage + 300
+				self.rotgb_Spread = true
 				self.UserTargeting = false
 			end,
 			function(self)
 				self.HasAbility = true
+				self.UserTargeting = true
 				if SERVER and IsValid(self.InternalLaser) then
 					self.InternalLaser:Fire("Alpha",127)
 				end
@@ -226,45 +216,15 @@ function ENT:FireFunction(gBalloons)
 	if not self.UseLOS then
 		abilityFunction(self)
 	elseif IsValid(self.rotgb_StartPos) then
-		--[[if self.rotgb_NextFire <= CurTime() then
-			self.rotgb_NextFire = CurTime() + self.rotgb_BeamDelay + self.rotgb_BeamTime
-			if not self.rotgb_Infinite then
-				self:SetNWFloat("LastFireTime",CurTime())
+		if not self.rotgb_Spread then
+			local perf,str = coroutine.resume(self.thread,self,gBalloons[1],self.rotgb_DamageMul)
+			if not perf then error(str) end
+		else
+			for k,v in pairs(gBalloons) do
+				local perf,str = coroutine.resume(self.thread,self,v,self.rotgb_DamageMul)
+				if not perf then error(str) end
 			end
 		end
-		if self.rotgb_NextFire > CurTime() + self.rotgb_BeamDelay then]]
-			if self.UserTargeting then
-				local perf,str = coroutine.resume(self.thread,self,gBalloons[1],self.rotgb_DamageMul)
-				if not perf then error(str) end
-			else
-				--[[local damagemul = 10
-				if self.rotgb_Infinite then
-					damagemul = 10
-					for k,v in pairs(gBalloons) do
-						damagemul = damagemul + v:GetRgBE() / 10
-					end
-				end]]
-				--local i = 1
-				for k,v in pairs(gBalloons) do
-					local perf,str = coroutine.resume(self.thread,self,v,self.rotgb_DamageMul)
-					if not perf then error(str) end
-					--i = i + 1
-					--if i > 10 then break end
-				end
-			end
-		--end
-		--[[if self.rotgb_OtherBonus then
-			self.rotgb_OtherBy = self.rotgb_OtherBy or 0
-			self.FireRate = self.FireRate / (1+self.rotgb_OtherBy*0.2)
-			self.rotgb_OtherBy = ents.FindInSphere(self:GetShootPos(),512)
-			for k,v in pairs(self.rotgb_OtherBy) do
-				if v:GetClass()~="gballoon_tower_08" then
-					self.rotgb_OtherBy[k] = nil
-				end
-			end
-			self.rotgb_OtherBy = #self.rotgb_OtherBy
-			self.FireRate = self.FireRate * (1+self.rotgb_OtherBy*0.2)
-		end]]
 	end
 end
 
@@ -273,15 +233,7 @@ local AlertSound = Sound("npc/attack_helicopter/aheli_megabomb_siren1.wav")
 
 abilityFunction = function(self)
 	if IsValid(self) then
-		local entities = ROTGB_GetBalloons()
-		--if not next(entities) then return true end
-		local enttab = {}
-		for index,ent in pairs(entities) do
-			if self:ValidTargetIgnoreRange(ent) then
-				enttab[ent] = ent:GetRgBE()+ent:GetDistanceTravelled()*1e-9
-			end
-		end
-		local ent = next(entities) and self:ChooseSomething(enttab)
+		local ent = self:ChooseSomething()
 		if IsValid(ent) then
 			if self.rotgb_Infinite then
 				self:AddCash(5e7, self:GetTowerOwner())
@@ -291,7 +243,7 @@ abilityFunction = function(self)
 			end
 			local startPos = ents.Create("info_target")
 			local ecp = ent:GetPos()
-			ecp.z = 16000
+			ecp.z = 16368
 			startPos:SetPos(ecp)
 			startPos:SetName("ROTGB08_"..startPos:GetCreationID())
 			local endPos = ents.Create("info_target")
@@ -316,7 +268,7 @@ abilityFunction = function(self)
 			beam:SetKeyValue("TextureScroll","100")
 			beam:SetKeyValue("LightningStart",startPos:GetName())
 			beam:SetKeyValue("LightningEnd",endPos:GetName())
-			beam:SetKeyValue("HDRColorScale","1")
+			beam:SetKeyValue("HDRColorScale","0.7")
 			beam:SetKeyValue("spawnflags","1")
 			--beam:SetKeyValue("damage","999999")
 			beam:Spawn()
@@ -350,39 +302,20 @@ abilityFunction = function(self)
 end
 
 function ENT:TriggerAbility()
-	local entities = ROTGB_GetBalloons()
-	if not next(entities) then return true end
-	local enttab = {}
-	for index,ent in pairs(entities) do
-		enttab[ent] = ent:GetRgBE()
-	end
-	local ent = self:ChooseSomething(enttab)
-	if IsValid(ent) then
-		self:EmitSound(ShotSound,0)
-		self:EmitSound(AlertSound,0)
-		timer.Simple(5,function()
-			abilityFunction(self)
-		end)
-	else return true
-	end
+	if not ROTGB_BalloonsExist() then return true end
+	self:EmitSound(ShotSound,0)
+	self:EmitSound(AlertSound,0)
+	timer.Simple(5,function()
+		abilityFunction(self)
+	end)
 end
 
-function ENT:ChooseSomething(enttab)
-	local chosen = table.GetWinningKey(enttab)
-	--[[local trace = util.TraceLine({
-		start = chosen:GetPos(),
-		endpos = chosen:GetPos()+Vector(0,0,32768),
-		filter = ents.GetAll(),
-	})]]
-	--if trace.HitSky then
-		return chosen
-	--[[else
-		enttab[chosen] = nil
-		if next(enttab) then
-			return self:ChooseSomething(enttab)
-		else return NULL
-		end
-	end]]
+function ENT:ChooseSomething()
+	local oldLos = self.UseLOS
+	self.UseLOS = false
+	self:ExpensiveThink(true)
+	self.UseLOS = oldLos
+	return self.gBalloons[1]
 end
 
 if CLIENT then

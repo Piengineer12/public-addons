@@ -1,6 +1,8 @@
 -- real talk, I should probably make an addon to ease the process of making UIs
 -- right now there is way too many UI code duplication going on across my addons...
+local color_dark_black_doublesemiopaque = Color(0, 0, 0, 223)
 local color_gray = Color(127, 127, 127)
+local color_gray_semitransparent = Color(127, 127, 127, 63)
 local color_light_gray = Color(191, 191, 191)
 local color_red = Color(255, 0, 0)
 local color_light_red = Color(255, 127, 127)
@@ -8,12 +10,13 @@ local color_orange = Color(255, 127, 0)
 local color_light_orange = Color(255, 191, 127)
 local color_yellow = Color(255, 255, 0)
 local color_green = Color(0, 255, 0)
+local color_green_semitransparent = Color(0, 255, 0, 63)
 local color_light_green = Color(127, 255, 127)
+local color_dark_green = Color(0, 127, 0)
 local color_aqua = Color(0, 255, 255)
 local color_light_blue = Color(127, 127, 255)
 local color_purple = Color(127, 0, 255)
 local color_magenta = Color(255, 0, 255)
-local color_dark_black_doublesemiopaque = Color(0, 0, 0, 223)
 local SQRT_2 = math.sqrt(2)
 
 local SCOREBOARD_CELL_WIDTH_MULTIPLIERS = {1, 6, 6, 3, 3, 9, {1, 3, 2}, 6}
@@ -65,12 +68,17 @@ local SKILL_LEFT_TEXTS = {
 	}
 }
 local CATEGORY_COLORS = {color_green, color_yellow, color_orange, color_red, color_magenta}
+local ACHIEVEMENT_PADDING = ScreenScale(2)
+local ACHIEVEMENT_SIZE = ScreenScale(48)
+local ACHIEVEMENT_TIERS = {color_light_green, color_light_blue, color_light_orange}
 
 local FONT_HEADER_HEIGHT = ScreenScale(16)
 local FONT_BODY_HEIGHT = ScreenScale(12)
 local FONT_LEVEL_HEIGHT = ScreenScale(16)
 local FONT_EXPERIENCE_HEIGHT = ScreenScale(12)
 local FONT_SKILL_BODY_HEIGHT = ScreenScale(6)
+local FONT_ACHIEVEMENT_HEADER_HEIGHT = ScreenScale(12)
+local FONT_ACHIEVEMENT_BODY_HEIGHT = ScreenScale(8)
 
 local FONT_SCOREBOARD_HEADER_HEIGHT = ScreenScale(8)
 local FONT_SCOREBOARD_BODY_HEIGHT = ScreenScale(8)
@@ -114,53 +122,57 @@ AccessorFunc(GM, "DifficultySelectionMenu", "DifficultySelectionMenu")
 AccessorFunc(GM, "VoteMenu", "VoteMenu")
 AccessorFunc(GM, "VoterMenu", "VoterMenu")
 AccessorFunc(GM, "SkillWebMenu", "SkillWebMenu")
+AccessorFunc(GM, "AchievementsMenu", "AchievementsMenu")
 
 surface.CreateFont("rotgb_header", {
-	font = "Orbitron Medium",
+	font = "Bombardier Rotgb",
 	extended = true,
 	size = FONT_HEADER_HEIGHT
 })
-
 surface.CreateFont("rotgb_body", {
 	font = "Bombardier Rotgb",
 	extended = true,
 	size = FONT_BODY_HEIGHT
 })
-
 surface.CreateFont("rotgb_level", {
-	font = "Orbitron Medium",
+	font = "Bombardier Rotgb",
 	extended = true,
 	size = FONT_LEVEL_HEIGHT
 })
-
 surface.CreateFont("rotgb_experience", {
 	font = "Bombardier Rotgb",
 	extended = true,
 	size = FONT_EXPERIENCE_HEIGHT
 })
-
 surface.CreateFont("rotgb_scoreboard_header", {
-	font = "Orbitron Medium",
+	font = "Bombardier Rotgb",
 	extended = true,
 	size = FONT_SCOREBOARD_HEADER_HEIGHT
 })
-
 surface.CreateFont("rotgb_scoreboard_body", {
 	font = "Luckiest Guy Rotgb",
 	extended = true,
 	size = FONT_SCOREBOARD_BODY_HEIGHT
 })
-
 surface.CreateFont("rotgb_level_small", {
-	font = "Orbitron Medium",
+	font = "Bombardier Rotgb",
 	extended = true,
 	size = FONT_LEVEL_SMALL_HEIGHT
 })
-
 surface.CreateFont("rotgb_skill_body", {
 	font = "Bombardier Rotgb",
 	extended = true,
 	size = FONT_SKILL_BODY_HEIGHT
+})
+surface.CreateFont("rotgb_achievement_header", {
+	font = "Bombardier Rotgb",
+	extended = true,
+	size = FONT_ACHIEVEMENT_HEADER_HEIGHT
+})
+surface.CreateFont("rotgb_achievement_body", {
+	font = "Bombardier Rotgb",
+	extended = true,
+	size = FONT_ACHIEVEMENT_BODY_HEIGHT
 })
 
 local function DrawDarkBackground(panel, w, h)
@@ -1006,6 +1018,8 @@ local function CreateDifficultySelectionPanel(parent)
 	DTree:SetLineHeight(FONT_BODY_HEIGHT)
 	DTree.Paint = nil
 	
+	local completedDifficulties = hook.Run("GetCompletedDifficulties")[game.GetMap()] or {}
+	
 	for i,v in ipairs(hook.Run("GetGamemodeDifficultyNodes")) do
 		local node = DTree:AddNode("#rotgb_tg.difficulty.category."..v.name, "icon16/bricks.png")
 		node:SetExpanded(true, true)
@@ -1020,19 +1034,28 @@ local function CreateDifficultySelectionPanel(parent)
 			Divider:DifficultySelectedInternal(nil)
 		end
 		
+		local allCompleted = true
+		
 		for i2,v2 in ipairs(v.subnodes) do
-			local subnode = node:AddNode("#rotgb_tg.difficulty."..v2.name..".name", "icon16/brick.png")
+			local completed = bit.band(completedDifficulties[v2.name] or 0, 1)==1
+			allCompleted = allCompleted and completed
+			
+			local subnode = node:AddNode("#rotgb_tg.difficulty."..v2.name..".name", completed and "icon16/tick.png" or "icon16/brick.png")
 			subnode.Label:SetFont("rotgb_body")
-			subnode.Label:SetTextColor(color_white)
+			subnode.Label:SetTextColor(completed and color_light_green or color_white)
 			subnode.Label.Paint = DrawNodeLabel
 			subnode.Expander:SetSize(subnode:GetLineHeight(), subnode:GetLineHeight())
-			--subnode.Expander.Paint = DrawExpanderButton
 			subnode.name = v2.name
 			subnode.Paint = DrawTreeNode
 			subnode.PerformLayout = LayoutTreeNode
 			function subnode:DoClick()
 				Divider:DifficultySelectedInternal(self.name)
 			end
+		end
+		
+		if allCompleted then
+			node:SetIcon("icon16/tick.png")
+			node.Label:SetTextColor(color_light_green)
 		end
 	end
 	
@@ -1163,7 +1186,7 @@ local function CreateVoteRightPanel(VoteLeftPanel, data)
 			end
 		elseif voteType == RTG_VOTE_CHANGEDIFFICULTY then
 			for i,v in ipairs(hook.Run("GetGamemodeDifficultyNodes")) do
-				for i2,v2 in ipairs(v.subnodes) do
+				for j,v2 in ipairs(v.subnodes) do
 					local difficultyString = ROTGB_LocalizeString(
 						"rotgb_tg.difficulty.subcategory",
 						language.GetPhrase("rotgb_tg.difficulty.category."..v.name),
@@ -1176,7 +1199,7 @@ local function CreateVoteRightPanel(VoteLeftPanel, data)
 						Panel:SetVote(RTG_VOTE_CHANGEDIFFICULTY, self.VoteTarget)
 					end)
 					button.VoteTarget = v2.name
-					button:SetZPos(i*10+i2)
+					button:SetZPos(i*10+j)
 					button:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
 					button:Dock(TOP)
 					table.insert(Panel.TargetButtons, button)
@@ -1524,7 +1547,7 @@ local function CreateVoterResultStatementPanel(parent, voteInfo, result)
 			local difficultyName = ROTGB_LocalizeString(
 				"rotgb_tg.difficulty.subcategory",
 				language.GetPhrase(target and "rotgb_tg.difficulty.category."..target.category or "rotgb_tg.difficulty.subcategory.invalid.1"),
-				language.GetPhrase("rotgb_tg.difficulty."..difficulty..".name" or "rotgb_tg.difficulty.subcategory.invalid.2")
+				language.GetPhrase(target and "rotgb_tg.difficulty."..difficulty..".name" or "rotgb_tg.difficulty.subcategory.invalid.2")
 			)
 			local appendColor = CATEGORY_COLORS[GAMEMODE.ModeCategories[target.category]]
 			table.Add(multiColoredText, ROTGB_LocalizeMulticoloredString(
@@ -2279,6 +2302,148 @@ local function CreateSkillWebButtonsPanel(parent)
 	return Panel
 end
 
+local function DrawAchievementPanel(panel, w, h)
+	local drawColor = hook.Run("IsAchievementUnlocked", panel.rotgb_AchievementID) and color_green_semitransparent or color_gray_semitransparent
+	draw.RoundedBox(ACHIEVEMENT_PADDING,0,0,w,h,drawColor)
+end
+
+local function DrawAchievementProgress(panel, w, h)
+	local achievementUnlocked = hook.Run("IsAchievementUnlocked", panel.rotgb_AchievementID)
+	local progress = LocalPlayer():RTG_GetStat(panel.rotgb_Criteria)
+	local progressDisplay = panel.rotgb_Display == 1 and ROTGB_FormatCash(progress) or string.Comma(progress)
+	local maxProgressDisplay = panel.rotgb_Display == 1 and ROTGB_FormatCash(panel.rotgb_MaxProgress, true) or string.Comma(panel.rotgb_MaxProgress)
+	
+	surface.SetDrawColor(0, 0, 0, 255)
+	surface.DrawRect(0, 0, w, h)
+	
+	if achievementUnlocked then
+		surface.SetDrawColor(127, 255, 127, 255)
+		surface.DrawRect(2, 2, w-4, h-4)
+		
+		local achievementProgressText = ROTGB_LocalizeString("rotgb_tg.achievement.progress", progressDisplay, maxProgressDisplay)
+		draw.SimpleTextOutlined(achievementProgressText, "rotgb_achievement_body", w/2, h/2, color_light_green, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 2, color_black)
+	else
+		surface.SetDrawColor(127, 0, 255, 255)
+		surface.DrawRect(2, 2, (w-4)*math.min(progress/panel.rotgb_MaxProgress,1), h-4)
+		
+		local achievementProgressText = ROTGB_LocalizeString("rotgb_tg.achievement.progress", progressDisplay, maxProgressDisplay)
+		draw.SimpleTextOutlined(achievementProgressText, "rotgb_achievement_body", w/2, h/2, color_purple, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 2, color_black)
+	end
+end
+
+local function CreateAchievementPanel(parent, achievementID)
+	local achievement = hook.Run("GetAchievements")[achievementID]
+	local name = achievement.name
+	
+	local panel = vgui.Create("DPanel", parent)
+	panel:SetTall(ACHIEVEMENT_SIZE)
+	panel:SetZPos(achievementID)
+	panel:DockMargin(0,0,0,ACHIEVEMENT_PADDING)
+	panel:Dock(TOP)
+	panel:DockPadding(ACHIEVEMENT_PADDING, ACHIEVEMENT_PADDING, ACHIEVEMENT_PADDING, ACHIEVEMENT_PADDING)
+	panel.rotgb_AchievementID = achievementID
+	panel.Paint = DrawAchievementPanel
+	
+	local achievementImage = vgui.Create("DImage", panel)
+	achievementImage:SetWide(ACHIEVEMENT_SIZE - ACHIEVEMENT_PADDING * 2)
+	achievementImage:SetZPos(1)
+	achievementImage:DockMargin(0,0,ACHIEVEMENT_PADDING,0)
+	achievementImage:Dock(LEFT)
+	achievementImage:SetImage("rotgb_the_gamemode/achievements/"..name..".png")
+	
+	local achievementHeader = vgui.Create("DPanel", panel)
+	achievementHeader:SetTall(FONT_ACHIEVEMENT_HEADER_HEIGHT)
+	achievementHeader:SetZPos(2)
+	achievementHeader:DockMargin(0,0,0,ACHIEVEMENT_PADDING)
+	achievementHeader:Dock(TOP)
+	achievementHeader.Paint = nil
+	
+	local achievementXP = vgui.Create("DLabel", achievementHeader)
+	achievementXP:SetFont("rotgb_achievement_header")
+	achievementXP:SetTextColor(color_purple)
+	achievementXP:SetText(ROTGB_LocalizeString("rotgb_tg.achievement.reward",
+		ROTGB_LocalizeString("rotgb_tg.achievement.reward.xp", string.Comma(achievement.xp))
+	))
+	achievementXP:SizeToContentsX()
+	achievementXP:Dock(RIGHT)
+	achievementXP.rotgb_AchievementID = achievementID
+	local oldThink = achievementXP.Think
+	function achievementXP:Think(...)
+		local unlocked = hook.Run("IsAchievementUnlocked", achievementID)
+		if unlocked ~= self.rotgb_AchievementAchieved then
+			self.rotgb_AchievementAchieved = unlocked
+			self:SetTextColor(unlocked and color_light_green or color_purple)
+		end
+		if oldThink then
+			oldThink(self, ...)
+		end
+	end
+	
+	local achievementTitle = vgui.Create("DLabel", achievementHeader)
+	achievementTitle:SetFont("rotgb_achievement_header")
+	achievementTitle:SetTextColor(ACHIEVEMENT_TIERS[(tonumber(achievement.tier) or 1)] or color_light_red)
+	achievementTitle:SetText("#rotgb_tg.achievement."..name..".name")
+	achievementTitle:Dock(FILL)
+	
+	local achievementProgress = vgui.Create("DPanel", panel)
+	achievementProgress:SetTall(FONT_ACHIEVEMENT_BODY_HEIGHT+8)
+	achievementProgress:SetZPos(2)
+	achievementProgress:DockMargin(0,ACHIEVEMENT_PADDING,0,0)
+	achievementProgress:Dock(BOTTOM)
+	achievementProgress.rotgb_AchievementID = achievementID
+	achievementProgress.rotgb_Criteria = achievement.criteria
+	achievementProgress.rotgb_MaxProgress = achievement.amount
+	achievementProgress.rotgb_Display = achievement.display
+	achievementProgress.Paint = DrawAchievementProgress
+	
+	local achievementDescription = vgui.Create("DLabel", panel)
+	achievementDescription:SetFont("rotgb_achievement_body")
+	achievementDescription:SetTextColor(color_white)
+	achievementDescription:SetText("#rotgb_tg.achievement."..name..".description")
+	achievementDescription:SetWrap(true)
+	achievementDescription:SetContentAlignment(7)
+	achievementDescription:Dock(FILL)
+	
+	return panel
+end
+
+local function CreateAchievementsPanel(parent)
+	local panel = vgui.Create("DPanel", parent)
+	panel:Dock(FILL)
+	panel.Paint = nil
+	
+	local searchBar = vgui.Create("DTextEntry", panel)
+	searchBar:SetTall(FONT_BODY_HEIGHT)
+	searchBar:SetFont("rotgb_body")
+	searchBar:SetPlaceholderText("#rotgb_tg.achievement.search")
+	searchBar:Dock(TOP)
+	
+	local achievementsPanel = vgui.Create("DScrollPanel", panel)
+	achievementsPanel:DockMargin(0, ACHIEVEMENT_PADDING, 0, ACHIEVEMENT_PADDING)
+	achievementsPanel:Dock(FILL)
+	achievementsPanel:DockPadding(ACHIEVEMENT_PADDING, ACHIEVEMENT_PADDING, ACHIEVEMENT_PADDING, 0)
+	achievementsPanel.rotgb_FilterString = ""
+	achievementsPanel.rotgb_AchievementPanels = {}
+	function achievementsPanel:Refresh()
+		for k,v in pairs(self.rotgb_AchievementPanels) do
+			v:Remove()
+		end
+		for i,v in ipairs(hook.Run("GetAchievements")) do
+			local searchPhrase = string.lower(language.GetPhrase("rotgb_tg.achievement."..v.name..".name")..language.GetPhrase("rotgb_tg.achievement."..v.name..".description"))
+			if self.rotgb_FilterString == "" or string.find(searchPhrase, string.lower(self.rotgb_FilterString), 1, true) then
+				table.insert(self.rotgb_AchievementPanels, CreateAchievementPanel(achievementsPanel, i))
+			end
+		end
+	end
+	function searchBar:OnChange()
+		achievementsPanel.rotgb_FilterString = self:GetValue()
+		achievementsPanel:Refresh()
+	end
+	achievementsPanel:Refresh()
+	
+	return panel
+end
+
 
 
 function GM:CreateStartupMenu()
@@ -2295,6 +2460,11 @@ function GM:CreateStartupMenu()
 		CreateText(Menu, 9, "#rotgb_tg.welcome.8")
 		CreateText(Menu, 10, "#rotgb_tg.welcome.9")
 		CreateText(Menu, 11, "#rotgb_tg.welcome.10")
+		CreateText(Menu, 12, "#rotgb_tg.welcome.11")
+		CreateText(Menu, 13, "#rotgb_tg.welcome.12")
+		CreateText(Menu, 14, "#rotgb_tg.welcome.13")
+		CreateText(Menu, 15, "#rotgb_tg.welcome.14")
+		CreateText(Menu, 16, "#rotgb_tg.welcome.15")
 		
 		local NextButton = CreateButton(Menu, "#rotgb_tg.buttons.proceed", color_green, function()
 			hook.Run("ShowHelp")
@@ -2353,7 +2523,21 @@ end
 
 function GM:CreateScoreboard()
 	local Menu = CreateMenu()
-	CreateHeader(Menu, 1, "#rotgb_tg.scoreboard.header")
+	
+	local difficulty = hook.Run("GetDifficulty")
+	if (difficulty and GAMEMODE.Modes[difficulty]) then
+		CreateHeader(Menu, 1, ROTGB_LocalizeString(
+			"rotgb_tg.scoreboard.header",
+			language.GetPhrase("rotgb_tg.scoreboard.title"),
+			ROTGB_LocalizeString(
+				"rotgb_tg.difficulty.subcategory",
+				language.GetPhrase("rotgb_tg.difficulty.category."..GAMEMODE.Modes[difficulty].category),
+				language.GetPhrase("rotgb_tg.difficulty."..difficulty..".name")
+			)
+		))
+	else
+		CreateHeader(Menu, 1, ROTGB_LocalizeString("rotgb_tg.scoreboard.header.no_difficulty", language.GetPhrase("rotgb_tg.scoreboard.title")))
+	end
 	
 	function Menu:RecreateScoreboard()
 		if IsValid(self.Scoreboard) then
@@ -2416,7 +2600,7 @@ function GM:CreateDifficultyMenu(disableCancel)
 		
 		return Menu
 	else
-		ROTGB_LogError("#command.rotgb_tg_difficulty_menu.not_admin","")
+		ROTGB_LogError("This concommand is only available to admins.","")
 	end
 end
 
@@ -2542,6 +2726,22 @@ function GM:CreateSkillWebMenu()
 	return Menu
 end
 
+function GM:CreateAchievementsMenu()
+	local Menu = CreateMenu()
+	
+	CreateHeader(Menu, 1, "#rotgb_tg.achievement.header")
+	CreateText(Menu, 2, "#rotgb_tg.achievement.freeplay")
+	CreateAchievementsPanel(Menu)
+	
+	local backButton = CreateButton(nil, "#rotgb_tg.buttons.back", color_yellow, function()
+		hook.Run("HideAchievementsMenu")
+	end)
+	local backButtonCenteringPanel = CreateElementCenteringPanel(backButton, Menu)
+	backButtonCenteringPanel:Dock(BOTTOM)
+	
+	return Menu
+end
+
 
 
 function GM:ShowHelp()
@@ -2653,11 +2853,16 @@ function GM:HideSkillWeb()
 	end
 end
 
-function GM:GameOver(success)
-	hook.Run("SaveClient", LocalPlayer())
-	if success then
-		self.GameOverMenu = hook.Run("CreateSuccessMenu")
+function GM:ShowAchievementsMenu()
+	if IsValid(hook.Run("GetAchievementsMenu")) then
+		hook.Run("GetAchievementsMenu"):Show()
 	else
-		self.GameOverMenu = hook.Run("CreateFailureMenu")
+		hook.Run("SetAchievementsMenu", hook.Run("CreateAchievementsMenu"))
+	end
+end
+
+function GM:HideAchievementsMenu()
+	if IsValid(hook.Run("GetAchievementsMenu")) then
+		hook.Run("GetAchievementsMenu"):Hide()
 	end
 end

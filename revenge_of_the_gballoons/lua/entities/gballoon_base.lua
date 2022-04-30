@@ -55,8 +55,8 @@ ENT.rotgb_rbetab = {
 	gballoon_blimp_ggos_super=2007856,
 	gballoon_hot_air=500000,
 	gballoon_hot_air_super=10000000,
-	gballoon_blimp_long_rainbow=2.5e6,
-	gballoon_blimp_long_rainbow_super=50e6,
+	gballoon_blimp_long_rainbow=2.5e6+15,
+	gballoon_blimp_long_rainbow_super=50e6+30,
 	gballoon_garrydecal=10e6,
 	gballoon_garrydecal_super=200e6
 }
@@ -175,6 +175,7 @@ function ENT:ConvertProperties()
 	self.Properties.BalloonHealthSegments = self.Properties.BalloonHealthSegments or 1
 	self.Properties.BalloonBossEffect = self.Properties.BalloonBossEffect or ""
 	self.Properties.BalloonSuperRegen = self.Properties.BalloonSuperRegen or 0
+	self.Properties.BalloonArmor = self.Properties.BalloonArmor or 0
 	
 	self.PropertyConverted = true
 end
@@ -1549,7 +1550,7 @@ local function TestDamageResistances(properties,dmgbits,frozen)
 	elseif properties.BalloonBlack and ROTGB_HasAnyBits(dmgbits,DMG_BLAST,DMG_BLAST_SURFACE) then return 2
 	elseif properties.BalloonWhite and ROTGB_HasAnyBits(dmgbits,DMG_VEHICLE,DMG_DROWN,DMG_DROWNRECOVER) then return 1
 	elseif properties.BalloonPurple and ROTGB_HasAnyBits(dmgbits,DMG_BURN,DMG_SHOCK,DMG_ENERGYBEAM,DMG_SLOWBURN,
-	DMG_REMOVENORAGDOLL,DMG_PLASMA,DMG_DISSOLVE,DMG_DIRECT) then return 3
+	DMG_REMOVENORAGDOLL,DMG_PLASMA,DMG_DIRECT) then return 3
 	elseif properties.BalloonGray and ROTGB_HasAnyBits(dmgbits,DMG_BULLET+DMG_SLASH+DMG_BUCKSHOT) then return 4 end
 	--if properties.BalloonAqua and (ROTGB_HasAnyBits(dmgbits,DMG_CRUSH+DMG_FALL+DMG_CLUB+DMG_PHYSGUN)) then return 6 end
 end
@@ -1612,11 +1613,12 @@ function ENT:OnInjured(dmginfo)
 		if self:HasRotgBStatusEffect("shell_shocked") then
 			dmginfo:AddDamage(1)
 		end
-		if self:GetBalloonProperty("BalloonArmor") and not ignoreResistances then
-			if self:GetBalloonProperty("BalloonArmor") < 0 then
-				dmginfo:AddDamage(-self:GetBalloonProperty("BalloonArmor"))
+		local armor = self:GetBalloonProperty("BalloonArmor")*(self:GetBalloonProperty("BalloonShielded") and 2 or 1)
+		if armor and not ignoreResistances then
+			if armor < 0 then
+				dmginfo:AddDamage(-armor)
 			else
-				dmginfo:SubtractDamage(self:GetBalloonProperty("BalloonArmor"))
+				dmginfo:SubtractDamage(armor)
 			end
 			if dmginfo:GetDamage()<=0 and not resistresults then
 				self:ShowResistEffect(7)
@@ -1642,7 +1644,7 @@ function ENT:OnInjured(dmginfo)
 		if (IsValid(self.LastInflictor) and (self.LastInflictor.Base == "gballoon_tower_base" or self.LastInflictor:GetClass()=="rotgb_shooter")) and addDamageThisLayer > 0 then
 			self.LastInflictor:AddPops(addDamageThisLayer)
 			self:Log("Credited "..tostring(self.LastInflictor).." "..addDamageThisLayer.." pop(s).","damage")
-			hook.Run("gBalloonDamaged", self, self.LastAttacker, self.LastInflictor, addDamageThisLayer, 0, false)
+			hook.Run("gBalloonDamaged", self, self.LastAttacker, self.LastInflictor, addDamageThisLayer, 0, 0, false)
 		end
 		if self:GetBalloonProperty("BalloonBoss") then
 			self.currentHealthSegment = self.currentHealthSegment or self:GetBalloonProperty("BalloonHealthSegments")
@@ -1675,12 +1677,6 @@ function ENT:OnContact(ent)
 	if IsValid(ent) then
 		if self:ShouldPopOnContact(ent) then self:Pop(-1,ent) end
 	end
-	--[[if ent.SawbladeDamage then
-		local dmginfo = DamageInfo()
-		dmginfo:SetDamageType(DMG_SLASH)
-		dmginfo:SetDamage(ent.SawbladeDamage)
-		self:TakeDamageInfo(,ent,ent)
-	end]]
 end
 
 function ENT:OnKilled(dmginfo)
@@ -1705,7 +1701,7 @@ function ENT:DetermineNextBalloons(blns,dmgbits,damageLeft,instant)
 			hook.Run("gBalloonKeyValuesApply", keyvals)
 			savedKeyValueTables[class] = keyvals
 		end
-		local effectiveHealth = (v.Armor or 0) + (v.Health or 1)
+		local effectiveHealth = (v.Armor or 0) + v.Health
 		
 		if TestDamageResistances(keyvals,dmgbits,v.Frozen) and not self:HasRotgBStatusEffect("unimmune") then
 			table.insert(newspawns,v)
@@ -1726,17 +1722,18 @@ function ENT:DetermineNextBalloons(blns,dmgbits,damageLeft,instant)
 					hook.Run("gBalloonKeyValuesApply", keyvals2)
 					savedKeyValueTables[k2] = keyvals2
 				end
+				local nextBalloonShielded = tobool(keyvals2.BalloonShielded) or ROTGB_HasAllBits(v.Properties, 4)
 				local crt = {
-					Type=k2,
+					Type=keyvals2.BalloonType,
 					Amount=v2*v.Amount,
 					Health=math.Round(
-						(keyvals2.BalloonHealth or 1)*(keyvals2.BalloonShielded or ROTGB_HasAllBits(v.Properties, 4) and 2 or 1)
+						(keyvals2.BalloonHealth or 1)*(nextBalloonShielded and 2 or 1)
 						*(keyvals2.BalloonBlimp and ROTGB_GetConVarValue("rotgb_blimp_health_multiplier") or 1)*ROTGB_GetConVarValue("rotgb_health_multiplier")
 					),
-					Armor=tonumber(keyvals2.BalloonArmor),
-					Properties=v.Properties
+					Armor=(keyvals2.BalloonArmor or 0)*(nextBalloonShielded and 2 or 1),
+					Properties=bit.bor(v.Properties, keyvals2.BalloonShielded and 4 or 0)
 				}
-				crt.Health = hook.Run("GetgBalloonHealth", keyvals2.BalloonType, crt.Health) or crt.Health
+				crt.Health = hook.Run("GetgBalloonHealth", crt.BalloonType, crt.Health) or crt.Health
 				if ROTGB_HasAllBits(v.Properties, 1) and not v.Blimp then
 					crt.PrevBalloons=table.Copy(v.PrevBalloons or {})
 					table.insert(crt.PrevBalloons,class)
@@ -1748,10 +1745,10 @@ function ENT:DetermineNextBalloons(blns,dmgbits,damageLeft,instant)
 			end
 			minimumEffectiveHealthLeft = 0
 			pluses = pluses + v.Amount * (1+(v.ExtraCash or 0))
-			pops = pops + v.Amount * v.Health
+			pops = pops + v.Amount * (v.Health + (v.Armor or 0))
 		else
 			pluses = pluses + v.Amount * (1+(v.ExtraCash or 0))
-			pops = pops + v.Amount * v.Health
+			pops = pops + v.Amount * (v.Health + (v.Armor or 0))
 		end
 	end
 	damageLeft = damageLeft - 1
@@ -1782,7 +1779,7 @@ function ENT:DetermineNextBalloons(blns,dmgbits,damageLeft,instant)
 end
 
 function ENT:Pop(damage,target,dmgbits)
-	damage = damage or -1--math.ceil(math.Clamp(damage or -1,-999999999,999999999))
+	damage = bit.band(dmgbits or 0,DMG_DISSOLVE)==0 and damage or -1
 	self:Log("Popping for "..damage.." damage...","damage")
 	-- self:SetNWBool("BalloonPurple",false)
 	local maxToExist = ROTGB_GetConVarValue("rotgb_max_to_exist")
@@ -1794,7 +1791,8 @@ function ENT:Pop(damage,target,dmgbits)
 		PrevBalloons=self.PrevBalloons,
 		Blimp=self:GetBalloonProperty("BalloonBlimp"),
 		Frozen=(self.FreezeUntil2 or 0)>self:CurTime(),
-		ExtraCash=self:GetBalloonProperty("BalloonCashBonus")
+		ExtraCash=self:GetBalloonProperty("BalloonCashBonus"),
+		Armor=IsValid(target) and (self:GetBalloonProperty("BalloonArmor")*(self:GetBalloonProperty("BalloonShielded") and 2 or 1)) or 0
 	}}
 	local cash = 0
 	local deductedCash = 0
@@ -1813,6 +1811,7 @@ function ENT:Pop(damage,target,dmgbits)
 		local addcash,addpops = 0,0
 		nexts,addcash,addpops,damageLeft = self:DetermineNextBalloons(nexts,overspawned and 0 or dmgbits,damageLeft,damage == math.huge)
 		if ROTGB_LoggingEnabled("popping") then
+			self:Log("Taking "..addpops.." damage, total is now "..pops+addpops.." damage.","popping")
 			self:Log("Pop #"..damage+1-damageLeft.." of #"..damage+1 ..": "..util.TableToJSON(nexts,true),"popping")
 		end
 		if (self.DeductCash or 0)>0 then
@@ -1882,7 +1881,7 @@ function ENT:Pop(damage,target,dmgbits)
 		if (IsValid(self.LastInflictor) and (self.LastInflictor.Base == "gballoon_tower_base" or self.LastInflictor:GetClass()=="rotgb_shooter")) and pops > 0 then
 			self.LastInflictor:AddPops(pops)
 			self:Log("Credited "..tostring(self.LastInflictor).." "..pops.." pop(s).","damage")
-			hook.Run("gBalloonDamaged", self, self.LastAttacker, self.LastInflictor, pops, deductedCash, true)
+			hook.Run("gBalloonDamaged", self, self.LastAttacker, self.LastInflictor, pops, cash, deductedCash, true)
 		end
 	end
 	--for i=1,pops do
@@ -2579,15 +2578,18 @@ list.Set("NPC","gballoon_melon",{
 		BalloonHealth = "1000",
 		BalloonBoss = "1",
 		BalloonHealthSegments = "5",
-		BalloonBossEffect = "swiftness",
+		BalloonBossEffect = "earliness",
 		BalloonPopSound = "ambient/explosions/citadel_end_explosion1.wav"
 	}
 })
-ROTGB_RegisterBossEffect("swiftness", {
+ROTGB_RegisterBossEffect("earliness", {
 	HealthSegment = function(boss)
-		boss.SwiftnessMultiplier = (boss.SwiftnessMultiplier or 1) + 0.5
-		boss:UnSlowdown("gMelloon")
-		boss:Slowdown("gMelloon", boss.SwiftnessMultiplier, 9999)
+		for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
+			local oldAllowMultiStart = v:GetAllowMultiStart()
+			v:SetAllowMultiStart(true)
+			v:Use(boss,boss,USE_ON,1)
+			v:SetAllowMultiStart(oldAllowMultiStart)
+		end
 	end
 })
 list.Set("NPC","gballoon_melon_super",{
@@ -2604,15 +2606,19 @@ list.Set("NPC","gballoon_melon_super",{
 		BalloonHealth = "20000",
 		BalloonBoss = "1",
 		BalloonHealthSegments = "10",
-		BalloonBossEffect = "swiftness_super",
+		BalloonBossEffect = "earliness_super",
 		BalloonPopSound = "ambient/explosions/citadel_end_explosion1.wav"
 	}
 })
-ROTGB_RegisterBossEffect("swiftness_super", {
+ROTGB_RegisterBossEffect("earliness_super", {
 	HealthSegment = function(boss)
-		boss.SwiftnessMultiplier = (boss.SwiftnessMultiplier or 1) + 1
-		boss:UnSlowdown("gMelloon")
-		boss:Slowdown("gMelloon", boss.SwiftnessMultiplier, 9999)
+		for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
+			local oldAllowMultiStart = v:GetAllowMultiStart()
+			v:SetAllowMultiStart(true)
+			v:Use(boss,boss,USE_ON,1)
+			v:Use(boss,boss,USE_ON,1)
+			v:SetAllowMultiStart(oldAllowMultiStart)
+		end
 	end
 })
 
@@ -3068,13 +3074,6 @@ list.Set("NPC","gballoon_garrydecal",{
 	}
 })
 ROTGB_RegisterBossEffect("kicker", {
-	PerSecond = function(boss)
-		for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
-			if v:GetWave() > v:GetLastWave() then
-				v:SetLastWave(v:GetWave())
-			end
-		end
-	end,
 	HealthSegment = function(boss)
 		local minDistance = math.huge
 		local closestTower = NULL

@@ -34,6 +34,11 @@ start with rocket launcher (meta)
 start with physgun (meta)
 skill effectiveness (meta)
 experience gain [from gBlimps] [in freeplay] (meta)
+
+ICU: Quadruple HP gBalloons
+ICU: Quadruple Game Speed
+ICU: Super Bosses
+ICU: 
 ]]
 
 AccessorFunc(GM, "CachedSkillAmounts", "CachedSkillAmounts")
@@ -339,6 +344,10 @@ end
 
 function PLAYER:RTG_AddSkills(skillIDs)
 	for k,v in pairs(skillIDs) do
+		if v ~= true then
+			hook.Run("RTG_Log", "A skill value of \""..tostring(v).."\" was inserted instead of a bool. This is incorrect!", RTG_LOGGING_ERROR)
+			debug.Trace()
+		end
 		self.rtg_Skills[k] = v
 	end
 	self.rtg_SkillAmount = table.Count(self.rtg_Skills)

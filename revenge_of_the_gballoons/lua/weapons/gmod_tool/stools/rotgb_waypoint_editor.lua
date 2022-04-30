@@ -55,7 +55,7 @@ TOOL.BuildCPanel = function(form)
 	form:CheckBox("#rotgb.convar.rotgb_waypoint_editor_indicator_bounce.name","rotgb_waypoint_editor_indicator_bounce")
 	choicelist = form:ComboBox("#rotgb.convar.rotgb_waypoint_editor_indicator_color.name","rotgb_waypoint_editor_indicator_color")
 	for i=0,11 do
-		choicelist:AddChoice(string.format("rotgb.convar.rotgb_waypoint_editor_indicator_color.%i", i), i)
+		choicelist:AddChoice(string.format("#rotgb.convar.rotgb_waypoint_editor_indicator_color.%i", i), i)
 	end
 	local mixer = vgui.Create("DColorMixer")
 	mixer:SetLabel("#rotgb.convar.rotgb_waypoint_editor_indicator_color.solid_selection")

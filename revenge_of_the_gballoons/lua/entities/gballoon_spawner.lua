@@ -1561,11 +1561,10 @@ ROTGB_WAVES = { -- format: { balloon_type, amount=1, timespan=0, delay=0 }
 	{
 		{"gballoon_ceramic",4,4},
 		{"gballoon_fast_regen_black",5,2.5,4},
-		{"gballoon_gray",nil,6.5},
-		{"gballoon_error",nil,6.5},
+		{"gballoon_shielded_error",nil,6.5},
 		{"gballoon_fast_hidden_regen_green",nil,10},
 		duration=10,
-		rbe=888--4*196+5*11+2*23+3
+		rbe=888--4*196+5*11+46+3
 	},
 	{
 		{"gballoon_shielded_rainbow",5,5},

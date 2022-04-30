@@ -5,17 +5,17 @@ SWEP.Spawnable			= true
 --	SWEP.AdminOnly			= false
 SWEP.PrintName			= "Pickup SWEP"
 --	SWEP.Base				= weapon_base
---	SWEP.m_WeaponDeploySpeed= 1
+SWEP.m_WeaponDeploySpeed= 4
 SWEP.Author				= "Piengineer12"
 SWEP.Contact			= "http://steamcommunity.com/id/Piengineer12/"
 SWEP.Purpose			= "Pick up objects and add it to your inventory!"
 SWEP.Instructions		= "Hover your cursor over an object, then click to pick it up.\nLeft Click: Semi-Auto\nRight Click: Full-Auto"
---	SWEP.ViewModel			= "models/weapons/v_pistol.mdl"
+SWEP.ViewModel			= "models/weapons/c_arms.mdl"
 --	SWEP.ViewModelFlip		= false
 --	SWEP.ViewModelFlip1		= false
 --	SWEP.ViewModelFlip2		= false
 --	SWEP.ViewModelFOV		= 62
---	SWEP.WorldModel			= "models/weapons/w_357.mdl"
+SWEP.WorldModel			= "models/weapons/w_spade.mdl"
 SWEP.AutoSwitchFrom		= false
 SWEP.AutoSwitchTo		= false
 --	SWEP.Weight				= 5
@@ -51,6 +51,20 @@ SWEP.AccurateCrosshair	= true
 function SWEP:Initialize()
 	self.Weapon:SetHoldType("normal")
 end
+
+--[[function SWEP:Think()
+	if CLIENT then
+		local model = ISAWC.ConPickupViewModel:GetString()
+		local vm = LocalPlayer():GetViewModel()
+		if (IsValid(vm) and vm:GetModel()~=model) then
+			vm:SetModel(model)
+		end
+	end
+	local model = ISAWC.ConPickupWorldModel:GetString()
+	if self:GetModel() ~= model then
+		self:SetModel(model)
+	end
+end]]
 
 function SWEP:PrimaryAttack()
 	self.Weapon:SetNextPrimaryFire(CurTime())

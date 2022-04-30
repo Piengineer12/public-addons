@@ -80,7 +80,7 @@ local buttonHeight = 48
 
 if CLIENT then
 	surface.CreateFont("RotgBUIHeader",{
-		font="Orbitron Medium",
+		font="Roboto",
 		size=24
 	})
 	surface.CreateFont("RotgBUIBody",{
@@ -908,14 +908,9 @@ function SWEP:CreateBottomRightPanel(Main)
 	return BottomPanel
 end
 
-function SWEP:CreateMiddlePanel(Main)
+function SWEP:CreateUpperPanel(Main)
 	local wep = self
-	local MiddleDivider = vgui.Create("DVerticalDivider")
-	MiddleDivider:SetDividerHeight(padding)
-	MiddleDivider:SetTopHeight(ScrH()*0.15-padding*1.5)
-	
 	local UpperPanel = vgui.Create("DPanel")
-	MiddleDivider:SetTop(UpperPanel)
 	UpperPanel.Paint = PaintBackground
 	UpperPanel:DockPadding(padding,padding,padding,padding)
 	Main:AddHeader("#rotgb.game_swep.abilities.header", UpperPanel)
@@ -933,10 +928,23 @@ function SWEP:CreateMiddlePanel(Main)
 		local towerPanelSize = wep:DeterminePowerOfTwoSize(ScrH()*0.15-padding*4.5-24)
 		local halfSize = towerPanelSize/2
 		local success = false
+		local AllTowersPanel = false
 		
 		for k,v in pairs(ents.GetAll()) do
 			if v.Base == "gballoon_tower_base" and v.HasAbility then
 				success = true
+				
+				if not AllTowersPanel then
+					AllTowersPanel = Main:CreateButton("#rotgb.game_swep.abilities.all", TowersPanel, color_green, color_light_green, color_white)
+					AllTowersPanel:SetSize(towerPanelSize*2+padding, towerPanelSize)
+					function AllTowersPanel:DoClick()
+						net.Start("rotgb_generic")
+						net.WriteUInt(ROTGB_OPERATION_TRIGGER, 8)
+						net.WriteEntity(LocalPlayer())
+						net.SendToServer()
+					end
+				end
+				
 				local TowerPanel = vgui.Create("DImageButton", TowersPanel)
 				TowerPanel.Tower = v
 				TowerPanel:SetMaterial("vgui/entities/"..v:GetClass())
@@ -983,12 +991,10 @@ function SWEP:CreateMiddlePanel(Main)
 				end
 				
 				function TowerPanel:DoClick()
-					if self.activatable then
-						net.Start("rotgb_generic")
-						net.WriteUInt(ROTGB_OPERATION_TRIGGER, 8)
-						net.WriteEntity(self.Tower)
-						net.SendToServer()
-					end
+					net.Start("rotgb_generic")
+					net.WriteUInt(ROTGB_OPERATION_TRIGGER, 8)
+					net.WriteEntity(self.Tower)
+					net.SendToServer()
 				end
 			end
 		end
@@ -1001,6 +1007,15 @@ function SWEP:CreateMiddlePanel(Main)
 	end
 	ScrollPanel:Refresh()
 	Main.AbilityScrollPanel = ScrollPanel
+	
+	return UpperPanel
+end
+
+function SWEP:CreateMiddlePanel(Main)
+	local MiddleDivider = vgui.Create("DVerticalDivider")
+	MiddleDivider:SetDividerHeight(padding)
+	MiddleDivider:SetTopHeight(ScrH()*0.15-padding*1.5)
+	MiddleDivider:SetTop(self:CreateUpperPanel(Main))
 	
 	local LowerPanel = vgui.Create("DPanel")
 	MiddleDivider:SetBottom(LowerPanel)

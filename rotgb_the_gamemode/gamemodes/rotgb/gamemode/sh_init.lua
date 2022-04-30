@@ -1,7 +1,7 @@
 GM.Name							= "RotgB: The Gamemode!"
 GM.Author						= "Piengineer12"
-GM.Version						= "1.4.0"
-GM.VersionDate					= "2022-02-26"
+GM.Version						= "1.5.0"
+GM.VersionDate					= "2022-04-23"
 GM.Email						= "[REDACTED]"
 GM.Website						= "https://steamcommunity.com/id/Piengineer12"
 GM.TeamBased					= true
@@ -230,6 +230,7 @@ RTG_STAT_POPS = 1
 RTG_STAT_INIT = 2
 RTG_STAT_VOTES = 3
 RTG_STAT_FULLUPDATE = 4
+RTG_STAT_ACHIEVEMENTS = 5
 
 RTG_OPERATION_KICK = 1
 RTG_OPERATION_GAMEOVER = 2
@@ -239,6 +240,7 @@ RTG_OPERATION_VOTEEND = 5
 RTG_OPERATION_SKILLS = 6
 RTG_OPERATION_MAPS = 7
 RTG_OPERATION_TEAM = 8
+RTG_OPERATION_ACHIEVEMENT = 9
 
 RTG_VOTE_KICK = 1
 RTG_VOTE_CHANGEDIFFICULTY = 2
@@ -280,6 +282,7 @@ function GM:RTG_Log(message, logging, noNewline)
 end
 
 local clientFiles = {
+	"cl_achievements.lua",
 	"cl_common_functions.lua",
 	"cl_hud.lua",
 	"cl_localization.lua",
@@ -292,16 +295,18 @@ local clientFiles = {
 }
 
 local sharedFiles = {
+	"sh_achievements.lua",
 	"sh_common_functions.lua",
 	"sh_misc.lua",
 	"sh_player.lua",
 	"sh_skills.lua",
 	"sh_teams.lua",
 	"player_class/builder.lua",
-	"player_class/hunter.lua"
+	"player_class/hunter.lua",
 }
 
 local serverFiles = {
+	"sv_achievements.lua",
 	"sv_misc.lua",
 	"sv_net.lua",
 	"sv_player.lua",

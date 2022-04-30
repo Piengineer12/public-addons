@@ -48,6 +48,7 @@ end
 function GM:SharedInitialize()
 	hook.Run("RebuildSkills")
 	hook.Run("SetCachedSkillAmounts", {})
+	hook.Run("SetStatisticAmounts", {})
 end
 
 AccessorFunc(GM, "Difficulty", "Difficulty", FORCE_STRING)

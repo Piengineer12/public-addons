@@ -161,10 +161,7 @@ hook.Add("EntityTakeDamage","ROTGB_TOWERS",function(vic,dmginfo)
 			dmginfo:SetInflictor(laser.rotgb_Owner)
 		end
 		if laser.rotgb_UseLaser==2 then
-			dmginfo:SetDamageType(DMG_GENERIC)
-			if math.ceil(dmginfo:GetDamage()/10*ROTGB_GetConVarValue("rotgb_damage_multiplier"))>=vic:Health() and vic:GetClass()=="gballoon_base" and laser.rotgb_NoChildren then
-				dmginfo:SetDamage(vic:GetRgBE() * 1000)
-			end
+			dmginfo:SetDamageType(laser.rotgb_NoChildren and DMG_DISSOLVE or DMG_GENERIC)
 		end
 	elseif (IsValid(inflictor) and inflictor.rotgb_Owner) then
 		dmginfo:SetInflictor(inflictor.rotgb_Owner)
@@ -263,9 +260,8 @@ function ENT:Think()
 		self.LocalCost = amount
 		if CLIENT then
 			self.SellAmount = self.LocalCost
+			hook.Run("RotgBTowerPlaced", self, self.LocalCost)
 		end
-		
-		hook.Run("RotgBTowerPlaced", self)
 	end
 	if SERVER then
 		self:ROTGB_Think()
@@ -333,6 +329,7 @@ function ENT:Think()
 				end
 			end
 			ROTGB_RemoveCash(towerCost,towerOwner)
+			hook.Run("RotgBTowerPlaced", self, towerCost)
 			self.SellAmount = self.LocalCost
 		end
 		local curTime = CurTime()
@@ -673,9 +670,14 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 				reference.Funcs[tier](ent)
 			end
 			ROTGB_RemoveCash(price,ply)
+			hook.Run("RotgBTowerUpgraded", ent, path+1, tier, price)
 			tier = tier + 1
 		end
 		ent:SetUpgradeStatus(ent:GetUpgradeStatus()+bit.lshift(upgradeAmount,path*4))
+		ent:EmitSound("hl1/fvox/fuzz.wav", 75, 120+tier*5)
+		local effdata = EffectData()
+		effdata:SetEntity(ent)
+		util.Effect("entity_remove",effdata,true,true)
 		net.Start("rotgb_openupgrademenu")
 		net.WriteEntity(ent)
 		net.WriteUInt(ROTGB_TOWER_UPGRADE, 2)

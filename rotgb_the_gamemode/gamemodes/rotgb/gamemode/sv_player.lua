@@ -46,6 +46,9 @@ function GM:PlayerSay(ply, message, forTeam)
 	elseif message == "!guide" or message == "!rtg_guide" then
 		ply:ConCommand("rotgb_guide_book")
 		return ""
+	elseif message == "!achievements" or message == "!rtg_achievements" then
+		ply:ConCommand("rotgb_tg_achievements")
+		return ""
 	end
 	return message
 end

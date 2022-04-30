@@ -140,13 +140,8 @@ function ENT:ROTGB_Think()
 		
 		for k,v in pairs(ROTGB_GetBalloons()) do
 			if v.ROTGB_TOWER_02_Marks then
-				--[[if self.rotgb_HitBlack and v:Health() <= v.ROTGB_TOWER_02_Marks then
-					dmginfo:SetDamage(v:GetRgBE() * 1000)
-					dmginfo:SetMaxDamage(v:GetRgBE() * 1000)
-				else]]
-					dmginfo:SetDamage(v.ROTGB_TOWER_02_Marks)
-					dmginfo:SetMaxDamage(v.ROTGB_TOWER_02_Marks)
-				--end
+				dmginfo:SetDamage(v.ROTGB_TOWER_02_Marks)
+				dmginfo:SetMaxDamage(v.ROTGB_TOWER_02_Marks)
 				v:TakeDamageInfo(dmginfo)
 				v.ROTGB_TOWER_02_Marks = nil
 			end
@@ -171,7 +166,7 @@ function ENT:Explode(pos, recursion, gBalloons)
 		effdata:SetRadius(3)
 	end
 	effdata:SetStart(pos)
-	util.Effect(--[[recursion == self.rotgb_Recursion and "HelicopterMegaBomb" or ]]"StunstickImpact",effdata,true,true)
+	util.Effect("StunstickImpact",effdata,true,true)
 	for k,v in pairs(gBalloons) do
 		if self:ValidTargetIgnoreRange(v) then
 			local markedDamage = self.AttackDamage
@@ -212,82 +207,6 @@ function ENT:Explode(pos, recursion, gBalloons)
 		end)
 	end
 end
-
---[=[function ENT:Recur(ball,cur)
-	local amt = 0
-	for k,v in pairs(ents.FindInSphere(ball:GetPos(),self.DetectionRadius)) do
-		if self:ValidTargetIgnoreRange(v) then
-			v.WillExplode = (v.WillExplode or 0) + 1
-			if v.WillExplode==1 then
-				timer.Simple(0.5,function()
-					if IsValid(self) and IsValid(v) then
-						local dmginfo = DamageInfo()
-						dmginfo:SetAmmoType(game.GetAmmoID("RPG_Round"))
-						dmginfo:SetAttacker(self:GetTowerOwner())
-						dmginfo:SetInflictor(self)
-						dmginfo:SetDamageType(self.rotgb_HitBlack and DMG_GENERIC or DMG_BLAST)
-						dmginfo:SetReportedPosition(v:GetPos())
-						dmginfo:SetDamage(self.AttackDamage*v.WillExplode)
-						dmginfo:SetMaxDamage(self.AttackDamage*v.WillExplode)
-						local effdata = EffectData()
-						effdata:SetOrigin(v:GetPos())
-						if self.rotgb_BIGBOI then
-							effdata:SetMagnitude(2)
-							effdata:SetScale(2)
-						end
-						effdata:SetStart(v:GetPos())
-						effdata:SetEntity(v)
-						util.Effect("HelicopterMegaBomb",effdata,true,true)
-						v:EmitSound("phx/kaboom.wav", 75, math.random(80,120), 0.5)
-						--if self.rotgb_AlternateExplode then
-							if self.rotgb_ExtraVsCeramic and v:GetBalloonProperty("BalloonBlimp") then
-								dmginfo:ScaleDamage(3)
-							end
-							if self.rotgb_HitBlack and v:Health() <= dmginfo:GetDamage() then
-								dmginfo:SetDamage(v:GetRgBE() * 1000)
-							end
-							if self.rotgb_StrengthBreaker then
-								if v:GetBalloonProperty("BalloonShielded") then
-									v:SetHealth(v:Health()/2)
-									v:SetMaxHealth(v:GetMaxHealth()/2)
-									v.Properties.BalloonShielded = false
-									v:SetNWBool("RenderShield",false)
-								end
-								if v:GetBalloonProperty("BalloonFast") then
-									v.loco:SetAcceleration(v.loco:GetAcceleration()/2)
-									v.loco:SetDesiredSpeed(v.loco:GetAcceleration()*0.2)
-									v.loco:SetDeceleration(v.loco:GetAcceleration())
-									v.Properties.BalloonFast = false
-									if IsValid(self.FastTrail) then self.FastTrail:Remove() end
-								end
-							end
-							if not v:GetBalloonProperty("BalloonBlimp") and self.rotgb_Stun then
-								if not (v:GetBalloonProperty("BalloonWhite") or v:GetBalloonProperty("BalloonBlimp") or v:GetBalloonProperty("BalloonBlack")) or v:HasRotgBStatusEffect("unimmune") then
-									v:Freeze2(2)
-								elseif not v:GetBalloonProperty("BalloonBlack") then
-									v:ShowResistEffect(1)
-								end
-							end
-							if self.rotgb_AlternateExplode then
-								v:Slowdown("ROTGB_PROX_MINE",0.7,3)
-							end
-							--dmginfo:ScaleDamage(1/scale)
-						--[[else
-							util.BlastDamageInfo(dmginfo,v:GetPos(),self.DetectionRadius)
-						end]]
-						v:TakeDamageInfo(dmginfo)
-						if cur > 1 then
-							self:Recur(v,cur-1)
-						end
-						v.WillExplode = nil
-					end
-				end)
-			end
-			amt = amt + 1
-			if amt > 10 then break end
-		end
-	end
-end]=]
 
 function ENT:TriggerAbility()
 	local entities = ROTGB_GetBalloons()

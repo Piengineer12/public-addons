@@ -23,15 +23,6 @@ ENT.InfiniteRange2 = true
 ENT.rotgb_Buff = 0
 ENT.UpgradeReference = {
 	{
-		Names = {"Ultrasound Annoyance","Speed Traps","Radar Pulsar","Unfastening Dust","Immunity Shatter","Total Meltdown"},
-		Descs = {
-			"All gBalloons within range permanently lose the Regen property.",
-			"All gBalloons within range permanently lose the Fast property.",
-			"All gBalloons within range permanently lose the Hidden property.",
-			"All gBalloons within range permanently lose the Shielded property.",
-			"All gBalloons within range permanently lose all damage type immunities.",
-			"Once every 30 seconds, shooting at this tower causes all towers within this tower's radius to deal 40 extra layers of damage for 15 seconds.",
-		},
 		Prices = {500,2000,7500,30000,125000,500000},
 		Funcs = {
 			function(self)
@@ -55,17 +46,7 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Razor Blades","Faster Blades","Superheated Blades","Even Faster Blades","Sonic Blades","Supersonic Blades","Hypersonic Blades"},
-		Descs = {
-			"This tower can now instantly pop Blue gBalloons and lower, regardless of immunities and properties.",
-			"This tower can now instantly pop Pink gBalloons and lower.",
-			"This tower can now instantly pop Gray, Zebra, Aqua and Error gBalloons, as well as anything lower.",
-			"This tower can now instantly pop Ceramic gBalloons and anything lower!",
-			"This tower can now instantly pop Blue gBlimps, Marble gBalloons and anything lower!",
-			"This tower can now instantly pop Red gBlimps, Monochrome gBlimps and anything lower!",
-			"This tower can now instantly pop Green gBlimps, Magenta gBlimps and anything lower!",
-		},
-		Prices = {2000,3000,19000,170000,790000,3.65e6,18e6},
+		Prices = {2000,3000,19000,170000,790000,3.65e6,18e6,50e6},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 20
@@ -87,23 +68,18 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.AttackDamage = self.AttackDamage + 180040
-			end
+			end,
+			function(self)
+				self.AttackDamage = self.AttackDamage + 513280
+			end,
 		}
 	},
 	{
-		Names = {"Morale Boost","Health Insurance","Jungle Drumming","Trusted Partnerships","Maximum Potential"},
-		Descs = {
-			"All towers in this tower's radius fire 20% faster.",
-			"Whenever a gBalloon reaches its target and pops, each player gains $1000 for each damage point taken by the target, ignoring all damage reduction effects.",
-			"All towers within the range of this tower pop one extra layer per attack.",
-			"Whenever a tower fires within this tower's range, there is a chance that a random tower within this tower's range will also fire! \z
-				The chance is reduced if the firing tower fires faster than the targeted tower.",
-			"All towers except this tower in this tower's radius no longer have upgrade path restrictions!",
-		},
 		Prices = {400,5000,40000,100000,500e6},
 		Funcs = {
 			function(self)
 				self.rotgb_Buff = 1
+				self.FireWhenNoEnemies = true
 			end,
 			function(self)
 				self.rotgb_Buff = 2
@@ -120,7 +96,7 @@ ENT.UpgradeReference = {
 		}
 	}
 }
-ENT.UpgradeLimits = {7,2,0}
+ENT.UpgradeLimits = {8,2,0}
 
 --[[function ENT:FireFunction(gBalloons)
 	if self.rotgb_Buff > 4 then
@@ -158,7 +134,16 @@ function ENT:FireFunction(gBalloons)
 				v:InflictRotgBStatusEffect("unimmune",999999)
 			end
 			if v:GetRgBE() <= self.AttackDamage/10 and self.AttackDamage > 0 then
-				v:TakeDamage(v:GetRgBE() * 1000, self:GetTowerOwner(), self)
+				local pos, selfpos, dmginfo = v:GetPos(), self:GetShootPos(), DamageInfo()
+				dmginfo:SetDamage(2147483647)
+				dmginfo:SetBaseDamage(2147483647)
+				dmginfo:SetAttacker(self:GetTowerOwner())
+				dmginfo:SetInflictor(self)
+				dmginfo:SetDamageForce(pos-selfpos)
+				dmginfo:SetDamagePosition(pos)
+				dmginfo:SetDamageType(DMG_DISSOLVE)
+				dmginfo:SetReportedPosition(selfpos)
+				v:TakeDamageInfo(dmginfo)
 			end
 		elseif v.Base=="gballoon_tower_base" then
 			if self.rotgb_Buff > 0 then

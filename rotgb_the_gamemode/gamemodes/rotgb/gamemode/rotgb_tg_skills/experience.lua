@@ -261,20 +261,20 @@ table.insert(experienceSkills, {
 		pos = {-1, 0}
 	},
 	{
-		ref = "curseOfTheMind",
-		name = "curse_of_the_mind",
-		trait = {"towerHalfIncome", "skillExperiencePerWave"},
-		amount = {1, 2},
+		ref = "curseOfTheBody",
+		name = "curse_of_the_body",
+		trait = {"gBalloonDoubleHealth", "skillExperienceEffectiveness", "skillExperiencePerWaveEffectiveness"},
+		amount = {1, 100, 100},
 		tier = 2,
 		parent = GetSXPName(1, 26),
 		links = "parent",
 		pos = {-1, 0}
 	},
 	{
-		ref = "curseOfTheBody",
-		name = "curse_of_the_body",
-		trait = {"gBalloonDoubleHealth", "skillExperienceEffectiveness", "skillExperiencePerWaveEffectiveness"},
-		amount = {1, 100, 100},
+		ref = "curseOfTheMind",
+		name = "curse_of_the_mind",
+		trait = {"towerHalfIncome", "skillExperiencePerWave"},
+		amount = {1, 2},
 		tier = 2,
 		parent = GetSXPName(2, 26),
 		links = "parent",

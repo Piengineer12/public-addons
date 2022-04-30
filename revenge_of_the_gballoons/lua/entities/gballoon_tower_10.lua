@@ -183,7 +183,11 @@ local function SnipeEntity()
 		local bullet = {
 			Attacker = self:GetTowerOwner(),
 			Callback = function(attacker,tracer,dmginfo)
-				dmginfo:SetDamageType(DMG_CLUB)
+				if (IsValid(self) and self.rotgb_NoC) then
+					dmginfo:SetDamageType(bit.bor(DMG_CLUB, DMG_DISSOLVE))
+				else
+					dmginfo:SetDamageType(DMG_CLUB)
+				end
 			end,
 			Damage = self.AttackDamage*chargesSpent,
 			Distance = self.DetectionRadius*1.5,
@@ -201,12 +205,7 @@ local function SnipeEntity()
 		if self.rotgb_NoA then
 			ent:SetBalloonProperty("BalloonArmor", -15)
 		end
-		if self.rotgb_NoC and math.ceil(bullet.Damage/10*ROTGB_GetConVarValue("rotgb_damage_multiplier"))>=ent:Health() then
-			bullet.Damage = ent:GetRgBE() * 1000
-			self:FireBullets(bullet)
-		else
-			self:FireBullets(bullet)
-		end
+		self:FireBullets(bullet)
 		self:SetNWFloat("rotgb_Charges",self:GetNWFloat("rotgb_Charges")-chargesSpent)
 	end
 end

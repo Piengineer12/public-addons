@@ -9,9 +9,19 @@ net.Receive("rotgb_statchanged", function(length, ply)
 				hook.Run("InitializePlayer", ply)
 			end
 			if not ply.rtg_PreviousXP then
+				-- update our values
 				ply.rtg_PreviousXP = net.ReadDouble()
 				hook.Run("ReadSkillMessage", ply)
 				
+				local plyStats = {}
+				for i=1,net.ReadUInt(16) do
+					local stat = net.ReadUInt(16)+1
+					plyStats[stat] = net.ReadDouble()
+				end
+				hook.Run("GetStatisticAmounts")[ply] = plyStats
+				hook.Run("GetPlayerStatsRequireUpdates")[ply] = plyStats
+				
+				-- send updated values to players
 				net.Start("rotgb_statchanged")
 				net.WriteUInt(RTG_STAT_INIT, 4)
 				net.WriteEntity(ply)
@@ -57,6 +67,7 @@ net.Receive("rotgb_statchanged", function(length, ply)
 	end
 end)
 
+local achievementAllSuccessAlreadyDonePlayers = {}
 net.Receive("rotgb_gamemode", function(length, ply)
 	local operation = net.ReadUInt(4)
 	if operation == RTG_OPERATION_GAMEOVER and hook.Run("GetGameIsOver") then
@@ -85,6 +96,14 @@ net.Receive("rotgb_gamemode", function(length, ply)
 			net.WriteString(v)
 		end
 		net.Send(ply)
+	elseif operation == RTG_OPERATION_ACHIEVEMENT then
+		local statID = net.ReadUInt(16)+1
+		if statID == hook.Run("GetStatisticID", "success.all") and hook.Run("GetGameIsOver") and not achievementAllSuccessAlreadyDonePlayers[ply:SteamID()] then
+			hook.Run("SetGameIsOver", false)
+			ply:RTG_SetStat(statID, net.ReadDouble())
+			hook.Run("SetGameIsOver", true)
+			achievementAllSuccessAlreadyDonePlayers[ply:SteamID()] = true
+		end
 	end
 end)
 

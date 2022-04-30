@@ -31,14 +31,6 @@ ENT.rotgb_FlyTime = 1
 ENT.rotgb_ExtraMul = 0
 ENT.UpgradeReference = {
 	{
-		Names = {"Faster Cooking","Better Cooking","Fire Pill Recipe","Minute Rush","Spray and Pray"},
-		Descs = {
-			"Slightly increases fire rate.",
-			"Considerably increases fire rate and slightly increases splash radius.",
-			"Enables the tower to lob fire pills that set gBalloons on fire, dealing 20 layers of damage over 10 seconds.",
-			"Once every 80 seconds, shooting at this tower tremendously increases fire rate and considerably increases pill count for 60 seconds.",
-			"Colossally increases fire rate and tremendously increases pill count for Minute Rush.",
-		},
 		Prices = {175,1000,5000,12500,150000},
 		Funcs = {
 			function(self)
@@ -61,14 +53,6 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Better Pills","Better Splash","Toxic Pill Recipe","Toxin Cloud","Cloud Nine"},
-		Descs = {
-			"Increases direct hit damage by 1 layer and increases splash radius.",
-			"Considerably increases splash radius and increases indirect hit damage by 2 layers.",
-			"Enables the tower to lob toxic pills that leave a poisonous cloud behind. The clouds last for 10 seconds and deal 1 damage per half-second.",
-			"Tremendously increases poison cloud damage. Once every 80 seconds, shooting at this tower poisons all gBalloons in the map for 90 seconds.",
-			"Poison clouds deal 9x damage, are considerably bigger and last considerably longer."
-		},
 		Prices = {250,2750,10000,25000,1.2e6},
 		Funcs = {
 			function(self)
@@ -96,14 +80,6 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Sharper Glass","Even Sharper Glass","Electric Pill Recipe","Shock N' Wave","Hypersonic Explosion"},
-		Descs = {
-			"Increases direct and indirect hit damage by 1 layer.",
-			"Increases direct hit damage by 3 layers and increases indirect hit damage by 4 layers.",
-			"Enables the tower to lob electric pills that create an electric spark, arcing up to 4 gBalloons. Arcs always deal direct hit damage.",
-			"Once every 80 seconds, shooting at this tower causes it to emit two pulses that deal shock and sonic damage, dealing 1,000 layers each to all gBalloons within its radius.",
-			"Causes the tower's ability to be on cooldown. Activating Shock N' Wave will destroy this tower to create two pulses that deal 100,000 layers each."
-		},
 		Prices = {375,1500,7500,30000,750000},
 		Funcs = {
 			function(self)
@@ -127,14 +103,6 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Far Swings","Variably Accurate Targeting Systems","Conversion Pill Recipe","State-Changing Pills","First World Country Pills"},
-		Descs = {
-			"Increases the tower's range by a third.",
-			"Increases range to infinite, increases direct hit damage by 5 layers and enables the tower to pop Hidden gBalloons.",
-			"Enables the tower to lob conversion pills that instantly pop Gray gBalloons, and only Gray gBalloons. You gain an extra $25 for each gBalloon popped this way, quadrupled for each unlocked pill type.",
-			"Pills coat all gBalloon layers (but not gBlimps) in a chemical that permanently increases the gBalloon's cash drops by 100%. Note that cash drops induced by towers are not affected!",
-			"Pills can now coat gBlimps, and coatings increase cash drops by an additional 800%."
-		},
 		Prices = {125,1000,12500,25000,1e6},
 		Funcs = {
 			function(self)
@@ -265,8 +233,9 @@ function ENT:ApplyDirectDamage(bln,pill)
 	end
 	local dmginfo = self:CreateDamageInfo()
 	if pill.rotgb_PillType == 3 and bln:GetBalloonProperty("BalloonType")=="gballoon_gray" then
-		dmginfo:SetDamage(bln:GetRgBE()*1000)
-		dmginfo:SetDamageType(DMG_ACID)
+		dmginfo:SetDamage(2147483647)
+		dmginfo:SetBaseDamage(2147483647)
+		dmginfo:SetDamageType(bit.bor(DMG_ACID, DMG_DISSOLVE))
 		self:AddCash(bit.lshift(25,2*#self.rotgb_PillTypes), owner)
 	elseif pill.rotgb_PillType == 2 then
 		dmginfo:SetDamage(self.AttackDamage+self.rotgb_SplashDamageModifier)
@@ -290,8 +259,9 @@ function ENT:ApplyIndirectDamage(bln,pill)
 	end
 	local dmginfo = self:CreateDamageInfo()
 	if pill.rotgb_PillType == 3 and bln:GetBalloonProperty("BalloonType")=="gballoon_gray" then
-		dmginfo:SetDamage(bln:GetRgBE()*1000)
-		dmginfo:SetDamageType(DMG_ACID)
+		dmginfo:SetDamage(2147483647)
+		dmginfo:SetBaseDamage(2147483647)
+		dmginfo:SetDamageType(bit.bor(DMG_ACID, DMG_DISSOLVE))
 		self:AddCash(bit.lshift(25,2*#self.rotgb_PillTypes), owner)
 	elseif pill.rotgb_PillType == 2 then
 		dmginfo:SetDamage(self.AttackDamage+self.rotgb_SplashDamageModifier)

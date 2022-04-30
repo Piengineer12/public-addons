@@ -1975,7 +1975,7 @@ return {
 				ref = "atgig",
 				name = "all_that_glitters_is_gold",
 				trait = "gBlimpOuterHealthCash",
-				amount = 100,
+				amount = 1000,
 				tier = 2,
 				parent = "gg11",
 				links = "parent",

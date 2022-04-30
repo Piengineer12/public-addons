@@ -10,6 +10,7 @@ AccessorFunc(GM, "MaxWaveReached", "MaxWaveReached", FORCE_NUMBER)
 function GM:Initialize()
 	hook.Run("SetGameIsOver", false)
 	hook.Run("SetDefeated", false)
+	hook.Run("SetPlayerStatsRequireUpdates", {})
 	game.SetGlobalState("rotgb_gamemode_enabled", GLOBAL_ON)
 	hook.Run("SharedInitialize")
 end
@@ -53,6 +54,7 @@ function GM:Think()
 		end
 		net.Broadcast()
 	end
+	hook.Run("StatisticsThink")
 	if hook.Run("GetPreventPlayerPhysgun") then
 		hook.Run("SetPreventPlayerPhysgun", false)
 		for k,v in pairs(ents.GetAll()) do
@@ -117,12 +119,15 @@ end
 
 -- non-base
 
-function GM:gBalloonDamaged(bln, attacker, inflictor, damage, deductedCash, isPopped)
+function GM:gBalloonDamaged(bln, attacker, inflictor, damage, cash, deductedCash, isPopped)
 	if attacker:IsPlayer() and damage > 0 then
 		local scoreAdd = (damage - deductedCash) * hook.Run("GetScoreMultiplier")
 		local xpAdd = (damage - deductedCash) * hook.Run("GetXPMultiplier")
 		attacker.rtg_gBalloonPops = (attacker.rtg_gBalloonPops or 0) + scoreAdd
 		attacker.rtg_XP = (attacker.rtg_XP or 0) + xpAdd
+		attacker:RTG_AddStat("damage", damage)
+		attacker:RTG_AddStat("pops", cash)
+		attacker:RTG_SetStat("level", attacker:RTG_GetLevel())
 		net.Start("rotgb_statchanged", true)
 		net.WriteUInt(RTG_STAT_POPS, 4)
 		net.WriteUInt(1, 12)
@@ -131,6 +136,13 @@ function GM:gBalloonDamaged(bln, attacker, inflictor, damage, deductedCash, isPo
 		net.WriteDouble(attacker.rtg_XP)
 		net.Send(attacker)
 		hook.Run("SetStatRebroadcastRequired", true)
+		
+		if bln:GetBalloonProperty("BalloonType") == "gballoon_blimp_rainbow" and isPopped then
+			attacker:RTG_AddStat("pops.gballoon_blimp_rainbow", 1)
+		end
+	end
+	for k,v in pairs(player.GetAll()) do
+		v:RTG_SetStat("cash", ROTGB_GetCash(v))
 	end
 end
 
@@ -196,12 +208,59 @@ function GM:GameOver(success)
 	net.WriteBool(success)
 	net.Broadcast()
 	hook.Run("SetGameIsOver", true)
-	if not success then
+	if success then
+		local plys = player.GetAll()
+		local flawless, zeroScore = true, true
+		
+		for k,v in pairs(ents.FindByClass("gballoon_target")) do
+			if v:Health() < v:GetMaxHealth() then
+				flawless = false break
+			end
+		end
+		
+		for k,v in pairs(plys) do
+			if v.rtg_gBalloonPops > 0 then
+				zeroScore = false break
+			end
+		end
+		
+		local difficulty = hook.Run("GetDifficulty")
+		for k,v in pairs(plys) do
+			if v:Team() == TEAM_BUILDER or v:Team() == TEAM_HUNTER then
+				v:RTG_AddStat("success", 1)
+				if flawless then
+					v:RTG_AddStat("success.no_damage", 1)
+				end
+				if zeroScore then
+					v:RTG_AddStat("success.no_score", 1)
+				end
+				
+				if difficulty == "insane_bosses" then
+					v:RTG_AddStat("success.insane_bosses", 1)
+				elseif difficulty == "impossible_bosses" then
+					v:RTG_AddStat("success.impossible_bosses", 1)
+				end
+			end
+		end
+	else
 		hook.Run("SetDefeated", true)
-		for k,v in pairs(player.GetAll()) do
+		local plys = player.GetAll()
+		local zeroScore = true
+		
+		for k,v in pairs(plys) do
+			v:RTG_AddStat("fail", 1)
 			v:ROTGB_StartSpectateRandomEntity()
 			v:StripWeapons()
 			v:ScreenFade(SCREENFADE.IN, color_black, 5, 0)
+			if v.rtg_gBalloonPops > 0 then
+				zeroScore = false break
+			end
+		end
+		
+		for k,v in pairs(plys) do
+			if zeroScore then
+				v:RTG_AddStat("fail.no_score", 1)
+			end
 		end
 	end
 end
@@ -222,4 +281,18 @@ function GM:CleanUpMap()
 		"entityflame",
 		"_firesmoke"
 	})
+end
+
+hook.Add("RotgBTowerPlaced", "ROTGB_TG_SERVER", function(tower, cost)
+	tower:GetTowerOwner():RTG_AddStat("cash.towers", cost)
+	tower:GetTowerOwner():RTG_AddStat("towers", 1)
+end)
+
+function GM:RotgBTowerUpgraded(tower, path, tier, cost)
+	if tower:GetClass()=="gballoon_tower_08" and tower:GetTowerOwner():IsPlayer() then
+		tower:GetTowerOwner():RTG_SetStat("towers.upgrades.max_tier.gballoon_tower_08", tier)
+	end
+	tower:GetTowerOwner():RTG_AddStat("cash.towers", cost)
+	tower:GetTowerOwner():RTG_AddStat("towers.upgrades", 1)
+	tower:GetTowerOwner():RTG_SetStat("towers.upgrades.max_price", cost)
 end

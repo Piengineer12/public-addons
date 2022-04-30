@@ -119,7 +119,7 @@ local function SnipeEntity()
 			Dir = uDir,
 			Src = startPos
 		}
-		if self.rotgb_StunBlimp and ent:GetBalloonProperty("BalloonBlimp") and ent:GetRgBE()<ent:GetRgBEByType("gballoon_blimp_purple")-20e3 then
+		if self.rotgb_StunBlimp and ent:GetBalloonProperty("BalloonBlimp") and ent:GetRgBE()<ent:GetRgBEByType("gballoon_blimp_purple")-ent:GetMaxHealth() then
 			ent:Stun(1)
 		end
 		if self.rotgb_MarkingShots then

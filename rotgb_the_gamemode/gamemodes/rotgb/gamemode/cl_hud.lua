@@ -24,7 +24,8 @@ function GM:HUDDrawXP()
 				levelUpText = ROTGB_LocalizeString("rotgb_tg.level_up.tower", towerUnlocked.PrintName)
 			else
 				levelUpText = "#rotgb_tg.level_up.skill_point"
-				if level == #towers + 1 then
+				local minSkillLevel = #towers + 1
+				if level >= minSkillLevel and oldLevel < minSkillLevel then
 					chat.AddText(unpack(ROTGB_LocalizeMulticoloredString(
 						"rotgb_tg.skills.hint",
 						{"!skills", "!rtg_skills"},
