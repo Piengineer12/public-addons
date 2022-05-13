@@ -18,7 +18,7 @@ local forceAlgorithmConVar = CreateConVar("reactive_physgun_algorithm", "2", FCV
 1: Tick velocities
 2: Expected: tick velocity, Actual: point tick velocity
 3: Expected: tick velocity, Actual: dampened point tick velocity]])
-local usePredictiveWheelingConVar = CreateConVar("reactive_physgun_predictivewheeling", "0", FCVAR_ARCHIVE,
+local usePredictiveWheelingConVar = CreateConVar("reactive_physgun_predictivewheeling", "1", FCVAR_ARCHIVE,
 "Extending / retracting props will adjust predicted distance based on input amount rather than being recalculated after moving the prop.")
 
 local plyReactivePhysguns = {}
