@@ -4,12 +4,12 @@ Profile Page:	https://steamcommunity.com/id/Piengineer12
 GitHub Page:	https://github.com/Piengineer12/public-addons/tree/master/lua_repair
 Donate:			https://ko-fi.com/piengineer12
 
-Links above are confirmed working as of 2021-06-23. All dates are in ISO 8601 format. 
+Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 format. 
 ]]
 
--- The $ at the name of this Lua file is important so that it loads before most other Lua files
-LUA_REPAIR_VERSION = "1.5.0"
-LUA_REPAIR_VERSION_DATE = "2022-01-22"
+-- The + at the name of this Lua file is important so that it loads before most other Lua files
+LUA_REPAIR_VERSION = "1.6.0"
+LUA_REPAIR_VERSION_DATE = "2022-05-26"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
@@ -29,6 +29,7 @@ local function FixAllErrors()
 	local NIL = getmetatable(nil) or {}
 	local STRING = getmetatable("")
 	local VECTOR = FindMetaTable("Vector")
+	local ENTITY = FindMetaTable("Entity")
 	local CLUAEMITTER = FindMetaTable("CLuaEmitter")
 	local NULL_META = getmetatable(NULL)
 	local CTAKEDAMAGEINFO = FindMetaTable("CTakeDamageInfo")
@@ -121,6 +122,17 @@ local function FixAllErrors()
 		else return oldPos(ent,...)
 		end
 	end
+	local oldGetBonePosition = ENTITY.GetBonePosition
+	ENTITY.GetBonePosition = function(ent,boneIndex,...)
+		return oldGetBonePosition(ent,boneIndex or 0,...)
+	end
+	local oldLookupBone = ENTITY.LookupBone
+	ENTITY.LookupBone = function(ent,name,...)
+		local retValues = {oldLookupBone(ent,name,...)}
+		if retValues[1] then return unpack(retValues) end
+		
+		return oldLookupBone(ent,name:lower(),...)
+	end
 	--[[local oldindex = NULL_META.__index
 	NULL_META.__index = function(ent,key)
 		if rawget() then
@@ -174,7 +186,7 @@ local function FixAllErrors()
 		end
 	end
 	if DLib then
-		DLib.MessageWarning("An addon is trying to override DLib's hook system! This is stupid and can cause errors to occur!")
+		DLib.MessageWarning("An addon is trying to override DLib's hook system! This is stupid and will cause errors to occur!")
 		Log("DLib, shut up and hold still...")
 	end
 	Log("Hooks patched!")
