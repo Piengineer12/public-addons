@@ -2479,8 +2479,6 @@ function ENT:KeyValue(key,value)
 		self.NoAutoStart = tobool(value)
 	elseif lkey=="auto_start_delay" then
 		self:SetAutoStartDelay(tonumber(value) or 0)
-	elseif lkey=="force_next" then
-		self:SetForceNextWave(tobool(value))
 	elseif lkey=="no_multi_start" then
 		self:SetAllowMultiStart(not tobool(value))
 	elseif lkey=="finished_shortly_threshold" then
@@ -2492,24 +2490,24 @@ function ENT:KeyValue(key,value)
 	elseif string.match(lkey, "^music_file_%d+$") then
 		if value ~= "" then
 			local num = (tonumber(string.match(lkey, "^music_file_(%d+)$")) or 0) + 1
-			self.TempMusic = self.TempMusic or {}
-			self.TempMusic[num] = value
+			self:GetSingleMusicData(num).file = value
 		end
+		self.MusicRequiresResync = true
 	elseif string.match(lkey, "^music_wave_%d+$") then
-		if (tonumber(value)) or -1 >= 0 then
-			local num = (tonumber(string.match(lkey, "^music_wave_(%d+)$")) or 0) + 1
-			self.TempMusicWave = self.TempMusicWave or {}
-			self.TempMusicWave[num] = tonumber(value)
-		end
+		local num = (tonumber(string.match(lkey, "^music_wave_(%d+)$")) or 0) + 1
+		self:GetSingleMusicData(num).wave = tonumber(value) or 0
+		self.MusicRequiresResync = true
 	elseif string.match(lkey, "^music_text_%d+_%d+$") then
 		if value ~= "" then
-			local index, line = string.match(lkey, "^music_text_(%d+)_(%d+)$")
-			index = (tonumber(index) or 0) + 1
+			local num, line = string.match(lkey, "^music_text_(%d+)_(%d+)$")
+			num = (tonumber(num) or 0) + 1
 			line = (tonumber(line) or 0) + 1
-			self.MusicText = self.MusicText or {}
-			self.MusicText[index] = self.MusicText[index] or {}
-			self.MusicText[index][line] = value
+			
+			data = self:GetSingleMusicData(num)
+			data.texts = data.texts or {}
+			data.texts[line] = value
 		end
+		self.MusicRequiresResync = true
 	elseif lkey=="onwavestart" then
 		self:StoreOutput(key,value)
 	elseif lkey=="onwavefinished" then
@@ -2558,13 +2556,86 @@ function ENT:AcceptInput(input,activator,caller,data)
 		self.NoMessages = false
 	elseif input=="togglenomessages" then
 		self.NoMessages = not self.NoMessages
+	elseif input=="enablemusic" then
+		for k,v in pairs(self.MusicData or {}) do
+			v.disabled = false
+		end
+		self.MusicRequiresResync = true
+	elseif input=="disablemusic" then
+		for k,v in pairs(self.MusicData or {}) do
+			v.disabled = true
+		end
+		self.MusicRequiresResync = true
+	elseif input=="togglemusic" then
+		for k,v in pairs(self.MusicData or {}) do
+			v.disabled = not v.disabled
+		end
+		self.MusicRequiresResync = true
+	elseif string.match(input, "^setmusic%d+wave$") then
+		local num = (tonumber(string.match(input, "^setmusic(%d+)wave$")) or 1)
+		self:GetSingleMusicData(num).wave = tonumber(data) or -1
+		self.MusicRequiresResync = true
+	elseif string.match(input, "^enablemusic%d+$") then
+		local num = (tonumber(string.match(input, "^enablemusic(%d+)$")) or 1)
+		data = self:GetSingleMusicData(num)
+		data.disabled = false
+		self.MusicRequiresResync = true
+	elseif string.match(input, "^disablemusic%d+$") then
+		local num = (tonumber(string.match(input, "^disablemusic(%d+)$")) or 1)
+		data = self:GetSingleMusicData(num)
+		data.disabled = true
+		self.MusicRequiresResync = true
+	elseif string.match(input, "^togglemusic%d+$") then
+		local num = (tonumber(string.match(input, "^togglemusic(%d+)$")) or 1)
+		data = self:GetSingleMusicData(num)
+		data.disabled = not data.disabled
+		self.MusicRequiresResync = true
 	end
 	self:CheckBoolEDTInput(input, "hidewave", "HideWave")
 	self:CheckBoolEDTInput(input, "startall", "StartAll")
 	self:CheckBoolEDTInput(input, "autostart", "AutoStart")
-	self:CheckBoolEDTInput(input, "forceautostart", "ForceNextWave")
 	self:CheckBoolEDTInput(input, "allowmultistart", "AllowMultiStart")
 	return gballoon_pob.AcceptInput(self,input,activator,caller,data)
+end
+
+function ENT:GetSingleMusicData(index)
+	self.MusicData = self.MusicData or {}
+	self.MusicData[index] = self.MusicData[index] or {}
+	return self.MusicData[index]
+end
+
+function ENT:SyncEntity(ply)
+	net.Start("rotgb_generic")
+	net.WriteUInt(ROTGB_OPERATION_SYNCENTITY, 8)
+	net.WriteEntity(self)
+	
+	-- Already updated?
+	if ply and self.rotgb_SyncedPlayers[ply] then
+		net.WriteInt(-1,16)
+	else
+		net.WriteInt(table.Count(self.MusicData),16)
+		for k,v in pairs(self.MusicData) do
+			net.WriteInt(v.wave or -1, 32)
+			net.WriteString(not v.disabled and v.file or "")
+			
+			local textAmount = not v.disabled and v.texts and table.maxn(v.texts) or 0
+			net.WriteUInt(textAmount, 8)
+			for i=1,textAmount do
+				net.WriteString(v.texts[i] or "")
+			end
+		end
+		if ply then
+			self.rotgb_SyncedPlayers[ply] = true
+		else
+			self.rotgb_SyncedPlayers = {}
+		end
+	end
+	
+	if ply then
+		net.Send(ply)
+	else
+		net.Broadcast()
+	end
 end
 
 function ENT:SpawnFunction(ply,trace,classname)
@@ -2583,7 +2654,7 @@ local notifshown
 function ENT:Initialize()
 	if SERVER then
 		if not (navmesh.IsLoaded() or notifshown) and game.SinglePlayer() then
-			ROTGB_CauseNotification("#rotgb.navmesh.missing")
+			ROTGB_CauseNotification(ROTGB_NOTIFY_NAVMESHMISSING, ROTGB_NOTIFYTYPE_ERROR)
 			notifshown = true
 		end
 		self.OutputShortlyThreshold = tonumber(self.OutputShortlyThreshold) or 7.5
@@ -2613,16 +2684,39 @@ function ENT:Initialize()
 			self:SetAutoStart(true)
 		end
 		self.rotgb_ToSpawn = {}
-		if self.TempMusic then
+		if self.MusicData then
 			local assembledStrings = {}
-			for i,v in ipairs(self.TempMusic) do
-				table.insert(assembledStrings, string.format(
-					"%u,%s", self.TempMusicWave[i] or 0, v
-				))
+			for k,v in pairs(self.MusicData) do
+				if v.wave then
+					if v.file then
+						table.insert(assembledStrings, string.format(
+							"%u,%s", v.wave or 0, v.file
+						))
+					else
+						table.insert(assembledStrings, string.format(
+							"%u", v.wave or 0
+						))
+					end
+				end
 			end
 			self:SetMusicString(table.concat(assembledStrings, ";"))
+			self.OldMusicString = self:GetMusicString()
 		end
+		self.rotgb_SyncedPlayers = {}
 		gballoon_pob.Initialize(self)
+	end
+	if CLIENT then
+		self.CurrentMusic = -1
+		self.NewMusic = -1
+		net.Start("rotgb_generic")
+		net.WriteUInt(ROTGB_OPERATION_SYNCENTITY, 8)
+		net.WriteEntity(self)
+		net.SendToServer()
+		
+		if self:GetNWString("rotgb_validwave","") == "" and self:GetWave() == 1 and not self.waveZeroMessaged and IsValid(LocalPlayer()) then
+			self.waveZeroMessaged = true
+			ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.wave_hints.0"), ROTGB_NOTIFYTYPE_HINT, nil, {holdtime=10})
+		end
 	end
 end
 
@@ -2665,10 +2759,7 @@ function ENT:Use(activator)
 			if cwave == self:GetLastWave() + 1 then return
 			elseif not self:GetAllowMultiStart() then
 				if activator:IsPlayer() then
-					net.Start("rotgb_generic")
-					net.WriteUInt(ROTGB_OPERATION_NOTIFYCHAT, 8)
-					net.WriteUInt(ROTGB_NOTIFYCHAT_NOMULTISTART, 8)
-					net.Send(activator)
+					ROTGB_CauseNotification(ROTGB_NOTIFY_NOMULTISTART, ROTGB_NOTIFYTYPE_ERROR, activator)
 				end
 				return
 			end
@@ -2695,11 +2786,6 @@ function ENT:Use(activator)
 				trigent.RotgB_HasFired = true
 			end
 		end
-		self:CheckForMusicPlay(cwave)
-		if self.OldMusicIndex ~= self.NewMusicIndex and self.MusicText[self.NewMusicIndex] then
-			self.OldMusicIndex = self.NewMusicIndex
-			PrintMessage(HUD_PRINTTALK, table.concat(self.MusicText[self.NewMusicIndex], "\n"))
-		end
 		
 		self:SetNextWaveTime(CurTime()+self:GetWaveDuration(cwave)/self:GetSpeedMul())
 		hook.Run("gBalloonSpawnerWaveStarted",self,cwave)
@@ -2715,12 +2801,7 @@ function ENT:SpawnWave(cwave)
 	local totalAmount, tablesToInsert = 0, {}
 	for k,v in pairs(self:GetWaveTable()[cwave] or {}) do
 		if k=="rbe" and not self.NoMessages then
-			net.Start("rotgb_generic")
-			net.WriteUInt(ROTGB_OPERATION_NOTIFYCHAT, 8)
-			net.WriteUInt(ROTGB_NOTIFYCHAT_WAVESTART, 8)
-			net.WriteInt(cwave, 16)
-			net.WriteDouble(v)
-			net.Broadcast()
+			ROTGB_CauseNotification(ROTGB_NOTIFY_WAVESTART, ROTGB_NOTIFYTYPE_INFO, nil, {"i32", cwave, "d", v})
 		elseif tonumber(k) then
 			local balloontype,amount,timeframe,delay = unpack(v)
 			totalAmount = totalAmount + (amount or 1)
@@ -2804,14 +2885,14 @@ function ENT:TriggerWaveEnded()
 		end
 		ROTGB_AddCash(income/self:GetSpawnDivider()*ROTGB_GetConVarValue("rotgb_cash_mul"))
 		hook.Run("gBalloonSpawnerWaveEnded",self,cwave-1)
+		if self:GetNWString("rotgb_validwave","") == "" then
+			ROTGB_CauseNotification(ROTGB_NOTIFY_WAVEEND, ROTGB_NOTIFYTYPE_HINT, nil, {"i32", cwave-1, holdtime=10})
+		end
 		if inFreeplay and not self.WinWave then
 			self.WinWave = cwave
 			if not self.NoMessages then
 				hook.Run("AllBalloonsDestroyed")
-				net.Start("rotgb_generic")
-				net.WriteUInt(ROTGB_OPERATION_NOTIFYCHAT, 8)
-				net.WriteUInt(ROTGB_NOTIFYCHAT_WIN, 8)
-				net.Broadcast()
+				ROTGB_CauseNotification(ROTGB_NOTIFY_WIN, ROTGB_NOTIFYTYPE_CHAT)
 			end
 		end
 	end
@@ -2868,67 +2949,77 @@ local function SpawnTableNotDoneFilter(k,v)
 end
 
 function ENT:Think()
-	if self.EnableBalloonChecking and SERVER then
-		local shouldSpawnNextWave = self:GetNextWaveTime() <= CurTime()
-		if shouldSpawnNextWave and self:GetForceNextWave() and self:GetWave() ~= self:GetLastWave() + 1 then
-			self.EnableBalloonChecking = nil
-			self:SpawnNextWave()
-		elseif next(self.rotgb_ToSpawn) then
-			local filterRequired = false
-			for i,v in ipairs(self.rotgb_ToSpawn) do
-				if v.current == v.amount then
-					filterRequired = true
-				else
-					self:SpawnByTable(v)
+	if SERVER then
+		if self.EnableBalloonChecking then
+			local shouldSpawnNextWave = self:GetNextWaveTime() <= CurTime()
+			if shouldSpawnNextWave and self:GetForceNextWave() and self:GetWave() ~= self:GetLastWave() + 1 then
+				self.EnableBalloonChecking = nil
+				self:SpawnNextWave()
+			elseif next(self.rotgb_ToSpawn) then
+				local filterRequired = false
+				for i,v in ipairs(self.rotgb_ToSpawn) do
+					if v.current == v.amount then
+						filterRequired = true
+					else
+						self:SpawnByTable(v)
+					end
 				end
+				if filterRequired then
+					self.rotgb_ToSpawn = ROTGB_FilterSequential(self.rotgb_ToSpawn, SpawnTableNotDoneFilter)
+				end
+			elseif shouldSpawnNextWave and not ROTGB_BalloonsExist() then
+				self.EnableBalloonChecking = nil
+				self:SpawnNextWave()
 			end
-			if filterRequired then
-				self.rotgb_ToSpawn = ROTGB_FilterSequential(self.rotgb_ToSpawn, SpawnTableNotDoneFilter)
-			end
-		elseif shouldSpawnNextWave and not ROTGB_BalloonsExist() then
-			self.EnableBalloonChecking = nil
-			self:SpawnNextWave()
 		end
-	end
-	
-	if SERVER and self.CustomWaveName ~= self:GetWaveFile() then
-		self.CustomWaveName = self:GetWaveFile()
-		if ROTGB_CUSTOM_WAVES[self.CustomWaveName] then
-			self:SetNWString("rotgb_validwave",self.CustomWaveName)
-			if not self.NoMessages then
-				net.Start("rotgb_generic")
-				net.WriteUInt(ROTGB_OPERATION_NOTIFYCHAT, 8)
-				net.WriteUInt(ROTGB_NOTIFYCHAT_WAVELOADED, 8)
-				net.WriteString(self:GetWaveFile())
-				net.Broadcast()
-			end
-		elseif SERVER and file.Exists("rotgb_wavedata/"..self:GetWaveFile()..".dat", "DATA") then
-			local rawdata = util.JSONToTable(util.Decompress(file.Read("rotgb_wavedata/"..self:GetWaveFile()..".dat","DATA") or ""))
-			if rawdata then
-				if not self.NoMessages then
-					net.Start("rotgb_generic")
-					net.WriteUInt(ROTGB_OPERATION_NOTIFYCHAT, 8)
-					net.WriteUInt(ROTGB_NOTIFYCHAT_WAVELOADED, 8)
-					net.WriteString(self:GetWaveFile())
-					net.Broadcast()
-				end
-				local packetlength = 60000
-				local textdata = file.Read("rotgb_wavedata/"..self:GetWaveFile()..".dat","DATA")
-				local datablocks = math.ceil(#textdata/packetlength)
-				for i=1,datablocks do
-					net.Start("rotgb_generic")
-					net.WriteUInt(ROTGB_OPERATION_WAVE_TRANSFER, 8)
-					net.WriteString(self:GetWaveFile())
-					net.WriteUInt(datablocks, 16)
-					net.WriteUInt(i, 16)
-					local datafrac = textdata:sub(packetlength*(i-1)+1, packetlength*i)
-					net.WriteUInt(#datafrac, 16)
-					net.WriteData(datafrac, #datafrac)
-					net.Broadcast()
-				end
-				self.CustomWaveData = rawdata
+		
+		if self.CustomWaveName ~= self:GetWaveFile() then
+			self.CustomWaveName = self:GetWaveFile()
+			if ROTGB_CUSTOM_WAVES[self.CustomWaveName] then
 				self:SetNWString("rotgb_validwave",self.CustomWaveName)
+				if not self.NoMessages then
+					ROTGB_CauseNotification(ROTGB_NOTIFY_WAVELOADED, ROTGB_NOTIFYTYPE_CHAT, nil, {"s", self:GetWaveFile()})
+				end
+			elseif file.Exists("rotgb_wavedata/"..self:GetWaveFile()..".dat", "DATA") then
+				local rawdata = util.JSONToTable(util.Decompress(file.Read("rotgb_wavedata/"..self:GetWaveFile()..".dat","DATA") or ""))
+				if rawdata then
+					if not self.NoMessages then
+						ROTGB_CauseNotification(ROTGB_NOTIFY_WAVELOADED, ROTGB_NOTIFYTYPE_CHAT, nil, {"s", self:GetWaveFile()})
+					end
+					local packetlength = 60000
+					local textdata = file.Read("rotgb_wavedata/"..self:GetWaveFile()..".dat","DATA")
+					local datablocks = math.ceil(#textdata/packetlength)
+					for i=1,datablocks do
+						net.Start("rotgb_generic")
+						net.WriteUInt(ROTGB_OPERATION_WAVE_TRANSFER, 8)
+						net.WriteString(self:GetWaveFile())
+						net.WriteUInt(datablocks, 16)
+						net.WriteUInt(i, 16)
+						local datafrac = textdata:sub(packetlength*(i-1)+1, packetlength*i)
+						net.WriteUInt(#datafrac, 16)
+						net.WriteData(datafrac, #datafrac)
+						net.Broadcast()
+					end
+					self.CustomWaveData = rawdata
+					self:SetNWString("rotgb_validwave",self.CustomWaveName)
+				end
 			end
+		end
+		
+		if self.OldMusicString ~= self:GetMusicString() then
+			self.OldMusicString = self:GetMusicString()
+			self.MusicData = {}
+			
+			for wave,file in string.gmatch(self.OldMusicString.."\0", "([^;]+),([^%z;]*)") do
+				table.insert(self.MusicData, {wave = tonumber(wave) or -1, file = file})
+			end
+			
+			table.SortByMember(self.MusicData, "wave")
+			self.MusicRequiresResync = true
+		end
+		if self.MusicRequiresResync then
+			self.MusicRequiresResync = false
+			self:SyncEntity()
 		end
 	end
 	if CLIENT then
@@ -2948,66 +3039,91 @@ function ENT:Think()
 end
 
 function ENT:CheckForMusicPlay(cwave)
-	if self.OldMusicString ~= self:GetMusicString() then
-		self.OldMusicString = self:GetMusicString()
-		self.MusicTable = {}
-		local i = 1
-		for wave,filename in string.gmatch(self.OldMusicString.."\0", "([^;]+),([^%z;]+)") do
-			table.insert(self.MusicTable, {tonumber(wave) or 0, filename, i})
-			i = i + 1
-		end
-		table.SortByMember(self.MusicTable, 1)
-	end
-	
-	self.NewMusic = nil
-	self.NewMusicIndex = nil
-	for i,v in ipairs(self.MusicTable) do
-		if cwave >= v[1] then
-			self.NewMusic = v[2]
-			self.NewMusicIndex = v[3] break
+	self.NewMusic = -1
+	if ROTGB_GetConVarValue("rotgb_music_volume") > 0 then
+		for i,v in ipairs(self.MusicData) do
+			if v.wave < 0 then break
+			elseif cwave >= v.wave then
+				self.NewMusic = i break
+			end
 		end
 	end
+	ROTGB_EntityLog(self, string.format("Determined new music index to be %i for wave %i...", self.NewMusic, cwave), "music")
 end
 
 function ENT:MusicThink()
+	local currentMusic = self.CurrentMusicString or ""
+	local newMusic = self:GetSingleMusicData(self.NewMusic).file or ""
+	local volume = ROTGB_GetConVarValue("rotgb_music_volume")
 	local streamPlaying = IsValid(self.MusicStream) and self.MusicStream:GetState()==GMOD_CHANNEL_PLAYING
-	if self.NewMusic ~= self.CurrentMusic or not streamPlaying then
+	if self.NewMusic ~= self.CurrentMusic or currentMusic ~= newMusic or not streamPlaying and currentMusic ~= "" then
 		if streamPlaying then
-			if self.MusicStream:GetVolume()>0 then
-				self.MusicStream:SetVolume(math.max(self.MusicStream:GetVolume()-RealFrameTime()/2, 0))
+			if self.MusicStream:GetVolume()>0.001 then
+				self.MusicStream:SetVolume(math.max(self.MusicStream:GetVolume()-RealFrameTime(), 0))
+				ROTGB_EntityLog(self, string.format("%i ~= %i or \"%s\" ~= \"%s\", stopping music!", self.CurrentMusic, self.NewMusic, currentMusic, newMusic), "music")
 			else
 				self.MusicStream:Stop()
+				ROTGB_EntityLog(self, string.format("%i ~= %i or \"%s\" ~= \"%s\", stopped music!", self.CurrentMusic, self.NewMusic, currentMusic, newMusic), "music")
 			end
-		elseif self.NewMusic and not self.MusicStreamLoading then
-			ROTGB_EntityLog(self, string.format("Loading stream for file \"%s\"...", self.NewMusic), "music")
-			local startTime = SysTime()
-			sound.PlayFile("sound/"..self.NewMusic, "", function(stream, err, errStr)
-				if IsValid(self) then
-					if stream then
-						ROTGB_EntityLog(self, string.format("Received stream from BASS library in %.2fms.", (SysTime()-startTime)*1e3), "music")
-						self.MusicStream = stream
+		elseif not self.MusicStreamLoading then
+			local data = self:GetSingleMusicData(self.NewMusic)
+			if newMusic ~= "" then
+				ROTGB_EntityLog(self, string.format("Loading stream for file \"%s\"...", newMusic), "music")
+				local startTime = SysTime()
+				sound.PlayFile("sound/"..newMusic, "", function(stream, err, errStr)
+					if IsValid(self) then
+						if stream then
+							ROTGB_EntityLog(self, string.format("Received stream from BASS library in %.2fms.", (SysTime()-startTime)*1e3), "music")
+							stream:SetVolume(volume)
+							self.MusicStream = stream
+						else
+							ROTGB_EntityLogError(self, string.format("BASS Error! %i - %s", err, errStr), "music")
+							ROTGB_EntityLog(self, string.format("Transaction time: %.2fms", (SysTime()-startTime)*1e3), "music")
+						end
 					else
-						ROTGB_EntityLogError(self, string.format("BASS Error! %i - %s", err, errStr), "music")
-						ROTGB_EntityLog(self, string.format("Transaction time: %.2fms", (SysTime()-startTime)*1e3), "music")
+						if stream then
+							stream:Stop()
+						end
+						ROTGB_LogError(string.format("Stream %s loaded, but gBalloon Spawner is gone?", tostring(stream)), "music")
+						ROTGB_Log(string.format("Transaction time: %.2fms", (SysTime()-startTime)*1e3), "music")
 					end
-				else
-					if stream then
-						stream:Stop()
-					end
-					ROTGB_LogError(string.format("Stream %s loaded, but gBalloon Spawner is gone?", tostring(stream)), "music")
-					ROTGB_Log(string.format("Transaction time: %.2fms", (SysTime()-startTime)*1e3), "music")
+					self.MusicStreamLoading = nil
+				end)
+				self.MusicStreamLoading = true
+			end
+			ROTGB_EntityLog(self, string.format("%i ~= %i or \"%s\" ~= \"%s\", music switched!", self.CurrentMusic, self.NewMusic, currentMusic, newMusic), "music")
+			
+			local texts = data.texts or {}
+			if next(texts) then
+				local textsToDisplay = {}
+				for i,v in ipairs(texts) do
+					table.insert(textsToDisplay, language.GetPhrase(v))
 				end
-				self.MusicStreamLoading = nil
-			end)
+				
+				chat.AddText(table.concat(textsToDisplay, "\n"))
+			end
 			self.CurrentMusic = self.NewMusic
-			self.MusicStreamLoading = true
+			self.CurrentMusicString = newMusic
 		end
-	elseif (streamPlaying and self.MusicStream:GetVolume()<=1) then
-		self.MusicStream:SetVolume(math.min(self.MusicStream:GetVolume()+RealFrameTime()/2, 1))
+	elseif streamPlaying then
+		local currentVolume = self.MusicStream:GetVolume()
+		if currentVolume+0.001<=volume or currentVolume>=volume+0.001 then
+			ROTGB_EntityLog(self, string.format("%i == %i but %.4f ~= %.4f, changing volume!", self.CurrentMusic, self.NewMusic, currentVolume, volume), "music")
+			self.MusicStream:SetVolume(math.Approach(currentVolume, volume, RealFrameTime()))
+		end
+		if volume <= 0 then self:CheckForMusicPlay(self.OldMusicWave-1) end
 	end
-	if self.OldMusicWave ~= self:GetWave() then
+	if self.OldMusicVolume ~= volume then
+		self.OldMusicVolume = volume
+		self:CheckForMusicPlay(self:GetWave()-1)
+	elseif self.OldMusicWave ~= self:GetWave() then
 		self.OldMusicWave = self:GetWave()
 		self:CheckForMusicPlay(self.OldMusicWave-1)
+		
+		net.Start("rotgb_generic", false)
+		net.WriteUInt(ROTGB_OPERATION_SYNCENTITY, 8)
+		net.WriteEntity(self)
+		net.SendToServer()
 	end
 end
 

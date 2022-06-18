@@ -156,8 +156,12 @@ function GM:GetXPMultiplier()
 	
 	local multiplier = hook.Run("GetScoreMultiplier")
 	local currentDifficulty = hook.Run("GetDifficulty")
-	if currentDifficulty and self.Modes[currentDifficulty] then
-		multiplier = multiplier * (self.Modes[currentDifficulty].xpmul or 1)
+	local difficulties = hook.Run("GetDifficulties")
+	
+	if currentDifficulty and difficulties[currentDifficulty] then
+		local difficultyTable = difficulties[currentDifficulty]
+		
+		multiplier = multiplier * (difficultyTable.custom and 0 or difficultyTable.xpmul or 1)
 	end
 	multiplier = multiplier * (1+hook.Run("GetSkillAmount", "skillExperience")/100)
 	if hook.Run("GetMaxWaveReached") then
@@ -207,7 +211,6 @@ function GM:GameOver(success)
 	net.WriteUInt(RTG_OPERATION_GAMEOVER, 4)
 	net.WriteBool(success)
 	net.Broadcast()
-	hook.Run("SetGameIsOver", true)
 	if success then
 		local plys = player.GetAll()
 		local flawless, zeroScore = true, true
@@ -263,16 +266,7 @@ function GM:GameOver(success)
 			end
 		end
 	end
-end
-
-function GM:ChangeDifficulty(difficulty)
-	-- set the current gamemode for the ShouldConVarOverride hook to refer to, then clean up the map
-	hook.Run("SetDifficulty", difficulty)
-	net.Start("rotgb_gamemode")
-	net.WriteUInt(RTG_OPERATION_DIFFICULTY, 4)
-	net.WriteString(difficulty)
-	net.Broadcast()
-	hook.Run("CleanUpMap")
+	hook.Run("SetGameIsOver", true)
 end
 
 function GM:CleanUpMap()

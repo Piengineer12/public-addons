@@ -47,7 +47,8 @@ end
 
 local PLAYER = FindMetaTable("Player")
 function PLAYER:_RTG_SetStat(stat, amount)
-	if not hook.Run("GetGameIsOver") or GAMEMODE.DebugMode then
+	local difficultyNotCustom = not hook.Run("GetDifficulties")[hook.Run("GetDifficulty")].custom
+	if not hook.Run("GetGameIsOver") and difficultyNotCustom or GAMEMODE.DebugMode then
 		local stats = hook.Run("GetStatisticAmounts")
 		
 		local plyStats = stats[self]
@@ -65,7 +66,8 @@ function PLAYER:_RTG_SetStat(stat, amount)
 end
 
 function PLAYER:_RTG_AddStat(stat, amount)
-	if not hook.Run("GetGameIsOver") or GAMEMODE.DebugMode then
+	local difficultyNotCustom = not hook.Run("GetDifficulties")[hook.Run("GetDifficulty")].custom
+	if not hook.Run("GetGameIsOver") and difficultyNotCustom or GAMEMODE.DebugMode then
 		local stats = hook.Run("GetStatisticAmounts")
 		
 		local plyStats = stats[self]

@@ -172,5 +172,7 @@ net.Receive("rotgb_gamemode", function()
 				}
 			)))
 		end
+	elseif operation == RTG_OPERATION_ONESHOT then
+		hook.Run("ReceiveMapDifficulties")
 	end
 end)

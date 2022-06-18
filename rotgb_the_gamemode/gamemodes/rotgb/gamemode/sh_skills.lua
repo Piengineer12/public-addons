@@ -36,9 +36,9 @@ skill effectiveness (meta)
 experience gain [from gBlimps] [in freeplay] (meta)
 
 ICU: Quadruple HP gBalloons
-ICU: Quadruple Game Speed
-ICU: Super Bosses
-ICU: 
+ICU: Quadruple Speed gBalloons
+ICU: Super Bosses (Impossible: Double Speed gBalloons)
+ICU: End of the Line
 ]]
 
 AccessorFunc(GM, "CachedSkillAmounts", "CachedSkillAmounts")

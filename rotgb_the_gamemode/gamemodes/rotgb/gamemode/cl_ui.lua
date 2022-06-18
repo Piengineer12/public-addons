@@ -125,7 +125,7 @@ AccessorFunc(GM, "SkillWebMenu", "SkillWebMenu")
 AccessorFunc(GM, "AchievementsMenu", "AchievementsMenu")
 
 surface.CreateFont("rotgb_header", {
-	font = "Bombardier Rotgb",
+	font = "Luckiest Guy Rotgb",
 	extended = true,
 	size = FONT_HEADER_HEIGHT
 })
@@ -135,7 +135,7 @@ surface.CreateFont("rotgb_body", {
 	size = FONT_BODY_HEIGHT
 })
 surface.CreateFont("rotgb_level", {
-	font = "Bombardier Rotgb",
+	font = "Luckiest Guy Rotgb",
 	extended = true,
 	size = FONT_LEVEL_HEIGHT
 })
@@ -145,7 +145,7 @@ surface.CreateFont("rotgb_experience", {
 	size = FONT_EXPERIENCE_HEIGHT
 })
 surface.CreateFont("rotgb_scoreboard_header", {
-	font = "Bombardier Rotgb",
+	font = "Luckiest Guy Rotgb",
 	extended = true,
 	size = FONT_SCOREBOARD_HEADER_HEIGHT
 })
@@ -155,7 +155,7 @@ surface.CreateFont("rotgb_scoreboard_body", {
 	size = FONT_SCOREBOARD_BODY_HEIGHT
 })
 surface.CreateFont("rotgb_level_small", {
-	font = "Bombardier Rotgb",
+	font = "Luckiest Guy Rotgb",
 	extended = true,
 	size = FONT_LEVEL_SMALL_HEIGHT
 })
@@ -165,7 +165,7 @@ surface.CreateFont("rotgb_skill_body", {
 	size = FONT_SKILL_BODY_HEIGHT
 })
 surface.CreateFont("rotgb_achievement_header", {
-	font = "Bombardier Rotgb",
+	font = "Luckiest Guy Rotgb",
 	extended = true,
 	size = FONT_ACHIEVEMENT_HEADER_HEIGHT
 })
@@ -922,7 +922,7 @@ local function CreateDifficultyDescriptionPanel()
 		if difficulty then
 			Header:SetText(ROTGB_LocalizeString(
 				"rotgb_tg.difficulty.subcategory",
-				language.GetPhrase("rotgb_tg.difficulty.category."..GAMEMODE.Modes[difficulty].category),
+				language.GetPhrase("rotgb_tg.difficulty.category."..hook.Run("GetDifficulties")[difficulty].category),
 				language.GetPhrase("rotgb_tg.difficulty."..difficulty..".name")
 			))
 			Text:SetText("#rotgb_tg.difficulty."..difficulty..".description")
@@ -1192,7 +1192,7 @@ local function CreateVoteRightPanel(VoteLeftPanel, data)
 						language.GetPhrase("rotgb_tg.difficulty.category."..v.name),
 						language.GetPhrase("rotgb_tg.difficulty."..v2.name..".name")
 					)
-					local button = CreateButton(Panel, difficultyString, CATEGORY_COLORS[i], function(self)
+					local button = CreateButton(Panel, difficultyString, CATEGORY_COLORS[i] or color_gray, function(self)
 						for k,v3 in pairs(Panel.TargetButtons) do
 							v3:SetFlashing(v3 == self)
 						end
@@ -1345,9 +1345,9 @@ local function CreateVoterStatementPanel(parent, voteInfo)
 		end
 	elseif voteType == RTG_VOTE_CHANGEDIFFICULTY then
 		local targetDifficulty = voteInfo.target
-		local targetMode = GAMEMODE.Modes[targetDifficulty] or {}
+		local targetMode = hook.Run("GetDifficulties")[targetDifficulty] or {}
 		local category = targetMode.category
-		table.insert(colorFragments, category and CATEGORY_COLORS[GAMEMODE.ModeCategories[category]] or color_white)
+		table.insert(colorFragments, category and CATEGORY_COLORS[hook.Run("GetDifficultyCategories")[category]] or color_gray)
 		table.insert(replacementFragments, (ROTGB_LocalizeString(
 			"rotgb_tg.voting.initiated.difficulty",
 			ROTGB_LocalizeString(
@@ -1543,13 +1543,13 @@ local function CreateVoterResultStatementPanel(parent, voteInfo, result)
 			))
 		elseif typ == RTG_VOTE_CHANGEDIFFICULTY then
 			local difficulty = voteInfo.target
-			local target = GAMEMODE.Modes[difficulty]
+			local target = hook.Run("GetDifficulties")[difficulty]
 			local difficultyName = ROTGB_LocalizeString(
 				"rotgb_tg.difficulty.subcategory",
 				language.GetPhrase(target and "rotgb_tg.difficulty.category."..target.category or "rotgb_tg.difficulty.subcategory.invalid.1"),
 				language.GetPhrase(target and "rotgb_tg.difficulty."..difficulty..".name" or "rotgb_tg.difficulty.subcategory.invalid.2")
 			)
-			local appendColor = CATEGORY_COLORS[GAMEMODE.ModeCategories[target.category]]
+			local appendColor = CATEGORY_COLORS[hook.Run("GetDifficultyCategories")[target.category]] or color_gray
 			table.Add(multiColoredText, ROTGB_LocalizeMulticoloredString(
 				"rotgb_tg.voting.result.difficulty",
 				{difficultyName},
@@ -2460,11 +2460,6 @@ function GM:CreateStartupMenu()
 		CreateText(Menu, 9, "#rotgb_tg.welcome.8")
 		CreateText(Menu, 10, "#rotgb_tg.welcome.9")
 		CreateText(Menu, 11, "#rotgb_tg.welcome.10")
-		CreateText(Menu, 12, "#rotgb_tg.welcome.11")
-		CreateText(Menu, 13, "#rotgb_tg.welcome.12")
-		CreateText(Menu, 14, "#rotgb_tg.welcome.13")
-		CreateText(Menu, 15, "#rotgb_tg.welcome.14")
-		CreateText(Menu, 16, "#rotgb_tg.welcome.15")
 		
 		local NextButton = CreateButton(Menu, "#rotgb_tg.buttons.proceed", color_green, function()
 			hook.Run("ShowHelp")
@@ -2525,13 +2520,15 @@ function GM:CreateScoreboard()
 	local Menu = CreateMenu()
 	
 	local difficulty = hook.Run("GetDifficulty")
-	if (difficulty and GAMEMODE.Modes[difficulty]) then
+	local difficulties = hook.Run("GetDifficulties")
+	
+	if (difficulty and difficulties[difficulty]) then
 		CreateHeader(Menu, 1, ROTGB_LocalizeString(
 			"rotgb_tg.scoreboard.header",
 			language.GetPhrase("rotgb_tg.scoreboard.title"),
 			ROTGB_LocalizeString(
 				"rotgb_tg.difficulty.subcategory",
-				language.GetPhrase("rotgb_tg.difficulty.category."..GAMEMODE.Modes[difficulty].category),
+				language.GetPhrase("rotgb_tg.difficulty.category."..difficulties[difficulty].category),
 				language.GetPhrase("rotgb_tg.difficulty."..difficulty..".name")
 			)
 		))
@@ -2782,7 +2779,7 @@ end
 
 function GM:GetGamemodeDifficultyNodes()
 	local nodesByCategory = {}
-	for k,v in pairs(self.Modes) do
+	for k,v in pairs(hook.Run("GetDifficulties")) do
 		if v.category then
 			local subnode = {
 				name = k,
@@ -2801,7 +2798,7 @@ function GM:GetGamemodeDifficultyNodes()
 	for k,v in pairs(nodesByCategory) do
 		local node = {
 			name = k,
-			place = self.ModeCategories[k],
+			place = hook.Run("GetDifficultyCategories")[k],
 			subnodes = nodesByCategory[k]
 		}
 		table.insert(nodes, node)

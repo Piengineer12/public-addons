@@ -403,7 +403,7 @@ function ENT:Initialize()
 			end
 		end
 		if not (navmesh.IsLoaded() or notifshown) and game.SinglePlayer() then
-			ROTGB_CauseNotification("#rotgb.navmesh.missing")
+			ROTGB_CauseNotification(ROTGB_NOTIFY_NAVMESHMISSING, ROTGB_NOTIFYTYPE_ERROR)
 			notifshown = true
 		end
 		hook.Run("gBalloonPreInitialize", self)

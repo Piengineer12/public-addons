@@ -49,12 +49,14 @@ function GM:SharedInitialize()
 	hook.Run("RebuildSkills")
 	hook.Run("SetCachedSkillAmounts", {})
 	hook.Run("SetStatisticAmounts", {})
+	hook.Run("InitializeDifficulties")
 end
 
-AccessorFunc(GM, "Difficulty", "Difficulty", FORCE_STRING)
 AccessorFunc(GM, "CurrentVote", "CurrentVote")
 
 function GM:ShouldConVarOverride(cvar)
 	local currentDifficulty = hook.Run("GetDifficulty")
-	return self.Modes[currentDifficulty] and self.Modes[currentDifficulty].convars[cvar] or self.Modes.__common.convars[cvar]
+	local difficulties = hook.Run("GetDifficulties")
+	
+	return difficulties[currentDifficulty] and difficulties[currentDifficulty].convars[cvar] or difficulties.__common.convars[cvar]
 end

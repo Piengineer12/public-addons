@@ -203,9 +203,9 @@ function SWEP:PostDrawViewModel(viewmodel, weapon, ply)
 	end
 end
 
-local function HideAllNoBuilds()
+--[[local function HideAllNoBuilds()
 	ROTGB_SetDrawNoBuilds(false)
-end
+end]]
 
 function SWEP:Think()
 	if not self.TowerTable then
@@ -254,8 +254,8 @@ function SWEP:Think()
 					--local mins, maxs = self:GetCollisionBounds()
 					--render.DrawWireframeBox(self:GetPos(), self:GetAngles(), mins, maxs, color_white, true)
 				end
-				ROTGB_SetDrawNoBuilds(true)
-				self.ClientsideModel:CallOnRemove("ROTGB_SetDrawNoBuilds", HideAllNoBuilds)
+				--ROTGB_SetDrawNoBuilds(true)
+				--self.ClientsideModel:CallOnRemove("ROTGB_SetDrawNoBuilds", HideAllNoBuilds)
 			elseif self.ClientsideModel.TowerType ~= self:GetCurrentTower() then
 				self.ClientsideModel:Remove()
 			end
@@ -403,11 +403,8 @@ net.Receive("rotgb_controller", function(length, ply)
 				elseif func == ROTGB_PLAY then
 					local spawners = ents.FindByClass("gballoon_spawner")
 					if table.IsEmpty(spawners) then
-						ply:EmitSound("buttons/button18.wav",60,100,1,CHAN_WEAPON)
-						net.Start("rotgb_generic")
-						net.WriteUInt(ROTGB_OPERATION_NOTIFYCHAT, 8)
-						net.WriteUInt(ROTGB_NOTIFYCHAT_NOSPAWNERS, 8)
-						net.Send(ply)
+						--ply:EmitSound("buttons/button18.wav",60,100,1,CHAN_WEAPON)
+						ROTGB_CauseNotification(ROTGB_NOTIFY_NOSPAWNERS, ROTGB_NOTIFYTYPE_ERROR, ply)
 					end
 					for k,v in pairs(spawners) do
 						v:Fire("Use",nil,nil,ply)
@@ -418,11 +415,7 @@ net.Receive("rotgb_controller", function(length, ply)
 					
 					local spawners = ents.FindByClass("gballoon_spawner")
 					if table.IsEmpty(spawners) then
-						ply:EmitSound("buttons/button18.wav",60,100,1,CHAN_WEAPON)
-						net.Start("rotgb_generic")
-						net.WriteUInt(ROTGB_OPERATION_NOTIFYCHAT, 8)
-						net.WriteUInt(ROTGB_NOTIFYCHAT_NOSPAWNERS, 8)
-						net.Send(ply)
+						ROTGB_CauseNotification(ROTGB_NOTIFY_NOSPAWNERS, ROTGB_NOTIFYTYPE_ERROR, ply)
 					end
 					for k,v in pairs(spawners) do
 						v:SetAutoStart(shouldAutoStart)
@@ -604,10 +597,7 @@ function SWEP:CreateLeftPanel(Main)
 							net.SendToServer()
 							
 							if not ROTGB_GetConVarValue("rotgb_individualcash") then
-								net.Start("rotgb_generic")
-								net.WriteUInt(ROTGB_OPERATION_NOTIFYCHAT, 8)
-								net.WriteUInt(ROTGB_NOTIFYCHAT_TRANSFERSHARED, 8)
-								net.Send(ply)
+								ROTGB_CauseNotification(ROTGB_NOTIFY_TRANSFERSHARED, ROTGB_NOTIFYTYPE_ERROR, ply)
 							end
 						else
 							ScrollPanel:Refresh()

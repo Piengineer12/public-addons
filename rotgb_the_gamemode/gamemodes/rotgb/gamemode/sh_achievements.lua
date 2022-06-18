@@ -1,15 +1,19 @@
 GM.BaseAchievements = {
-	--[[ ideas:
-	win an Impossible+ game with only one of each tower ever placed
-	All for one and one for one
-		Win a Hard+ game with only 1 tower on the map at any one time
-	activate 3/10/30 abilities at once
-	
+	--[[ xp reference amounts:
 	25,000 = level 25+
 	100,000 = level 50+
 	500,000 = level 100+
 	1,500,000 = level 200+
 	10,000,000 = level 500+
+	
+	50,000,000 = level 1,000+
+	250,000,000 = level 2,500+
+	999,999,999 = level 5,000+
+	
+	ideas:
+	One of a Kind - win an Impossible+ game with only one of each tower ever placed
+	All for One and One for One - Win a Hard+ game with only 1 tower on the map at any one time
+	activate 3/10/30 abilities at once
 	
 	pop X Ceramic/Brick/Marble gBalloons
 	pop X Y gBlimps
@@ -23,7 +27,7 @@ GM.BaseAchievements = {
 	{name="damage2", tier=2, amount=1e6, criteria="damage", xp=100e3},
 	{name="damage3", tier=3, amount=1e8, criteria="damage", xp=1.5e6},
 	
-	{name="level1", tier=1, amount=20, criteria="level", xp=10e3},
+	{name="level1", tier=1, amount=18, criteria="level", xp=10e3},
 	{name="level2", tier=2, amount=100, criteria="level", xp=50e3},
 	{name="level3", tier=3, amount=999, criteria="level", xp=500e3},
 	

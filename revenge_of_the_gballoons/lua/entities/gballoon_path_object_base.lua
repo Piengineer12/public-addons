@@ -113,9 +113,8 @@ function ENT:Initialize()
 		end
 	end
 	if self.TempIsHidden then
-		self:SetNotSolid(true)
+		self:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
 		self:SetNoDraw(true)
-		self:SetMoveType(MOVETYPE_NOCLIP)
 	end
 	self:AddEFlags(EFL_FORCE_CHECK_TRANSMIT)
 end

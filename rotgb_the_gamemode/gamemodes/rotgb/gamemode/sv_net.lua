@@ -28,6 +28,7 @@ net.Receive("rotgb_statchanged", function(length, ply)
 				net.WriteDouble(ply.rtg_PreviousXP)
 				net.Broadcast()
 				
+				-- send current values to player
 				local plys = player.GetAll()
 				net.Start("rotgb_statchanged")
 				net.WriteUInt(RTG_STAT_FULLUPDATE, 4)
@@ -53,6 +54,11 @@ net.Receive("rotgb_statchanged", function(length, ply)
 				else
 					net.WriteUInt(RTG_SKILL_CLEAR, 2)
 				end
+				net.Send(ply)
+				
+				net.Start("rotgb_gamemode")
+				net.WriteUInt(RTG_OPERATION_ONESHOT, 4)
+				hook.Run("SendMapDifficulties")
 				net.Send(ply)
 			end
 		elseif func == RTG_STAT_VOTES then

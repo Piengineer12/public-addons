@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		6.2.0
-Version Date:	2022-04-23
+Version:		6.3.1
+Version Date:	2022-06-18
 ]]
 
 local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","spawning","towers","music"}
@@ -87,6 +87,7 @@ ROTGB_OPERATION_TRIGGER = 7
 ROTGB_OPERATION_BOSS = 8
 ROTGB_OPERATION_NOTIFYCHAT = 9
 ROTGB_OPERATION_NOTIFYARG = 10
+ROTGB_OPERATION_SYNCENTITY = 11
 
 ROTGB_TOWER_MENU = 0
 ROTGB_TOWER_UPGRADE = 1
@@ -100,17 +101,39 @@ ROTGB_MAXHEALTH_SET = 5
 ROTGB_MAXHEALTH_ADD = 6
 ROTGB_MAXHEALTH_SUB = 7
 
-ROTGB_NOTIFYCHAT_NOMULTISTART = 1
-ROTGB_NOTIFYCHAT_WAVESTART = 2
-ROTGB_NOTIFYCHAT_WIN = 3
-ROTGB_NOTIFYCHAT_WAVELOADED = 4
-ROTGB_NOTIFYCHAT_PLACEMENTILLEGAL = 5
-ROTGB_NOTIFYCHAT_PLACEMENTILLEGALOFF = 6
-ROTGB_NOTIFYCHAT_NOSPAWNERS = 7
-ROTGB_NOTIFYCHAT_TRANSFERSHARED = 8
+ROTGB_NOTIFYTYPE_ERROR = 1
+ROTGB_NOTIFYTYPE_CHAT = 2
+ROTGB_NOTIFYTYPE_INFO = 3
+ROTGB_NOTIFYTYPE_HINT = 4
 
-ROTGB_NOTIFYARG_TOWERLEVEL = 1
-ROTGB_NOTIFYARG_TOWERCASH = 2
+ROTGB_NOTIFY_NOMULTISTART = 1
+ROTGB_NOTIFY_WAVESTART = 2
+ROTGB_NOTIFY_WIN = 3
+ROTGB_NOTIFY_WAVELOADED = 4
+ROTGB_NOTIFY_PLACEMENTILLEGAL = 5
+ROTGB_NOTIFY_PLACEMENTILLEGALOFF = 6
+ROTGB_NOTIFY_NOSPAWNERS = 7
+ROTGB_NOTIFY_TRANSFERSHARED = 8
+ROTGB_NOTIFY_TOWERLEVEL = 9
+ROTGB_NOTIFY_TOWERCASH = 10
+ROTGB_NOTIFY_NAVMESHMISSING = 11
+ROTGB_NOTIFY_TOWERBLACKLISTED = 12
+ROTGB_NOTIFY_TOWERCHESSONLY = 13
+ROTGB_NOTIFY_TOWERMAX = 14
+ROTGB_NOTIFY_TOWERNOTOWNER = 15
+ROTGB_NOTIFY_WAVEEND = 16
+
+-- deprecated:
+ROTGB_NOTIFYCHAT_NOMULTISTART = ROTGB_NOTIFY_NOMULTISTART
+ROTGB_NOTIFYCHAT_WAVESTART = ROTGB_NOTIFY_WAVESTART
+ROTGB_NOTIFYCHAT_WIN = ROTGB_NOTIFY_WIN
+ROTGB_NOTIFYCHAT_WAVELOADED = ROTGB_NOTIFY_WAVELOADED
+ROTGB_NOTIFYCHAT_PLACEMENTILLEGAL = ROTGB_NOTIFY_PLACEMENTILLEGAL
+ROTGB_NOTIFYCHAT_PLACEMENTILLEGALOFF = ROTGB_NOTIFY_PLACEMENTILLEGALOFF
+ROTGB_NOTIFYCHAT_NOSPAWNERS = ROTGB_NOTIFY_NOSPAWNERS
+ROTGB_NOTIFYCHAT_TRANSFERSHARED = ROTGB_NOTIFY_TRANSFERSHARED
+ROTGB_NOTIFYARG_TOWERLEVEL = ROTGB_NOTIFY_TOWERLEVEL
+ROTGB_NOTIFYARG_TOWERCASH = ROTGB_NOTIFY_TOWERCASH
 
 ROTGB_GBALLOONS = {}
 ROTGB_CVARS = {}
@@ -647,20 +670,91 @@ function ROTGB_ScaleBuyCost(num,ent,data)
 	end
 end
 
-function ROTGB_CauseNotification(msg,ply)
+function ROTGB_CauseNotification(msg,level,ply,additionalArguments)
+	additionalArguments = additionalArguments or {}
 	if SERVER then
 		net.Start("rotgb_generic")
 		net.WriteUInt(ROTGB_OPERATION_NOTIFY,8)
-		net.WriteString(msg)
+		
+		local deprecationWarning
+		if not isnumber(level) then
+			ply = level
+			level = ROTGB_NOTIFYTYPE_ERROR
+			deprecationWarning = "DEPRECATION WARNING: On the server, the second argument of ROTGB_CauseNotification must be message level."
+		end
+		net.WriteUInt(level, 4)
+		
+		if isstring(msg) then
+			net.WriteBool(true)
+			net.WriteString(msg)
+			--deprecationWarning = "DEPRECATION WARNING: On the server, the third argument of ROTGB_CauseNotification must be an enumeration for non-map invocations."
+		else
+			net.WriteBool(false)
+			net.WriteUInt(msg, 8)
+		end
+		
+		local flags = 0
+		
+		if additionalArguments.color or additionalArguments.holdtime then
+			flags = bit.bor(flags, 1)
+		end
+		
+		net.WriteUInt(flags, 8)
+		
+		if bit.band(flags, 1)~=0 then
+			if level == ROTGB_NOTIFYTYPE_CHAT then 
+				net.WriteColor(additionalArguments.color)
+			elseif level == ROTGB_NOTIFYTYPE_INFO or level == ROTGB_NOTIFYTYPE_ERROR or level == ROTGB_NOTIFYTYPE_HINT then
+				net.WriteFloat(additionalArguments.holdtime)
+			end
+		end
+		
+		for i=1,#additionalArguments do
+			local typ = additionalArguments[i*2-1]
+			local value = additionalArguments[i*2]
+			if typ == "b" then
+				net.WriteBool(value)
+			elseif typ == "i32" then
+				net.WriteInt(value, 32)
+			elseif typ == "u8" then
+				net.WriteUInt(value, 8)
+			elseif typ == "e" then
+				net.WriteEntity(value)
+			elseif typ == "f" then
+				net.WriteFloat(value)
+			elseif typ == "d" then
+				net.WriteDouble(value)
+			elseif typ == "s" then
+				net.WriteString(value)
+			end
+		end
+		
 		if not ply then
 			net.Broadcast()
 		elseif ply:IsPlayer() then
 			net.Send(ply)
 		end
+		
+		if deprecationWarning then
+			ROTGB_LogError(deprecationWarning, "")
+			debug.Trace()
+		end
 	end
 	if CLIENT then
-		notification.AddLegacy(msg,NOTIFY_ERROR,5)
-		surface.PlaySound("buttons/button10.wav")
+		if level == ROTGB_NOTIFYTYPE_ERROR then
+			notification.AddLegacy(msg,NOTIFY_ERROR,additionalArguments.holdtime or 5)
+			surface.PlaySound("buttons/button10.wav")
+		elseif level == ROTGB_NOTIFYTYPE_CHAT then
+			if additionalArguments.color then
+				chat.AddText(additionalArguments.color, msg)
+			else
+				chat.AddText(msg)
+			end
+		elseif level == ROTGB_NOTIFYTYPE_INFO then
+			notification.AddLegacy(msg,NOTIFY_GENERIC,additionalArguments.holdtime or 5)
+		elseif level == ROTGB_NOTIFYTYPE_HINT then
+			notification.AddLegacy(msg,NOTIFY_HINT,additionalArguments.holdtime or 5)
+		end
 	end
 end
 
@@ -800,6 +894,14 @@ if SERVER then
 					end
 				end
 			end
+		elseif operation == ROTGB_OPERATION_SYNCENTITY then
+			local ent = net.ReadEntity()
+			if IsValid(ent) then
+				local class = ent:GetClass()
+				if class == "gballoon_spawner" then
+					ent:SyncEntity(ply)
+				end
+			end
 		end
 	end)
 	
@@ -862,11 +964,38 @@ if CLIENT then
 			pieces[string.format("%i", k)] = v
 		end
 		local phrase = language.GetPhrase(token)
-		-- remove quote marks if surrounded by them
-		if string.find(phrase, "^\".*\"$") then
-			phrase = string.match(phrase, "^\"(.*)\"$")
+		if phrase == token and ROTGB_HasLocalization(token..".1") then
+			-- it is a multipart
+			local phrases = {}
+			
+			-- the one time where post-test actually becomes useful
+			local i = 1
+			local multipartToken = token..".1"
+			repeat
+				local phrase = language.GetPhrase(multipartToken)
+				-- remove quote marks if surrounded by them
+				if string.find(phrase, "^\".*\"$") then
+					phrase = string.match(phrase, "^\"(.*)\"$")
+				end
+				table.insert(phrases, phrase)
+				
+				i = i + 1
+				multipartToken = token..string.format(".%i", i)
+			until not ROTGB_HasLocalization(multipartToken)
+			
+			phrase = table.concat(phrases)
+		else
+			-- remove quote marks if surrounded by them
+			if string.find(phrase, "^\".*\"$") then
+				phrase = string.match(phrase, "^\"(.*)\"$")
+			end
 		end
+		
 		return string.gsub(phrase, "%%(.)", pieces)
+	end
+	
+	function ROTGB_HasLocalization(token)
+		return language.GetPhrase(token) ~= token
 	end
 	
 	function ROTGB_LocalizeMulticoloredString(token, replacements, defaultColor, replacementColors)
@@ -1044,6 +1173,10 @@ if CLIENT then
 	RegisterClientConVar("rotgb_range_alpha","15",R_FLOAT,
 	[[Sets how visible the range indicator is, in the range of 0-255.]])
 	
+	RegisterClientConVar("rotgb_music_volume","1",R_FLOAT,
+	[[Multiplier for gBalloon Spawner music volume. If 0, music does not play at all.
+	 - Relies on BASS library for music, so values > 1 are supported.]])
+	
 	function ROTGB_FormatCash(cash, roundUp)
 		if cash==math.huge then -- number is inf
 			return language.GetPhrase("rotgb.cash.inf")
@@ -1204,6 +1337,18 @@ if CLIENT then
 		end
 	end)
 	
+	--[[local hintBox = vgui.Create("DPanel")
+	hintBox:SetPos(ScrW()*3/8, ScrH()*6/8)
+	hintBox:SetSize(ScrW()/4, ScrH()/8)
+	hintBox:Hide()
+	
+	local hintBoxLabel = hintBox:Add("DLabel")
+	hintBoxLabel:Dock(FILL)
+	hintBoxLabel:SetWrap(true)
+	
+	local nextHintMessage = nil
+	local hintExpiryTime = RealTime()]]
+	
 	local wavemat = Material("icon16/flag_green.png")
 	local coinmat = Material("icon16/coins.png")
 	local heartmat = Material("icon16/heart.png")
@@ -1216,6 +1361,9 @@ if CLIENT then
 	local color_black_semiopaque = Color(0,0,0,191)
 	hook.Add("HUDPaint","RotgB",function()
 		if ROTGB_GetConVarValue("rotgb_hud_enabled") then
+			local scrW = ScrW()
+			local scrH = ScrH()
+			
 			local realTime = RealTime()
 			local spawners = FilterSequentialTable(ents.GetAll(), TableFilterSpawners)
 			table.sort(spawners, SpawnerSorter)
@@ -1229,14 +1377,14 @@ if CLIENT then
 			local size = ROTGB_GetConVarValue("rotgb_hud_size")
 			if oldSize ~= size then
 				oldSize = size
-				generateCooldown = realTime + 1
+				generateCooldown = realTime + 2
 			end
 			if generateCooldown < realTime and generateCooldown >= 0 then
 				generateCooldown = -1
 				CreateGBFont(size)
 			end
-			local xPos = ROTGB_GetConVarValue("rotgb_hud_x")*ScrW()
-			local yPos = ROTGB_GetConVarValue("rotgb_hud_y")*ScrH()
+			local xPos = ROTGB_GetConVarValue("rotgb_hud_x")*scrW
+			local yPos = ROTGB_GetConVarValue("rotgb_hud_y")*scrH
 			surface.SetDrawColor(255,255,255)
 			surface.SetMaterial(wavemat)
 			surface.DrawTexturedRect(xPos,yPos,size,size)
@@ -1362,9 +1510,9 @@ if CLIENT then
 				local bufferHealthPercent = (math.min(bossData.healthHistory[1], maximumSegmentHealth) - maximumSegmentHealth + healthPerSegment) / healthPerSegment
 				
 				local padding = BOSS_FONT_HEIGHT / 2
-				local barW = ScrW() / 3
+				local barW = scrW / 3
 				local barH = BOSS_FONT_HEIGHT
-				local barX = (ScrW() - barW) / 2
+				local barX = (scrW - barW) / 2
 				local barY = BOSS_FONT_HEIGHT * 2 + padding
 				
 				local healthBarsP = math.floor(BOSS_FONT_HEIGHT / 8)
@@ -1375,11 +1523,10 @@ if CLIENT then
 				
 				local backgroundW = barW + padding * 2
 				local backgroundH = BOSS_FONT_HEIGHT + barH + healthBarsPW + padding * 2
-				local backgroundX = (ScrW() - backgroundW) / 2
+				local backgroundX = (scrW - backgroundW) / 2
 				local backgroundY = BOSS_FONT_HEIGHT
 				local backgroundC = color_black_semiopaque
 				
-				-- TODO: health bars indicator
 				if bossData.currentHealthSegment ~= currentHealthSegment then
 					if bossData.currentHealthSegment then
 						bossData.lastWarningTime = RealTime()
@@ -1409,7 +1556,7 @@ if CLIENT then
 				--end
 				
 				draw.RoundedBox(8, backgroundX, backgroundY, backgroundW, backgroundH, backgroundC)
-				draw.SimpleText(bossData.title, "RotgBBossFont", ScrW()/2, backgroundY+padding, bossData.color, TEXT_ALIGN_CENTER)
+				draw.SimpleText(bossData.title, "RotgBBossFont", scrW/2, backgroundY+padding, bossData.color, TEXT_ALIGN_CENTER)
 				
 				local previousSegmentColorsAmount = #bossData.previousHealthSegmentColors
 				local previousSegmentColor = bossData.previousHealthSegmentColors[previousSegmentColorsAmount] or color_black_semiopaque
@@ -1447,6 +1594,24 @@ if CLIENT then
 			elseif bossData then
 				bossData = {}
 			end
+			
+			--[[local hintMessage
+			if hintExpiryTime < RealTime() then
+				if nextHintMessage then
+					hintMessage = nextHintMessage
+					nextHintMessage = nil
+					hintExpiryTime = RealTime() + 5
+				elseif hintBox:IsVisible() then
+					hintBox:Hide()
+				end
+			end
+			if hintMessage then
+				if not hintBox:IsVisible() then
+					hintBox:Show()
+				end
+				hintBoxLabel:SetText(nextHintMessage)
+				hintBox.hintExpiryTime = hintExpiryTime
+			end]]
 		end
 	end)
 
@@ -1463,6 +1628,41 @@ if CLIENT then
 	local function AddDFormConVarDescription(DForm, conVar, ...)
 		local localizedText = ROTGB_LocalizeString("rotgb.convar.description.display", ROTGB_LocalizeString("rotgb.convar."..conVar..".description", ...))
 		DForm:Help(localizedText)
+	end
+	
+	local function PopulateClientDForm(DForm)
+		DForm:Help("") --whitespace
+		DForm:ControlHelp("#rotgb.spawnmenu.category.client.display")
+		DForm:CheckBox("#rotgb.convar.rotgb_hud_enabled.name","rotgb_hud_enabled")
+		AddDFormConVarDescription(DForm, "rotgb_hud_enabled")
+		DForm:NumSlider("#rotgb.convar.rotgb_hud_x.name","rotgb_hud_x",0,1,3)
+		AddDFormConVarDescription(DForm, "rotgb_hud_x")
+		DForm:NumSlider("#rotgb.convar.rotgb_hud_y.name","rotgb_hud_y",0,1,3)
+		AddDFormConVarDescription(DForm, "rotgb_hud_y")
+		DForm:NumSlider("#rotgb.convar.rotgb_hud_size.name","rotgb_hud_size",0,128,0)
+		AddDFormConVarDescription(DForm, "rotgb_hud_size")
+		DForm:Help("") --whitespace
+		DForm:ControlHelp("#rotgb.spawnmenu.category.client.ranges")
+		DForm:CheckBox("#rotgb.convar.rotgb_range_enable_indicators.name","rotgb_range_enable_indicators")
+		AddDFormConVarDescription(DForm, "rotgb_range_enable_indicators")
+		DForm:NumSlider("#rotgb.convar.rotgb_range_hold_time.name","rotgb_range_hold_time",0,10,3)
+		AddDFormConVarDescription(DForm, "rotgb_range_hold_time")
+		DForm:NumSlider("#rotgb.convar.rotgb_range_fade_time.name","rotgb_range_fade_time",0,10,3)
+		AddDFormConVarDescription(DForm, "rotgb_range_fade_time")
+		DForm:NumSlider("#rotgb.convar.rotgb_range_alpha.name","rotgb_range_alpha",0,255,0)
+		AddDFormConVarDescription(DForm, "rotgb_range_alpha")
+		DForm:Help("") --whitespace
+		DForm:ControlHelp("#rotgb.spawnmenu.category.client.others")
+		DForm:NumSlider("#rotgb.convar.rotgb_music_volume.name","rotgb_music_volume",0,4,3)
+		AddDFormConVarDescription(DForm, "rotgb_music_volume")
+		DForm:NumSlider("#rotgb.convar.rotgb_circle_segments.name","rotgb_circle_segments",3,200,0)
+		AddDFormConVarDescription(DForm, "rotgb_circle_segments")
+		DForm:NumSlider("#rotgb.convar.rotgb_hoverover_distance.name","rotgb_hoverover_distance",0,100,1)
+		AddDFormConVarDescription(DForm, "rotgb_hoverover_distance")
+		DForm:CheckBox("#rotgb.convar.rotgb_freeze_effect.name","rotgb_freeze_effect")
+		AddDFormConVarDescription(DForm, "rotgb_freeze_effect")
+		DForm:CheckBox("#rotgb.convar.rotgb_no_glow.name","rotgb_no_glow")
+		AddDFormConVarDescription(DForm, "rotgb_no_glow")
 	end
 	
 	hook.Add("PopulateToolMenu","RotgB",function()
@@ -1518,7 +1718,7 @@ if CLIENT then
 			DForm:NumSlider("#rotgb.convar.rotgb_bloodtype.name","rotgb_bloodtype",-1,16,0)
 			AddDFormConVarDescription(DForm, "rotgb_bloodtype")
 			DForm:TextEntry("#rotgb.convar.rotgb_blooddecal.name","rotgb_blooddecal")
-			AddDFormConVarDescription(DForm, "rotgb_blooddecal")
+			AddDFormConVarDescription(DForm, "rotgb_blooddecal", table.concat(list.Get("PaintMaterials"), ", "))
 			DForm:Button("#rotgb.command.rotgb_blacklist.name","rotgb_blacklist")
 		end)
 		spawnmenu.AddToolMenuOption("RotgB","Server","RotgB_Server3","#rotgb.spawnmenu.category.server.spawners_targets","","",function(DForm)
@@ -1642,40 +1842,9 @@ if CLIENT then
 				end
 				return adctab
 			end
-			AddDFormConVarDescription(DForm, "rotgb_debug")
+			AddDFormConVarDescription(DForm, "rotgb_debug", table.concat(DebugArgs, ", "))
 		end)
-		spawnmenu.AddToolMenuOption("RotgB","Client","RotgB_Client","#rotgb.spawnmenu.category.client.options","","",function(DForm)
-			DForm:Help("") --whitespace
-			DForm:ControlHelp("#rotgb.spawnmenu.category.client.display")
-			DForm:CheckBox("#rotgb.convar.rotgb_hud_enabled.name","rotgb_hud_enabled")
-			AddDFormConVarDescription(DForm, "rotgb_hud_enabled")
-			DForm:NumSlider("#rotgb.convar.rotgb_hud_x.name","rotgb_hud_x",0,1,3)
-			AddDFormConVarDescription(DForm, "rotgb_hud_x")
-			DForm:NumSlider("#rotgb.convar.rotgb_hud_y.name","rotgb_hud_y",0,1,3)
-			AddDFormConVarDescription(DForm, "rotgb_hud_y")
-			DForm:NumSlider("#rotgb.convar.rotgb_hud_size.name","rotgb_hud_size",0,128,0)
-			AddDFormConVarDescription(DForm, "rotgb_hud_size")
-			DForm:Help("") --whitespace
-			DForm:ControlHelp("#rotgb.spawnmenu.category.client.ranges")
-			DForm:CheckBox("#rotgb.convar.rotgb_range_enable_indicators.name","rotgb_range_enable_indicators")
-			AddDFormConVarDescription(DForm, "rotgb_range_enable_indicators")
-			DForm:NumSlider("#rotgb.convar.rotgb_range_hold_time.name","rotgb_range_hold_time",0,10,3)
-			AddDFormConVarDescription(DForm, "rotgb_range_hold_time")
-			DForm:NumSlider("#rotgb.convar.rotgb_range_fade_time.name","rotgb_range_fade_time",0,10,3)
-			AddDFormConVarDescription(DForm, "rotgb_range_fade_time")
-			DForm:NumSlider("#rotgb.convar.rotgb_range_alpha.name","rotgb_range_alpha",0,255,0)
-			AddDFormConVarDescription(DForm, "rotgb_range_alpha")
-			DForm:Help("") --whitespace
-			DForm:ControlHelp("Other")
-			DForm:NumSlider("#rotgb.convar.rotgb_circle_segments.name","rotgb_circle_segments",3,200,0)
-			AddDFormConVarDescription(DForm, "rotgb_circle_segments")
-			DForm:NumSlider("#rotgb.convar.rotgb_hoverover_distance.name","rotgb_hoverover_distance",0,100,1)
-			AddDFormConVarDescription(DForm, "rotgb_hoverover_distance")
-			DForm:CheckBox("#rotgb.convar.rotgb_freeze_effect.name","rotgb_freeze_effect")
-			AddDFormConVarDescription(DForm, "rotgb_freeze_effect")
-			DForm:CheckBox("#rotgb.convar.rotgb_no_glow.name","rotgb_no_glow")
-			AddDFormConVarDescription(DForm, "rotgb_no_glow")
-		end)
+		spawnmenu.AddToolMenuOption("RotgB","Client","RotgB_Client","#rotgb.spawnmenu.category.client.options","","",PopulateClientDForm)
 		--[[spawnmenu.AddToolMenuOption("Options","RotgB","RotgB_Bestiary","Bestiary","","",function(DForm) -- Add panel
 			local CategoryList = vgui.Create("DCategoryList",DForm)
 			for i,v in ipairs(order) do
@@ -1780,51 +1949,164 @@ if CLIENT then
 			bossData.healthSegments = net.ReadUInt(8)
 			bossData.lastUpdateTime = RealTime()
 		elseif operation == ROTGB_OPERATION_NOTIFY then
-			local msg = net.ReadString()
-			ROTGB_CauseNotification(msg)
+			local level = net.ReadUInt(4)
+			local isCustom = net.ReadBool()
+			if isCustom then
+				local msg = net.ReadString()
+				local flags = net.ReadUInt(8)
+				local additionalArguments = {}
+				
+				if bit.band(flags, 1)~=0 then
+					if level == ROTGB_NOTIFYTYPE_CHAT then 
+						additionalArguments.color = net.ReadColor()
+					elseif level == ROTGB_NOTIFYTYPE_INFO or level == ROTGB_NOTIFYTYPE_ERROR or level == ROTGB_NOTIFYTYPE_HINT then
+						additionalArguments.holdtime = net.ReadFloat()
+					end
+				end
+				
+				ROTGB_CauseNotification(msg,level,nil,additionalArguments)
+			else
+				local message = net.ReadUInt(8)
+				local flags = net.ReadUInt(8)
+				local additionalArguments = {}
+				
+				if bit.band(flags, 1)~=0 then
+					if level == ROTGB_NOTIFYTYPE_CHAT then 
+						additionalArguments.color = net.ReadColor()
+					elseif level == ROTGB_NOTIFYTYPE_INFO or level == ROTGB_NOTIFYTYPE_ERROR or level == ROTGB_NOTIFYTYPE_HINT then
+						additionalArguments.holdtime = net.ReadFloat()
+					end
+				end
+				
+				if message == ROTGB_NOTIFY_NOMULTISTART then
+					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.gballoon_spawner.no_multi_start"), level, nil, additionalArguments)
+				elseif message == ROTGB_NOTIFY_WAVESTART then
+					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.gballoon_spawner.wave_start", net.ReadInt(32), net.ReadDouble()), level, nil, additionalArguments)
+				elseif message == ROTGB_NOTIFY_WIN then
+					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.gballoon_spawner.win"), level, nil, additionalArguments)
+					if ROTGB_GetConVarValue("rotgb_freeplay") then
+						ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.gballoon_spawner.freeplay"), level, nil, additionalArguments)
+					end
+				elseif message == ROTGB_NOTIFY_WAVELOADED then
+					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.gballoon_spawner.loaded", net.ReadString()), level, nil, additionalArguments)
+				elseif message == ROTGB_NOTIFY_PLACEMENTILLEGAL then
+					local tower = net.ReadEntity()
+					if IsValid(tower) then
+						ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_build", language.GetPhrase("rotgb.tower."..tower:GetClass()..".name")), level, nil, additionalArguments)
+					end
+				elseif message == ROTGB_NOTIFY_PLACEMENTILLEGALOFF then
+					local tower = net.ReadEntity()
+					if IsValid(tower) then
+						ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_build.off", language.GetPhrase("rotgb.tower."..tower:GetClass()..".name")), level, nil, additionalArguments)
+					end
+				elseif message == ROTGB_NOTIFY_NOSPAWNERS then
+					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.gballoon_spawner.missing"), level, nil, additionalArguments)
+				elseif message == ROTGB_NOTIFY_TRANSFERSHARED then
+					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.game_swep.transfer.shared"), level, nil, additionalArguments)
+				elseif message == ROTGB_NOTIFY_TOWERLEVEL then
+					local level = net.ReadUInt(8)
+					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.level", string.Comma(level)), level, nil, additionalArguments)
+				elseif message == ROTGB_NOTIFY_TOWERCASH then
+					local cost = net.ReadFloat()
+					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.cant_afford", ROTGB_FormatCash(cost, true)), level, nil, additionalArguments)
+				elseif message == ROTGB_NOTIFY_NAVMESHMISSING then
+					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.navmesh.missing"), level, nil, additionalArguments)
+				elseif message == ROTGB_NOTIFY_TOWERBLACKLISTED then
+					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.blacklist"), level, nil, additionalArguments)
+				elseif message == ROTGB_NOTIFY_TOWERCHESSONLY then
+					local mustChess = net.ReadBool()
+					ROTGB_CauseNotification(ROTGB_LocalizeString(mustChess and "rotgb.tower.no_place.chess" or "rotgb.tower.no_place.no_chess"), level, nil, additionalArguments)
+				elseif message == ROTGB_NOTIFY_TOWERMAX then
+					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.no_more"), level, nil, additionalArguments)
+				elseif message == ROTGB_NOTIFY_TOWERNOTOWNER then
+					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.upgrade.not_owner"), level, nil, additionalArguments)
+				elseif message == ROTGB_NOTIFY_WAVEEND then
+					local token = string.format("rotgb.wave_hints.%i", net.ReadInt(32))
+					local localized = ROTGB_LocalizeString(token)
+					if token ~= localized then
+						ROTGB_CauseNotification(localized, level, nil, additionalArguments)
+					end
+				end
+			end
 		elseif operation == ROTGB_OPERATION_NOTIFYCHAT then
 			local message = net.ReadUInt(8)
 			if message == ROTGB_NOTIFYCHAT_NOMULTISTART then
-				chat.AddText(ROTGB_LocalizeString("rotgb.gballoon_spawner.no_multi_start"))
+				ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.gballoon_spawner.no_multi_start"), ROTGB_NOTIFYTYPE_CHAT)
 			elseif message == ROTGB_NOTIFYCHAT_WAVESTART then
-				chat.AddText(ROTGB_LocalizeString("rotgb.gballoon_spawner.wave_start", net.ReadInt(16), net.ReadDouble()))
+				ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.gballoon_spawner.wave_start", net.ReadInt(32), net.ReadDouble()), ROTGB_NOTIFYTYPE_CHAT)
 			elseif message == ROTGB_NOTIFYCHAT_WIN then
-				chat.AddText(ROTGB_LocalizeString("rotgb.gballoon_spawner.win"))
+				ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.gballoon_spawner.win"), ROTGB_NOTIFYTYPE_CHAT)
 				if ROTGB_GetConVarValue("rotgb_freeplay") then
-					chat.AddText(ROTGB_LocalizeString("rotgb.gballoon_spawner.freeplay"))
+					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.gballoon_spawner.freeplay"), ROTGB_NOTIFYTYPE_CHAT)
 				end
 			elseif message == ROTGB_NOTIFYCHAT_WAVELOADED then
-				chat.AddText(ROTGB_LocalizeString("rotgb.gballoon_spawner.loaded", net.ReadString()))
+				ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.gballoon_spawner.loaded", net.ReadString()), ROTGB_NOTIFYTYPE_CHAT)
 			elseif message == ROTGB_NOTIFYCHAT_PLACEMENTILLEGAL then
 				local tower = net.ReadEntity()
 				if IsValid(tower) then
-					chat.AddText(ROTGB_LocalizeString("rotgb.tower.no_build", language.GetPhrase("rotgb.tower."..tower:GetClass()..".name")))
+					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_build", language.GetPhrase("rotgb.tower."..tower:GetClass()..".name")), ROTGB_NOTIFYTYPE_CHAT)
 				end
 			elseif message == ROTGB_NOTIFYCHAT_PLACEMENTILLEGALOFF then
 				local tower = net.ReadEntity()
 				if IsValid(tower) then
-					chat.AddText(ROTGB_LocalizeString("rotgb.tower.no_build.off", language.GetPhrase("rotgb.tower."..tower:GetClass()..".name")))
+					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_build.off", language.GetPhrase("rotgb.tower."..tower:GetClass()..".name")), ROTGB_NOTIFYTYPE_CHAT)
 				end
 			elseif message == ROTGB_NOTIFYCHAT_NOSPAWNERS then
-				chat.AddText(ROTGB_LocalizeString("rotgb.gballoon_spawner.missing"))
+				ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.gballoon_spawner.missing"), ROTGB_NOTIFYTYPE_CHAT)
 			elseif message == ROTGB_NOTIFYCHAT_TRANSFERSHARED then
-				chat.AddText(ROTGB_LocalizeString("rotgb.game_swep.transfer.shared"))
+				ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.game_swep.transfer.shared"), ROTGB_NOTIFYTYPE_CHAT)
 			end
+			ROTGB_LogError("DEPRECATION WARNING: ROTGB_OPERATION_NOTIFYCHAT must not be used, use ROTGB_CauseNotification() instead.", "")
+			debug.Trace()
 		elseif operation == ROTGB_OPERATION_NOTIFYARG then
 			local message = net.ReadUInt(8)
 			if message == ROTGB_NOTIFYARG_TOWERLEVEL then
 				local level = net.ReadUInt(8)
-				ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.level", string.Comma(level)))
+				ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.level", string.Comma(level)), ROTGB_NOTIFYTYPE_ERROR)
 			elseif message == ROTGB_NOTIFYARG_TOWERCASH then
 				local cost = net.ReadFloat()
-				ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.cant_afford", ROTGB_FormatCash(cost, true)))
+				ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.cant_afford", ROTGB_FormatCash(cost, true)), ROTGB_NOTIFYTYPE_ERROR)
+			end
+			ROTGB_LogError("DEPRECATION WARNING: ROTGB_OPERATION_NOTIFYARG must not be used, use ROTGB_CauseNotification() instead.", "")
+			debug.Trace()
+		elseif operation == ROTGB_OPERATION_SYNCENTITY then
+			local ent = net.ReadEntity()
+			if IsValid(ent) then
+				if ent:GetClass() == "gballoon_spawner" then
+					local dataNum = net.ReadInt(16)
+					if dataNum ~= -1 then
+						ent.MusicData = {}
+						for i=1, dataNum do
+							local data = {}
+							data.wave = net.ReadInt(32)
+							data.file = net.ReadString()
+							data.texts = {}
+							
+							for i=1, net.ReadUInt(8) do
+								data.texts[i] = net.ReadString()
+							end
+							
+							table.insert(ent.MusicData, data)
+						end
+						
+						table.SortByMember(ent.MusicData, "wave")
+						if ent.GetWave then
+							ent:CheckForMusicPlay(ent:GetWave()-1)
+						end
+					else
+						ROTGB_EntityLog(ent, "Received info that music data has not changed!", "music")
+					end
+					ROTGB_EntityLog(ent, "Received music data! Tracks = "..util.TableToJSON(ent.MusicData, true), "music")
+					--ent:CheckForMusicPlay(ent:GetWave())
+				end
 			end
 		end
 	end)
 	
 	--local drawNoBuilds = false
 	function ROTGB_SetDrawNoBuilds(value)
-		-- DEPRECATED. DO NOT USE.
+		ROTGB_LogError("ROTGB_SetDrawNoBuilds is deprecated and will be removed in Version 7!", "")
+		debug.Trace()
 	end
 	
 	--[[local nextUpdate = nil
@@ -1838,23 +2120,46 @@ if CLIENT then
 	end)]]
 	
 	concommand.Add("rotgb_debug_getversion5towerlang",function(ply,cmd,args,argStr)
-		local resultantString = ""
-		for i,v in ipairs(args) do
-			local class = v
-			local tower = scripted_ents.GetStored(class).t
-			resultantString = resultantString..string.format("rotgb.tower.%s.name=%s\n", class, tower.PrintName)
-			resultantString = resultantString..string.format("rotgb.tower.%s.purpose=%s\n", class, tower.Purpose)
-			
-			local ref = tower.UpgradeReference
-			for k,v2 in pairs(ref) do
-				resultantString = resultantString.."\n"
-				for i2=1,#v2.Names do
-					resultantString = resultantString..string.format("rotgb.tower.%s.upgrades.%i.%i.name=%s\n", class, k, i2, v2.Names[i2])
-					resultantString = resultantString..string.format("rotgb.tower.%s.upgrades.%i.%i.description=%s\n", class, k, i2, v2.Descs[i2])
+		if next(args) then
+			local resultantString = ""
+			for i,v in ipairs(args) do
+				local class = v
+				local tower = scripted_ents.GetStored(class).t
+				resultantString = resultantString..string.format("rotgb.tower.%s.name=%s\n", class, tower.PrintName)
+				resultantString = resultantString..string.format("rotgb.tower.%s.purpose=%s\n", class, tower.Purpose)
+				
+				local ref = tower.UpgradeReference
+				for k,v2 in pairs(ref) do
+					resultantString = resultantString.."\n"
+					for i2=1,#v2.Names do
+						resultantString = resultantString..string.format("rotgb.tower.%s.upgrades.%i.%i.name=%s\n", class, k, i2, v2.Names[i2])
+						resultantString = resultantString..string.format("rotgb.tower.%s.upgrades.%i.%i.description=%s\n", class, k, i2, v2.Descs[i2])
+					end
 				end
+				resultantString = resultantString.."\n\n\n"
 			end
-			resultantString = resultantString.."\n\n\n"
+			SetClipboardText(resultantString)
+		else
+			print(ROTGB_LocalizeString("rotgb.convar.description.display", language.GetPhrase("rotgb.concommand.rotgb_debug_getversion5towerlang.description")))
 		end
-		SetClipboardText(resultantString)
 	end,"Copies the V6 language strings of V5 towers to your clipboard, which can be readily pasted into a .properties file.\n - Usage: rotgb_debug_getversion5towerlang <classname> <classname> ...")
+	
+	concommand.Add("rotgb_config_menu_client",function(ply,cmd,args,argStr)
+		local Frame = vgui.Create("DFrame")
+		Frame:SetSize(ScrW()/2, ScrH()/2)
+		Frame:SetTitle("#rotgb.spawnmenu.category.client")
+		Frame:Center()
+		Frame:MakePopup()
+		
+		local Panel = Frame:Add("DPanel")
+		Panel:Dock(FILL)
+		
+		local Scroller = Panel:Add("DScrollPanel")
+		Scroller:Dock(FILL)
+		
+		local DForm = Scroller:Add("DForm")
+		DForm:Dock(FILL)
+		DForm:SetName("#rotgb.spawnmenu.category.client.options")
+		PopulateClientDForm(DForm)
+	end,"Opens the client ConVar configuration menu.")
 end

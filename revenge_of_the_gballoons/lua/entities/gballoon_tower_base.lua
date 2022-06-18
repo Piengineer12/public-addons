@@ -278,18 +278,14 @@ function ENT:Think()
 					end
 				end
 				if towerOwner:RTG_GetLevel() < towerIndex then
-					net.Start("rotgb_generic")
-					net.WriteUInt(ROTGB_OPERATION_NOTIFYARG,8)
-					net.WriteUInt(ROTGB_NOTIFYARG_TOWERLEVEL,8)
-					net.WriteUInt(towerIndex, 8)
-					net.Send(towerOwner)
+					ROTGB_CauseNotification(ROTGB_NOTIFY_TOWERLEVEL, ROTGB_NOTIFYTYPE_ERROR, towerOwner, {"u8", towerIndex})
 					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(towerOwner).." due to level requirement.", "towers")
 					return SafeRemoveEntity(self)
 				end
 			end
 			for entry in string.gmatch(ROTGB_GetConVarValue("rotgb_tower_blacklist"), "%S+") do
 				if self:GetClass() == entry then
-					ROTGB_CauseNotification("#rotgb.tower.no_place.blacklist", towerOwner)
+					ROTGB_CauseNotification(ROTGB_NOTIFY_TOWERBLACKLISTED, ROTGB_NOTIFYTYPE_ERROR, towerOwner)
 					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(towerOwner).." due to blacklist.", "towers")
 					return SafeRemoveEntity(self)
 				end
@@ -297,21 +293,17 @@ function ENT:Think()
 			local chessOnly = ROTGB_GetConVarValue("rotgb_tower_chess_only")
 			if chessOnly ~= 0 then
 				if chessOnly > 0 and not self.IsChessPiece then
-					ROTGB_CauseNotification("#rotgb.tower.no_place.chess", towerOwner)
+					ROTGB_CauseNotification(ROTGB_NOTIFY_TOWERCHESSONLY, ROTGB_NOTIFYTYPE_ERROR, towerOwner, {"b", true})
 					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(towerOwner).." due to not being a chess tower.", "towers")
 				elseif chessOnly < 0 and self.IsChessPiece then
-					ROTGB_CauseNotification("#rotgb.tower.no_place.no_chess", towerOwner)
+					ROTGB_CauseNotification(ROTGB_NOTIFY_TOWERCHESSONLY, ROTGB_NOTIFYTYPE_ERROR, towerOwner, {"b", false})
 					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(towerOwner).." due to being a chess tower.", "towers")
 				end
 			end
 			local maxCount = hook.Run("GetMaxRotgBTowerCount") or ROTGB_GetConVarValue("rotgb_tower_maxcount")
 			if towerCost>ROTGB_GetCash(towerOwner) then
 				if towerOwner:IsPlayer() then
-					net.Start("rotgb_generic")
-					net.WriteUInt(ROTGB_OPERATION_NOTIFYARG,8)
-					net.WriteUInt(ROTGB_NOTIFYARG_TOWERCASH,8)
-					net.WriteFloat(towerCost-ROTGB_GetCash(towerOwner))
-					net.Send(towerOwner)
+					ROTGB_CauseNotification(ROTGB_NOTIFY_TOWERCASH, ROTGB_NOTIFYTYPE_ERROR, towerOwner, {"f", towerCost-ROTGB_GetCash(towerOwner)})
 				end
 				ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(towerOwner).." due to insufficient cash.", "towers")
 				return SafeRemoveEntity(self)
@@ -323,7 +315,7 @@ function ENT:Think()
 					end
 				end
 				if count > maxCount then
-					ROTGB_CauseNotification("#rotgb.tower.no_place.no_more", towerOwner)
+					ROTGB_CauseNotification(ROTGB_NOTIFY_TOWERMAX, ROTGB_NOTIFYTYPE_ERROR, towerOwner)
 					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(towerOwner).." due to excess towers.", "towers")
 					return SafeRemoveEntity(self)
 				end
@@ -574,11 +566,11 @@ function ENT:AddCash(cash, ply)
 end
 
 function ENT:GetUpgradeName(path, tier)
-	return language.GetPhrase(string.format("rotgb.tower.%s.upgrades.%i.%i.name", self:GetClass(), path, tier))
+	return ROTGB_LocalizeString(string.format("rotgb.tower.%s.upgrades.%i.%i.name", self:GetClass(), path, tier))
 end
 
 function ENT:GetUpgradeDescription(path, tier)
-	return language.GetPhrase(string.format("rotgb.tower.%s.upgrades.%i.%i.description", self:GetClass(), path, tier))
+	return ROTGB_LocalizeString(string.format("rotgb.tower.%s.upgrades.%i.%i.description", self:GetClass(), path, tier))
 end
 
 ENT.ROTGB_OnRemove = ENT.ROTGB_Initialize
@@ -615,7 +607,7 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 				end
 			end
 		else
-			ROTGB_CauseNotification("#rotgb.tower.upgrade.not_owner")
+			ROTGB_CauseNotification(ROTGB_NOTIFY_TOWERNOTOWNER, ROTGB_NOTIFYTYPE_ERROR, towerOwner)
 		end
 	end
 	if SERVER then

@@ -62,3 +62,27 @@ function GM:SaveClient()
 	data.statsitics = hook.Run("GetStatisticsSaveTable")
 	file.Write("rotgb_tg_data.dat", util.TableToJSON(data))
 end
+
+local color_aqua = Color(0, 255, 255)
+function GM:OnPlayerChat(ply, message, bTeam, bDead)
+    if ply ~= LocalPlayer() then return end
+	local loweredMessage = message:lower()
+	if loweredMessage == "!help" or loweredMessage == "!rtg_help" then
+		chat.AddText(color_white, language.GetPhrase("rotgb_tg.help"))
+		for i=1, 6 do
+			local arguments = {
+				language.GetPhrase(string.format("rotgb_tg.help.entry.%i.%i", i, 1)),
+				language.GetPhrase(string.format("rotgb_tg.help.entry.%i.%i", i, 2)),
+				language.GetPhrase(string.format("rotgb_tg.help.entry.%i.%i", i, 3))
+			}
+			chat.AddText(unpack(ROTGB_LocalizeMulticoloredString(
+				"rotgb_tg.help.entry",
+				arguments,
+				color_white,
+				{color_aqua, color_aqua, color_white}
+			)))
+		end
+		return true
+	end
+	return false
+end

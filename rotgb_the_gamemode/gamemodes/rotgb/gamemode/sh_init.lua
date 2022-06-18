@@ -1,7 +1,7 @@
 GM.Name							= "RotgB: The Gamemode!"
 GM.Author						= "Piengineer12"
-GM.Version						= "1.5.0"
-GM.VersionDate					= "2022-04-23"
+GM.Version						= "1.6.0"
+GM.VersionDate					= "2022-06-17"
 GM.Email						= "[REDACTED]"
 GM.Website						= "https://steamcommunity.com/id/Piengineer12"
 GM.TeamBased					= true
@@ -13,218 +13,6 @@ GM.DatabaseFormatVersion		= 1
 GM.DatabaseSaveInterval			= 30
 GM.VoteTime						= 15
 GM.DebugMode					= false
-GM.ModeCategories				= {easy = 1, medium = 2, hard = 3, insane = 4, impossible = 5}
-GM.Modes						= {
-	__common = {
-		convars = {
-			rotgb_regen_delay = true,
-			rotgb_func_nav_expand = true,
-			rotgb_max_to_exist = true,
-			rotgb_ignore_damage_resistances = true,
-			rotgb_damage_multiplier = true,
-			rotgb_scale = true,
-			rotgb_target_choice = true,
-			rotgb_target_sort = true,
-			rotgb_search_size = true,
-			rotgb_target_tolerance = true,
-			rotgb_cash_mul = true,
-			rotgb_speed_mul = true,
-			rotgb_health_multiplier = true,
-			rotgb_blimp_health_multiplier = true,
-			rotgb_pop_on_contact = true,
-			rotgb_use_custom_pathfinding = true,
-			rotgb_freeplay = true,
-			rotgb_rainbow_gblimp_regen_rate = true,
-			rotgb_afflicted_damage_multiplier = true,
-			rotgb_tower_range_multiplier = true,
-			rotgb_ignore_upgrade_limits = true,
-			rotgb_fire_delay = true,
-			rotgb_init_rate = true,
-			rotgb_starting_cash = true,
-			rotgb_tower_income_mul = true,
-			rotgb_target_health_override = true,
-			rotgb_default_first_wave = true,
-			rotgb_tower_ignore_physgun = true,
-			rotgb_spawner_force_auto_start = true,
-			rotgb_spawner_no_multi_start = 1,
-			rotgb_individualcash = 1,
-			rotgb_tower_force_charge = true,
-			rotgb_tower_charge_rate = true,
-			
-			rotgb_difficulty = true,
-			rotgb_default_wave_preset = true,
-			rotgb_default_last_wave = true,
-			rotgb_target_natural_health = true
-		}
-	},
-	easy_regular = {
-		category = "easy",
-		place = 1,
-		xpmul = 1,
-		convars = {
-			rotgb_difficulty = 0,
-			rotgb_default_last_wave = 40,
-			rotgb_target_natural_health = 200
-		}
-	},
-	easy_chessonly = {
-		category = "easy",
-		place = 2,
-		xpmul = 1.2,
-		convars = {
-			rotgb_difficulty = 0,
-			rotgb_default_last_wave = 40,
-			rotgb_target_natural_health = 200,
-			rotgb_tower_chess_only = 1
-		}
-	},
-	easy_halfcash = {
-		category = "easy",
-		place = 3,
-		xpmul = 2,
-		convars = {
-			rotgb_difficulty = 0,
-			rotgb_default_last_wave = 40,
-			rotgb_target_natural_health = 200,
-			rotgb_starting_cash = 325,
-			rotgb_cash_mul = 0.5
-		}
-	},
-	medium_regular = {
-		category = "medium",
-		place = 1,
-		xpmul = 0.5,
-		convars = {
-			rotgb_difficulty = 1,
-			rotgb_default_last_wave = 60,
-			rotgb_target_natural_health = 150
-		}
-	},
-	medium_rainstorm = {
-		category = "medium",
-		place = 2,
-		xpmul = 0.6,
-		convars = {
-			rotgb_difficulty = 1,
-			rotgb_default_last_wave = 60,
-			rotgb_target_natural_health = 150,
-			rotgb_spawner_force_auto_start = 1,
-		}
-	},
-	medium_strategic = {
-		category = "medium",
-		place = 3,
-		xpmul = 0.7,
-		convars = {
-			rotgb_difficulty = 1,
-			rotgb_default_first_wave = 51,
-			rotgb_default_last_wave = 60,
-			rotgb_target_natural_health = 150,
-			rotgb_starting_cash = 20000,
-			rotgb_cash_mul = 0,
-		}
-	},
-	hard_regular = {
-		category = "hard",
-		place = 1,
-		xpmul = 0.25,
-		convars = {
-			rotgb_difficulty = 2,
-			rotgb_default_last_wave = 80,
-			rotgb_target_natural_health = 100
-		}
-	},
-	hard_doublehpblimps = {
-		category = "hard",
-		place = 2,
-		xpmul = 0.3,
-		convars = {
-			rotgb_difficulty = 2,
-			rotgb_default_last_wave = 80,
-			rotgb_target_natural_health = 100,
-			rotgb_blimp_health_multiplier = 2
-		}
-	},
-	hard_legacy = {
-		category = "hard",
-		place = 3,
-		xpmul = 0.005,
-		convars = {
-			rotgb_difficulty = 2,
-			rotgb_default_last_wave = 120,
-			rotgb_target_natural_health = 100,
-			rotgb_default_wave_preset = "?LEGACY_10S",
-			rotgb_spawner_force_auto_start = 1
-		}
-	},
-	insane_regular = {
-		category = "insane",
-		place = 1,
-		xpmul = 0.125,
-		convars = {
-			rotgb_difficulty = 3,
-			rotgb_default_last_wave = 100,
-			rotgb_target_natural_health = 50
-		}
-	},
-	insane_doublehp = {
-		category = "insane",
-		place = 2,
-		xpmul = 0.15,
-		convars = {
-			rotgb_difficulty = 3,
-			rotgb_default_last_wave = 100,
-			rotgb_target_natural_health = 50,
-			rotgb_health_multiplier = 2
-		}
-	},
-	insane_bosses = {
-		category = "insane",
-		place = 3,
-		xpmul = 0.175,
-		convars = {
-			rotgb_difficulty = 3,
-			rotgb_default_last_wave = 100,
-			rotgb_target_natural_health = 50,
-			rotgb_default_wave_preset = "?BOSSES",
-			rotgb_spawner_force_auto_start = 1
-		}
-	},
-	impossible_regular = {
-		category = "impossible",
-		place = 1,
-		xpmul = 0.0625,
-		convars = {
-			rotgb_difficulty = 4,
-			rotgb_default_last_wave = 120,
-			rotgb_target_natural_health = 1
-		}
-	},
-	impossible_monsoon = {
-		category = "impossible",
-		place = 2,
-		xpmul = 0.075,
-		convars = {
-			rotgb_difficulty = 4,
-			rotgb_default_last_wave = 120,
-			rotgb_target_natural_health = 1,
-			rotgb_default_wave_preset = "?2S",
-			rotgb_spawner_force_auto_start = 1
-		}
-	},
-	impossible_bosses = {
-		category = "impossible",
-		place = 3,
-		xpmul = 0.005,
-		convars = {
-			rotgb_difficulty = 4,
-			rotgb_default_last_wave = 140,
-			rotgb_target_natural_health = 1,
-			rotgb_default_wave_preset = "?BOSSES_SUPER",
-			rotgb_spawner_force_auto_start = 1
-		}
-	},
-}
 
 RTG_STAT_POPS = 1
 RTG_STAT_INIT = 2
@@ -241,6 +29,7 @@ RTG_OPERATION_SKILLS = 6
 RTG_OPERATION_MAPS = 7
 RTG_OPERATION_TEAM = 8
 RTG_OPERATION_ACHIEVEMENT = 9
+RTG_OPERATION_ONESHOT = 10
 
 RTG_VOTE_KICK = 1
 RTG_VOTE_CHANGEDIFFICULTY = 2
@@ -284,6 +73,7 @@ end
 local clientFiles = {
 	"cl_achievements.lua",
 	"cl_common_functions.lua",
+	"cl_difficulty.lua",
 	"cl_hud.lua",
 	"cl_localization.lua",
 	"cl_misc.lua",
@@ -297,6 +87,7 @@ local clientFiles = {
 local sharedFiles = {
 	"sh_achievements.lua",
 	"sh_common_functions.lua",
+	"sh_difficulty.lua",
 	"sh_misc.lua",
 	"sh_player.lua",
 	"sh_skills.lua",
@@ -307,6 +98,7 @@ local sharedFiles = {
 
 local serverFiles = {
 	"sv_achievements.lua",
+	"sv_difficulty.lua",
 	"sv_misc.lua",
 	"sv_net.lua",
 	"sv_player.lua",

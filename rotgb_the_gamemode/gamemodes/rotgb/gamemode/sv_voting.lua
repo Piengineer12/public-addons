@@ -1,5 +1,5 @@
 function GM:StartVote(ply, typ, target, reason)
-	if typ == RTG_VOTE_CHANGEDIFFICULTY and not GAMEMODE.Modes[target] then
+	if typ == RTG_VOTE_CHANGEDIFFICULTY and not hook.Run("GetDifficulties")[target] then
 		hook.Run("SendVoteResult", ply, RTG_VOTERESULT_NOTARGET)
 	elseif typ == RTG_VOTE_MAP and string.sub(target, 1, 6) ~= "rotgb_" then
 		hook.Run("SendVoteResult", ply, RTG_VOTERESULT_NOTARGET)

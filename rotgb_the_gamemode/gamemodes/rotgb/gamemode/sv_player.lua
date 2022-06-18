@@ -37,16 +37,20 @@ function GM:GetFallDamage(ply, flFallSpeed)
 end
 
 function GM:PlayerSay(ply, message, forTeam)
-	if message == "!skills" or message == "!rtg_skills" then
+	local loweredMessage = message:lower()
+	if loweredMessage == "!options" or loweredMessage == "!rtg_options" then
+		ply:ConCommand("rotgb_config_menu_client")
+		return ""
+	elseif loweredMessage == "!skills" or loweredMessage == "!rtg_skills" then
 		ply:ConCommand("rotgb_tg_skill_web")
 		return ""
-	elseif message == "!vote" or message == "!rtg_vote" then
+	elseif loweredMessage == "!vote" or loweredMessage == "!rtg_vote" then
 		ply:ConCommand("rotgb_tg_vote")
 		return ""
-	elseif message == "!guide" or message == "!rtg_guide" then
+	elseif loweredMessage == "!guide" or loweredMessage == "!rtg_guide" then
 		ply:ConCommand("rotgb_guide_book")
 		return ""
-	elseif message == "!achievements" or message == "!rtg_achievements" then
+	elseif loweredMessage == "!achievements" or loweredMessage == "!rtg_achievements" then
 		ply:ConCommand("rotgb_tg_achievements")
 		return ""
 	end
