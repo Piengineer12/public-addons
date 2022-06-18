@@ -3,6 +3,8 @@ function GM:InitializeTeams()
 	team.SetUp(TEAM_BUILDER, "#rotgb_tg.teams.builder.name", Color(255,255,0))
 	team.SetClass(TEAM_BUILDER, "Builder")
 	team.SetSpawnPoint(TEAM_BUILDER, "info_player_start")
+	team.SetUp(TEAM_SPECTATOR, "#rotgb_tg.teams.spectator.name", Color(191,191,191))
+	team.SetClass(TEAM_SPECTATOR, "Spectator")
 	
 	--[[TEAM_HUNTER = 2
 	team.SetUp(TEAM_HUNTER, "Hunter", Color(255,127,0))
