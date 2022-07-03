@@ -8,8 +8,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_REPAIR_VERSION = "1.6.0"
-LUA_REPAIR_VERSION_DATE = "2022-05-26"
+LUA_REPAIR_VERSION = "1.6.1"
+LUA_REPAIR_VERSION_DATE = "2022-07-02"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
@@ -202,7 +202,8 @@ local function FixAllErrors()
 			["con_filter_enable"] = true,
 			["con_filter_text_out"] = true,
 			["crosshair"] = true,
-			["sv_cheats"] = true
+			["sv_cheats"] = true,
+			["mp_flashlight"] = true
 		}
 		local blockedCommands = {}
 		
