@@ -251,18 +251,18 @@ local credits = {
 	{"fansided", "76561198117057248"},
 	{"PuggleLeDog", "76561198120548061"},
 	{"Bender™", "76561198004803429"},
-	{"FallenVoid", "id/legosilverking"},
-	{"berry", "id/ingmodsince2008"},
-	{"<various people>"}
+	{"FallenVoid", "76561198178506377"},
+	{"berry", "76561198158864042"},
+	{"#rotgb.guide.contributors.person.various"}
 }
 
 local creditsUnimplemented = {
 	{"Xtrah962", "76561198853380897"},
 	{"SarnieMuncher", "76561198154658331"},
-	{"[WLS] Ziggy Gaming", "id/ziggyevolved"},
+	{"[WLS] Ziggy Gaming", "76561198218939972"},
 	{"Ralsei smoking a fat doobie", "76561198857378000"},
 	{"Dr. Science guy dude", "76561199014467773"},
-	{"<various people>"}
+	{"#rotgb.guide.contributors.person.various"}
 }
 
 net.Receive("RotgB_Bestiary",function(length,ply)
