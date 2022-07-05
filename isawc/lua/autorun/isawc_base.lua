@@ -10,15 +10,18 @@ Links above are confirmed working as of 2022-04-16. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "5.2.4"
-ISAWC._VERSIONDATE = "2022-04-30"
+ISAWC._VERSION = "5.3.0"
+ISAWC._VERSIONDATE = "2022-07-05"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
+local color_red = Color(255,0,0)
+local color_red_semitransparent = Color(255,0,0,63)
 local color_dark_red_semitransparent = Color(127,0,0,63)
 local color_yellow = Color(255,255,0)
 local color_dark_green_semitransparent = Color(0,127,0,63)
 local color_aqua = Color(0,255,255)
+local color_light_aqua = Color(127,255,255)
 local color_dark_blue_semitransparent = Color(0,0,127,63)
 local color_white_semitransparent = Color(255,255,255,63)
 local color_gray_semitransparent = Color(127,127,127,63)
@@ -30,42 +33,43 @@ ISAWC.MESSAGE_TYPES = {
 	ammo_item_stamp_l	= 2,
 	ammo_item_stamp_r	= 3,
 	close_container		= 4,
-	delete				= 5,
-	delete_full			= 6,
-	delete_full_l		= 7,
-	delete_full_r		= 8,
-	delete_l			= 9,
-	delete_r			= 10,
-	drop_all			= 11,
-	drop_all_l			= 12,
-	drop_all_r			= 13,
-	empty_weapon		= 14,
-	empty_weapon_l		= 15,
-	empty_weapon_r		= 16,
-	exporter			= 17,
-	exporter_disconnect	= 18,
-	inventory			= 19,
-	inventory_l			= 20,
-	inventory_r			= 21,
-	moving_items		= 22,
-	moving_items_l		= 23,
-	moving_items_r		= 24,
-	open_container		= 25,
-	pickup				= 26,
-	pickup_denied		= 27,
-	send_maker_data		= 28,
-	set_public			= 29,
-	spawn				= 30,
-	spawn_l				= 31,
-	spawn_r				= 32,
-	spawn_self			= 33,
-	spawn_self_l		= 34,
-	spawn_self_r		= 35,
-	store_weapon		= 36,
-	store_weapon_l		= 37,
-	store_weapon_r		= 38,
-	transfer_from		= 39,
-	transfer_to			= 40,
+	convar				= 5,
+	delete				= 6,
+	delete_full			= 7,
+	delete_full_l		= 8,
+	delete_full_r		= 9,
+	delete_l			= 10,
+	delete_r			= 11,
+	drop_all			= 12,
+	drop_all_l			= 13,
+	drop_all_r			= 14,
+	empty_weapon		= 15,
+	empty_weapon_l		= 16,
+	empty_weapon_r		= 17,
+	exporter			= 18,
+	exporter_disconnect	= 19,
+	inventory			= 20,
+	inventory_l			= 21,
+	inventory_r			= 22,
+	moving_items		= 23,
+	moving_items_l		= 24,
+	moving_items_r		= 25,
+	open_container		= 26,
+	pickup				= 27,
+	pickup_denied		= 28,
+	send_maker_data		= 29,
+	set_public			= 30,
+	spawn				= 31,
+	spawn_l				= 32,
+	spawn_r				= 33,
+	spawn_self			= 34,
+	spawn_self_l		= 35,
+	spawn_self_r		= 36,
+	store_weapon		= 37,
+	store_weapon_l		= 38,
+	store_weapon_r		= 39,
+	transfer_from		= 40,
+	transfer_to			= 41,
 }
 
 ISAWC.DoNothing = function()end
@@ -227,7 +231,7 @@ ISAWC.CreateListConCommand = function(self, name, data)
 			end
 		end,
 		help_small = data.help_small,
-		help = data.purpose
+		help = data.purpose.." Format: "..data.fmt
 	})
 end
 
@@ -406,6 +410,7 @@ ISAWC:CreateListConCommand("isawc_stacklist", {
 		ISAWC:Log(string.format("\t%s={player=%u,container=%u}",k,v[1],v[2]))
 	end,
 	purpose = "Adds or removes entity classes from the stack list. The stack list currently does nothing.",
+	fmt = "<class> <playerStackAmount> <containerStackAmount>",
 	help = {
 		"Use \"isawc_stacklist <class> <playerStackAmt> <containerStackAmt>\" to add an entity class into the list. \z
 		A StackAmt of 0 means that the maximum stacking amount is unlimited. \z
@@ -457,6 +462,7 @@ ISAWC:CreateListConCommand("isawc_masslist", {
 		ISAWC:Log(string.format("\t%q=%g,",k,v))
 	end,
 	purpose = "Adds or removes entity classes or models from the mass list. Can be used to change the amount of mass needed to store an entity.",
+	fmt = "<model/class> <kg>",
 	help = {
 		"Use \"isawc_masslist <model/class1> <kg1> <model/class2> <kg2> ...\" to update or add a model into the list. \z
 		If mass is -1, it will be removed from the list instead.",
@@ -501,6 +507,7 @@ ISAWC:CreateListConCommand("isawc_player_usergroupmassmullist", {
 		ISAWC:Log(string.format("\t%q=%g,",k,v))
 	end,
 	purpose = "Adds or removes usergroups from the usergroup mass multiplier list. Can be used to change the maximum amount of mass a certain usergroup is allowed to carry.",
+	fmt = "<usergroup> <multiplier>",
 	help = {
 		"Use \"isawc_player_usergroupmassmullist <usergroup1> <mul1> <usergroup2> <mul2> ...\" to update or add a usergroup into the list. \z
 		If mul is 0, the usergroup can carry an infinite amount of mass. If mul is -1, the usergroup will be removed from the list instead.",
@@ -544,6 +551,7 @@ ISAWC:CreateListConCommand("isawc_volumelist", {
 		ISAWC:Log(string.format("\t%q=%g,",k,v))
 	end,
 	purpose = "Adds or removes entity classes or models from the volume list. Can be used to change the amount of volume needed to store an entity.",
+	fmt = "<model/class> <dm³>",
 	help = {
 		"Use \"isawc_volumelist <model/class1> <vol1> <model/class2> <vol2> ...\" to update or add a model into the list. \z
 		If volume is -1, it will be removed from the list instead.",
@@ -588,6 +596,7 @@ ISAWC:CreateListConCommand("isawc_player_usergroupvolumemullist", {
 		ISAWC:Log(string.format("\t%q=%g,",k,v))
 	end,
 	purpose = "Adds or removes usergroups from the usergroup volume multiplier list. Can be used to change the maximum amount of volume a certain usergroup is allowed to carry.",
+	fmt = "<usergroup> <multiplier>",
 	help = {
 		"Use \"isawc_player_usergroupvolumemullist <usergroup1> <mul1> <usergroup2> <mul2> ...\" to update or add a usergroup into the list. \z
 		If mul is 0, the usergroup can carry an infinite amount of volume. If mul is -1, the usergroup will be removed from the list instead.",
@@ -631,6 +640,7 @@ ISAWC:CreateListConCommand("isawc_countlist", {
 		ISAWC:Log(string.format("\t%q=%u,",k,v))
 	end,
 	purpose = "Adds or removes entity classes or models from the custom count list. Can be used to change the amount of slots needed to store an entity.",
+	fmt = "<model/class> <count>",
 	help = {
 		"Use \"isawc_countlist <model/class1> <count1> <model/class2> <count2> ...\" to update or add a class into the list. \z
 		If amount is -1, it will be removed from the list instead.",
@@ -675,6 +685,7 @@ ISAWC:CreateListConCommand("isawc_player_usergroupcountmullist", {
 		ISAWC:Log(string.format("\t%q=%g,",k,v))
 	end,
 	purpose = "Adds or removes usergroups from the usergroup count multiplier list. Can be used to change the maximum amount of items a certain usergroup is allowed to carry.",
+	fmt = "<usergroup> <multiplier>",
 	help = {
 		"Use \"isawc_player_usergroupcountmullist <usergroup1> <mul1> <usergroup2> <mul2> ...\" to update or add a usergroup into the list. \z
 		If mul is 0, the usergroup can carry 65536 items. If mul is -1, the usergroup will be removed from the list instead.",
@@ -718,6 +729,7 @@ ISAWC:CreateListConCommand("isawc_remaplist", {
 		ISAWC:Log(string.format("\t%q=%q,",k,v))
 	end,
 	purpose = "Adds or removes entity classes from the class remap list. Can be used to change the class a certain entity becomes when stored.",
+	fmt = "<oldClass> <newClass>",
 	help = {
 		"Use \"isawc_remaplist <oldClass1> <newClass1> <oldClass2> <newClass2> ...\" to update or add a class into the list. \z
 		If newClass is *, it will be removed from the list instead.",
@@ -761,6 +773,7 @@ ISAWC:CreateListConCommand("isawc_desclist", {
 		ISAWC:Log(string.format("\t%q=%s,",k,value))
 	end,
 	purpose = "Adds or removes entity classes or models from the item description list. Item descriptions will be displayed on the item tooltip. Supports \\n sequences.",
+	fmt = "<model/class> <description>",
 	help = {
 		"Use \"isawc_desclist <model/class> <description>\" to update or add a class or model into the list. \\n sequences are supported. \z
 		If no description is provided, it will be removed from the list instead.",
@@ -816,8 +829,9 @@ ISAWC:CreateListConCommand("isawc_stamps_asammo", {
 		end
 	end,
 	purpose = "Adds or removes entries from the ammunition item stamp list. Entries in this list will allow any player to turn ammo into items.",
+	fmt = "<id> <ammoType> <ammoAmount> <stampName> [displayName]",
 	help = {
-		"Use \"isawc_stamps_asammo <id> <ammo type> <ammo amount> <stamp name> [display name]\" to add or update an entry into the list. \z
+		"Use \"isawc_stamps_asammo <id> <ammoType> <ammoAmount> <stampName> [displayName]\" to add or update an entry into the list. \z
 		If an argument contains spaces, surround it with double quote marks (\").",
 		"Use \"isawc_stamps_asammo *\" to clear the list.",
 		"The ammo type supports both full names and IDs. If the ammo type is *, the entry will be removed from the list instead.",
@@ -1220,7 +1234,7 @@ if SERVER then
 		help_small = "Usage: isawc_delete_offline <player>"
 	})
 	
-	ISAWC:AddConCommand("isawc_reset_convars", {
+	ISAWC:AddConCommand("isawc_options_reset", {
 		exec = function(ply,cmd,args,argStr)
 			if (IsValid(ply) and not ply:IsAdmin()) then
 				ISAWC:Log("Access denied.")
@@ -1230,10 +1244,24 @@ if SERVER then
 						v:Revert()
 					end
 				end
-				ISAWC:Log("All ConVars reset!")
+				for k,v in pairs(ISAWC.BWLists) do
+					v.Blacklist = {}
+					v.Whitelist = {}
+				end
+				ISAWC.Stacklist = {}
+				ISAWC.Masslist = {}
+				ISAWC.Volumelist = {}
+				ISAWC.Countlist = {}
+				ISAWC.Remaplist = {}
+				ISAWC.DescList = {}
+				ISAWC.AmmoItemStampList = {}
+				ISAWC.MassMultiList = {}
+				ISAWC.VolumeMultiList = {}
+				ISAWC.CountMultiList = {}
+				ISAWC:Log("All ConVars and lists reset!")
 			end
 		end,
-		help = "Sets all ConVars to their default values."
+		help = "Sets all ConVars and lists to their default values."
 	})
 	
 	ISAWC:AddConCommand("isawc_copy", {
@@ -1490,6 +1518,33 @@ ISAWC:AddConCommand("isawc_help", {
 	help_small = "Usage: isawc_help <command>"
 })
 
+ISAWC:AddConCommand("isawc_activate_options_menu_server", {
+	exec = function(ply,cmd,args)
+		if SERVER then
+			if IsValid(ply) then
+				ISAWC:GetClientToOpenOptionsMenu(ply)
+			else
+				ISAWC:Log("This command only works on the in-game console.")
+			end
+		end
+		if CLIENT then
+			if IsValid(ISAWC.OptionsWindow) then
+				ISAWC.OptionsWindow:Close()
+			end
+			
+			ISAWC:StartNetMessage("convar")
+			net.WriteBool(false)
+			net.WriteString("isawc_activate_options_menu_server")
+			net.WriteUInt(#args, 8)
+			for k,v in pairs(args) do
+				net.WriteString(v)
+			end
+			net.SendToServer()
+		end
+	end,
+	help = "Opens the server options menu. Only works on the in-game console."
+})
+
 if CLIENT then
 
 	ISAWC.ConUseDelay = CreateClientConVar("isawc_pickup_binddelay","-2",true,false,
@@ -1559,7 +1614,17 @@ if CLIENT then
 		end,
 		help = "Closes the inventory."
 	})
-
+	
+	ISAWC:AddConCommand("isawc_activate_options_menu_client", {
+		exec = function(ply,cmd,args)
+			if IsValid(ISAWC.OptionsWindow) then
+				ISAWC.OptionsWindow:Close()
+			end
+			
+			ISAWC:BuildClientOptionsMenu()
+		end,
+		help = "Opens the client options menu."
+	})
 end
 
 ISAWC.AddToolMenuTabs = function()
@@ -1599,7 +1664,7 @@ ISAWC.PopulateDFormClient = function(DForm)
 	DForm:NumSlider("Pickup Delay",ISAWC.ConUseDelay:GetName(),-1,10,2)
 	DForm:Help(" - "..ISAWC.ConUseDelay:GetHelpText().."\n")
 	
-	--[[DLabel = Label("Inventory Key (RMB to clear)")
+	DLabel = Label("Inventory Key (RMB to clear)")
 	DLabel:SetDark(true)
 	Binder = vgui.Create("DBinder")
 	Binder:SetValue(input.GetKeyCode(ISAWC.ConInventoryBind:GetString()))
@@ -1609,8 +1674,8 @@ ISAWC.PopulateDFormClient = function(DForm)
 	DForm:AddItem(DLabel,Binder)
 	Binder:Dock(RIGHT)
 	DLabel:SizeToContentsX()
-	DForm:Help(" - "..ISAWC.ConInventoryBind:GetHelpText().."\n")]]
-	DForm:Help("Tip: Use the client console commands \"isawc_activate_inventory_menu\" or \"+isawc_inventory\" to open the inventory menu.")
+	DForm:Help(" - "..ISAWC.ConInventoryBind:GetHelpText().."\n")
+	DForm:Help("Tip: You can also use the client console commands \"isawc_activate_inventory_menu\" or \"+isawc_inventory\" to open the inventory menu.")
 	DForm:Help("Bind a key with \"bind <key> isawc_activate_inventory_menu\" (toggle version) or \"bind <key> +isawc_inventory\" (hold version).\n")
 	DForm:CheckBox("Suppress All Notifications",ISAWC.ConHideNotifs:GetName())
 	DForm:Help(" - "..ISAWC.ConHideNotifs:GetHelpText().."\n")
@@ -1648,7 +1713,7 @@ ISAWC.PopulateDFormGeneral = function(DForm)
 	DForm:Help(" - "..ISAWC.ConUseCompression:GetHelpText().."\n")
 	DForm:CheckBox("[EXPERIMENTAL] Save Engine Tables",ISAWC.ConSaveTable:GetName())
 	DForm:Help(" - "..ISAWC.ConSaveTable:GetHelpText().."\n")
-	local dangerbutton = DForm:Button("Set All To Default","isawc_reset_convars")
+	local dangerbutton = DForm:Button("Set All To Default","isawc_options_reset")
 	dangerbutton:SetTextColor(Color(255,0,0))
 end
 
@@ -1815,6 +1880,1239 @@ if CLIENT then
 	local matSelect2 = Material("gui/ps_hover.png", "nocull")
 	ISAWC.DrawHoverBox = GWEN.CreateTextureBorder(border, border, 64-border*2, 64-border*2, border_w, border_w, border_w, border_w, matSelect)
 	ISAWC.DrawSelectionBox = GWEN.CreateTextureBorder(border, border, 64-border*2, 64-border*2, border_w, border_w, border_w, border_w, matSelect2)
+end
+
+ISAWC.ServerOptionsInfo = {
+	{
+		name = "General",
+		options = {
+			{
+				name = "Mass Multiplier",
+				convar = ISAWC.ConMassMul3,
+				type = "number",
+				min = 0,
+				max = 10
+			},
+			{
+				name = "Custom Masses",
+				type = "sdlist",
+				concommand = "isawc_masslist",
+				pointer = "Masslist"
+			},
+			{
+				name = "Volume Multiplier",
+				convar = ISAWC.ConVolMul3,
+				type = "number",
+				min = 0,
+				max = 10
+			},
+			{
+				name = "Custom Volumes",
+				type = "sdlist",
+				concommand = "isawc_volumelist",
+				pointer = "Volumelist"
+			},
+			{
+				name = "Amount Multiplier",
+				convar = ISAWC.ConCount3,
+				type = "number",
+				min = 0,
+				max = 10
+			},
+			{
+				name = "Custom Amounts",
+				type = "sdlist",
+				concommand = "isawc_countlist",
+				pointer = "Countlist"
+			},
+			{
+				name = "Volume Calculation",
+				convar = ISAWC.ConReal,
+				type = "choice",
+				choices = {
+					{"0 - Mesh Volume", 0},
+					{"1 - Outer Box", 1},
+					{"2 - Outer Sphere", 2}
+				}
+			},
+			{
+				name = "Use Constants",
+				convar = ISAWC.ConConstEnabled,
+				type = "bool"
+			},
+			{
+				name = "Suppress All Notifications (Global)",
+				convar = ISAWC.ConHideNotifsG,
+				type = "bool"
+			},
+			{
+				name = "Allow Item Deletion",
+				convar = ISAWC.ConAllowDelete,
+				type = "bool"
+			},
+			{
+				name = "Undo Puts Items Into Inventory",
+				convar = ISAWC.ConUndoIntoContain,
+				type = "bool"
+			},
+			{
+				name = "Custom Item Mappings",
+				type = "sslist",
+				concommand = "isawc_remaplist",
+				pointer = "Remaplist"
+			},
+			{
+				name = "Custom Item Descriptions",
+				type = "sslist",
+				concommand = "isawc_desclist",
+				pointer = "DescList"
+			},
+			{
+				name = "Use Alternate Storage Method",
+				convar = ISAWC.ConAltSave,
+				type = "bool"
+			},
+			{
+				name = "Use Alternate Storage Whitelist",
+				convar = ISAWC.ConAltSaveWhitelistEnabled,
+				type = "bool"
+			},
+			{
+				name = "Alternate Storage Blacklist & Whitelist",
+				type = "bwlist",
+				concommand = "use_altsave_",
+				pointer = "AltSave"
+			},
+			{
+				name = "Use Save Data Compression",
+				convar = ISAWC.ConUseCompression,
+				type = "bool"
+			},
+			{
+				name = "[EXPERIMENTAL] Save Engine Tables",
+				convar = ISAWC.ConSaveTable,
+				type = "bool"
+			},
+			{
+				name = "Set All To Default",
+				concommand = "isawc_options_reset",
+				type = "button",
+				closer = true
+			},
+		}
+	},
+	{
+		name = "Pickups",
+		options = {
+			{
+				name = "Override Hooks",
+				convar = ISAWC.ConOverride,
+				type = "bool"
+			},
+			{
+				name = "Hide Pickup Fail Events",
+				convar = ISAWC.ConPickupDenyLogs,
+				type = "bool"
+			},
+			{
+				name = "Allow Held Weapons",
+				convar = ISAWC.ConAllowHeldWeapons,
+				type = "bool"
+			},
+			{
+				name = "Allow Constrained Entities",
+				convar = ISAWC.ConAllowConstrained,
+				type = "bool"
+			},
+			{
+				name = "Allow PhysGunned Entities",
+				convar = ISAWC.ConAllowPickupOnPhysgun,
+				type = "bool"
+			},
+			{
+				name = "Allow Non-VPhysics Entities",
+				convar = ISAWC.ConNonVPhysics,
+				type = "bool"
+			},
+			{
+				name = "Key Override",
+				convar = ISAWC.ConUseBindOverride,
+				type = "text"
+			},
+			{
+				name = "Delayed Key Override",
+				convar = ISAWC.ConUseBindDelayOverride,
+				type = "text"
+			},
+			{
+				name = "Pickup Delay",
+				convar = ISAWC.ConDelay,
+				type = "number",
+				min = 0,
+				max = 10
+			},
+			{
+				name = "Max Distance",
+				convar = ISAWC.ConDistance,
+				type = "number",
+				min = 0,
+				max = 1024
+			},
+			{
+				name = "Use Whitelist",
+				convar = ISAWC.ConGeneralWhitelistEnabled,
+				type = "bool"
+			},
+			{
+				name = "Blacklist & Whitelist",
+				type = "bwlist",
+				concommand = "",
+				pointer = "General"
+			}
+		}
+	},
+	{
+		name = "Drops",
+		options = {
+			{
+				name = "Delay",
+				convar = ISAWC.ConSpawnDelay,
+				type = "number",
+				min = 0,
+				max = 10
+			},
+			{
+				name = "Distance from Obstructions",
+				convar = ISAWC.ConDistBefore,
+				type = "number",
+				min = 0,
+				max = 128
+			},
+			{
+				name = "Empty Weapon Clips",
+				convar = ISAWC.ConNoAmmo,
+				type = "bool"
+			},
+			{
+				name = "Allow Dropboxes",
+				convar = ISAWC.ConDropAllAllowed,
+				type = "bool"
+			},
+			{
+				name = "Dropbox Remove Time",
+				convar = ISAWC.ConDropAllTime,
+				type = "number",
+				min = 0,
+				max = 100
+			},
+			{
+				name = "Max Dropboxes",
+				convar = ISAWC.ConDropAllLimit,
+				type = "number",
+				min = -1,
+				max = 100,
+				decimals = 0
+			},
+			{
+				name = "Dropbox Class",
+				convar = ISAWC.ConDropAllClass,
+				type = "text"
+			},
+			{
+				name = "Dropbox Model",
+				convar = ISAWC.ConDropAllModel,
+				type = "text"
+			},
+		}
+	},
+	{
+		name = "Players",
+		options = {
+			{
+				name = "Mass Carrying Multiplier",
+				convar = ISAWC.ConMassMul,
+				type = "number",
+				min = 0,
+				max = 10
+			},
+			{
+				name = "Usergroup Mass Carrying Multipliers",
+				type = "sdlist",
+				concommand = "isawc_player_usergroupmassmullist",
+				pointer = "MassMultiList"
+			},
+			{
+				name = "Volume Carrying Multiplier",
+				convar = ISAWC.ConVolMul,
+				type = "number",
+				min = 0,
+				max = 10
+			},
+			{
+				name = "Usergroup Volume Carrying Multipliers",
+				type = "sdlist",
+				concommand = "isawc_player_usergroupvolumemullist",
+				pointer = "VolumeMultiList"
+			},
+			{
+				name = "Max Items",
+				convar = ISAWC.ConCount,
+				type = "number",
+				min = 0,
+				max = 1000
+			},
+			{
+				name = "Usergroup Max Items Multipliers",
+				type = "sdlist",
+				concommand = "isawc_player_usergroupcountmullist",
+				pointer = "CountMultiList"
+			},
+			{
+				name = "Constant Mass (kg)",
+				convar = ISAWC.ConConstMass,
+				type = "number",
+				min = 0,
+				max = 1000
+			},
+			{
+				name = "Constant Volume (dm³)",
+				convar = ISAWC.ConConstVol,
+				type = "number",
+				min = 0,
+				max = 1000
+			},
+			{
+				name = "Pickup on Touch",
+				convar = ISAWC.ConPlayerPickupOnCollide,
+				type = "bool"
+			},
+			{
+				name = "Magnet Range",
+				convar = ISAWC.ConPlayerMagnet,
+				type = "number",
+				min = 0,
+				max = 10
+			},
+			{
+				name = "Admin Can Pickup Any",
+				convar = ISAWC.ConAdminOverride,
+				type = "bool"
+			},
+			{
+				name = "Save Inventories",
+				convar = ISAWC.ConDoSave,
+				type = "choice",
+				choices = {
+					{"0 - Don't", 0},
+					{"1 - Periodically", 1},
+					{"2 - Frequently", 2}
+				}
+			},
+			{
+				name = "Periodic Saving Delay",
+				convar = ISAWC.ConDoSaveDelay,
+				type = "number",
+				min = 1,
+				max = 600
+			},
+			{
+				name = "Drop Inventory On Death",
+				convar = ISAWC.ConDropOnDeath,
+				type = "bool"
+			},
+			{
+				name = "Use Death Drop Whitelist",
+				convar = ISAWC.ConDropOnDeathWhitelistEnabled,
+				type = "bool"
+			},
+			{
+				name = "Death Drop Blacklist & Whitelist",
+				type = "bwlist",
+				concommand = "dropondeath_",
+				pointer = "DropOnDeath"
+			},
+			{
+				name = "Death Drop Remove Time",
+				convar = ISAWC.ConDeathRemoveDelay,
+				type = "number",
+				min = 0,
+				max = 100
+			},
+			{
+				name = "Max Death Drops",
+				convar = ISAWC.ConDropOnDeathAmount,
+				type = "number",
+				min = -1,
+				max = 100,
+				decimals = 0
+			},
+			{
+				name = "Death Drop Class",
+				convar = ISAWC.ConDropOnDeathClass,
+				type = "text"
+			},
+			{
+				name = "Death Drop Model",
+				convar = ISAWC.ConDropOnDeathModel,
+				type = "text"
+			},
+		}
+	},
+	{
+		name = "Containers",
+		options = {
+			{
+				name = "Properties Editing Permission Level",
+				convar = ISAWC.ConEditPropertiesPermissionLevel,
+				type = "choice",
+				choices = {
+					{"0 - Anyone", 0},
+					{"1 - Admins Only", 1},
+					{"2 - Superadmins Only", 2},
+					{"3 - No One", 3}
+				}
+			},
+			{
+				name = "Mass Carrying Multiplier",
+				convar = ISAWC.ConMassMul2,
+				type = "number",
+				min = 0,
+				max = 10
+			},
+			{
+				name = "Volume Carrying Multiplier",
+				convar = ISAWC.ConVolMul2,
+				type = "number",
+				min = 0,
+				max = 10
+			},
+			{
+				name = "Max Items",
+				convar = ISAWC.ConCount2,
+				type = "number",
+				min = 0,
+				max = 1000
+			},
+			{
+				name = "Auto Pickup on Touch",
+				convar = ISAWC.ConDragAndDropOntoContainer,
+				type = "choice",
+				choices = {
+					{"0 - Don't", 0},
+					{"1 - Use Touch", 1},
+					{"2 - Use StartTouch", 2},
+					{"3 - Use PhysicsCollide", 3}
+				}
+			},
+			{
+				name = "Always Openable By Everyone",
+				convar = ISAWC.ConAlwaysPublic,
+				type = "bool"
+			},
+			{
+				name = "Lockpick Time",
+				convar = ISAWC.ConLockpickTime,
+				type = "number",
+				min = 0,
+				max = 100
+			},
+			{
+				name = "Lockpick Drift",
+				convar = ISAWC.ConLockpickTimeBump,
+				type = "number",
+				min = 0,
+				max = 100
+			},
+			{
+				name = "Drop Inventory On Remove",
+				convar = ISAWC.ConDropOnDeathContainer,
+				type = "bool"
+			},
+			{
+				name = "Use Database Saving",
+				convar = ISAWC.ConSaveIntoFile,
+				type = "bool"
+			},
+			{
+				name = "Clear Database Cache (Admin Only)",
+				concommand = "isawc_container_clearcache",
+				type = "button"
+			},
+			{
+				name = "Health Multiplier",
+				convar = ISAWC.ConAutoHealth,
+				type = "number",
+				min = 0,
+				max = 10
+			},
+			{
+				name = "Health Regen",
+				convar = ISAWC.ConContainerRegen,
+				type = "number",
+				min = -100,
+				max = 100
+			},
+			{
+				name = "Magnet Range",
+				convar = ISAWC.ConMagnet,
+				type = "number",
+				min = 0,
+				max = 10
+			},
+			{
+				name = "Use Player Magnet Whitelist",
+				convar = ISAWC.ConPlayerMagnetWhitelistEnabled,
+				type = "bool"
+			},
+			{
+				name = "Player Magnet Blacklist & Whitelist",
+				type = "bwlist",
+				concommand = "player_magnet_",
+				pointer = "PlayerMagnet"
+			},
+			{
+				name = "Use Container Magnet Whitelist",
+				convar = ISAWC.ConContainerMagnetWhitelistEnabled,
+				type = "bool"
+			},
+			{
+				name = "Container Magnet Blacklist & Whitelist",
+				type = "bwlist",
+				concommand = "container_magnet_",
+				pointer = "ContainerMagnet"
+			},
+			{
+				name = "Use Container Magnet Container Whitelist",
+				convar = ISAWC.ConContainerMagnetContainerWhitelistEnabled,
+				type = "bool"
+			},
+			{
+				name = "Container Magnet Container Blacklist & Whitelist",
+				type = "bwlist",
+				concommand = "container_magnet_container",
+				pointer = "ContainerMagnetContainer"
+			},
+		}
+	},
+	{
+		name = "Imports & Exports",
+		options = {
+			{
+				name = "Allow Public Connections",
+				convar = ISAWC.ConAllowInterConnection,
+				type = "bool"
+			},
+			{
+				name = "Importer Health Multiplier",
+				convar = ISAWC.ConImporterAutoHealth,
+				type = "number",
+				min = 0,
+				max = 10
+			},
+			{
+				name = "Importer Health Regen",
+				convar = ISAWC.ConImporterRegen,
+				type = "number",
+				min = -100,
+				max = 100
+			},
+			{
+				name = "Minimum Exporter Delay",
+				convar = ISAWC.ConMinExportDelay,
+				type = "number",
+				min = 0.01,
+				max = 10
+			},
+			{
+				name = "Use Exporter Whitelist",
+				convar = ISAWC.ConExporterWhitelistEnabled,
+				type = "bool"
+			},
+			{
+				name = "Exporter Blacklist & Whitelist",
+				type = "bwlist",
+				concommand = "exporter_",
+				pointer = "Exporter"
+			},
+			{
+				name = "Exporter Health Multiplier",
+				convar = ISAWC.ConExporterAutoHealth,
+				type = "number",
+				min = 0,
+				max = 10
+			},
+			{
+				name = "Exporter Health Regen",
+				convar = ISAWC.ConExporterRegen,
+				type = "number",
+				min = -100,
+				max = 100
+			},
+		}
+	}
+}
+
+ISAWC.CreateElementCenteringPanel = function(self, parent, flags)
+	flags = flags or 3
+	
+	local CenteringPanel = vgui.Create("DPanel", parent)
+	CenteringPanel.Horizontal = bit.band(flags, 1)==1
+	CenteringPanel.Vertical = bit.band(flags, 2)==2
+	CenteringPanel.Paint = nil
+	function CenteringPanel:PerformLayout(w,h)
+		for k,v in pairs(self:GetChildren()) do
+			if self.Horizontal then
+				v:CenterHorizontal()
+			end
+			if self.Vertical then
+				v:CenterVertical()
+			end
+		end
+	end
+	
+	return CenteringPanel
+end
+
+ISAWC.BuildListMenu = function(self, title, name, listType, data, func)
+	local returnData = {}
+	
+	local Main = vgui.Create("DFrame")
+	Main:SetTitle(title)
+	Main:SetSize(self.SW*2/3, self.SH*2/3)
+	Main:Center()
+	Main:MakePopup()
+	function Main:Paint(w,h)
+		draw.RoundedBox(8,0,0,w,h,color_black_semiopaque)
+		draw.RoundedBox(8,0,0,w,24,color_black_semiopaque)
+	end
+	
+	if listType == "bwlist" then
+		returnData.Blacklist = {}
+		for k,v in SortedPairs(data.Blacklist) do
+			table.insert(returnData.Blacklist, k)
+		end
+		
+		returnData.Whitelist = {}
+		for k,v in SortedPairs(data.Whitelist) do
+			table.insert(returnData.Whitelist, k)
+		end
+		
+		local VerticalDivider = vgui.Create("DVerticalDivider", Main)
+		VerticalDivider:Dock(FILL)
+		VerticalDivider:SetTopHeight(self.SH/3-32)
+		
+		local BlacklistPanel = vgui.Create("DPanel")
+		function BlacklistPanel:Paint(w,h)
+			draw.RoundedBox(8,0,0,w,h,color_black_semiopaque)
+		end
+		VerticalDivider:SetTop(BlacklistPanel)
+		
+		local BlacklistHelp = vgui.Create("DLabel", BlacklistPanel)
+		BlacklistHelp:SetText(ISAWC.ConCommands["isawc_"..name.."blacklist"].."\n* and ? wildcards are supported.")
+		BlacklistHelp:SetWrap(true)
+		BlacklistHelp:SetAutoStretchVertical(true)
+		BlacklistHelp:DockMargin(4,4,4,0)
+		BlacklistHelp:Dock(TOP)
+		
+		local BlacklistScroller = vgui.Create("DScrollPanel", BlacklistPanel)
+		BlacklistScroller.EntryPanels = {}
+		BlacklistScroller:DockMargin(4,0,4,0)
+		BlacklistScroller:Dock(FILL)
+		function BlacklistScroller:Refresh()
+			for k,v in pairs(self.EntryPanels) do
+				v:Remove()
+			end
+			self.EntryPanels = {}
+			
+			for k,v in SortedPairs(returnData.Blacklist) do
+				local EntryPanel = vgui.Create("DPanel", self)
+				EntryPanel:SetTall(16)
+				EntryPanel:SetZPos(k)
+				EntryPanel:DockMargin(0,4,0,0)
+				EntryPanel:Dock(TOP)
+				EntryPanel.Paint = nil
+				table.insert(self.EntryPanels, EntryPanel)
+				
+				local DeleteButton = vgui.Create("DImageButton", EntryPanel)
+				DeleteButton:SetWide(16)
+				DeleteButton:SetImage("icon16/delete.png")
+				DeleteButton:Dock(RIGHT)
+				function DeleteButton:DoClick()
+					table.remove(returnData.Blacklist, k)
+					BlacklistScroller:Refresh()
+				end
+				
+				local TextEntry = vgui.Create("DTextEntry", EntryPanel)
+				TextEntry:SetPaintBackground(false)
+				TextEntry:SetDrawBorder(false)
+				TextEntry:SetTextColor(color_white)
+				TextEntry:SetCursorColor(color_white)
+				TextEntry:SetHighlightColor(color_aqua)
+				TextEntry:SetValue(v)
+				TextEntry:DockMargin(0,0,4,0)
+				TextEntry:Dock(FILL)
+				function TextEntry:OnChange()
+					returnData.Blacklist[k] = self:GetValue()
+				end
+				function TextEntry:OnGetFocus()
+					self.DrawEditOverlay = true
+					hook.Run("OnTextEntryGetFocus",self)
+				end
+				function TextEntry:OnLoseFocus()
+					self.DrawEditOverlay = nil
+					hook.Run("OnTextEntryLoseFocus",self)
+				end
+				function TextEntry:PaintOver(w,h)
+					if self.DrawEditOverlay then
+						draw.RoundedBox(8,0,0,w,h,color_white_semitransparent)
+					else
+						draw.RoundedBox(8,0,0,w,h,color_gray_semitransparent)
+					end
+				end
+			end
+			
+			local AddPanel = ISAWC:CreateElementCenteringPanel(self, 1)
+			AddPanel:SetTall(16)
+			AddPanel:SetZPos(#returnData.Blacklist+1)
+			AddPanel:Dock(TOP)
+			table.insert(self.EntryPanels, AddPanel)
+			
+			local AddButton = vgui.Create("DImageButton", AddPanel)
+			AddButton:SetSize(16, 16)
+			AddButton:SetImage("icon16/add.png")
+			function AddButton:DoClick()
+				table.insert(returnData.Blacklist, "")
+				BlacklistScroller:Refresh()
+			end
+		end
+		BlacklistScroller:Refresh()
+		
+		local WhitelistPanel = vgui.Create("DPanel")
+		function WhitelistPanel:Paint(w,h)
+			draw.RoundedBox(8,0,0,w,h,color_black_semiopaque)
+		end
+		VerticalDivider:SetBottom(WhitelistPanel)
+			
+		local WhitelistHelp = vgui.Create("DLabel", WhitelistPanel)
+		WhitelistHelp:SetText(ISAWC.ConCommands["isawc_"..name.."whitelist"].."\n* and ? wildcards are supported.")
+		WhitelistHelp:SetWrap(true)
+		WhitelistHelp:SetAutoStretchVertical(true)
+		WhitelistHelp:DockMargin(4,4,4,0)
+		WhitelistHelp:Dock(TOP)
+		
+		local WhitelistScroller = vgui.Create("DScrollPanel", WhitelistPanel)
+		WhitelistScroller.EntryPanels = {}
+		WhitelistScroller:DockMargin(4,0,4,0)
+		WhitelistScroller:Dock(FILL)
+		function WhitelistScroller:Refresh()
+			for k,v in pairs(self.EntryPanels) do
+				v:Remove()
+			end
+			self.EntryPanels = {}
+			
+			for k,v in pairs(returnData.Whitelist) do
+				local EntryPanel = vgui.Create("DPanel", self)
+				EntryPanel:SetTall(16)
+				EntryPanel:SetZPos(k)
+				EntryPanel:DockMargin(0,4,0,0)
+				EntryPanel:Dock(TOP)
+				EntryPanel.Paint = nil
+				table.insert(self.EntryPanels, EntryPanel)
+				
+				local DeleteButton = vgui.Create("DImageButton", EntryPanel)
+				DeleteButton:SetWide(16)
+				DeleteButton:SetImage("icon16/delete.png")
+				DeleteButton:Dock(RIGHT)
+				function DeleteButton:DoClick()
+					table.remove(returnData.Whitelist, k)
+					WhitelistScroller:Refresh()
+				end
+				
+				local TextEntry = vgui.Create("DTextEntry", EntryPanel)
+				TextEntry:SetPaintBackground(false)
+				TextEntry:SetDrawBorder(false)
+				TextEntry:SetTextColor(color_white)
+				TextEntry:SetCursorColor(color_white)
+				TextEntry:SetHighlightColor(color_aqua)
+				TextEntry:SetValue(v)
+				TextEntry:DockMargin(0,0,4,0)
+				TextEntry:Dock(FILL)
+				function TextEntry:OnChange()
+					returnData.Whitelist[k] = self:GetValue()
+				end
+				function TextEntry:OnGetFocus()
+					self.DrawEditOverlay = true
+					hook.Run("OnTextEntryGetFocus",self)
+				end
+				function TextEntry:OnLoseFocus()
+					self.DrawEditOverlay = nil
+					hook.Run("OnTextEntryLoseFocus",self)
+				end
+				function TextEntry:PaintOver(w,h)
+					if self.DrawEditOverlay then
+						draw.RoundedBox(8,0,0,w,h,color_white_semitransparent)
+					else
+						draw.RoundedBox(8,0,0,w,h,color_gray_semitransparent)
+					end
+				end
+			end
+			
+			local AddPanel = ISAWC:CreateElementCenteringPanel(self, 1)
+			AddPanel:SetTall(16)
+			AddPanel:SetZPos(#returnData.Whitelist+1)
+			AddPanel:Dock(TOP)
+			table.insert(self.EntryPanels, AddPanel)
+			
+			local AddButton = vgui.Create("DImageButton", AddPanel)
+			AddButton:SetSize(16, 16)
+			AddButton:SetImage("icon16/add.png")
+			function AddButton:DoClick()
+				table.insert(returnData.Whitelist, "")
+				WhitelistScroller:Refresh()
+			end
+		end
+		WhitelistScroller:Refresh()
+	else
+		for k,v in SortedPairs(data) do
+			table.insert(returnData, {k,v})
+		end
+		
+		local Panel = vgui.Create("DPanel", Main)
+		Panel:Dock(FILL)
+		function Panel:Paint(w,h)
+			draw.RoundedBox(8,0,0,w,h,color_black_semiopaque)
+		end
+		
+		local Help = vgui.Create("DLabel", Panel)
+		Help:SetText(ISAWC.ConCommands[name])
+		Help:SetWrap(true)
+		Help:SetAutoStretchVertical(true)
+		Help:DockMargin(4,4,4,0)
+		Help:Dock(TOP)
+		
+		local ScrollPanel = vgui.Create("DScrollPanel", Panel)
+		ScrollPanel:DockMargin(4,0,4,0)
+		ScrollPanel:Dock(FILL)
+		ScrollPanel.EntryPanels = {}
+		function ScrollPanel:Refresh()
+			for k,v in pairs(self.EntryPanels) do
+				v:Remove()
+			end
+			self.EntryPanels = {}
+			
+			for k,v in pairs(returnData) do
+				local EntryPanel = vgui.Create("DPanel", self)
+				EntryPanel:SetTall(16)
+				EntryPanel:SetZPos(k)
+				EntryPanel:DockMargin(0,4,0,0)
+				EntryPanel:Dock(TOP)
+				EntryPanel.Paint = nil
+				function EntryPanel:PerformLayout(w,h)
+					self.TextEntry:SetWide(w/2-16)
+				end
+				table.insert(self.EntryPanels, EntryPanel)
+				
+				local DeleteButton = vgui.Create("DImageButton", EntryPanel)
+				DeleteButton:SetWide(16)
+				DeleteButton:SetImage("icon16/delete.png")
+				DeleteButton:Dock(RIGHT)
+				function DeleteButton:DoClick()
+					table.remove(returnData, k)
+					ScrollPanel:Refresh()
+				end
+				
+				local TextEntry = vgui.Create("DTextEntry", EntryPanel)
+				TextEntry:SetPaintBackground(false)
+				TextEntry:SetDrawBorder(false)
+				TextEntry:SetTextColor(color_white)
+				TextEntry:SetCursorColor(color_white)
+				TextEntry:SetHighlightColor(color_aqua)
+				TextEntry:SetValue(v[1])
+				TextEntry:DockMargin(0,0,4,0)
+				TextEntry:Dock(LEFT)
+				function TextEntry:OnChange()
+					returnData[k][1] = self:GetValue()
+				end
+				function TextEntry:OnGetFocus()
+					self.DrawEditOverlay = true
+					hook.Run("OnTextEntryGetFocus",self)
+				end
+				function TextEntry:OnLoseFocus()
+					self.DrawEditOverlay = nil
+					hook.Run("OnTextEntryLoseFocus",self)
+				end
+				function TextEntry:PaintOver(w,h)
+					if self.DrawEditOverlay then
+						draw.RoundedBox(8,0,0,w,h,color_white_semitransparent)
+					else
+						draw.RoundedBox(8,0,0,w,h,color_gray_semitransparent)
+					end
+				end
+				EntryPanel.TextEntry = TextEntry
+				
+				local TextEntry2 = vgui.Create("DTextEntry", EntryPanel)
+				TextEntry2:SetPaintBackground(false)
+				TextEntry2:SetDrawBorder(false)
+				TextEntry2:SetTextColor(color_white)
+				TextEntry2:SetCursorColor(color_white)
+				TextEntry2:SetHighlightColor(color_aqua)
+				if name == "isawc_desclist" then
+					TextEntry2:SetValue(string.gsub(v[2], "\n", "\\n"))
+				else
+					TextEntry2:SetValue(v[2])
+				end
+				TextEntry2:DockMargin(0,0,4,0)
+				TextEntry2:Dock(FILL)
+				function TextEntry2:OnChange()
+					if listType == "sdlist" then
+						returnData[k][2] = tonumber(self:GetValue()) or 0
+					else
+						returnData[k][2] = self:GetValue()
+					end
+				end
+				function TextEntry2:OnGetFocus()
+					self.DrawEditOverlay = true
+					hook.Run("OnTextEntryGetFocus",self)
+				end
+				function TextEntry2:OnLoseFocus()
+					self.DrawEditOverlay = nil
+					hook.Run("OnTextEntryLoseFocus",self)
+				end
+				function TextEntry2:PaintOver(w,h)
+					if self.DrawEditOverlay then
+						draw.RoundedBox(8,0,0,w,h,color_white_semitransparent)
+					else
+						draw.RoundedBox(8,0,0,w,h,color_gray_semitransparent)
+					end
+				end
+			end
+			
+			local AddPanel = ISAWC:CreateElementCenteringPanel(self, 1)
+			AddPanel:SetTall(16)
+			AddPanel:SetZPos(#returnData+1)
+			AddPanel:Dock(TOP)
+			table.insert(self.EntryPanels, AddPanel)
+			
+			local AddButton = vgui.Create("DImageButton", AddPanel)
+			AddButton:SetSize(16, 16)
+			AddButton:SetImage("icon16/add.png")
+			function AddButton:DoClick()
+				table.insert(returnData, {"", listType == "sdlist" and 0 or ""})
+				ScrollPanel:Refresh()
+			end
+		end
+		ScrollPanel:Refresh()
+	end
+	
+	local OKButton = vgui.Create("DButton", Main)
+	OKButton:SetText("Done")
+	OKButton:SetTextColor(color_white)
+	OKButton:DockMargin(0,4,0,0)
+	OKButton:Dock(BOTTOM)
+	function OKButton:Paint(w,h)
+		local col = color_gray_semitransparent
+		if self.Depressed then
+			col = color_aqua
+		elseif self:IsHovered() then
+			col = color_white_semitransparent
+		end
+		draw.RoundedBox(8,0,0,w,h,col)
+	end
+	function OKButton:DoClick()
+		Main:Close()
+		if listType == "bwlist" then
+			local kReturnData = {Blacklist = {}, Whitelist = {}}
+			for i,v in ipairs(returnData.Blacklist) do
+				kReturnData.Blacklist[v] = true
+			end
+			for i,v in ipairs(returnData.Whitelist) do
+				kReturnData.Whitelist[v] = true
+			end
+			func(kReturnData)
+		else
+			local kvReturnData = {}
+			for i,v in ipairs(returnData) do
+				kvReturnData[v[1]] = v[2]
+			end
+			func(kvReturnData)
+		end
+	end
+end
+
+ISAWC.CreateListButton = function(self, parent, name, listConCommand, listType, dataFunc, func)
+	local Button = vgui.Create("DButton", parent)
+	Button:SetText(name)
+	Button:SetTextColor(color_white)
+	function Button:Paint(w,h)
+		draw.RoundedBox(8,0,0,w,h,self.Depressed and color_aqua or self:IsHovered() and color_white_semitransparent or color_gray_semitransparent)
+	end
+	function Button:DoClick()
+		ISAWC:BuildListMenu(name, listConCommand, listType, dataFunc(), func)
+	end
+	
+	return Button
+end
+
+ISAWC.BuildClientOptionsMenu = function(self)
+	local Main = vgui.Create("DFrame")
+	Main:SetTitle("Client Options")
+	Main:SetSize(self.SW*0.75, self.SH*0.75)
+	Main:Center()
+	Main:MakePopup()
+	ISAWC.OptionsWindow = Main
+	
+	local Background = vgui.Create("DScrollPanel", Main)
+	Background:Dock(FILL)
+	Background:SetPaintBackgroundEnabled(true)
+	Background:SetPaintBorderEnabled(true)
+	Background:SetPaintBackground(true)
+	
+	local DForm = vgui.Create("DForm", Background)
+	DForm:SetLabel("General")
+	DForm:Dock(FILL)
+	self.PopulateDFormClient(DForm)
+end
+
+ISAWC.BuildServerOptionsMenu = function(self, data)
+	local newConVarValues = {BWLists = {}}
+	
+	local Main = vgui.Create("DFrame")
+	Main:SetTitle("Server Options")
+	Main:SetSize(self.SW*0.75, self.SH*0.75)
+	Main:Center()
+	Main:MakePopup()
+	function Main:Paint(w,h)
+		draw.RoundedBox(8,0,0,w,h,color_black_semiopaque)
+		draw.RoundedBox(8,0,0,w,24,color_black_semiopaque)
+	end
+	ISAWC.OptionsWindow = Main
+	
+	local Categories = vgui.Create("DCategoryList", Main)
+	Categories:Dock(FILL)
+	Categories.Paint = nil
+	
+	local currentZ = 0
+	for i,v in ipairs(self.ServerOptionsInfo) do
+		local Category = Categories:Add(v.name)
+		function Category:Paint(w,h)
+			local col = self:GetExpanded() and color_aqua or color_gray_semitransparent
+			if self.Header.Depressed then
+				col = self:GetExpanded() and color_white_semitransparent or color_light_aqua
+			elseif self.Header:IsHovered() then
+				col = self:GetExpanded() and color_light_aqua or color_white_semitransparent
+			end
+			
+			draw.RoundedBox(8,0,0,w,h,color_black_semiopaque)
+			draw.RoundedBox(8,0,0,w,18,col)
+		end
+		
+		for i2, v2 in ipairs(v.options) do
+			currentZ = currentZ + 1
+			local typ = v2.type
+			local optionPanel
+			
+			if typ == "bool" then
+				local CheckBoxPanel = vgui.Create("DCheckBoxLabel", Category)
+				CheckBoxPanel:SetText(v2.name)
+				CheckBoxPanel:SetValue(v2.convar:GetBool())
+				function CheckBoxPanel:OnChange(value)
+					newConVarValues[v2.convar:GetName()] = value
+				end
+				
+				optionPanel = CheckBoxPanel
+			elseif typ == "number" then
+				local decimals = v2.decimals or math.Round(3 - math.log10(v2.max - v2.min))
+				
+				local NumberSliderPanel = vgui.Create("DNumSlider", Category)
+				NumberSliderPanel:SetText(v2.name)
+				NumberSliderPanel:SetMinMax(v2.min, v2.max)
+				NumberSliderPanel:SetDecimals(decimals)
+				NumberSliderPanel:SetValue(v2.convar:GetFloat())
+				NumberSliderPanel:SetDefaultValue(tonumber(v2.convar:GetDefault()))
+				function NumberSliderPanel:OnValueChanged(value)
+					newConVarValues[v2.convar:GetName()] = value
+				end
+				
+				optionPanel = NumberSliderPanel
+			elseif typ == "text" then
+				--text real estate = 1/2.4 of total width
+				local TextPanel = vgui.Create("DPanel", Category)
+				TextPanel.Paint = nil
+				function TextPanel:PerformLayout()
+					self.Text:SetWide(self:GetWide()/2.4)
+				end
+				
+				TextPanel.Text = vgui.Create("DLabel", TextPanel)
+				TextPanel.Text:SetText(v2.name)
+				TextPanel.Text:Dock(LEFT)
+				
+				TextPanel.Entry = vgui.Create("DTextEntry", TextPanel)
+				TextPanel.Entry:SetPaintBackground(false)
+				TextPanel.Entry:SetDrawBorder(false)
+				TextPanel.Entry:SetTextColor(color_white)
+				TextPanel.Entry:SetCursorColor(color_white)
+				TextPanel.Entry:SetHighlightColor(color_aqua)
+				TextPanel.Entry:SetValue(v2.convar:GetString())
+				TextPanel.Entry:Dock(FILL)
+				function TextPanel.Entry:OnChange()
+					newConVarValues[v2.convar:GetName()] = self:GetValue()
+				end
+				function TextPanel.Entry:OnGetFocus()
+					self.DrawEditOverlay = true
+					hook.Run("OnTextEntryGetFocus",self)
+				end
+				function TextPanel.Entry:OnLoseFocus()
+					self.DrawEditOverlay = nil
+					hook.Run("OnTextEntryLoseFocus",self)
+				end
+				function TextPanel.Entry:PaintOver(w,h)
+					if self.DrawEditOverlay then
+						draw.RoundedBox(8,0,0,w,h,color_white_semitransparent)
+					else
+						draw.RoundedBox(8,0,0,w,h,color_gray_semitransparent)
+					end
+				end
+				
+				optionPanel = TextPanel
+			elseif typ == "choice" then
+				--text real estate = 1/2.4 of total width
+				local ChoicePanel = vgui.Create("DPanel", Category)
+				ChoicePanel.Paint = nil
+				function ChoicePanel:PerformLayout()
+					self.Text:SetWide(self:GetWide()/2.4)
+				end
+				
+				ChoicePanel.Text = vgui.Create("DLabel", ChoicePanel)
+				ChoicePanel.Text:SetText(v2.name)
+				ChoicePanel.Text:Dock(LEFT)
+				
+				ChoicePanel.Choices = vgui.Create("DComboBox", ChoicePanel)
+				for i3, v3 in ipairs(v2.choices) do
+					ChoicePanel.Choices:AddChoice(v3[1], v3[2], v3[2]==v2.convar:GetInt(), v3[3])
+				end
+				ChoicePanel.Choices:Dock(FILL)
+				function ChoicePanel.Choices:OnSelect(index, name, value)
+					newConVarValues[v2.convar:GetName()] = value
+				end
+				
+				optionPanel = ChoicePanel
+			elseif typ == "button" then
+				local Button = vgui.Create("DButton", Category)
+				Button:SetText(v2.name)
+				Button:SetTextColor(color_white)
+				function Button:Paint(w,h)
+					local col = color_dark_red_semitransparent
+					if self.Depressed then
+						col = color_red
+					elseif self:IsHovered() then
+						col = color_red_semitransparent
+					end
+					draw.RoundedBox(8,0,0,w,h,col)
+				end
+				function Button:DoClick()
+					Derma_Query("Are you sure?", v2.name, "Yes", function()
+						ISAWC:StartNetMessage("convar")
+						net.WriteBool(false)
+						net.WriteString(v2.concommand)
+						net.WriteUInt(0, 8)
+						net.SendToServer()
+						
+						if v2.closer and IsValid(Main) then
+							Main:Close()
+						end
+					end, "No")
+				end
+				
+				optionPanel = Button
+			elseif typ == "bwlist" then
+				local Button = self:CreateListButton(Category, v2.name, v2.concommand, typ, function()
+					return newConVarValues.BWLists[v2.concommand] or data.BWLists[v2.concommand]
+				end, function(data)
+					newConVarValues.BWLists[v2.concommand] = data
+				end)
+				
+				optionPanel = Button
+			elseif typ == "sdlist" or typ == "sslist" then
+				local Button = self:CreateListButton(Category, v2.name, v2.concommand, typ, function()
+					return newConVarValues[v2.concommand] or data[v2.concommand]
+				end, function(data)
+					newConVarValues[v2.concommand] = data
+				end)
+				
+				optionPanel = Button
+			end
+			
+			optionPanel:DockMargin(4,0,4,4)
+			optionPanel:SetZPos(currentZ)
+			optionPanel:SetTall(20)
+			optionPanel:Dock(TOP)
+			
+			if v2.convar then
+				currentZ = currentZ + 1
+				
+				local DescText = vgui.Create("DLabel", Category)
+				DescText:SetText(" - "..v2.convar:GetHelpText())
+				DescText:DockMargin(4,0,4,4)
+				DescText:SetZPos(currentZ)
+				DescText:SetWrap(true)
+				DescText:SetAutoStretchVertical(true)
+				DescText:Dock(TOP)
+			end
+		end
+	end
+	
+	local OKButton = vgui.Create("DButton", Main)
+	OKButton:SetText("Apply Changes")
+	OKButton:SetTextColor(color_white)
+	OKButton:SetTall(20)
+	OKButton:DockMargin(0,4,0,0)
+	OKButton:Dock(BOTTOM)
+	function OKButton:Paint(w,h)
+		local col = color_gray_semitransparent
+		if self.Depressed then
+			col = color_aqua
+		elseif self:IsHovered() then
+			col = color_white_semitransparent
+		end
+		draw.RoundedBox(8,0,0,w,h,col)
+	end
+	function OKButton:DoClick()
+		--PrintTable(newConVarValues)
+		local data = util.Compress(util.TableToJSON(newConVarValues))
+		local length = #data
+		ISAWC:StartNetMessage("convar")
+		net.WriteBool(true)
+		net.WriteUInt(length, 16)
+		net.WriteData(data, length)
+		net.SendToServer()
+		Main:Close()
+	end
+end
+
+ISAWC.GetClientToOpenOptionsMenu = function(self, ply)
+	local data = {BWLists = {}}
+	for k,v in pairs(self.ServerOptionsInfo) do
+		for k2,v2 in pairs(v.options) do
+			if v2.type == "bwlist" then
+				data.BWLists[v2.concommand] = {
+					Blacklist = self.BWLists[v2.pointer].Blacklist,
+					Whitelist = self.BWLists[v2.pointer].Whitelist
+				}
+			elseif v2.type == "sslist" or v2.type == "sdlist" then
+				data[v2.concommand] = self[v2.pointer]
+			end
+		end
+	end
+
+	--PrintTable(data)
+
+	local dataBinary = util.Compress(util.TableToJSON(data))
+	local dataLength = #dataBinary
+
+	ISAWC:StartNetMessage("convar")
+	net.WriteUInt(dataLength, 16)
+	net.WriteData(dataBinary, dataLength)
+	net.Send(ply)
 end
 
 ISAWC.DescReplacements = {["\\"]="\\", ["n"]="\n"}
@@ -3589,13 +4887,6 @@ ISAWC.PlayerDisconnect = function(data)
 	end
 end
 
-if SERVER then
-	for k,v in pairs(player.GetAll()) do
-		ISAWC:SendInventory(v)
-		ISAWC.AmmoItemStampListLastUpdate = {}
-	end
-end
-
 ISAWC.IsLegalContainer = function(self,ent,ply,ignoreDist)
 	local cond1 = IsValid(ent) and ent.Base=="isawc_container_base" and ply:Alive()
 	local cond2 = ignoreDist or ply:GetPos():Distance(ent:GetPos())-ent:BoundingRadius()<=ISAWC.ConDistance:GetFloat()
@@ -3935,6 +5226,13 @@ end
 
 ISAWC.IsMessageType = function(self,messageType,messageTypeString)
 	return messageType == ISAWC.MESSAGE_TYPES[messageTypeString]
+end
+
+if SERVER then
+	for k,v in pairs(player.GetAll()) do
+		ISAWC:SendInventory(v)
+		ISAWC.AmmoItemStampListLastUpdate = {}
+	end
 end
 
 ISAWC.ReceiveMessage = function(self,length,ply,func)
@@ -4404,6 +5702,72 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					self:NoPickup("You don't have enough ammo!", ply)
 				end
 			end
+		elseif self:IsMessageType(func, "convar") then
+			if ply:IsAdmin() then
+				local isConVars = net.ReadBool()
+				if isConVars then
+					local newValues = util.JSONToTable(util.Decompress(net.ReadData(net.ReadUInt(16))))
+					local primaryBWList = newValues and newValues.BWLists and (newValues.BWLists._1_ or newValues.BWLists[1])
+					if primaryBWList then
+						newValues.BWLists[""] = primaryBWList
+						newValues.BWLists._1_ = nil
+						newValues.BWLists[1] = nil
+					end
+					
+					--PrintTable(newValues)
+					
+					for k,v in pairs(self.ServerOptionsInfo) do
+						for k2,v2 in pairs(v.options) do
+							local conVarType = v2.type
+							
+							if conVarType == "bwlist" then
+								if newValues.BWLists[v2.concommand] then
+									self.BWLists[v2.pointer] = newValues.BWLists[v2.concommand]
+								end
+							elseif conVarType == "sslist" or conVarType == "sdlist" then
+								if newValues[v2.concommand] then
+									self[v2.pointer] = newValues[v2.concommand]
+									
+									if v2.pointer == "DescList" then
+										for k,v in pairs(self.DescList) do
+											self.DescList[k] = string.gsub(v, "\\(.)", self.DescReplacements)
+										end
+									end
+								end
+							elseif conVarType ~= "button" then
+								local conVar = v2.convar
+								local newValue = newValues[conVar:GetName()]
+								if newValue then
+									if conVarType == "bool" then
+										conVar:SetBool(newValue)
+									elseif conVarType == "number" then
+										conVar:SetFloat(newValue)
+									elseif conVarType == "choice" then
+										conVar:SetInt(newValue)
+									elseif conVarType == "text" then
+										conVar:SetString(newValue)
+									end
+								end
+							end
+						end
+					end
+				else
+					local consoleArguments = {net.ReadString()}
+					if consoleArguments[1] == "isawc_activate_options_menu_server" then
+						self:GetClientToOpenOptionsMenu(ply)
+					elseif self.ConCommands[consoleArguments[1]] then
+						for i=1, net.ReadUInt(8) do
+							table.insert(consoleArguments, net.ReadString())
+						end
+						--print(unpack(consoleArguments))
+						RunConsoleCommand(unpack(consoleArguments))
+					else
+						self:NoPickup("You can only call ISAWC ConCommands through this method!", ply)
+					end
+				end
+			else
+				self:NoPickup("You need to be an administrator to use this command!",ply)
+			end
 		else
 			self:Log("Received unrecognised message header \"" .. func .. "\" from " .. ply:Nick() .. ". Assuming data packet corrupted.")
 			return
@@ -4489,6 +5853,16 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			if IsValid(weapon) then
 				weapon:OpenMakerMenu()
 			end
+		elseif self:IsMessageType(func, "convar") then
+			local data = util.JSONToTable(util.Decompress(net.ReadData(net.ReadUInt(16))))
+			local primaryBWList = data and data.BWLists and (data.BWLists._1_ or data.BWLists[1])
+			if primaryBWList then
+				data.BWLists[""] = primaryBWList
+				data.BWLists._1_ = nil
+				data.BWLists[1] = nil
+			end
+			
+			self:BuildServerOptionsMenu(data)
 		else
 			self:Log("Received unrecognised message header \"" .. func .. "\" from server. Assuming data packet corrupted.")
 		end
@@ -4943,13 +6317,13 @@ ISAWC.Tick = function()
 			elseif clientTicks == 1000 then
 				ISAWC:PushNotification({"You can also open your inventory in the CONTEXT MENU,", "as well as right-click items from there to pick them up."})
 			elseif clientTicks == 1400 then
-				ISAWC:PushNotification({"You can change the keys under General Client options in the", "\"ISAWC\" section at the top-right of the SPAWN MENU."})
+				ISAWC:PushNotification({"You can change the keys under General Client Options in the", "\"ISAWC\" section at the top-right of the SPAWN MENU."})
 			elseif clientTicks == 1800 then
-				ISAWC:PushNotification({"Alternatively, you can change the ConVars \"isawc_pickup_bind\",", "\"isawc_player_bind\" and \"isawc_player_bindhold\"."})
+				ISAWC:PushNotification({"Alternatively, you can open the Client Options menu", "via the ConCommand \"isawc_activate_options_menu_client\"."})
 			elseif clientTicks == 2200 then
 				ISAWC:PushNotification("Please note that the server can override your set binds.")
 			elseif clientTicks == 2400 then
-				ISAWC:PushNotification({"You can turn these hint messages off in the Client options,", "or set \"isawc_hide_hintnotifications\" to 1."})
+				ISAWC:PushNotification({"You can turn these hint messages off in the Client Options menu,", "or set \"isawc_hide_hintnotifications\" to 1."})
 			end
 		end
 	end
