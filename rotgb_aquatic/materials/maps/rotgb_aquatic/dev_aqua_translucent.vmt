@@ -1,0 +1,8 @@
+LightmappedGeneric
+{
+	$basetexture maps/rotgb_aquatic/dev_aqua
+	$surfaceprop glass
+	$alpha 0.5
+	$envmap env_cubemap
+	$envmapmask glass/glasswindow007a_mask
+}
