@@ -155,9 +155,13 @@ ENT.UpgradeReference = {
 }
 ENT.UpgradeLimits = {7,2,0}
 
+function ENT:ROTGB_ApplyPerks()
+	self.FireRate = self.FireRate / (1+hook.Run("GetSkillAmount", "towerFireRate")/100)
+end
+
 function ENT:FireFunction(gBalloons)
 	if IsValid(self.rotgb_Spawner) then
-		local delayBetweenBalls = self.rotgb_HoverballDelay * 10 / self.FireRate / self.BonusFireRate
+		local delayBetweenBalls = self.rotgb_HoverballDelay * 10 / self.FireRate
 		if self:DetermineCharge(self.rotgb_Spawner) - self.rotgb_LastCharge >= delayBetweenBalls and self.rotgb_HoverballWorth > 0 --[[and not self.rotgb_NoHoverball]] then
 			self.rotgb_LastCharge = self.rotgb_LastCharge + delayBetweenBalls
 			local should10x = self.rotgb_10Chance and math.random() < 0.1
@@ -220,7 +224,7 @@ end
 
 function ENT:DetermineCharge(spawner)
 	local charge = spawner:GetWave()-1
-	local percent = 1-math.Clamp((spawner:GetNextWaveTime()-CurTime())/spawner:GetWaveDuration(charge)*spawner:GetSpeedMul(),0,1)
+	local percent = 1-math.Clamp((spawner:GetNextWaveTime()-CurTime())/spawner:GetWaveDuration(charge)*spawner:GetSpeedMul()*ROTGB_GetConVarValue("rotgb_spawner_spawn_rate"),0,1)
 	return charge+percent
 end
 
@@ -250,7 +254,7 @@ hook.Add("gBalloonSpawnerWaveStarted", "ROTGB_TOWER_16", function(spawner,wave)
 	for k,v in pairs(ents.FindByClass("gballoon_tower_16")) do
 		if v.rotgb_Spawner == spawner then
 			local buff = v.rotgb_Buff
-			v:AddCash(v.rotgb_HoverballWorth*(v.rotgb_10Chance and 1.9 or 1)/v.rotgb_HoverballDelay*v.FireRate*v.BonusFireRate/10*v.rotgb_HoverballPostCash
+			v:AddCash(v.rotgb_HoverballWorth*(v.rotgb_10Chance and 1.9 or 1)/v.rotgb_HoverballDelay*v.FireRate/10*v.rotgb_HoverballPostCash
 			*(v.rotgb_Trading and math.random()*4 or 1)*(1+(hook.Run("GetSkillAmount", "valuableHoverballs") or 0)/100), v:GetTowerOwner())
 			--[[if v.rotgb_BankFactor > 0 and v.rotgb_NoHoverball then
 				v:PerformBank()

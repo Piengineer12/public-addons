@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		6.3.1
-Version Date:	2022-06-18
+Version:		6.4.0
+Version Date:	2022-07-17
 ]]
 
 local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","spawning","towers","music"}
@@ -488,22 +488,6 @@ RegisterConVar("rotgb_spawner_force_auto_start","-1",R_INT,
  - If 0, newly-spawned gBalloon Spawners will have Force Auto-Start disabled.
  - If -1, the map's values are used where applicable, otherwise 0 is used.]])
 
-RegisterConVar("rotgb_spawner_no_multi_start","-1",R_INT,
-[[If 1, newly-spawned gBalloon Spawners will have Allow Multiple Waves disabled.
- - If 0, newly-spawned gBalloon Spawners will have Allow Multiple Waves enabled.
- - If -1, the map's values are used where applicable, otherwise 0 is used.]])
-
-RegisterConVar("rotgb_max_fires_per_second","20",R_FLOAT,
-[[Maximum gBalloons to visibly ignite per second. Lowering this value can improve performance.
- - Note that invisible fires can still deal fire damage to gBalloons.
- - This may also be a decimal value.]])
-
-RegisterConVar("rotgb_tower_force_charge","0",R_BOOL,
-[[If set, active abilities will charge even no waves are currently in progress.]])
-
-RegisterConVar("rotgb_tower_charge_rate","1",R_FLOAT,
-[[Multiplier for how fast towers recharge their active abilities.]])
-
 concommand.Add("rotgb_health_param_internal",function(ply,cmd,args,argStr) if (not IsValid(ply) or ply:IsAdmin()) then ROTGB_CVARS["rotgb_health_param"][1]:SetInt(tonumber(args[1]) or 0) end end,nil,nil,FCVAR_UNREGISTERED)
 
 local function CreateHfunction(iname,vname)
@@ -553,6 +537,25 @@ concommand.Add("rotgb_addmaxhealth",CreateHfunction("AddMaxHealth","rotgb_addmax
 concommand.Add("rotgb_submaxhealth",CreateHfunction("RemoveMaxHealth","rotgb_submaxhealth"),nil,
 [[Admin only command.
  - Subtracts maximum health by input or the rotgb_health_param ConVar.]])
+
+RegisterConVar("rotgb_spawner_no_multi_start","-1",R_INT,
+[[If 1, newly-spawned gBalloon Spawners will have Allow Multiple Waves disabled.
+ - If 0, newly-spawned gBalloon Spawners will have Allow Multiple Waves enabled.
+ - If -1, the map's values are used where applicable, otherwise 0 is used.]])
+
+RegisterConVar("rotgb_max_fires_per_second","20",R_FLOAT,
+[[Maximum gBalloons to visibly ignite per second. Lowering this value can improve performance.
+ - Note that invisible fires can still deal fire damage to gBalloons.
+ - This may also be a decimal value.]])
+
+RegisterConVar("rotgb_tower_force_charge","0",R_BOOL,
+[[If set, active abilities will charge even no waves are currently in progress.]])
+
+RegisterConVar("rotgb_tower_charge_rate","1",R_FLOAT,
+[[Multiplier for how fast towers recharge their active abilities.]])
+
+RegisterConVar("rotgb_spawner_spawn_rate","1",R_FLOAT,
+[[Multiplier for how fast gBalloons are spawned from gBalloon Spawners.]])
 
 concommand.Add("rotgb_reset_convars",function(ply,cmd,args,argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
@@ -968,7 +971,7 @@ if CLIENT then
 			-- it is a multipart
 			local phrases = {}
 			
-			-- the one time where post-test actually becomes useful
+			-- the one time where a post-test loop actually becomes useful
 			local i = 1
 			local multipartToken = token..".1"
 			repeat
@@ -1176,6 +1179,9 @@ if CLIENT then
 	RegisterClientConVar("rotgb_music_volume","1",R_FLOAT,
 	[[Multiplier for gBalloon Spawner music volume. If 0, music does not play at all.
 	 - Relies on BASS library for music, so values > 1 are supported.]])
+	
+	RegisterClientConVar("rotgb_no_wave_hints","0",R_BOOL,
+	[[Hides the hints that sometimes appear after a wave ends.]])
 	
 	function ROTGB_FormatCash(cash, roundUp)
 		if cash==math.huge then -- number is inf
@@ -1655,6 +1661,8 @@ if CLIENT then
 		DForm:ControlHelp("#rotgb.spawnmenu.category.client.others")
 		DForm:NumSlider("#rotgb.convar.rotgb_music_volume.name","rotgb_music_volume",0,4,3)
 		AddDFormConVarDescription(DForm, "rotgb_music_volume")
+		DForm:CheckBox("#rotgb.convar.rotgb_no_wave_hints.name","rotgb_no_wave_hints")
+		AddDFormConVarDescription(DForm, "rotgb_no_wave_hints")
 		DForm:NumSlider("#rotgb.convar.rotgb_circle_segments.name","rotgb_circle_segments",3,200,0)
 		AddDFormConVarDescription(DForm, "rotgb_circle_segments")
 		DForm:NumSlider("#rotgb.convar.rotgb_hoverover_distance.name","rotgb_hoverover_distance",0,100,1)
@@ -1747,12 +1755,14 @@ if CLIENT then
 			AddDFormConVarDescription(DForm, "rotgb_default_first_wave")
 			DForm:NumSlider("#rotgb.convar.rotgb_default_last_wave.name","rotgb_default_last_wave",1,1000,0)
 			AddDFormConVarDescription(DForm, "rotgb_default_last_wave")
+			DForm:CheckBox("#rotgb.convar.rotgb_freeplay.name","rotgb_freeplay")
+			AddDFormConVarDescription(DForm, "rotgb_freeplay")
 			DForm:NumberWang("#rotgb.convar.rotgb_spawner_force_auto_start.name","rotgb_spawner_force_auto_start",-1,1)
 			AddDFormConVarDescription(DForm, "rotgb_spawner_force_auto_start")
 			DForm:NumberWang("#rotgb.convar.rotgb_spawner_no_multi_start.name","rotgb_spawner_no_multi_start",-1,1)
 			AddDFormConVarDescription(DForm, "rotgb_spawner_no_multi_start")
-			DForm:CheckBox("#rotgb.convar.rotgb_freeplay.name","rotgb_freeplay")
-			AddDFormConVarDescription(DForm, "rotgb_freeplay")
+			DForm:NumSlider("#rotgb.convar.rotgb_spawner_spawn_rate.name","rotgb_spawner_spawn_rate",0,10,3)
+			AddDFormConVarDescription(DForm, "rotgb_spawner_spawn_rate")
 			DForm:TextEntry("#rotgb.convar.rotgb_default_wave_preset.name","rotgb_default_wave_preset")
 			AddDFormConVarDescription(DForm, "rotgb_default_wave_preset")
 			DForm:Button("#rotgb.command.rotgb_waveeditor.name","rotgb_waveeditor")
@@ -2004,8 +2014,7 @@ if CLIENT then
 				elseif message == ROTGB_NOTIFY_TRANSFERSHARED then
 					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.game_swep.transfer.shared"), level, nil, additionalArguments)
 				elseif message == ROTGB_NOTIFY_TOWERLEVEL then
-					local level = net.ReadUInt(8)
-					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.level", string.Comma(level)), level, nil, additionalArguments)
+					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.level", string.Comma(net.ReadUInt(8))), level, nil, additionalArguments)
 				elseif message == ROTGB_NOTIFY_TOWERCASH then
 					local cost = net.ReadFloat()
 					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.cant_afford", ROTGB_FormatCash(cost, true)), level, nil, additionalArguments)
@@ -2020,7 +2029,7 @@ if CLIENT then
 					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.no_more"), level, nil, additionalArguments)
 				elseif message == ROTGB_NOTIFY_TOWERNOTOWNER then
 					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.upgrade.not_owner"), level, nil, additionalArguments)
-				elseif message == ROTGB_NOTIFY_WAVEEND then
+				elseif message == ROTGB_NOTIFY_WAVEEND and not ROTGB_GetConVarValue("rotgb_no_wave_hints") then
 					local token = string.format("rotgb.wave_hints.%i", net.ReadInt(32))
 					local localized = ROTGB_LocalizeString(token)
 					if token ~= localized then

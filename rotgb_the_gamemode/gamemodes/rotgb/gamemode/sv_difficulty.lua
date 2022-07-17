@@ -5,7 +5,7 @@ function GM:SendMapDifficulties()
 	local customRemovedDifficulties = hook.Run("GetCustomRemovedDifficulties")
 	
 	for k,v in pairs(allDifficulties) do
-		if v.custom then
+		if v.custom and hook.Run("IsDifficultyUnlocked", k) then
 			table.insert(toSend, k)
 		end
 	end

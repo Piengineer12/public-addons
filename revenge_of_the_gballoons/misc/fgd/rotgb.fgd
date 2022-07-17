@@ -1,0 +1,556 @@
+@include "base.fgd"
+
+// rotgb.fgd for RotgB Version 6.3.X, by Piengineer12
+// last updated 2022-07-17
+// https://steamcommunity.com/workshop/filedetails/discussion/1616333917/1742231705671196872/
+
+@BaseClass = RotgBTarget
+[
+	next_target_0(target_destination) : "Next gBalloon Target 1" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	next_target_1(target_destination) : "Next gBalloon Target 2" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	next_target_2(target_destination) : "Next gBalloon Target 3" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	next_target_3(target_destination) : "Next gBalloon Target 4" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	next_target_4(target_destination) : "Next gBalloon Target 5" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	next_target_5(target_destination) : "Next gBalloon Target 6" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	next_target_6(target_destination) : "Next gBalloon Target 7" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	next_target_7(target_destination) : "Next gBalloon Target 8" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	next_target_8(target_destination) : "Next gBalloon Target 9" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	next_target_9(target_destination) : "Next gBalloon Target 10" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	next_target_a(target_destination) : "Next gBalloon Target 11" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	next_target_b(target_destination) : "Next gBalloon Target 12" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	next_target_c(target_destination) : "Next gBalloon Target 13" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	next_target_d(target_destination) : "Next gBalloon Target 14" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	next_target_e(target_destination) : "Next gBalloon Target 15" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	next_target_f(target_destination) : "Next gBalloon Target 16" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	next_blimp_target_0(target_destination) : "gBlimp Next gBalloon Target 1" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
+	next_blimp_target_1(target_destination) : "gBlimp Next gBalloon Target 2" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
+	next_blimp_target_2(target_destination) : "gBlimp Next gBalloon Target 3" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
+	next_blimp_target_3(target_destination) : "gBlimp Next gBalloon Target 4" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
+	next_blimp_target_4(target_destination) : "gBlimp Next gBalloon Target 5" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
+	next_blimp_target_5(target_destination) : "gBlimp Next gBalloon Target 6" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
+	next_blimp_target_6(target_destination) : "gBlimp Next gBalloon Target 7" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
+	next_blimp_target_7(target_destination) : "gBlimp Next gBalloon Target 8" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
+	next_blimp_target_8(target_destination) : "gBlimp Next gBalloon Target 9" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
+	next_blimp_target_9(target_destination) : "gBlimp Next gBalloon Target 10" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
+	next_blimp_target_a(target_destination) : "gBlimp Next gBalloon Target 11" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
+	next_blimp_target_b(target_destination) : "gBlimp Next gBalloon Target 12" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
+	next_blimp_target_c(target_destination) : "gBlimp Next gBalloon Target 13" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
+	next_blimp_target_d(target_destination) : "gBlimp Next gBalloon Target 14" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
+	next_blimp_target_e(target_destination) : "gBlimp Next gBalloon Target 15" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
+	next_blimp_target_f(target_destination) : "gBlimp Next gBalloon Target 16" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
+	input SetNextWaypoint0(string) : "Sets the next waypoint for the spawner."
+	input SetNextWaypoint1(string) : "Sets the next waypoint for the spawner."
+	input SetNextWaypoint2(string) : "Sets the next waypoint for the spawner."
+	input SetNextWaypoint3(string) : "Sets the next waypoint for the spawner."
+	input SetNextWaypoint4(string) : "Sets the next waypoint for the spawner."
+	input SetNextWaypoint5(string) : "Sets the next waypoint for the spawner."
+	input SetNextWaypoint6(string) : "Sets the next waypoint for the spawner."
+	input SetNextWaypoint7(string) : "Sets the next waypoint for the spawner."
+	input SetNextWaypoint8(string) : "Sets the next waypoint for the spawner."
+	input SetNextWaypoint9(string) : "Sets the next waypoint for the spawner."
+	input SetNextWaypointA(string) : "Sets the next waypoint for the spawner."
+	input SetNextWaypointB(string) : "Sets the next waypoint for the spawner."
+	input SetNextWaypointC(string) : "Sets the next waypoint for the spawner."
+	input SetNextWaypointD(string) : "Sets the next waypoint for the spawner."
+	input SetNextWaypointE(string) : "Sets the next waypoint for the spawner."
+	input SetNextWaypointF(string) : "Sets the next waypoint for the spawner."
+	input SetNextBlimpWaypoint0(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
+	input SetNextBlimpWaypoint1(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
+	input SetNextBlimpWaypoint2(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
+	input SetNextBlimpWaypoint3(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
+	input SetNextBlimpWaypoint4(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
+	input SetNextBlimpWaypoint5(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
+	input SetNextBlimpWaypoint6(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
+	input SetNextBlimpWaypoint7(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
+	input SetNextBlimpWaypoint8(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
+	input SetNextBlimpWaypoint9(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
+	input SetNextBlimpWaypointA(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
+	input SetNextBlimpWaypointB(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
+	input SetNextBlimpWaypointC(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
+	input SetNextBlimpWaypointD(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
+	input SetNextBlimpWaypointE(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
+	input SetNextBlimpWaypointF(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
+]
+
+@BaseClass = RotgBSpectatable
+[
+	unspectatable(choices) : "[RotgB:TG] Spectating Starts Disabled" : 0 : "Disables spectators from spectating this entity. Only works in RotgB: The Gamemode." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	
+	input EnableSpectating(void) : "[RotgB:TG] Enables spectators to spectate this entity."
+	input DisableSpectating(void) : "[RotgB:TG] Disables spectators from spectating this entity."
+	input ToggleSpectating(void) : "[RotgB:TG] Toggles whether spectators can spectate this entity or not."
+]
+
+@BaseClass = RotgBHidable
+[
+	start_frozen(choices) : "Motion Disabled" : 0 : "The entity will be frozen when first spawned. Can only be unfrozen by the Physics Gun, or the EnableMotion and DisableMotion inputs." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	start_hidden(choices) : "Start Hidden" : 0 : "The entity starts hidden. Hidden RotgB entities are invisible, uncollidable, unspectatable and don't show up on HUDs." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	
+	input Hide(void) : "Hides the entity."
+	input Unhide(void) : "Unhides the entity."
+	input ToggleHide(void) : "Toggles the hidden state of the entity."
+	input EnableMotion(void) : "Enables motion."
+	input DisableMotion(void) : "Disables motion."
+]
+
+@BaseClass = RotgBMusicEmitter
+[
+	music_wave_0(integer) : "Music 1 Wave" : -1 : "Sets the wave where Music 1 plays. Later waves will take priority over earlier waves. -1 = do not play."
+	music_wave_1(integer) : "Music 2 Wave" : -1 : "Sets the wave where Music 2 plays. Later waves will take priority over earlier waves. -1 = do not play."
+	music_wave_2(integer) : "Music 3 Wave" : -1 : "Sets the wave where Music 3 plays. Later waves will take priority over earlier waves. -1 = do not play."
+	music_wave_3(integer) : "Music 4 Wave" : -1 : "Sets the wave where Music 4 plays. Later waves will take priority over earlier waves. -1 = do not play."
+	music_file_0(sound) : "Music 1" : "" : "Sets the music played when Music 1 Wave is reached. Leave blank to stop music instead."
+	music_file_1(sound) : "Music 2" : "" : "Sets the music played when Music 2 Wave is reached. Leave blank to stop music instead."
+	music_file_2(sound) : "Music 3" : "" : "Sets the music played when Music 3 Wave is reached. Leave blank to stop music instead."
+	music_file_3(sound) : "Music 4" : "" : "Sets the music played when Music 4 Wave is reached. Leave blank to stop music instead."
+	music_text_0_0(string) : "Music 1 Text 1" : "" : "First line of text to display when Music 1 is played. Leave blank to not display."
+	music_text_0_1(string) : "Music 1 Text 2" : "" : "Second line of text to display when Music 1 is played. Leave blank to not display."
+	music_text_0_2(string) : "Music 1 Text 3" : "" : "Third line of text to display when Music 1 is played. Leave blank to not display."
+	music_text_0_3(string) : "Music 1 Text 4" : "" : "Fourth line of text to display when Music 1 is played. Leave blank to not display."
+	music_text_1_0(string) : "Music 2 Text 1" : "" : "First line of text to display when Music 2 is played. Leave blank to not display."
+	music_text_1_1(string) : "Music 2 Text 2" : "" : "Second line of text to display when Music 2 is played. Leave blank to not display."
+	music_text_1_2(string) : "Music 2 Text 3" : "" : "Third line of text to display when Music 2 is played. Leave blank to not display."
+	music_text_1_3(string) : "Music 2 Text 4" : "" : "Fourth line of text to display when Music 2 is played. Leave blank to not display."
+	music_text_2_0(string) : "Music 3 Text 1" : "" : "First line of text to display when Music 3 is played. Leave blank to not display."
+	music_text_2_1(string) : "Music 3 Text 2" : "" : "Second line of text to display when Music 3 is played. Leave blank to not display."
+	music_text_2_2(string) : "Music 3 Text 3" : "" : "Third line of text to display when Music 3 is played. Leave blank to not display."
+	music_text_2_3(string) : "Music 3 Text 4" : "" : "Fourth line of text to display when Music 3 is played. Leave blank to not display."
+	music_text_3_0(string) : "Music 4 Text 1" : "" : "First line of text to display when Music 4 is played. Leave blank to not display."
+	music_text_3_1(string) : "Music 4 Text 2" : "" : "Second line of text to display when Music 4 is played. Leave blank to not display."
+	music_text_3_2(string) : "Music 4 Text 3" : "" : "Third line of text to display when Music 4 is played. Leave blank to not display."
+	music_text_3_3(string) : "Music 4 Text 4" : "" : "Fourth line of text to display when Music 4 is played. Leave blank to not display."
+	music_disabled_0(choices) : "Music 1 Starts Disabled" : 0 : "On the wave where Music 1 plays, music is stopped instead and no text will be displayed." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	music_disabled_1(choices) : "Music 2 Starts Disabled" : 0 : "On the wave where Music 2 plays, music is stopped instead and no text will be displayed." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	music_disabled_2(choices) : "Music 3 Starts Disabled" : 0 : "On the wave where Music 3 plays, music is stopped instead and no text will be displayed." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	music_disabled_3(choices) : "Music 4 Starts Disabled" : 0 : "On the wave where Music 4 plays, music is stopped instead and no text will be displayed." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	
+	input SetMusic1Wave(integer) : "Sets the wave Music 1 plays."
+	input EnableMusic1(void) : "Enables Music 1."
+	input DisableMusic1(void) : "Disables Music 1. When Music 1 would play, music is stopped instead."
+	input ToggleMusic1(void) : "Toggles Music 1."
+	input SetMusic2Wave(integer) : "Sets the wave Music 2 plays."
+	input EnableMusic2(void) : "Enables Music 2."
+	input DisableMusic2(void) : "Disables Music 2. When Music 2 would play, music is stopped instead."
+	input ToggleMusic2(void) : "Toggles Music 2."
+	input SetMusic3Wave(integer) : "Sets the wave Music 3 plays."
+	input EnableMusic3(void) : "Enables Music 3."
+	input DisableMusic3(void) : "Disables Music 3. When Music 3 would play, music is stopped instead."
+	input ToggleMusic3(void) : "Toggles Music 3."
+	input SetMusic4Wave(integer) : "Sets the wave Music 4 plays."
+	input EnableMusic4(void) : "Enables Music 4."
+	input DisableMusic4(void) : "Disables Music 4. When Music 4 would play, music is stopped instead."
+	input ToggleMusic4(void) : "Toggles Music 4."
+	
+	input EnableMusic(void) : "Enables all music."
+	input DisableMusic(void) : "Disables all music."
+	input ToggleMusic(void) : "Toggles all music. Note that this simply inverts the disabled state for all music."
+]
+
+
+
+@PointClass base(Targetname, Parentname, Studiomodel, RotgBTarget, RotgBSpectatable, RotgBHidable, RotgBMusicEmitter) studioprop() = gballoon_spawner :
+	"Spawns gBalloons. Will also send a Trigger input to an entity named wave_start_relay when a wave starts and to an entity named wave_finished_relay when a wave ends."
+[
+	hide_wave(choices) : "Hide Wave" : 0 : "The gBalloon Spawner's wave display will be hidden in the world and on the HUD. Useful in tandem with Spawn Divider and Don't Show Messages." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	start_all(choices) : "Start All Others" : 0 : "This entity will also start all other gBalloon Spawners that are in the same wave." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	spawn_rate_mul(float) : "Spawn Rate Multiplier" : "1.0" : "Sets the spawn rate of the gBalloons. Higher values will cause rounds to become shorter and gBalloons will become more packed."
+	spawn_divider(integer) : "Spawn Divider" : 1 : "If above 1, only every n-th gBalloon is spawned."
+	divider_delay(integer) : "Divider Delay" : 0 : "Offset for the Spawn Divider check."
+	no_auto_start(choices) : "Auto-Start Starts Disabled" : 0 : "Disables the spawner from auto-starting." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	auto_start_delay(float) : "Auto-Start Delay" : "0.0" : "The entity will wait for at least this long after a wave has been finished before spawning the next wave."
+	finished_shortly_threshold(float) : "Shortness Threshold" : "7.5" : "If the auto_start_delay is less than this, the OnWaveFinishedShortly output and the wave_intermission_relay entity will be triggered instead of the OnWaveFinished output and the wave_finished_relay entity when a wave ends."
+	dont_trigger_wave_relays(choices) : "Don't Trigger wave_*_relays" : 0 : "Prevents the entity from sending the Trigger input to a wave_start_relay when a wave starts and to a wave_intermission_relay or wave_finished_relay when a wave ends." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	no_messages(choices) : "Don't Show Messages" : 0 : "Prevents the entity from printing messages in chat (e.g. when a wave starts)." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	
+	input Use(void) : "Starts the next wave.\nNOTE: This input is implied if an invalid input is sent to this entity."
+	input EnableHideWave(void) : "Enables wave hiding."
+	input DisableHideWave(void) : "Disables wave hiding."
+	input ToggleHideWave(void) : "Toggles wave hiding."
+	input EnableStartAll(void) : "Enables the gBalloon Spawner to start all others."
+	input DisableStartAll(void) : "Disables the gBalloon Spawner from starting all others."
+	input ToggleStartAll(void) : "Toggles the gBalloon Spawner on starting all others."
+	input SetSpawnRateMultiplier(float) : "Sets the spawn rate multiplier."
+	input SetSpawnDivider(integer) : "Set the spawn divider."
+	input SetDividerDelay(integer) : "Sets the offset for the Spawn Divider check."
+	input EnableAutoStart(void) : "Enables Auto-Starting."
+	input DisableAutoStart(void) : "Disables Auto-Starting."
+	input ToggleAutoStart(void) : "Toggles Auto-Starting."
+	input SetAutoStartDelay(float) : "Sets the Auto-Start delay."
+	input SetShortnessThreshold(float) : "Sets the shortness threshold."
+	input EnableNoMessages(void) : "Enables no-chat-message mode."
+	input DisableNoMessages(void) : "Disables no-chat-message mode."
+	input ToggleNoMessages(void) : "Toggles no-chat-message mode."
+	output OnWaveStart(integer) : "Fires when the wave is started. Returns the wave number that was started.\nNOTE: While this output fires at the start of each wave, this will only Trigger the wave_start_relay if the previous round did finish, and not shortly."
+	output OnWaveFinished(integer) : "Fires when the wave is finished. Returns the wave number that was finished.\nNOTE: Doesn't fire if the next wave was started before the current wave ends."
+	output OnWaveFinishedShortly(integer) : "Fires when the wave is finished, but another wave will be started very shortly. Returns the wave number that was finished.\nNOTE: Doesn't fire if the next wave was started before the current wave ends."
+	output OnAutoStartEnabled(void) : "Fires when Auto-Start is enabled."
+	output OnAutoStartDisabled(void) : "Fires when Auto-Start is disabled."
+]
+
+@PointClass base(Targetname, Parentname, Studiomodel, RotgBTarget, RotgBSpectatable, RotgBHidable) studioprop() = gballoon_target :
+	"gBalloons will always make this entity a priority target regardless of targeting settings."
+[
+	natural_health_multiplier(float) : "Natural Health Multiplier" : "1.0" : "Multiplier for the gBalloon Target's natural maximum health."
+	gballoon_damage_only(choices) : "Only gBalloon Damage" : 1 : "Only allows gBalloons to damage the target." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	non_vital(choices) : "[RotgB:TG] Non-Vital" : 0 : "The game is over even when this gBalloon Target isn't destroyed." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	hide_health(choices) : "Hide Health" : 0 : "Hides the gBalloon Target's health display both above this entity and on the HUD." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	is_waypoint(choices) : "Is Waypoint" : 0 : "Sets whether the target functions as a waypoint or not." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	teleport_to(choices) : "Teleport To" : 0 : "gBalloons that target this gBalloon Target will teleport to it immediately." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	weight(integer) : "Weight" : 0 : "Highest weights are targeted first. If linked, gBalloons are divided among the targets based on their weights."
+	health(integer) : "Health" : 0 : "A value above 0 overrides the gBalloon Target's natural health."
+	max_health(integer) : "Maximum Health" : 0 : "A value above 0 overrides the gBalloon Target's natural maximum health."
+	
+	input SetNaturalHealthMultiplier(float) : "Adjusts the natural health multiplier of the gBalloon Target, scaling both health and maximum health. "+
+		"The gBalloon Target's health and maximum health will be reset if the natural health multiplier was 0. "+
+		"Setting the gBalloon Target's health below 0 this way will NOT destroy it."
+	input EnableBalloonDamageOnly(void) : "Enables immunity to everything that isn't a gBalloon."
+	input DisableBalloonDamageOnly(void) : "Disables immunity to everything that isn't a gBalloon."
+	input ToggleBalloonDamageOnly(void) : "Toggles immunity to everything that isn't a gBalloon."
+	input EnableNonVitality(void) : "Enables non-vitality for this gBalloon target."
+	input DisableNonVitality(void) : "Disables non-vitality for this gBalloon target."
+	input ToggleNonVitality(void) : "Toggles non-vitality for this gBalloon target."
+	input EnableHideHealth(void) : "Enables health hiding for this gBalloon target."
+	input DisableHideHealth(void) : "Disables health hiding for this gBalloon target."
+	input ToggleHideHealth(void) : "Toggles health hiding for this gBalloon target."
+	input EnableWaypointing(void) : "Enables waypointing for this gBalloon target."
+	input DisableWaypointing(void) : "Disables waypointing for this gBalloon target."
+	input ToggleWaypointing(void) : "Toggles waypointing for this gBalloon target."
+	input EnableTeleporting(void) : "Enables teleporting to this gBalloon target."
+	input DisableTeleporting(void) : "Disables teleporting to this gBalloon target."
+	input ToggleTeleporting(void) : "Toggles teleporting to this gBalloon target."
+	input SetWeight(integer) : "Sets the target weight."
+	input SetHealth(integer) : "Sets the health of the target. Setting the gBalloon Target's health below 0 this way will destroy it."
+	input AddHealth(integer) : "Increases the health of the target. Negative values reduce health. Setting the gBalloon Target's health below 0 this way will NOT destroy it."
+	input RemoveHealth(integer) : "Decreases the health of the target. Negative values increase health. Setting the gBalloon Target's health below 0 this way will destroy it."
+	input HealHealth(integer) : "Same as AddHealth, but capped to the gBalloon Target's maximum health."
+	input SetMaxHealth(integer) : "Sets the maximum health of the target."
+	input AddMaxHealth(integer) : "Increases the maximum health of the target."
+	input RemoveMaxHealth(integer) : "Decreases the maximum health of the target."
+	input HealMaxHealth(integer) : "Heals the gBalloon Target by a multiple of its maximum health (defaults to 1). Setting the gBalloon Target's health below 0 this way will NOT destroy it."
+	input SetModelScale(float) : "Sets the model scale."
+	output OnBreak(void) : "Fired when this target breaks."
+	output OnTakeDamage(float) : "Fired each time this target takes any damage. Returns the approximate amount of damage taken."
+	output OnHealthChanged(float) : "Fired when the health of this target changes, passing the new value of health as a percentage of max health. This value may be less than 0 if the target took fatal damage and more than 1 when overhealed."
+	output OnKilled(void) : "Fires when the target is removed in any way, shape or form. !activator is not defined here."
+	output OnWaypointed(integer) : "If the target is a waypoint, this output fires whenever a gBalloon reaches this target. Returns the number of gBalloons that have passed this waypoint. !activator is the gBalloon."
+	output OnWaypointedBlimp(integer) : "Similar to the OnWaypointed output, except only gBlimps are counted. Returns the number of gBlimps that have passed this waypoint."
+	output OnWaypointedNonBlimp(integer) : "Similar to the OnWaypointed output, except only non-gBlimps are counted. Returns the number of non-gBlimp gBalloons that have passed this waypoint."
+]
+
+@PointClass base(Targetname) = logic_rotgb_cash :
+	"Hammer-exclusive entity for setting or getting the cash amount. "+
+	"Can also be used to detect if the player has enough cash or not."
+[
+	fire_on_changed(choices) : "Detect Cash Changes" : 0 : "Fires the OnPreCashChanged and OnPostCashChanged outputs whenever the cash value has changed.\nNOTE: Due to complications regarding individualized cash, the outputs will always return the SMALLEST value from all players. Consider using another method instead." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	altermode(choices) : "Cash Altering Mode" : 0 : "Sets how the AlterCash input should modify the cash amount." =
+	[
+		0 : "Set for !activator"
+		1 : "Add for !activator"
+		2 : "Subtract for !activator"
+		3 : "Set for All Players"
+		4 : "Add for All Players"
+		5 : "Subtract for All Players"
+		6 : "Set for All Players Divided Evenly"
+		7 : "Add for All Players Divided Evenly"
+		8 : "Subtract for All Players Divided Evenly"
+	]
+	
+	input SetFireOnChanged(bool) : "Sets whether Detect Cash Changes is enabled."
+	input AlterMode(integer) : "Sets the Cash Altering Mode."
+	input AlterCash(float) : "Alters the cash amount by the passed value according to the Cash Altering Mode."
+	input GetCash(void) : "Fires the OnGetCash output."
+	input GetCashMin(integer) : "Fires the OnGetCashMin output. The passed value offsets the output; a value of 3 will return the 3rd lowest cash amount among the players."
+	input GetCashMax(integer) : "Fires the OnGetCashMax output. The passed value offsets the output; a value of 2 will return the 2nd highest cash amount among the players."
+	input CanAfford(float) : "Tests whether !activator can afford the passed value, then fires the OnCanAfford or OnCantAfford outputs."
+	input CanAffordAndSubtract(float) : "Same as the CanAfford input, but will also subtract !activator's cash by the passed value if it is affordable."
+	output OnPreCashChanged(float) : "Fired whenever the cash value changes and Detect Cash Changes is enabled. Returns the amount of cash before change. !activator is the logic_rotgb_cash itself."
+	output OnPostCashChanged(float) : "Fired whenever the cash value changes and Detect Cash Changes is enabled. Returns the amount of cash after change. !activator is the logic_rotgb_cash itself.\nNOTE: You can use multiple logic_compares onto a single output for better performance."
+	output OnAlterCash(float) : "Fired by the AlterCash input. Returns ONLY the amount of cash !activator has after modification, even if multiple players were affected."
+	output OnGetCash(float) : "Fired by the GetCash input. Returns only the current amount of cash !activator has."
+	output OnGetCashMin(float) : "Fired by the GetCashMin input. Returns the lowest (or nth lowest) amount of cash a player has."
+	output OnGetCashMax(float) : "Fired by the GetCashMax input. Returns the highest (or nth highest) amount of cash a player has."
+	output OnCanAfford(float) : "Fired by the CanAfford input. Returns leftover cash after affording."
+	output OnCantAfford(float) : "Fired by the CanAfford input. Returns additional cash required to afford."
+]
+
+@PointClass base(Targetname) = logic_rotgb_timescale :
+	"Hammer-exclusive entity for setting or getting the current game speed. "+
+	"Intended to be as a replacement for using point_*command or lua_run entities for setting the game speed, as they might be disabled."
+[
+	monitor_timescale(choices) : "Timescale Monitoring" : 0 : "Fires the OnPreTimescaleChanged and OnPostTimescaleChanged outputs whenever the timescale has changed." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	
+	input SetQuarterTimescale(void) : "Sets the game speed to x0.25."
+	input SetHalfTimescale(void) : "Sets the game speed to x0.5."
+	input SetNormalTimescale(void) : "Sets the game speed to x1."
+	input SetDoubleTimescale(void) : "Sets the game speed to x2."
+	input SetQuadrupleTimescale(void) : "Sets the game speed to x4."
+	input SetTimescale(float) : "Sets the game speed to the passed value."
+	input GetTimescale(void) : "Fires the OnGetTimescale output."
+	output OnGetTimescale(float) : "Fired by the GetTimescale input. Returns the current game speed."
+	output OnPreTimescaleChanged(float) : "Fired whenever the timescale changes and Timescale Monitoring is enabled. Returns the exact timescale before change. !activator is the logic_rotgb_timescale itself."
+	output OnPostTimescaleChanged(float) : "Fired whenever the timescale changes and Timescale Monitoring is enabled. Returns the exact timescale after change. !activator is the logic_rotgb_timescale itself.\nNOTE: You can use multiple logic_compares onto a single output for better performance."
+	output OnQuarterTimescale(float) : "Fired whenever the timescale changes to between x0.18 - x0.35 and Timescale Monitoring is enabled. Returns the exact timescale after change. !activator is the logic_rotgb_timescale itself."
+	output OnHalfTimescale(float) : "Fired whenever the timescale changes to between x0.36 - x0.70 and Timescale Monitoring is enabled. Returns the exact timescale after change. !activator is the logic_rotgb_timescale itself."
+	output OnNormalTimescale(float) : "Fired whenever the timescale changes to between x0.71 - x1.41 and Timescale Monitoring is enabled. Returns the exact timescale after change. !activator is the logic_rotgb_timescale itself."
+	output OnDoubleTimescale(float) : "Fired whenever the timescale changes to between x1.42 - x2.82 and Timescale Monitoring is enabled. Returns the exact timescale after change. !activator is the logic_rotgb_timescale itself."
+	output OnQuadrupleTimescale(float) : "Fired whenever the timescale changes to between x2.83 - x5.65 and Timescale Monitoring is enabled. Returns the exact timescale after change. !activator is the logic_rotgb_timescale itself."
+]
+
+@PointClass = logic_rotgb_difficulty :
+	"Hammer-exclusive entity for RotgB: The Gamemode. Can be used to add custom difficulties and remove existing ones.\n"+
+	"When adding custom difficulties, you must have one of this entity PER DIFFICULTY. You will also need to set up translation files, "+
+	"see gamemodes/rotgb/content/resource/localization/en/rotgb_tg_difficulty.properties under the RotgB: The Gamemode files for example translation strings.\n"+
+	"Note that no experience nor achievement progress are granted when playing on a custom difficulty."
+[
+	difficulty_id(string) : "Difficulty ID" : "" : "If specified, this entity will add a new custom difficulty with this ID. If an existing difficulty has the same ID, it will be overridden."
+	difficulty_category(string) : "Difficulty Category" : "custom" : "Category that the custom difficulty will be added to."
+	difficulty_category_place(float) : "Difficulty Category Place" : "10.0" : "Position of the difficulty category relative to other categories. The highest across all logic_rotgb_difficulty entities will be used."
+	difficulty_place(float) : "Difficulty Place" : "1.0" : "Position of the difficulty relative to other difficulties in the same category."
+	difficulty_remove(string) : "Difficulties to Remove" : "" : "Comma seperated list of specific difficulty IDs to remove. "+
+	"A single asterisk (*) will remove all difficulties. This entity cannot remove difficulties from other logic_rotgb_difficulty entities in the map."
+	convar_0_name(string) : "ConVar 1 Name" : "" : "First ConVar to modify when the custom difficulty is selected."
+	convar_0_value(string) : "ConVar 1 Value" : "" : "First ConVar new value."
+	convar_1_name(string) : "ConVar 2 Name" : "" : "Second ConVar to modify when the custom difficulty is selected."
+	convar_1_value(string) : "ConVar 2 Value" : "" : "Second ConVar new value."
+	convar_2_name(string) : "ConVar 3 Name" : "" : "Third ConVar to modify when the custom difficulty is selected."
+	convar_2_value(string) : "ConVar 3 Value" : "" : "Third ConVar new value."
+	convar_3_name(string) : "ConVar 4 Name" : "" : "Fourth ConVar to modify when the custom difficulty is selected."
+	convar_3_value(string) : "ConVar 4 Value" : "" : "Fourth ConVar new value."
+	convar_4_name(string) : "ConVar 5 Name" : "" : "Fifth ConVar to modify when the custom difficulty is selected."
+	convar_4_value(string) : "ConVar 5 Value" : "" : "Fifth ConVar new value."
+	convar_5_name(string) : "ConVar 6 Name" : "" : "Sixth ConVar to modify when the custom difficulty is selected."
+	convar_5_value(string) : "ConVar 6 Value" : "" : "Sixth ConVar new value."
+	convar_6_name(string) : "ConVar 7 Name" : "" : "Seventh ConVar to modify when the custom difficulty is selected."
+	convar_6_value(string) : "ConVar 7 Value" : "" : "Seventh ConVar new value."
+	convar_7_name(string) : "ConVar 8 Name" : "" : "Eighth ConVar to modify when the custom difficulty is selected."
+	convar_7_value(string) : "ConVar 8 Value" : "" : "Eighth ConVar new value."
+]
+
+@SolidClass base(Targetname) = func_rotgb_nobuild : "Hammer-exclusive entity. When enabled, towers cannot be placed inside the brush, not even partially. Should be textured with tools/toolstrigger for best results."
+[
+	start_disabled(choices) : "Start Disabled" : 0 =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+
+	// Inputs
+	input Enable(void) : "Enable"
+	input Disable(void) : "Disable"
+	input Toggle(void) : "Toggle"
+]
+
+@SolidClass base(Targetname) = func_nav_avoid : "Influence bots to avoid this region by increasing the pathfinding cost within it.\nFor gBalloons, it multiplies crossing cost by 1,000,000."
+[
+	tags(string) : "Tags" : "" : "(Team Fortress 2 only, ignore this) A space delimited list of tags. A tag is a label with no spaces. If a TFBot has at least one matching tag, it will pay attention to this entity. Tags that are automatically set on TFBots include bomb_carrier, common, mission_sniper, mission_spy, mission_sentry_buster, or any class name." 
+
+	team(choices) : "Team" : -2 : "(Team Fortress 2 only, ignore this) Which team will avoid this region" =
+	[
+		-2 : "Everyone"
+		2 : "Red"
+		3 : "Blue"
+	]
+
+	start_disabled(choices) : "Start Disabled" : 0 =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+
+	// Inputs
+	input Enable(void) : "Enable"
+	input Disable(void) : "Disable"
+	input Toggle(void) : "Toggle"
+]
+
+@SolidClass base(Targetname) = func_nav_prefer :
+	"Influence bots to prefer this region by decreasing the pathfinding cost within it.\n"+
+	"For gBalloons, it divides crossing cost by 1,000,000.\n"+
+	"NOTE: func_nav_avoids are generally preferred over func_nav_prefers as it reduces the risk of the preferred path costing more to cross than the restricted path."
+[
+	tags(string) : "Tags" : "" : "(Team Fortress 2 only, ignore this) A space delimited list of tags. A tag is a label with no spaces. If a TFBot has at least one matching tag, it will pay attention to this entity. Tags that are automatically set on TFBots include bomb_carrier, common, mission_sniper, mission_spy, mission_sentry_buster, or any class name." 
+
+	team(choices) : "Team" : -2 : "(Team Fortress 2 only, ignore this) Which team will prefer this region" =
+	[
+		-2 : "Everyone"
+		2 : "Red"
+		3 : "Blue"
+	]
+
+	start_disabled(choices) : "Start Disabled" : 0 =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+
+	// Inputs
+	input Enable(void) : "Enable"
+	input Disable(void) : "Disable"
+	input Toggle(void) : "Toggle"
+]
+
+@FilterClass base(BaseFilter) iconsprite("editor/filter_class.vmt") = filter_rotgb :
+	"Hammer-exclusive entity. Can be used to filter RotgB entities or damage caused by RotgB entities."
+[
+	type(choices) : "Filter Type" : 0 : "Sets the type of this filter. Some options will cause this entity filter to function as a damage filter instead." =
+	[
+		0 : "(Damage Filter) gBalloon Damage"
+		1 : "(Damage Filter) Tower Damage"
+		2 : "(Entity Filter) gBalloon Entities"
+		3 : "(Entity Filter) Tower Entities"
+	]
+	input SetNegated(bool) : "Sets whether the filter should be negated or not."
+	input SetType(bool) : "Sets the type of the filter.\n0: (Damage Filter) gBalloon Damage\n1: (Damage Filter) Tower Damage\n"+
+	"2: gBalloon Entities\n3: Tower Entities"
+]
+
+@PointClass base(Targetname) iconsprite("editor/game_text.vmt") = env_rotgb_text :
+	"Hammer-exclusive entity. An entity that displays text."
+[
+	message(string) : "Message Text" : "" : "Message to display onscreen."
+	level(choices) : "Message Type" : 0 : "Sets how the message is displayed." =
+	[
+		0 : "Info (hint with lightbulb)"
+		1 : "Chat (adds text)"
+		2 : "Error (hint with X and buzzer)"
+	]
+	rendercolor(color255) : "Color (R G B A)" : "-1 -1 -1 -1" : "Color. Only works with the Chat message type. -1 -1 -1 -1 = use default color."
+	holdtime(float) : "Hold Time" : "-1.0" : "The time the text should stay onscreen. Only works with the Info and Error message types. -1.0 = use default time."
+	activator_only(choices) : "Activator Only" : 1 : "Should only !activator see the message?" =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	
+	input Display(void) : "Display the message text."
+	input SetText(string) : "Sets the text to display. Note that currently displayed text will not be updated on-the-fly."
+	input SetMessageTypeInfo(void) : "Sets the message type to Info."
+	input SetMessageTypeChat(void) : "Sets the message type to Chat."
+	input SetMessageTypeError(void) : "Sets the message type to Error."
+	input Color(color255) : "Sets the text color. Note that currently displayed text will not be updated on-the-fly."
+	input SetHoldTime(float) : "Sets the hold time. Note that currently displayed text will not be updated on-the-fly."
+	input EnableActivatorOnly(void) : "Makes the text only be displayed to the activator of this entity."
+	input DisableActivatorOnly(void) : "Makes the text be displayed to everyone."
+	input ToggleActivatorOnly(void) : "Toggles the Activator Only state."
+]
+
+@PointClass base(Targetname, EnableDisable, Parentname) studioprop("models/editor/camera.mdl") = point_rotgb_spectator :
+	"Hammer-exclusive entity for RotgB: The Gamemode. If enabled, spectators can switch to this entity for viewing the map."
+[
+	angles(angle) : "Pitch Yaw Roll" : "0 0 0" : "This entity's orientation in the world. Pitch is rotation around the Y axis, yaw is the rotation around the Z axis, roll is the rotation around the X axis."
+	welcome_point(choices) : "Welcome Point" : 0 : "Allows all players that have not yet chosen a team to use this entity for viewing the map." =
+	[
+		0 : "No"
+		1 : "Yes"
+		2 : "Yes, and disallow normal use"
+	]
+	fov(float) : "FOV" : 0 : "Field of view. 0 leaves the player's FOV unchanged."
+	finish_point(choices) : "Finishing Point" : 0 : "Allows this entity to be used for the results screen." =
+	[
+		0 : "No"
+		1 : "Yes"
+		2 : "Yes, and disallow normal use"
+	]
+	lock_rotation(choices) : "Prevent Player Rotation" : 0 : "BROKEN. This option is currently bugged and does nothing." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+	
+	input Toggle(void) : "Toggle"
+	input SetWelcomePoint(integer) : "Sets whether this entity is a Welcome Point or not. A value above 1 will disallow normal use."
+	input SetFinishingPoint(integer) : "Sets whether this entity is a Finishing Point or not. A value above 1 will disallow normal use."
+	input SetFOV(integer) : "Sets the camera FOV."
+	input SetLockRotation(bool) : "BROKEN. This input is currently bugged and does nothing."
+]
+
+@PointClass base(Targetname) size(-8 -8 -8, 8 8 8) = rotgb_hudhint : // RIP env_hudhint
+	"NOT YET IMPLEMENTED. An entity to control the display of HUD hints. HUD hints are used to show the player what key is bound to a particular command."
+[
+	spawnflags(flags) =
+	[
+		1: "All Players" : 0
+	]
+
+	message(string) : "Hint Text (localized)" : "" : "This should be set to match the desired HUD hint entry in the hl2\resource\valve_english.txt."
+
+	// Inputs
+	input ShowHudHint(void) : "Shows the hint message."
+	input HideHudHint(void) : "Hides the hint message."
+]

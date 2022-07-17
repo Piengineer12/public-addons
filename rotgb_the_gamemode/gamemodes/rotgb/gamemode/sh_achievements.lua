@@ -27,7 +27,7 @@ GM.BaseAchievements = {
 	{name="damage2", tier=2, amount=1e6, criteria="damage", xp=100e3},
 	{name="damage3", tier=3, amount=1e8, criteria="damage", xp=1.5e6},
 	
-	{name="level1", tier=1, amount=18, criteria="level", xp=10e3},
+	{name="level1", tier=1, amount=18, criteria="level", reward=1, text="rotgb_tg.achievement.reward.skills"},
 	{name="level2", tier=2, amount=100, criteria="level", xp=50e3},
 	{name="level3", tier=3, amount=999, criteria="level", xp=500e3},
 	

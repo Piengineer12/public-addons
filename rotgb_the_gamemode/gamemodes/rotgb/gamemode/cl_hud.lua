@@ -17,7 +17,7 @@ function GM:HUDDrawXP()
 	local level = ply:RTG_GetLevel()
 	
 	if level ~= oldLevel and ply.rtg_PreviousXP then
-		if oldLevel>0 then
+		if oldLevel>0 and levelDisplayExpiryTime < RealTime() then
 			local towers = ROTGB_GetAllTowers()
 			if level<=#towers then
 				local towerUnlocked = towers[level]

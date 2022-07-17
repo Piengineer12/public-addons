@@ -1,3 +1,12 @@
+--[[
+ideas:
+
+ICU: Quadruple HP gBalloons
+ICU: Quadruple Speed gBalloons
+ICU: Super Bosses (Impossible: Double Speed gBalloons)
+ICU: End of the Line
+]]
+
 GM.BaseDifficulties = {
 	__common = {
 		convars = {
@@ -54,7 +63,7 @@ GM.BaseDifficulties = {
 	easy_chessonly = {
 		category = "easy",
 		place = 2,
-		xpmul = 1.2,
+		xpmul = 1.25,
 		convars = {
 			rotgb_difficulty = 0,
 			rotgb_default_last_wave = 40,
@@ -65,7 +74,7 @@ GM.BaseDifficulties = {
 	easy_halfcash = {
 		category = "easy",
 		place = 3,
-		xpmul = 2,
+		xpmul = 3,
 		convars = {
 			rotgb_difficulty = 0,
 			rotgb_default_last_wave = 40,
@@ -87,7 +96,7 @@ GM.BaseDifficulties = {
 	medium_rainstorm = {
 		category = "medium",
 		place = 2,
-		xpmul = 0.6,
+		xpmul = 0.5*1.25,
 		convars = {
 			rotgb_difficulty = 1,
 			rotgb_default_last_wave = 60,
@@ -98,7 +107,7 @@ GM.BaseDifficulties = {
 	medium_strategic = {
 		category = "medium",
 		place = 3,
-		xpmul = 0.7,
+		xpmul = 0.5*1.5,
 		convars = {
 			rotgb_difficulty = 1,
 			rotgb_default_first_wave = 51,
@@ -121,7 +130,7 @@ GM.BaseDifficulties = {
 	hard_doublehpblimps = {
 		category = "hard",
 		place = 2,
-		xpmul = 0.3,
+		xpmul = 0.25*1.25,
 		convars = {
 			rotgb_difficulty = 2,
 			rotgb_default_last_wave = 80,
@@ -132,7 +141,7 @@ GM.BaseDifficulties = {
 	hard_legacy = {
 		category = "hard",
 		place = 3,
-		xpmul = 0.005,
+		xpmul = 0.25*2^-5,
 		convars = {
 			rotgb_difficulty = 2,
 			rotgb_default_last_wave = 120,
@@ -154,7 +163,7 @@ GM.BaseDifficulties = {
 	insane_doublehp = {
 		category = "insane",
 		place = 2,
-		xpmul = 0.15,
+		xpmul = 0.125*1.25,
 		convars = {
 			rotgb_difficulty = 3,
 			rotgb_default_last_wave = 100,
@@ -165,7 +174,7 @@ GM.BaseDifficulties = {
 	insane_bosses = {
 		category = "insane",
 		place = 3,
-		xpmul = 0.175,
+		xpmul = 0.125*1.5,
 		convars = {
 			rotgb_difficulty = 3,
 			rotgb_default_last_wave = 100,
@@ -184,10 +193,22 @@ GM.BaseDifficulties = {
 			rotgb_target_natural_health = 1
 		}
 	},
-	impossible_monsoon = {
+	impossible_speed = {
 		category = "impossible",
 		place = 2,
-		xpmul = 0.075,
+		xpmul = 0.0625*1.25,
+		convars = {
+			rotgb_difficulty = 4,
+			rotgb_default_last_wave = 120,
+			rotgb_target_natural_health = 1,
+			rotgb_spawner_spawn_rate = 2,
+			rotgb_speed_mul = 2
+		}
+	},
+	impossible_monsoon = {
+		category = "impossible",
+		place = 3,
+		xpmul = 0.0625*1.5,
 		convars = {
 			rotgb_difficulty = 4,
 			rotgb_default_last_wave = 120,
@@ -196,12 +217,70 @@ GM.BaseDifficulties = {
 			rotgb_spawner_force_auto_start = 1
 		}
 	},
-	impossible_bosses = {
-		category = "impossible",
-		place = 3,
-		xpmul = 0.005,
+	icu_regular = {
+		category = "icu",
+		place = 1,
+		xpmul = 0.03125,
+		condition = function()
+			return hook.Run("GetSkillAmount", "icu_regular") > 0
+		end,
 		convars = {
-			rotgb_difficulty = 4,
+			rotgb_difficulty = 5,
+			rotgb_default_last_wave = 140,
+			rotgb_target_natural_health = 1
+		}
+	},
+	icu_carbonfiber = {
+		category = "icu",
+		place = 2,
+		xpmul = 0.03125*1.25,
+		condition = function()
+			return hook.Run("GetSkillAmount", "icu_carbonfiber") > 0
+		end,
+		convars = {
+			rotgb_difficulty = 5,
+			rotgb_default_last_wave = 140,
+			rotgb_target_natural_health = 1,
+			rotgb_default_wave_preset = "?CARBON_FIBER",
+		}
+	},
+	icu_200xhpblimps = {
+		category = "icu",
+		place = 3,
+		xpmul = 0.03125*1.5,
+		condition = function()
+			return hook.Run("GetSkillAmount", "icu_200xhpblimps") > 0
+		end,
+		convars = {
+			rotgb_difficulty = 5,
+			rotgb_default_last_wave = 140,
+			rotgb_target_natural_health = 1,
+			rotgb_blimp_health_multiplier = 200
+		}
+	},
+	icu_ramp = {
+		category = "icu",
+		place = 4,
+		xpmul = 0.03125*1.75,
+		condition = function()
+			return hook.Run("GetSkillAmount", "icu_ramp") > 0
+		end,
+		convars = {
+			rotgb_difficulty = 5,
+			rotgb_default_last_wave = 100,
+			rotgb_target_natural_health = 1,
+			rotgb_default_wave_preset = "?RAMP",
+		}
+	},
+	icu_bosses = {
+		category = "icu",
+		place = 5,
+		xpmul = 0.03125*2,
+		condition = function()
+			return hook.Run("GetSkillAmount", "icu_bosses") > 0
+		end,
+		convars = {
+			rotgb_difficulty = 5,
 			rotgb_default_last_wave = 140,
 			rotgb_target_natural_health = 1,
 			rotgb_default_wave_preset = "?BOSSES_SUPER",
@@ -210,7 +289,7 @@ GM.BaseDifficulties = {
 	}
 }
 
-GM.BaseDifficultyCategories = {easy = 1, medium = 2, hard = 3, insane = 4, impossible = 5}
+GM.BaseDifficultyCategories = {easy = 1, medium = 2, hard = 3, insane = 4, impossible = 5, icu = 6}
 
 AccessorFunc(GM, "Difficulties", "Difficulties")
 AccessorFunc(GM, "Difficulty", "Difficulty", FORCE_STRING)
@@ -275,4 +354,14 @@ function GM:RemoveDifficulties(difficultyIDsString)
 			end
 		end
 	end
+end
+
+function GM:IsDifficultyUnlocked(difficultyID)
+	if not hook.Run("GetDifficulties") then
+		hook.Run("InitializeDifficulties")
+	end
+	
+	local difficulty = hook.Run("GetDifficulties")[difficultyID]
+	if difficulty then return not difficulty.condition or difficulty:condition() end
+	return false
 end

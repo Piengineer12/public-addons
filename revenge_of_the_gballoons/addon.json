@@ -4,5 +4,8 @@
 	"tags": [
 		"fun",
 		"cartoon"
+	],
+	"ignore": [
+		"misc/*"
 	]
 }

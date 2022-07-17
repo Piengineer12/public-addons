@@ -157,12 +157,19 @@ net.Receive("rotgb_gamemode", function()
 		if IsValid(ply) then
 			local achievement = hook.Run("GetAchievementByID", achievementID)
 			local tierColor = achievement.tier == 3 and color_light_orange or achievement.tier == 2 and color_light_blue or color_light_green
+			local rewardText = ""
+			local rewardType = achievement.reward or 0
+			if rewardType == 0 then
+				rewardText = ROTGB_LocalizeString("rotgb_tg.achievement.unlocked.player.reward.xp", string.Comma(achievement.xp))
+			elseif rewardType == 1 then
+				rewardText = language.GetPhrase("rotgb_tg.achievement.unlocked.player.reward.skills")
+			end
 			chat.AddText(unpack(ROTGB_LocalizeMulticoloredString(
 				"rotgb_tg.achievement.unlocked.player",
 				{
 					ply:Nick(),
 					language.GetPhrase("rotgb_tg.achievement."..achievement.name..".name"),
-					ROTGB_LocalizeString("rotgb_tg.achievement.unlocked.player.reward.xp", string.Comma(achievement.xp))
+					rewardText
 				},
 				color_white,
 				{

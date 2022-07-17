@@ -251,40 +251,44 @@ end
 
 table.insert(experienceSkills, {
 	{
-		ref = "curseOfTheHand",
-		name = "curse_of_the_hand",
-		trait = {"towerFiveOnly", "skillExperiencePerWave"},
-		amount = {1, 2},
+		-- between sword and shield
+		ref = "icu_200xhpblimps",
+		name = "icu_200xhpblimps",
+		trait = {"icu_regular", "icu_200xhpblimps"},
+		amount = {1, 1},
 		tier = 2,
 		parent = GetSXPName(0, 26),
 		links = "parent",
 		pos = {-1, 0}
 	},
 	{
-		ref = "curseOfTheBody",
-		name = "curse_of_the_body",
-		trait = {"gBalloonDoubleHealth", "skillExperienceEffectiveness", "skillExperiencePerWaveEffectiveness"},
-		amount = {1, 100, 100},
+		-- between shield and cash
+		ref = "icu_carbonfiber",
+		name = "icu_carbonfiber",
+		trait = {"icu_regular", "icu_carbonfiber"},
+		amount = {1, 1},
 		tier = 2,
 		parent = GetSXPName(1, 26),
 		links = "parent",
 		pos = {-1, 0}
 	},
 	{
-		ref = "curseOfTheMind",
-		name = "curse_of_the_mind",
-		trait = {"towerHalfIncome", "skillExperiencePerWave"},
-		amount = {1, 2},
+		-- between cash and gBalloon
+		ref = "icu_bosses",
+		name = "icu_bosses",
+		trait = {"icu_regular", "icu_bosses"},
+		amount = {1, 1},
 		tier = 2,
 		parent = GetSXPName(2, 26),
 		links = "parent",
 		pos = {-1, 0}
 	},
 	{
-		ref = "curseOfTheFoot",
-		name = "curse_of_the_foot",
-		trait = {"gBalloonDoubleSpeed", "skillExperienceEffectiveness", "skillExperiencePerWaveEffectiveness"},
-		amount = {1, 100, 100},
+		-- between gBalloon and sword
+		ref = "icu_ramp",
+		name = "icu_ramp",
+		trait = {"icu_regular", "icu_ramp"},
+		amount = {1, 1},
 		tier = 2,
 		parent = GetSXPName(3, 26),
 		links = "parent",

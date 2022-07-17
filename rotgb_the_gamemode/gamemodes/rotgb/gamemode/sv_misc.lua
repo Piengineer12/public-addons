@@ -174,7 +174,7 @@ function GM:gBalloonTargetRemoved(target)
 	timer.Simple(0.05, function()
 		local defeat = true
 		for k,v in pairs(ents.FindByClass("gballoon_target")) do
-			if not v:GetNonVital() then
+			if not (v:GetNonVital() or v:GetIsBeacon()) then
 				defeat = false
 			end
 		end
@@ -191,6 +191,7 @@ function GM:AllTargetsDestroyed()
 	end
 	for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
 		v:SetAutoStart(false)
+		v:SetForceNextWave(false)
 	end
 	timer.Simple(1, function()
 		hook.Run("GameOver", false)

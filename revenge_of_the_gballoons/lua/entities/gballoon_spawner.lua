@@ -2268,7 +2268,7 @@ ROTGB_WAVES = { -- format: { balloon_type, amount=1, timespan=0, delay=0 }
 	{ -- 120
 		{"gballoon_blimp_rainbow"},
 		duration=10,
-		assumerbe=452504,
+		assumerbe=488704,
 		rbe=284772
 	}, -- 120
 }
@@ -2277,8 +2277,11 @@ ROTGB_WAVES_2S = {}
 ROTGB_WAVES_BOSSES = {}
 ROTGB_WAVES_BOSSES_SUPER = {}
 ROTGB_WAVES_LEGACY_10S = {}
+ROTGB_WAVES_CARBON_FIBER = {}
 
 for k,v in pairs(ROTGB_WAVES) do
+	ROTGB_WAVES_CARBON_FIBER[k] = v
+	
 	local waveTable2S = {}
 	for k2,v2 in pairs(v) do
 		if k2 == "duration" then
@@ -2379,18 +2382,24 @@ ROTGB_WAVES_BOSSES[140] = {
 	{"gballoon_garrydecal"},
 	rbe = 10e6,
 	assumerbe=2109101,
-	duration = 10
+	duration=10
 }
 ROTGB_WAVES_BOSSES_SUPER[140] = {
 	{"gballoon_garrydecal_super"},
 	rbe = 200e6,
 	assumerbe=2109101,
-	duration = 10
+	duration=10
+}
+ROTGB_WAVES_CARBON_FIBER[140] = {
+	{"gballoon_cfiber"},
+	rbe = 999999999,
+	assumerbe=2109101,
+	duration=10
 }
 
 ROTGB_CUSTOM_WAVES = {
 	["?RAMP"]=ROTGB_WAVES_RAMP, ["?LEGACY"]=ROTGB_WAVES_LEGACY, ["?LEGACY_10S"]=ROTGB_WAVES_LEGACY_10S, ["?2S"]=ROTGB_WAVES_2S,
-	["?BOSSES"]=ROTGB_WAVES_BOSSES, ["?BOSSES_SUPER"]=ROTGB_WAVES_BOSSES_SUPER
+	["?BOSSES"]=ROTGB_WAVES_BOSSES, ["?BOSSES_SUPER"]=ROTGB_WAVES_BOSSES_SUPER, ["?CARBON_FIBER"]=ROTGB_WAVES_CARBON_FIBER
 }
 
 function ENT:GetWaveDuration(wave)
@@ -2713,7 +2722,7 @@ function ENT:Initialize()
 		net.WriteEntity(self)
 		net.SendToServer()
 		
-		if self:GetNWString("rotgb_validwave","") == "" and self:GetWave() == 1 and not self.waveZeroMessaged and IsValid(LocalPlayer()) then
+		if self:GetNWString("rotgb_validwave","") == "" and self:GetWave() == 1 and not self.waveZeroMessaged and IsValid(LocalPlayer()) and not ROTGB_GetConVarValue("rotgb_no_wave_hints") then
 			self.waveZeroMessaged = true
 			ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.wave_hints.0"), ROTGB_NOTIFYTYPE_HINT, nil, {holdtime=10})
 		end
@@ -2787,7 +2796,7 @@ function ENT:Use(activator)
 			end
 		end
 		
-		self:SetNextWaveTime(CurTime()+self:GetWaveDuration(cwave)/self:GetSpeedMul())
+		self:SetNextWaveTime(CurTime()+self:GetWaveDuration(cwave)/self:GetSpeedMul()/ROTGB_GetConVarValue("rotgb_spawner_spawn_rate"))
 		hook.Run("gBalloonSpawnerWaveStarted",self,cwave)
 		self:TriggerOutput("OnWaveStart",activator,cwave)
 		self:SpawnWave(cwave)
@@ -2805,8 +2814,8 @@ function ENT:SpawnWave(cwave)
 		elseif tonumber(k) then
 			local balloontype,amount,timeframe,delay = unpack(v)
 			totalAmount = totalAmount + (amount or 1)
-			delay = (delay or 0) / self:GetSpeedMul()
-			timeframe = (timeframe or 0) / self:GetSpeedMul()
+			delay = (delay or 0) / self:GetSpeedMul() / ROTGB_GetConVarValue("rotgb_spawner_spawn_rate")
+			timeframe = (timeframe or 0) / self:GetSpeedMul() / ROTGB_GetConVarValue("rotgb_spawner_spawn_rate")
 			local spawnTable = {type = balloontype, amount = amount or 1, current = 0, startTime = curTime + delay}
 			spawnTable.endTime = spawnTable.startTime + timeframe
 			table.insert(tablesToInsert, spawnTable)
@@ -2830,44 +2839,51 @@ function ENT:GenerateNextWave(cwave)
 	if not self:GetWaveTable()[cwave-1] then
 		self:GenerateNextWave(cwave-1)
 	end
-	local erbe = self:GetWaveTable()[cwave-1].assumerbe and self:GetWaveTable()[cwave-1].assumerbe*1.08 or self:GetWaveTable()[cwave-1].rbe*1.08
-	local trbe = 0
+	local targetRBE = self:GetWaveTable()[cwave-1].assumerbe and self:GetWaveTable()[cwave-1].assumerbe*1.08 or self:GetWaveTable()[cwave-1].rbe*1.08
+	local currentRBE = 0
 	local wavetab = {}
 	local choices = {"gballoon_blimp_blue","gballoon_blimp_red","gballoon_blimp_green","gballoon_fast_hidden_regen_shielded_blimp_gray","gballoon_blimp_purple","gballoon_fast_blimp_magenta","gballoon_blimp_rainbow"}
-	local factors = {100,50,20,10,5,2,1}
+	local factors = {40,20,10,5,2,1}
+	local maxFactor = 100
 	local missingChoices = 0
 	while true do
-		if trbe > (self:GetWaveTable()[cwave-1].assumerbe or self:GetWaveTable()[cwave-1].rbe) then break end
-		local genval = util.SharedRandom("ROTGB_WAVEGEN__"..self:GetWaveFile().."_"..cwave,0,#choices,trbe)
+		if currentRBE > (self:GetWaveTable()[cwave-1].assumerbe or self:GetWaveTable()[cwave-1].rbe) then break end
+		local genval = util.SharedRandom("ROTGB_WAVEGEN__"..self:GetWaveFile().."_"..cwave,0,#choices,currentRBE)
 		local choice = table.remove(choices, math.floor(genval)+1)
-		local crbe, amount = 0, 0
+		local typeRBE, amount = 0, 0
 		if choice then
 			local keyValues = list.Get("NPC")[choice].KeyValues
-			crbe = scripted_ents.GetStored("gballoon_base").t.rotgb_rbetab[keyValues.BalloonType]
+			typeRBE = scripted_ents.GetStored("gballoon_base").t.rotgb_rbetab[keyValues.BalloonType]
 			if tobool(keyValues.BalloonShielded) then
-				crbe = crbe * 2
+				typeRBE = typeRBE * 2
 			end
-			amount = math.Clamp((erbe-trbe)/crbe,1,100)
-			for i,v in ipairs(factors) do
-				if amount>=v then amount=v break end
+			amount = math.floor((targetRBE-currentRBE)/typeRBE)
+			if amount <= maxFactor then
+				for i,v in ipairs(factors) do
+					if amount>=v then amount=v break end
+				end
+			else
+				amount = 0
 			end
 		else
 			missingChoices = missingChoices + 1
 			if missingChoices == 1 then
 				choice = "gballoon_fast_hidden_regen_shielded_blimp_rainbow"
 				local keyValues = list.Get("NPC")[choice].KeyValues
-				crbe = scripted_ents.GetStored("gballoon_base").t.rotgb_rbetab[keyValues.BalloonType]
+				typeRBE = scripted_ents.GetStored("gballoon_base").t.rotgb_rbetab[keyValues.BalloonType]
 				if tobool(keyValues.BalloonShielded) then
-					crbe = crbe * 2
+					typeRBE = typeRBE * 2
 				end
-				amount = math.Round(math.Clamp((erbe-trbe)/crbe,1,100))
+				amount = math.ceil((targetRBE-currentRBE)/typeRBE)
 			else break
 			end
 		end
-		table.insert(wavetab,{choice,amount,10})
-		trbe = trbe + crbe * amount
+		if amount > 0 then
+			table.insert(wavetab,{choice,amount,10})
+			currentRBE = currentRBE + typeRBE * amount
+		end
 	end
-	wavetab.rbe = math.Round(trbe)
+	wavetab.rbe = math.Round(currentRBE)
 	wavetab.duration = 10
 	--wavetab.unnatural = true
 	self:GetWaveTable()[cwave] = wavetab
@@ -3216,11 +3232,11 @@ function ENT:DrawTranslucent()
 				surface.SetTextPos(t3x/-2,panelh/-2+t1y+t2y)
 				surface.DrawText(text3)
 			end
-			local percent = math.Clamp((self:GetNextWaveTime()-CurTime())/self:GetWaveDuration(cwave-1)*self:GetSpeedMul()+0.02,0,1)
+			local percent = math.Clamp((self:GetNextWaveTime()-CurTime())/self:GetWaveDuration(cwave-1)*self:GetSpeedMul()*ROTGB_GetConVarValue("rotgb_spawner_spawn_rate")+0.02,0,1)
 			ROTGB_DrawCircle(0,panelh/-2-32,16,percent,HSVToColor(percent*120,1,1))
 		cam.End3D2D()
 	else
-		local percent = math.Clamp((self:GetNextWaveTime()-CurTime())/self:GetWaveDuration(cwave-1)*self:GetSpeedMul()+0.02,0,1)
+		local percent = math.Clamp((self:GetNextWaveTime()-CurTime())/self:GetWaveDuration(cwave-1)*self:GetSpeedMul()*ROTGB_GetConVarValue("rotgb_spawner_spawn_rate")+0.02,0,1)
 		cam.Start3D2D(self:GetPos()+Vector(0,0,ROTGB_GetConVarValue("rotgb_hoverover_distance")+draw.GetFontHeight("DermaLarge")*0.4+self:OBBMaxs().z),reqang,0.2)
 			ROTGB_DrawCircle(0,-draw.GetFontHeight("DermaLarge")-32,16,percent,HSVToColor(percent*120,1,1))
 		cam.End3D2D()

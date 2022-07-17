@@ -10,16 +10,18 @@ function GM:PlayerAchievementStatChanged(ply, stat, oldValue, newValue)
 			net.WriteInt(ply:UserID(), 12)
 			net.Broadcast()
 			
-			ply.rtg_XP = (ply.rtg_XP or 0) + (v.xp or 0)
-			ply:RTG_SetStat("level", ply:RTG_GetLevel())
-			net.Start("rotgb_statchanged", true)
-			net.WriteUInt(RTG_STAT_POPS, 4)
-			net.WriteUInt(1, 12)
-			net.WriteEntity(ply)
-			net.WriteDouble(ply.rtg_gBalloonPops or 0)
-			net.WriteDouble(ply.rtg_XP)
-			net.Send(ply)
-			hook.Run("SetStatRebroadcastRequired", true)
+			if (v.reward or 0) == 0 then
+				ply.rtg_XP = (ply.rtg_XP or 0) + (v.xp or 0)
+				ply:RTG_SetStat("level", ply:RTG_GetLevel())
+				net.Start("rotgb_statchanged", true)
+				net.WriteUInt(RTG_STAT_POPS, 4)
+				net.WriteUInt(1, 12)
+				net.WriteEntity(ply)
+				net.WriteDouble(ply.rtg_gBalloonPops or 0)
+				net.WriteDouble(ply.rtg_XP)
+				net.Send(ply)
+				hook.Run("SetStatRebroadcastRequired", true)
+			end
 		end
 	end
 	

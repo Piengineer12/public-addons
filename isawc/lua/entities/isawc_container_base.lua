@@ -515,9 +515,8 @@ function ENT:GetInventory(ply)
 			))
 			return self.ISAWC_Inventory
 		end
-	else
-		return self.ISAWC_Inventory
 	end
+	return self.ISAWC_Inventory
 end
 
 hook.Add("canLockpick", "ISAWC × DarkRP", function(ply, ent, trace)

@@ -41,6 +41,10 @@ net.Receive("rotgb_statchanged", function(length, ply)
 				end
 				net.Send(ply)
 				
+				if (hook.Run("GetDifficulty") or "") == "" then
+					hook.Run("UpdateAppliedSkills")
+				end
+				
 				local appliedSkills = hook.Run("GetAppliedSkills")
 				net.Start("rotgb_gamemode")
 				net.WriteUInt(RTG_OPERATION_SKILLS, 4)

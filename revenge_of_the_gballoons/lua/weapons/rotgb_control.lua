@@ -711,7 +711,7 @@ function SWEP:CreateRightPanel(Main)
 	end]]
 	function ScrollPanel:Refresh()
 		TowersPanel:Clear()
-		local towerPanelSize = wep:DeterminePowerOfTwoSize((ScrW()*0.2-padding*4.5)/2)
+		local towerPanelSize = wep:DeterminePowerOfTwoSize(ROTGB_GetConVarValue("rotgb_hud_size")*4)
 		
 		local blacklisted = {}
 		for entry in string.gmatch(ROTGB_GetConVarValue("rotgb_tower_blacklist"), "%S+") do

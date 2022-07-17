@@ -34,11 +34,6 @@ start with rocket launcher (meta)
 start with physgun (meta)
 skill effectiveness (meta)
 experience gain [from gBlimps] [in freeplay] (meta)
-
-ICU: Quadruple HP gBalloons
-ICU: Quadruple Speed gBalloons
-ICU: Super Bosses (Impossible: Double Speed gBalloons)
-ICU: End of the Line
 ]]
 
 AccessorFunc(GM, "CachedSkillAmounts", "CachedSkillAmounts")
@@ -276,7 +271,7 @@ end
 
 local PLAYER = FindMetaTable("Player")
 
-local maxLevel = 999
+local maxLevel = math.huge
 local experienceNeeded = {
 	100, 250, 500, 1000
 }

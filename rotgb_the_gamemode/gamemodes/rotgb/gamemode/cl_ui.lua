@@ -67,7 +67,7 @@ local SKILL_LEFT_TEXTS = {
 		color_red, "#rotgb_tg.skills.skill_apply_warning"
 	}
 }
-local CATEGORY_COLORS = {color_green, color_yellow, color_orange, color_red, color_magenta}
+local CATEGORY_COLORS = {color_green, color_yellow, color_orange, color_red, color_magenta, color_purple}
 local ACHIEVEMENT_PADDING = ScreenScale(2)
 local ACHIEVEMENT_SIZE = ScreenScale(48)
 local ACHIEVEMENT_TIERS = {color_light_green, color_light_blue, color_light_orange}
@@ -2358,12 +2358,18 @@ local function CreateAchievementPanel(parent, achievementID)
 	achievementHeader:Dock(TOP)
 	achievementHeader.Paint = nil
 	
+	local rewardText = ""
+	local rewardType = achievement.reward or 0
+	if rewardType == 0 then
+		rewardText = ROTGB_LocalizeString("rotgb_tg.achievement.reward.xp", string.Comma(achievement.xp))
+	elseif rewardType == 1 then
+		rewardText = language.GetPhrase("rotgb_tg.achievement.reward.skills")
+	end
+	
 	local achievementXP = vgui.Create("DLabel", achievementHeader)
 	achievementXP:SetFont("rotgb_achievement_header")
 	achievementXP:SetTextColor(color_purple)
-	achievementXP:SetText(ROTGB_LocalizeString("rotgb_tg.achievement.reward",
-		ROTGB_LocalizeString("rotgb_tg.achievement.reward.xp", string.Comma(achievement.xp))
-	))
+	achievementXP:SetText(ROTGB_LocalizeString("rotgb_tg.achievement.reward", rewardText))
 	achievementXP:SizeToContentsX()
 	achievementXP:Dock(RIGHT)
 	achievementXP.rotgb_AchievementID = achievementID
@@ -2780,7 +2786,7 @@ end
 function GM:GetGamemodeDifficultyNodes()
 	local nodesByCategory = {}
 	for k,v in pairs(hook.Run("GetDifficulties")) do
-		if v.category then
+		if v.category and hook.Run("IsDifficultyUnlocked", k) then
 			local subnode = {
 				name = k,
 				place = v.place

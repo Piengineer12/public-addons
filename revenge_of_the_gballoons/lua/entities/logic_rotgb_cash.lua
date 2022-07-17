@@ -40,8 +40,14 @@ end
 
 function ENT:AcceptInput(input,activator,caller,data)
 	input = input:lower()
-	if input=="setfireonchanged" then -- TODO: Turn this into the EDT formatting
+	if input=="setfireonchanged" then -- DEPRECATED
 		self.AlwaysThink = tobool(data)
+	elseif input=="enablefireonchanged" then
+		self.AlwaysThink = true
+	elseif input=="disablefireonchanged" then
+		self.AlwaysThink = false
+	elseif input=="togglefireonchanged" then
+		self.AlwaysThink = not self.AlwaysThink
 	else
 		data = tonumber(data) or 0
 		if input=="altermode" then
@@ -91,12 +97,15 @@ function ENT:AcceptInput(input,activator,caller,data)
 			else
 				self:TriggerOutput(self.OnTestCashMin,activator,amt)
 			end
-		elseif input=="canafford" then
+		elseif input=="canafford" or input=="canaffordandsubtract" then
 			local cash = ROTGB_GetCash(activator)
 			if cash < data then
 				self:TriggerOutput(self.OnCantAfford,activator,data-cash)
 			else
 				self:TriggerOutput(self.OnCanAfford,activator,cash-data)
+				if input=="canaffordandsubtract" then
+					ROTGB_RemoveCash(data,activator)
+				end
 			end
 		end
 	end

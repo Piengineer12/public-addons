@@ -96,21 +96,18 @@ local order = {
 	"gballoon_cfiber",
 }
 
-local function AddBalloon(ColumnSheet,class)
+local function AddBalloon(Label,class)
 	local npcprops = list.GetForEdit("NPC")[class]
 	local cvals = npcprops.KeyValues
 	local typ = cvals.BalloonType
-	local Label = ColumnSheet:Add("RichText")
 	local hasimms,haspops
-	Label:Dock(FILL)
-	Label:SetText("")
 	local h1,s1,v1 = ColorToHSV(string.ToColor(cvals.BalloonColor))
 	if s1 == 1 then v1 = 1 end
 	s1 = s1 / 2
 	v1 = (v1 + 1) / 2
 	local col2 = HSVToColor(h1,s1,v1)
 	Label:InsertColorChange(col2.r,col2.g,col2.b,col2.a)
-	Label:AppendText(language.GetPhrase("rotgb.gballoon."..typ).."\n")
+	Label:AppendText("\n\n"..language.GetPhrase("rotgb.gballoon."..typ))
 	Label:InsertColorChange(255,127,127,255)
 	Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.health", cvals.BalloonHealth or 1))
 	Label:InsertColorChange(255,255,127,255)
@@ -229,7 +226,6 @@ local function AddBalloon(ColumnSheet,class)
 		self:SetBGColor(0,0,0,191)
 		self:SetFontInternal("RotgBGuideBook")
 	end
-	ColumnSheet:AddSheet("#rotgb.gballoon."..typ,Label)
 end
 
 local credits = {
@@ -310,6 +306,46 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 		end
 		ColumnSheet:AddSheet("#rotgb.guide.page.what_this_addon_offers",RichText)
 		
+		RichText = ColumnSheet:Add("RichText")
+		RichText:Dock(FILL)
+		RichText:SetText("")
+		RichText:InsertColorChange(255,255,255,255)
+		RichText:AppendText(ROTGB_LocalizeString("rotgb.guide.page.core_concepts"))
+		local i = 1
+		local headerToken = "rotgb.guide.core_concepts.1.header"
+		while ROTGB_HasLocalization(headerToken) do
+			RichText:InsertColorChange(255,255,0,255)
+			RichText:AppendText("\n\n"..ROTGB_LocalizeString(headerToken))
+			
+			local descriptionToken = string.format("rotgb.guide.core_concepts.%u.description", i)
+			RichText:InsertColorChange(255,255,255,255)
+			RichText:AppendText('\n'..ROTGB_LocalizeString(descriptionToken))
+			
+			i = i + 1
+			headerToken = string.format("rotgb.guide.core_concepts.%u.header", i)
+		end
+		RichText:InsertColorChange(255,255,255,255)
+		RichText:AppendText("\n\n"..ROTGB_LocalizeString("rotgb.guide.core_concepts.extra"))
+		function RichText:PerformLayout()
+			self:SetBGColor(0,0,0,191)
+			self:SetFontInternal("RotgBGuideBook")
+		end
+		ColumnSheet:AddSheet("#rotgb.guide.page.core_concepts",RichText)
+		
+		RichText = ColumnSheet:Add("RichText")
+		RichText:Dock(FILL)
+		RichText:SetText("")
+		RichText:InsertColorChange(255,255,255,255)
+		RichText:AppendText(ROTGB_LocalizeString("rotgb.guide.page.gballoons"))
+		for i,v in ipairs(order) do
+			AddBalloon(RichText,v)
+		end
+		function RichText:PerformLayout()
+			self:SetBGColor(0,0,0,191)
+			self:SetFontInternal("RotgBGuideBook")
+		end
+		ColumnSheet:AddSheet("#rotgb.guide.page.gballoons",RichText)
+		
 		local CreditsPanel = ColumnSheet:Add("DScrollPanel")
 		CreditsPanel:Dock(FILL)
 		local Canvas = CreditsPanel:GetCanvas()
@@ -369,10 +405,6 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 		
 		for i,v in ipairs(creditsUnimplemented) do
 			CreditsPanel:CreateCredit(v, string.format("rotgb.guide.contributors.unimplemented.%i", i))
-		end
-		
-		for i,v in ipairs(order) do
-			AddBalloon(ColumnSheet,v)
 		end
 	end
 end)

@@ -58,5 +58,7 @@ function GM:ShouldConVarOverride(cvar)
 	local currentDifficulty = hook.Run("GetDifficulty")
 	local difficulties = hook.Run("GetDifficulties")
 	
-	return difficulties[currentDifficulty] and difficulties[currentDifficulty].convars[cvar] or difficulties.__common.convars[cvar]
+	if difficulties then
+		return difficulties[currentDifficulty] and difficulties[currentDifficulty].convars[cvar] or difficulties.__common.convars[cvar]
+	end
 end

@@ -116,6 +116,7 @@ function ENT:Initialize()
 			physobj:EnableMotion(false)
 		end
 		self:SetUseType(SIMPLE_USE)
+		self:SetCollisionGroup(COLLISION_GROUP_NONE)
 		--[[if maxCount>=0 then
 			local count = 0
 			for k,v in pairs(ents.GetAll()) do
