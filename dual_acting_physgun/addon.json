@@ -1,0 +1,12 @@
+{
+	"title": "Dual-Acting Physgun",
+	"type": "tool",
+	"tags": [
+		"realism",
+		"comic"
+	],
+	"ignore": [
+		"e2/*",
+		"media/*"
+	]
+}
