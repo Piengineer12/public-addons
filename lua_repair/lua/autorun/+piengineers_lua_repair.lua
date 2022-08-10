@@ -8,8 +8,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_REPAIR_VERSION = "1.6.1"
-LUA_REPAIR_VERSION_DATE = "2022-07-02"
+LUA_REPAIR_VERSION = "1.7.0"
+LUA_REPAIR_VERSION_DATE = "2022-08-07"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
@@ -198,13 +198,16 @@ local function FixAllErrors()
 		Log(string.format("Waited %.2f seconds. Hopefully all other addons have initialized by now.", SysTime()-startWaitTime))
 		Log("Patching console commands...")
 		
-		local shouldBlockCommands = {
+		--[[local shouldBlockCommands = {
 			["con_filter_enable"] = true,
 			["con_filter_text_out"] = true,
 			["crosshair"] = true,
 			["sv_cheats"] = true,
 			["mp_flashlight"] = true
 		}
+		local shouldBlockCommandsClientPlayer = {
+			["con_filter_text_out"] = true
+		}]]
 		local blockedCommands = {}
 		
 		local function ReportBlockedCommand(cmd)
@@ -219,7 +222,7 @@ local function FixAllErrors()
 		
 		local oldRunConsoleCommand = RunConsoleCommand
 		RunConsoleCommand = function(cmd, ...)
-			if shouldBlockCommands[cmd] then
+			if IsConCommandBlocked(cmd) then
 				ReportBlockedCommand(cmd)
 			else
 				oldRunConsoleCommand(cmd, ...)
@@ -235,7 +238,7 @@ local function FixAllErrors()
 			if not cmd then
 				cmd = string.match(cmdStr, "^[^%s%c]+")
 			end
-			if shouldBlockCommands[cmd] then
+			if IsConCommandBlocked(cmd) then
 				ReportBlockedCommand(cmd)
 			else
 				oldGameConsoleCommand(cmdStr, ...)
@@ -245,24 +248,22 @@ local function FixAllErrors()
 				end]]
 			end
 		end
-		if SERVER then -- the client's side is *very* different, better not touch it
-			local PLAYER = FindMetaTable("Player")
-			local oldConCommand = PLAYER.ConCommand
-			PLAYER.ConCommand = function(self, cmdStr, ...)
-				if IsValid(self) then
-					local cmd = string.match(cmdStr, "^\"([^\"]+)\"")
-					if not cmd then
-						cmd = string.match(cmdStr, "^[^%s%c]+")
-					end
-					if shouldBlockCommands[cmd] then
+		local PLAYER = FindMetaTable("Player")
+		local oldConCommand = PLAYER.ConCommand
+		PLAYER.ConCommand = function(self, cmdStr, ...)
+			if IsValid(self) then
+				local cmd = string.match(cmdStr, "^\"([^\"]+)\"")
+				if not cmd then
+					cmd = string.match(cmdStr, "^[^%s%c]+")
+				end
+				if IsConCommandBlocked(cmd) then
+					ReportBlockedCommand(cmd)
+				else
+					oldConCommand(self, cmdStr, ...)
+					--[[local resultTab = {pcall(oldConCommand, cmdStr, ...)}
+					if not resultTab[1] then
 						ReportBlockedCommand(cmd)
-					else
-						oldConCommand(self, cmdStr, ...)
-						--[[local resultTab = {pcall(oldConCommand, cmdStr, ...)}
-						if not resultTab[1] then
-							ReportBlockedCommand(cmd)
-						end]]
-					end
+					end]]
 				end
 			end
 		end
