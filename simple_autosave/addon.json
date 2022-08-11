@@ -1,0 +1,11 @@
+{
+	"title": "Simple Autosave",
+	"type": "tool",
+	"tags": [
+		"scenic",
+		"build"
+	],
+	"ignore": [
+		"media/*"
+	]
+}

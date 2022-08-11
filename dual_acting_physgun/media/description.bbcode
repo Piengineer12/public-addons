@@ -1,0 +1,22 @@
+[h2]This addon has largely been inspired by [url=https://github.com/Fasteroid]Fasteroid's[/url] original Wiremod E2 code.[/h2]
+You should check out [url=https://github.com/Fasteroid/expression2-public/blob/master/physgun_two-way_coupling.txt]Fasteroid's take[/url], as it contains features that this addon lacks, such as grabbing the world to move yourself and generally having better prop movement.
+You need PlyCore installed and PropCore enabled for the original E2 code to work, not this addon.
+
+No noclip was used in the GIFs above! This addon allows you to use the physgun to reel yourself into props, prop-push yourself off the ground and even prop-fling yourself to great heights.
+I've designed Mark I and Mark II versions of the system, with both using different techniques for applying forces.
+
+The Dual-Acting Physgun Mark I system simply uses Lua hooks to apply forces without interfering with the physgun's normal operations. This allows you to use the physgun normally, but [b]changing the physgun beam length is likely to cause infinite pushing / pulling[/b] as the methods for retrieving the physgun beam length are inaccessible from Lua.
+This is the version that I've shared over at the Knockout forums.
+
+The Dual-Acting Physgun Mark II system follows the original E2 code more closely, but not [i]exactly[/i]. This system creates a ghost prop in front of the object you're actually manipulating, and adds forces to the real prop to follow the ghost, applying the opposite forces to the player.
+This system allows the physgun beam length to be changed without issue, but it causes the physgun grab halo to be drawn incorrectly and certain props may spazz out when using this system. You can turn off the physgun grab halo in the context menu, under Drawing Options.
+
+By default, the Mark II system is enabled and the Mark I system is disabled. You can turn Mark II off by typing "dual_acting_physgun_mk2_mul 0" in the console, and "dual_acting_physgun_mk1_mul 1" to turn Mark I on. Try not to have both Mark I and Mark II affect the same prop though.
+There are also other ConVars that start with "dual_acting_physgun_" that change how the systems behave.
+
+I'm releasing this addon in the state it is now because I don't want to develop this system anymore, so don't expect future updates.
+
+
+
+If you like my work, you have the option to [url=https://ko-fi.com/piengineer12]donate on Ko-fi[/url]
+so that I can keep working on these addons for another day. Every little bit helps!
