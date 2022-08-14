@@ -8,8 +8,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_REPAIR_VERSION = "1.7.0"
-LUA_REPAIR_VERSION_DATE = "2022-08-07"
+LUA_REPAIR_VERSION = "1.7.1"
+LUA_REPAIR_VERSION_DATE = "2022-08-14"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
@@ -144,6 +144,10 @@ local function FixAllErrors()
 		end
 	end]]
 	if CLUAEMITTER then
+		local oldAdd = CLUAEMITTER.Add
+		CLUAEMITTER.Add = function(emitter,...)
+			if emitter:IsValid() then return oldAdd(emitter,...) end
+		end
 		local oldFinish = CLUAEMITTER.Finish
 		CLUAEMITTER.Finish = function(emitter,...)
 			if emitter:IsValid() then return oldFinish(emitter,...) end

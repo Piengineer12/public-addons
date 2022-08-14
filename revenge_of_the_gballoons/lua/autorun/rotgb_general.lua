@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		6.4.0
-Version Date:	2022-07-17
+Version:		6.5.0
+Version Date:	2022-08-14
 ]]
 
 local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","spawning","towers","music"}
@@ -1881,6 +1881,7 @@ if CLIENT then
 		spawnmenu.AddToolMenuOption("RotgB","Tools","RotgB_WaypointEditorTool","#tool.rotgb_waypoint_editor.name","gmod_tool rotgb_waypoint_editor","",function(form)
 			form:Help("#tool.rotgb_waypoint_editor.desc")
 			form:CheckBox("#rotgb.convar.rotgb_waypoint_editor_teleport.name","rotgb_waypoint_editor_teleport")
+			form:CheckBox("#rotgb.convar.rotgb_waypoint_editor_straight.name","rotgb_waypoint_editor_straight")
 			form:NumSlider("#rotgb.convar.rotgb_waypoint_editor_weight.name","rotgb_waypoint_editor_weight",0,100,0)
 			form:Help(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_weight.description"))
 			form:CheckBox("#rotgb.convar.rotgb_waypoint_editor_indicator_always.name","rotgb_waypoint_editor_indicator_always")
@@ -2020,6 +2021,7 @@ if CLIENT then
 					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.cant_afford", ROTGB_FormatCash(cost, true)), level, nil, additionalArguments)
 				elseif message == ROTGB_NOTIFY_NAVMESHMISSING then
 					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.navmesh.missing"), level, nil, additionalArguments)
+					ROTGB_LogError("DEPRECATION WARNING: ROTGB_NOTIFY_NAVMESHMISSING is now unused and will be deleted in the future.", "")
 				elseif message == ROTGB_NOTIFY_TOWERBLACKLISTED then
 					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.blacklist"), level, nil, additionalArguments)
 				elseif message == ROTGB_NOTIFY_TOWERCHESSONLY then

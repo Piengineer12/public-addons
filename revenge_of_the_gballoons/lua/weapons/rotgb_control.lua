@@ -177,15 +177,23 @@ function SWEP:PostDrawViewModel(viewmodel, weapon, ply)
 			local renderPos, renderAngles = LocalToWorld(Vector(26.6,2,-2.5), Angle(1,-95,47), viewmodel:GetPos(), viewmodel:GetAngles())
 			cam.Start3D2D(renderPos, renderAngles, 0.01)
 			-- screen is 3.8 x 2.0
-			if IsValid(self.TowerMenu) and self.TowerMenu:IsVisible() then
-				draw.SimpleText("#rotgb.game_swep.instructions.secondary_close.1", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+			if self:GetCurrentTower() ~= 0 then
+				if RealTime() % 10 < 5 then
+					draw.SimpleText("#rotgb.game_swep.instructions.sprint_place.1", "RotgBUITitleFont", 190, 52, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+					draw.SimpleText("#rotgb.game_swep.instructions.sprint_place.2", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+				else
+					draw.SimpleText("#rotgb.game_swep.instructions.primary_place.1", "RotgBUITitleFont", 190, 52, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+					draw.SimpleText("#rotgb.game_swep.instructions.primary_place.2", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+				end
+			elseif IsValid(self.TowerMenu) and self.TowerMenu:IsVisible() then
+				draw.SimpleText("#rotgb.game_swep.instructions.secondary_close.1", "RotgBUITitleFont", 190, 52, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
 				draw.SimpleText("#rotgb.game_swep.instructions.secondary_close.2", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
 			else
 				if RealTime() % 10 < 5 then
-					draw.SimpleText("#rotgb.game_swep.instructions.secondary_open.1", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+					draw.SimpleText("#rotgb.game_swep.instructions.secondary_open.1", "RotgBUITitleFont", 190, 52, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
 					draw.SimpleText("#rotgb.game_swep.instructions.secondary_open.2", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
 				else
-					draw.SimpleText("#rotgb.game_swep.instructions.primary.1", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+					draw.SimpleText("#rotgb.game_swep.instructions.primary.1", "RotgBUITitleFont", 190, 52, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
 					draw.SimpleText("#rotgb.game_swep.instructions.primary.2", "RotgBUITitleFont", 190, 100, color_aqua, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
 				end
 			end

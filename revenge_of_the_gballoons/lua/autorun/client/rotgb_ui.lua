@@ -1204,6 +1204,11 @@ function ROTGB_UpgradeMenu(ent)
 			end
 		end
 	end
+	function Main:OnKeyCodePressed(key)
+		if input.LookupKeyBinding(key):lower() == "+use" then
+			Main:Close()
+		end
+	end
 	
 	local ListOfUpgrades = vgui.Create("DScrollPanel",Main)
 	ListOfUpgrades:Dock(FILL)

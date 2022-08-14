@@ -13,6 +13,7 @@ ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/hunter/tubes/tube1x1x1.mdl")
 ENT.FireRate = 20
+ENT.MaxFireRate = 10
 ENT.Cost = 2500
 ENT.DetectionRadius = 512
 ENT.AbilityCooldown = 60
@@ -111,6 +112,7 @@ local function SnipeEntity()
 		laser:Activate()
 		laser.rotgb_UseLaser = self.rotgb_UseAltLaser and 2 or 1
 		laser.rotgb_NoChildren = self.rotgb_BeamNoChildren
+		laser.rotgb_Rainbow = true
 		--if percent then
 			--laser:Fire("Alpha",percent*255)
 		--end
@@ -191,6 +193,7 @@ function ENT:ROTGB_Think()
 	if IsValid(self.KillDamagePos) then
 		for k,v in pairs(ROTGB_GetBalloons()) do
 			if self:ValidTargetIgnoreRange(v) and v:WorldSpaceCenter():DistToSqr(self.KillDamagePos:GetPos()) <= 65536 then
+				hook.Run("gBalloonDamagedByLaser", v, self:GetTowerOwner(), self, self.KillDamageBeam, self.AttackDamage*1000)
 				v:TakeDamage(self.AttackDamage*1000, self:GetTowerOwner(), self)
 			end
 		end
@@ -212,16 +215,16 @@ end
 
 local abilityFunction
 
-function ENT:FireFunction(gBalloons)
+function ENT:FireFunction(gBalloons, damageMultiplier)
 	if not self.UseLOS then
 		abilityFunction(self)
 	elseif IsValid(self.rotgb_StartPos) then
 		if not self.rotgb_Spread then
-			local perf,str = coroutine.resume(self.thread,self,gBalloons[1],self.rotgb_DamageMul)
+			local perf,str = coroutine.resume(self.thread,self,gBalloons[1],self.rotgb_DamageMul*damageMultiplier)
 			if not perf then error(str) end
 		else
 			for k,v in pairs(gBalloons) do
-				local perf,str = coroutine.resume(self.thread,self,v,self.rotgb_DamageMul)
+				local perf,str = coroutine.resume(self.thread,self,v,self.rotgb_DamageMul*damageMultiplier)
 				if not perf then error(str) end
 			end
 		end
@@ -246,16 +249,19 @@ abilityFunction = function(self)
 			ecp.z = 16368
 			startPos:SetPos(ecp)
 			startPos:SetName("ROTGB08_"..startPos:GetCreationID())
+			startPos:Spawn()
 			local endPos = ents.Create("info_target")
 			ecp = ent:GetPos()
 			ecp.z = ecp.z + ent:OBBMins().z
 			endPos:SetPos(ecp)
 			endPos:SetName("ROTGB08_"..endPos:GetCreationID())
+			endPos:Spawn()
 			self.KillDamagePos = endPos
 			local effdata = EffectData()
 			ecp.z = ecp.z + 24
 			effdata:SetOrigin(ecp)
 			effdata:SetFlags(self.UseLOS and 0 or 1)
+			effdata:SetMagnitude(512/math.max(1, #ents.FindByClass("gballoon_tower_08")))
 			util.Effect("gballoon_tower_08_wave",effdata)
 			util.ScreenShake(ecp,1.25,5,6,5000)
 			local beam = ents.Create("env_beam")
@@ -274,6 +280,8 @@ abilityFunction = function(self)
 			beam:Spawn()
 			beam:Activate()
 			beam:Fire("TurnOn")
+			beam.rotgb_Rainbow = true
+			self.KillDamageBeam = beam
 			timer.Create("ROTGB_08_AB_"..endPos:GetCreationID(),0.05,120,function()
 				if IsValid(beam) then
 					beam.CurAlpha = (beam.CurAlpha or 255) - 0.05/6*255
@@ -328,7 +336,7 @@ if CLIENT then
 		sound.Play("ambient/explosions/explode_6.wav", start, 100, 100, bit.band(data:GetFlags(),1)==1 and 0.5 or 1)
 		local emitter = ParticleEmitter(start)
 		local pi2 = math.pi*2
-		for i=1/3,360,1/3 do
+		for i=360*2/data:GetMagnitude(),360,360*2/data:GetMagnitude() do
 			local particle = emitter:Add("particle/smokesprites_0009",start)
 			if particle then
 				local radians = math.rad(i)
@@ -346,7 +354,7 @@ if CLIENT then
 				particle:SetRollDelta(4*math.random()-2)
 			end
 		end
-		for i=1,512 do
+		for i=1,data:GetMagnitude()/4 do
 			local particle = emitter:Add("particle/smokesprites_0010",start)
 			if particle then
 				local vel = Vector(math.random(-100,100),math.random(-100,100),math.random(-3,3)):GetNormal()*math.random(25,600)

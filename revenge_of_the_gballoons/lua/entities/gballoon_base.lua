@@ -356,7 +356,7 @@ function ROTGB_BalloonsExist()
 	end
 end
 
-local notifshown
+--local notifshown
 
 if SERVER then
 	AccessorFunc(ENT, "StatusSendRequired", "StatusSendRequired", FORCE_BOOL)
@@ -402,10 +402,10 @@ function ENT:Initialize()
 				return self:Remove()
 			end
 		end
-		if not (navmesh.IsLoaded() or notifshown) and game.SinglePlayer() then
+		--[[if not (navmesh.IsLoaded() or notifshown) and game.SinglePlayer() then
 			ROTGB_CauseNotification(ROTGB_NOTIFY_NAVMESHMISSING, ROTGB_NOTIFYTYPE_ERROR)
 			notifshown = true
-		end
+		end]]
 		hook.Run("gBalloonPreInitialize", self)
 		
 		self:ApplyAllBalloonProperties()
@@ -920,8 +920,8 @@ function ENT:FindTarget()
 	end
 	for k,v in pairs(entis) do
 		if self:CanTarget(v) then
-			self:Log("We can target "..tostring(v)..". Attempting to build a path...","targeting")
-			local path = Path("Chase")
+			--self:Log("We can target "..tostring(v)..". Attempting to build a path...","targeting")
+			--[[local path = Path("Chase")
 			local position = v:GetPos()
 			path:SetGoalTolerance(ROTGB_GetConVarValue("rotgb_target_tolerance"))
 			path:SetMinLookAheadDistance(ROTGB_GetConVarValue("rotgb_setminlookaheaddistance"))
@@ -930,7 +930,7 @@ function ENT:FindTarget()
 			else
 				path:Compute(self,position)
 			end
-			if IsValid(path) then
+			if IsValid(path) then]]
 				local isTarget = v:GetClass()=="gballoon_target"
 				local targetSorting = ROTGB_GetConVarValue("rotgb_target_sort")
 				--[[if IsValid(self.Attractor) and v:IsNPC() then
@@ -951,9 +951,9 @@ function ENT:FindTarget()
 				end
 				if isTarget then resulttabs[v] = resulttabs[v] + 1e10 * (v:GetWeight() + 1) end
 				self:Log("Targeted "..tostring(v).." with priority "..resulttabs[v]..".","targeting")
-			else
+			--[[else
 				self:LogError("Couldn't build a path! Discarding current target.","targeting")
-			end
+			end]]
 		--[[elseif IsValid(self.Attractor) and v:IsNPC() then
 			self.Attractor:AddEntityRelationship(v,D_LI,4)
 			v:AddEntityRelationship(self.Attractor,D_LI,4)
@@ -1085,8 +1085,24 @@ function ENT:ComputePathWrapper(path,pos)
 end
 
 function ENT:MoveToTarget()
-	if (self:GetTarget():GetClass()=="gballoon_target" and self:GetTarget():GetTeleport()) then
+	--[[
+	steps:
+	
+	try to make a path
+		if unsuccessful, stop or follow a straight line, then go back to (1)
+		if successful, follow the path, then check again
+			if path still exists, go to (3)
+			if path does not exist, stop or try again with stock pathfinding
+				if path exists, go to (3)
+				if path does not exist, stop or follow a straight line, then go back to (1)
+	]]
+	
+	local isBalloonTarget = self:GetTarget():GetClass()=="gballoon_target"
+	if isBalloonTarget and self:GetTarget():GetTeleport() then
 		self:SetPos(self:GetTarget():GetPos())
+	elseif isBalloonTarget and self:GetTarget():GetStraightPath() then
+		self:Log("Moving straight to target...","pathfinding")
+		self:MoveToTargetStraight()
 	else
 		--coroutine.wait(0.05*ROTGB_GetConVarValue("rotgb_path_delay")*ROTGB_GetBalloonCount())
 		local path = Path("Chase")
@@ -1099,7 +1115,16 @@ function ENT:MoveToTarget()
 		waitamt = math.max(waitamt*ROTGB_GetBalloonCount()*ROTGB_GetConVarValue("rotgb_path_delay"),0.5)
 		self:Log("Regenerated pathway. Recomputing in "..waitamt.." seconds...","pathfinding")
 		self.RecheckPath = true
-		if not IsValid(path) then return "Failed to find a path." end
+		
+		if not IsValid(path) then
+			local nearestNavArea = navmesh.GetNearestNavArea(self:GetPos())
+			local navStop = IsValid(nearestNavArea) and nearestNavArea:HasAttributes(NAV_MESH_STOP)
+			
+			if not navStop then
+				self:Log("Path is invalid. Moving straight to target...","pathfinding")
+				self:MoveToTargetStraight(waitamt)
+			end
+		end
 		--local supptab = {}
 		--[[for k,v in pairs(path:GetAllSegments()) do
 			if v.area:HasAttributes(NAV_MESH_TRANSIENT) then
@@ -1118,6 +1143,7 @@ function ENT:MoveToTarget()
 		end]]
 		while IsValid(path) and IsValid(self:GetTarget()) and not GetConVar("ai_disabled"):GetBool() do
 			local curTime = self:CurTime()
+			-- "position" here is where we expect the target to be
 			if self:GetTarget():GetPos():DistToSqr(position)>ROTGB_GetConVarValue("rotgb_target_tolerance")^2 or path:GetAge()>(self.RecheckPath and 0.5 or waitamt) then
 				self.RecheckPath = nil
 				position = self:GetTarget():GetPos()
@@ -1138,9 +1164,14 @@ function ENT:MoveToTarget()
 			local navStop = IsValid(nearestNavArea) and nearestNavArea:HasAttributes(NAV_MESH_STOP)
 			if not IsValid(path) and (IsValid(self:GetTarget()) and not navStop and self:GetTarget():GetPos():DistToSqr(self:GetPos()) > ROTGB_GetConVarValue("rotgb_target_tolerance")^2*2.25) then
 				self:LogError("Temporarily lost track! Using stock pathfinding...","pathfinding")
-				self.correcting = true
 				path:Compute(self,self:GetTarget():GetPos())
-				path:Chase(self,self:GetTarget())
+				if IsValid(path) then
+					self.correcting = true
+					path:Chase(self,self:GetTarget())
+				else
+					self:Log("Path is invalid. Moving straight to target...","pathfinding")
+					self:MoveToTargetStraight(waitamt)
+				end
 			end
 			if self.loco:IsStuck() or (self.WallStuck or 0)>=4 and not self:IsStunned() then
 				self.WallStuck = nil
@@ -1194,7 +1225,86 @@ function ENT:MoveToTarget()
 			return "Lost its target."
 		end
 	end
-	return "Completely lost track!!"
+	return "Failed to find a path."
+end
+
+function ENT:MoveToTargetStraight(waitamt)
+	local endTime = CurTime() + (waitamt or math.huge)
+	self.StraightMovement = true
+	
+	while self.StraightMovement
+	and endTime > CurTime()
+	and not GetConVar("ai_disabled"):GetBool()
+	and (
+		IsValid(self:GetTarget())
+		and self:GetTarget():GetPos():DistToSqr(self:GetPos()) >= ROTGB_GetConVarValue("rotgb_target_tolerance")^2
+	)
+	do
+		local curTime = CurTime()
+		if self.loco:IsStuck() or (self.WallStuck or 0)>=4 and not self:IsStunned() then
+			self.WallStuck = nil
+			if (self.ResetStuck or 0) < curTime then
+				self.UnstuckAttempts = 0
+			end
+			self.UnstuckAttempts = self.UnstuckAttempts + 1
+			self.ResetStuck = curTime + 10
+			if self.UnstuckAttempts == 1 then -- A simple jump should fix it.
+				--self:ComputePathWrapper(path,position)
+				self.loco:Jump()
+				self.loco:ClearStuck()
+			elseif self.UnstuckAttempts == 2 then -- That didn't fix it, try to teleport slightly upwards instead.
+				self:SetPos(self:GetPos()+vector_up*20)
+				self.loco:ClearStuck()
+			elseif self.UnstuckAttempts == 3 then -- If not, ask GMod kindly to free us.
+				self:HandleStuck()
+			else -- If not, just teleport us ahead on the path. (Sanic method)
+				local position = self:GetTarget():GetPos()
+				local dir = position - self:GetPos()
+				local maxDist = dir:Length()
+				
+				dir:Normalize()
+				dir:Mul(math.min(2^self.UnstuckAttempts, maxDist))
+				dir:Add(self:GetPos())
+				
+				self.LastStuck = curTime
+				self:SetPos(dir)
+				self.loco:ClearStuck()
+			end
+			return "Got stuck for the "..self.UnstuckAttempts..STNDRD(self.UnstuckAttempts).." time!"
+		end
+		self:CheckForRegenAndFire()
+		self:CheckForStatusBroadcasting()
+		self:CheckForSpeedMods()
+		self:CheckForBossEffects()
+		self:PerformPops()
+		
+		local oldPos = self:GetPos()
+		coroutine.yield()
+		local difference = self:GetPos() - oldPos
+		local moved = difference:Length()
+		self.TravelledDistance = (self.TravelledDistance or 0) + moved
+		difference:Add(self:GetPos())
+		self.loco:FaceTowards(difference)
+		
+		local nearestNavArea = navmesh.GetNearestNavArea(self:GetPos())
+		local navStop = IsValid(nearestNavArea) and nearestNavArea:HasAttributes(NAV_MESH_STOP)
+		if moved==0 and not (self:IsStunned() or navStop) then
+			self.WallStuck = (self.WallStuck or 0) + 1
+			self:LogError("Stuck in a wall, "..self.WallStuck*25 .."% sure.","pathfinding")
+			if self.WallStuck>=4 then
+				self:LogError("Definitely stuck! Waiting for HandleStuck...","pathfinding")
+			end
+		else
+			self.WallStuck = nil
+		end
+	end
+	self.StraightMovement = false
+end
+
+function ENT:MoveStraightThink()
+	if IsValid(self:GetTarget()) and not self:IsStunned() then
+		self.loco:Approach(self:GetTarget():GetPos(), 1)
+	end
 end
 
 function ENT:ChooseNextTargetWeighted(current, targets)
@@ -1224,7 +1334,7 @@ function ENT:RunBehaviour()
 			self.FirstRunBehaviour = true
 			if self:Health() <= 0 then
 				self:SetHealth(1)
-				self:Log("Took damage WHILE spawning. Damage negated.", "damage")
+				self:Log("Took fatal damage WHILE spawning. Health set to 1.", "damage")
 			end
 		end
 		self:CheckForRegenAndFire()
@@ -1598,7 +1708,7 @@ end
 function ENT:OnInjured(dmginfo)
 	if dmginfo:GetInflictor():GetClass()~="env_fire" then
 		hook.Run("gBalloonTakeDamage", self, dmginfo)
-		self.BalloonRegenTime = self:CurTime()+ROTGB_GetConVarValue("rotgb_regen_delay")
+		--self.BalloonRegenTime = self:CurTime()+ROTGB_GetConVarValue("rotgb_regen_delay")
 		self.LastAttacker = dmginfo:GetAttacker()
 		self.LastInflictor = dmginfo:GetInflictor()
 		self.LastDamageType = dmginfo:GetDamageType()
@@ -1920,6 +2030,7 @@ function ENT:Pop(damage,target,dmgbits)
 			spe:Activate()
 			spe.PrevBalloons = v.PrevBalloons
 			spe:SetHealth(v.Health or 1) -- FIXME: this was spe:SetHealth(math.max(v.Health or 1, 1)), is there a difference?
+			spe.BalloonRegenTime = self.BalloonRegenTime
 			spe.StunUntil = self.StunUntil
 			spe.FreezeUntil2 = self.FreezeUntil2
 			spe.AcidicList = self.AcidicList
@@ -2011,37 +2122,43 @@ function ENT:CheckForRegenAndFire()
 		end
 		if self:GetBalloonProperty("BalloonRegen") then
 			local regenDelay = hook.Run("GetgBalloonRegenDelay", self) or ROTGB_GetConVarValue("rotgb_regen_delay")
+			local hasPreviousLayer = self.PrevBalloons and next(self.PrevBalloons)
+			local lessThanMaxHealth = self:Health() < self:GetMaxHealth()
 			self.BalloonRegenTime = self.BalloonRegenTime or curTime+regenDelay
-			if self.BalloonRegenTime <= curTime then
-				if self.PrevBalloons and next(self.PrevBalloons) then
-					local prevballoon = table.remove(self.PrevBalloons)
-					self:Log("Regenerating to: "..prevballoon,"regeneration")
-					local bits = self:GetBitflagPropertyState()
-					self.Properties = list.Get("NPC")[prevballoon].KeyValues
-					if ROTGB_HasAllBits(bits, 2) then
-						self.Properties.BalloonFast = true
+			if hasPreviousLayer or lessThanMaxHealth then
+				if self.BalloonRegenTime <= curTime then
+					if hasPreviousLayer then
+						local prevballoon = table.remove(self.PrevBalloons)
+						self:Log("Regenerating to: "..prevballoon,"regeneration")
+						local bits = self:GetBitflagPropertyState()
+						self.Properties = list.Get("NPC")[prevballoon].KeyValues
+						if ROTGB_HasAllBits(bits, 2) then
+							self.Properties.BalloonFast = true
+						end
+						if ROTGB_HasAllBits(bits, 4) then
+							self.Properties.BalloonShielded = true
+						end
+						if ROTGB_HasAllBits(bits, 8) then
+							self.Properties.BalloonHidden = true
+						end
+						self:SetNWBool("BalloonPurple",false)
+						self:SetNWBool("BalloonRainbow",false)
+						self:SetNWBool("RenderShield",false)
+						self.Properties.BalloonRegen = true
+						self:Spawn()
+						self:Activate()
+						self.DeductCash = (self.DeductCash or 0) + 1
+						self:Log("Regenerated to: "..prevballoon..". Fast = "..tostring(ROTGB_HasAllBits(bits, 2))..", Shielded = "..tostring(ROTGB_HasAllBits(bits, 4))..", Hidden = "..tostring(ROTGB_HasAllBits(bits, 8)),"regeneration")
+						self:Log("This gBalloon will yield "..self.DeductCash.." less cash than usual.","regeneration")
+						self.BalloonRegenTime = curTime+regenDelay
+					else
+						self:SetHealth(self:Health() + 1)
+						self.BalloonRegenTime = curTime+regenDelay
+						self:Log("Regenerated 1 health.","regeneration")
 					end
-					if ROTGB_HasAllBits(bits, 4) then
-						self.Properties.BalloonShielded = true
-					end
-					if ROTGB_HasAllBits(bits, 8) then
-						self.Properties.BalloonHidden = true
-					end
-					self:SetNWBool("BalloonPurple",false)
-					self:SetNWBool("BalloonRainbow",false)
-					self:SetNWBool("RenderShield",false)
-					self.Properties.BalloonRegen = true
-					self:Spawn()
-					self:Activate()
-					self.DeductCash = (self.DeductCash or 0) + 1
-					self:Log("Regenerated to: "..prevballoon..". Fast = "..tostring(ROTGB_HasAllBits(bits, 2))..", Shielded = "..tostring(ROTGB_HasAllBits(bits, 4))..", Hidden = "..tostring(ROTGB_HasAllBits(bits, 8)),"regeneration")
-					self:Log("This gBalloon will yield "..self.DeductCash.." less cash than usual.","regeneration")
-					self.BalloonRegenTime = curTime+regenDelay
-				elseif self:Health() < self:GetMaxHealth() then
-					self:SetHealth(self:Health() + 1)
-					self.BalloonRegenTime = curTime+regenDelay
-					self:Log("Regenerated 1 health.","regeneration")
 				end
+			else
+				self.BalloonRegenTime = curTime+regenDelay
 			end
 		end
 		if self:GetBalloonProperty("BalloonSuperRegen") > 0 then
@@ -2126,6 +2243,9 @@ function ENT:Think()
 		self:SetNWInt("ActualHealth", self:Health())
 		--[[local shouldRenderShield = self:GetBalloonProperty("BalloonShielded") and self:Health()*2>self:GetMaxHealth() and (not ROTGB_GetConVarValue("rotgb_legacy_gballoons") or ROTGB_GetConVarValue("rotgb_pertain_effects"))
 		self:SetNWBool("RenderShield",shouldRenderShield)]]
+		if self.StraightMovement then
+			self:MoveStraightThink()
+		end
 	end
 	--[[if self:GetBalloonProperty("BalloonHidden") then
 		local mgh = CurTime()%2<1.5

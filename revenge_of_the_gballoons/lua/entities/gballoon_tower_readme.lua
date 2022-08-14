@@ -17,6 +17,7 @@ ENT.RenderGroup = RENDERGROUP_BOTH											// don't touch this.
 ENT.Model = Model("models/props_phx/empty_barrel.mdl")						// replace "models/props_phx/empty_barrel.mdl" with another model if you want to.
 ENT.IsChessPiece = false													// whether this tower qualifies as a chess tower or not. default: false
 ENT.FireRate = 1															// tower fire rate (how often ENT:FireFunction() gets called). default: 1
+ENT.MaxFireRate = math.huge													// maximum tower fire rate, useful in cases where very rapid ENT:FireFunction() calls would cause a crash. default: math.huge
 ENT.Cost = 125																// base tower cost. default: 0
 ENT.DetectionRadius = 256													// tower radius.
 ENT.InfiniteRange = false													// whether the tower has infinite range or not. The tower's range will be displayed in blue instead of aqua. default: false
@@ -61,17 +62,17 @@ ENT.UpgradeReference = {
 }
 ENT.UpgradeLimits = {4,0}													// upgrade limit ({4,2} in BTD5 and {5,2,0} in BTD6). {4,0} means that only one path can be upgraded up to four times. Make sure to sort from highest to lowest!
 
-function ENT:FireFunction(tableOfBalloons)									// since self.SeeCamo is false, only non-hidden gBalloons will be passed here, unless the tower is an X-3.
+function ENT:FireFunction(tableOfBalloons, excessFireRateMultiplier)		// since self.SeeCamo is false, only non-hidden gBalloons will be passed here, unless the tower is an X-3.
 	tableOfBalloons[1]:TakeDamage(											// edit the body of ENT:FireFunction() however you want.
 		self.AttackDamage,													// tableOfBalloons is all gBalloons in its radius, order of entries is determined by the player.
 		self:GetTowerOwner(),												// ENT:GetTowerOwner() returns the player that owns this tower.
-		self
-	)
+		self																// excessFireRateMultiplier should be used to multiply damage dealt - it will either be ENT.FireRate / ENT.MaxFireRate or 1, whichever is greater.
+	)																		// returning true in this function will cause it to be called again in the next frame, which is useful for cancelling attacks.
 end	
 
 function ENT:TriggerAbility()												// called when the tower's active ability is activated.
 	self:ApplyBuff(self, "ROTGB_TOWER_ABILITY", 15, function(tower)			// ENT:ApplyBuff() takes 5 arguments: the tower giving the buff, unique identifier (to prevent buff stacking), duration, apply function and expiry function.
-		tower.FireRate = tower.FireRate * 5
+		tower.FireRate = tower.FireRate * 5									// returning true in this function will skip ability recharging, which is useful for cancelling ability activations.
 	end, function(tower)
 		tower.FireRate = tower.FireRate / 5
 	end)

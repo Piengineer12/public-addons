@@ -160,6 +160,10 @@ hook.Add("EntityTakeDamage","ROTGB_TOWERS",function(vic,dmginfo)
 		if (IsValid(laser.rotgb_Owner) and laser.rotgb_Owner.Base == "gballoon_tower_base") then
 			dmginfo:SetAttacker(laser.rotgb_Owner:GetTowerOwner())
 			dmginfo:SetInflictor(laser.rotgb_Owner)
+			
+			if laser.rotgb_Owner:ValidTargetIgnoreRange(vic) then
+				hook.Run("gBalloonDamagedByLaser", vic, laser.rotgb_Owner:GetTowerOwner(), laser.rotgb_Owner, laser, dmginfo:GetDamage())
+			end
 		end
 		if laser.rotgb_UseLaser==2 then
 			dmginfo:SetDamageType(laser.rotgb_NoChildren and DMG_DISSOLVE or DMG_GENERIC)
@@ -377,7 +381,14 @@ function ENT:DoFireFunction()
 			end
 			self.BonusFireRate = bonusMultiplier
 		end
+		-- FIXME: This differs from the code used in the Turret Factory's turrets, when it really has no reason to.
 		local fireDelay = 1/(self.FireRate or 1)/self.BonusFireRate
+		local firePowerExpectedMultiplier = 1
+		local minFireDelay = self.MaxFireRate and 1/self.MaxFireRate or 0
+		if fireDelay < minFireDelay then
+			firePowerExpectedMultiplier = minFireDelay/fireDelay
+			fireDelay = minFireDelay
+		end
 		self.NextFire = CurTime() + fireDelay
 		if not IsValid(self:GetTowerOwner()) then
 			local bestPlayer = NULL
@@ -391,7 +402,7 @@ function ENT:DoFireFunction()
 			end
 			self:SetTowerOwner(bestPlayer)
 		end
-		local nofire = self:FireFunction(--[[self.SolicitedgBalloon,]]self.gBalloons or {})
+		local nofire = self:FireFunction(--[[self.SolicitedgBalloon,]]self.gBalloons or {}, firePowerExpectedMultiplier)
 		if nofire then
 			self.NextFire = 0
 		end
@@ -556,12 +567,7 @@ end
 
 function ENT:AddCash(cash, ply)
 	local incomeCash = cash * ROTGB_GetConVarValue("rotgb_tower_income_mul") * ROTGB_GetConVarValue("rotgb_cash_mul")
-	if engine.ActiveGamemode() == "rotgb" then
-		incomeCash = incomeCash * (1+hook.Run("GetSkillAmount", "towerIncome")/100)
-		if hook.Run("GetSkillAmount", "towerHalfIncome") > 0 then
-			incomeCash = incomeCash / 2
-		end
-	end
+	incomeCash = hook.Run("TowerAddCash", self, cash, ply) or incomeCash
 	ROTGB_AddCash(incomeCash, ply)
 	self:SetCashGenerated(self:GetCashGenerated()+incomeCash)
 end
@@ -578,9 +584,11 @@ ENT.ROTGB_OnRemove = ENT.ROTGB_Initialize
 
 function ENT:OnRemove()
 	self:ROTGB_OnRemove()
+	local sellPrice = (self.SellAmount or 0)*0.8
 	if SERVER then
-		ROTGB_AddCash((self.SellAmount or 0)*0.8,IsValid(self:GetTowerOwner()) and self:GetTowerOwner())
+		ROTGB_AddCash(sellPrice, IsValid(self:GetTowerOwner()) and self:GetTowerOwner())
 	end
+	hook.Run("TowerSold", self, sellPrice, self:GetTowerOwner())
 end
 
 net.Receive("rotgb_openupgrademenu",function(length,ply)

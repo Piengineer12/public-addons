@@ -11,12 +11,9 @@ GM.BaseAchievements = {
 	999,999,999 = level 5,000+
 	
 	ideas:
-	One of a Kind - win an Impossible+ game with only one of each tower ever placed
-	All for One and One for One - Win a Hard+ game with only 1 tower on the map at any one time
 	activate 3/10/30 abilities at once
 	
 	pop X Ceramic/Brick/Marble gBalloons
-	pop X Y gBlimps
 	pop X Fast/Hidden/Regen/Shielded gBalloons
 	]]
 	
@@ -49,14 +46,27 @@ GM.BaseAchievements = {
 	{name="success", tier=1, criteria="success", xp=2000},
 	{name="success_all", tier=2, criteria="success.all", xp=1.5e6},
 	{name="success_flawless", tier=1, criteria="success.no_damage", xp=5000},
+	{name="one_of_a_kind", tier=2, criteria="success.impossible.one_of_a_kind", xp=500e3},
+	{name="one_for_one", tier=3, criteria="success.hard.one_for_one", xp=1.5e6},
+	{name="blimps_mode", tier=2, criteria="success.blimps_mode", xp=500e3},
+	
 	{name="fail1", tier=1, amount=1, criteria="fail", xp=100},
 	{name="fail2", tier=2, amount=20, criteria="fail", xp=25e3},
 	{name="fail_notowers", tier=1, criteria="fail.no_score", xp=1},
 	{name="success_notowers", tier=3, criteria="success.no_score", xp=1.5e6},
 	
-	{name="rainbow_gblimp_kill", tier=1, criteria="pops.gballoon_blimp_rainbow", xp=100e3},
+	{name="laser_light_show", tier=1, amount=1000, criteria="hits.laser_color_match", xp=100e3},
+	
+	{name="blimp_blue_kills", tier=1, amount=1000, criteria="pops.gballoon_blimp_blue", xp=100e3},
+	{name="blimp_red_kills", tier=1, amount=1000, criteria="pops.gballoon_blimp_red", xp=100e3},
+	{name="blimp_green_kills", tier=2, amount=1000, criteria="pops.gballoon_blimp_green", xp=500e3},
+	{name="blimp_purple_kills", tier=2, amount=1000, criteria="pops.gballoon_blimp_purple", xp=500e3},
+	{name="blimp_rainbow_kill", tier=1, criteria="pops.gballoon_blimp_rainbow", xp=100e3},
+	{name="very_very_frightening", tier=2, criteria="pops.gballoon_fast_hidden_regen_shielded_blimp_rainbow", xp=500e3},
+	{name="blimp_rainbow_kills", tier=3, amount=1000, criteria="pops.gballoon_blimp_rainbow", xp=1.5e6},
+	
 	{name="bosses_success", tier=1, criteria="success.insane_bosses", xp=500e3},
-	{name="super_bosses_success", tier=2, criteria="success.impossible_bosses", xp=1.5e6},
+	{name="super_bosses_success", tier=2, criteria="success.icu_bosses", xp=1.5e6},
 	
 	{name="economy", tier=3, amount=1.797693e308, criteria="cash", display=1, xp=10e6}
 }

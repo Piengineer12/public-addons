@@ -110,7 +110,7 @@ net.Receive("rotgb_gamemode", function(length, ply)
 		local statID = net.ReadUInt(16)+1
 		if statID == hook.Run("GetStatisticID", "success.all") and hook.Run("GetGameIsOver") and not achievementAllSuccessAlreadyDonePlayers[ply:SteamID()] then
 			hook.Run("SetGameIsOver", false)
-			ply:RTG_SetStat(statID, net.ReadDouble())
+			ply:RTG_AddStat(statID, 1)
 			hook.Run("SetGameIsOver", true)
 			achievementAllSuccessAlreadyDonePlayers[ply:SteamID()] = true
 		end

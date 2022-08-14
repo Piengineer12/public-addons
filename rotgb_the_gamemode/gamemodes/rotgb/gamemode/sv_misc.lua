@@ -6,6 +6,9 @@ AccessorFunc(GM, "Defeated", "Defeated", FORCE_BOOL)
 AccessorFunc(GM, "StatRebroadcastRequired", "StatRebroadcastRequired", FORCE_BOOL)
 AccessorFunc(GM, "PreventPlayerPhysgun", "PreventPlayerPhysgun", FORCE_BOOL)
 AccessorFunc(GM, "MaxWaveReached", "MaxWaveReached", FORCE_NUMBER)
+AccessorFunc(GM, "TowersPlaced", "TowersPlaced")
+AccessorFunc(GM, "MaxTowersAtOnce", "MaxTowersAtOnce", FORCE_NUMBER)
+AccessorFunc(GM, "BLIMPSConditionsViolated", "BLIMPSConditionsViolated", FORCE_BOOL)
 
 function GM:Initialize()
 	hook.Run("SetGameIsOver", false)
@@ -34,6 +37,7 @@ function GM:Think()
 				net.WriteEntity(v)
 				net.WriteDouble(v.rtg_gBalloonPops or 0)
 				net.WriteDouble(v.rtg_XP)
+				net.WriteDouble(v.rtg_CashGenerated or 0)
 			end
 			net.Broadcast()
 		end
@@ -51,6 +55,7 @@ function GM:Think()
 			net.WriteDouble(v.rtg_gBalloonPops or 0)
 			net.WriteDouble(v.rtg_PreviousXP or 0)
 			net.WriteDouble(v.rtg_XP)
+			net.WriteDouble(v.rtg_CashGenerated or 0)
 		end
 		net.Broadcast()
 	end
@@ -100,18 +105,23 @@ end
 function GM:PostCleanupMapServer()
 	hook.Run("SetGameIsOver", false)
 	hook.Run("SetDefeated", false)
+	hook.Run("SetBLIMPSConditionsViolated", false)
 	hook.Run("UpdateAppliedSkills")
 	hook.Run("SetMaxWaveReached", 0)
+	hook.Run("SetTowersPlaced", {})
+	hook.Run("SetMaxTowersAtOnce", 0)
 	for k,v in pairs(player.GetAll()) do
 		v:UnSpectate()
 		v:Spawn()
 		v.rtg_gBalloonPops = 0
+		v.rtg_CashGenerated = 0
 		net.Start("rotgb_statchanged", true)
 		net.WriteUInt(RTG_STAT_POPS, 4)
 		net.WriteUInt(1, 12)
 		net.WriteEntity(v)
-		net.WriteDouble(v.rtg_gBalloonPops or 0)
+		net.WriteDouble(v.rtg_gBalloonPops)
 		net.WriteDouble(v.rtg_XP)
+		net.WriteDouble(v.rtg_CashGenerated)
 		net.Send(v)
 	end
 	hook.Run("SetStatRebroadcastRequired", true)
@@ -134,15 +144,46 @@ function GM:gBalloonDamaged(bln, attacker, inflictor, damage, cash, deductedCash
 		net.WriteEntity(attacker)
 		net.WriteDouble(attacker.rtg_gBalloonPops or 0)
 		net.WriteDouble(attacker.rtg_XP)
+		net.WriteDouble(attacker.rtg_CashGenerated or 0)
 		net.Send(attacker)
 		hook.Run("SetStatRebroadcastRequired", true)
 		
-		if bln:GetBalloonProperty("BalloonType") == "gballoon_blimp_rainbow" and isPopped then
-			attacker:RTG_AddStat("pops.gballoon_blimp_rainbow", 1)
+		if isPopped then
+			local balloonType = bln:GetBalloonProperty("BalloonType")
+			if balloonType == "gballoon_blimp_blue" then
+				attacker:RTG_AddStat("pops.gballoon_blimp_blue", 1)
+			elseif balloonType == "gballoon_blimp_red" then
+				attacker:RTG_AddStat("pops.gballoon_blimp_red", 1)
+			elseif balloonType == "gballoon_blimp_green" then
+				attacker:RTG_AddStat("pops.gballoon_blimp_green", 1)
+			elseif balloonType == "gballoon_blimp_purple" then
+				attacker:RTG_AddStat("pops.gballoon_blimp_purple", 1)
+			elseif balloonType == "gballoon_blimp_rainbow" then
+				attacker:RTG_AddStat("pops.gballoon_blimp_rainbow", 1)
+				
+				if bln:GetBalloonProperty("BalloonFast") and bln:GetBalloonProperty("BalloonHidden")
+				and bln:GetBalloonProperty("BalloonRegen") and bln:GetBalloonProperty("BalloonShielded") then
+					attacker:RTG_AddStat("pops.gballoon_fast_hidden_regen_shielded_blimp_rainbow", 1)
+				end
+			end
 		end
 	end
 	for k,v in pairs(player.GetAll()) do
 		v:RTG_SetStat("cash", ROTGB_GetCash(v))
+	end
+end
+
+function GM:gBalloonDamagedByLaser(bln, attacker, inflictor, laser, damage)
+	local laserColor = laser:GetColor()
+	local balloonColor = bln:GetColor()
+	if attacker:IsPlayer()
+	and laserColor.r == balloonColor.r
+	and laserColor.g == balloonColor.g
+	and laserColor.b == balloonColor.b
+	and bln:GetBalloonProperty("BalloonRainbow") == laser.rotgb_Rainbow
+	and not bln.rotgb_laser_color_matched then
+		attacker:RTG_AddStat("hits.laser_color_match", 1)
+		bln.rotgb_laser_color_matched = true
 	end
 end
 
@@ -168,6 +209,25 @@ function GM:GetXPMultiplier()
 		multiplier = multiplier * (1+hook.Run("GetSkillAmount", "skillExperiencePerWave")*hook.Run("GetMaxWaveReached")/100)
 	end
 	return multiplier
+end
+
+function GM:TowerAddCash(tower, cash, ply)
+	cash = cash * (1+hook.Run("GetSkillAmount", "towerIncome")/100)
+	--[[if hook.Run("GetSkillAmount", "towerHalfIncome") > 0 then
+		cash = cash / 2
+	end]]
+	ply.rtg_CashGenerated = ply.rtg_CashGenerated + cash
+	return cash
+end
+
+function GM:TowerSold(tower, cash, ply)
+	hook.Run("SetBLIMPSConditionsViolated", true)
+end
+
+function GM:PostgballoonTargetTakeDamage(target, dmginfo)
+	if target:Health() < target:GetMaxHealth() then
+		hook.Run("SetBLIMPSConditionsViolated", true)
+	end
 end
 
 function GM:gBalloonTargetRemoved(target)
@@ -199,7 +259,7 @@ function GM:AllTargetsDestroyed()
 end
 
 function GM:AllBalloonsDestroyed()
-	timer.Simple(1, function()
+	timer.Simple(1.1, function()
 		if not hook.Run("GetGameIsOver") then
 			hook.Run("GameOver", true)
 		end
@@ -214,7 +274,7 @@ function GM:GameOver(success)
 	net.Broadcast()
 	if success then
 		local plys = player.GetAll()
-		local flawless, zeroScore = true, true
+		local flawless, zeroScore, zeroCashGenerated = true, true, true
 		
 		for k,v in pairs(ents.FindByClass("gballoon_target")) do
 			if v:Health() < v:GetMaxHealth() then
@@ -223,9 +283,8 @@ function GM:GameOver(success)
 		end
 		
 		for k,v in pairs(plys) do
-			if v.rtg_gBalloonPops > 0 then
-				zeroScore = false break
-			end
+			zeroScore = zeroScore and v.rtg_gBalloonPops <= 0
+			zeroCashGenerated = zeroCashGenerated and v.rtg_CashGenerated <= 0
 		end
 		
 		local difficulty = hook.Run("GetDifficulty")
@@ -241,8 +300,34 @@ function GM:GameOver(success)
 				
 				if difficulty == "insane_bosses" then
 					v:RTG_AddStat("success.insane_bosses", 1)
-				elseif difficulty == "impossible_bosses" then
-					v:RTG_AddStat("success.impossible_bosses", 1)
+				elseif difficulty == "icu_bosses" then
+					v:RTG_AddStat("success.icu_bosses", 1)
+				end
+				
+				local categoryScore = hook.Run("GetDifficultyCategories")[hook.Run("GetDifficulties")[difficulty].category]
+				local maxTowersPerType = 0
+				if categoryScore >= 3 then
+					if hook.Run("GetMaxTowersAtOnce") <= 1 then
+						v:RTG_AddStat("success.hard.one_for_one", 1)
+					end
+					
+					if categoryScore >= 4 then
+						if zeroCashGenerated
+						and not next(hook.Run("GetAppliedSkills"))
+						and not hook.Run("GetBLIMPSConditionsViolated") then 
+							v:RTG_AddStat("success.blimps_mode", 1)
+						end
+						
+						if categoryScore >= 5 then
+							for k,v in pairs(hook.Run("GetTowersPlaced")) do
+								maxTowersPerType = math.max(maxTowersPerType, v)
+							end
+							
+							if maxTowersPerType <= 1 then
+								v:RTG_AddStat("success.impossible.one_of_a_kind", 1)
+							end
+						end
+					end
 				end
 			end
 		end
@@ -281,6 +366,17 @@ end
 hook.Add("RotgBTowerPlaced", "ROTGB_TG_SERVER", function(tower, cost)
 	tower:GetTowerOwner():RTG_AddStat("cash.towers", cost)
 	tower:GetTowerOwner():RTG_AddStat("towers", 1)
+	
+	local placedTowers = hook.Run("GetTowersPlaced")
+	placedTowers[tower:GetClass()] = (placedTowers[tower:GetClass()] or 0) + 1
+	
+	local maxTowers = 0
+	for k,v in pairs(ents.GetAll()) do
+		if v.Base == "gballoon_tower_base" then
+			maxTowers = maxTowers + 1
+		end
+	end
+	hook.Run("SetMaxTowersAtOnce", math.max(hook.Run("GetMaxTowersAtOnce") or 0, maxTowers))
 end)
 
 function GM:RotgBTowerUpgraded(tower, path, tier, cost)

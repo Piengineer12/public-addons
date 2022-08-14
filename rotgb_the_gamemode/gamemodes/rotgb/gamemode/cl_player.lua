@@ -69,7 +69,7 @@ function GM:OnPlayerChat(ply, message, bTeam, bDead)
 	local loweredMessage = message:lower()
 	if loweredMessage == "!help" or loweredMessage == "!rtg_help" then
 		chat.AddText(color_white, language.GetPhrase("rotgb_tg.help"))
-		for i=1, 6 do
+		for i=1, 7 do
 			local arguments = {
 				language.GetPhrase(string.format("rotgb_tg.help.entry.%i.%i", i, 1)),
 				language.GetPhrase(string.format("rotgb_tg.help.entry.%i.%i", i, 2)),

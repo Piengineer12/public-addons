@@ -271,7 +271,7 @@ end
 
 local PLAYER = FindMetaTable("Player")
 
-local maxLevel = math.huge
+local maxLevel = 9999
 local experienceNeeded = {
 	100, 250, 500, 1000
 }
@@ -340,7 +340,7 @@ end
 function PLAYER:RTG_AddSkills(skillIDs)
 	for k,v in pairs(skillIDs) do
 		if v ~= true then
-			hook.Run("RTG_Log", "A skill value of \""..tostring(v).."\" was inserted instead of a bool. This is incorrect!", RTG_LOGGING_ERROR)
+			hook.Run("RTG_Log", "A skill value of \""..tostring(v).."\" was inserted instead of a bool, this is incorrect!", RTG_LOGGING_ERROR)
 			debug.Trace()
 		end
 		self.rtg_Skills[k] = v

@@ -63,7 +63,7 @@ function GM:Think()
 					hook.Run("ShowDifficultySelection", true)
 				end
 			elseif startupState<3 and not IsValid(hook.Run("GetTeamSelectionMenu")) then
-				hook.Run("ShowTeam")
+				hook.Run("ShowTeam", true)
 			end
 		end
 	end
@@ -81,48 +81,9 @@ end
 
 -- non-base
 
-concommand.Add("rotgb_tg_difficulty_menu", function()
-	hook.Run("ShowDifficultySelection")
-end, nil, "Opens the Difficulty Selection Menu. Only works for admins.")
-
 function GM:StartVote(voteInfo)
 	hook.Run("SetCurrentVote", voteInfo)
 	hook.Run("ShowVoterMenu")
-end
-
-function GM:AddCompletedDifficulties(map, difficulty, state)
-	local completedDifficulties = hook.Run("GetCompletedDifficulties")
-	completedDifficulties[map] = completedDifficulties[map] or {}
-	completedDifficulties[map][difficulty] = bit.bor(completedDifficulties[map][difficulty] or 0, state)
-	
-	local difficultyNodes = hook.Run("GetGamemodeDifficultyNodes")
-	local completeds = 0
-	
-	for k,v in pairs(completedDifficulties) do
-		local allComplete = true
-		
-		for k2,v2 in pairs(difficultyNodes) do
-			for k3,v3 in pairs(v2.subnodes) do
-				if v3.name ~= "__common" and (v[v3.name] or 0) == 0 then
-					allComplete = false break
-				end
-			end
-			
-			if not allComplete then break end
-		end
-		
-		if allComplete then
-			completeds = completeds + 1
-		end
-	end
-	
-	if allComplete then
-		net.Start("rotgb_gamemode")
-		net.WriteUInt(RTG_OPERATION_ACHIEVEMENT, 4)
-		net.WriteUInt(hook.Run("GetStatisticID", "success.all")-1, 16)
-		net.WriteDouble(completeds)
-		net.SendToServer()
-	end
 end
 
 function GM:GameOver(success)

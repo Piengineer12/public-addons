@@ -2273,6 +2273,61 @@ ROTGB_WAVES = { -- format: { balloon_type, amount=1, timespan=0, delay=0 }
 	}, -- 120
 }
 
+ROTGB_WAVES[666] = {
+	{"gballoon_pink",512,64},
+	{"gballoon_fast_white",128,64,64},
+	{"gballoon_hidden_black",128,64,64},
+	{"gballoon_regen_purple",128,64,64},
+	{"gballoon_shielded_orange",128,64,64},
+	{"gballoon_fast_hidden_zebra",128,64,128},
+	{"gballoon_hidden_regen_gray",128,64,128},
+	{"gballoon_regen_shielded_aqua",128,64,128},
+	{"gballoon_fast_shielded_error",128,64,128},
+	{"gballoon_fast_regen_rainbow",256,64,192},
+	{"gballoon_hidden_shielded_rainbow",256,64,192},
+	{"gballoon_mossman_super",nil,nil,256},
+	{"gballoon_fast_hidden_regen_ceramic",128,64,256},
+	{"gballoon_hidden_regen_shielded_ceramic",128,64,256},
+	{"gballoon_fast_regen_shielded_ceramic",128,64,256},
+	{"gballoon_fast_hidden_shielded_ceramic",128,64,256},
+	{"gballoon_fast_regen_shielded_blimp_blue",512,64,320},
+	{"gballoon_gman_super",nil,nil,384},
+	{"gballoon_fast_hidden_regen_shielded_brick",512,64,384},
+	{"gballoon_fast_hidden_regen_shielded_blimp_red",512,64,448},
+	{"gballoon_blimp_ggos_super",nil,nil,512},
+	{"gballoon_fast_hidden_regen_shielded_marble",512,64,512},
+	{"gballoon_fast_hidden_regen_shielded_blimp_green",512,64,576},
+	{"gballoon_hot_air_super",nil,nil,640},
+	{"gballoon_fast_hidden_regen_shielded_blimp_gray",512,64,640},
+	{"gballoon_fast_hidden_regen_shielded_blimp_purple",512,64,704},
+	{"gballoon_blimp_long_rainbow_super",nil,nil,768},
+	{"gballoon_fast_hidden_regen_shielded_blimp_magenta",512,64,768},
+	{"gballoon_fast_hidden_regen_shielded_blimp_rainbow",512,64,832},
+	{"gballoon_garrydecal",nil,nil,896},
+	{"gballoon_void",16,64,896},
+	{"gballoon_glass",nil,nil,960},
+	{"gballoon_cfiber",16,64,960},
+	
+	duration=1024,
+	rbe=128*(
+		5*4
+		+11+11+11+11*2
+		+23+23+23*2+24*2
+		+94*2+94*2*2
+		+198+198*2*3
+		+992*2*4
+		+431*2*4
+		+4668*2*4
+		+982*2*4
+		+22672*2*4
+		+4328*2*4
+		+74000*2*4
+		+18827*2*4
+		+285668*2*4
+		+999999999/8
+	)+100000+500000+2007856+10000000+50e6+30+10e6+16+1
+}
+
 ROTGB_WAVES_2S = {}
 ROTGB_WAVES_BOSSES = {}
 ROTGB_WAVES_BOSSES_SUPER = {}
@@ -2422,38 +2477,7 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Float", 2, "NextWaveTime")
 	self:NetworkVar("String", 0, "WaveFile", {KeyName="wave_preset", Edit={title="#rotgb.gballoon_spawner.properties.wave_preset", type="Generic", order=11}})
 	self:NetworkVar("String", 1, "MusicString", {KeyName="music_string", Edit={title="#rotgb.gballoon_spawner.properties.music_string", type="Generic", order=13}})
-	self:NetworkVar("Entity", 0, "NextTarget1")
-	self:NetworkVar("Entity", 1, "NextTarget2")
-	self:NetworkVar("Entity", 2, "NextTarget3")
-	self:NetworkVar("Entity", 3, "NextTarget4")
-	self:NetworkVar("Entity", 4, "NextTarget5")
-	self:NetworkVar("Entity", 5, "NextTarget6")
-	self:NetworkVar("Entity", 6, "NextTarget7")
-	self:NetworkVar("Entity", 7, "NextTarget8")
-	self:NetworkVar("Entity", 8, "NextTarget9")
-	self:NetworkVar("Entity", 9, "NextTarget10")
-	self:NetworkVar("Entity", 10, "NextTarget11")
-	self:NetworkVar("Entity", 11, "NextTarget12")
-	self:NetworkVar("Entity", 12, "NextTarget13")
-	self:NetworkVar("Entity", 13, "NextTarget14")
-	self:NetworkVar("Entity", 14, "NextTarget15")
-	self:NetworkVar("Entity", 15, "NextTarget16")
-	self:NetworkVar("Entity", 16, "NextBlimpTarget1")
-	self:NetworkVar("Entity", 17, "NextBlimpTarget2")
-	self:NetworkVar("Entity", 18, "NextBlimpTarget3")
-	self:NetworkVar("Entity", 19, "NextBlimpTarget4")
-	self:NetworkVar("Entity", 20, "NextBlimpTarget5")
-	self:NetworkVar("Entity", 21, "NextBlimpTarget6")
-	self:NetworkVar("Entity", 22, "NextBlimpTarget7")
-	self:NetworkVar("Entity", 23, "NextBlimpTarget8")
-	self:NetworkVar("Entity", 24, "NextBlimpTarget9")
-	self:NetworkVar("Entity", 25, "NextBlimpTarget10")
-	self:NetworkVar("Entity", 26, "NextBlimpTarget11")
-	self:NetworkVar("Entity", 27, "NextBlimpTarget12")
-	self:NetworkVar("Entity", 28, "NextBlimpTarget13")
-	self:NetworkVar("Entity", 29, "NextBlimpTarget14")
-	self:NetworkVar("Entity", 30, "NextBlimpTarget15")
-	self:NetworkVar("Entity", 31, "NextBlimpTarget16")
+	return gballoon_pob.SetupDataTables(self)
 end
 
 function ENT:KeyValue(key,value)
@@ -2496,16 +2520,46 @@ function ENT:KeyValue(key,value)
 		self.DontTriggerWaveRelays = value
 	elseif lkey=="no_messages" then
 		self.NoMessages = tobool(value)
+	elseif string.match(lkey, "^music_%d+$") then
+		local num = tonumber(string.match(lkey, "^music_(%d+)$"))
+		if value ~= "" and num then
+			self:GetSingleMusicData(num).file = value
+			self.MusicRequiresResync = true
+		end
+	elseif string.match(lkey, "^music_%d+_wave$") then
+		local num = tonumber(string.match(lkey, "^music_(%d+)_wave$"))
+		if num then
+			self:GetSingleMusicData(num).wave = tonumber(value) or 0
+			self.MusicRequiresResync = true
+		end
+	elseif string.match(lkey, "^music_%d+_text_%d+$") then
+		local num, line = string.match(lkey, "^music_(%d+)_text_(%d+)$")
+		num = tonumber(num)
+		line = tonumber(line)
+		if value ~= "" and num and line then
+			data = self:GetSingleMusicData(num)
+			data.texts = data.texts or {}
+			data.texts[line] = value
+			self.MusicRequiresResync = true
+		end
 	elseif string.match(lkey, "^music_file_%d+$") then
 		if value ~= "" then
 			local num = (tonumber(string.match(lkey, "^music_file_(%d+)$")) or 0) + 1
 			self:GetSingleMusicData(num).file = value
 		end
 		self.MusicRequiresResync = true
+		
+		local name = self:GetName() ~= "" and self:GetName() or self:GetClass()
+		ROTGB_LogError("DEPRECATION WARNING: The map tried to use music_file_* KeyValues on \""..name.."\", which are now deprecated. Please use music_* instead.", "")
+		debug.Trace()
 	elseif string.match(lkey, "^music_wave_%d+$") then
 		local num = (tonumber(string.match(lkey, "^music_wave_(%d+)$")) or 0) + 1
 		self:GetSingleMusicData(num).wave = tonumber(value) or 0
 		self.MusicRequiresResync = true
+		
+		local name = self:GetName() ~= "" and self:GetName() or self:GetClass()
+		ROTGB_LogError("DEPRECATION WARNING: The map tried to use music_wave_* KeyValues on \""..name.."\", which are now deprecated. Please use music_*_wave instead.", "")
+		debug.Trace()
 	elseif string.match(lkey, "^music_text_%d+_%d+$") then
 		if value ~= "" then
 			local num, line = string.match(lkey, "^music_text_(%d+)_(%d+)$")
@@ -2517,6 +2571,10 @@ function ENT:KeyValue(key,value)
 			data.texts[line] = value
 		end
 		self.MusicRequiresResync = true
+		
+		local name = self:GetName() ~= "" and self:GetName() or self:GetClass()
+		ROTGB_LogError("DEPRECATION WARNING: The map tried to use music_text_*_* KeyValues on \""..name.."\", which are now deprecated. Please use music_*_text_* instead.", "")
+		debug.Trace()
 	elseif lkey=="onwavestart" then
 		self:StoreOutput(key,value)
 	elseif lkey=="onwavefinished" then
@@ -2622,6 +2680,7 @@ function ENT:SyncEntity(ply)
 	if ply and self.rotgb_SyncedPlayers[ply] then
 		net.WriteInt(-1,16)
 	else
+		self.MusicData = self.MusicData or {}
 		net.WriteInt(table.Count(self.MusicData),16)
 		for k,v in pairs(self.MusicData) do
 			net.WriteInt(v.wave or -1, 32)
@@ -2658,14 +2717,14 @@ function ENT:SpawnFunction(ply,trace,classname)
 	return ent
 end
 
-local notifshown
+--local notifshown
 
 function ENT:Initialize()
 	if SERVER then
-		if not (navmesh.IsLoaded() or notifshown) and game.SinglePlayer() then
+		--[[if not (navmesh.IsLoaded() or notifshown) and game.SinglePlayer() then
 			ROTGB_CauseNotification(ROTGB_NOTIFY_NAVMESHMISSING, ROTGB_NOTIFYTYPE_ERROR)
 			notifshown = true
-		end
+		end]]
 		self.OutputShortlyThreshold = tonumber(self.OutputShortlyThreshold) or 7.5
 		if self:GetWave()<=0 then
 			self:SetWave(ROTGB_GetConVarValue("rotgb_default_first_wave"))
@@ -2724,7 +2783,7 @@ function ENT:Initialize()
 		
 		if self:GetNWString("rotgb_validwave","") == "" and self:GetWave() == 1 and not self.waveZeroMessaged and IsValid(LocalPlayer()) and not ROTGB_GetConVarValue("rotgb_no_wave_hints") then
 			self.waveZeroMessaged = true
-			ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.wave_hints.0"), ROTGB_NOTIFYTYPE_HINT, nil, {holdtime=10})
+			ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.wave_hints.0"), ROTGB_NOTIFYTYPE_CHAT, nil, {holdtime=10})
 		end
 	end
 end
@@ -2902,7 +2961,7 @@ function ENT:TriggerWaveEnded()
 		ROTGB_AddCash(income/self:GetSpawnDivider()*ROTGB_GetConVarValue("rotgb_cash_mul"))
 		hook.Run("gBalloonSpawnerWaveEnded",self,cwave-1)
 		if self:GetNWString("rotgb_validwave","") == "" then
-			ROTGB_CauseNotification(ROTGB_NOTIFY_WAVEEND, ROTGB_NOTIFYTYPE_HINT, nil, {"i32", cwave-1, holdtime=10})
+			ROTGB_CauseNotification(ROTGB_NOTIFY_WAVEEND, ROTGB_NOTIFYTYPE_CHAT, nil, {"i32", cwave-1})
 		end
 		if inFreeplay and not self.WinWave then
 			self.WinWave = cwave

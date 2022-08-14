@@ -180,7 +180,7 @@ function GM:gballoonTargetTakeDamage(target, dmginfo)
 		dmginfo:SetDamage(0)
 	end
 end
-function GM:PostgballoonTargetTakeDamage(target, dmginfo)
+--[[function GM:PostgballoonTargetTakeDamage(target, dmginfo)
 	if hook.Run("GetSkillAmount", "targetRevenge") > 0 then
 		local dmginfo = DamageInfo()
 		dmginfo:SetAttacker(target)
@@ -194,7 +194,7 @@ function GM:PostgballoonTargetTakeDamage(target, dmginfo)
 			v:TakeDamageInfo(dmginfo)
 		end
 	end
-end
+end]]
 
 -- defined in gballoon_base.lua
 function GM:gBalloonPostInitialize(bln)

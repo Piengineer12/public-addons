@@ -19,13 +19,14 @@ local color_purple = Color(127, 0, 255)
 local color_magenta = Color(255, 0, 255)
 local SQRT_2 = math.sqrt(2)
 
-local SCOREBOARD_CELL_WIDTH_MULTIPLIERS = {1, 6, 6, 3, 3, 9, {1, 3, 2}, 6}
+local SCOREBOARD_CELL_WIDTH_MULTIPLIERS = {1, 6, 6, 6, 3, 3, 9, {1, 3, 2}, 6}
 local SCOREBOARD_PADDING = 2
 local SCOREBOARD_CELL_SPACE = 1
 local SCOREBOARD_FIELDS = {
 	"#rotgb_tg.scoreboard.name",
-	"#rotgb_tg.scoreboard.current_cash",
 	"#rotgb_tg.scoreboard.score",
+	"#rotgb_tg.scoreboard.current_cash",
+	"#rotgb_tg.scoreboard.cash_generated",
 	"#rotgb_tg.scoreboard.ping",
 	"#rotgb_tg.scoreboard.level",
 	"#rotgb_tg.scoreboard.transfer",
@@ -34,12 +35,15 @@ local SCOREBOARD_FIELDS = {
 }
 local SCOREBOARD_FUNCS = {
 	[2] = function(ply)
-		return ROTGB_FormatCash(ROTGB_GetCash(ply))
-	end,
-	[3] = function(ply)
 		return string.Comma(math.floor(ply.rtg_gBalloonPops or 0))
 	end,
+	[3] = function(ply)
+		return ROTGB_FormatCash(ROTGB_GetCash(ply))
+	end,
 	[4] = function(ply)
+		return ROTGB_FormatCash(math.max(ply.rtg_CashGenerated, 0), true)
+	end,
+	[5] = function(ply)
 		return ROTGB_LocalizeString("rotgb_tg.scoreboard.ping_ms", string.Comma(ply:Ping()))
 	end
 }
@@ -52,7 +56,7 @@ local SKILL_SMOOTH_SIZE_MAX = 1.1
 local SKILL_SMOOTH_SPEED_MULTIPLIER = 1
 local SKILL_ACTIVATE_TIME = 1
 local SKILL_ACTIVATE_SIZE = 2
-local SKILL_BEAM_WIDTH_MULTIPLIER = 0.25
+local SKILL_BEAM_WIDTH_MULTIPLIERS = {0.25, 0.5}
 local SKILL_BEAM_SPEED_MULTIPLIER = 1
 local SKILL_BEAM_SMOOTH_ALPHA_MIN = 127
 local SKILL_BEAM_SMOOTH_ALPHA_MAX = 255
@@ -67,7 +71,33 @@ local SKILL_LEFT_TEXTS = {
 		color_red, "#rotgb_tg.skills.skill_apply_warning"
 	}
 }
-local CATEGORY_COLORS = {color_green, color_yellow, color_orange, color_red, color_magenta, color_purple}
+local SKILL_RIGHT_TEXTS = {
+	{
+		"rotgb_tg.skills.hint.drag",
+		{"#rotgb_tg.skills.hint.drag.1", "#rotgb_tg.skills.hint.drag.2"},
+		color_white,
+		{color_yellow, color_yellow}
+	},
+	{
+		"rotgb_tg.skills.hint.constellation",
+		{"#rotgb_tg.skills.hint.constellation.1"},
+		color_white,
+		{color_yellow}
+	},
+	{
+		"rotgb_tg.skills.hint.keyboard",
+		{"#rotgb_tg.skills.hint.keyboard.1", "#rotgb_tg.skills.hint.keyboard.2"},
+		color_white,
+		{color_yellow, color_yellow}
+	},
+	{
+		"rotgb_tg.skills.hint.keyboard.reset",
+		{"#rotgb_tg.skills.hint.keyboard.reset.1"},
+		color_white,
+		{color_yellow}
+	}
+}
+local CATEGORY_COLORS = {color_green, color_yellow, color_orange, color_red, color_magenta, color_purple, color_aqua}
 local ACHIEVEMENT_PADDING = ScreenScale(2)
 local ACHIEVEMENT_SIZE = ScreenScale(48)
 local ACHIEVEMENT_TIERS = {color_light_green, color_light_blue, color_light_orange}
@@ -76,13 +106,13 @@ local FONT_HEADER_HEIGHT = ScreenScale(16)
 local FONT_BODY_HEIGHT = ScreenScale(12)
 local FONT_LEVEL_HEIGHT = ScreenScale(16)
 local FONT_EXPERIENCE_HEIGHT = ScreenScale(12)
-local FONT_SKILL_BODY_HEIGHT = ScreenScale(6)
+local FONT_SKILL_BODY_HEIGHT = ScreenScale(8)
 local FONT_ACHIEVEMENT_HEADER_HEIGHT = ScreenScale(12)
 local FONT_ACHIEVEMENT_BODY_HEIGHT = ScreenScale(8)
 
 local FONT_SCOREBOARD_HEADER_HEIGHT = ScreenScale(8)
 local FONT_SCOREBOARD_BODY_HEIGHT = ScreenScale(8)
-local FONT_LEVEL_SMALL_HEIGHT = ScreenScale(5)
+local FONT_LEVEL_SMALL_HEIGHT = ScreenScale(6)
 
 local indentX = ScrW()*0.1
 local indentY = ScrH()*0.1
@@ -113,6 +143,7 @@ local SKILL_MATERIALS = {
 		acquired = CreateSkillMaterial("rtg_SkillA2", "sprites/orangecore1")
 	},
 	beam = CreateSkillMaterial("rtg_SkillBeam", "sprites/laser"),
+	constellation_beam = CreateSkillMaterial("rtg_SkillConstellationBeam", "sprites/orangelight1"),
 	info = CreateSkillMaterial("rtg_SkillInfo", "sprites/flare1")
 }
 
@@ -407,6 +438,18 @@ local function CreateTeamRightPanel()
 	return Panel
 end
 
+local function CreateTeamCancelButtonPanel(parent, zPos)
+	local button = CreateButton(Panel, "#rotgb_tg.buttons.cancel", color_red, function()
+		hook.Run("HideTeam")
+	end)
+	local Panel = CreateElementCenteringPanel(button, parent)
+	
+	Panel:SetZPos(zPos)
+	Panel:Dock(BOTTOM)
+	
+	return Panel
+end
+
 local function CreateScoreboardNameCell(parent, ply)
 	local PFPPanel = vgui.Create("DPanel", parent)
 	PFPPanel:SetWide(FONT_SCOREBOARD_BODY_HEIGHT)
@@ -440,7 +483,7 @@ end
 
 local function CreateScoreboardOtherLevelCell(parent, ply)
 	local LevelPanel = vgui.Create("DPanel", parent)
-	LevelPanel:SetWide(FONT_SCOREBOARD_BODY_HEIGHT*SCOREBOARD_CELL_WIDTH_MULTIPLIERS[1]*SCOREBOARD_CELL_WIDTH_MULTIPLIERS[5])
+	LevelPanel:SetWide(FONT_SCOREBOARD_BODY_HEIGHT*SCOREBOARD_CELL_WIDTH_MULTIPLIERS[1]*SCOREBOARD_CELL_WIDTH_MULTIPLIERS[6])
 	LevelPanel:Dock(RIGHT)
 	LevelPanel:SetZPos(-5)
 	LevelPanel.Level = ply:RTG_GetLevel()
@@ -487,7 +530,7 @@ local function CreateScoreboardTransferCell(parent, ply)
 	
 	TransferButton.Paint = ButtonPaintSmall
 	TransferButton:SetFont("rotgb_scoreboard_header")
-	TransferButton:SetWide(FONT_SCOREBOARD_BODY_HEIGHT*SCOREBOARD_CELL_WIDTH_MULTIPLIERS[1]*SCOREBOARD_CELL_WIDTH_MULTIPLIERS[6])
+	TransferButton:SetWide(FONT_SCOREBOARD_BODY_HEIGHT*SCOREBOARD_CELL_WIDTH_MULTIPLIERS[1]*SCOREBOARD_CELL_WIDTH_MULTIPLIERS[7])
 	TransferButton:Dock(RIGHT)
 	TransferButton:SetZPos(-6)
 	
@@ -533,7 +576,7 @@ end
 
 local function CreateScoreboardVoiceCell(parent, ply)
 	local baseWidth = FONT_SCOREBOARD_HEADER_HEIGHT*SCOREBOARD_CELL_WIDTH_MULTIPLIERS[1]
-	local cellWidths = SCOREBOARD_CELL_WIDTH_MULTIPLIERS[7]
+	local cellWidths = SCOREBOARD_CELL_WIDTH_MULTIPLIERS[8]
 	local totalWidth = 0
 	for k,v in pairs(cellWidths) do
 		totalWidth = totalWidth + baseWidth * v
@@ -617,7 +660,7 @@ local function CreateScoreboardVoiceCell(parent, ply)
 	
 	-- this was the old method, ditched because DNumSlider is a mess
 	--[[local NumSlider = vgui.Create("DNumSlider", parent)
-	NumSlider:SetWide(FONT_SCOREBOARD_HEADER_HEIGHT*SCOREBOARD_CELL_WIDTH_MULTIPLIERS[6])
+	NumSlider:SetWide(FONT_SCOREBOARD_HEADER_HEIGHT*SCOREBOARD_CELL_WIDTH_MULTIPLIERS[7])
 	NumSlider:Dock(RIGHT)
 	NumSlider:SetZPos(6)
 	NumSlider:SetDecimals(2)
@@ -640,7 +683,7 @@ local function CreateScoreboardKickCell(parent, ply)
 	
 	KickButton.Paint = ButtonPaintSmall
 	KickButton:SetFont("rotgb_scoreboard_header")
-	KickButton:SetWide(FONT_SCOREBOARD_BODY_HEIGHT*SCOREBOARD_CELL_WIDTH_MULTIPLIERS[1]*SCOREBOARD_CELL_WIDTH_MULTIPLIERS[8])
+	KickButton:SetWide(FONT_SCOREBOARD_BODY_HEIGHT*SCOREBOARD_CELL_WIDTH_MULTIPLIERS[1]*SCOREBOARD_CELL_WIDTH_MULTIPLIERS[9])
 	KickButton:Dock(RIGHT)
 	KickButton:SetZPos(-8)
 	return KickButton
@@ -661,7 +704,7 @@ local function CreateScoreboardHeader(parent, zPos)
 	--Panel._Color = teamColor
 	
 	-- attach the panels in reverse of the SCOREBOARD_FIELDS table
-	for i=8,1,-1 do
+	for i=9,1,-1 do
 		local width = SCOREBOARD_CELL_WIDTH_MULTIPLIERS[i]
 		if istable(width) then
 			local innerwidth = 0
@@ -701,7 +744,7 @@ local function CreateScoreboardRow(parent, ply, zPos)
 	--Panel._Color = teamColor
 	
 	-- attach the panels in reverse of the SCOREBOARD_FIELDS table
-	for i=8,1,-1 do
+	for i=9,1,-1 do
 		local cell
 		if SCOREBOARD_FUNCS[i] then
 			cell = vgui.Create("DLabel", Panel)
@@ -715,13 +758,13 @@ local function CreateScoreboardRow(parent, ply, zPos)
 			end
 		elseif i == 1 then
 			cell = CreateScoreboardNameCell(Panel, ply)
-		elseif i == 5 then
-			cell = CreateScoreboardOtherLevelCell(Panel, ply)
 		elseif i == 6 then
-			cell = CreateScoreboardTransferCell(Panel, ply)
+			cell = CreateScoreboardOtherLevelCell(Panel, ply)
 		elseif i == 7 then
-			cell = CreateScoreboardVoiceCell(Panel, ply)
+			cell = CreateScoreboardTransferCell(Panel, ply)
 		elseif i == 8 then
+			cell = CreateScoreboardVoiceCell(Panel, ply)
+		elseif i == 9 then
 			cell = CreateScoreboardKickCell(Panel, ply)
 		end
 		if i ~= 1 then
@@ -893,13 +936,23 @@ local function CreateGameOverButtons(parent, canContinue)
 	RestartButtonCenteringPanel:SetZPos(2)
 	RestartButtonCenteringPanel:Dock(BOTTOM)
 	
-	local VoteButton = CreateButton(nil, "#rotgb_tg.buttons.start_vote", color_green, function()
-		parent:Close()
-		RunConsoleCommand("rotgb_tg_vote")
-	end)
-	local VoteButtonCenteringPanel = CreateElementCenteringPanel(VoteButton, parent)
-	VoteButtonCenteringPanel:SetZPos(3)
-	VoteButtonCenteringPanel:Dock(BOTTOM)
+	if LocalPlayer():IsAdmin() then
+		local DifficultyButton = CreateButton(nil, "#rotgb_tg.buttons.select_difficulty", color_green, function()
+			parent:Close()
+			RunConsoleCommand("rotgb_tg_difficulty_menu")
+		end)
+		local DifficultyButtonCenteringPanel = CreateElementCenteringPanel(DifficultyButton, parent)
+		DifficultyButtonCenteringPanel:SetZPos(3)
+		DifficultyButtonCenteringPanel:Dock(BOTTOM)
+	else
+		local VoteButton = CreateButton(nil, "#rotgb_tg.buttons.start_vote", color_green, function()
+			parent:Close()
+			RunConsoleCommand("rotgb_tg_vote")
+		end)
+		local VoteButtonCenteringPanel = CreateElementCenteringPanel(VoteButton, parent)
+		VoteButtonCenteringPanel:SetZPos(3)
+		VoteButtonCenteringPanel:Dock(BOTTOM)
+	end
 	
 	if canContinue then
 		local ContinueButton = CreateButton(nil, "#rotgb_tg.buttons.freeplay", color_aqua, function()
@@ -915,8 +968,8 @@ local function CreateDifficultyDescriptionPanel()
 	local Panel = vgui.Create("DPanel")
 	Panel.Paint = nil
 	
-	local Header = CreateHeader(Panel, 1, "#rotgb_tg.difficulty.info.header")
-	local Text = CreateText(Panel, 2, "")
+	local Header = CreateHeader(Panel, 1, ROTGB_LocalizeString("rotgb_tg.difficulty.info.header"))
+	local Text = CreateText(Panel, 2, ROTGB_LocalizeString("rotgb_tg.difficulty.info"))
 	
 	function Panel:DifficultySelected(difficulty)
 		if difficulty then
@@ -927,8 +980,8 @@ local function CreateDifficultyDescriptionPanel()
 			))
 			Text:SetText("#rotgb_tg.difficulty."..difficulty..".description")
 		else
-			Header:SetText("#rotgb_tg.difficulty.info.header")
-			Text:SetText("")
+			Header:SetText(ROTGB_LocalizeString("rotgb_tg.difficulty.info.header"))
+			Text:SetText(ROTGB_LocalizeString("rotgb_tg.difficulty.info"))
 		end
 	end
 	
@@ -1586,6 +1639,7 @@ local function CreateSkillButton(parent, skillID, skillTier)
 	function button:OnMousePressed(mousecode)
 		if mousecode == MOUSE_LEFT then
 			self:MouseCapture(true)
+			self.rtg_LeftClicked = true
 		end
 	end
 	function button:OnMouseReleased(mousecode)
@@ -1594,13 +1648,28 @@ local function CreateSkillButton(parent, skillID, skillTier)
 				self:UnlockPerk()
 			end
 			self:MouseCapture(false)
+			self.rtg_LeftClicked = false
+			self.rtg_ConstellationDrawing = false
+			parent:StopConstellationDrawing()
 		end
 	end
 	function button:OnCursorEntered()
 		parent:OnSkillHovered(skillID)
 	end
+	function button:OnCursorMoved(x, y)
+		if self.rtg_ConstellationDrawing then
+			local pX, pY = self:GetPos()
+			parent:ConstellationCursorMoved(x+pX, y+pY)
+		end
+	end
 	function button:OnCursorExited()
+		local ply = LocalPlayer()
+		
 		parent:OnSkillUnhovered(skillID)
+		if self.rtg_LeftClicked and ply:RTG_SkillUnlocked(skillID) and not self.rtg_ConstellationDrawing then
+			self.rtg_ConstellationDrawing = true
+			parent:StartConstellationDrawing(skillID)
+		end
 	end
 	function button:TestHover(x,y)
 		local halfWidth = self:GetWide()/2
@@ -1850,27 +1919,6 @@ local function CreateSkillSummaryBackButton(parent)
 end
 
 local function CreateSkillWebSurface(parent)
-	local SKILL_RIGHT_TEXTS = {
-		ROTGB_LocalizeMulticoloredString(
-			"rotgb_tg.skills.hint.drag",
-			{"#rotgb_tg.skills.hint.drag.1", "#rotgb_tg.skills.hint.drag.2"},
-			color_white,
-			{color_yellow, color_yellow}
-		),
-		ROTGB_LocalizeMulticoloredString(
-			"rotgb_tg.skills.hint.keyboard",
-			{"#rotgb_tg.skills.hint.keyboard.1", "#rotgb_tg.skills.hint.keyboard.2"},
-			color_white,
-			{color_yellow, color_yellow}
-		),
-		ROTGB_LocalizeMulticoloredString(
-			"rotgb_tg.skills.hint.keyboard.reset",
-			{"#rotgb_tg.skills.hint.keyboard.reset.1"},
-			color_white,
-			{color_yellow}
-		)
-	}
-
 	local skills = hook.Run("GetSkills")
 	local Surface = vgui.Create("DPanel", parent)
 	local hoveredSkillID = 1
@@ -1922,8 +1970,6 @@ local function CreateSkillWebSurface(parent)
 	end
 	function Surface:OnMouseWheeled(downAmount)
 		self:ZoomSkillWeb(0, -20*downAmount)
-	end
-	function Surface:OnCursorMoved(x,y)
 	end
 	function Surface:OnKeyCodePressed(key)
 		if key == KEY_W then
@@ -2010,7 +2056,7 @@ local function CreateSkillWebSurface(parent)
 			draw.MultiColoredText(v, "rotgb_skill_body", 0, FONT_SKILL_BODY_HEIGHT*(i-1))
 		end
 		for i,v in ipairs(SKILL_RIGHT_TEXTS) do
-			draw.MultiColoredText(v, "rotgb_skill_body", w, FONT_SKILL_BODY_HEIGHT*(i-1), TEXT_ALIGN_RIGHT)
+			draw.MultiColoredText(ROTGB_LocalizeMulticoloredString(unpack(v)), "rotgb_skill_body", w, FONT_SKILL_BODY_HEIGHT*(i-1), TEXT_ALIGN_RIGHT)
 		end
 	end
 	function Surface:Think()
@@ -2257,12 +2303,17 @@ local function CreateSkillWebSurface(parent)
 		
 		local drawPos = pos1:Lerp(0.5, pos2)
 		local x, y = drawPos[1], drawPos[2]
-		local width, length, rot = skillButton:GetWide()*SKILL_BEAM_WIDTH_MULTIPLIER, pos1:Distance(pos2), math.deg(pos1:Bearing(pos2))
+		local length, rot = pos1:Distance(pos2), math.deg(pos1:Bearing(pos2))
 		local beamPhase = skillID > skillID2 and skillButton.rtg_BeamPhase or skillButton2.rtg_BeamPhase
 		local alpha = math.Remap(math.sin(RealTime()*SKILL_BEAM_SPEED_MULTIPLIER+beamPhase), -1, 1, SKILL_BEAM_SMOOTH_ALPHA_MIN, SKILL_BEAM_SMOOTH_ALPHA_MAX)
 		
+		local isSelectedForConstellation = self.rtg_ConstellationNodeMap
+		and (self.rtg_ConstellationNodeMap[skillID] or 0) > 0
+		and (self.rtg_ConstellationNodeMap[skillID2] or 0) > 0
+		local width = skillButton:GetWide()*SKILL_BEAM_WIDTH_MULTIPLIERS[isSelectedForConstellation and 2 or 1]
+		
 		surface.SetDrawColor(alpha,alpha,alpha)
-		surface.SetMaterial(SKILL_MATERIALS.beam)
+		surface.SetMaterial(isSelectedForConstellation and SKILL_MATERIALS.constellation_beam or SKILL_MATERIALS.beam)
 		surface.DrawTexturedRectRotated(x, y, width, length, rot)
 		surface.DrawTexturedRectRotated(x, y, width, length, rot+180)
 	end
@@ -2271,6 +2322,80 @@ local function CreateSkillWebSurface(parent)
 		if IsValid(button) then
 			button:ActivatePerk()
 		end
+	end
+	
+	function Surface:StartConstellationDrawing(skillID)
+		self.rtg_CurrentConstellationNode = skillID
+		self.rtg_ConstellationNodes = {skillID}
+		self.rtg_ConstellationNodeMap = {[skillID] = 1}
+	end
+	function Surface:ConstellationCursorMoved(x, y)
+		if self.rtg_ConstellationNodes then
+			local cursorVectorTable = VectorTable(x, y)
+			local currentSkillID = self.rtg_CurrentConstellationNode
+			
+			local vectorTable = self.rtg_SkillButtons[currentSkillID]:GetVectorTablePos()
+			local closestSquaredDistance = vectorTable:DistanceSquared(cursorVectorTable)
+			local closestSkillID = currentSkillID
+			
+			for k,v in pairs(skills[currentSkillID].links) do
+				vectorTable = self.rtg_SkillButtons[k]:GetVectorTablePos()
+				local squaredDistance = vectorTable:DistanceSquared(cursorVectorTable)
+				if squaredDistance < closestSquaredDistance then
+					closestSquaredDistance = squaredDistance
+					closestSkillID = k
+				end
+			end
+			
+			local nodeCount = #self.rtg_ConstellationNodes
+			local oldConstellationNode = self.rtg_ConstellationNodes[nodeCount]
+			if oldConstellationNode ~= closestSkillID then
+				local previousConstellationNode = self.rtg_ConstellationNodes[nodeCount-1]
+				
+				if previousConstellationNode == closestSkillID then
+					self.rtg_ConstellationNodes[nodeCount] = nil
+					self.rtg_ConstellationNodeMap[oldConstellationNode] = self.rtg_ConstellationNodeMap[oldConstellationNode] - 1
+				else
+					table.insert(self.rtg_ConstellationNodes, closestSkillID)
+					self.rtg_ConstellationNodeMap[closestSkillID] = (self.rtg_ConstellationNodeMap[closestSkillID] or 0) + 1
+				end
+				self.rtg_CurrentConstellationNode = closestSkillID
+				--PrintTable(self.rtg_ConstellationNodes)
+				--PrintTable(self.rtg_ConstellationNodeMap)
+			end
+		end
+	end
+	function Surface:StopConstellationDrawing()
+		if self.rtg_ConstellationNodes then
+			local ply = LocalPlayer()
+			
+			local toUnlock = {}
+			local skillPointsLeft = ply:RTG_GetSkillPoints()
+			for i,v in ipairs(self.rtg_ConstellationNodes) do
+				if skillPointsLeft <= 0 then break end
+				if not ply:RTG_HasSkill(v) and (self.rtg_ConstellationNodeMap[v] or 0) > 0 then
+					table.insert(toUnlock, v)
+					self.rtg_ConstellationNodeMap[v] = nil
+					skillPointsLeft = skillPointsLeft - 1
+				end
+			end
+			--PrintTable(toUnlock)
+			
+			if next(toUnlock) then
+				net.Start("rotgb_gamemode")
+				net.WriteUInt(RTG_OPERATION_SKILLS, 4)
+				net.WriteUInt(RTG_SKILL_MULTIPLE, 2)
+				net.WriteUInt(#toUnlock-1, 12)
+				for i,v in ipairs(toUnlock) do
+					net.WriteUInt(v-1, 12)
+				end
+				net.SendToServer()
+			end
+		end
+		
+		self.rtg_CurrentConstellationNode = nil
+		self.rtg_ConstellationNodes = nil
+		self.rtg_ConstellationNodeMap = nil
 	end
 	
 	return Surface
@@ -2456,16 +2581,7 @@ function GM:CreateStartupMenu()
 	local Menu = CreateMenu()
 	if ROTGB_SetCash then
 		CreateHeader(Menu, 1, "#rotgb_tg.welcome.header")
-		CreateText(Menu, 2, "#rotgb_tg.welcome.1")
-		CreateText(Menu, 3, "#rotgb_tg.welcome.2")
-		CreateText(Menu, 4, "#rotgb_tg.welcome.3")
-		CreateText(Menu, 5, "#rotgb_tg.welcome.4")
-		CreateText(Menu, 6, "#rotgb_tg.welcome.5")
-		CreateText(Menu, 7, "#rotgb_tg.welcome.6")
-		CreateText(Menu, 8, "#rotgb_tg.welcome.7")
-		CreateText(Menu, 9, "#rotgb_tg.welcome.8")
-		CreateText(Menu, 10, "#rotgb_tg.welcome.9")
-		CreateText(Menu, 11, "#rotgb_tg.welcome.10")
+		CreateText(Menu, 2, ROTGB_LocalizeString("rotgb_tg.welcome"))
 		
 		local NextButton = CreateButton(Menu, "#rotgb_tg.buttons.proceed", color_green, function()
 			hook.Run("ShowHelp")
@@ -2485,7 +2601,7 @@ function GM:CreateStartupMenu()
 	return Menu
 end
 
-function GM:CreateTeamSelectMenu()
+function GM:CreateTeamSelectMenu(disableCancel)
 	local Menu = CreateMenu()
 	CreateHeader(Menu, 1, "#rotgb_tg.teams.header")
 	
@@ -2518,6 +2634,10 @@ function GM:CreateTeamSelectMenu()
 	Divider:SetRight(RightPanel)
 	Divider:SetDividerWidth(FONT_HEADER_HEIGHT)
 	Divider:SetLeftWidth((Menu:GetWide()-FONT_HEADER_HEIGHT)/2-indentX)
+	
+	if not disableCancel then
+		local CancelButton = CreateTeamCancelButtonPanel(Menu, 1)
+	end
 	
 	return Menu
 end
@@ -2758,9 +2878,9 @@ function GM:ShowHelp()
 	end
 end
 
-function GM:ShowTeam()
+function GM:ShowTeam(disableCancel)
 	hook.Run("HideTeam")
-	hook.Run("SetTeamSelectionMenu", hook.Run("CreateTeamSelectMenu"))
+	hook.Run("SetTeamSelectionMenu", hook.Run("CreateTeamSelectMenu", disableCancel))
 end
 
 function GM:HideTeam()
@@ -2781,37 +2901,6 @@ function GM:ScoreboardHide()
 	if IsValid(self.ScoreboardFrame) then
 		self.ScoreboardFrame:Close()
 	end
-end
-
-function GM:GetGamemodeDifficultyNodes()
-	local nodesByCategory = {}
-	for k,v in pairs(hook.Run("GetDifficulties")) do
-		if v.category and hook.Run("IsDifficultyUnlocked", k) then
-			local subnode = {
-				name = k,
-				place = v.place
-			}
-			nodesByCategory[v.category] = nodesByCategory[v.category] or {}
-			table.insert(nodesByCategory[v.category], subnode)
-		end
-	end
-	
-	for k,v in pairs(nodesByCategory) do
-		table.SortByMember(v, "place", true)
-	end
-	
-	local nodes = {}
-	for k,v in pairs(nodesByCategory) do
-		local node = {
-			name = k,
-			place = hook.Run("GetDifficultyCategories")[k],
-			subnodes = nodesByCategory[k]
-		}
-		table.insert(nodes, node)
-	end
-	
-	table.SortByMember(nodes, "place", true)
-	return nodes
 end
 
 function GM:ShowDifficultySelection(disableCancel)

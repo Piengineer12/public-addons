@@ -86,6 +86,7 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.rotgb_TurretLasers = true
+				self.MaxFireRate = 10
 				self.FireRate = self.FireRate * 2
 			end,
 			function(self)
@@ -140,8 +141,7 @@ end
 
 function ENT:TriggerAbility()
 	local navs = navmesh.Find(self:GetShootPos(), self.DetectionRadius, self.DetectionRadius/4, self.DetectionRadius/4)
-	if #navs == 0 then return true
-	else
+	if next(navs) then
 		local point = navs[math.random(#navs)]:GetRandomPoint()
 		if self:GetShootPos():DistToSqr(point) > self.DetectionRadius * self.DetectionRadius then return true end
 		local ent = ents.Create("gballoon_tower_15_helper")
@@ -149,6 +149,35 @@ function ENT:TriggerAbility()
 			ent:SetSpawnedTower(self)
 			ent:SetPos(point)
 			ent:Spawn()
+		else return true
+		end
+	else
+		-- get a random point on a circle extending outwards from the tower
+		-- with range between 32 and detection radius
+		local randomDistance = Lerp(math.random(), 32, self.DetectionRadius)
+		local randomAngle = math.random()*math.pi*2
+		local xoffset = math.cos(randomAngle)*randomDistance
+		local yoffset = math.sin(randomAngle)*randomDistance
+		
+		-- now the point should be projected onto a dome covering the top of the tower
+		local zoffset = math.sqrt(1 - (randomDistance/self.DetectionRadius)^2)*randomDistance
+		
+		-- create a line trace
+		local startPos = self:LocalToWorld(Vector(xoffset, yoffset, zoffset))
+		local endPos = self:LocalToWorld(Vector(xoffset, yoffset, -zoffset))
+		local traceData = {
+			start = startPos,
+			endpos = endPos
+		}
+		local result = util.TraceLine(traceData)
+		if not result.StartSolid and result.Hit then
+			local ent = ents.Create("gballoon_tower_15_helper")
+			if IsValid(ent) then
+				ent:SetSpawnedTower(self)
+				ent:SetPos(result.HitPos)
+				ent:Spawn()
+			else return true
+			end
 		else return true
 		end
 	end

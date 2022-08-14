@@ -1,75 +1,75 @@
 @include "base.fgd"
 
-// rotgb.fgd for RotgB Version 6.3.X, by Piengineer12
-// last updated 2022-07-17
+// rotgb.fgd for RotgB Version 6.5.X, by Piengineer12
+// last updated 2022-08-14
 // https://steamcommunity.com/workshop/filedetails/discussion/1616333917/1742231705671196872/
 
 @BaseClass = RotgBTarget
 [
-	next_target_0(target_destination) : "Next gBalloon Target 1" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
-	next_target_1(target_destination) : "Next gBalloon Target 2" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
-	next_target_2(target_destination) : "Next gBalloon Target 3" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
-	next_target_3(target_destination) : "Next gBalloon Target 4" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
-	next_target_4(target_destination) : "Next gBalloon Target 5" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
-	next_target_5(target_destination) : "Next gBalloon Target 6" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
-	next_target_6(target_destination) : "Next gBalloon Target 7" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
-	next_target_7(target_destination) : "Next gBalloon Target 8" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
-	next_target_8(target_destination) : "Next gBalloon Target 9" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
-	next_target_9(target_destination) : "Next gBalloon Target 10" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
-	next_target_a(target_destination) : "Next gBalloon Target 11" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
-	next_target_b(target_destination) : "Next gBalloon Target 12" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
-	next_target_c(target_destination) : "Next gBalloon Target 13" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
-	next_target_d(target_destination) : "Next gBalloon Target 14" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
-	next_target_e(target_destination) : "Next gBalloon Target 15" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
-	next_target_f(target_destination) : "Next gBalloon Target 16" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
-	next_blimp_target_0(target_destination) : "gBlimp Next gBalloon Target 1" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
-	next_blimp_target_1(target_destination) : "gBlimp Next gBalloon Target 2" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
-	next_blimp_target_2(target_destination) : "gBlimp Next gBalloon Target 3" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
-	next_blimp_target_3(target_destination) : "gBlimp Next gBalloon Target 4" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
-	next_blimp_target_4(target_destination) : "gBlimp Next gBalloon Target 5" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
-	next_blimp_target_5(target_destination) : "gBlimp Next gBalloon Target 6" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
-	next_blimp_target_6(target_destination) : "gBlimp Next gBalloon Target 7" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
-	next_blimp_target_7(target_destination) : "gBlimp Next gBalloon Target 8" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
-	next_blimp_target_8(target_destination) : "gBlimp Next gBalloon Target 9" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
-	next_blimp_target_9(target_destination) : "gBlimp Next gBalloon Target 10" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
-	next_blimp_target_a(target_destination) : "gBlimp Next gBalloon Target 11" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
-	next_blimp_target_b(target_destination) : "gBlimp Next gBalloon Target 12" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
-	next_blimp_target_c(target_destination) : "gBlimp Next gBalloon Target 13" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
-	next_blimp_target_d(target_destination) : "gBlimp Next gBalloon Target 14" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
-	next_blimp_target_e(target_destination) : "gBlimp Next gBalloon Target 15" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
-	next_blimp_target_f(target_destination) : "gBlimp Next gBalloon Target 16" : "" : "Sets the next gBalloon Target that only gBlimps will navigate to. Takes precedence over all Next Targets."
-	input SetNextWaypoint0(string) : "Sets the next waypoint for the spawner."
-	input SetNextWaypoint1(string) : "Sets the next waypoint for the spawner."
-	input SetNextWaypoint2(string) : "Sets the next waypoint for the spawner."
-	input SetNextWaypoint3(string) : "Sets the next waypoint for the spawner."
-	input SetNextWaypoint4(string) : "Sets the next waypoint for the spawner."
-	input SetNextWaypoint5(string) : "Sets the next waypoint for the spawner."
-	input SetNextWaypoint6(string) : "Sets the next waypoint for the spawner."
-	input SetNextWaypoint7(string) : "Sets the next waypoint for the spawner."
-	input SetNextWaypoint8(string) : "Sets the next waypoint for the spawner."
-	input SetNextWaypoint9(string) : "Sets the next waypoint for the spawner."
-	input SetNextWaypointA(string) : "Sets the next waypoint for the spawner."
-	input SetNextWaypointB(string) : "Sets the next waypoint for the spawner."
-	input SetNextWaypointC(string) : "Sets the next waypoint for the spawner."
-	input SetNextWaypointD(string) : "Sets the next waypoint for the spawner."
-	input SetNextWaypointE(string) : "Sets the next waypoint for the spawner."
-	input SetNextWaypointF(string) : "Sets the next waypoint for the spawner."
-	input SetNextBlimpWaypoint0(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
-	input SetNextBlimpWaypoint1(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
-	input SetNextBlimpWaypoint2(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
-	input SetNextBlimpWaypoint3(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
-	input SetNextBlimpWaypoint4(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
-	input SetNextBlimpWaypoint5(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
-	input SetNextBlimpWaypoint6(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
-	input SetNextBlimpWaypoint7(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
-	input SetNextBlimpWaypoint8(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
-	input SetNextBlimpWaypoint9(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
-	input SetNextBlimpWaypointA(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
-	input SetNextBlimpWaypointB(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
-	input SetNextBlimpWaypointC(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
-	input SetNextBlimpWaypointD(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
-	input SetNextBlimpWaypointE(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
-	input SetNextBlimpWaypointF(string) : "Sets the next waypoint for only gBlimps. Takes precedence over all SetNextWaypoint inputs."
+	target_1(target_destination) : "Next Target 1" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	target_2(target_destination) : "Next Target 2" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	target_3(target_destination) : "Next Target 3" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	target_4(target_destination) : "Next Target 4" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	target_5(target_destination) : "Next Target 5" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	target_6(target_destination) : "Next Target 6" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	target_7(target_destination) : "Next Target 7" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	target_8(target_destination) : "Next Target 8" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	target_9(target_destination) : "Next Target 9" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	target_10(target_destination) : "Next Target 10" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	target_11(target_destination) : "Next Target 11" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	target_12(target_destination) : "Next Target 12" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	target_13(target_destination) : "Next Target 13" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	target_14(target_destination) : "Next Target 14" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	target_15(target_destination) : "Next Target 15" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	target_16(target_destination) : "Next Target 16" : "" : "Sets the next gBalloon Target the gBalloons will navigate to."
+	blimp_target_1(target_destination) : "gBlimp Next Target 1" : "" : "Sets the next gBalloon Target that all gBlimps will navigate to."
+	blimp_target_2(target_destination) : "gBlimp Next Target 2" : "" : "Sets the next gBalloon Target that all gBlimps will navigate to."
+	blimp_target_3(target_destination) : "gBlimp Next Target 3" : "" : "Sets the next gBalloon Target that all gBlimps will navigate to."
+	blimp_target_4(target_destination) : "gBlimp Next Target 4" : "" : "Sets the next gBalloon Target that all gBlimps will navigate to."
+	blimp_target_5(target_destination) : "gBlimp Next Target 5" : "" : "Sets the next gBalloon Target that all gBlimps will navigate to."
+	blimp_target_6(target_destination) : "gBlimp Next Target 6" : "" : "Sets the next gBalloon Target that all gBlimps will navigate to."
+	blimp_target_7(target_destination) : "gBlimp Next Target 7" : "" : "Sets the next gBalloon Target that all gBlimps will navigate to."
+	blimp_target_8(target_destination) : "gBlimp Next Target 8" : "" : "Sets the next gBalloon Target that all gBlimps will navigate to."
+	blimp_target_9(target_destination) : "gBlimp Next Target 9" : "" : "Sets the next gBalloon Target that all gBlimps will navigate to."
+	blimp_target_10(target_destination) : "gBlimp Next Target 10" : "" : "Sets the next gBalloon Target that all gBlimps will navigate to."
+	blimp_target_11(target_destination) : "gBlimp Next Target 11" : "" : "Sets the next gBalloon Target that all gBlimps will navigate to."
+	blimp_target_12(target_destination) : "gBlimp Next Target 12" : "" : "Sets the next gBalloon Target that all gBlimps will navigate to."
+	blimp_target_13(target_destination) : "gBlimp Next Target 13" : "" : "Sets the next gBalloon Target that all gBlimps will navigate to."
+	blimp_target_14(target_destination) : "gBlimp Next Target 14" : "" : "Sets the next gBalloon Target that all gBlimps will navigate to."
+	blimp_target_15(target_destination) : "gBlimp Next Target 15" : "" : "Sets the next gBalloon Target that all gBlimps will navigate to."
+	blimp_target_16(target_destination) : "gBlimp Next Target 16" : "" : "Sets the next gBalloon Target that all gBlimps will navigate to."
+	input SetNextTarget1(string) : "Sets the next gBalloon Target."
+	input SetNextTarget2(string) : "Sets the next gBalloon Target."
+	input SetNextTarget3(string) : "Sets the next gBalloon Target."
+	input SetNextTarget4(string) : "Sets the next gBalloon Target."
+	input SetNextTarget5(string) : "Sets the next gBalloon Target."
+	input SetNextTarget6(string) : "Sets the next gBalloon Target."
+	input SetNextTarget7(string) : "Sets the next gBalloon Target."
+	input SetNextTarget8(string) : "Sets the next gBalloon Target."
+	input SetNextTarget9(string) : "Sets the next gBalloon Target."
+	input SetNextTarget10(string) : "Sets the next gBalloon Target."
+	input SetNextTarget11(string) : "Sets the next gBalloon Target."
+	input SetNextTarget12(string) : "Sets the next gBalloon Target."
+	input SetNextTarget13(string) : "Sets the next gBalloon Target."
+	input SetNextTarget14(string) : "Sets the next gBalloon Target."
+	input SetNextTarget15(string) : "Sets the next gBalloon Target."
+	input SetNextTarget16(string) : "Sets the next gBalloon Target."
+	input SetNextBlimpTarget1(string) : "Sets the next gBalloon Target for all gBlimps."
+	input SetNextBlimpTarget2(string) : "Sets the next gBalloon Target for all gBlimps."
+	input SetNextBlimpTarget3(string) : "Sets the next gBalloon Target for all gBlimps."
+	input SetNextBlimpTarget4(string) : "Sets the next gBalloon Target for all gBlimps."
+	input SetNextBlimpTarget5(string) : "Sets the next gBalloon Target for all gBlimps."
+	input SetNextBlimpTarget6(string) : "Sets the next gBalloon Target for all gBlimps."
+	input SetNextBlimpTarget7(string) : "Sets the next gBalloon Target for all gBlimps."
+	input SetNextBlimpTarget8(string) : "Sets the next gBalloon Target for all gBlimps."
+	input SetNextBlimpTarget9(string) : "Sets the next gBalloon Target for all gBlimps."
+	input SetNextBlimpTarget10(string) : "Sets the next gBalloon Target for all gBlimps."
+	input SetNextBlimpTarget11(string) : "Sets the next gBalloon Target for all gBlimps."
+	input SetNextBlimpTarget12(string) : "Sets the next gBalloon Target for all gBlimps."
+	input SetNextBlimpTarget13(string) : "Sets the next gBalloon Target for all gBlimps."
+	input SetNextBlimpTarget14(string) : "Sets the next gBalloon Target for all gBlimps."
+	input SetNextBlimpTarget15(string) : "Sets the next gBalloon Target for all gBlimps."
+	input SetNextBlimpTarget16(string) : "Sets the next gBalloon Target for all gBlimps."
 ]
 
 @BaseClass = RotgBSpectatable
@@ -107,46 +107,46 @@
 
 @BaseClass = RotgBMusicEmitter
 [
-	music_wave_0(integer) : "Music 1 Wave" : -1 : "Sets the wave where Music 1 plays. Later waves will take priority over earlier waves. -1 = do not play."
-	music_wave_1(integer) : "Music 2 Wave" : -1 : "Sets the wave where Music 2 plays. Later waves will take priority over earlier waves. -1 = do not play."
-	music_wave_2(integer) : "Music 3 Wave" : -1 : "Sets the wave where Music 3 plays. Later waves will take priority over earlier waves. -1 = do not play."
-	music_wave_3(integer) : "Music 4 Wave" : -1 : "Sets the wave where Music 4 plays. Later waves will take priority over earlier waves. -1 = do not play."
-	music_file_0(sound) : "Music 1" : "" : "Sets the music played when Music 1 Wave is reached. Leave blank to stop music instead."
-	music_file_1(sound) : "Music 2" : "" : "Sets the music played when Music 2 Wave is reached. Leave blank to stop music instead."
-	music_file_2(sound) : "Music 3" : "" : "Sets the music played when Music 3 Wave is reached. Leave blank to stop music instead."
-	music_file_3(sound) : "Music 4" : "" : "Sets the music played when Music 4 Wave is reached. Leave blank to stop music instead."
-	music_text_0_0(string) : "Music 1 Text 1" : "" : "First line of text to display when Music 1 is played. Leave blank to not display."
-	music_text_0_1(string) : "Music 1 Text 2" : "" : "Second line of text to display when Music 1 is played. Leave blank to not display."
-	music_text_0_2(string) : "Music 1 Text 3" : "" : "Third line of text to display when Music 1 is played. Leave blank to not display."
-	music_text_0_3(string) : "Music 1 Text 4" : "" : "Fourth line of text to display when Music 1 is played. Leave blank to not display."
-	music_text_1_0(string) : "Music 2 Text 1" : "" : "First line of text to display when Music 2 is played. Leave blank to not display."
-	music_text_1_1(string) : "Music 2 Text 2" : "" : "Second line of text to display when Music 2 is played. Leave blank to not display."
-	music_text_1_2(string) : "Music 2 Text 3" : "" : "Third line of text to display when Music 2 is played. Leave blank to not display."
-	music_text_1_3(string) : "Music 2 Text 4" : "" : "Fourth line of text to display when Music 2 is played. Leave blank to not display."
-	music_text_2_0(string) : "Music 3 Text 1" : "" : "First line of text to display when Music 3 is played. Leave blank to not display."
-	music_text_2_1(string) : "Music 3 Text 2" : "" : "Second line of text to display when Music 3 is played. Leave blank to not display."
-	music_text_2_2(string) : "Music 3 Text 3" : "" : "Third line of text to display when Music 3 is played. Leave blank to not display."
-	music_text_2_3(string) : "Music 3 Text 4" : "" : "Fourth line of text to display when Music 3 is played. Leave blank to not display."
-	music_text_3_0(string) : "Music 4 Text 1" : "" : "First line of text to display when Music 4 is played. Leave blank to not display."
-	music_text_3_1(string) : "Music 4 Text 2" : "" : "Second line of text to display when Music 4 is played. Leave blank to not display."
-	music_text_3_2(string) : "Music 4 Text 3" : "" : "Third line of text to display when Music 4 is played. Leave blank to not display."
-	music_text_3_3(string) : "Music 4 Text 4" : "" : "Fourth line of text to display when Music 4 is played. Leave blank to not display."
-	music_disabled_0(choices) : "Music 1 Starts Disabled" : 0 : "On the wave where Music 1 plays, music is stopped instead and no text will be displayed." =
+	music_1_wave(integer) : "Music 1 Wave" : -1 : "Sets the wave where Music 1 plays. Later waves will take priority over earlier waves. -1 = do not play."
+	music_2_wave(integer) : "Music 2 Wave" : -1 : "Sets the wave where Music 2 plays. Later waves will take priority over earlier waves. -1 = do not play."
+	music_3_wave(integer) : "Music 3 Wave" : -1 : "Sets the wave where Music 3 plays. Later waves will take priority over earlier waves. -1 = do not play."
+	music_4_wave(integer) : "Music 4 Wave" : -1 : "Sets the wave where Music 4 plays. Later waves will take priority over earlier waves. -1 = do not play."
+	music_1(sound) : "Music 1" : "" : "Sets the music played when Music 1 Wave is reached. Leave blank to stop music instead."
+	music_2(sound) : "Music 2" : "" : "Sets the music played when Music 2 Wave is reached. Leave blank to stop music instead."
+	music_3(sound) : "Music 3" : "" : "Sets the music played when Music 3 Wave is reached. Leave blank to stop music instead."
+	music_4(sound) : "Music 4" : "" : "Sets the music played when Music 4 Wave is reached. Leave blank to stop music instead."
+	music_1_text_1(string) : "Music 1 Text 1" : "" : "First line of text to display when Music 1 is played. Leave blank to not display."
+	music_1_text_2(string) : "Music 1 Text 2" : "" : "Second line of text to display when Music 1 is played. Leave blank to not display."
+	music_1_text_3(string) : "Music 1 Text 3" : "" : "Third line of text to display when Music 1 is played. Leave blank to not display."
+	music_1_text_4(string) : "Music 1 Text 4" : "" : "Fourth line of text to display when Music 1 is played. Leave blank to not display."
+	music_2_text_1(string) : "Music 2 Text 1" : "" : "First line of text to display when Music 2 is played. Leave blank to not display."
+	music_2_text_2(string) : "Music 2 Text 2" : "" : "Second line of text to display when Music 2 is played. Leave blank to not display."
+	music_2_text_3(string) : "Music 2 Text 3" : "" : "Third line of text to display when Music 2 is played. Leave blank to not display."
+	music_2_text_4(string) : "Music 2 Text 4" : "" : "Fourth line of text to display when Music 2 is played. Leave blank to not display."
+	music_3_text_1(string) : "Music 3 Text 1" : "" : "First line of text to display when Music 3 is played. Leave blank to not display."
+	music_3_text_2(string) : "Music 3 Text 2" : "" : "Second line of text to display when Music 3 is played. Leave blank to not display."
+	music_3_text_3(string) : "Music 3 Text 3" : "" : "Third line of text to display when Music 3 is played. Leave blank to not display."
+	music_3_text_4(string) : "Music 3 Text 4" : "" : "Fourth line of text to display when Music 3 is played. Leave blank to not display."
+	music_4_text_1(string) : "Music 4 Text 1" : "" : "First line of text to display when Music 4 is played. Leave blank to not display."
+	music_4_text_2(string) : "Music 4 Text 2" : "" : "Second line of text to display when Music 4 is played. Leave blank to not display."
+	music_4_text_3(string) : "Music 4 Text 3" : "" : "Third line of text to display when Music 4 is played. Leave blank to not display."
+	music_4_text_4(string) : "Music 4 Text 4" : "" : "Fourth line of text to display when Music 4 is played. Leave blank to not display."
+	music_1_disabled(choices) : "Music 1 Starts Disabled" : 0 : "On the wave where Music 1 plays, music is stopped instead and no text will be displayed." =
 	[
 		0 : "No"
 		1 : "Yes"
 	]
-	music_disabled_1(choices) : "Music 2 Starts Disabled" : 0 : "On the wave where Music 2 plays, music is stopped instead and no text will be displayed." =
+	music_2_disabled(choices) : "Music 2 Starts Disabled" : 0 : "On the wave where Music 2 plays, music is stopped instead and no text will be displayed." =
 	[
 		0 : "No"
 		1 : "Yes"
 	]
-	music_disabled_2(choices) : "Music 3 Starts Disabled" : 0 : "On the wave where Music 3 plays, music is stopped instead and no text will be displayed." =
+	music_3_disabled(choices) : "Music 3 Starts Disabled" : 0 : "On the wave where Music 3 plays, music is stopped instead and no text will be displayed." =
 	[
 		0 : "No"
 		1 : "Yes"
 	]
-	music_disabled_3(choices) : "Music 4 Starts Disabled" : 0 : "On the wave where Music 4 plays, music is stopped instead and no text will be displayed." =
+	music_4_disabled(choices) : "Music 4 Starts Disabled" : 0 : "On the wave where Music 4 plays, music is stopped instead and no text will be displayed." =
 	[
 		0 : "No"
 		1 : "Yes"
@@ -174,6 +174,154 @@
 	input ToggleMusic(void) : "Toggles all music. Note that this simply inverts the disabled state for all music."
 ]
 
+@BaseClass = RotgBConVarManipulator
+[
+	convar_1_name(choices) : "ConVar 1" : "" : "First ConVar to modify when the custom difficulty is selected." =
+	[
+		"" : "None"
+		"rotgb_difficulty" : "Difficulty (0 = Easy, 4 = Impossible)"
+		"rotgb_default_first_wave" : "gBalloon Spawner First Wave"
+		"rotgb_default_last_wave" : "gBalloon Spawner Last Wave"
+		"rotgb_spawner_force_auto_start" : "gBalloon Spawner Force Auto-Start"
+		"rotgb_default_wave_preset" : "gBalloon Spawner Wave Preset"
+		"rotgb_spawner_spawn_rate" : "gBalloon Spawner Spawn Rate"
+		"rotgb_target_natural_health" : "gBalloon Target Natural Health"
+		"rotgb_starting_cash" : "Starting Cash"
+		"rotgb_cash_mul" : "Cash Multiplier"
+		"rotgb_blimp_health_multiplier" : "gBlimp Health Multiplier"
+		"rotgb_health_multiplier" : "gBalloon Health Multiplier"
+		"rotgb_speed_mul" : "gBalloon Speed Multiplier"
+		"rotgb_tower_chess_only" : "Chess Towers Only (1 = Chess Only, 2 = Non-Chess Only)"
+	]
+	convar_1_value(string) : "ConVar 1 Value" : "" : "First ConVar new value."
+	convar_2_name(choices) : "ConVar 2" : "" : "Second ConVar to modify when the custom difficulty is selected." =
+	[
+		"" : "None"
+		"rotgb_difficulty" : "Difficulty (0 = Easy, 4 = Impossible)"
+		"rotgb_default_first_wave" : "gBalloon Spawner First Wave"
+		"rotgb_default_last_wave" : "gBalloon Spawner Last Wave"
+		"rotgb_spawner_force_auto_start" : "gBalloon Spawner Force Auto-Start"
+		"rotgb_default_wave_preset" : "gBalloon Spawner Wave Preset"
+		"rotgb_spawner_spawn_rate" : "gBalloon Spawner Spawn Rate"
+		"rotgb_target_natural_health" : "gBalloon Target Natural Health"
+		"rotgb_starting_cash" : "Starting Cash"
+		"rotgb_cash_mul" : "Cash Multiplier"
+		"rotgb_blimp_health_multiplier" : "gBlimp Health Multiplier"
+		"rotgb_health_multiplier" : "gBalloon Health Multiplier"
+		"rotgb_speed_mul" : "gBalloon Speed Multiplier"
+		"rotgb_tower_chess_only" : "Chess Towers Only (1 = Chess Only, 2 = Non-Chess Only)"
+	]
+	convar_2_value(string) : "ConVar 2 Value" : "" : "Second ConVar new value."
+	convar_3_name(choices) : "ConVar 3" : "" : "Third ConVar to modify when the custom difficulty is selected." =
+	[
+		"" : "None"
+		"rotgb_difficulty" : "Difficulty (0 = Easy, 4 = Impossible)"
+		"rotgb_default_first_wave" : "gBalloon Spawner First Wave"
+		"rotgb_default_last_wave" : "gBalloon Spawner Last Wave"
+		"rotgb_spawner_force_auto_start" : "gBalloon Spawner Force Auto-Start"
+		"rotgb_default_wave_preset" : "gBalloon Spawner Wave Preset"
+		"rotgb_spawner_spawn_rate" : "gBalloon Spawner Spawn Rate"
+		"rotgb_target_natural_health" : "gBalloon Target Natural Health"
+		"rotgb_starting_cash" : "Starting Cash"
+		"rotgb_cash_mul" : "Cash Multiplier"
+		"rotgb_blimp_health_multiplier" : "gBlimp Health Multiplier"
+		"rotgb_health_multiplier" : "gBalloon Health Multiplier"
+		"rotgb_speed_mul" : "gBalloon Speed Multiplier"
+		"rotgb_tower_chess_only" : "Chess Towers Only (1 = Chess Only, 2 = Non-Chess Only)"
+	]
+	convar_3_value(string) : "ConVar 3 Value" : "" : "Third ConVar new value."
+	convar_4_name(choices) : "ConVar 4" : "" : "Fourth ConVar to modify when the custom difficulty is selected." =
+	[
+		"" : "None"
+		"rotgb_difficulty" : "Difficulty (0 = Easy, 4 = Impossible)"
+		"rotgb_default_first_wave" : "gBalloon Spawner First Wave"
+		"rotgb_default_last_wave" : "gBalloon Spawner Last Wave"
+		"rotgb_spawner_force_auto_start" : "gBalloon Spawner Force Auto-Start"
+		"rotgb_default_wave_preset" : "gBalloon Spawner Wave Preset"
+		"rotgb_spawner_spawn_rate" : "gBalloon Spawner Spawn Rate"
+		"rotgb_target_natural_health" : "gBalloon Target Natural Health"
+		"rotgb_starting_cash" : "Starting Cash"
+		"rotgb_cash_mul" : "Cash Multiplier"
+		"rotgb_blimp_health_multiplier" : "gBlimp Health Multiplier"
+		"rotgb_health_multiplier" : "gBalloon Health Multiplier"
+		"rotgb_speed_mul" : "gBalloon Speed Multiplier"
+		"rotgb_tower_chess_only" : "Chess Towers Only (1 = Chess Only, 2 = Non-Chess Only)"
+	]
+	convar_4_value(string) : "ConVar 4 Value" : "" : "Fourth ConVar new value."
+	convar_5_name(choices) : "ConVar 5" : "" : "Fifth ConVar to modify when the custom difficulty is selected." =
+	[
+		"" : "None"
+		"rotgb_difficulty" : "Difficulty (0 = Easy, 4 = Impossible)"
+		"rotgb_default_first_wave" : "gBalloon Spawner First Wave"
+		"rotgb_default_last_wave" : "gBalloon Spawner Last Wave"
+		"rotgb_spawner_force_auto_start" : "gBalloon Spawner Force Auto-Start"
+		"rotgb_default_wave_preset" : "gBalloon Spawner Wave Preset"
+		"rotgb_spawner_spawn_rate" : "gBalloon Spawner Spawn Rate"
+		"rotgb_target_natural_health" : "gBalloon Target Natural Health"
+		"rotgb_starting_cash" : "Starting Cash"
+		"rotgb_cash_mul" : "Cash Multiplier"
+		"rotgb_blimp_health_multiplier" : "gBlimp Health Multiplier"
+		"rotgb_health_multiplier" : "gBalloon Health Multiplier"
+		"rotgb_speed_mul" : "gBalloon Speed Multiplier"
+		"rotgb_tower_chess_only" : "Chess Towers Only (1 = Chess Only, 2 = Non-Chess Only)"
+	]
+	convar_5_value(string) : "ConVar 5 Value" : "" : "Fifth ConVar new value."
+	convar_6_name(choices) : "ConVar 6" : "" : "Sixth ConVar to modify when the custom difficulty is selected." =
+	[
+		"" : "None"
+		"rotgb_difficulty" : "Difficulty (0 = Easy, 4 = Impossible)"
+		"rotgb_default_first_wave" : "gBalloon Spawner First Wave"
+		"rotgb_default_last_wave" : "gBalloon Spawner Last Wave"
+		"rotgb_spawner_force_auto_start" : "gBalloon Spawner Force Auto-Start"
+		"rotgb_default_wave_preset" : "gBalloon Spawner Wave Preset"
+		"rotgb_spawner_spawn_rate" : "gBalloon Spawner Spawn Rate"
+		"rotgb_target_natural_health" : "gBalloon Target Natural Health"
+		"rotgb_starting_cash" : "Starting Cash"
+		"rotgb_cash_mul" : "Cash Multiplier"
+		"rotgb_blimp_health_multiplier" : "gBlimp Health Multiplier"
+		"rotgb_health_multiplier" : "gBalloon Health Multiplier"
+		"rotgb_speed_mul" : "gBalloon Speed Multiplier"
+		"rotgb_tower_chess_only" : "Chess Towers Only (1 = Chess Only, 2 = Non-Chess Only)"
+	]
+	convar_6_value(string) : "ConVar 6 Value" : "" : "Sixth ConVar new value."
+	convar_7_name(choices) : "ConVar 7" : "" : "Seventh ConVar to modify when the custom difficulty is selected." =
+	[
+		"" : "None"
+		"rotgb_difficulty" : "Difficulty (0 = Easy, 4 = Impossible)"
+		"rotgb_default_first_wave" : "gBalloon Spawner First Wave"
+		"rotgb_default_last_wave" : "gBalloon Spawner Last Wave"
+		"rotgb_spawner_force_auto_start" : "gBalloon Spawner Force Auto-Start"
+		"rotgb_default_wave_preset" : "gBalloon Spawner Wave Preset"
+		"rotgb_spawner_spawn_rate" : "gBalloon Spawner Spawn Rate"
+		"rotgb_target_natural_health" : "gBalloon Target Natural Health"
+		"rotgb_starting_cash" : "Starting Cash"
+		"rotgb_cash_mul" : "Cash Multiplier"
+		"rotgb_blimp_health_multiplier" : "gBlimp Health Multiplier"
+		"rotgb_health_multiplier" : "gBalloon Health Multiplier"
+		"rotgb_speed_mul" : "gBalloon Speed Multiplier"
+		"rotgb_tower_chess_only" : "Chess Towers Only (1 = Chess Only, 2 = Non-Chess Only)"
+	]
+	convar_7_value(string) : "ConVar 7 Value" : "" : "Seventh ConVar new value."
+	convar_8_name(choices) : "ConVar 8" : "" : "Eighth ConVar to modify when the custom difficulty is selected." =
+	[
+		"" : "None"
+		"rotgb_difficulty" : "Difficulty (0 = Easy, 4 = Impossible)"
+		"rotgb_default_first_wave" : "gBalloon Spawner First Wave"
+		"rotgb_default_last_wave" : "gBalloon Spawner Last Wave"
+		"rotgb_spawner_force_auto_start" : "gBalloon Spawner Force Auto-Start"
+		"rotgb_default_wave_preset" : "gBalloon Spawner Wave Preset"
+		"rotgb_spawner_spawn_rate" : "gBalloon Spawner Spawn Rate"
+		"rotgb_target_natural_health" : "gBalloon Target Natural Health"
+		"rotgb_starting_cash" : "Starting Cash"
+		"rotgb_cash_mul" : "Cash Multiplier"
+		"rotgb_blimp_health_multiplier" : "gBlimp Health Multiplier"
+		"rotgb_health_multiplier" : "gBalloon Health Multiplier"
+		"rotgb_speed_mul" : "gBalloon Speed Multiplier"
+		"rotgb_tower_chess_only" : "Chess Towers Only (1 = Chess Only, 2 = Non-Chess Only)"
+	]
+	convar_8_value(string) : "ConVar 8 Value" : "" : "Eighth ConVar new value."
+]
+
 
 
 @PointClass base(Targetname, Parentname, Studiomodel, RotgBTarget, RotgBSpectatable, RotgBHidable, RotgBMusicEmitter) studioprop() = gballoon_spawner :
@@ -198,7 +346,7 @@
 		1 : "Yes"
 	]
 	auto_start_delay(float) : "Auto-Start Delay" : "0.0" : "The entity will wait for at least this long after a wave has been finished before spawning the next wave."
-	finished_shortly_threshold(float) : "Shortness Threshold" : "7.5" : "If the auto_start_delay is less than this, the OnWaveFinishedShortly output and the wave_intermission_relay entity will be triggered instead of the OnWaveFinished output and the wave_finished_relay entity when a wave ends."
+	finished_shortly_threshold(float) : "Shortness Threshold" : "-1.0" : "If the auto_start_delay is less than this, the OnWaveFinishedShortly output and the wave_intermission_relay entity will be triggered instead of the OnWaveFinished output and the wave_finished_relay entity when a wave ends."
 	dont_trigger_wave_relays(choices) : "Don't Trigger wave_*_relays" : 0 : "Prevents the entity from sending the Trigger input to a wave_start_relay when a wave starts and to a wave_intermission_relay or wave_finished_relay when a wave ends." =
 	[
 		0 : "No"
@@ -264,6 +412,11 @@
 		0 : "No"
 		1 : "Yes"
 	]
+	straight_path(choices) : "Straight Path" : 0 : "gBalloons that target this gBalloon Target will move in a straight line to it." =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
 	weight(integer) : "Weight" : 0 : "Highest weights are targeted first. If linked, gBalloons are divided among the targets based on their weights."
 	health(integer) : "Health" : 0 : "A value above 0 overrides the gBalloon Target's natural health."
 	max_health(integer) : "Maximum Health" : 0 : "A value above 0 overrides the gBalloon Target's natural maximum health."
@@ -286,6 +439,9 @@
 	input EnableTeleporting(void) : "Enables teleporting to this gBalloon target."
 	input DisableTeleporting(void) : "Disables teleporting to this gBalloon target."
 	input ToggleTeleporting(void) : "Toggles teleporting to this gBalloon target."
+	input EnableStraightPath(void) : "Enables straight paths to this gBalloon target."
+	input DisableStraightPath(void) : "Disables straight paths to this gBalloon target."
+	input ToggleStraightPath(void) : "Toggles straight paths to this gBalloon target."
 	input SetWeight(integer) : "Sets the target weight."
 	input SetHealth(integer) : "Sets the health of the target. Setting the gBalloon Target's health below 0 this way will destroy it."
 	input AddHealth(integer) : "Increases the health of the target. Negative values reduce health. Setting the gBalloon Target's health below 0 this way will NOT destroy it."
@@ -360,6 +516,8 @@
 	input SetNormalTimescale(void) : "Sets the game speed to x1."
 	input SetDoubleTimescale(void) : "Sets the game speed to x2."
 	input SetQuadrupleTimescale(void) : "Sets the game speed to x4."
+	input DoubleTimescale(void) : "Doubles the game speed."
+	input HalveTimescale(void) : "Halves the game speed."
 	input SetTimescale(float) : "Sets the game speed to the passed value."
 	input GetTimescale(void) : "Fires the OnGetTimescale output."
 	output OnGetTimescale(float) : "Fired by the GetTimescale input. Returns the current game speed."
@@ -372,7 +530,7 @@
 	output OnQuadrupleTimescale(float) : "Fired whenever the timescale changes to between x2.83 - x5.65 and Timescale Monitoring is enabled. Returns the exact timescale after change. !activator is the logic_rotgb_timescale itself."
 ]
 
-@PointClass = logic_rotgb_difficulty :
+@PointClass base(RotgBConVarManipulator) = logic_rotgb_difficulty :
 	"Hammer-exclusive entity for RotgB: The Gamemode. Can be used to add custom difficulties and remove existing ones.\n"+
 	"When adding custom difficulties, you must have one of this entity PER DIFFICULTY. You will also need to set up translation files, "+
 	"see gamemodes/rotgb/content/resource/localization/en/rotgb_tg_difficulty.properties under the RotgB: The Gamemode files for example translation strings.\n"+
@@ -384,22 +542,6 @@
 	difficulty_place(float) : "Difficulty Place" : "1.0" : "Position of the difficulty relative to other difficulties in the same category."
 	difficulty_remove(string) : "Difficulties to Remove" : "" : "Comma seperated list of specific difficulty IDs to remove. "+
 	"A single asterisk (*) will remove all difficulties. This entity cannot remove difficulties from other logic_rotgb_difficulty entities in the map."
-	convar_0_name(string) : "ConVar 1 Name" : "" : "First ConVar to modify when the custom difficulty is selected."
-	convar_0_value(string) : "ConVar 1 Value" : "" : "First ConVar new value."
-	convar_1_name(string) : "ConVar 2 Name" : "" : "Second ConVar to modify when the custom difficulty is selected."
-	convar_1_value(string) : "ConVar 2 Value" : "" : "Second ConVar new value."
-	convar_2_name(string) : "ConVar 3 Name" : "" : "Third ConVar to modify when the custom difficulty is selected."
-	convar_2_value(string) : "ConVar 3 Value" : "" : "Third ConVar new value."
-	convar_3_name(string) : "ConVar 4 Name" : "" : "Fourth ConVar to modify when the custom difficulty is selected."
-	convar_3_value(string) : "ConVar 4 Value" : "" : "Fourth ConVar new value."
-	convar_4_name(string) : "ConVar 5 Name" : "" : "Fifth ConVar to modify when the custom difficulty is selected."
-	convar_4_value(string) : "ConVar 5 Value" : "" : "Fifth ConVar new value."
-	convar_5_name(string) : "ConVar 6 Name" : "" : "Sixth ConVar to modify when the custom difficulty is selected."
-	convar_5_value(string) : "ConVar 6 Value" : "" : "Sixth ConVar new value."
-	convar_6_name(string) : "ConVar 7 Name" : "" : "Seventh ConVar to modify when the custom difficulty is selected."
-	convar_6_value(string) : "ConVar 7 Value" : "" : "Seventh ConVar new value."
-	convar_7_name(string) : "ConVar 8 Name" : "" : "Eighth ConVar to modify when the custom difficulty is selected."
-	convar_7_value(string) : "ConVar 8 Value" : "" : "Eighth ConVar new value."
 ]
 
 @SolidClass base(Targetname) = func_rotgb_nobuild : "Hammer-exclusive entity. When enabled, towers cannot be placed inside the brush, not even partially. Should be textured with tools/toolstrigger for best results."

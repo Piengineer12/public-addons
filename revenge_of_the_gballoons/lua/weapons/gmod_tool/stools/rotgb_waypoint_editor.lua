@@ -14,6 +14,7 @@ TOOL.Information = {
 }
 TOOL.ClientConVar = {
 	teleport = "0",
+	straight = "0",
 	weight = "0",
 	indicator_effect = "sprites/glow04_noz",
 	indicator_color = "6",
@@ -33,7 +34,8 @@ TOOL.ClientConVar = {
 TOOL.AddToMenu = false
 
 TOOL.BuildCPanel = function(form)
-	form:Help("#tool.rotgb_waypoint_editor.desc")
+	-- this doesn't do anything! see rotgb_general.lua for the menu that actually gets created
+	--[[form:Help("#tool.rotgb_waypoint_editor.desc")
 	form:CheckBox("#rotgb.convar.rotgb_waypoint_editor_teleport.name","rotgb_waypoint_editor_teleport")
 	form:NumSlider("#rotgb.convar.rotgb_waypoint_editor_weight.name","rotgb_waypoint_editor_weight",0,100,0)
 	form:Help(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_weight.description"))
@@ -70,7 +72,7 @@ TOOL.BuildCPanel = function(form)
 	mixer:SetConVarG("rotgb_waypoint_editor_indicator_boss_g")
 	mixer:SetConVarB("rotgb_waypoint_editor_indicator_boss_b")
 	mixer:SetConVarA("rotgb_waypoint_editor_indicator_boss_a")
-	form:AddItem(mixer)
+	form:AddItem(mixer)]]
 end
 
 TOOL.Deploy = function(self)
@@ -123,6 +125,7 @@ TOOL.LeftClick = function(self,trace)
 					ent:Activate()
 					ent:SetIsBeacon(true)
 					ent:SetTeleport(tobool(self:GetClientInfo("teleport")))
+					ent:SetStraightPath(tobool(self:GetClientInfo("straight")))
 					ent:SetWeight(tonumber(self:GetClientInfo("weight")) or 0)
 				end
 				return true
@@ -146,6 +149,7 @@ TOOL.LeftClick = function(self,trace)
 					else
 						start[string.format("SetNextBlimpTarget%i", placepos)](start,ent)
 						ent:SetTeleport(tobool(self:GetClientInfo("teleport")))
+						ent:SetStraightPath(tobool(self:GetClientInfo("straight")))
 						self:ClearObjects()
 						self:SetOperation(1)
 						return true

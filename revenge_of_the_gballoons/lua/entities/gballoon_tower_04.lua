@@ -49,6 +49,7 @@ ENT.UpgradeReference = {
 			function(self)
 				self.FireRate = self.FireRate * 3
 				self.rotgb_UseLaser = 1
+				self.MaxFireRate = 10
 			end,
 			function(self)
 				self.rotgb_LaserDamageMul = self.rotgb_LaserDamageMul / 2
@@ -105,7 +106,10 @@ end
 
 local function SnipeEntity()
 	while true do
-		local self,ent = coroutine.yield()
+		local self,ent,damageMultiplier = coroutine.yield()
+		if self.rotgb_ExtraVsCeramic and ent:GetBalloonProperty("BalloonBlimp") then
+			damageMultiplier = damageMultiplier * 2
+		end
 		local startPos = self:GetShootPos()
 		--uDir:Normalize()
 		if self.rotgb_UseLaser then
@@ -133,7 +137,7 @@ local function SnipeEntity()
 			laser:SetKeyValue("NoiseAmplitude","0")
 			laser:SetKeyValue("texture","sprites/laserbeam.spr")
 			laser:SetKeyValue("TextureScroll","35")
-			laser:SetKeyValue("damage",self.AttackDamage*self.rotgb_LaserDamageMul*self.rotgb_Shots)
+			laser:SetKeyValue("damage",self.AttackDamage*self.rotgb_LaserDamageMul*self.rotgb_Shots*damageMultiplier)
 			laser:SetKeyValue("LightningStart","ROTGB04_"..self:GetCreationID())
 			laser:SetKeyValue("LightningEnd",entityName)
 			laser:SetKeyValue("HDRColorScale","1")
@@ -165,7 +169,7 @@ local function SnipeEntity()
 				Callback = function(attacker,tracer,dmginfo)
 					dmginfo:SetDamageType(self.rotgb_CanPopGray and DMG_SNIPER or DMG_BULLET)
 				end,
-				Damage = self.rotgb_ExtraVsCeramic and ent:GetBalloonProperty("BalloonBlimp") and self.AttackDamage*2 or self.AttackDamage,
+				Damage = self.AttackDamage*damageMultiplier,
 				Distance = self.DetectionRadius*1.5,
 				HullSize = 1,
 				Num = self.rotgb_Shots,
@@ -184,14 +188,14 @@ end
 ENT.thread = coroutine.create(SnipeEntity)
 coroutine.resume(ENT.thread)
 
-function ENT:FireFunction(gBalloons)
+function ENT:FireFunction(gBalloons, damageMultiplier)
 	if self.UserTargeting then
-		local perf,str = coroutine.resume(self.thread,self,gBalloons[1])
+		local perf,str = coroutine.resume(self.thread,self,gBalloons[1], damageMultiplier)
 		if not perf then error(str) end
 	else
 		--local i = 1
 		for k,v in pairs(gBalloons) do
-			local perf,str = coroutine.resume(self.thread,self,v)
+			local perf,str = coroutine.resume(self.thread,self,v, damageMultiplier)
 			if not perf then error(str) end
 			--i = i + 1
 			--if i > 10 then break end

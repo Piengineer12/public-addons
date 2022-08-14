@@ -53,6 +53,9 @@ function GM:PlayerSay(ply, message, forTeam)
 	elseif loweredMessage == "!achievements" or loweredMessage == "!rtg_achievements" then
 		ply:ConCommand("rotgb_tg_achievements")
 		return ""
+	elseif loweredMessage == "!teams" or loweredMessage == "!rtg_teams" then
+		ply:ConCommand("gm_showteam")
+		return ""
 	end
 	return message
 end
@@ -65,6 +68,7 @@ end
 function GM:PlayerDeath(ply, inflictor, attacker)
 	ply.NextSpawnTime = CurTime() + self.SpawnDelay
 	ply.DeathTime = CurTime()
+	hook.Run("SetBLIMPSConditionsViolated", true)
 	
 	if IsValid(attacker) and attacker:IsVehicle() and IsValid(attacker:GetDriver()) then
 		inflictor = attacker

@@ -233,29 +233,30 @@ local credits = {
 	{"zorich_michael", "76561198196764081"},
 	{"Sergius", "76561198293518598"},
 	{"DreamySaeneryth", "76561198102225296"},
-	{"Obsidian_The_Tempered", "76561198348095161"},
-	{"Upsilon_The_Unchained", "76561198822619008"},
+	{"Bluu_Luna", "76561198348095161"},
+	{"Platless", "76561198822619008"},
 	{"Sir. Vapenation", "76561198143774099"},
-	{"Joseph with the neko girls", "76561198337193083"},
+	{"liptard", "76561198337193083"},
 	{"Devro", "76561198363697889"},
 	{"itachi209", "76561198352896173"},
 	{"PDA Expert", "76561198024198604"},
 	{"Conga Dispenser", "76561198361428640"},
 	{"SkyanUltra", "76561198147466564"},
 	{"BFR2005", "76561198089249743"},
-	{"The Reddit Mogul", "76561198274942231"},
+	{"gormless minger", "76561198274942231"},
 	{"fansided", "76561198117057248"},
 	{"PuggleLeDog", "76561198120548061"},
-	{"Bender™", "76561198004803429"},
+	{"The Bender™", "76561198004803429"},
 	{"FallenVoid", "76561198178506377"},
 	{"berry", "76561198158864042"},
+	{"glamrock neon plushtrap", "76561198804430511"},
 	{"#rotgb.guide.contributors.person.various"}
 }
 
 local creditsUnimplemented = {
 	{"Xtrah962", "76561198853380897"},
 	{"SarnieMuncher", "76561198154658331"},
-	{"[WLS] Ziggy Gaming", "76561198218939972"},
+	{"ziggyevolved", "76561198218939972"},
 	{"Ralsei smoking a fat doobie", "76561198857378000"},
 	{"Dr. Science guy dude", "76561199014467773"},
 	{"#rotgb.guide.contributors.person.various"}
@@ -297,19 +298,6 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 		RichText:Dock(FILL)
 		RichText:SetText("")
 		RichText:InsertColorChange(255,255,255,255)
-		RichText:AppendText(ROTGB_LocalizeString("rotgb.guide.what_this_addon_offers"))
-		RichText:InsertColorChange(127,127,127,255)
-		RichText:AppendText(ROTGB_LocalizeString("rotgb.guide.what_this_addon_offers.customer_support"))
-		function RichText:PerformLayout()
-			self:SetBGColor(0,0,0,191)
-			self:SetFontInternal("RotgBGuideBook")
-		end
-		ColumnSheet:AddSheet("#rotgb.guide.page.what_this_addon_offers",RichText)
-		
-		RichText = ColumnSheet:Add("RichText")
-		RichText:Dock(FILL)
-		RichText:SetText("")
-		RichText:InsertColorChange(255,255,255,255)
 		RichText:AppendText(ROTGB_LocalizeString("rotgb.guide.page.core_concepts"))
 		local i = 1
 		local headerToken = "rotgb.guide.core_concepts.1.header"
@@ -331,6 +319,19 @@ net.Receive("RotgB_Bestiary",function(length,ply)
 			self:SetFontInternal("RotgBGuideBook")
 		end
 		ColumnSheet:AddSheet("#rotgb.guide.page.core_concepts",RichText)
+		
+		RichText = ColumnSheet:Add("RichText")
+		RichText:Dock(FILL)
+		RichText:SetText("")
+		RichText:InsertColorChange(255,255,255,255)
+		RichText:AppendText(ROTGB_LocalizeString("rotgb.guide.what_this_addon_offers"))
+		RichText:InsertColorChange(127,127,127,255)
+		RichText:AppendText(ROTGB_LocalizeString("rotgb.guide.what_this_addon_offers.customer_support"))
+		function RichText:PerformLayout()
+			self:SetBGColor(0,0,0,191)
+			self:SetFontInternal("RotgBGuideBook")
+		end
+		ColumnSheet:AddSheet("#rotgb.guide.page.what_this_addon_offers",RichText)
 		
 		RichText = ColumnSheet:Add("RichText")
 		RichText:Dock(FILL)

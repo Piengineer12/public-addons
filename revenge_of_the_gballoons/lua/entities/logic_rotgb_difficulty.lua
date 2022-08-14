@@ -17,15 +17,25 @@ function ENT:KeyValue(key,value)
 		self.DifficultyCategoryPlace = tonumber(value) or -1
 	elseif lkey=="difficulty_place" then
 		self.DifficultyPlace = tonumber(value) or 0
-	elseif string.match(lkey, "^convar_%d+_name$") then
-		if value ~= "" then
-			local num = (tonumber(string.match(lkey, "^convar_(%d+)_name$")) or 0) + 1
-			self:SetConVarName(num, value)
-		end
-	elseif string.match(lkey, "^convar_%d+_value$") then
-		if value ~= "" then
-			local num = (tonumber(string.match(lkey, "^convar_(%d+)_value$")) or 0) + 1
-			self:SetConVarValue(num, value)
+	elseif value ~= "" then
+		if string.match(lkey, "^convar_%d+_name$") then
+			local num = tonumber(string.match(lkey, "^convar_(%d+)_name$"))
+			if num then
+				self:SetConVarName(num, value)
+				if num == 0 then
+					ROTGB_LogError("DEPRECATION WARNING: The convar_0_name KeyValue is now deprecated. Please use convar_1_name and above instead.", "")
+					debug.Trace()
+				end
+			end
+		elseif string.match(lkey, "^convar_%d+_value$") then
+			local num = tonumber(string.match(lkey, "^convar_(%d+)_value$"))
+			if num then
+				self:SetConVarValue(num, value)
+				if num == 0 then
+					ROTGB_LogError("DEPRECATION WARNING: The convar_0_value KeyValue is now deprecated. Please use convar_1_value and above instead.", "")
+					debug.Trace()
+				end
+			end
 		end
 	end
 end

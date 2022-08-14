@@ -48,6 +48,10 @@ function ENT:AcceptInput(input,activator,caller,data)
 		game.SetTimeScale(2)
 	elseif input=="setquadrupletimescale" then
 		game.SetTimeScale(4)
+	elseif input=="doubletimescale" then
+		game.SetTimeScale(game.GetTimeScale() * 2)
+	elseif input=="halvetimescale" then
+		game.SetTimeScale(game.GetTimeScale() / 2)
 	elseif input=="settimescale" then
 		game.SetTimeScale(tonumber(data) or 1)
 	elseif input=="gettimescale" then

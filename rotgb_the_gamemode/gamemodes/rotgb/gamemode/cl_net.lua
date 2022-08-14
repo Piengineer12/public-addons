@@ -6,6 +6,7 @@ net.Receive("rotgb_statchanged", function()
 			if IsValid(ply) then
 				ply.rtg_gBalloonPops = net.ReadDouble()
 				ply.rtg_XP = net.ReadDouble()
+				ply.rtg_CashGenerated = net.ReadDouble()
 			end
 		end
 	elseif func == RTG_STAT_INIT then
@@ -30,6 +31,7 @@ net.Receive("rotgb_statchanged", function()
 				ply.rtg_gBalloonPops = net.ReadDouble()
 				ply.rtg_PreviousXP = net.ReadDouble()
 				ply.rtg_XP = net.ReadDouble()
+				ply.rtg_CashGenerated = net.ReadDouble()
 			end
 		end
 	elseif func == RTG_STAT_ACHIEVEMENTS then

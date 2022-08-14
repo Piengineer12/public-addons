@@ -4,13 +4,14 @@ ENT.Base = "base_nextbot"
 ENT.Type = "nextbot"
 
 function ENT:Initialize()
-	self:SetModel("models/maxofs2d/motion_sensor.mdl")
-	self.NextFire = CurTime()
-	self.CreationTime = self:GetCreationTime()
-	self.rotgb_IgnoreCollisions = true
-	self:SetHealth(1e9)
-	self:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
 	if SERVER then
+		self:SetModel("models/maxofs2d/motion_sensor.mdl")
+		self.NextFire = CurTime()
+		self.CreationTime = self:GetCreationTime()
+		self:SetHealth(self:GetCreationID())
+		self:SetMaxHealth(self:GetCreationID())
+		self.rotgb_IgnoreCollisions = true
+		self:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
 		self:SetBloodColor(DONT_BLEED)
 	end
 end
@@ -47,41 +48,31 @@ function ENT:FindEnemy()
 	self.balloonTable = self.balloonTable or {}
 	self.lastBalloonTrace = self.lastBalloonTrace or {}
 	table.Empty(self.balloonTable)
-	local selfpos = self:GetShootPos()
-	self.gBTraceData = self.gBTraceData or {
-		filter = self,
-		mask = MASK_SHOT,
-		output = self.lastBalloonTrace
-	}
-	self.gBTraceData.start = selfpos
 	for k,v in pairs(ROTGB_GetBalloons()) do
 		if self:GetSpawnedTower():ValidTargetIgnoreRange(v) then
-			self.gBTraceData.endpos = v:GetPos()+v:OBBCenter()
-			util.TraceLine(self.gBTraceData)
-			if self.lastBalloonTrace.Entity == v then
-				local mode = self:GetSpawnedTower():GetTargeting()
-				if mode==0 then
-					self.balloonTable[v] = v:GetDistanceTravelled()
-				elseif mode==1 then
-					self.balloonTable[v] = -v:GetDistanceTravelled()
-				elseif mode==2 then
-					self.balloonTable[v] = v:GetRgBE()
-				elseif mode==3 then
-					self.balloonTable[v] = -v:GetRgBE()
-				elseif mode==4 then
-					self.balloonTable[v] = v:BoundingRadius()^2/self:GetRangeSquaredTo(v)
-				elseif mode==5 then
-					self.balloonTable[v] = -v:BoundingRadius()^2/self:GetRangeSquaredTo(v)
-				elseif mode==6 then
-					self.balloonTable[v] = v.loco:GetAcceleration()
-				elseif mode==7 then
-					self.balloonTable[v] = -v.loco:GetAcceleration()
-				end
+			local mode = self:GetSpawnedTower():GetTargeting()
+			if mode==0 then
+				self.balloonTable[v] = v:GetDistanceTravelled()
+			elseif mode==1 then
+				self.balloonTable[v] = -v:GetDistanceTravelled()
+			elseif mode==2 then
+				self.balloonTable[v] = v:GetRgBE()
+			elseif mode==3 then
+				self.balloonTable[v] = -v:GetRgBE()
+			elseif mode==4 then
+				self.balloonTable[v] = v:BoundingRadius()^2/self:GetRangeSquaredTo(v)
+			elseif mode==5 then
+				self.balloonTable[v] = -v:BoundingRadius()^2/self:GetRangeSquaredTo(v)
+			elseif mode==6 then
+				self.balloonTable[v] = v.loco:GetAcceleration()
+			elseif mode==7 then
+				self.balloonTable[v] = -v.loco:GetAcceleration()
 			end
 		end
 	end
 	if next(self.balloonTable) then
 		self:SetEnemy(table.GetWinningKey(self.balloonTable))
+		--print(self:GetEnemy())
 		return true
 	else return false
 	end
@@ -89,9 +80,24 @@ end
 
 function ENT:FireAtEnemy()
 	if (self.NextFire or 0) < CurTime() then
-		self.NextFire = CurTime() + 1/self:GetSpawnedTower().FireRate/(self:GetSpawnedTower().BonusFireRate or 1)/(CurTime() > self.CreationTime+19 and self:GetSpawnedTower().rotgb_PostFireRate or 1)
+		local tower = self:GetSpawnedTower()
+		local fireRate = tower.FireRate
+		if tower.BonusFireRate then
+			fireRate = fireRate * tower.BonusFireRate
+		end
+		if CurTime() > self.CreationTime+19 then
+			fireRate = fireRate * tower.rotgb_PostFireRate
+		end
+		local fireDelay = 1 / fireRate
+		local fireAmplification = 1
+		if (tower.MaxFireRate and fireRate > tower.MaxFireRate) then
+			fireAmplification = fireRate / tower.MaxFireRate
+			fireDelay = 1 / tower.MaxFireRate
+		end
+		
+		self.NextFire = CurTime() + fireDelay
 		local iscrit = math.random() < self:GetSpawnedTower().rotgb_CritChance
-		local damage = self:AttackDamage()
+		local damage = self:AttackDamage()*fireAmplification
 		if iscrit then
 			damage = damage * self:GetSpawnedTower().rotgb_CritMul
 		end
@@ -102,14 +108,19 @@ function ENT:FireAtEnemy()
 			damage = damage*5
 			local targets = {self:GetEnemy()}
 			if self:GetSpawnedTower().rotgb_TurretMultihit then
-				table.Empty(targets)
+				self.gBTraceData = self.gBTraceData or {
+					filter = self,
+					mask = MASK_SHOT,
+					output = self.lastBalloonTrace
+				}
+				targets = {}
 				local selfpos = self:GetShootPos()
 				self.gBTraceData.start = selfpos
 				for k,v in pairs(ents.FindInSphere(selfpos,self:DetectionRadius())) do
 					if (v:GetClass()=="gballoon_base" and (not v:GetBalloonProperty("BalloonHidden") or self:GetSpawnedTower().SeeCamo)) then
 						self.gBTraceData.endpos = v:GetPos()+v:OBBCenter()
 						util.TraceLine(self.gBTraceData)
-						if self.lastBalloonTrace.Entity == v then
+						if (IsValid(self.lastBalloonTrace.Entity) and self.lastBalloonTrace.Entity:GetClass() == "gballoon_base") then
 							table.insert(targets, v)
 						end
 					end
@@ -224,6 +235,11 @@ function ENT:Think()
 				effdata:SetRadius(4)
 				util.Effect("Sparks", effdata)
 			end
+			
+			if self.StraightMovement and IsValid(self:GetEnemy()) then
+				local distance = self:GetPos():Distance(self:GetEnemy():GetPos())
+				self.loco:Approach(self:GetEnemy():GetPos(), 1)
+			end
 		else
 			self:Remove()
 		end
@@ -236,9 +252,70 @@ function ENT:MoveToEnemy()
 	path:SetMinLookAheadDistance(64)
 	path:SetGoalTolerance(self:DetectionRadius()/8)
 	path:Compute(self, enemy:GetPos())
+	
+	local lastComputation = CurTime()
+	if not IsValid(path) then
+		self.StraightMovement = true
+		while not IsValid(path) and self:HaveEnemy() do
+			if self:GetEnemy() ~= enemy then break end
+			if self:GetPos():DistToSqr(enemy:GetPos()) <= self:DetectionRadius()^2/64 then
+				self.gBTraceData = self.gBTraceData or {
+					filter = self,
+					mask = MASK_SHOT,
+					output = self.lastBalloonTrace
+				}
+				self.gBTraceData.start = self:GetShootPos()
+				self.gBTraceData.endpos = enemy:GetPos()+enemy:OBBCenter()
+				util.TraceLine(self.gBTraceData)
+				if self.lastBalloonTrace.Entity:GetClass() == "gballoon_base" then break end
+			end
+			if CurTime() - lastComputation > 1 then
+				path:Compute(self, enemy:GetPos())
+			end
+			if self.loco:IsStuck() or (self.WallStuck or 0)>=4 then
+				if (self.ResetStuck or 0) < CurTime() then
+					self.UnstuckAttempts = 0
+				end
+				self.UnstuckAttempts = self.UnstuckAttempts + 1
+				self.ResetStuck = CurTime() + 10
+				if self.UnstuckAttempts == 1 then -- A simple jump should fix it.
+					self.loco:Jump()
+					path:Compute(self, enemy:GetPos())
+					self.loco:ClearStuck()
+				elseif self.UnstuckAttempts == 2 then -- That didn't fix it, try to teleport slightly upwards instead.
+					self:SetPos(self:GetPos()+vector_up*20)
+					self.loco:ClearStuck()
+				elseif self.UnstuckAttempts == 3 then -- If not, ask GMod kindly to free us.
+					self:HandleStuck()
+				else -- If not, just teleport us ahead on the path. (Sanic method)
+					self:SetPos(path:GetPositionOnPath(path:GetCursorPosition()+2^self.UnstuckAttempts))
+					self.loco:ClearStuck()
+				end
+			end
+			
+			local oldPos = self:GetPos()
+			coroutine.yield()
+			local difference = self:GetPos() - oldPos
+			local movedSqr = difference:LengthSqr()
+			difference:Add(self:GetPos())
+			self.loco:FaceTowards(difference)
+			
+			if moved==0 then
+				self.WallStuck = (self.WallStuck or 0) + 1
+				--[[self:LogError("Stuck in a wall, "..self.WallStuck*25 .."% sure.","pathfinding")
+				if self.WallStuck>=4 then
+					self:LogError("Definitely stuck! Waiting for HandleStuck...","pathfinding")
+				end]]
+			else
+				self.WallStuck = nil
+			end
+		end
+		self.StraightMovement = false
+	end
+	
 	while IsValid(path) and self:HaveEnemy() do
 		if self:GetEnemy() ~= enemy then break end
-		if path:GetAge() > 1 then
+		if CurTime() - lastComputation > 1 then
 			path:Compute(self, enemy:GetPos())
 		end
 		path:Chase(self, enemy)
