@@ -1,5 +1,6 @@
 function GM:LoadClient()
 	local data = util.JSONToTable(file.Read("rotgb_tg_data.dat", "DATA") or "")
+	hook.Run("PerformLoadFixups", data)
 	if data then
 		local ply = LocalPlayer()
 		ply.rtg_PreviousXP = tonumber(data.xp) or 0
@@ -47,6 +48,14 @@ function GM:LoadClient()
 	end
 end
 
+function GM:PerformLoadFixups(data)
+	if not data.savefileVersion then
+		if (data.statsitics["success.no_score"] or 0 >= 1) then
+			data.xp = (data.xp or 0) + 8.5e6
+		end
+	end
+end
+
 function GM:SaveClient()
 	local ply = LocalPlayer()
 	local plySkills = ply:RTG_GetSkills()
@@ -60,6 +69,7 @@ function GM:SaveClient()
 	end
 	data.completedDifficulties = hook.Run("GetCompletedDifficulties")
 	data.statsitics = hook.Run("GetStatisticsSaveTable")
+	data.savefileVersion = 2
 	file.Write("rotgb_tg_data.dat", util.TableToJSON(data))
 end
 
