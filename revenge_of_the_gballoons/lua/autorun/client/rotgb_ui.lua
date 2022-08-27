@@ -826,7 +826,7 @@ function ROTGB_CreateWavePanel()
 	FileMenu:AddOption("#rotgb.wave_editor.export", function()
 		local clipboardText = util.Base64Encode(util.Compress(util.TableToJSON(localWaves)))
 		SetClipboardText(clipboardText)
-		chat.AddText(ROTGB_LocalizeString("rotgb.wave_editor.export.success", string.Comma(#clipboardText)))
+		chat.AddText(ROTGB_LocalizeString("rotgb.wave_editor.export.success", ROTGB_Commatize(#clipboardText)))
 	end):SetIcon("icon16/page_copy.png")
 	
 	FileMenu:AddOption("#rotgb.wave_editor.load", Main:SupplyFileSelector("#rotgb.wave_editor.load", function(path, window)
@@ -1144,14 +1144,13 @@ function ROTGB_CreateWavePanel()
 end
 
 function ROTGB_UpgradeMenu(ent)
-
 	if not IsValid(ent) then return end
 	if not ent.SellAmount then
 		ent.SellAmount = ent.Cost and ROTGB_ScaleBuyCost(ent.Cost, ent, {type = ROTGB_TOWER_PURCHASE, ply = ent:GetTowerOwner()}) or 0
 	end
 	
 	local Main = vgui.Create("DFrame")
-	Main:SetSize(ScrH()/2,ScrH()/2)
+	Main:SetSize(math.max(ScrH()/2, 640), math.max(ScrH()/2, 480))
 	Main:Center()
 	Main:SetTitle(ROTGB_LocalizeString("rotgb.tower.upgrade.title", language.GetPhrase("rotgb.tower."..ent:GetClass()..".name")))
 	Main:SetSizable(true)
@@ -1195,7 +1194,7 @@ function ROTGB_UpgradeMenu(ent)
 			if v[1] > (ent.UpgradeLimits[i+1] or 0) then slot = i + 1 end
 		end
 		for k,v in pairs(ctiers) do
-			local pathRespected = v[1] < v[2].MaxTier or ROTGB_GetConVarValue("rotgb_ignore_upgrade_limits") or ent:GetNWFloat("rotgb_noupgradelimit") >= CurTime()
+			local pathRespected = v[1] < v[2].MaxTier or ROTGB_GetConVarValue("rotgb_ignore_upgrade_limits") or ent:GetNWBool("rotgb_noupgradelimit")
 			v[2]:SetEnabled(pathRespected)
 		end
 		if bool then
@@ -1242,7 +1241,6 @@ function ROTGB_UpgradeMenu(ent)
 	end
 	
 	for i=0,#reference-1 do -- make this zero-indexed
-		
 		local curcash = ROTGB_GetCash(LocalPlayer())
 		local reftab = reference[i+1]
 		local upgradenum = #reftab.Prices
@@ -1258,7 +1256,7 @@ function ROTGB_UpgradeMenu(ent)
 				Main:Close()
 				return ROTGB_CauseNotification("#rotgb.tower.missing")
 			end
-			self.Tier = self.Tier or bit.rshift(ent:GetUpgradeStatus(),i*4)%16+1
+			self.Tier = self.Tier or bit.band(bit.rshift(ent:GetUpgradeStatus(),i*4),15)+1
 			self.price = ROTGB_ScaleBuyCost(reftab.Prices[self.Tier], ent, {type = ROTGB_TOWER_UPGRADE, path = i+1, tier = self.Tier})
 			
 			local text
@@ -1339,7 +1337,7 @@ function ROTGB_UpgradeMenu(ent)
 				local canAfford = curcash >= self.RequiredAmount
 				local drawColor
 				local pulser = math.sin(CurTime()*math.pi*2)/2+0.5
-				local ignoreTier = ROTGB_GetConVarValue("rotgb_ignore_upgrade_limits") or ent:GetNWFloat("rotgb_noupgradelimit") >= CurTime()
+				local ignoreTier = ROTGB_GetConVarValue("rotgb_ignore_upgrade_limits") or ent:GetNWBool("rotgb_noupgradelimit")
 				if j==self.Tier then
 					if j>UpgradeStatement.MaxTier and not ignoreTier then
 						drawColor = color_red
@@ -1373,7 +1371,7 @@ function ROTGB_UpgradeMenu(ent)
 					Main:Close()
 					return ROTGB_CauseNotification("#rotgb.tower.missing")
 				end
-				if not (UpgradeStatement.MaxTier >= j or ROTGB_GetConVarValue("rotgb_ignore_upgrade_limits") or ent:GetNWFloat("rotgb_noupgradelimit") >= CurTime()) then return end
+				if not (UpgradeStatement.MaxTier >= j or ROTGB_GetConVarValue("rotgb_ignore_upgrade_limits") or ent:GetNWBool("rotgb_noupgradelimit")) then return end
 				local moreCashNeeded = self.RequiredAmount - curcash
 				if moreCashNeeded>0 then return ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.upgrade.node.cannot_afford", ROTGB_FormatCash(moreCashNeeded, true))) end
 				for k=self.Tier,j do
@@ -1466,9 +1464,9 @@ function ROTGB_UpgradeMenu(ent)
 	InfoButton.CurrentPops = ent:GetPops()
 	InfoButton.CurrentCash = ent:GetCashGenerated()
 	if InfoButton.CurrentCash > 0 then
-		InfoButton:SetText(ROTGB_LocalizeString("rotgb.tower.total_damage_and_cash", string.Comma(InfoButton.CurrentPops), ROTGB_FormatCash(InfoButton.CurrentCash)))
+		InfoButton:SetText(ROTGB_LocalizeString("rotgb.tower.total_damage_and_cash", ROTGB_Commatize(InfoButton.CurrentPops), ROTGB_FormatCash(InfoButton.CurrentCash)))
 	else
-		InfoButton:SetText(ROTGB_LocalizeString("rotgb.tower.total_damage", string.Comma(InfoButton.CurrentPops)))
+		InfoButton:SetText(ROTGB_LocalizeString("rotgb.tower.total_damage", ROTGB_Commatize(InfoButton.CurrentPops)))
 	end
 	InfoButton:SetTextColor(color_white)
 	InfoButton:SetFont("DermaLarge")
@@ -1481,9 +1479,9 @@ function ROTGB_UpgradeMenu(ent)
 			self.CurrentPops = ent:GetPops()
 			self.CurrentCash = ent:GetCashGenerated()
 			if self.CurrentCash > 0 then
-				self:SetText(ROTGB_LocalizeString("rotgb.tower.total_damage_and_cash", string.Comma(self.CurrentPops), ROTGB_FormatCash(self.CurrentCash)))
+				self:SetText(ROTGB_LocalizeString("rotgb.tower.total_damage_and_cash", ROTGB_Commatize(self.CurrentPops), ROTGB_FormatCash(self.CurrentCash)))
 			else
-				self:SetText(ROTGB_LocalizeString("rotgb.tower.total_damage", string.Comma(self.CurrentPops)))
+				self:SetText(ROTGB_LocalizeString("rotgb.tower.total_damage", ROTGB_Commatize(self.CurrentPops)))
 			end
 		end
 	end

@@ -216,7 +216,9 @@ function GM:TowerAddCash(tower, cash, ply)
 	--[[if hook.Run("GetSkillAmount", "towerHalfIncome") > 0 then
 		cash = cash / 2
 	end]]
-	ply.rtg_CashGenerated = ply.rtg_CashGenerated + cash
+	if IsValid(ply) then
+		ply.rtg_CashGenerated = ply.rtg_CashGenerated + cash
+	end
 	return cash
 end
 

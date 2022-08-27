@@ -1,6 +1,6 @@
 -- real talk, I should probably make an addon to ease the process of making UIs
 -- right now there is way too many UI code duplication going on across my addons...
-local color_dark_black_doublesemiopaque = Color(0, 0, 0, 223)
+local color_black_doublesemiopaque = Color(0, 0, 0, 223)
 local color_gray = Color(127, 127, 127)
 local color_gray_semitransparent = Color(127, 127, 127, 63)
 local color_light_gray = Color(191, 191, 191)
@@ -14,8 +14,11 @@ local color_green_semitransparent = Color(0, 255, 0, 63)
 local color_light_green = Color(127, 255, 127)
 local color_dark_green = Color(0, 127, 0)
 local color_aqua = Color(0, 255, 255)
+local color_dark_aqua = Color(0, 127, 127)
+local color_doubledark_aqua = Color(0, 63, 63)
 local color_light_blue = Color(127, 127, 255)
 local color_purple = Color(127, 0, 255)
+local color_light_purple = Color(191, 127, 255)
 local color_magenta = Color(255, 0, 255)
 local SQRT_2 = math.sqrt(2)
 
@@ -35,7 +38,7 @@ local SCOREBOARD_FIELDS = {
 }
 local SCOREBOARD_FUNCS = {
 	[2] = function(ply)
-		return string.Comma(math.floor(ply.rtg_gBalloonPops or 0))
+		return ROTGB_Commatize(math.floor(ply.rtg_gBalloonPops or 0))
 	end,
 	[3] = function(ply)
 		return ROTGB_FormatCash(ROTGB_GetCash(ply))
@@ -44,7 +47,7 @@ local SCOREBOARD_FUNCS = {
 		return ROTGB_FormatCash(math.max(ply.rtg_CashGenerated, 0), true)
 	end,
 	[5] = function(ply)
-		return ROTGB_LocalizeString("rotgb_tg.scoreboard.ping_ms", string.Comma(ply:Ping()))
+		return ROTGB_LocalizeString("rotgb_tg.scoreboard.ping_ms", ROTGB_Commatize(ply:Ping()))
 	end
 }
 local SKILL_SIZE = 64
@@ -101,9 +104,13 @@ local CATEGORY_COLORS = {color_green, color_yellow, color_orange, color_red, col
 local ACHIEVEMENT_PADDING = ScreenScale(2)
 local ACHIEVEMENT_SIZE = ScreenScale(48)
 local ACHIEVEMENT_TIERS = {color_light_green, color_light_blue, color_light_orange}
+local WEAPON_SELECTOR_WIDTH = ScreenScale(144)
+local WEAPON_SELECTOR_HEIGHT = ScreenScale(48)
+local WEAPON_SELECTOR_PADDING = ScreenScale(0)
 
 local FONT_HEADER_HEIGHT = ScreenScale(16)
 local FONT_BODY_HEIGHT = ScreenScale(12)
+local FONT_EXTRA_HEIGHT = ScreenScale(8)
 local FONT_LEVEL_HEIGHT = ScreenScale(16)
 local FONT_EXPERIENCE_HEIGHT = ScreenScale(12)
 local FONT_SKILL_BODY_HEIGHT = ScreenScale(8)
@@ -154,6 +161,7 @@ AccessorFunc(GM, "VoteMenu", "VoteMenu")
 AccessorFunc(GM, "VoterMenu", "VoterMenu")
 AccessorFunc(GM, "SkillWebMenu", "SkillWebMenu")
 AccessorFunc(GM, "AchievementsMenu", "AchievementsMenu")
+AccessorFunc(GM, "WeaponSelectorMenu", "WeaponSelectorMenu")
 
 surface.CreateFont("rotgb_header", {
 	font = "Luckiest Guy Rotgb",
@@ -218,7 +226,7 @@ local function DrawDebugBackground(panel, w, h)
 end
 
 local function DrawTextBoxBackground(panel, w, h)
-	surface.SetDrawColor(color_dark_black_doublesemiopaque)
+	surface.SetDrawColor(color_black_doublesemiopaque)
 	surface.DrawRect(0,0,w,h)
 	surface.SetDrawColor(color_white)
 	surface.DrawOutlinedRect(0,0,w,h,1)
@@ -491,12 +499,12 @@ local function CreateScoreboardOtherLevelCell(parent, ply)
 	function LevelPanel:Paint(w, h)
 		surface.SetFont("rotgb_level_small")
 		surface.SetTextPos(0,0)
-		surface.SetTextColor(127,0,255)
-		surface.DrawText(string.Comma(self.Level))
+		surface.SetTextColor(191,127,255)
+		surface.DrawText(string.format("%.0f", self.Level))
 		
-		surface.SetDrawColor(63,0,127)
+		surface.SetDrawColor(95,63,127)
 		surface.DrawRect(0,h*.75,w,h*.25)
-		surface.SetDrawColor(127,0,255)
+		surface.SetTextColor(191,127,255)
 		surface.DrawRect(0,h*.75,w*self.LevelFrac,h*.25)
 	end
 	function LevelPanel:Update()
@@ -509,8 +517,8 @@ local function CreateScoreboardOtherLevelCell(parent, ply)
 			self:SetTooltip(
 				ROTGB_LocalizeString(
 					"rotgb_tg.experience",
-					string.Comma(curXP),
-					string.Comma(neededXP)
+					ROTGB_Commatize(curXP),
+					ROTGB_Commatize(neededXP)
 				)
 			)
 		end
@@ -2041,7 +2049,7 @@ local function CreateSkillWebSurface(parent)
 		local skillPoints = ply:RTG_GetSkillPoints()
 		SKILL_LEFT_TEXTS[1] = ROTGB_LocalizeMulticoloredString(
 			"rotgb_tg.skills.skill_points",
-			{string.Comma(skillPoints)},
+			{ROTGB_Commatize(skillPoints)},
 			color_white,
 			{skillPoints > 0 and color_yellow or color_white}
 		)
@@ -2312,8 +2320,13 @@ local function CreateSkillWebSurface(parent)
 		and (self.rtg_ConstellationNodeMap[skillID2] or 0) > 0
 		local width = skillButton:GetWide()*SKILL_BEAM_WIDTH_MULTIPLIERS[isSelectedForConstellation and 2 or 1]
 		
-		surface.SetDrawColor(alpha,alpha,alpha)
-		surface.SetMaterial(isSelectedForConstellation and SKILL_MATERIALS.constellation_beam or SKILL_MATERIALS.beam)
+		if isSelectedForConstellation then
+			surface.SetDrawColor(255,255,255)
+			surface.SetMaterial(SKILL_MATERIALS.constellation_beam)
+		else
+			surface.SetDrawColor(alpha,alpha,alpha)
+			surface.SetMaterial(SKILL_MATERIALS.beam)
+		end
 		surface.DrawTexturedRectRotated(x, y, width, length, rot)
 		surface.DrawTexturedRectRotated(x, y, width, length, rot+180)
 	end
@@ -2435,8 +2448,8 @@ end
 local function DrawAchievementProgress(panel, w, h)
 	local achievementUnlocked = hook.Run("IsAchievementUnlocked", panel.rotgb_AchievementID)
 	local progress = LocalPlayer():RTG_GetStat(panel.rotgb_Criteria)
-	local progressDisplay = panel.rotgb_Display == 1 and ROTGB_FormatCash(progress) or string.Comma(progress)
-	local maxProgressDisplay = panel.rotgb_Display == 1 and ROTGB_FormatCash(panel.rotgb_MaxProgress, true) or string.Comma(panel.rotgb_MaxProgress)
+	local progressDisplay = panel.rotgb_Display == 1 and ROTGB_FormatCash(progress) or ROTGB_Commatize(progress)
+	local maxProgressDisplay = panel.rotgb_Display == 1 and ROTGB_FormatCash(panel.rotgb_MaxProgress, true) or ROTGB_Commatize(panel.rotgb_MaxProgress)
 	
 	surface.SetDrawColor(0, 0, 0, 255)
 	surface.DrawRect(0, 0, w, h)
@@ -2448,21 +2461,21 @@ local function DrawAchievementProgress(panel, w, h)
 		local achievementProgressText = ROTGB_LocalizeString("rotgb_tg.achievement.progress", progressDisplay, maxProgressDisplay)
 		draw.SimpleTextOutlined(achievementProgressText, "rotgb_achievement_body", w/2, h/2, color_light_green, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 2, color_black)
 	else
-		surface.SetDrawColor(127, 0, 255, 255)
+		surface.SetDrawColor(191, 127, 255, 255)
 		surface.DrawRect(2, 2, (w-4)*math.min(progress/panel.rotgb_MaxProgress,1), h-4)
 		
 		local achievementProgressText = ROTGB_LocalizeString("rotgb_tg.achievement.progress", progressDisplay, maxProgressDisplay)
-		draw.SimpleTextOutlined(achievementProgressText, "rotgb_achievement_body", w/2, h/2, color_purple, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 2, color_black)
+		draw.SimpleTextOutlined(achievementProgressText, "rotgb_achievement_body", w/2, h/2, color_light_purple, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 2, color_black)
 	end
 end
 
-local function CreateAchievementPanel(parent, achievementID)
+local function CreateAchievementPanel(parent, achievementID, zPos)
 	local achievement = hook.Run("GetAchievements")[achievementID]
 	local name = achievement.name
 	
 	local panel = vgui.Create("DPanel", parent)
 	panel:SetTall(ACHIEVEMENT_SIZE)
-	panel:SetZPos(achievementID)
+	panel:SetZPos(zPos)
 	panel:DockMargin(0,0,0,ACHIEVEMENT_PADDING)
 	panel:Dock(TOP)
 	panel:DockPadding(ACHIEVEMENT_PADDING, ACHIEVEMENT_PADDING, ACHIEVEMENT_PADDING, ACHIEVEMENT_PADDING)
@@ -2486,14 +2499,14 @@ local function CreateAchievementPanel(parent, achievementID)
 	local rewardText = ""
 	local rewardType = achievement.reward or 0
 	if rewardType == 0 then
-		rewardText = ROTGB_LocalizeString("rotgb_tg.achievement.reward.xp", string.Comma(achievement.xp))
+		rewardText = ROTGB_LocalizeString("rotgb_tg.achievement.reward.xp", ROTGB_Commatize(achievement.xp))
 	elseif rewardType == 1 then
 		rewardText = language.GetPhrase("rotgb_tg.achievement.reward.skills")
 	end
 	
 	local achievementXP = vgui.Create("DLabel", achievementHeader)
 	achievementXP:SetFont("rotgb_achievement_header")
-	achievementXP:SetTextColor(color_purple)
+	achievementXP:SetTextColor(color_light_purple)
 	achievementXP:SetText(ROTGB_LocalizeString("rotgb_tg.achievement.reward", rewardText))
 	achievementXP:SizeToContentsX()
 	achievementXP:Dock(RIGHT)
@@ -2503,7 +2516,7 @@ local function CreateAchievementPanel(parent, achievementID)
 		local unlocked = hook.Run("IsAchievementUnlocked", achievementID)
 		if unlocked ~= self.rotgb_AchievementAchieved then
 			self.rotgb_AchievementAchieved = unlocked
-			self:SetTextColor(unlocked and color_light_green or color_purple)
+			self:SetTextColor(unlocked and color_light_green or color_light_purple)
 		end
 		if oldThink then
 			oldThink(self, ...)
@@ -2538,16 +2551,114 @@ local function CreateAchievementPanel(parent, achievementID)
 	return panel
 end
 
+local AchievementSorters = {
+	{function(a,b) return a.id < b.id end, function(a,b) return a.id > b.id end},
+	{function(a,b)
+		local axp, bxp = a.xp or 0, b.xp or 0
+		if axp == bxp then return a.id < b.id
+		else return axp < bxp
+		end
+	end, function(a,b)
+		local axp, bxp = a.xp or 0, b.xp or 0
+		if axp == bxp then return a.id < b.id
+		else return axp > bxp
+		end
+	end},
+	{function(a,b)
+		local aName = language.GetPhrase("rotgb_tg.achievement."..a.name..".name")
+		local bName = language.GetPhrase("rotgb_tg.achievement."..b.name..".name")
+		return aName < bName
+	end, function(a,b)
+		local aName = language.GetPhrase("rotgb_tg.achievement."..a.name..".name")
+		local bName = language.GetPhrase("rotgb_tg.achievement."..b.name..".name")
+		return aName > bName
+	end}
+}
+
+local function CreateAchievementFilterPanel(parent)
+	local filterBar = vgui.Create("DPanel", parent)
+	filterBar.Paint = nil
+	
+	local searchBar = vgui.Create("DTextEntry", filterBar)
+	searchBar:SetTall(FONT_BODY_HEIGHT)
+	searchBar:SetFont("rotgb_body")
+	searchBar:SetPlaceholderText("#rotgb_tg.achievement.search")
+	searchBar:SetZPos(1)
+	searchBar:Dock(TOP)
+	function searchBar:OnChange()
+		filterBar:Refresh()
+	end
+	
+	local text = vgui.Create("DLabel", filterBar)
+	text:SetText("#rotgb_tg.achievement.sort_by")
+	text:SetFont("rotgb_body")
+	text:SetZPos(2)
+	text:Dock(LEFT)
+	
+	local dropdown = vgui.Create("DComboBox", filterBar)
+	dropdown:AddChoice("#rotgb_tg.achievement.sort_by.id", 1, true)
+	dropdown:AddChoice("#rotgb_tg.achievement.sort_by.xp", 2)
+	dropdown:AddChoice("#rotgb_tg.achievement.sort_by.name", 3)
+	dropdown:SetFont("rotgb_body")
+	dropdown:SetZPos(3)
+	dropdown:Dock(LEFT)
+	function dropdown:OnSelect()
+		filterBar:Refresh()
+	end
+	
+	local descendingCheckbox = vgui.Create("DCheckBoxLabel", filterBar)
+	descendingCheckbox:SetText("#rotgb_tg.achievement.sort_by.descending")
+	descendingCheckbox:SetFont("rotgb_body")
+	descendingCheckbox:SetZPos(4)
+	descendingCheckbox:Dock(LEFT)
+	function descendingCheckbox:OnChange()
+		filterBar:Refresh()
+	end
+	
+	local hideCompleted = vgui.Create("DCheckBoxLabel", filterBar)
+	hideCompleted:SetText("#rotgb_tg.achievement.sort_by.hide_completed")
+	hideCompleted:SetFont("rotgb_body")
+	hideCompleted:SetZPos(5)
+	hideCompleted:Dock(LEFT)
+	function hideCompleted:OnChange()
+		filterBar:Refresh()
+	end
+	
+	function filterBar:PerformLayout(w, h)
+		text:SetWide(w/4)
+		descendingCheckbox:SetWide(w/4)
+		dropdown:SetWide(w/4)
+		hideCompleted:SetWide(w/4)
+	end
+	function filterBar:GetAchievements()
+		local newAchievements = {}
+		for k,v in pairs(hook.Run("GetAchievements")) do
+			local toSearch = string.lower(language.GetPhrase("rotgb_tg.achievement."..v.name..".name")..language.GetPhrase("rotgb_tg.achievement."..v.name..".description"))
+			local filterCondition1 = searchBar:GetValue() == "" or string.find(toSearch, string.lower(searchBar:GetValue()), 1, true)
+			local filterCondition2 = not (hideCompleted:GetChecked() and hook.Run("IsAchievementUnlocked", v.id))
+			if filterCondition1 and filterCondition2 then
+				table.insert(newAchievements, v)
+			end
+		end
+		
+		local _, sorterToUse = dropdown:GetSelected()
+		local AchievementSorter = AchievementSorters[sorterToUse][descendingCheckbox:GetChecked() and 2 or 1]
+		table.sort(newAchievements, AchievementSorter)
+		
+		return newAchievements
+	end
+	
+	return filterBar
+end
+
 local function CreateAchievementsPanel(parent)
 	local panel = vgui.Create("DPanel", parent)
 	panel:Dock(FILL)
 	panel.Paint = nil
 	
-	local searchBar = vgui.Create("DTextEntry", panel)
-	searchBar:SetTall(FONT_BODY_HEIGHT)
-	searchBar:SetFont("rotgb_body")
-	searchBar:SetPlaceholderText("#rotgb_tg.achievement.search")
-	searchBar:Dock(TOP)
+	local filterBar = CreateAchievementFilterPanel(panel)
+	filterBar:SetTall(FONT_BODY_HEIGHT*2)
+	filterBar:Dock(TOP)
 	
 	local achievementsPanel = vgui.Create("DScrollPanel", panel)
 	achievementsPanel:DockMargin(0, ACHIEVEMENT_PADDING, 0, ACHIEVEMENT_PADDING)
@@ -2559,18 +2670,92 @@ local function CreateAchievementsPanel(parent)
 		for k,v in pairs(self.rotgb_AchievementPanels) do
 			v:Remove()
 		end
-		for i,v in ipairs(hook.Run("GetAchievements")) do
-			local searchPhrase = string.lower(language.GetPhrase("rotgb_tg.achievement."..v.name..".name")..language.GetPhrase("rotgb_tg.achievement."..v.name..".description"))
-			if self.rotgb_FilterString == "" or string.find(searchPhrase, string.lower(self.rotgb_FilterString), 1, true) then
-				table.insert(self.rotgb_AchievementPanels, CreateAchievementPanel(achievementsPanel, i))
-			end
+		for i,v in ipairs(filterBar:GetAchievements()) do
+			table.insert(self.rotgb_AchievementPanels, CreateAchievementPanel(achievementsPanel, v.id, i))
 		end
 	end
-	function searchBar:OnChange()
-		achievementsPanel.rotgb_FilterString = self:GetValue()
+	function filterBar:Refresh()
 		achievementsPanel:Refresh()
 	end
 	achievementsPanel:Refresh()
+	
+	return panel
+end
+
+local function WeaponSorter(a,b)
+	local aName = language.GetPhrase(a:GetPrintName())
+	local bName = language.GetPhrase(b:GetPrintName())
+	return aName < bName
+end
+
+local function CreateWeaponPanel(parent, wep, zPos)
+	local panel = vgui.Create("DPanel", parent)
+	panel.rtg_Weapon = wep
+	panel:SetSize(WEAPON_SELECTOR_WIDTH, WEAPON_SELECTOR_HEIGHT)
+	panel:SetZPos(zPos)
+	
+	AccessorFunc(panel, "rtg_Active", "Active", FORCE_BOOL)
+	AccessorFunc(panel, "rtg_ActiveWeapon", "ActiveWeapon", FORCE_BOOL)
+	AccessorFunc(panel, "rtg_Selected", "Selected", FORCE_BOOL)
+	panel:SetPos(WEAPON_SELECTOR_WIDTH, 0)
+	panel.rtg_CurrentX = WEAPON_SELECTOR_WIDTH
+	panel.rtg_CurrentColor = {r = 0, g = 0, b = 0, a = 223}
+	
+	function panel:Think()
+		-- figure out the target X
+		local targetX = self:GetSelected() and 0
+		or self:GetActive() and WEAPON_SELECTOR_WIDTH - WEAPON_SELECTOR_HEIGHT
+		or WEAPON_SELECTOR_WIDTH*1.015625
+		
+		local zPos = self:GetZPos()
+		local lerpFactor = 1-0.015625^RealFrameTime()
+		local nextX = Lerp(lerpFactor, self.rtg_CurrentX, targetX)
+		local nextY = (zPos - 1) * (WEAPON_SELECTOR_HEIGHT + WEAPON_SELECTOR_PADDING)
+		
+		self:SetPos(nextX, nextY)
+		self.rtg_CurrentX = nextX
+		
+		-- do the same for color
+		local currentColor = self.rtg_CurrentColor
+		local targetColor = self:GetActiveWeapon() and color_dark_aqua
+		or self:GetSelected() and color_doubledark_aqua
+		or color_black_doublesemiopaque
+		
+		currentColor.r = Lerp(lerpFactor, currentColor.r, targetColor.r)
+		currentColor.g = Lerp(lerpFactor, currentColor.g, targetColor.g)
+		currentColor.b = Lerp(lerpFactor, currentColor.b, targetColor.b)
+		currentColor.a = Lerp(lerpFactor, currentColor.a, targetColor.a)
+	end
+	
+	function panel:Paint(w,h)
+		local currentColor = self.rtg_CurrentColor
+		surface.SetDrawColor(currentColor.r, currentColor.g, currentColor.b, currentColor.a)
+		surface.DrawRect(0,0,w,h)
+	end
+	
+	function panel:PrintDebug()
+		print(panel:GetActiveWeapon(), panel:GetSelected(), panel:GetActive())
+	end
+	
+	-- separate panel for the weapon material
+	local matPanel = vgui.Create("DImage", panel)
+	matPanel:SetPos(0, 0)
+	matPanel:SetSize(WEAPON_SELECTOR_HEIGHT, WEAPON_SELECTOR_HEIGHT)
+	matPanel:SetKeepAspect(true)
+	matPanel:SetImage("entities/"..wep:GetClass()..".png", "weapons/swep")
+	
+	-- the instructions field needs to be a panel that supports text coloring and word wrapping
+	local descPanel = vgui.Create("RichText", panel)
+	descPanel:SetPaintBackgroundEnabled(false)
+	descPanel:SetVerticalScrollbarEnabled(false)
+	descPanel:SetPos(WEAPON_SELECTOR_HEIGHT, 0)
+	descPanel:SetSize(WEAPON_SELECTOR_WIDTH - WEAPON_SELECTOR_HEIGHT, WEAPON_SELECTOR_HEIGHT)
+	descPanel:InsertColorChange(255,255,0,255)
+	descPanel:AppendText(language.GetPhrase(wep:GetPrintName() or "")..'\n')
+	descPanel:InsertColorChange(255,255,255,255)
+	descPanel:AppendText(language.GetPhrase(wep.Purpose or "")..'\n')
+	descPanel:InsertColorChange(255,255,0,255)
+	descPanel:AppendText(language.GetPhrase(wep.Instructions or "")..'\n')
 	
 	return panel
 end
@@ -2865,6 +3050,172 @@ function GM:CreateAchievementsMenu()
 	return Menu
 end
 
+--[[
+weapon selection:
+player does a weapon-selecting action
+action is piped to selector menu
+menu checks weapons, deleting panels of non-existent weapons and adding panels of new weapons
+menu figures out which panel is currently selected
+menu determines which weapon panels should be affected
+menu passes messages to weapon panels
+]]
+function GM:CreateWeaponSelectorMenu()
+	local SideMenu = CreateMenu()
+	SideMenu:KillFocus()
+	SideMenu:SetKeyboardInputEnabled(false)
+	SideMenu:SetMouseInputEnabled(false)
+	SideMenu.rtg_WeaponSelectPanels = {}
+	SideMenu.Paint = nil
+	
+	function SideMenu:Think()
+		if (self.rtg_DeactivateTime or math.huge) < RealTime() then
+			self:Deactivate()
+		end
+	end
+	
+	function SideMenu:CheckWeapons()
+		local ply = LocalPlayer()
+		self.rtg_Weapons = ply:GetWeapons()
+		table.sort(self.rtg_Weapons, WeaponSorter)
+		
+		local width = WEAPON_SELECTOR_WIDTH
+		local height = #self.rtg_Weapons * WEAPON_SELECTOR_HEIGHT + (#self.rtg_Weapons-1) * WEAPON_SELECTOR_PADDING
+		self:SetSize(width, height)
+		self:SetPos(ScrW()-width, (ScrH()-height)/2)
+		
+		-- remove inapplicable weapon panels
+		for k,v in pairs(self.rtg_WeaponSelectPanels) do
+			if IsValid(v) and not IsValid(v.rtg_Weapon) then
+				v:Remove()
+			end
+			if not IsValid(v) then
+				self.rtg_WeaponSelectPanels[k] = nil
+			end
+		end
+		
+		-- reconfigure the z-positions of each panel, and add weapon panels for missing weapons
+		-- at the same time, figure out which slot is currently active according to our scheme
+		local activeWeapon = LocalPlayer():GetActiveWeapon()
+		local activeSlot = 1
+		local activeWeaponClass = IsValid(activeWeapon) and activeWeapon:GetClass()
+		
+		for k,v in pairs(self.rtg_Weapons) do
+			local class = v:GetClass()
+			
+			local weaponPanel = self.rtg_WeaponSelectPanels[class]
+			if IsValid(weaponPanel) then
+				weaponPanel:SetZPos(k)
+			else
+				weaponPanel = CreateWeaponPanel(self, v, k)
+				self.rtg_WeaponSelectPanels[class] = weaponPanel
+			end
+			
+			if class == activeWeaponClass then
+				activeSlot = k
+				weaponPanel:SetActiveWeapon(true)
+			else
+				weaponPanel:SetActiveWeapon(false)
+			end
+		end
+		
+		self.rtg_ActiveWeapon = activeSlot
+	end
+	
+	function SideMenu:Activate()
+		if not self.rtg_DeactivateTime then
+			self:CheckWeapons()
+			for k,v in pairs(self.rtg_WeaponSelectPanels) do
+				v:SetActive(true)
+			end
+		end
+		self.rtg_DeactivateTime = RealTime() + 3
+	end
+	
+	function SideMenu:Deactivate()
+		if self.rtg_DeactivateTime then
+			self.rtg_DeactivateTime = nil
+			self.rtg_SelectedWeapon = nil
+			for k,v in pairs(self.rtg_WeaponSelectPanels) do
+				v:SetActive(false)
+				v:SetSelected(false)
+			end
+			return true
+		end
+	end
+	
+	function SideMenu:SelectAndDeselect(selected, deselected)
+		if selected ~= deselected then
+			-- figure out what was selected
+			local selectedWeapon = self.rtg_Weapons[selected]
+			if IsValid(selectedWeapon) then
+				local selectedClass = selectedWeapon:GetClass()
+				local selectedPanel = self.rtg_WeaponSelectPanels[selectedClass]
+				selectedPanel:SetSelected(true)
+			end
+			
+			if deselected then
+				-- figure out what was deselected
+				local deselectedWeapon = self.rtg_Weapons[deselected]
+				if IsValid(deselectedWeapon) then
+					local deselectedClass = deselectedWeapon:GetClass()
+					local deselectedPanel = self.rtg_WeaponSelectPanels[deselectedClass]
+					deselectedPanel:SetSelected(false)
+				end
+			end
+		end
+		
+		surface.PlaySound("common/wpn_moveselect.wav")
+	end
+	
+	function SideMenu:SelectNextWeapon()
+		self:Activate()
+		local oldSelectedWeapon = self.rtg_SelectedWeapon
+		self.rtg_SelectedWeapon = (self.rtg_SelectedWeapon or self.rtg_ActiveWeapon) + 1
+		if self.rtg_SelectedWeapon > #self.rtg_Weapons then
+			self.rtg_SelectedWeapon = 1
+		end
+		self:SelectAndDeselect(self.rtg_SelectedWeapon, oldSelectedWeapon)
+	end
+	
+	function SideMenu:SelectPreviousWeapon()
+		self:Activate()
+		local oldSelectedWeapon = self.rtg_SelectedWeapon
+		self.rtg_SelectedWeapon = (self.rtg_SelectedWeapon or self.rtg_ActiveWeapon) - 1
+		if self.rtg_SelectedWeapon < 1 then
+			self.rtg_SelectedWeapon = #self.rtg_Weapons
+		end
+		self:SelectAndDeselect(self.rtg_SelectedWeapon, oldSelectedWeapon)
+	end
+	
+	function SideMenu:SelectWeapon(slot)
+		self:Activate()
+		local oldSelectedWeapon = self.rtg_SelectedWeapon
+		self.rtg_SelectedWeapon = math.Clamp(slot, 1, #self.rtg_Weapons)
+		self:SelectAndDeselect(self.rtg_SelectedWeapon, oldSelectedWeapon)
+	end
+	
+	function SideMenu:SwitchWeapon()
+		if self.rtg_SelectedWeapon then
+			local currentWeapon = self.rtg_Weapons[self.rtg_ActiveWeapon]
+			local nextWeapon = self.rtg_Weapons[self.rtg_SelectedWeapon]
+			if IsValid(currentWeapon) and IsValid(nextWeapon) and currentWeapon ~= nextWeapon then
+				local currentWeaponPanel = self.rtg_WeaponSelectPanels[currentWeapon:GetClass()]
+				local nextWeaponPanel = self.rtg_WeaponSelectPanels[nextWeapon:GetClass()]
+				if IsValid(currentWeaponPanel) and IsValid(nextWeaponPanel) then
+					currentWeaponPanel:SetActiveWeapon(false)
+					nextWeaponPanel:SetActiveWeapon(true)
+					input.SelectWeapon(nextWeapon)
+				end
+			end
+			self:Deactivate()
+			surface.PlaySound("common/wpn_hudoff.wav")
+			return true
+		end
+	end
+	
+	return SideMenu
+end
+
 
 
 function GM:ShowHelp()
@@ -2956,5 +3307,27 @@ end
 function GM:HideAchievementsMenu()
 	if IsValid(hook.Run("GetAchievementsMenu")) then
 		hook.Run("GetAchievementsMenu"):Hide()
+	end
+end
+
+function GM:ProcessWeaponBind(bind)
+	if not IsValid(hook.Run("GetWeaponSelectorMenu")) then
+		hook.Run("SetWeaponSelectorMenu", hook.Run("CreateWeaponSelectorMenu"))
+	end
+	
+	local menu = hook.Run("GetWeaponSelectorMenu")
+	if bind == "invnext" then
+		menu:SelectNextWeapon()
+	elseif bind == "invprev" then
+		menu:SelectPreviousWeapon()
+	elseif bind == "attack" then
+		return menu:SwitchWeapon()
+	elseif bind == "attack2" then
+		return menu:Deactivate()
+	else
+		local slotNum = tonumber(string.match(bind, "^slot(%d+)$"))
+		if slotNum then
+			menu:SelectWeapon(slotNum)
+		end
 	end
 end

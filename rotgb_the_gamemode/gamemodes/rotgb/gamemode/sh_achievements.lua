@@ -53,7 +53,7 @@ GM.BaseAchievements = {
 	{name="fail1", tier=1, amount=1, criteria="fail", xp=100},
 	{name="fail2", tier=2, amount=20, criteria="fail", xp=25e3},
 	{name="fail_notowers", tier=1, criteria="fail.no_score", xp=1},
-	{name="success_notowers", tier=3, criteria="success.no_score", xp=1.5e6},
+	{name="success_notowers", tier=3, criteria="success.no_score", xp=10e6},
 	
 	{name="laser_light_show", tier=1, amount=1000, criteria="hits.laser_color_match", xp=100e3},
 	

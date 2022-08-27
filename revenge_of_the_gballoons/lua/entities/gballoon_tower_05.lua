@@ -27,22 +27,13 @@ ENT.rotgb_SpeedPercent = 1
 ENT.rotgb_FireRateMul = 1
 ENT.UpgradeReference = {
 	{
-		Names = {"Snappy Freezing","Thorough Freezing","Snappier Freezing","Breakneck Freezing","Snappiest Freezing","Fiery Freezing"},
-		Descs = {
-			"Pops one layer when freezing gBalloons.",
-			"gBalloons move 50% slower after frozen, for 3 seconds.",
-			"Considerably increases freezing damage.",
-			"Considerably increases freezing rate and tremendously increases freezing damage.",
-			"Colossally increases freezing damage! Frozen gBalloons also lose all damage type immunities while frozen (if they can be frozen).",
-			"Freezing gBalloons now sets them on fire, dealing 500 layers of damage over 5 seconds! gBalloons that are immune to freezing can be affected by this upgrade."
-		},
-		Prices = {500,2750,3500,35000,375000,1e6},
+		Prices = {400,900,1250,12500,125000,1.25e6},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 10
 			end,
 			function(self)
-				self.rotgb_SpeedPercent = self.rotgb_SpeedPercent * 0.5
+				self.SeeCamo = true
 			end,
 			function(self)
 				self.AttackDamage = self.AttackDamage + 10
@@ -61,15 +52,6 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Greater Influence","Better Coolant","Below Zero","Winds of Antarctica","Ice Sign: Absolute Zero","The World of White Wonderland"},
-		Descs = {
-			"Slightly increases freezing range.",
-			"Slightly increases freezing duration.",
-			"Freezing now causes ALL layers to be frozen. Enables the tower to freeze Blue gBlimps and lower non-white gBalloons.",
-			"Red gBlimps and lower within radius move 50% slower, even if hidden.",
-			"Once every 30 seconds, shooting at this tower causes ALL gBalloons to move 75% slower for 15 seconds. This ability does not affect newly spawned gBalloons.",
-			"Considerably increases freezing range and all gBalloons move 75% slower regardless of range. Once every 30 seconds, shooting at this tower freezes all Green gBlimps and lower regardless of immunities in addition to slowing them down for 15 seconds."
-		},
 		Prices = {200,950,7500,100000,200000,25e6},
 		Funcs = {
 			function(self)
@@ -96,15 +78,6 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Agitated Core","Quick Refresher","Angered Core","Cold Play","Icicle Storm","Blizzard and Hail"},
-		Descs = {
-			"The Orb of Cold now fires ice shards which pop one layer per shot.",
-			"Slightly increases shard fire rate and freezing rate.",
-			"Tremendously increases shard fire rate and damage.",
-			"Colossally increases shard damage and shards gain infinite range. Will still freeze gBalloons only in its original radius.",
-			"Increases shard fire rate by 1% per RgBE of every gBalloon within range.",
-			"Every time a shard hits a gBalloon, shard damage is increased by 1/10th of a layer. All bonus damage is lost when no gBalloons can be attacked with shards."
-		},
 		Prices = {250,1750,2750,30000,275000,2.5e6},
 		Funcs = {
 			function(self)

@@ -37,3 +37,13 @@ function draw.GetMultiColoredTextSize(data, font)
 	end
 	return w, h
 end
+
+-- originally used in cl_ui.lua, ultimately scrapped since Color values only support integers, which is bad for smooth linear interpolation
+--[[function LerpColor(amount, color1, color2)
+	return Color(
+		Lerp(amount, color1.r, color2.r),
+		Lerp(amount, color1.g, color2.g),
+		Lerp(amount, color1.b, color2.b),
+		Lerp(amount, color1.a, color2.a)
+	)
+end]]

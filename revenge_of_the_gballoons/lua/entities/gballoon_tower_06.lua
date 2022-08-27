@@ -75,7 +75,7 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Prices = {400,5000,40000,100000,500e6},
+		Prices = {400,5000,40000,100000,100e6},
 		Funcs = {
 			function(self)
 				self.rotgb_Buff = 1
@@ -160,23 +160,21 @@ function ENT:FireFunction(gBalloons)
 					tower.AttackDamage = (tower.AttackDamage or 0) - 10
 				end)
 			end
-			if self.rotgb_Buff > 3 then
-				if v.NextFire~=v.rotgb_Tower06BuffTrack then
-					v.rotgb_Tower06BuffTrack = v.NextFire
-					anotherfired = math.min(anotherfired, v.FireRate or 1)
-				else
-					table.insert(radiusTowers, v)
-				end
+			if self.rotgb_Buff > 3 and v ~= self then
+				v:ApplyBuff(self, "ROTGB_TOWER_06_PASSIVE_3", 1, function(tower)
+					tower:SetNWBool("rotgb_tower_06_discount", true)
+				end, function(tower)
+					tower:SetNWBool("rotgb_tower_06_discount", false)
+				end)
 			end
 			if self.rotgb_Buff > 4 and v ~= self then
-				v:SetNWFloat("rotgb_noupgradelimit", CurTime()+2)
+				v:ApplyBuff(self, "ROTGB_TOWER_06_PASSIVE_4", 1, function(tower)
+					tower:SetNWBool("rotgb_noupgradelimit", true)
+				end, function(tower)
+					tower:SetNWBool("rotgb_noupgradelimit", false)
+				end)
+				
 			end
-		end
-	end
-	if anotherfired and next(radiusTowers) then
-		local selectedTower = radiusTowers[math.random(#radiusTowers)]
-		if math.random() < (selectedTower.FireRate or 1) / anotherfired then
-			selectedTower:DoFireFunction()
 		end
 	end
 end

@@ -86,3 +86,54 @@ function GM:OnPlayerChat(ply, message, bTeam, bDead)
 	end
 	return false
 end
+
+function GM:PlayerBindPress(ply, bind, pressed, code)
+	--[[ invnext match:
+	invnext
+	invnext allen
+	invnext invprev
+	;;; invnext ;;;
+	p2p; lump; invnext; invprev
+	
+	what shouldn't match:
+	q invnext
+	invprev invnext
+	
+	need to match:
+	invnext, invprev, slotX
+	]]
+	if not GetConVar("hud_fastswitch"):GetBool() then
+		for command in string.gmatch(';'..bind, ";%s*(%w+)") do
+			if pressed and (command == "invnext" or command == "invprev" or string.match(command, "^slot%d+$")) then
+				hook.Run("ProcessWeaponBind", command)
+				return true
+			end
+		end
+	end
+end
+
+local suppressAttack, suppressAttack2 = false, false
+function GM:CreateMove(usercmd)
+	if not GetConVar("hud_fastswitch"):GetBool() then
+		if usercmd:KeyDown(IN_ATTACK) then
+			if hook.Run("ProcessWeaponBind", "attack") then
+				suppressAttack = true
+			end
+			if suppressAttack then
+				usercmd:RemoveKey(IN_ATTACK)
+			end
+		else
+			suppressAttack = false
+		end
+		if usercmd:KeyDown(IN_ATTACK2) then
+			if hook.Run("ProcessWeaponBind", "attack2") then
+				suppressAttack2 = true
+			end
+			if suppressAttack2 then
+				usercmd:RemoveKey(IN_ATTACK2)
+			end
+		else
+			suppressAttack2 = false
+		end
+	end
+end

@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		6.5.0
-Version Date:	2022-08-14
+Version:		6.6.0
+Version Date:	2022-08-27
 ]]
 
 local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","spawning","towers","music"}
@@ -665,6 +665,25 @@ end
 
 function ROTGB_ScaleBuyCost(num,ent,data)
 	num = num or 0
+	-- note: an entity PROTOTYPE might be passed here!
+	if IsValid(ent) and data.type == ROTGB_TOWER_UPGRADE then
+		if ent:GetNWBool("rotgb_noupgradelimit") then
+			-- figure out how many upgrades are already on the tower
+			local totalUpgrades = 0
+			for i=0,#ent.UpgradeReference-1 do
+				totalUpgrades = totalUpgrades + bit.band(bit.rshift(ent:GetUpgradeStatus(),i*4),15)
+			end
+			
+			-- figure out how many upgrades away, at minimum, the upgrade is
+			local upgradeDistance = data.tier - bit.band(bit.rshift(ent:GetUpgradeStatus(),data.path*4-4),15)
+			
+			-- total amount of doubling = total upgrades + upgrade distance - 1
+			num = num * 4^(totalUpgrades+upgradeDistance-1)
+		end
+		if ent:GetNWBool("rotgb_tower_06_discount") then
+			num = num * 0.875
+		end
+	end
 	local newAmount = hook.Run("RotgBScaleBuyCost", num, ent, data)
 	if newAmount then
 		return newAmount
@@ -1125,6 +1144,55 @@ if CLIENT then
 		return ROTGB_LocalizeString("rotgb.gballoon.name", balloonString, fastString, hiddenString, regenString, shieldedString)
 	end
 	
+	function ROTGB_FormatCash(cash, roundUp)
+		if cash==math.huge then -- number is inf
+			return language.GetPhrase("rotgb.cash.inf")
+		elseif cash==-math.huge then -- number is negative inf
+			return language.GetPhrase("rotgb.cash.-inf")
+		elseif cash<math.huge and cash>-math.huge then -- number is real
+			if cash>-1e12 and cash<1e12 then
+				return ROTGB_LocalizeString("rotgb.cash", ROTGB_Commatize((roundUp and math.ceil or math.floor)(cash)))
+			else
+				return ROTGB_LocalizeString("rotgb.cash", string.format("%.6E", cash))
+			end
+		else -- number isn't a number. Caused by inf minus inf
+			return language.GetPhrase("rotgb.cash.nan")
+		end
+	end
+	
+	function ROTGB_Commatize(number)
+		local originalCommatated = string.Comma(number)
+		return string.gsub(originalCommatated, "([,.])", {
+			[','] = ROTGB_LocalizeString("rotgb.number.thousands_separator"),
+			['.'] = ROTGB_LocalizeString("rotgb.number.decimal_separator")
+		})
+	end
+	
+	function ROTGB_DrawCircle(x,y,r,percent,...)
+		if percent > 0 then
+			local SEGMENTS = ROTGB_GetConVarValue("rotgb_circle_segments")
+			local seoul = -360/SEGMENTS
+			percent = math.Clamp(percent*SEGMENTS,0,SEGMENTS)
+			local vertices = {{x=x,y=y}}
+			local pi = math.pi
+			for i=0,math.floor(percent) do
+				local compx = x+math.sin(math.rad(i*seoul)+pi)*r
+				local compy = y+math.cos(math.rad(i*seoul)+pi)*r
+				table.insert(vertices,{x=compx,y=compy})
+			end
+			if math.floor(percent)~=percent then
+				local compx = x+math.sin(math.rad(percent*seoul)+pi)*r
+				local compy = y+math.cos(math.rad(percent*seoul)+pi)*r
+				table.insert(vertices,{x=compx,y=compy})
+			end
+			draw.NoTexture()
+			surface.SetDrawColor(...)
+			surface.DrawPoly(vertices)
+			table.insert(vertices,table.remove(vertices,1))
+			surface.DrawPoly(table.Reverse(vertices))
+		end
+	end
+	
 	local function RegisterClientConVar(cvarName, default, retrieveType, description)
 		if ROTGB_CVARS[cvarName] then
 			ROTGB_LogError("The ConVar "..cvarName.." was already registered! Expect side effects!","")
@@ -1182,47 +1250,6 @@ if CLIENT then
 	
 	RegisterClientConVar("rotgb_no_wave_hints","0",R_BOOL,
 	[[Hides the hints that sometimes appear after a wave ends.]])
-	
-	function ROTGB_FormatCash(cash, roundUp)
-		if cash==math.huge then -- number is inf
-			return language.GetPhrase("rotgb.cash.inf")
-		elseif cash==-math.huge then -- number is negative inf
-			return language.GetPhrase("rotgb.cash.-inf")
-		elseif cash<math.huge and cash>-math.huge then -- number is real
-			if cash>-1e12 and cash<1e12 then
-				return ROTGB_LocalizeString("rotgb.cash", string.Comma((roundUp and math.ceil or math.floor)(cash)))
-			else
-				return ROTGB_LocalizeString("rotgb.cash", string.format("%.6E", cash))
-			end
-		else -- number isn't a number. Caused by inf minus inf
-			return language.GetPhrase("rotgb.cash.nan")
-		end
-	end
-	
-	function ROTGB_DrawCircle(x,y,r,percent,...)
-		if percent > 0 then
-			local SEGMENTS = ROTGB_GetConVarValue("rotgb_circle_segments")
-			local seoul = -360/SEGMENTS
-			percent = math.Clamp(percent*SEGMENTS,0,SEGMENTS)
-			local vertices = {{x=x,y=y}}
-			local pi = math.pi
-			for i=0,math.floor(percent) do
-				local compx = x+math.sin(math.rad(i*seoul)+pi)*r
-				local compy = y+math.cos(math.rad(i*seoul)+pi)*r
-				table.insert(vertices,{x=compx,y=compy})
-			end
-			if math.floor(percent)~=percent then
-				local compx = x+math.sin(math.rad(percent*seoul)+pi)*r
-				local compy = y+math.cos(math.rad(percent*seoul)+pi)*r
-				table.insert(vertices,{x=compx,y=compy})
-			end
-			draw.NoTexture()
-			surface.SetDrawColor(...)
-			surface.DrawPoly(vertices)
-			table.insert(vertices,table.remove(vertices,1))
-			surface.DrawPoly(table.Reverse(vertices))
-		end
-	end
 	
 	local function CreateGBFont(fontsize)
 		surface.CreateFont("RotgB_font",{
@@ -1374,7 +1401,7 @@ if CLIENT then
 			local spawners = FilterSequentialTable(ents.GetAll(), TableFilterSpawners)
 			table.sort(spawners, SpawnerSorter)
 			for k,v in pairs(spawners) do
-				spawners[k] = string.Comma(v:GetWave()-1).." / "..string.Comma(v:GetLastWave())
+				spawners[k] = ROTGB_Commatize(v:GetWave()-1).." / "..ROTGB_Commatize(v:GetLastWave())
 			end
 			
 			local targets = FilterSequentialTable(ents.GetAll(), TableFilterWaypoints)
@@ -1414,20 +1441,20 @@ if CLIENT then
 					if needsBrackets then
 						tX = tX + draw.SimpleTextOutlined("( ","RotgB_font",tX,tY,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 					end
-					tX = tX + draw.SimpleTextOutlined(string.Comma(v:Health()).." ","RotgB_font",tX,tY,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+					tX = tX + draw.SimpleTextOutlined(ROTGB_Commatize(v:Health()).." ","RotgB_font",tX,tY,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 					if v:GetOSPs() > 0 then
-						tX = tX + draw.SimpleTextOutlined("+ "..string.Comma(v:GetOSPs()).."* ","RotgB_font",tX,tY,color_magenta,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+						tX = tX + draw.SimpleTextOutlined("+ "..ROTGB_Commatize(v:GetOSPs()).."* ","RotgB_font",tX,tY,color_magenta,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 					end
 					if v:GetGoldenHealth() > 0 then
-						tX = tX + draw.SimpleTextOutlined("+ "..string.Comma(v:GetGoldenHealth()).." ","RotgB_font",tX,tY,color_yellow,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+						tX = tX + draw.SimpleTextOutlined("+ "..ROTGB_Commatize(v:GetGoldenHealth()).." ","RotgB_font",tX,tY,color_yellow,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 					end
 					if v:GetPerWaveShield() > 0 then
-						tX = tX + draw.SimpleTextOutlined("+ "..string.Comma(v:GetPerWaveShield()).." ","RotgB_font",tX,tY,color_aqua,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+						tX = tX + draw.SimpleTextOutlined("+ "..ROTGB_Commatize(v:GetPerWaveShield()).." ","RotgB_font",tX,tY,color_aqua,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 					end
 					if needsBrackets then
 						tX = tX + draw.SimpleTextOutlined(") ","RotgB_font",tX,tY,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 					end
-					tX = tX + draw.SimpleTextOutlined("/ "..string.Comma(v:GetMaxHealth()),"RotgB_font",tX,tY,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
+					tX = tX + draw.SimpleTextOutlined("/ "..ROTGB_Commatize(v:GetMaxHealth()),"RotgB_font",tX,tY,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 					if i < #targets then
 						tX = tX + draw.SimpleTextOutlined(" + ","RotgB_font",tX,tY,color_white,TEXT_ALIGN_LEFT,TEXT_ALIGN_TOP,2,color_black)
 					end
@@ -1452,13 +1479,13 @@ if CLIENT then
 				
 				local textOffset = size*3
 				for i,v in ipairs(hurtFeedKeyless) do
-					local attributed = v.isBalloon and v.instances > 1 and ROTGB_LocalizeString("rotgb.gballoon_target.damage.multiple", string.Comma(v.instances), v.__key) or v.__key
+					local attributed = v.isBalloon and v.instances > 1 and ROTGB_LocalizeString("rotgb.gballoon_target.damage.multiple", ROTGB_Commatize(v.instances), v.__key) or v.__key
 					
 					local damageText = v.damage < 0 and "rotgb.gballoon_target.heal" or "rotgb.gballoon_target.damage"
 					
-					--[[local textPart1 = "Took "..string.Comma(v.damage).." damage from "
+					--[[local textPart1 = "Took "..ROTGB_Commatize(v.damage).." damage from "
 					if v.damage < 0 then
-						textPart1 = "Healed "..string.Comma(-v.damage).." health from "
+						textPart1 = "Healed "..ROTGB_Commatize(-v.damage).." health from "
 					end
 					local textPart2 = "!"]]
 					local alpha = math.Remap(realTime, v.timestamp, v.timestamp+hurtFeedStaySeconds, 512, 0)
@@ -1470,7 +1497,7 @@ if CLIENT then
 					ROTGB_DrawMultiColoredOutlinedText(
 						ROTGB_LocalizeMulticoloredString(
 							damageText,
-							{string.Comma(math.abs(v.damage)), attributed},
+							{ROTGB_Commatize(math.abs(v.damage)), attributed},
 							fgColor,
 							{fgColor, fgColor2}
 						),
@@ -1576,7 +1603,7 @@ if CLIENT then
 				surface.SetDrawColor(segmentColor.r, segmentColor.g, segmentColor.b, segmentColor.a)
 				surface.DrawRect(barX, barY, barW*bossData.oldHealthPercent, barH)
 				
-				local healthText = ROTGB_LocalizeString("rotgb.gballoon.health", string.Comma(bossData.health), string.Comma(bossData.maxHealth))
+				local healthText = ROTGB_LocalizeString("rotgb.gballoon.health", ROTGB_Commatize(bossData.health), ROTGB_Commatize(bossData.maxHealth))
 				draw.SimpleText(healthText, "RotgBBossFont", barX, barY+barH, color_white)
 				
 				if currentHealthSegment > 20 then
@@ -1586,7 +1613,7 @@ if CLIENT then
 					surface.SetDrawColor(previousSegmentColor.r,previousSegmentColor.g,previousSegmentColor.b)
 					surface.DrawRect(localX, localY, healthBarsW, healthBarsW)
 					
-					local healthSegmentsText = ROTGB_LocalizeString("rotgb.gballoon.health.segments", string.Comma(currentHealthSegment-1))
+					local healthSegmentsText = ROTGB_LocalizeString("rotgb.gballoon.health.segments", ROTGB_Commatize(currentHealthSegment-1))
 					draw.SimpleText(healthSegmentsText, "RotgBBossFont", localX - healthBarsP, localY + healthBarsW / 2, color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
 				else
 					for k,v in pairs(bossData.previousHealthSegmentColors) do
@@ -2015,7 +2042,7 @@ if CLIENT then
 				elseif message == ROTGB_NOTIFY_TRANSFERSHARED then
 					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.game_swep.transfer.shared"), level, nil, additionalArguments)
 				elseif message == ROTGB_NOTIFY_TOWERLEVEL then
-					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.level", string.Comma(net.ReadUInt(8))), level, nil, additionalArguments)
+					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.level", ROTGB_Commatize(net.ReadUInt(8))), level, nil, additionalArguments)
 				elseif message == ROTGB_NOTIFY_TOWERCASH then
 					local cost = net.ReadFloat()
 					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.cant_afford", ROTGB_FormatCash(cost, true)), level, nil, additionalArguments)
@@ -2073,7 +2100,7 @@ if CLIENT then
 			local message = net.ReadUInt(8)
 			if message == ROTGB_NOTIFYARG_TOWERLEVEL then
 				local level = net.ReadUInt(8)
-				ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.level", string.Comma(level)), ROTGB_NOTIFYTYPE_ERROR)
+				ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.level", ROTGB_Commatize(level)), ROTGB_NOTIFYTYPE_ERROR)
 			elseif message == ROTGB_NOTIFYARG_TOWERCASH then
 				local cost = net.ReadFloat()
 				ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.cant_afford", ROTGB_FormatCash(cost, true)), ROTGB_NOTIFYTYPE_ERROR)

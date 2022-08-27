@@ -1,12 +1,12 @@
 --[[
-Workshop:		N/A
+Workshop:		https://steamcommunity.com/sharedfiles/filedetails/?id=2843675199
 Profile Page:	https://steamcommunity.com/id/Piengineer12
 GitHub Page:	https://github.com/Piengineer12/public-addons/tree/master/dual_acting_physgun
 Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2022-08-02. All dates are in ISO 8601 format.
 
-Version:		1.0.0
+Version:		1.0.1
 ]]
 
 local flatMulConVar = CreateConVar("dual_acting_physgun_mk1_mul", "0", FCVAR_ARCHIVE, "Multiplier for the force applied by the Dual-Acting Physgun Mark I system. A value of 0 will disable reactive forces. This does not affect the Dual-Acting Physgun Mark II system.")

@@ -3,7 +3,7 @@ local levelUpText
 local oldLevel = -1
 
 local color_aqua = Color(0, 255, 255)
-local color_purple = Color(127, 0, 255)
+local color_light_purple = Color(191, 127, 255)
 local FONT_LEVEL_HEIGHT = ScreenScale(16)
 
 function GM:HUDDrawXP()
@@ -42,18 +42,18 @@ function GM:HUDDrawXP()
 	
 	surface.SetDrawColor(0,0,0)
 	surface.DrawRect(barX-2, barY-2, barWidth+4, barHeight+4)
-	surface.SetDrawColor(63,0,127)
+	surface.SetDrawColor(95,63,127)
 	surface.DrawRect(barX, barY, barWidth, barHeight)
-	surface.SetDrawColor(127,0,255)
+	surface.SetDrawColor(191,127,255)
 	surface.DrawRect(barX, barY, barWidth * ply:RTG_GetLevelFraction(), barHeight)
 	
 	local levelString = ROTGB_LocalizeString("rotgb_tg.level", string.format("%.0f", level))
-	draw.SimpleTextOutlined(levelString, "rotgb_level", barX, barY, color_purple, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
+	draw.SimpleTextOutlined(levelString, "rotgb_level", barX, barY, color_light_purple, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
 	if levelDisplayExpiryTime < RealTime() then
-		local xp = string.Comma(math.floor(ply:RTG_GetExperience()))
-		local requiredXp = string.Comma(math.ceil(ply:RTG_GetExperienceNeeded()))
+		local xp = ROTGB_Commatize(math.floor(ply:RTG_GetExperience()))
+		local requiredXp = ROTGB_Commatize(math.ceil(ply:RTG_GetExperienceNeeded()))
 		local experienceText = ROTGB_LocalizeString("rotgb_tg.experience", xp, requiredXp) 
-		draw.SimpleTextOutlined(experienceText, "rotgb_experience", barX+barWidth, barY, color_purple, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
+		draw.SimpleTextOutlined(experienceText, "rotgb_experience", barX+barWidth, barY, color_light_purple, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
 	else
 		local textColor = Color(255,math.sin(RealTime()*math.pi)*127+128,255)
 		draw.SimpleTextOutlined(levelUpText, "rotgb_experience", barX+barWidth, barY, textColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)

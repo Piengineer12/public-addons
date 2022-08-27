@@ -2,8 +2,8 @@
 -- https://github.com/Fasteroid/expression2-public/blob/master/physgun_two-way_coupling.txt
 -- Some Wiremod E2 source code was also used for a few things, such as QuaternionToRotationVector.
 
-local ConVarForceMultiplier = CreateConVar("dual_acting_physgun_mk2_mul", "1", FCVAR_ARCHIVED, "Multiplier for the force applied by the Dual-Acting Physgun Mark II system. A value of 0 will disable reactive forces. This does not affect the Dual-Acting Physgun Mark I system.")
-local ConVarForceMax = CreateConVar("dual_acting_physgun_mk2_max", "10000", FCVAR_ARCHIVED, "Maximum force applied by the Dual-Acting Physgun Mark II.")
+local ConVarForceMultiplier = CreateConVar("dual_acting_physgun_mk2_mul", "1", FCVAR_ARCHIVE, "Multiplier for the force applied by the Dual-Acting Physgun Mark II system. A value of 0 will disable reactive forces. This does not affect the Dual-Acting Physgun Mark I system.")
+local ConVarForceMax = CreateConVar("dual_acting_physgun_mk2_max", "10000", FCVAR_ARCHIVE, "Maximum force applied by the Dual-Acting Physgun Mark II.")
 local ConVarWhitelist = CreateConVar("dual_acting_physgun_mk2_whitelist", "prop_physics prop_ragdoll", FCVAR_ARCHIVE,
 "Whitelist of classes that trigger the Dual-Acting Physgun Mark II system.")
 
@@ -178,8 +178,8 @@ hook.Add("OnPhysgunPickup", "ReactivePhysgun2", function(ply, ent)
 		ent:SetCollisionGroup(COLLISION_GROUP_IN_VEHICLE)
 		
 		local physObj = ent.ReactivePhysgun2RealEntity:GetPhysicsObject()
-		ent.ReactivePhysgun2OldGravity = physObj:IsGravityEnabled()
-		physObj:EnableGravity(false)
+		--ent.ReactivePhysgun2OldGravity = physObj:IsGravityEnabled()
+		--physObj:EnableGravity(false)
 		physObj:EnableMotion(true)
 	end
 end)
@@ -195,13 +195,13 @@ end)
 
 hook.Add("PhysgunDrop", "ReactivePhysgun2", function(ply, ent)
 	if ent.IsReactivePhysgun2ShadowEntity then
-		if IsValid(ent.ReactivePhysgun2RealEntity) then
+		--[[if IsValid(ent.ReactivePhysgun2RealEntity) then
 			local physObj = ent.ReactivePhysgun2RealEntity:GetPhysicsObject()
 			
 			if IsValid(physObj) then
 				physObj:EnableGravity(ent.ReactivePhysgun2OldGravity)
 			end
-		end
+		end]]
 		ent:Remove()
 	end
 end)

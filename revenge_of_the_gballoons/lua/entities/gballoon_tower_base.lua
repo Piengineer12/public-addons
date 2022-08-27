@@ -190,7 +190,6 @@ function ENT:AddTimePhase(timeToAdd)
 	self.NextFire = (self.NextFire or 0) + timeToAdd
 	self.ExpensiveThinkDelay = (self.ExpensiveThinkDelay or 0) + timeToAdd
 	self.StunUntil = (self.StunUntil or 0) + timeToAdd
-	self:SetNWFloat("rotgb_noupgradelimit", self:GetNWFloat("rotgb_noupgradelimit") + timeToAdd)
 	for identifier,info in pairs(self.BuffIdentifiers) do
 		info.expiry = info.expiry + timeToAdd
 	end
@@ -253,7 +252,7 @@ function ENT:Think()
 		local amount = ROTGB_ScaleBuyCost(self.Cost or 0, self, {type = ROTGB_TOWER_PURCHASE, ply = self:GetTowerOwner()})
 		if self:GetUpgradeStatus()~=0 then
 			for i,v in ipairs(self.UpgradeReference) do
-				local tier = bit.rshift(self:GetUpgradeStatus(),(i-1)*4)%16
+				local tier = bit.band(bit.rshift(self:GetUpgradeStatus(),(i-1)*4),15)
 				for j=1,tier do
 					if (v.Funcs and v.Funcs[j]) then
 						v.Funcs[j](self)
@@ -355,6 +354,22 @@ function ENT:Think()
 		self:NextThink(curTime)
 		return true
 	end
+	if CLIENT then
+		if self.OldDetectionRadius ~= self.DetectionRadius then
+			local renderRadius = math.max(self.DetectionRadius, self:BoundingRadius())
+			local minVector = Vector(-renderRadius, -renderRadius, -renderRadius)
+			local maxVector = -minVector
+			--[[local minVector2, maxVector2 = self:GetRenderBounds()
+			
+			-- figure out which box points are bigger
+			OrderVectors(minVector, minVector2)
+			OrderVectors(maxVector, maxVector2)
+			-- minVector will now hold the lowest point and maxVector2 the highest]]
+			
+			self:SetRenderBounds(minVector, maxVector, self.LOSOffset)
+			self.OldDetectionRadius = self.DetectionRadius
+		end
+	end
 end
 
 function ENT:DoFireFunction()
@@ -425,7 +440,9 @@ end
 
 function ENT:ApplyBuff(tower, identifier, duration, applyFunc, unapplyFunc)
 	identifier = identifier or #self.BuffIdentifiers+1
-	if not self.BuffIdentifiers[identifier] then
+	if self.BuffIdentifiers[identifier] then
+		self.BuffIdentifiers[identifier].expiry = CurTime() + duration
+	else
 		duration = duration or math.huge
 		self.BuffIdentifiers[identifier] = {tower = tower, expiry = CurTime() + duration, unapplyFunc = unapplyFunc}
 		applyFunc(self)
@@ -605,7 +622,7 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 				
 				local reference = ent.UpgradeReference[path+1]
 				if not reference then return end
-				local tier = bit.rshift(ent:GetUpgradeStatus(),path*4)%16+1
+				local tier = bit.band(bit.rshift(ent:GetUpgradeStatus(),path*4),15)+1
 				for i=1,upgradeAmount do
 					local price = ROTGB_ScaleBuyCost(reference.Prices[tier], ent, {type = ROTGB_TOWER_UPGRADE, path = path+1, tier = tier})
 					ent.SellAmount = (ent.SellAmount or 0) + price
@@ -647,11 +664,11 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 		local reference = ent.UpgradeReference[path+1]
 		if not reference then return end
 		local upgradeAmount = net.ReadUInt(4)+1
-		if not (ROTGB_GetConVarValue("rotgb_ignore_upgrade_limits") or ent:GetNWFloat("rotgb_noupgradelimit") >= CurTime()) then
+		if not (ROTGB_GetConVarValue("rotgb_ignore_upgrade_limits") or ent:GetNWBool("rotgb_noupgradelimit")) then
 			-- check if the upgrade is valid and not locked
 			local pathUpgrades = {}
 			for i=1,#ent.UpgradeReference do
-				table.insert(pathUpgrades, bit.rshift(ent:GetUpgradeStatus(),i*4-4)%16)
+				table.insert(pathUpgrades, bit.band(bit.rshift(ent:GetUpgradeStatus(),i*4-4),15))
 			end
 			pathUpgrades[path+1] = pathUpgrades[path+1] + upgradeAmount
 			table.sort(pathUpgrades, function(a,b) return a>b end)
@@ -662,7 +679,7 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 			end
 		end
 		-- it's valid
-		local tier = bit.rshift(ent:GetUpgradeStatus(),path*4)%16+1
+		local tier = bit.band(bit.rshift(ent:GetUpgradeStatus(),path*4),15)+1
 		for i=1,upgradeAmount do
 			local price = ROTGB_ScaleBuyCost(reference.Prices[tier], ent, {type = ROTGB_TOWER_UPGRADE, path = path+1, tier = tier})
 			if ROTGB_GetCash(ply)<price then return end
