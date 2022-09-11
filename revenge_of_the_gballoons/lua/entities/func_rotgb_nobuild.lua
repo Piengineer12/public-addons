@@ -11,7 +11,7 @@ end
 
 function ENT:KeyValue(key,value)
 	if key:lower()=="start_disabled" then
-		self:SetDisabled(tobool(value))
+		self.TempDisabled = tobool(value)
 	end
 end
 
@@ -26,21 +26,27 @@ function ENT:AcceptInput(input,activator,caller,data)
 	end
 end
 
+function ENT:Initialize()
+	self:SetDisabled(tobool(self.TempDisabled))
+end
+
 function ENT:Touch(ent)
-	if ent.Base=="gballoon_tower_base" and not ent.StunUntil2 and not self:GetDisabled() then
-		ent:SetNWBool("ROTGB_Stun2",true)
-		ent:Stun2()
-		ent:SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER)
-		ROTGB_CauseNotification(ROTGB_NOTIFY_PLACEMENTILLEGAL, ROTGB_NOTIFYTYPE_INFO, nil, {"e", ent})
-	elseif ent.rotgb_isDetector and not ent.rotgb_isDetected then
-		--print("A", ent)
-		ent.rotgb_isDetected = true
-		ent:NoBuildTriggered(true)
+	if not self:GetDisabled() then
+		if ent.Base=="gballoon_tower_base" and not ent.StunUntil2 then
+			ent:SetNWBool("ROTGB_Stun2",true)
+			ent:Stun2()
+			ent:SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER)
+			ROTGB_CauseNotification(ROTGB_NOTIFY_PLACEMENTILLEGAL, ROTGB_NOTIFYTYPE_INFO, nil, {"e", ent})
+		elseif ent.rotgb_isDetector and not ent.rotgb_isDetected then
+			--print("A", ent)
+			ent.rotgb_isDetected = true
+			ent:NoBuildTriggered(true)
+		end
 	end
 end
 
 function ENT:EndTouch(ent)
-	if ent.Base=="gballoon_tower_base" then
+	if ent.Base=="gballoon_tower_base" and ent:GetNWBool("ROTGB_Stun2") then
 		ent:SetNWBool("ROTGB_Stun2",false)
 		ent:UnStun2()
 		ent:SetCollisionGroup(COLLISION_GROUP_NONE)

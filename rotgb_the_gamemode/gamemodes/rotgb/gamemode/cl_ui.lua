@@ -354,7 +354,7 @@ local function ButtonPaint(panel, w, h)
 	local drawColor = ButtonPaintDetermineColor(panel)
 	
 	draw.RoundedBox(8, 0, 0, w, h, drawColor)
-	draw.RoundedBox(8, 4, 4, w-8, h-8, color_black)
+	draw.RoundedBox(4, 4, 4, w-8, h-8, color_black)
 end
 
 local function ButtonPaintSmall(panel, w, h)
@@ -504,7 +504,7 @@ local function CreateScoreboardOtherLevelCell(parent, ply)
 		
 		surface.SetDrawColor(95,63,127)
 		surface.DrawRect(0,h*.75,w,h*.25)
-		surface.SetTextColor(191,127,255)
+		surface.SetDrawColor(191,127,255)
 		surface.DrawRect(0,h*.75,w*self.LevelFrac,h*.25)
 	end
 	function LevelPanel:Update()

@@ -97,7 +97,7 @@ function GM:RebuildSkills()
 		end
 	end
 	hook.Run("RTG_Log", string.format("Finished building skill web in %.2f mcs.", (SysTime()-buildTime)*1e6), RTG_LOGGING_INFO)
-	hook.Run("RTG_Log", string.format("Nodes: %i, Links: %i", #skills, links/2), RTG_LOGGING_INFO)
+	hook.Run("RTG_Log", string.format("Nodes: %i, Links: %i", #skills, links), RTG_LOGGING_INFO)
 end
 
 function GM:CompileSkillTable(unprocessedSkill)
@@ -271,7 +271,7 @@ end
 
 local PLAYER = FindMetaTable("Player")
 
-local maxLevel = 9999
+local maxLevel = 999
 local experienceNeeded = {
 	100, 250, 500, 1000
 }

@@ -1257,7 +1257,6 @@ function ROTGB_UpgradeMenu(ent)
 				return ROTGB_CauseNotification("#rotgb.tower.missing")
 			end
 			self.Tier = self.Tier or bit.band(bit.rshift(ent:GetUpgradeStatus(),i*4),15)+1
-			self.price = ROTGB_ScaleBuyCost(reftab.Prices[self.Tier], ent, {type = ROTGB_TOWER_UPGRADE, path = i+1, tier = self.Tier})
 			
 			local text
 			if not reftab.Funcs[self.Tier] then
@@ -1277,6 +1276,7 @@ function ROTGB_UpgradeMenu(ent)
 				Main:Close()
 				return ROTGB_CauseNotification("#rotgb.tower.missing")
 			end
+			self.price = ROTGB_ScaleBuyCost(reftab.Prices[self.Tier], ent, {type = ROTGB_TOWER_UPGRADE, path = i+1, tier = self.Tier})
 			curcash = ROTGB_GetCash(LocalPlayer())
 			draw.RoundedBox(8,0,0,w,h,self:IsHovered() and color_gray_translucent or color_black_translucent)
 			
@@ -1332,9 +1332,8 @@ function ROTGB_UpgradeMenu(ent)
 			function HoverButton:Paint(w,h)
 				if self.Tier ~= UpgradeStatement.Tier then
 					self.Tier = UpgradeStatement.Tier
-					self.RequiredAmount = self:GetRequiredAmount()
 				end
-				local canAfford = curcash >= self.RequiredAmount
+				local canAfford = curcash >= self:GetRequiredAmount()
 				local drawColor
 				local pulser = math.sin(CurTime()*math.pi*2)/2+0.5
 				local ignoreTier = ROTGB_GetConVarValue("rotgb_ignore_upgrade_limits") or ent:GetNWBool("rotgb_noupgradelimit")
@@ -1372,7 +1371,7 @@ function ROTGB_UpgradeMenu(ent)
 					return ROTGB_CauseNotification("#rotgb.tower.missing")
 				end
 				if not (UpgradeStatement.MaxTier >= j or ROTGB_GetConVarValue("rotgb_ignore_upgrade_limits") or ent:GetNWBool("rotgb_noupgradelimit")) then return end
-				local moreCashNeeded = self.RequiredAmount - curcash
+				local moreCashNeeded = self:GetRequiredAmount() - curcash
 				if moreCashNeeded>0 then return ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.upgrade.node.cannot_afford", ROTGB_FormatCash(moreCashNeeded, true))) end
 				for k=self.Tier,j do
 					if (reftab.Funcs and reftab.Funcs[k]) then
@@ -1385,7 +1384,7 @@ function ROTGB_UpgradeMenu(ent)
 				net.WriteUInt(i,4)
 				net.WriteUInt(j-self.Tier,4)
 				net.SendToServer()
-				ent.SellAmount = (ent.SellAmount or 0) + self.RequiredAmount
+				ent.SellAmount = (ent.SellAmount or 0) + self:GetRequiredAmount()
 				UpgradeStatement:Refresh(true)
 			end
 		end

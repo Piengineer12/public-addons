@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		6.6.0
-Version Date:	2022-08-27
+Version:		6.6.1
+Version Date:	2022-09-11
 ]]
 
 local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","spawning","towers","music"}
@@ -122,6 +122,7 @@ ROTGB_NOTIFY_TOWERCHESSONLY = 13
 ROTGB_NOTIFY_TOWERMAX = 14
 ROTGB_NOTIFY_TOWERNOTOWNER = 15
 ROTGB_NOTIFY_WAVEEND = 16
+ROTGB_NOTIFY_TUTORIAL = 17
 
 -- deprecated:
 ROTGB_NOTIFYCHAT_NOMULTISTART = ROTGB_NOTIFY_NOMULTISTART
@@ -1161,11 +1162,16 @@ if CLIENT then
 	end
 	
 	function ROTGB_Commatize(number)
-		local originalCommatated = string.Comma(number)
-		return string.gsub(originalCommatated, "([,.])", {
-			[','] = ROTGB_LocalizeString("rotgb.number.thousands_separator"),
-			['.'] = ROTGB_LocalizeString("rotgb.number.decimal_separator")
-		})
+		if number == math.huge then return ROTGB_LocalizeString("rotgb.number.inf")
+		elseif number == -math.huge then return ROTGB_LocalizeString("rotgb.number.-inf")
+		elseif number < math.huge and number > -math.huge then 
+			local originalCommatated = string.Comma(number)
+			return string.gsub(originalCommatated, "([,.])", {
+				[','] = ROTGB_LocalizeString("rotgb.number.thousands_separator"),
+				['.'] = ROTGB_LocalizeString("rotgb.number.decimal_separator")
+			})
+		else return ROTGB_LocalizeString("rotgb.number.nan")
+		end
 	end
 	
 	function ROTGB_DrawCircle(x,y,r,percent,...)
@@ -2064,6 +2070,10 @@ if CLIENT then
 					if token ~= localized then
 						ROTGB_CauseNotification(localized, level, nil, additionalArguments)
 					end
+				elseif message == ROTGB_NOTIFY_TUTORIAL then
+					local token = string.format("rotgb_tg.tutorial.%i", net.ReadUInt(8))
+					local localized = ROTGB_LocalizeString(token)
+					ROTGB_CauseNotification(localized, level, nil, additionalArguments)
 				end
 			end
 		elseif operation == ROTGB_OPERATION_NOTIFYCHAT then

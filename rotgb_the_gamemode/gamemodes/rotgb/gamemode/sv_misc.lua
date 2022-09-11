@@ -42,6 +42,10 @@ function GM:Think()
 			net.Broadcast()
 		end
 		
+		for k,v in pairs(player.GetAll()) do
+			v:RTG_SetStat("cash", ROTGB_GetCash(v))
+		end
+		
 		hook.Run("CurrentVoteThink")
 	end
 	if nextFullUpdate < RealTime() then
@@ -167,9 +171,6 @@ function GM:gBalloonDamaged(bln, attacker, inflictor, damage, cash, deductedCash
 				end
 			end
 		end
-	end
-	for k,v in pairs(player.GetAll()) do
-		v:RTG_SetStat("cash", ROTGB_GetCash(v))
 	end
 end
 

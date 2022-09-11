@@ -240,7 +240,7 @@ GM.BaseDifficulties = {
 		category = "icu",
 		place = 2,
 		extra = true,
-		xpmul = 0.03125*1.25,
+		xpmul = 0.03125*0.25*1.25,
 		condition = function()
 			return hook.Run("GetSkillAmount", "icu_carbonfiber") > 0
 		end,
@@ -255,7 +255,7 @@ GM.BaseDifficulties = {
 		category = "icu",
 		place = 3,
 		extra = true,
-		xpmul = 0.03125*1.5,
+		xpmul = 0.03125*0.25*1.5,
 		condition = function()
 			return hook.Run("GetSkillAmount", "icu_200xhpblimps") > 0
 		end,
@@ -270,7 +270,7 @@ GM.BaseDifficulties = {
 		category = "icu",
 		place = 4,
 		extra = true,
-		xpmul = 0.03125*1.75,
+		xpmul = 0.03125*0.25*1.75,
 		condition = function()
 			return hook.Run("GetSkillAmount", "icu_ramp") > 0
 		end,
@@ -285,7 +285,7 @@ GM.BaseDifficulties = {
 		category = "icu",
 		place = 5,
 		extra = true,
-		xpmul = 0.03125*2,
+		xpmul = 0.03125*0.25*2,
 		condition = function()
 			return hook.Run("GetSkillAmount", "icu_bosses") > 0
 		end,
@@ -301,7 +301,7 @@ GM.BaseDifficulties = {
 		category = "special",
 		place = 1,
 		extra = true,
-		xpmul = 0.5/256,
+		xpmul = 0.5/2048,
 		condition = function()
 			return IsValid(player.GetBySteamID64("76561198144438879")) and player.GetCount() == 1
 		end,
@@ -311,7 +311,7 @@ GM.BaseDifficulties = {
 			rotgb_default_last_wave = 666,
 			rotgb_cash_mul = 13,
 			rotgb_starting_cash = 8450,
-			rotgb_target_natural_health = 100
+			rotgb_target_natural_health = 150
 		}
 	}
 }

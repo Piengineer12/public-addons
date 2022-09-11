@@ -58,7 +58,7 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.rotgb_Infinite = true
-				self.AbilityCooldown = self.AbilityCooldown / 2
+				self.AbilityCooldown = self.AbilityCooldown - 15
 			end,
 			function(self)
 				self.HasAbility = nil
@@ -158,6 +158,7 @@ ENT.thread = coroutine.create(SnipeEntity)
 
 function ENT:ROTGB_Initialize()
 	if SERVER then
+		self.rotgb_CannonPositions = {}
 		--[[if not self.rotgb_Infinite then
 			self:SetNWFloat("LastFireTime",CurTime()-self.rotgb_BeamTime)
 		end]]
@@ -190,13 +191,23 @@ function ENT:ROTGB_Initialize()
 end
 
 function ENT:ROTGB_Think()
-	if IsValid(self.KillDamagePos) then
-		for k,v in pairs(ROTGB_GetBalloons()) do
-			if self:ValidTargetIgnoreRange(v) and v:WorldSpaceCenter():DistToSqr(self.KillDamagePos:GetPos()) <= 65536 then
-				hook.Run("gBalloonDamagedByLaser", v, self:GetTowerOwner(), self, self.KillDamageBeam, self.AttackDamage*1000)
-				v:TakeDamage(self.AttackDamage*1000, self:GetTowerOwner(), self)
+	local balloonPops = {}
+	for k,v in pairs(self.rotgb_CannonPositions) do
+		if IsValid(k) then
+			for k2,v2 in pairs(ROTGB_GetBalloons()) do
+				if self:ValidTargetIgnoreRange(v2) and v2:WorldSpaceCenter():DistToSqr(k:GetPos()) <= 65536 then
+					balloonPops[v2] = balloonPops[v2] or {0, v}
+					balloonPops[v2][1] = balloonPops[v2][1] + self.AttackDamage*1000
+					balloonPops[v2][2] = v
+				end
 			end
+		else
+			self.rotgb_CannonPositions[k] = nil
 		end
+	end
+	for k,v in pairs(balloonPops) do
+		hook.Run("gBalloonDamagedByLaser", k, self:GetTowerOwner(), self, v[2], v[1])
+		k:TakeDamage(v[1], self:GetTowerOwner(), self)
 	end
 end
 
@@ -244,6 +255,12 @@ abilityFunction = function(self)
 			if ent.UseLOS then
 				sound.Play("ambient/explosions/explode_6.wav", ent:GetPos(), 100)
 			end
+			local numberOfCannons = 1
+			for k,v in pairs(ents.FindByClass("gballoon_tower_08")) do
+				if v:GetUpgradeStatus() >= 8 then
+					numberOfCannons = numberOfCannons + 1
+				end
+			end
 			local startPos = ents.Create("info_target")
 			local ecp = ent:GetPos()
 			ecp.z = 16368
@@ -256,14 +273,13 @@ abilityFunction = function(self)
 			endPos:SetPos(ecp)
 			endPos:SetName("ROTGB08_"..endPos:GetCreationID())
 			endPos:Spawn()
-			self.KillDamagePos = endPos
 			local effdata = EffectData()
 			ecp.z = ecp.z + 24
 			effdata:SetOrigin(ecp)
 			effdata:SetFlags(self.UseLOS and 0 or 1)
-			effdata:SetMagnitude(512/math.max(1, #ents.FindByClass("gballoon_tower_08")))
+			effdata:SetMagnitude(512/numberOfCannons)
 			util.Effect("gballoon_tower_08_wave",effdata)
-			util.ScreenShake(ecp,1.25,5,6,5000)
+			util.ScreenShake(ecp,1.25/numberOfCannons,5,6,5000)
 			local beam = ents.Create("env_beam")
 			beam:SetPos(ecp)
 			beam:SetKeyValue("renderamt","255")
@@ -281,7 +297,7 @@ abilityFunction = function(self)
 			beam:Activate()
 			beam:Fire("TurnOn")
 			beam.rotgb_Rainbow = true
-			self.KillDamageBeam = beam
+			self.rotgb_CannonPositions[endPos] = beam
 			timer.Create("ROTGB_08_AB_"..endPos:GetCreationID(),0.05,120,function()
 				if IsValid(beam) then
 					beam.CurAlpha = (beam.CurAlpha or 255) - 0.05/6*255

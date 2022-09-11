@@ -55,7 +55,7 @@ function ENT:SetConVarValue(num, value)
 end
 
 function ENT:Initialize()
-	hook.Run("RemoveDifficulties", self.DifficultyRemove)
+	hook.Run("RemoveDifficulties", self.DifficultyRemove or "")
 	
 	if (self.DifficultyID or "") ~= "" then
 		--assemble properly

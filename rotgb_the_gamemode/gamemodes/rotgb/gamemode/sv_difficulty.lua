@@ -38,7 +38,7 @@ function GM:SendMapDifficulties()
 end
 
 function GM:ChangeDifficulty(difficulty)
-	-- set the current gamemode for the ShouldConVarOverride hook to refer to, then clean up the map
+	-- set the current difficulty for the ShouldConVarOverride hook to refer to, then clean up the map
 	hook.Run("SetDifficulty", difficulty)
 	net.Start("rotgb_gamemode")
 	net.WriteUInt(RTG_OPERATION_DIFFICULTY, 4)

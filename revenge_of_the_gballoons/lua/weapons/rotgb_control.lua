@@ -101,10 +101,11 @@ end
 function SWEP:PrimaryAttack()
 	if not IsFirstTimePredicted() then return end
 	if IsValid(self:GetOwner()) and SERVER and self:GetNextPrimaryFire()<=CurTime() then
-		local ply = self:GetOwner()
 		self:SetNextPrimaryFire(CurTime()+0.2)
+		local ply = self:GetOwner()
 		local trace = self:BuildTraceData(ply)
-		if self:GetCurrentTower() ~= 0 and trace.Hit then
+		local class = self:GetCurrentTower() ~= 0 and self.TowerTable[self:GetCurrentTower()].ClassName
+		if class and trace.Hit and not (IsValid(self.ServersideModel) and self.ServersideModel.rotgb_isDetected) then
 			if not self.TowerTable then
 				self.TowerTable = ROTGB_GetAllTowers()
 			end
@@ -114,11 +115,12 @@ function SWEP:PrimaryAttack()
 			if ply:IsNPC() then
 				self:SetCurrentTower(math.random(#self.TowerTable))
 			end
-			local tower = ents.Create(self.TowerTable[self:GetCurrentTower()].ClassName)
+			local tower = ents.Create(class)
 			tower:SetPos(trace.HitPos)
 			tower:SetAngles(tempang)
 			tower:SetTowerOwner(ply)
 			tower:Spawn()
+			hook.Run("RotgBSWEPTowerPlaced", ply, tower, self)
 			--util.ScreenShake(ply:GetShootPos(), 4, 20, 0.5, 64)
 			if (ply:IsPlayer() and not ply:IsSprinting()) then
 				self:SetCurrentTower(0)
@@ -396,6 +398,7 @@ net.Receive("rotgb_controller", function(length, ply)
 					end]]
 					wep:SetCurrentTower(desiredtower)
 					wep:Think()
+					hook.Run("RotgBSWEPTowerSelected", ply, desiredtower ~= 0 and wep.TowerTable[desiredtower].ClassName, wep)
 				end
 			end
 			if wep:GetClass()=="rotgb_control" or wep:GetClass()=="rotgb_shooter" then
@@ -409,15 +412,17 @@ net.Receive("rotgb_controller", function(length, ply)
 						ply:EmitSound("buttons/combine_button3.wav",60,100+math.log(game.GetTimeScale(),2)*20,1,CHAN_WEAPON)
 					end
 				elseif func == ROTGB_PLAY then
-					local spawners = ents.FindByClass("gballoon_spawner")
-					if table.IsEmpty(spawners) then
-						--ply:EmitSound("buttons/button18.wav",60,100,1,CHAN_WEAPON)
-						ROTGB_CauseNotification(ROTGB_NOTIFY_NOSPAWNERS, ROTGB_NOTIFYTYPE_ERROR, ply)
+					if hook.Run("RotgBSWEPStartWave", ply, wep) ~= false then
+						local spawners = ents.FindByClass("gballoon_spawner")
+						if table.IsEmpty(spawners) then
+							--ply:EmitSound("buttons/button18.wav",60,100,1,CHAN_WEAPON)
+							ROTGB_CauseNotification(ROTGB_NOTIFY_NOSPAWNERS, ROTGB_NOTIFYTYPE_ERROR, ply)
+						end
+						for k,v in pairs(spawners) do
+							v:Fire("Use",nil,nil,ply)
+						end
+						ply:EmitSound("buttons/button14.wav",60,100,1,CHAN_WEAPON)
 					end
-					for k,v in pairs(spawners) do
-						v:Fire("Use",nil,nil,ply)
-					end
-					ply:EmitSound("buttons/button14.wav",60,100,1,CHAN_WEAPON)
 				elseif func == ROTGB_AUTOSTART then
 					local shouldAutoStart = net.ReadBool()
 					
