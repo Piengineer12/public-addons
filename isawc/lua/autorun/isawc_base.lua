@@ -10,8 +10,8 @@ Links above are confirmed working as of 2022-04-16. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "5.3.1"
-ISAWC._VERSIONDATE = "2022-07-17"
+ISAWC._VERSION = "5.4.0"
+ISAWC._VERSIONDATE = "2022-12-18"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -70,6 +70,9 @@ ISAWC.MESSAGE_TYPES = {
 	store_weapon_r		= 39,
 	transfer_from		= 40,
 	transfer_to			= 41,
+	item_stamp_add		= 42,
+	item_stamp_add_l	= 43,
+	item_stamp_add_r	= 44
 }
 
 ISAWC.DoNothing = function()end
@@ -342,7 +345,7 @@ ISAWC.CreateBWListPair = function(self, name, commandPrefix, displayName, data)
 	if not data.excludeWhitelistConCommandFromDesc then
 		whitelistConVarDesc = whitelistConVarDesc.."\nSee the ConCommand \""..whitelistConCommand.."\" to manipulate the list."
 	end
-	self[whitelistConVarName] = CreateConVar(whitelistConVar, "0", FCVAR_NONE, data.whitelistConVarDesc)
+	self[whitelistConVarName] = CreateConVar(whitelistConVar, data.whitelistConVarDefault or "0", FCVAR_NONE, data.whitelistConVarDesc)
 	self.BWLists[name].WhitelistConVar = self[whitelistConVarName]
 end
 
@@ -400,6 +403,13 @@ ISAWC:CreateBWListPair("DropOnDeath", "dropondeath_", "player death box", {
 ISAWC:CreateBWListPair("AltSave", "use_altsave_", "alternate saving", {
 	blacklistDesc = "Classes in the blacklist will not be saved alternately even if isawc_use_altsave is enabled.",
 	whitelistConVarDesc = "If set, only entity classes that are in the whitelist will be saved alternately if isawc_use_altsave is enabled."
+})
+
+ISAWC:CreateBWListPair("WeaponRecreation", "spawn_recreateweapon_", "weapon recreation", {
+	blacklistDesc = "Weapon classes in the blacklist will not be recreated when spawned.",
+	whitelistConVarDesc = "If set, only weapon classes that are in the whitelist will be recreated when spawned by the player.\n\z
+	Recreated weapons lose all of their attached data except their clips. This can prevent certain weapons from breaking when stored.",
+	whitelistConVarDefault = "1"
 })
 
 ISAWC.Stacklist = ISAWC.Stacklist or {}
@@ -757,6 +767,87 @@ ISAWC:CreateListConCommand("isawc_remaplist", {
 					else
 						ISAWC.Remaplist[v] = newMap
 						ISAWC:Log("Added \""..v.."\" into the class remap list.")
+					end
+				end
+			end
+		end
+	end
+})
+
+local defaultStoreRemapList = {
+    ["wep_jack_gmod_amr"] = "ent_jack_gmod_ezweapon_amr",
+    ["wep_jack_gmod_amsr"] = "ent_jack_gmod_ezweapon_amsr",
+    ["wep_jack_gmod_assaultrifle"] = "ent_jack_gmod_ezweapon_ar",
+    ["wep_jack_gmod_bas"] = "ent_jack_gmod_ezweapon_bas",
+    ["wep_jack_gmod_battlerifle"] = "ent_jack_gmod_ezweapon_br",
+    ["wep_jack_gmod_bigiron"] = "ent_jack_gmod_ezweapon_bigiron",
+    ["wep_jack_gmod_blunderbuss"] = "ent_jack_gmod_ezweapon_flb",
+    ["wep_jack_gmod_boltactionrifle"] = "ent_jack_gmod_ezweapon_bar",
+    ["wep_jack_gmod_cabr"] = "ent_jack_gmod_ezweapon_cabr",
+    ["wep_jack_gmod_carbine"] = "ent_jack_gmod_ezweapon_car",
+    ["wep_jack_gmod_combatknife"] = "ent_jack_gmod_ezweapon_combatknife",
+    ["wep_jack_gmod_crossbow"] = "ent_jack_gmod_ezweapon_crossbow",
+    ["wep_jack_gmod_dmr"] = "ent_jack_gmod_ezweapon_dmr",
+    ["wep_jack_gmod_fas"] = "ent_jack_gmod_ezweapon_fas",
+    ["wep_jack_gmod_flintlockmusket"] = "ent_jack_gmod_ezweapon_flp",
+    ["wep_jack_gmod_gl"] = "ent_jack_gmod_ezweapon_gl",
+    ["wep_jack_gmod_lac"] = "ent_jack_gmod_ezweapon_lac",
+    ["wep_jack_gmod_lmg"] = "ent_jack_gmod_ezweapon_lmg",
+    ["wep_jack_gmod_machinepistol"] = "ent_jack_gmod_ezweapon_machinepistol",
+    ["wep_jack_gmod_magpistol"] = "ent_jack_gmod_ezweapon_magpistol",
+    ["wep_jack_gmod_magrevolver"] = "ent_jack_gmod_ezweapon_magrevolver",
+    ["wep_jack_gmod_mgl"] = "ent_jack_gmod_ezweapon_mgl",
+    ["wep_jack_gmod_mmg"] = "ent_jack_gmod_ezweapon_mmg",
+    ["wep_jack_gmod_mrl"] = "ent_jack_gmod_ezweapon_mrl",
+    ["wep_jack_gmod_pas"] = "ent_jack_gmod_ezweapon_pas",
+    ["wep_jack_gmod_pistol"] = "ent_jack_gmod_ezweapon_pistol",
+    ["wep_jack_gmod_plinkingpistol"] = "ent_jack_gmod_ezweapon_plinkingpistol",
+    ["wep_jack_gmod_pocketknife"] = "ent_jack_gmod_ezweapon_pocketknife",
+    ["wep_jack_gmod_pocketpistol"] = "ent_jack_gmod_ezweapon_pocketpistol",
+    ["wep_jack_gmod_revolver"] = "ent_jack_gmod_ezweapon_revolver",
+    ["wep_jack_gmod_rocketlauncher"] = "ent_jack_gmod_ezweapon_rocketlauncher",
+    ["wep_jack_gmod_sas"] = "ent_jack_gmod_ezweapon_sas",
+    ["wep_jack_gmod_shotrevolver"] = "ent_jack_gmod_ezweapon_shotrevolver",
+    ["wep_jack_gmod_smg"] = "ent_jack_gmod_ezweapon_smg",
+    ["wep_jack_gmod_sniperrifle"] = "ent_jack_gmod_ezweapon_sr",
+    ["wep_jack_gmod_ssr"] = "ent_jack_gmod_ezweapon_ssr",
+}
+ISAWC.StoreRemapList = ISAWC.StoreRemapList or table.Copy(defaultStoreRemapList)
+ISAWC:CreateListConCommand("isawc_pickup_redirectlist", {
+	display = "The pickup class redirect list is as follows: ",
+	display_table = "StoreRemapList",
+	display_function = function(k,v)
+		ISAWC:Log(string.format("\t%q=%q,",k,v))
+	end,
+	purpose = "Adds or removes entity classes from the pickup class redirect list. If an entity would change class when dropped (such as JMod weapons), specify the old and new classes here so that ISAWC stores the correct entity.",
+	fmt = "<oldClass> <newClass>",
+	help = {
+		"Use \"isawc_pickup_redirectlist <oldClass1> <newClass1> <oldClass2> <newClass2> ...\" to update or add a class into the list. \z
+		If newClass is *, it will be removed from the list instead.",
+		"* and ? wildcards are supported.",
+		"Use \"isawc_pickup_redirectlist *\" to clear the list."
+	},
+	help_small = "Usage: isawc_pickup_redirectlist <oldClass1> <newClass1> <oldClass2> <newClass2> ...",
+	exe = function(args)
+		if args[1]=="*" then
+			ISAWC.StoreRemapList = {}
+			ISAWC:Log("Removed everything from the pickup class redirect list.")
+		elseif #args%2~=0 then
+			ISAWC:Log("Usage: isawc_pickup_redirectlist <oldClass1> <newClass1> <oldClass2> <newClass2> ...")
+		else
+			for i,v in ipairs(args) do
+				if i%2==1 then
+					v = v:lower()
+					local newMap = args[i+1]
+					if newMap == "*" then
+						ISAWC.StoreRemapList[v] = nil
+						ISAWC:Log("Removed \""..v.."\" from the pickup class redirect list.")
+					elseif ISAWC.StoreRemapList[v] then
+						ISAWC.StoreRemapList[v] = newMap
+						ISAWC:Log("Updated \""..v.."\" in the pickup class redirect list.")
+					else
+						ISAWC.StoreRemapList[v] = newMap
+						ISAWC:Log("Added \""..v.."\" into the pickup class redirect list.")
 					end
 				end
 			end
@@ -1253,6 +1344,7 @@ if SERVER then
 				ISAWC.Volumelist = {}
 				ISAWC.Countlist = {}
 				ISAWC.Remaplist = {}
+				ISAWC.StoreRemapList = table.Copy(defaultStoreRemapList)
 				ISAWC.DescList = {}
 				ISAWC.AmmoItemStampList = {}
 				ISAWC.MassMultiList = {}
@@ -1363,7 +1455,10 @@ if SERVER then
 				ISAWC:Log("Usage: isawc_stamps_add <slot: 1-65535> <name>")
 			end
 		end,
-		help = "Creates an item stamp from an item in your inventory, allowing you to restore it infinitely until deleted.\nItem stamps persist through map changes and are shared with all admins.",
+		help = "Creates an item stamp from an item in your inventory, allowing you to restore it infinitely until deleted.\n\z
+		An item stamp stores exact information about the item regardless of world state, \z
+		allowing the item to be restored even when no copies of the item exist in the world.\n\z
+		Item stamps persist through map changes and are shared with all admins.",
 		help_small = "Usage: isawc_stamps_create <slot: 1-65535> <name>"
 	})
 	
@@ -1984,6 +2079,16 @@ ISAWC.ServerOptionsInfo = {
 				pointer = "AltSave"
 			},
 			{
+				name = "Item Stamps",
+				type = "xlist",
+				pointer = "StampList"
+			},
+			{
+				name = "Item Stamps As Ammo",
+				type = "xlist",
+				pointer = "AmmoItemStampList"
+			},
+			{
 				name = "Use Save Data Compression",
 				convar = ISAWC.ConUseCompression,
 				type = "bool"
@@ -2033,6 +2138,12 @@ ISAWC.ServerOptionsInfo = {
 				name = "Allow Non-VPhysics Entities",
 				convar = ISAWC.ConNonVPhysics,
 				type = "bool"
+			},
+			{
+				name = "Item Redirections",
+				type = "sslist",
+				concommand = "isawc_pickup_redirectlist",
+				pointer = "StoreRemapList"
 			},
 			{
 				name = "Key Override",
@@ -2092,6 +2203,17 @@ ISAWC.ServerOptionsInfo = {
 				name = "Empty Weapon Clips",
 				convar = ISAWC.ConNoAmmo,
 				type = "bool"
+			},
+			{
+				name = "Use Weapon Recreation Whitelist",
+				convar = ISAWC.ConWeaponRecreationWhitelistEnabled,
+				type = "bool"
+			},
+			{
+				name = "Weapon Recreation Blacklist & Whitelist",
+				type = "bwlist",
+				concommand = "spawn_recreateweapon_",
+				pointer = "WeaponRecreation"
 			},
 			{
 				name = "Allow Dropboxes",
@@ -2524,7 +2646,7 @@ ISAWC.BuildListMenu = function(self, title, name, listType, data, func)
 			end
 			self.EntryPanels = {}
 			
-			for k,v in SortedPairs(returnData.Blacklist) do
+			for k,v in pairs(returnData.Blacklist) do
 				local EntryPanel = vgui.Create("DPanel", self)
 				EntryPanel:SetTall(16)
 				EntryPanel:SetZPos(k)
@@ -2672,7 +2794,7 @@ ISAWC.BuildListMenu = function(self, title, name, listType, data, func)
 			end
 		end
 		WhitelistScroller:Refresh()
-	else
+	elseif listType == "sdlist" or listType == "sslist" then
 		for k,v in SortedPairs(data) do
 			table.insert(returnData, {k,v})
 		end
@@ -2708,7 +2830,7 @@ ISAWC.BuildListMenu = function(self, title, name, listType, data, func)
 				EntryPanel:Dock(TOP)
 				EntryPanel.Paint = nil
 				function EntryPanel:PerformLayout(w,h)
-					self.TextEntry:SetWide(w/2-16)
+					self.TextEntry:SetWide((w-24)/2)
 				end
 				table.insert(self.EntryPanels, EntryPanel)
 				
@@ -2802,6 +2924,285 @@ ISAWC.BuildListMenu = function(self, title, name, listType, data, func)
 			end
 		end
 		ScrollPanel:Refresh()
+	elseif name == "StampList" then
+		for k,v in SortedPairs(data) do
+			table.insert(returnData, {k,v})
+		end
+		
+		local Panel = vgui.Create("DPanel", Main)
+		Panel:Dock(FILL)
+		function Panel:Paint(w,h)
+			draw.RoundedBox(8,0,0,w,h,color_black_semiopaque)
+		end
+		
+		local Help = vgui.Create("DLabel", Panel)
+		Help:SetText("This allows you to rename or delete item stamps from the entire server. This will not remove any inventory items created from the stamp. Duplicate names are not allowed.")
+		Help:SetWrap(true)
+		Help:SetAutoStretchVertical(true)
+		Help:DockMargin(4,4,4,0)
+		Help:Dock(TOP)
+		
+		local ScrollPanel = vgui.Create("DScrollPanel", Panel)
+		ScrollPanel:DockMargin(4,0,4,0)
+		ScrollPanel:Dock(FILL)
+		ScrollPanel.EntryPanels = {}
+		function ScrollPanel:Refresh()
+			for k,v in pairs(self.EntryPanels) do
+				v:Remove()
+			end
+			self.EntryPanels = {}
+			
+			for k,v in pairs(returnData) do
+				local EntryPanel = vgui.Create("DPanel", self)
+				EntryPanel:SetTall(16)
+				EntryPanel:SetZPos(k)
+				EntryPanel:DockMargin(0,4,0,0)
+				EntryPanel:Dock(TOP)
+				EntryPanel.Paint = nil
+				function EntryPanel:PerformLayout(w,h)
+					self.Label:SetWide((w-24)/2)
+				end
+				table.insert(self.EntryPanels, EntryPanel)
+				
+				local DeleteButton = vgui.Create("DImageButton", EntryPanel)
+				DeleteButton:SetWide(16)
+				DeleteButton:SetImage("icon16/delete.png")
+				DeleteButton:Dock(RIGHT)
+				function DeleteButton:DoClick()
+					table.remove(returnData, k)
+					ScrollPanel:Refresh()
+				end
+				
+				local Label = vgui.Create("DLabel", EntryPanel)
+				Label:SetTextColor(color_white)
+				Label:SetText(v[1])
+				Label:DockMargin(0,0,4,0)
+				Label:Dock(LEFT)
+				EntryPanel.Label = Label
+				
+				local TextEntry2 = vgui.Create("DTextEntry", EntryPanel)
+				TextEntry2:SetPaintBackground(false)
+				TextEntry2:SetDrawBorder(false)
+				TextEntry2:SetTextColor(color_white)
+				TextEntry2:SetCursorColor(color_white)
+				TextEntry2:SetHighlightColor(color_aqua)
+				TextEntry2:SetValue(v[2])
+				TextEntry2:DockMargin(0,0,4,0)
+				TextEntry2:Dock(FILL)
+				function TextEntry2:OnChange()
+					returnData[k][2] = self:GetValue()
+				end
+				function TextEntry2:OnGetFocus()
+					self.DrawEditOverlay = true
+					hook.Run("OnTextEntryGetFocus",self)
+				end
+				function TextEntry2:OnLoseFocus()
+					self.DrawEditOverlay = nil
+					hook.Run("OnTextEntryLoseFocus",self)
+				end
+				function TextEntry2:PaintOver(w,h)
+					if self.DrawEditOverlay then
+						draw.RoundedBox(8,0,0,w,h,color_white_semitransparent)
+					else
+						draw.RoundedBox(8,0,0,w,h,color_gray_semitransparent)
+					end
+				end
+			end
+		end
+		ScrollPanel:Refresh()
+	elseif name == "AmmoItemStampList" then
+		local stampData = data[2]
+		
+		for k,v in SortedPairs(data[1]) do
+			table.insert(returnData, {k,unpack(v)})
+		end
+		
+		local Panel = vgui.Create("DPanel", Main)
+		Panel:Dock(FILL)
+		function Panel:Paint(w,h)
+			draw.RoundedBox(8,0,0,w,h,color_black_semiopaque)
+		end
+		
+		local Help = vgui.Create("DLabel", Panel)
+		Help:SetText(ISAWC.ConCommands["isawc_stamps_asammo"].."\n\z
+		Default display name: \"<ammo type> x <ammo amount>\"")
+		Help:SetWrap(true)
+		Help:SetAutoStretchVertical(true)
+		Help:DockMargin(4,4,4,0)
+		Help:Dock(TOP)
+		
+		local ScrollPanel = vgui.Create("DScrollPanel", Panel)
+		ScrollPanel:DockMargin(4,0,4,0)
+		ScrollPanel:Dock(FILL)
+		ScrollPanel.EntryPanels = {}
+		function ScrollPanel:Refresh()
+			for k,v in pairs(self.EntryPanels) do
+				v:Remove()
+			end
+			self.EntryPanels = {}
+			
+			for k,v in pairs(returnData) do
+				local EntryPanel = vgui.Create("DPanel", self)
+				EntryPanel:SetTall(16)
+				EntryPanel:SetZPos(k)
+				EntryPanel:DockMargin(0,4,0,0)
+				EntryPanel:Dock(TOP)
+				EntryPanel.Paint = nil
+				function EntryPanel:PerformLayout(w,h)
+					local textEntrySize = (w-40)/5
+					
+					self.TextEntry:SetWide(textEntrySize)
+					self.TextEntry2:SetWide(textEntrySize)
+					self.TextEntry3:SetWide(textEntrySize)
+					self.TextEntry4:SetWide(textEntrySize)
+				end
+				table.insert(self.EntryPanels, EntryPanel)
+				
+				local DeleteButton = vgui.Create("DImageButton", EntryPanel)
+				DeleteButton:SetWide(16)
+				DeleteButton:SetImage("icon16/delete.png")
+				DeleteButton:Dock(RIGHT)
+				function DeleteButton:DoClick()
+					table.remove(returnData, k)
+					ScrollPanel:Refresh()
+				end
+				
+				local TextEntry = vgui.Create("DTextEntry", EntryPanel)
+				TextEntry:SetPaintBackground(false)
+				TextEntry:SetDrawBorder(false)
+				TextEntry:SetTextColor(color_white)
+				TextEntry:SetCursorColor(color_white)
+				TextEntry:SetHighlightColor(color_aqua)
+				TextEntry:SetValue(v[1])
+				TextEntry:SetZPos(1)
+				TextEntry:DockMargin(0,0,4,0)
+				TextEntry:Dock(LEFT)
+				function TextEntry:OnChange()
+					returnData[k][1] = self:GetValue()
+				end
+				function TextEntry:OnGetFocus()
+					self.DrawEditOverlay = true
+					hook.Run("OnTextEntryGetFocus",self)
+				end
+				function TextEntry:OnLoseFocus()
+					self.DrawEditOverlay = nil
+					hook.Run("OnTextEntryLoseFocus",self)
+				end
+				function TextEntry:PaintOver(w,h)
+					if self.DrawEditOverlay then
+						draw.RoundedBox(8,0,0,w,h,color_white_semitransparent)
+					else
+						draw.RoundedBox(8,0,0,w,h,color_gray_semitransparent)
+					end
+				end
+				EntryPanel.TextEntry = TextEntry
+				
+				local TextEntry2 = vgui.Create("DComboBox", EntryPanel)
+				TextEntry2:SetZPos(2)
+				TextEntry2:DockMargin(0,0,4,0)
+				TextEntry2:Dock(LEFT)
+				for k2,v2 in pairs(game.GetAmmoTypes()) do
+					TextEntry2:AddChoice(
+						language.GetPhrase(string.format("%s_ammo", v2)),
+						k2,
+						k2 == v[2]
+					)
+				end
+				function TextEntry2:OnSelect(index, display, data)
+					returnData[k][2] = data
+				end
+				EntryPanel.TextEntry2 = TextEntry2
+				
+				local TextEntry3 = vgui.Create("DTextEntry", EntryPanel)
+				TextEntry3:SetPaintBackground(false)
+				TextEntry3:SetDrawBorder(false)
+				TextEntry3:SetTextColor(color_white)
+				TextEntry3:SetCursorColor(color_white)
+				TextEntry3:SetHighlightColor(color_aqua)
+				TextEntry3:SetValue(v[3])
+				TextEntry3:SetZPos(3)
+				TextEntry3:DockMargin(0,0,4,0)
+				TextEntry3:Dock(LEFT)
+				function TextEntry3:OnChange()
+					returnData[k][3] = tonumber(self:GetValue()) or 0
+				end
+				function TextEntry3:OnGetFocus()
+					self.DrawEditOverlay = true
+					hook.Run("OnTextEntryGetFocus",self)
+				end
+				function TextEntry3:OnLoseFocus()
+					self.DrawEditOverlay = nil
+					hook.Run("OnTextEntryLoseFocus",self)
+				end
+				function TextEntry3:PaintOver(w,h)
+					if self.DrawEditOverlay then
+						draw.RoundedBox(8,0,0,w,h,color_white_semitransparent)
+					else
+						draw.RoundedBox(8,0,0,w,h,color_gray_semitransparent)
+					end
+				end
+				EntryPanel.TextEntry3 = TextEntry3
+				
+				local TextEntry4 = vgui.Create("DComboBox", EntryPanel)
+				TextEntry4:SetZPos(4)
+				TextEntry4:DockMargin(0,0,4,0)
+				TextEntry4:Dock(LEFT)
+				for k2,v2 in pairs(stampData) do
+					TextEntry4:AddChoice(
+						v2,
+						v2,
+						v2 == v[4]
+					)
+				end
+				function TextEntry4:OnSelect(index, display, data)
+					returnData[k][4] = display
+				end
+				EntryPanel.TextEntry4 = TextEntry4
+				
+				local TextEntry5 = vgui.Create("DTextEntry", EntryPanel)
+				TextEntry5:SetPaintBackground(false)
+				TextEntry5:SetDrawBorder(false)
+				TextEntry5:SetTextColor(color_white)
+				TextEntry5:SetCursorColor(color_white)
+				TextEntry5:SetHighlightColor(color_aqua)
+				TextEntry5:SetValue(v[5])
+				TextEntry5:DockMargin(0,0,4,0)
+				TextEntry5:Dock(FILL)
+				function TextEntry5:OnChange()
+					returnData[k][5] = self:GetValue()
+				end
+				function TextEntry5:OnGetFocus()
+					self.DrawEditOverlay = true
+					hook.Run("OnTextEntryGetFocus",self)
+				end
+				function TextEntry5:OnLoseFocus()
+					self.DrawEditOverlay = nil
+					hook.Run("OnTextEntryLoseFocus",self)
+				end
+				function TextEntry5:PaintOver(w,h)
+					if self.DrawEditOverlay then
+						draw.RoundedBox(8,0,0,w,h,color_white_semitransparent)
+					else
+						draw.RoundedBox(8,0,0,w,h,color_gray_semitransparent)
+					end
+				end
+			end
+			
+			local AddPanel = ISAWC:CreateElementCenteringPanel(self, 1)
+			AddPanel:SetTall(16)
+			AddPanel:SetZPos(#returnData+1)
+			AddPanel:Dock(TOP)
+			table.insert(self.EntryPanels, AddPanel)
+			
+			local AddButton = vgui.Create("DImageButton", AddPanel)
+			AddButton:SetSize(16, 16)
+			AddButton:SetImage("icon16/add.png")
+			function AddButton:DoClick()
+				table.insert(returnData, {"", 0, 0, "", ""})
+				ScrollPanel:Refresh()
+			end
+		end
+		ScrollPanel:Refresh()
 	end
 	
 	local OKButton = vgui.Create("DButton", Main)
@@ -2819,6 +3220,18 @@ ISAWC.BuildListMenu = function(self, title, name, listType, data, func)
 		draw.RoundedBox(8,0,0,w,h,col)
 	end
 	function OKButton:DoClick()
+		if listType == "xlist" and name == "StampList" then
+			local stampNames = {}
+			for k,v in pairs(returnData) do
+				if v[2] == "" then
+					return Derma_Message("Item stamp names cannot be empty.", "Invalid Names Detected", "OK")
+				elseif stampNames[v[2]] then
+					return Derma_Message("Item stamp names must be unique.", "Duplicate Names Detected", "OK")
+				else
+					stampNames[v[2]] = true
+				end
+			end
+		end
 		Main:Close()
 		if listType == "bwlist" then
 			local kReturnData = {Blacklist = {}, Whitelist = {}}
@@ -2829,6 +3242,12 @@ ISAWC.BuildListMenu = function(self, title, name, listType, data, func)
 				kReturnData.Whitelist[v] = true
 			end
 			func(kReturnData)
+		elseif listType == "xlist" and name == "AmmoItemStampList" then
+			local kvReturnData = {}
+			for i,v in ipairs(returnData) do
+				kvReturnData[v[1]] = {v[2], v[3], v[4], v[5] ~= "" and v[5] or string.format("%s x %u", game.GetAmmoName(v[2]), v[3])}
+			end
+			func(kvReturnData)
 		else
 			local kvReturnData = {}
 			for i,v in ipairs(returnData) do
@@ -2885,7 +3304,7 @@ ISAWC.BuildServerOptionsMenu = function(self, data)
 		draw.RoundedBox(8,0,0,w,h,color_black_semiopaque)
 		draw.RoundedBox(8,0,0,w,24,color_black_semiopaque)
 	end
-	ISAWC.OptionsWindow = Main
+	self.OptionsWindow = Main
 	
 	local Categories = vgui.Create("DCategoryList", Main)
 	Categories:Dock(FILL)
@@ -3040,6 +3459,27 @@ ISAWC.BuildServerOptionsMenu = function(self, data)
 				end)
 				
 				optionPanel = Button
+			elseif typ == "xlist" then
+				local dataFunc
+				
+				if v2.pointer == "StampList" then
+					dataFunc = function()
+						return newConVarValues[v2.pointer] or data[v2.pointer]
+					end
+				elseif v2.pointer == "AmmoItemStampList" then
+					dataFunc = function()
+						return {
+							newConVarValues[v2.pointer] or data[v2.pointer],
+							newConVarValues.StampList or data.StampList
+						}
+					end
+				end
+				
+				local Button = self:CreateListButton(Category, v2.name, v2.pointer, typ, dataFunc, function(data)
+					newConVarValues[v2.pointer] = data
+				end)
+				
+				optionPanel = Button
 			end
 			
 			optionPanel:DockMargin(4,0,4,4)
@@ -3059,6 +3499,8 @@ ISAWC.BuildServerOptionsMenu = function(self, data)
 				DescText:Dock(TOP)
 			end
 		end
+		
+		Category:DoExpansion(false)
 	end
 	
 	local OKButton = vgui.Create("DButton", Main)
@@ -3100,6 +3542,27 @@ ISAWC.GetClientToOpenOptionsMenu = function(self, ply)
 				}
 			elseif v2.type == "sslist" or v2.type == "sdlist" then
 				data[v2.concommand] = self[v2.pointer]
+			elseif v2.type == "xlist" then
+				if v2.pointer == "StampList" then
+					lastSQLAC2Time = RealTime()+10
+					lastSQLAC2Result = {}
+					
+					local results = ISAWC:SQL("SELECT \"name\" FROM \"isawc_item_stamps\";")
+					if results then
+						for k,v in pairs(results) do
+							table.insert(lastSQLAC2Result, v.name)
+						end
+					end
+					
+					data.StampList = {}
+					
+					for k,v in pairs(lastSQLAC2Result) do
+						data.StampList[v] = v
+					end
+				elseif v2.pointer == "AmmoItemStampList" then
+					data.AmmoItemStampList = self.AmmoItemStampList
+					self.AmmoItemStampListLastUpdate._ = RealTime()
+				end
 			end
 		end
 	end
@@ -3320,7 +3783,7 @@ ISAWC.InstallSortFunctions = function(self,panel,InvPanel,messageSuffix,containe
 			if next(ISAWC.AmmoItemStampList) then
 				for k,v in SortedPairs(ISAWC.AmmoItemStampList) do
 					ammoItemStampOptions:AddOption(v[3], function()
-						Derma_StringRequest("Store Ammo", "How many? (-1 = as much as possible)", -1, function(text)
+						Derma_StringRequest("Store Ammo", "How much ammo? (-1 = as much as possible)", -1, function(text)
 							local amount = tonumber(text)
 							if amount then
 								ISAWC:StartNetMessage("ammo_item_stamp"..messageSuffix)
@@ -3470,9 +3933,9 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 					
 					if info.Class ~= "prop_physics" and info.Class ~= "prop_ragdoll" then
 						if info.Desc == "" then
-							Item:SetTooltip(language.GetPhrase(info.Class))
+							Item:SetTooltip(language.GetPhrase(info.Name))
 						else
-							Item:SetTooltip(language.GetPhrase(info.Class).."\n"..info.Desc)
+							Item:SetTooltip(language.GetPhrase(info.Name).."\n"..info.Desc)
 						end
 					elseif info.Desc ~= "" then
 						Item:SetTooltip(info.Model.."\n"..info.Desc)
@@ -3588,6 +4051,32 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 							end
 						end)
 						Option:SetIcon("icon16/wrench.png")
+						Option = Options:AddOption("Copy Class Name",function()
+							SetClipboardText(info.Class)
+						end)
+						Option:SetIcon("icon16/page_white_copy.png")
+						Option = Options:AddOption("Copy Model Path",function()
+							SetClipboardText(info.Model)
+						end)
+						Option:SetIcon("icon16/page_white_picture.png")
+						if LocalPlayer():IsAdmin() then
+							Option = Options:AddOption("(Admin) Save Item As Item Stamp", function()
+								Derma_StringRequest(
+									"Save As Item Stamp",
+									"Enter the name of the item stamp.\n\z
+										An item stamp stores exact information about the item regardless of world state,\n\z
+										allowing the item to be restored even when no copies of the item exist in the world.",
+									"",
+									function(input)
+										ISAWC:StartNetMessage("item_stamp_add")
+										net.WriteUInt(i,16)
+										net.WriteString(input)
+										net.SendToServer()
+									end
+								)
+							end)
+							Option:SetIcon("icon16/image_add.png")
+						end
 						Options:Open()
 					end
 					function Item:SignalOutOfInventory(items)
@@ -3831,7 +4320,8 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 					local WarningText = InvFittingRight:Add("DLabel")
 					WarningText:SetTextColor(color_yellow)
 					WarningText:SetText("This container is currently unlocked and access restriction is not enforced.\nAccess restriction can be enabled in the Container Options menu below.")
-					WarningText:SizeToContentsY()
+					WarningText:SetWrap(true)
+					WarningText:SetAutoStretchVertical(true)
 					WarningText:SetZPos(1)
 					WarningText:Dock(TOP)
 					InvFittingRight.UnlockedWarning = WarningText
@@ -3856,9 +4346,9 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 					
 					if info.Class ~= "prop_physics" and info.Class ~= "prop_ragdoll" then
 						if info.Desc == "" then
-							Item:SetTooltip(language.GetPhrase(info.Class))
+							Item:SetTooltip(language.GetPhrase(info.Name))
 						else
-							Item:SetTooltip(language.GetPhrase(info.Class).."\n"..info.Desc)
+							Item:SetTooltip(language.GetPhrase(info.Name).."\n"..info.Desc)
 						end
 					elseif info.Desc ~= "" then
 						Item:SetTooltip(info.Model.."\n"..info.Desc)
@@ -4017,6 +4507,33 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 							end
 						end)
 						Option:SetIcon("icon16/wrench.png")
+						Option = Options:AddOption("Copy Class Name",function()
+							SetClipboardText(info.Class)
+						end)
+						Option:SetIcon("icon16/page_white_copy.png")
+						Option = Options:AddOption("Copy Model Path",function()
+							SetClipboardText(info.Model)
+						end)
+						Option:SetIcon("icon16/page_white_picture.png")
+						if LocalPlayer():IsAdmin() then
+							Option = Options:AddOption("(Admin) Save Item As Item Stamp", function()
+								Derma_StringRequest(
+									"Save As Item Stamp",
+									"Enter the name of the item stamp.\n\z
+										An item stamp stores exact information about the item regardless of world state,\n\z
+										allowing the item to be restored even when no copies of the item exist in the world.",
+									"",
+									function(input)
+										ISAWC:StartNetMessage("item_stamp_add_l")
+										net.WriteEntity(container)
+										net.WriteUInt(i,16)
+										net.WriteString(input)
+										net.SendToServer()
+									end
+								)
+							end)
+							Option:SetIcon("icon16/image_add.png")
+						end
 						Options:Open()
 					end
 					function Item:SignalOutOfInventory(items)
@@ -4055,9 +4572,9 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 					
 					if info.Class ~= "prop_physics" and info.Class ~= "prop_ragdoll" then
 						if info.Desc == "" then
-							Item:SetTooltip(language.GetPhrase(info.Class))
+							Item:SetTooltip(language.GetPhrase(info.Name))
 						else
-							Item:SetTooltip(language.GetPhrase(info.Class).."\n"..info.Desc)
+							Item:SetTooltip(language.GetPhrase(info.Name).."\n"..info.Desc)
 						end
 					elseif info.Desc ~= "" then
 						Item:SetTooltip(info.Model.."\n"..info.Desc)
@@ -4216,6 +4733,33 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 							end
 						end)
 						Option:SetIcon("icon16/wrench.png")
+						Option = Options:AddOption("Copy Class Name",function()
+							SetClipboardText(info.Class)
+						end)
+						Option:SetIcon("icon16/page_white_copy.png")
+						Option = Options:AddOption("Copy Model Path",function()
+							SetClipboardText(info.Model)
+						end)
+						Option:SetIcon("icon16/page_white_picture.png")
+						if LocalPlayer():IsAdmin() then
+							Option = Options:AddOption("(Admin) Save Item As Item Stamp", function()
+								Derma_StringRequest(
+									"Save As Item Stamp",
+									"Enter the name of the item stamp.\n\z
+										An item stamp stores exact information about the item regardless of world state,\n\z
+										allowing the item to be restored even when no copies of the item exist in the world.",
+									"",
+									function(input)
+										ISAWC:StartNetMessage("item_stamp_add_r")
+										net.WriteEntity(container)
+										net.WriteUInt(i,16)
+										net.WriteString(input)
+										net.SendToServer()
+									end
+								)
+							end)
+							Option:SetIcon("icon16/image_add.png")
+						end
 						Options:Open()
 					end
 					function Item:SignalOutOfInventory(items)
@@ -4275,6 +4819,7 @@ ISAWC.WriteModelFromDupeTable = function(self,dupe)
 		bodyGroups = string.SetChar(bodyGroups,k,v)
 	end
 	net.WriteString(ent.Model or "models/error.mdl")
+	net.WriteString(ent.Class or "worldspawn")
 	net.WriteString(ent.EntityMods and ent.EntityMods.WireName and ent.EntityMods.WireName.name~="" and ent.EntityMods.WireName.name
 	or ent.Name~="" and ent.Name or ent.name~="" and ent.name or ent.PrintName~="" and ent.PrintName~="Scripted Weapon" and ent.PrintName
 	or ent.Class or "worldspawn")
@@ -4484,9 +5029,10 @@ ISAWC.PushNotification = function(self,msg)
 		end
 		for i,v in ipairs(msg) do
 			notification.AddLegacy(v,NOTIFY_HINT,4+#v/10)
+			self:Log(v)
 		end
 		if not self.ConHideNotifSound:GetBool() then
-			surface.PlaySound(string.format("ambient/water/drip%i.wav", math.random(4)))
+			surface.PlaySound(string.format("ambient/water/drip%u.wav", math.random(4)))
 		end
 	end
 end
@@ -4518,6 +5064,38 @@ ISAWC.RemoveRecursions = function(self,tab,done)
 	return recursive
 end
 
+ISAWC.RemoveUnserializableItems = function(self,inv)
+	local unserializable = false
+	
+	for k,item in pairs(inv) do
+		for k2,itemAttrs in pairs(item.Entities or {}) do
+			for itemAttr,attrValue in pairs(itemAttrs or {}) do
+				if self:IsUnserializable(attrValue) then
+					itemAttrs[itemAttr] = nil
+					unserializable = true
+				end
+			end
+		end
+	end
+	
+	return unserializable
+end
+
+ISAWC.IsUnserializable = function(self,tab)
+	local unserializable = false
+	
+	if isfunction(tab) then return true
+	elseif istable(tab) then
+		for k,v in pairs(tab) do
+			if self:IsUnserializable(v) then
+				unserializable = true break
+			end
+		end
+	end
+	
+	return unserializable
+end
+
 ISAWC.SQL = function(self,query,...)
 	local params = {...}
 	for k,v in pairs(params) do
@@ -4547,6 +5125,7 @@ ISAWC.SaveData = function(self)
 	data.Volumelist = self.Volumelist or {}
 	data.Countlist = self.Countlist or {}
 	data.Remaplist = self.Remaplist or {}
+	data.StoreRemapList = self.StoreRemapList or {}
 	data.DescList = self.DescList or {}
 	data.AmmoItemStampList = self.AmmoItemStampList or {}
 	data.MassMultiList = self.MassMultiList or {}
@@ -4594,6 +5173,9 @@ ISAWC.SaveInventory = function(self,ply)
 				if self:RemoveRecursions(inv) then
 					self:Log("Warning! " .. v:Nick() .. " had an item with recursive tables! This may cause errors to occur!")
 				end
+				if self:RemoveUnserializableItems(inv) then
+					self:Log("Warning! " .. v:Nick() .. " had an item with unserializable tables! This may cause errors to occur!")
+				end
 				if (inv and next(inv)) then
 					local data
 					if self.ConUseCompression:GetBool() then
@@ -4614,6 +5196,9 @@ ISAWC.SaveInventory = function(self,ply)
 			local inv = ply.ISAWC_Inventory
 			if self:RemoveRecursions(inv) then
 				self:Log("Warning! " .. ply:Nick() .. " had an item with recursive tables! This may cause errors to occur!")
+			end
+			if self:RemoveUnserializableItems(inv) then
+				self:Log("Warning! " .. ply:Nick() .. " had an item with unserializable tables! This may cause errors to occur!")
 			end
 			if (inv and next(inv)) then
 				local data
@@ -4636,6 +5221,9 @@ ISAWC.SaveContainerInventory = function(self,container)
 	if self.ConSaveIntoFile:GetBool() then
 		if self:RemoveRecursions(inv) then
 			self:Log("Warning! " .. tostring(container) .. " had an item with recursive tables! This may cause errors to occur!")
+		end
+		if self:RemoveUnserializableItems(inv) then
+			self:Log("Warning! " .. tostring(container) .. " had an item with unserializable tables! This may cause errors to occur!")
 		end
 		if container:GetFileID() == "" then
 			self:Log("Warning! " .. tostring(container) .. " failed to save as no ID was associated with the container!")
@@ -4759,6 +5347,7 @@ ISAWC.Initialize = function()
 		ISAWC.Volumelist = data.Volumelist or ISAWC.Volumelist
 		ISAWC.Countlist = data.Countlist or ISAWC.Countlist
 		ISAWC.Remaplist = data.Remaplist or ISAWC.Remaplist
+		ISAWC.StoreRemapList = data.StoreRemapList or ISAWC.StoreRemapList
 		ISAWC.DescList = data.DescList or ISAWC.DescList
 		ISAWC.AmmoItemStampList = data.AmmoItemStampList or ISAWC.AmmoItemStampList
 		ISAWC.MassMultiList = data.MassMultiList or ISAWC.MassMultiList
@@ -4815,7 +5404,8 @@ ISAWC.PlayerSpawn = function(ply)
 end
 
 ISAWC.PlayerDeath = function(ply)
-	if (ply.ISAWC_Inventory and next(ply.ISAWC_Inventory) or next(ply:GetWeapons())) and ISAWC.ConDropOnDeath:GetBool() then
+	ply.ISAWC_Inventory = ply.ISAWC_Inventory or {}
+	if (next(ply.ISAWC_Inventory) or next(ply:GetWeapons())) and ISAWC.ConDropOnDeath:GetBool() then
 		local briefcase = ents.Create(ISAWC.ConDropOnDeathClass:GetString())
 		local modelOverride = ISAWC.ConDropOnDeathModel:GetString()
 		if not (IsValid(briefcase) and briefcase.Base == "isawc_container_base") then
@@ -4827,9 +5417,8 @@ ISAWC.PlayerDeath = function(ply)
 			ISAWC:Log("Failed to create invalid model "..modelOverride..'!')
 			ISAWC:Log("Failed to remove items owned by "..ply:Nick().." as the dropped container was invalid!")
 		else
-			ply.ISAWC_Inventory = ply.ISAWC_Inventory or {}
 			briefcase:SetPos(ply:GetPos() + ply:OBBCenter())
-			briefcase:SetCreator(ply)
+			--briefcase:SetCreator(ply)
 			if modelOverride ~= "" then
 				briefcase.ContainerModel = modelOverride
 			end
@@ -4847,10 +5436,49 @@ ISAWC.PlayerDeath = function(ply)
 			end
 			ISAWC:SetSuppressUndo(true)
 			for k,v in pairs(ply:GetWeapons()) do
-				if ISAWC:CanPickup(briefcase,v,true) and ISAWC:SatisfiesBWLists(v:GetClass(), "DropOnDeath") then
+				local newClass = ISAWC:StringMatchParams(v:GetClass(), ISAWC.StoreRemapList)
+				if (ISAWC:CanPickup(briefcase,v,true) or newClass) and ISAWC:SatisfiesBWLists(v:GetClass(), "DropOnDeath") then
 					ply:DropWeapon(v)
-					if ISAWC:CanProperty(briefcase,v) then
-						ISAWC:PropPickup(briefcase,v,ply)
+					
+					if newClass then
+						-- store the position
+						local pos = v:GetPos()
+						local SavedClip1 = v:Clip1()
+						local SavedClip2 = v:Clip2()
+						local SavedMaxClip1 = v:GetMaxClip1()
+						local SavedMaxClip2 = v:GetMaxClip2()
+						local SavedAmmoType1 = v:GetPrimaryAmmoType()
+						local SavedAmmoType2 = v:GetSecondaryAmmoType()
+						
+						timer.Simple(0, function()
+							local bestWeapon = NULL
+							local bestDistance = math.huge
+							
+							for k,v in pairs(ents.FindByClass(newClass)) do
+								local dist = pos:DistToSqr(v:GetPos())
+								
+								if dist < bestDistance then
+									bestWeapon = v
+									bestDistance = dist
+								end
+							end
+							
+							if IsValid(bestWeapon) then
+								if ISAWC:CanProperty(briefcase,bestWeapon) then
+									bestWeapon.SavedClip1 = SavedClip1
+									bestWeapon.SavedClip2 = SavedClip2
+									bestWeapon.SavedMaxClip1 = SavedMaxClip1
+									bestWeapon.SavedMaxClip2 = SavedMaxClip2
+									bestWeapon.SavedAmmoType1 = SavedAmmoType1
+									bestWeapon.SavedAmmoType2 = SavedAmmoType2
+									ISAWC:PropPickup(briefcase,bestWeapon,ply)
+								end
+							end
+						end)
+					else
+						if ISAWC:CanProperty(briefcase,v) then
+							ISAWC:PropPickup(briefcase,v,ply)
+						end
 					end
 				end
 			end
@@ -4923,6 +5551,18 @@ ISAWC.EmptyWeaponClipsToPlayer = function(self,dupe,ply)
 			v.SavedClip2 = 0
 			success = true
 		end
+		
+		local ent = Entity(k)
+		if IsValid(ent) and self.StoredInAltSaveProps[ent] then
+			ent.SavedClip1 = 0
+			ent.SavedClip2 = 0
+			if ent:IsWeapon() then
+				ent:SetClip1(0)
+				ent:SetClip2(0)
+			elseif ent.MagRounds then
+				ent.MagRounds = 0
+			end
+		end
 	end
 	if not success then
 		self:NoPickup("The weapon has no ammo!", ply)
@@ -4959,13 +5599,20 @@ ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 	end
 	for k,v in pairs(dupe.Entities) do
 		local ent = Entity(k)
-		if canDel or not altSaveSpawnable then
+		if not sSpawn then
+			if canDel then
+				if (IsValid(ent) and self.StoredInAltSaveProps[ent]) then
+					ent:Remove()
+				end
+			else
+				table.insert(ply.ISAWC_Inventory,invnum,dupe)
+				self:NoPickup("You can't delete inventory items!",ply)
+			end
+		end
+		if not altSaveSpawnable then
 			if (IsValid(ent) and self.StoredInAltSaveProps[ent]) then
 				ent:Remove()
 			end
-		else
-			table.insert(ply.ISAWC_Inventory,invnum,dupe)
-			self:NoPickup("You can't delete inventory items!",ply)
 		end
 	end
 	if sSpawn then
@@ -4981,13 +5628,12 @@ ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 				ent:SetNoDraw(ent.ISAWC_OldNoDraw or false)
 				ent:SetNotSolid(not ent.ISAWC_OldSolid or false)
 				ent:SetMoveType(ent.ISAWC_OldMoveType or MOVETYPE_VPHYSICS)
+				ent:SetAngles((ent.ISAWC_OldAngles or angle_zero)+ply:GetAngles())
+				ent:SetPos((ent.ISAWC_OldPos or vector_origin)+spawnpos)
 				ent:PhysWake()
-				timer.Simple(0,function()
-					if IsValid(ent) then
-						ent:SetAngles((ent.ISAWC_OldAngles or angle_zero)+ply:GetAngles())
-						ent:SetPos((ent.ISAWC_OldPos or vector_origin)+spawnpos)
-					end
-				end)
+				if not isSpawn then
+					ent:Use(ply)
+				end
 			end
 		else
 			duplicator.SetLocalPos(spawnpos)
@@ -5004,15 +5650,22 @@ ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 					end
 				end
 				if v:IsWeapon() then
-					local newent = ents.Create(v:GetClass())
-					newent:SetPos(v:GetPos())
-					newent:SetAngles(v:GetAngles())
-					newent:SetCreator(ply)
-					entTab[k] = newent
-					newent:Spawn()
-					newent:SetClip1(self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
-					newent:SetClip2(self.ConNoAmmo:GetBool() and 0 or v.SavedClip2 or v:Clip2())
-					v:Remove()
+					if self:SatisfiesBWLists(v:GetClass(), "WeaponRecreation") then
+						local newent = ents.Create(v:GetClass())
+						newent:SetPos(v:GetPos())
+						newent:SetAngles(v:GetAngles())
+						newent:SetCreator(ply)
+						entTab[k] = newent
+						newent:Spawn()
+						newent:SetClip1(self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
+						newent:SetClip2(self.ConNoAmmo:GetBool() and 0 or v.SavedClip2 or v:Clip2())
+						v:Remove()
+					else
+						v:SetClip1(self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
+						v:SetClip2(self.ConNoAmmo:GetBool() and 0 or v.SavedClip2 or v:Clip2())
+					end
+				elseif v.MagRounds then
+					v.MagRounds = self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v.MagRounds
 				end
 				v.Entity = v
 				if not isSpawn then
@@ -5061,13 +5714,20 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 	end
 	for k,v in pairs(dupe.Entities) do
 		local ent = Entity(k)
-		if canDel or not altSaveSpawnable then
+		if not sSpawn then
+			if canDel then
+				if (IsValid(ent) and self.StoredInAltSaveProps[ent]) then
+					ent:Remove()
+				end
+			else
+				table.insert(ply.ISAWC_Inventory,invnum,dupe)
+				self:NoPickup("You can't delete inventory items!",ply)
+			end
+		end
+		if not altSaveSpawnable then
 			if (IsValid(ent) and self.StoredInAltSaveProps[ent]) then
 				ent:Remove()
 			end
-		else
-			table.insert(ply.ISAWC_Inventory,invnum,dupe)
-			self:NoPickup("You can't delete inventory items!",ply)
 		end
 	end
 	if sSpawn then
@@ -5083,13 +5743,12 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 				ent:SetNoDraw(ent.ISAWC_OldNoDraw or false)
 				ent:SetNotSolid(not ent.ISAWC_OldSolid or false)
 				ent:SetMoveType(ent.ISAWC_OldMoveType or MOVETYPE_VPHYSICS)
+				ent:SetAngles((ent.ISAWC_OldAngles or angle_zero)+ply:GetAngles())
+				ent:SetPos((ent.ISAWC_OldPos or vector_origin)+spawnpos)
 				ent:PhysWake()
-				timer.Simple(0,function()
-					if IsValid(ent) then
-						ent:SetAngles((ent.ISAWC_OldAngles or angle_zero)+ply:GetAngles())
-						ent:SetPos((ent.ISAWC_OldPos or vector_origin)+spawnpos)
-					end
-				end)
+				if not isSpawn then
+					ent:Use(ply)
+				end
 			end
 		else
 			duplicator.SetLocalPos(spawnpos)
@@ -5106,15 +5765,22 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 					end
 				end
 				if v:IsWeapon() then
-					local newent = ents.Create(v:GetClass())
-					newent:SetPos(v:GetPos())
-					newent:SetAngles(v:GetAngles())
-					newent:SetCreator(ply)
-					entTab[k] = newent
-					newent:Spawn()
-					newent:SetClip1(self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
-					newent:SetClip2(self.ConNoAmmo:GetBool() and 0 or v.SavedClip2 or v:Clip2())
-					v:Remove()
+					if self:SatisfiesBWLists(v:GetClass(), "WeaponRecreation") then
+						local newent = ents.Create(v:GetClass())
+						newent:SetPos(v:GetPos())
+						newent:SetAngles(v:GetAngles())
+						newent:SetCreator(ply)
+						entTab[k] = newent
+						newent:Spawn()
+						newent:SetClip1(self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
+						newent:SetClip2(self.ConNoAmmo:GetBool() and 0 or v.SavedClip2 or v:Clip2())
+						v:Remove()
+					else
+						v:SetClip1(self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
+						v:SetClip2(self.ConNoAmmo:GetBool() and 0 or v.SavedClip2 or v:Clip2())
+					end
+				elseif v.MagRounds then
+					v.MagRounds = self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v.MagRounds
 				end
 				v.Entity = v
 				if not isSpawn then
@@ -5176,13 +5842,9 @@ ISAWC.SpawnDupeWeak = function(self,dupe,spawnpos,spawnangles,ply)
 			ent:SetNoDraw(ent.ISAWC_OldNoDraw or false)
 			ent:SetNotSolid(not ent.ISAWC_OldSolid or false)
 			ent:SetMoveType(ent.ISAWC_OldMoveType or MOVETYPE_VPHYSICS)
+			ent:SetAngles((ent.ISAWC_OldAngles or angle_zero)+spawnangles)
+			ent:SetPos((ent.ISAWC_OldPos or vector_origin)+spawnpos)
 			ent:PhysWake()
-			timer.Simple(0,function()
-				if IsValid(ent) then
-					ent:SetAngles((ent.ISAWC_OldAngles or angle_zero)+spawnangles)
-					ent:SetPos((ent.ISAWC_OldPos or vector_origin)+spawnpos)
-				end
-			end)
 		end
 	else
 		duplicator.SetLocalPos(spawnpos)
@@ -5199,15 +5861,22 @@ ISAWC.SpawnDupeWeak = function(self,dupe,spawnpos,spawnangles,ply)
 				end
 			end
 			if v:IsWeapon() then
-				local newent = ents.Create(v:GetClass())
-				newent:SetPos(v:GetPos())
-				newent:SetAngles(v:GetAngles())
-				newent:SetCreator(ply)
-				entTab[k] = newent
-				newent:Spawn()
-				newent:SetClip1(self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
-				newent:SetClip2(self.ConNoAmmo:GetBool() and 0 or v.SavedClip2 or v:Clip2())
-				v:Remove()
+				if self:SatisfiesBWLists(v:GetClass(), "WeaponRecreation") then
+					local newent = ents.Create(v:GetClass())
+					newent:SetPos(v:GetPos())
+					newent:SetAngles(v:GetAngles())
+					newent:SetCreator(ply)
+					entTab[k] = newent
+					newent:Spawn()
+					newent:SetClip1(self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
+					newent:SetClip2(self.ConNoAmmo:GetBool() and 0 or v.SavedClip2 or v:Clip2())
+					v:Remove()
+				else
+					v:SetClip1(self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v:Clip1())
+					v:SetClip2(self.ConNoAmmo:GetBool() and 0 or v.SavedClip2 or v:Clip2())
+				end
+			elseif v.MagRounds then
+				v.MagRounds = self.ConNoAmmo:GetBool() and 0 or v.SavedClip1 or v.MagRounds
 			end
 			v.Entity = v
 			v.NextPickup2 = CurTime() + 0.5
@@ -5529,10 +6198,49 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			if ISAWC.ConAllowHeldWeapons:GetBool() then
 				local ent = ply:GetActiveWeapon()
 				if IsValid(ent) then
-					if self:CanPickup(ply,ent,true) then
+					local newClass = self:StringMatchParams(ent:GetClass(), self.StoreRemapList)
+					if self:CanPickup(ply,ent,true) or newClass then
 						ply:DropWeapon(ent)
-						if self:CanProperty(ply,ent) then
-							self:PropPickup(ply,ent)
+					
+						if newClass then
+							-- store the position
+							local pos = ent:GetPos()
+							local SavedClip1 = ent:Clip1()
+							local SavedClip2 = ent:Clip2()
+							local SavedMaxClip1 = ent:GetMaxClip1()
+							local SavedMaxClip2 = ent:GetMaxClip2()
+							local SavedAmmoType1 = ent:GetPrimaryAmmoType()
+							local SavedAmmoType2 = ent:GetSecondaryAmmoType()
+							
+							timer.Simple(0, function()
+								local bestWeapon = NULL
+								local bestDistance = math.huge
+								
+								for k,v in pairs(ents.FindByClass(newClass)) do
+									local dist = pos:DistToSqr(v:GetPos())
+									
+									if dist < bestDistance then
+										bestWeapon = v
+										bestDistance = dist
+									end
+								end
+								
+								if IsValid(bestWeapon) then
+									if self:CanProperty(ply,bestWeapon) then
+										bestWeapon.SavedClip1 = SavedClip1
+										bestWeapon.SavedClip2 = SavedClip2
+										bestWeapon.SavedMaxClip1 = SavedMaxClip1
+										bestWeapon.SavedMaxClip2 = SavedMaxClip2
+										bestWeapon.SavedAmmoType1 = SavedAmmoType1
+										bestWeapon.SavedAmmoType2 = SavedAmmoType2
+										self:PropPickup(ply,bestWeapon)
+									end
+								end
+							end)
+						else
+							if self:CanProperty(ply,ent) then
+								self:PropPickup(ply,ent)
+							end
 						end
 					end
 				else
@@ -5547,10 +6255,49 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 				if self:IsLegalContainer(container,ply) then
 					local ent = ply:GetActiveWeapon()
 					if IsValid(ent) then
-						if self:CanPickup(ply,ent,true) then
+						local newClass = self:StringMatchParams(ent:GetClass(), self.StoreRemapList)
+						if self:CanPickup(ply,ent,true) or newClass then
 							ply:DropWeapon(ent)
-							if self:CanProperty(ply,ent) then
-								self:PropPickup(ply,ent,container)
+					
+							if newClass then
+								-- store the position
+								local pos = ent:GetPos()
+								local SavedClip1 = ent:Clip1()
+								local SavedClip2 = ent:Clip2()
+								local SavedMaxClip1 = ent:GetMaxClip1()
+								local SavedMaxClip2 = ent:GetMaxClip2()
+								local SavedAmmoType1 = ent:GetPrimaryAmmoType()
+								local SavedAmmoType2 = ent:GetSecondaryAmmoType()
+								
+								timer.Simple(0, function()
+									local bestWeapon = NULL
+									local bestDistance = math.huge
+									
+									for k,v in pairs(ents.FindByClass(newClass)) do
+										local dist = pos:DistToSqr(v:GetPos())
+										
+										if dist < bestDistance then
+											bestWeapon = v
+											bestDistance = dist
+										end
+									end
+									
+									if IsValid(bestWeapon) then
+										if self:CanProperty(ply,bestWeapon) then
+											bestWeapon.SavedClip1 = SavedClip1
+											bestWeapon.SavedClip2 = SavedClip2
+											bestWeapon.SavedMaxClip1 = SavedMaxClip1
+											bestWeapon.SavedMaxClip2 = SavedMaxClip2
+											bestWeapon.SavedAmmoType1 = SavedAmmoType1
+											bestWeapon.SavedAmmoType2 = SavedAmmoType2
+											self:PropPickup(ply,bestWeapon,container)
+										end
+									end
+								end)
+							else
+								if self:CanProperty(ply,ent) then
+									self:PropPickup(ply,ent,container)
+								end
 							end
 						end
 					else
@@ -5566,10 +6313,49 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 				if self:IsLegalContainer(container,ply) then
 					local ent = ply:GetActiveWeapon()
 					if IsValid(ent) then
-						if self:CanPickup(container,ent,true) then
+						local newClass = self:StringMatchParams(ent:GetClass(), self.StoreRemapList)
+						if self:CanPickup(container,ent,true) or newClass then
 							ply:DropWeapon(ent)
-							if self:CanProperty(container,ent) then
-								self:PropPickup(container,ent,ply)
+					
+							if newClass then
+								-- store the position
+								local pos = ent:GetPos()
+								local SavedClip1 = ent:Clip1()
+								local SavedClip2 = ent:Clip2()
+								local SavedMaxClip1 = ent:GetMaxClip1()
+								local SavedMaxClip2 = ent:GetMaxClip2()
+								local SavedAmmoType1 = ent:GetPrimaryAmmoType()
+								local SavedAmmoType2 = ent:GetSecondaryAmmoType()
+								
+								timer.Simple(0, function()
+									local bestWeapon = NULL
+									local bestDistance = math.huge
+									
+									for k,v in pairs(ents.FindByClass(newClass)) do
+										local dist = pos:DistToSqr(v:GetPos())
+										
+										if dist < bestDistance then
+											bestWeapon = v
+											bestDistance = dist
+										end
+									end
+									
+									if IsValid(bestWeapon) then
+										if self:CanProperty(container,bestWeapon) then
+											bestWeapon.SavedClip1 = SavedClip1
+											bestWeapon.SavedClip2 = SavedClip2
+											bestWeapon.SavedMaxClip1 = SavedMaxClip1
+											bestWeapon.SavedMaxClip2 = SavedMaxClip2
+											bestWeapon.SavedAmmoType1 = SavedAmmoType1
+											bestWeapon.SavedAmmoType2 = SavedAmmoType2
+											self:PropPickup(container,bestWeapon,ply)
+										end
+									end
+								end)
+							else
+								if self:CanProperty(container,ent) then
+									self:PropPickup(container,ent,ply)
+								end
 							end
 						end
 					else
@@ -5636,7 +6422,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			if ammoItemStamp then
 				local stampAmount = math.floor(ply:GetAmmoCount(ammoItemStamp[1]) / ammoItemStamp[2])
 				if maximum >= 0 then
-					stampAmount = math.min(stampAmount, maximum)
+					stampAmount = math.min(stampAmount, math.floor(maximum / ammoItemStamp[2]))
 				end
 				if stampAmount > 0 then
 					local results = ISAWC:SQL("SELECT \"name\", \"data\" FROM \"isawc_item_stamps\" WHERE \"name\" = %s;", ammoItemStamp[3])
@@ -5684,7 +6470,9 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 								for i=1, stampAmount do
 									table.insert(targetInventory.ISAWC_Inventory, item)
 								end
-								ply:SetAmmo(ply:GetAmmoCount(ammoItemStamp[1]) - stampAmount * ammoItemStamp[2], ammoItemStamp[1])
+								local lostAmmo = stampAmount * ammoItemStamp[2]
+								ply:PrintMessage(HUD_PRINTTALK, string.format("%i ammunition stored.", lostAmmo))
+								ply:SetAmmo(ply:GetAmmoCount(ammoItemStamp[1]) - lostAmmo, ammoItemStamp[1])
 							end
 							
 							if container then
@@ -5722,7 +6510,8 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 							
 							if conVarType == "bwlist" then
 								if newValues.BWLists[v2.concommand] then
-									self.BWLists[v2.pointer] = newValues.BWLists[v2.concommand]
+									self.BWLists[v2.pointer].Blacklist = newValues.BWLists[v2.concommand].Blacklist
+									self.BWLists[v2.pointer].Whitelist = newValues.BWLists[v2.concommand].Whitelist
 								end
 							elseif conVarType == "sslist" or conVarType == "sdlist" then
 								if newValues[v2.concommand] then
@@ -5734,10 +6523,34 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 										end
 									end
 								end
+							elseif conVarType == "xlist" then
+								if v2.pointer == "StampList" and newValues.StampList then
+									local results = self:SQL("SELECT \"name\" FROM \"isawc_item_stamps\";")
+									if results then
+										for k,v in pairs(results) do
+											if not newValues.StampList[v.name] then
+												newValues.StampList[v.name] = ""
+											end
+										end
+									end
+									
+									self:SQL("BEGIN;")
+									for k,v in pairs(newValues.StampList) do
+										if v == "" then
+											self:SQL("DELETE FROM \"isawc_item_stamps\" WHERE \"name\" = %s;", k)
+										elseif k ~= v then
+											self:SQL("UPDATE \"isawc_item_stamps\" SET \"name\" = %s WHERE \"name\" = %s;", v, k)
+										end
+									end
+									
+									self:SQL("COMMIT;")
+								elseif v2.pointer == "AmmoItemStampList" and newValues.AmmoItemStampList then
+									self.AmmoItemStampList = newValues.AmmoItemStampList
+								end
 							elseif conVarType ~= "button" then
 								local conVar = v2.convar
 								local newValue = newValues[conVar:GetName()]
-								if newValue then
+								if newValue ~= nil then
 									if conVarType == "bool" then
 										conVar:SetBool(newValue)
 									elseif conVarType == "number" then
@@ -5768,6 +6581,29 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			else
 				self:NoPickup("You need to be an administrator to use this command!",ply)
 			end
+		elseif self:IsMessageType(func, "item_stamp_add") then
+			if ply:IsAdmin() then
+				local invnum = net.ReadUInt(16)
+				local dupe = ply.ISAWC_Inventory[invnum]
+				if not dupe then return end
+				
+				local name = net.ReadString()
+				self:CreateItemStamp(name, dupe)
+				ply:PrintMessage(HUD_PRINTTALK, string.format("Added / updated item stamp \"%s\".", name))
+			end
+		elseif self:IsMessageType(func, "item_stamp_add_l") or self:IsMessageType(func, "item_stamp_add_r") then
+			if ply:IsAdmin() then
+				local container = net.ReadEntity()
+				if self:IsLegalContainer(container,ply) then
+					local invnum = net.ReadUInt(16)
+					local dupe = self:IsMessageType(func, "item_stamp_add_l") and ply.ISAWC_Inventory[invnum] or container:GetInventory(ply)[invnum]
+					if not dupe then return end
+					
+					local name = net.ReadString()
+					self:CreateItemStamp(name, dupe)
+					ply:PrintMessage(HUD_PRINTTALK, string.format("Added / updated item stamp \"%s\".", name))
+				end
+			end
 		else
 			self:Log("Received unrecognised message header \"" .. func .. "\" from " .. ply:Nick() .. ". Assuming data packet corrupted.")
 			return
@@ -5786,7 +6622,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					self.reliantwindow:ReceiveInventory(util.JSONToTable(net.ReadData(bytes)))]]
 					local data = {}
 					for i=1,net.ReadUInt(16) do
-						data[i] = {Model=net.ReadString(), Class=net.ReadString(), Desc=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
+						data[i] = {Model=net.ReadString(), Class=net.ReadString(), Name=net.ReadString(), Desc=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
 						Clip1=net.ReadInt(32), Clip2=net.ReadInt(32), MaxClip1=net.ReadInt(32), MaxClip2=net.ReadInt(32)}
 					end
 					self.reliantwindow:ReceiveInventory(data)
@@ -5829,11 +6665,11 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					local data2 = util.JSONToTable(net.ReadData(bytes2))]]
 					local nt1, nt2 = {}, {}
 					for i=1,net.ReadUInt(16) do
-						nt1[i] = {Model=net.ReadString(), Class=net.ReadString(), Desc=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
+						nt1[i] = {Model=net.ReadString(), Class=net.ReadString(), Name=net.ReadString(), Desc=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
 						Clip1=net.ReadInt(32), Clip2=net.ReadInt(32), MaxClip1=net.ReadInt(32), MaxClip2=net.ReadInt(32)}
 					end
 					for i=1,net.ReadUInt(16) do
-						nt2[i] = {Model=net.ReadString(), Class=net.ReadString(), Desc=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
+						nt2[i] = {Model=net.ReadString(), Class=net.ReadString(), Name=net.ReadString(), Desc=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
 						Clip1=net.ReadInt(32), Clip2=net.ReadInt(32), MaxClip1=net.ReadInt(32), MaxClip2=net.ReadInt(32)}
 					end
 					self.reliantwindow:ReceiveInventory(nt1,nt2)
@@ -6399,7 +7235,7 @@ ISAWC.PropPickup = function(self,ply,ent,container)
 	for k,v in pairs(constraint.GetAllConstrainedEntities(ent)) do
 		if ISAWC.ConAltSave:GetBool() and ISAWC:SatisfiesBWLists(v:GetClass(), "AltSave") then
 			v.ISAWC_OldPos,v.ISAWC_OldAngles,v.ISAWC_OldNoDraw,v.ISAWC_OldSolid,v.ISAWC_OldMoveType = v:GetPos()-tpos,v:GetAngles()-ply:GetAngles(),v:GetNoDraw(),v:IsSolid(),v:GetMoveType()
-			v:SetPos(Vector(16000,16000,16000))
+			v:SetPos(Vector(15000,15000,15000))
 			v:SetNoDraw(true)
 			v:SetNotSolid(true)
 			v:SetMoveType(MOVETYPE_NONE)
