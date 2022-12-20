@@ -10,8 +10,8 @@ Links above are confirmed working as of 2022-04-16. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "5.4.0"
-ISAWC._VERSIONDATE = "2022-12-18"
+ISAWC._VERSION = "5.4.2"
+ISAWC._VERSIONDATE = "2022-12-19"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -345,7 +345,7 @@ ISAWC.CreateBWListPair = function(self, name, commandPrefix, displayName, data)
 	if not data.excludeWhitelistConCommandFromDesc then
 		whitelistConVarDesc = whitelistConVarDesc.."\nSee the ConCommand \""..whitelistConCommand.."\" to manipulate the list."
 	end
-	self[whitelistConVarName] = CreateConVar(whitelistConVar, data.whitelistConVarDefault or "0", FCVAR_NONE, data.whitelistConVarDesc)
+	self[whitelistConVarName] = CreateConVar(whitelistConVar, data.whitelistConVarDefault or "0", FCVAR_REPLICATED, data.whitelistConVarDesc)
 	self.BWLists[name].WhitelistConVar = self[whitelistConVarName]
 end
 
