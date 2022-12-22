@@ -8,8 +8,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_REPAIR_VERSION = "1.8.0"
-LUA_REPAIR_VERSION_DATE = "2022-12-19"
+LUA_REPAIR_VERSION = "1.8.2"
+LUA_REPAIR_VERSION_DATE = "2022-12-22"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
@@ -39,12 +39,12 @@ local function FixAllErrors()
 	
 	Log("Patching primitives...")
 	local NIL = getmetatable(nil) or {}
-	local NUMBER = getmetatable(0)
-	local STRING = getmetatable("")
+	local NUMBER = getmetatable(0) or {}
+	local STRING = getmetatable("") or {}
 	local VECTOR = FindMetaTable("Vector")
 	local ENTITY = FindMetaTable("Entity")
 	local CLUAEMITTER = FindMetaTable("CLuaEmitter")
-	local NULL_META = getmetatable(NULL)
+	local NULL_META = getmetatable(NULL) or {}
 	local CTAKEDAMAGEINFO = FindMetaTable("CTakeDamageInfo")
 	local newNilMeta = {
 		__add = function(a,b)
@@ -133,10 +133,6 @@ local function FixAllErrors()
 			LogError("Some code attempted to concatenate a string with something that isn't.")
 		end
 		return tostring(a)..tostring(b)
-	end
-	string.IsValid = function()
-		LogError("Some code attempted to see if a string is valid.")
-		return true
 	end
 	local oldExplode = string.Explode
 	string.Explode = function(separator, str, withpattern)

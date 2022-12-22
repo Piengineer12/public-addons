@@ -10,8 +10,8 @@ Links above are confirmed working as of 2022-04-16. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "5.4.2"
-ISAWC._VERSIONDATE = "2022-12-19"
+ISAWC._VERSION = "5.4.3"
+ISAWC._VERSIONDATE = "2022-12-22"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -5067,7 +5067,7 @@ end
 ISAWC.RemoveUnserializableItems = function(self,inv)
 	local unserializable = false
 	
-	for k,item in pairs(inv) do
+	for k,item in pairs(inv or {}) do
 		for k2,itemAttrs in pairs(item.Entities or {}) do
 			for itemAttr,attrValue in pairs(itemAttrs or {}) do
 				if self:IsUnserializable(attrValue) then
