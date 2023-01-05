@@ -413,7 +413,7 @@ function ENT:Initialize()
 		local difficultySpeedModifier = 1 + (ROTGB_GetConVarValue("rotgb_difficulty") - 1)/10
 		self:Slowdown("rotgb_difficulty",difficultySpeedModifier,9999)
 		
-		self:SetCollisionGroup(COLLISION_GROUP_INTERACTIVE_DEBRIS)
+		self:SetCollisionGroup(COLLISION_GROUP_WORLD)
 		self:SetBloodColor(ROTGB_GetConVarValue("rotgb_bloodtype")<7 and ROTGB_GetConVarValue("rotgb_bloodtype") or DONT_BLEED)
 		local mask = ROTGB_GetConVarValue("rotgb_target_choice")
 		for k,v in pairs(ents.GetAll()) do

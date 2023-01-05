@@ -91,6 +91,20 @@ local order = {
 	"gballoon_blimp_purple",
 	"gballoon_blimp_magenta",
 	"gballoon_blimp_rainbow",
+	"gballoon_melon",
+	"gballoon_melon_super",
+	"gballoon_mossman",
+	"gballoon_mossman_super",
+	"gballoon_gman",
+	"gballoon_gman_super",
+	"gballoon_blimp_ggos",
+	"gballoon_blimp_ggos_super",
+	"gballoon_hot_air",
+	"gballoon_hot_air_super",
+	"gballoon_blimp_long_rainbow",
+	"gballoon_blimp_long_rainbow_super",
+	"gballoon_garrydecal",
+	"gballoon_garrydecal_super",
 	"gballoon_glass",
 	"gballoon_void",
 	"gballoon_cfiber",
@@ -109,7 +123,14 @@ local function AddBalloon(Label,class)
 	Label:InsertColorChange(col2.r,col2.g,col2.b,col2.a)
 	Label:AppendText("\n\n"..language.GetPhrase("rotgb.gballoon."..typ))
 	Label:InsertColorChange(255,127,127,255)
-	Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.health", cvals.BalloonHealth or 1))
+	local segments = tonumber(cvals.BalloonHealthSegments or 1) or 1
+	if segments > 1 then
+		local healthPerSegment = tonumber(cvals.BalloonHealth or 1) or 1
+		local healthPerSegmentAsString = string.format("%u", healthPerSegment / segments)
+		Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.health.multi_segment", cvals.BalloonHealthSegments, healthPerSegmentAsString))
+	else
+		Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.health", cvals.BalloonHealth or 1))
+	end
 	Label:InsertColorChange(255,255,127,255)
 	Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.rgbe", scripted_ents.Get("gballoon_base").rotgb_rbetab[class]))
 	Label:InsertColorChange(127,255,127,255)
@@ -217,6 +238,11 @@ local function AddBalloon(Label,class)
 			Label:InsertColorChange(color.r, color.g, color.b, color.a)
 			Label:AppendText(text[i])
 		end
+	end
+	if cvals.BalloonBossEffect then
+		Label:InsertColorChange(col2.r, col2.g, col2.b, col2.a)
+		Label:AppendText("\n"..ROTGB_LocalizeString("rotgb.guide.gballoon.extra_properties.boss."..cvals.BalloonBossEffect))
+		hasimms = true
 	end
 	if not hasimms then
 		Label:InsertColorChange(255,127,127,255)

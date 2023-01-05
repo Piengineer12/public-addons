@@ -32,24 +32,23 @@ end
 
 function GM:StatisticsThink()
 	local statUpdates = hook.Run("GetPlayerStatsRequireUpdates") 
-	if RealTime() > nextUpdate and next(statUpdates) then
-		nextUpdate = RealTime() + self.NetSendInterval
-		for k,v in pairs(statUpdates) do
-			net.Start("rotgb_statchanged")
-			net.WriteUInt(RTG_STAT_ACHIEVEMENTS, 4)
-			net.WriteUInt(table.Count(v), 16)
-			for k2,v2 in pairs(v) do
-				net.WriteUInt(k2-1, 16)
-				net.WriteDouble(v2)
-			end
-			net.Send(k)
+	for k,v in pairs(statUpdates or {}) do
+		net.Start("rotgb_statchanged")
+		net.WriteUInt(RTG_STAT_ACHIEVEMENTS, 4)
+		net.WriteUInt(table.Count(v), 16)
+		for k2,v2 in pairs(v) do
+			net.WriteUInt(k2-1, 16)
+			net.WriteDouble(v2)
 		end
+		net.Send(k)
 	end
 end
 
 local PLAYER = FindMetaTable("Player")
 function PLAYER:_RTG_SetStat(stat, amount)
-	local difficultyNotCustom = not hook.Run("GetDifficulties")[hook.Run("GetDifficulty")].custom
+	local difficulty = hook.Run("GetDifficulty")
+	local difficultyTable = difficulty and hook.Run("GetDifficulties")[difficulty]
+	local difficultyNotCustom = difficultyTable and not difficultyTable.custom
 	if not hook.Run("GetGameIsOver") and difficultyNotCustom or GAMEMODE.DebugMode then
 		local stats = hook.Run("GetStatisticAmounts")
 		
@@ -68,7 +67,9 @@ function PLAYER:_RTG_SetStat(stat, amount)
 end
 
 function PLAYER:_RTG_AddStat(stat, amount)
-	local difficultyNotCustom = not hook.Run("GetDifficulties")[hook.Run("GetDifficulty")].custom
+	local difficulty = hook.Run("GetDifficulty")
+	local difficultyTable = difficulty and hook.Run("GetDifficulties")[difficulty]
+	local difficultyNotCustom = difficultyTable and not difficultyTable.custom
 	if not hook.Run("GetGameIsOver") and difficultyNotCustom or GAMEMODE.DebugMode then
 		local stats = hook.Run("GetStatisticAmounts")
 		

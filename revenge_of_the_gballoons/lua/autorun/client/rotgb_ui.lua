@@ -45,7 +45,7 @@ local function GetUserEntry(run_func, def_type, def_flags)
 	local Main = vgui.Create("DFrame")
 	Main:SetSize(ScrH()/3,ScrH()/2.5)
 	Main:Center()
-	Main:SetTitle("#rotgb.blacklist_editor.entry_maker.title")
+	Main:SetTitle(ROTGB_LocalizeString("rotgb.blacklist_editor.entry_maker.title"))
 	Main:SetSizable(true)
 	Main:MakePopup()
 	
@@ -75,13 +75,13 @@ local function GetUserEntry(run_func, def_type, def_flags)
 	end
 	
 	local typetable = {
-		{"#rotgb.blacklist_editor.any.gballoon", "gballoon_*"},
-		{"#rotgb.blacklist_editor.any.gblimp", "gballoon_blimp_*"}
+		{ROTGB_LocalizeString("rotgb.blacklist_editor.any.gballoon"), "gballoon_*"},
+		{ROTGB_LocalizeString("rotgb.blacklist_editor.any.gblimp"), "gballoon_blimp_*"}
 	}
 	for k,v in pairs(classes) do
-		table.insert(typetable, {"#rotgb.gballoon."..v, v})
+		table.insert(typetable, {ROTGB_LocalizeString("rotgb.gballoon."..v), v})
 	end
-	Scroller:CreateEntry("#rotgb.blacklist_editor.entry_maker.type", typetable, function(value)
+	Scroller:CreateEntry(ROTGB_LocalizeString("rotgb.blacklist_editor.entry_maker.type"), typetable, function(value)
 		currentparams[1] = value
 	end, currentparams[1])
 	
@@ -95,24 +95,48 @@ local function GetUserEntry(run_func, def_type, def_flags)
 	64: +Shielded
 	128: -Shielded]]
 	
-	Scroller.Modifier1 = Scroller:CreateEntry("#rotgb.blacklist_editor.entry_maker.fast", {{"#rotgb.general.yes", 1}, {"#rotgb.general.no", 2}, {"#rotgb.general.any", 3}}, function(value)
-		currentparams[2] = bit.bor( bit.band(currentparams[2], bit.bnot(3)), value )
-	end, bit.band(currentparams[2], 3))
+	local yesText = ROTGB_LocalizeString("rotgb.general.yes")
+	local noText = ROTGB_LocalizeString("rotgb.general.no")
+	local anyText = ROTGB_LocalizeString("rotgb.general.any")
 	
-	Scroller.Modifier2 = Scroller:CreateEntry("#rotgb.blacklist_editor.entry_maker.hidden", {{"#rotgb.general.yes", 4}, {"#rotgb.general.no", 8}, {"#rotgb.general.any", 12}}, function(value)
-		currentparams[2] = bit.bor( bit.band(currentparams[2], bit.bnot(12)), value )
-	end, bit.band(currentparams[2], 12))
+	Scroller.Modifier1 = Scroller:CreateEntry(
+		ROTGB_LocalizeString("rotgb.blacklist_editor.entry_maker.fast"),
+		{{yesText, 1}, {noText, 2}, {anyText, 3}},
+		function(value)
+			currentparams[2] = bit.bor( bit.band(currentparams[2], bit.bnot(3)), value )
+		end,
+		bit.band(currentparams[2], 3)
+	)
 	
-	Scroller.Modifier3 = Scroller:CreateEntry("#rotgb.blacklist_editor.entry_maker.regen", {{"#rotgb.general.yes", 16}, {"#rotgb.general.no", 32}, {"#rotgb.general.any", 48}}, function(value)
-		currentparams[2] = bit.bor( bit.band(currentparams[2], bit.bnot(48)), value )
-	end, bit.band(currentparams[2], 48))
+	Scroller.Modifier2 = Scroller:CreateEntry(
+		ROTGB_LocalizeString("rotgb.blacklist_editor.entry_maker.hidden"),
+		{{yesText, 4}, {noText, 8}, {anyText, 12}},
+		function(value)
+			currentparams[2] = bit.bor( bit.band(currentparams[2], bit.bnot(12)), value )
+		end,
+		bit.band(currentparams[2], 12)
+	)
 	
-	Scroller.Modifier4 = Scroller:CreateEntry("#rotgb.blacklist_editor.entry_maker.shielded", {{"#rotgb.general.yes", 64}, {"#rotgb.general.no", 128}, {"#rotgb.general.any", 192}}, function(value)
-		currentparams[2] = bit.bor( bit.band(currentparams[2], bit.bnot(192)), value )
-	end, bit.band(currentparams[2], 192))
+	Scroller.Modifier3 = Scroller:CreateEntry(
+		ROTGB_LocalizeString("rotgb.blacklist_editor.entry_maker.regen"),
+		{{yesText, 16}, {noText, 32}, {anyText, 48}},
+		function(value)
+			currentparams[2] = bit.bor( bit.band(currentparams[2], bit.bnot(48)), value )
+		end,
+		bit.band(currentparams[2], 48)
+	)
+	
+	Scroller.Modifier4 = Scroller:CreateEntry(
+		ROTGB_LocalizeString("rotgb.blacklist_editor.entry_maker.shielded"),
+		{{yesText, 64}, {noText, 128}, {anyText, 192}},
+		function(value)
+			currentparams[2] = bit.bor( bit.band(currentparams[2], bit.bnot(192)), value )
+		end,
+		bit.band(currentparams[2], 192)
+	)
 	
 	local OKButton = vgui.Create("DButton", Scroller)
-	OKButton:SetText(def_type and "#rotgb.blacklist_editor.entry_maker.update" or "#rotgb.blacklist_editor.entry_maker.add")
+	OKButton:SetText(def_type and ROTGB_LocalizeString("rotgb.blacklist_editor.entry_maker.update") or ROTGB_LocalizeString("rotgb.blacklist_editor.entry_maker.add"))
 	OKButton:Dock(TOP)
 	function OKButton:DoClick()
 		Main:Close()
@@ -137,7 +161,7 @@ local function MakePopulationFunction(main_panel, list_panel, gballoon_list)
 			
 			local editbutton = vgui.Create("DImageButton", buttonpanel)
 			editbutton:SetImage("icon16/cog.png")
-			editbutton:SetTooltip("#rotgb.blacklist_editor.modify")
+			editbutton:SetTooltip(ROTGB_LocalizeString("rotgb.blacklist_editor.modify"))
 			editbutton:SetTall(32)
 			editbutton:Dock(TOP)
 			function editbutton:DoClick()
@@ -151,7 +175,7 @@ local function MakePopulationFunction(main_panel, list_panel, gballoon_list)
 			
 			local removebutton = vgui.Create("DImageButton", buttonpanel)
 			removebutton:SetImage("icon16/cancel.png")
-			removebutton:SetTooltip("#rotgb.blacklist_editor.remove")
+			removebutton:SetTooltip(ROTGB_LocalizeString("rotgb.blacklist_editor.remove"))
 			removebutton:Dock(FILL)
 			function removebutton:DoClick()
 				if not IsValid(main_panel) then return end
@@ -168,7 +192,7 @@ local function MakePopulationFunction(main_panel, list_panel, gballoon_list)
 			label.flags = v[2]
 			function label:UpdateText()
 				local typ, flags = self.typ, self.flags
-				local balloonString = language.GetPhrase(
+				local balloonString = ROTGB_LocalizeString(
 					typ == "gballoon_*" and "rotgb.blacklist_editor.any.gballoon"
 					or typ == "gballoon_blimp_*" and "rotgb.blacklist_editor.any.gblimp"
 					or "rotgb.gballoon."..typ
@@ -206,7 +230,7 @@ function ROTGB_CreateBlacklistPanel(blacklist, whitelist)
 	local Main = vgui.Create("DFrame")
 	Main:SetSize(ScrH()/2,ScrH()/2)
 	Main:Center()
-	Main:SetTitle("#rotgb.blacklist_editor.title")
+	Main:SetTitle(ROTGB_LocalizeString("rotgb.blacklist_editor.title"))
 	Main:SetSizable(true)
 	Main:MakePopup()
 	function Main:Paint(w,h)
@@ -235,7 +259,7 @@ function ROTGB_CreateBlacklistPanel(blacklist, whitelist)
 	
 	local WarningText = vgui.Create("DLabel", Main)
 	WarningText:SetFont("DermaDefaultBold")
-	WarningText:SetText("#rotgb.blacklist_editor.warning")
+	WarningText:SetText(ROTGB_LocalizeString("rotgb.blacklist_editor.warning"))
 	WarningText:SetWrap(true)
 	WarningText:SetAutoStretchVertical(true)
 	WarningText:SetTextColor(color_red)
@@ -263,7 +287,7 @@ function ROTGB_CreateBlacklistPanel(blacklist, whitelist)
 	LeftHeader:Dock(TOP)
 	
 	local LeftButton = vgui.Create("DButton",LeftHeader)
-	LeftButton:SetText("#rotgb.blacklist_editor.add")
+	LeftButton:SetText(ROTGB_LocalizeString("rotgb.blacklist_editor.add"))
 	LeftButton:SetTextColor(color_aqua)
 	LeftButton:SizeToContentsX(8)
 	LeftButton:Dock(RIGHT)
@@ -280,7 +304,7 @@ function ROTGB_CreateBlacklistPanel(blacklist, whitelist)
 	end
 	
 	local LeftText = vgui.Create("DLabel",LeftHeader)
-	LeftText:SetText("#rotgb.blacklist_editor.entries")
+	LeftText:SetText(ROTGB_LocalizeString("rotgb.blacklist_editor.entries"))
 	LeftText:Dock(FILL)
 	
 	local RightPanel = vgui.Create("DPanel",Divider)
@@ -300,7 +324,7 @@ function ROTGB_CreateBlacklistPanel(blacklist, whitelist)
 	RightHeader:Dock(TOP)
 	
 	local RightButton = vgui.Create("DButton",RightHeader)
-	RightButton:SetText("#rotgb.blacklist_editor.add")
+	RightButton:SetText(ROTGB_LocalizeString("rotgb.blacklist_editor.add"))
 	RightButton:SetTextColor(color_aqua)
 	RightButton:SizeToContentsX(8)
 	RightButton:Dock(RIGHT)
@@ -317,7 +341,7 @@ function ROTGB_CreateBlacklistPanel(blacklist, whitelist)
 	end
 	
 	local RightText = vgui.Create("DLabel",RightHeader)
-	RightText:SetText("#rotgb.blacklist_editor.entries.except")
+	RightText:SetText(ROTGB_LocalizeString("rotgb.blacklist_editor.entries.except"))
 	RightText:Dock(FILL)
 end
 
@@ -365,7 +389,7 @@ local function GetUserWaveCompEntry(run_func, defs)
 	local Main = vgui.Create("DFrame")
 	Main:SetSize(ScrH()*0.4,ScrH()*0.5)
 	Main:Center()
-	Main:SetTitle("#rotgb.wave_editor.wave_component.title")
+	Main:SetTitle(ROTGB_LocalizeString("rotgb.wave_editor.wave_component.title"))
 	Main:SetSizable(true)
 	Main:MakePopup()
 	
@@ -395,34 +419,58 @@ local function GetUserWaveCompEntry(run_func, defs)
 	end
 	
 	local typetable = {
-		Either(defs,nil,{"#rotgb.wave_editor.wave_component.dont_change", "gballoon_*"})
+		Either(defs,nil,{ROTGB_LocalizeString("rotgb.wave_editor.wave_component.dont_change"), "gballoon_*"})
 	}
 	for k,v in pairs(classes) do
-		table.insert(typetable, {"#rotgb.gballoon."..v, v})
+		table.insert(typetable, {ROTGB_LocalizeString("rotgb.gballoon."..v), v})
 	end
-	Scroller:CreateEntry("#rotgb.wave_editor.wave_component.type", typetable, function(value)
+	Scroller:CreateEntry(ROTGB_LocalizeString("rotgb.wave_editor.wave_component.type"), typetable, function(value)
 		currentparams[1] = value
 	end, currentparams[1])
 	
-	Scroller.Modifier1 = Scroller:CreateEntry("#rotgb.wave_editor.wave_component.fast", {{"#rotgb.general.yes", 1}, {"#rotgb.general.no", 2}, not defs and {"#rotgb.wave_editor.wave_component.dont_change", 3} or nil}, function(value)
-		currentparams[2] = bit.bor( bit.band(currentparams[2], bit.bnot(3)), value )
-	end, bit.band(currentparams[2], 3))
+	local yesText = ROTGB_LocalizeString("rotgb.general.yes")
+	local noText = ROTGB_LocalizeString("rotgb.general.no")
+	local sameText = ROTGB_LocalizeString("rotgb.wave_editor.wave_component.dont_change")
 	
-	Scroller.Modifier2 = Scroller:CreateEntry("#rotgb.wave_editor.wave_component.hidden", {{"#rotgb.general.yes", 4}, {"#rotgb.general.no", 8}, not defs and {"#rotgb.wave_editor.wave_component.dont_change", 12} or nil}, function(value)
-		currentparams[2] = bit.bor( bit.band(currentparams[2], bit.bnot(12)), value )
-	end, bit.band(currentparams[2], 12))
+	Scroller.Modifier1 = Scroller:CreateEntry(
+		ROTGB_LocalizeString("rotgb.wave_editor.wave_component.fast"),
+		{{yesText, 1}, {noText, 2}, not defs and {sameText, 3} or nil},
+		function(value)
+			currentparams[2] = bit.bor( bit.band(currentparams[2], bit.bnot(3)), value )
+		end,
+		bit.band(currentparams[2], 3)
+	)
 	
-	Scroller.Modifier3 = Scroller:CreateEntry("#rotgb.wave_editor.wave_component.regen", {{"#rotgb.general.yes", 16}, {"#rotgb.general.no", 32}, not defs and {"#rotgb.wave_editor.wave_component.dont_change", 48} or nil}, function(value)
-		currentparams[2] = bit.bor( bit.band(currentparams[2], bit.bnot(48)), value )
-	end, bit.band(currentparams[2], 48))
+	Scroller.Modifier2 = Scroller:CreateEntry(
+		ROTGB_LocalizeString("rotgb.wave_editor.wave_component.hidden"),
+		{{yesText, 4}, {noText, 8}, not defs and {sameText, 12} or nil},
+		function(value)
+			currentparams[2] = bit.bor( bit.band(currentparams[2], bit.bnot(12)), value )
+		end,
+		bit.band(currentparams[2], 12)
+	)
 	
-	Scroller.Modifier4 = Scroller:CreateEntry("#rotgb.wave_editor.wave_component.shielded", {{"#rotgb.general.yes", 64}, {"#rotgb.general.no", 128}, not defs and {"#rotgb.wave_editor.wave_component.dont_change", 192} or nil}, function(value)
-		currentparams[2] = bit.bor( bit.band(currentparams[2], bit.bnot(192)), value )
-	end, bit.band(currentparams[2], 192))
+	Scroller.Modifier3 = Scroller:CreateEntry(
+		ROTGB_LocalizeString("rotgb.wave_editor.wave_component.regen"),
+		{{yesText, 16}, {noText, 32}, not defs and {sameText, 48} or nil},
+		function(value)
+			currentparams[2] = bit.bor( bit.band(currentparams[2], bit.bnot(48)), value )
+		end,
+		bit.band(currentparams[2], 48)
+	)
+	
+	Scroller.Modifier4 = Scroller:CreateEntry(
+		ROTGB_LocalizeString("rotgb.wave_editor.wave_component.shielded"),
+		{{yesText, 64}, {noText, 128}, not defs and {sameText, 192} or nil},
+		function(value)
+			currentparams[2] = bit.bor( bit.band(currentparams[2], bit.bnot(192)), value )
+		end,
+		bit.band(currentparams[2], 192)
+	)
 	
 	function Main:CreateNumSlider(argnum, low, dec, text)
 		local AmountSelector = vgui.Create("DNumSlider", Main)
-		AmountSelector:SetText(ROTGB_LocalizeString("rotgb.wave_editor.wave_component.numeric_option", language.GetPhrase(text)))
+		AmountSelector:SetText(ROTGB_LocalizeString("rotgb.wave_editor.wave_component.numeric_option", ROTGB_LocalizeString(text)))
 		AmountSelector:Dock(TOP)
 		AmountSelector:SetMin(-1)
 		AmountSelector:SetMax(300)
@@ -434,12 +482,12 @@ local function GetUserWaveCompEntry(run_func, defs)
 		end
 	end
 	
-	Main:CreateNumSlider(3, 1, 0, "#rotgb.wave_editor.wave_component.amount")
-	Main:CreateNumSlider(4, 0, 2, "#rotgb.wave_editor.wave_component.timespan")
-	Main:CreateNumSlider(5, 0, 2, "#rotgb.wave_editor.wave_component.delay")
+	Main:CreateNumSlider(3, 1, 0, ROTGB_LocalizeString("rotgb.wave_editor.wave_component.amount"))
+	Main:CreateNumSlider(4, 0, 2, ROTGB_LocalizeString("rotgb.wave_editor.wave_component.timespan"))
+	Main:CreateNumSlider(5, 0, 2, ROTGB_LocalizeString("rotgb.wave_editor.wave_component.delay"))
 	
 	local OKButton = vgui.Create("DButton", Scroller)
-	OKButton:SetText("#rotgb.wave_editor.wave_component.confirm")
+	OKButton:SetText(ROTGB_LocalizeString("rotgb.wave_editor.wave_component.confirm"))
 	OKButton:Dock(TOP)
 	function OKButton:DoClick()
 		Main:Close()
@@ -454,7 +502,7 @@ local function GetUserWaveEntry(wavedata, run_func)
 	local Main = vgui.Create("DFrame")
 	Main:SetSize(ScrH()*0.6,ScrH()*0.6)
 	Main:Center()
-	Main:SetTitle("#rotgb.wave_editor.wave_components.title")
+	Main:SetTitle(ROTGB_LocalizeString("rotgb.wave_editor.wave_components.title"))
 	Main:SetSizable(true)
 	Main:MakePopup()
 	function Main:Paint(w,h)
@@ -464,7 +512,7 @@ local function GetUserWaveEntry(wavedata, run_func)
 		end
 	end
 	--[[function Main:SwitchBoolsToText(booly,booln)
-		return tobool(booly) and not tobool(booln) and "#GameUI_Yes" or "#GameUI_No"
+		return tobool(booly) and not tobool(booln) and ROTGB_LocalizeString("GameUI_Yes") or ROTGB_LocalizeString("GameUI_No")
 	end]]
 	
 	local buttonpanel = vgui.Create("DPanel", Main)
@@ -477,9 +525,9 @@ local function GetUserWaveEntry(wavedata, run_func)
 	WaveComponents:SetMultiSelect(true)
 	local col = WaveComponents:AddColumn("Type")
 	col:SetWidth(250)
-	WaveComponents:AddColumn("#rotgb.wave_editor.wave_components.amount")
-	WaveComponents:AddColumn("#rotgb.wave_editor.wave_components.timespan")
-	WaveComponents:AddColumn("#rotgb.wave_editor.wave_components.delay")
+	WaveComponents:AddColumn(ROTGB_LocalizeString("rotgb.wave_editor.wave_components.amount"))
+	WaveComponents:AddColumn(ROTGB_LocalizeString("rotgb.wave_editor.wave_components.timespan"))
+	WaveComponents:AddColumn(ROTGB_LocalizeString("rotgb.wave_editor.wave_components.delay"))
 	function WaveComponents:OnRowSelected()
 		if not self.first then
 			for k,v in pairs(buttonpanel:GetChildren()) do
@@ -518,7 +566,7 @@ local function GetUserWaveEntry(wavedata, run_func)
 	
 	local addbutton = vgui.Create("DImageButton", buttonpanel)
 	addbutton:SetImage("icon16/add.png")
-	addbutton:SetTooltip("#rotgb.wave_editor.wave_components.add")
+	addbutton:SetTooltip(ROTGB_LocalizeString("rotgb.wave_editor.wave_components.add"))
 	addbutton:SetTall(32)
 	addbutton:Dock(TOP)
 	function addbutton:DoClick()
@@ -529,7 +577,7 @@ local function GetUserWaveEntry(wavedata, run_func)
 	
 	local editbutton = vgui.Create("DImageButton", buttonpanel)
 	editbutton:SetImage("icon16/cog.png")
-	editbutton:SetTooltip("#rotgb.wave_editor.wave_components.modify")
+	editbutton:SetTooltip(ROTGB_LocalizeString("rotgb.wave_editor.wave_components.modify"))
 	editbutton:SetTall(32)
 	editbutton:Dock(TOP)
 	editbutton:Hide()
@@ -593,28 +641,34 @@ local function GetUserWaveEntry(wavedata, run_func)
 	
 	local removebutton = vgui.Create("DImageButton", buttonpanel)
 	removebutton:SetImage("icon16/delete.png")
-	removebutton:SetTooltip("#rotgb.wave_editor.wave_components.remove")
+	removebutton:SetTooltip(ROTGB_LocalizeString("rotgb.wave_editor.wave_components.remove"))
 	removebutton:SetTall(32)
 	removebutton:Dock(TOP)
 	removebutton:Hide()
 	removebutton.HideOnDeselect = true
 	function removebutton:DoClick()
-		Derma_Query("#rotgb.wave_editor.wave_components.remove.confirmation","#rotgb.wave_editor.wave_components.remove","#rotgb.general.yes",function()
-			for k,v in pairs(WaveComponents:GetSelected()) do
-				WaveComponents:RemoveLine(v:GetID())
-			end
-			for k,v in pairs(buttonpanel:GetChildren()) do
-				if v.HideOnDeselect then
-					v:Hide()
+		Derma_Query(
+			ROTGB_LocalizeString("rotgb.wave_editor.wave_components.remove.confirmation"),
+			ROTGB_LocalizeString("rotgb.wave_editor.wave_components.remove"),
+			ROTGB_LocalizeString("rotgb.general.yes"),
+			function()
+				for k,v in pairs(WaveComponents:GetSelected()) do
+					WaveComponents:RemoveLine(v:GetID())
 				end
-			end
-			WaveComponents.first = false
-		end,"#rotgb.general.no")
+				for k,v in pairs(buttonpanel:GetChildren()) do
+					if v.HideOnDeselect then
+						v:Hide()
+					end
+				end
+				WaveComponents.first = false
+			end,
+			(ROTGB_LocalizeString("rotgb.general.no"))
+		)
 	end 
 	
 	--[[local upbutton = vgui.Create("DImageButton", buttonpanel)
 	upbutton:SetImage("icon16/arrow_up.png")
-	upbutton:SetTooltip("#tool.hoverball.up")
+	upbutton:SetTooltip(ROTGB_LocalizeString("tool.hoverball.up"))
 	upbutton:SetTall(32)
 	upbutton:Dock(TOP)
 	upbutton:Hide()
@@ -637,7 +691,7 @@ local function GetUserWaveEntry(wavedata, run_func)
 	
 	local acceptbutton = vgui.Create("DImageButton", buttonpanel)
 	acceptbutton:SetImage("icon16/tick.png")
-	acceptbutton:SetTooltip("#rotgb.wave_editor.wave_components.accept")
+	acceptbutton:SetTooltip(ROTGB_LocalizeString("rotgb.wave_editor.wave_components.accept"))
 	acceptbutton:SetTall(32)
 	acceptbutton:Dock(BOTTOM)
 	function acceptbutton:DoClick()
@@ -652,7 +706,7 @@ local function GetUserWaveEntry(wavedata, run_func)
 	
 	local cancelbutton = vgui.Create("DImageButton", buttonpanel)
 	cancelbutton:SetImage("icon16/cross.png")
-	cancelbutton:SetTooltip("#rotgb.wave_editor.wave_components.cancel")
+	cancelbutton:SetTooltip(ROTGB_LocalizeString("rotgb.wave_editor.wave_components.cancel"))
 	cancelbutton:SetTall(32)
 	cancelbutton:Dock(BOTTOM)
 	function cancelbutton:DoClick()
@@ -660,7 +714,7 @@ local function GetUserWaveEntry(wavedata, run_func)
 	end
 	
 	for i,v in ipairs(wavedata) do
-		local Line = WaveComponents:AddLine("#rotgb.wave_editor.wave_components.invalid", -1, -1, -1)
+		local Line = WaveComponents:AddLine(ROTGB_LocalizeString("rotgb.wave_editor.wave_components.invalid"), -1, -1, -1)
 		Line.wavecomp = v
 		--Line.ID = i
 		Line.Refresh = lineclassfunc
@@ -675,10 +729,14 @@ local localWaves, localEdited = {}
 
 function ROTGB_CreateWavePanel()
 	
+	local yesText = ROTGB_LocalizeString("rotgb.general.yes")
+	local noText = ROTGB_LocalizeString("rotgb.general.no")
+	local okText = ROTGB_LocalizeString("rotgb.general.ok")
+	
 	local Main = vgui.Create("DFrame")
 	Main:SetSize(ScrH()*0.5,ScrH()*0.5)
 	Main:Center()
-	Main:SetTitle("#rotgb.wave_editor.title")
+	Main:SetTitle(ROTGB_LocalizeString("rotgb.wave_editor.title"))
 	Main:SetSizable(true)
 	Main:MakePopup()
 	function Main:Paint(w,h)
@@ -690,7 +748,7 @@ function ROTGB_CreateWavePanel()
 	function Main:SupplyFileSelector(rtext, rfunc)
 		return function()
 			local FileMain = vgui.Create("DFrame")
-			FileMain:SetTitle("#rotgb.wave_editor.file_selector.title")
+			FileMain:SetTitle(ROTGB_LocalizeString("rotgb.wave_editor.file_selector.title"))
 			FileMain:SetSize(ScrH()*0.5,ScrH()*0.5)
 			FileMain:Center()
 			FileMain:MakePopup()
@@ -704,7 +762,7 @@ function ROTGB_CreateWavePanel()
 			
 			local FileEntry = vgui.Create("DTextEntry", ButtonPanel)
 			FileEntry:Dock(FILL)
-			FileEntry:SetPlaceholderText("#rotgb.wave_editor.file_selector.file_name.hint")
+			FileEntry:SetPlaceholderText(ROTGB_LocalizeString("rotgb.wave_editor.file_selector.file_name.hint"))
 			
 			--[[function FileBrowser:OnSelect(path)
 				
@@ -725,30 +783,40 @@ function ROTGB_CreateWavePanel()
 			function FileBrowser:Refresh()
 				FileBrowser:Clear()
 				local FolderNode = FileBrowser:AddNode("data/rotgb_wavedata")
+				
 				for k,v in pairs(file.Find("rotgb_wavedata/*.dat","DATA")) do
 					local FileNode = FolderNode:AddNode(v, "icon16/page.png")
 					function FileNode:DoClick()
-						
 						FileEntry:SetValue(string.gsub(v, "^(.*)%.dat$", "%1"))
-						
 					end
 					function FileNode:DoRightClick()
-						
 						local FileMenu = DermaMenu()
-						FileMenu:AddOption("#rotgb.wave_editor.file_selector.delete", function()
-							Derma_Query("#rotgb.wave_editor.file_selector.delete.confirmation","#rotgb.wave_editor.file_selector.delete","#rotgb.general.yes",function()
-								file.Delete("rotgb_wavedata/"..v)
-								FileBrowser:Refresh()
-							end,"#rotgb.general.no")
+						FileMenu:AddOption(ROTGB_LocalizeString("rotgb.wave_editor.file_selector.delete"), function()
+							Derma_Query(
+								ROTGB_LocalizeString("rotgb.wave_editor.file_selector.delete.confirmation"),
+								ROTGB_LocalizeString("rotgb.wave_editor.file_selector.delete"),
+								yesText,
+								function()
+									file.Delete("rotgb_wavedata/"..v)
+									FileBrowser:Refresh()
+								end,
+								noText
+							)
 						end)
-						FileMenu:AddOption("#rotgb.wave_editor.file_selector.rename", function()
-							Derma_StringRequest("#rotgb.wave_editor.file_selector.rename","#rotgb.wave_editor.file_selector.rename.new",Main.FileName,function(text)
-								file.Rename("rotgb_wavedata/"..v, "rotgb_wavedata/"..text..".dat")
-								FileBrowser:Refresh()
-							end,nil,"#rotgb.wave_editor.file_selector.rename.button")
+						FileMenu:AddOption(ROTGB_LocalizeString("rotgb.wave_editor.file_selector.rename"), function()
+							Derma_StringRequest(
+								ROTGB_LocalizeString("rotgb.wave_editor.file_selector.rename"),
+								ROTGB_LocalizeString("rotgb.wave_editor.file_selector.rename.new"),
+								Main.FileName,
+								function(text)
+									file.Rename("rotgb_wavedata/"..v, "rotgb_wavedata/"..text..".dat")
+									FileBrowser:Refresh()
+								end,
+								nil,
+								ROTGB_LocalizeString("rotgb.wave_editor.file_selector.rename.button")
+							)
 						end)
 						FileMenu:Open()
-						
 					end
 				end
 			end
@@ -760,7 +828,11 @@ function ROTGB_CreateWavePanel()
 			
 			function OKButton:DoClick()
 				if FileEntry:GetValue()=="" then
-					Derma_Message("#rotgb.wave_editor.file_selector.file_name.none",rtext,"#GameUI_OK")
+					Derma_Message(
+						ROTGB_LocalizeString("rotgb.wave_editor.file_selector.file_name.none"),
+						rtext,
+						okText
+					)
 				else
 					rfunc("rotgb_wavedata/"..FileEntry:GetValue()..".dat", FileMain)
 				end
@@ -791,83 +863,126 @@ function ROTGB_CreateWavePanel()
 	local ScrollPanel = vgui.Create("DScrollPanel", Main)
 	ScrollPanel:Dock(FILL)
 	
-	local FileMenu = HeadingBar:AddMenu("#rotgb.wave_editor.category.file")
+	local FileMenu = HeadingBar:AddMenu(ROTGB_LocalizeString("rotgb.wave_editor.category.file"))
 	
-	FileMenu:AddOption("#rotgb.wave_editor.new", function()
+	FileMenu:AddOption(ROTGB_LocalizeString("rotgb.wave_editor.new"), function()
 		if localEdited then
-			Derma_Query("#rotgb.wave_editor.new.confirmation","#rotgb.wave_editor.new","#rotgb.general.yes",function()
-				if not IsValid(Main) then return end
-				localEdited = false
-				localWaves = {}
-				ScrollPanel:Populate()
-			end,"#rotgb.general.no")
+			Derma_Query(
+				ROTGB_LocalizeString("rotgb.wave_editor.new.confirmation"),
+				ROTGB_LocalizeString("rotgb.wave_editor.new"),
+				yesText,
+				function()
+					if not IsValid(Main) then return end
+					localEdited = false
+					localWaves = {}
+					ScrollPanel:Populate()
+				end,
+				noText
+			)
 		else
 			localWaves = {}
 			ScrollPanel:Populate()
 		end
 	end):SetIcon("icon16/page_white.png")
 	
-	FileMenu:AddOption("#rotgb.wave_editor.save", Main:SupplyFileSelector("#rotgb.wave_editor.save", function(path, window)
-		if not IsValid(Main) then return end
-		if file.Exists(path, "DATA") then
-			Derma_Query("#rotgb.wave_editor.overwrite.confirmation","#rotgb.wave_editor.overwrite","#rotgb.general.yes",function()
-				if not IsValid(Main) then return end
+	FileMenu:AddOption(
+		ROTGB_LocalizeString("rotgb.wave_editor.save"),
+		Main:SupplyFileSelector(ROTGB_LocalizeString("rotgb.wave_editor.save"), function(path, window)
+			if not IsValid(Main) then return end
+			if file.Exists(path, "DATA") then
+				Derma_Query(
+					ROTGB_LocalizeString("rotgb.wave_editor.overwrite.confirmation"),
+					ROTGB_LocalizeString("rotgb.wave_editor.overwrite"),
+					yesText,
+					function()
+						if not IsValid(Main) then return end
+						file.Write(path, util.Compress(util.TableToJSON(localWaves)))
+						localEdited = false
+						window:Close()
+					end,
+					noText
+				)
+			else
 				file.Write(path, util.Compress(util.TableToJSON(localWaves)))
 				localEdited = false
 				window:Close()
-			end,"#rotgb.general.no")
-		else
-			file.Write(path, util.Compress(util.TableToJSON(localWaves)))
-			localEdited = false
-			window:Close()
-		end
-	end)):SetIcon("icon16/disk.png")
+			end
+		end)
+	):SetIcon("icon16/disk.png")
 	
-	FileMenu:AddOption("#rotgb.wave_editor.export", function()
+	FileMenu:AddOption(ROTGB_LocalizeString("rotgb.wave_editor.export"), function()
 		local clipboardText = util.Base64Encode(util.Compress(util.TableToJSON(localWaves)))
 		SetClipboardText(clipboardText)
 		chat.AddText(ROTGB_LocalizeString("rotgb.wave_editor.export.success", ROTGB_Commatize(#clipboardText)))
 	end):SetIcon("icon16/page_copy.png")
 	
-	FileMenu:AddOption("#rotgb.wave_editor.load", Main:SupplyFileSelector("#rotgb.wave_editor.load", function(path, window)
-		if not IsValid(Main) then return end
-		local rawdata = file.Read(path)
-		if rawdata then
-			rawdata = util.JSONToTable(util.Decompress(rawdata))
+	FileMenu:AddOption(
+		ROTGB_LocalizeString("rotgb.wave_editor.load"),
+		Main:SupplyFileSelector(ROTGB_LocalizeString("rotgb.wave_editor.load"), function(path, window)
+			if not IsValid(Main) then return end
+			local rawdata = file.Read(path)
 			if rawdata then
-				localWaves = rawdata
-				localEdited = false
-				window:Close()
-				ScrollPanel:Populate()
+				rawdata = util.JSONToTable(util.Decompress(rawdata))
+				if rawdata then
+					localWaves = rawdata
+					localEdited = false
+					window:Close()
+					ScrollPanel:Populate()
+				else
+					Derma_Message(
+						ROTGB_LocalizeString("rotgb.wave_editor.load.failed.corrupted"),
+						ROTGB_LocalizeString("rotgb.wave_editor.load.failed"),
+						okText
+					)
+				end
 			else
-				Derma_Message("#rotgb.wave_editor.load.failed.corrupted","#rotgb.wave_editor.load.failed","#rotgb.general.ok")
+				Derma_Message(
+					ROTGB_LocalizeString("rotgb.wave_editor.load.failed.not_found"),
+					ROTGB_LocalizeString("rotgb.wave_editor.load.failed"),
+					okText
+				)
 			end
-		else
-			Derma_Message("#rotgb.wave_editor.load.failed.not_found","#rotgb.wave_editor.load.failed","#rotgb.general.ok")
-		end
-	end)):SetIcon("icon16/folder_page.png")
+		end)
+	):SetIcon("icon16/folder_page.png")
 	
-	FileMenu:AddOption("#rotgb.wave_editor.import", function()
-		Derma_StringRequest("#rotgb.wave_editor.import","#rotgb.wave_editor.import.info","",function(text)
-			local data = util.JSONToTable(util.Decompress(util.Base64Decode(text) or "") or "")
-			if data then
-				localWaves = data
-				localEdited = false
-				ScrollPanel:Populate()
-			else
-				Derma_Message("#rotgb.wave_editor.import.failed.corrupted","#rotgb.wave_editor.import.failed","#rotgb.general.ok")
-			end
-		end,nil,"#rotgb.wave_editor.import.button")
+	FileMenu:AddOption(ROTGB_LocalizeString("rotgb.wave_editor.import"), function()
+		Derma_StringRequest(
+			ROTGB_LocalizeString("rotgb.wave_editor.import"),
+			ROTGB_LocalizeString("rotgb.wave_editor.import.info"),
+			"",
+			function(text)
+				local data = util.JSONToTable(util.Decompress(util.Base64Decode(text) or "") or "")
+				if data then
+					localWaves = data
+					localEdited = false
+					ScrollPanel:Populate()
+				else
+					Derma_Message(
+						ROTGB_LocalizeString("rotgb.wave_editor.import.failed.corrupted"),
+						ROTGB_LocalizeString("rotgb.wave_editor.import.failed"),
+						okText
+					)
+				end
+			end,
+			nil,
+			ROTGB_LocalizeString("rotgb.wave_editor.import.button")
+		)
 	end):SetIcon("icon16/page_paste.png")
 	
-	FileMenu:AddOption("#rotgb.wave_editor.load.default", function()
+	FileMenu:AddOption(ROTGB_LocalizeString("rotgb.wave_editor.load.default"), function()
 		if localEdited then
-			Derma_Query("#rotgb.wave_editor.load.confirmation","#rotgb.wave_editor.load.default","#rotgb.general.yes",function()
-				if not IsValid(Main) then return end
-				localEdited = false
-				localWaves = table.Copy(ROTGB_WAVES)
-				ScrollPanel:Populate()
-			end,"#rotgb.general.no")
+			Derma_Query(
+				ROTGB_LocalizeString("rotgb.wave_editor.load.confirmation"),
+				ROTGB_LocalizeString("rotgb.wave_editor.load.default"),
+				yesText,
+				function()
+					if not IsValid(Main) then return end
+					localEdited = false
+					localWaves = table.Copy(ROTGB_WAVES)
+					ScrollPanel:Populate()
+				end,
+				noText
+			)
 		else
 			localWaves = table.Copy(ROTGB_WAVES)
 			ScrollPanel:Populate()
@@ -876,12 +991,22 @@ function ROTGB_CreateWavePanel()
 	
 	FileMenu:AddSpacer()
 	
-	FileMenu:AddOption("#rotgb.wave_editor.send", function() 
+	local sendFailedText = ROTGB_LocalizeString("rotgb.wave_editor.send.failed")
+	
+	FileMenu:AddOption(ROTGB_LocalizeString("rotgb.wave_editor.send"), function() 
 		if not LocalPlayer():IsAdmin() then
-			return Derma_Message("#rotgb.wave_editor.send.failed.admin","#rotgb.wave_editor.send.failed","#rotgb.general.ok")
+			return Derma_Message(
+				ROTGB_LocalizeString("rotgb.wave_editor.send.failed.admin"),
+				sendFailedText,
+				okText
+			)
 		end
 		if game.SinglePlayer() then
-			return Derma_Message("#rotgb.wave_editor.send.failed.singleplayer","#rotgb.wave_editor.send.failed","#rotgb.general.ok")
+			return Derma_Message(
+				ROTGB_LocalizeString("rotgb.wave_editor.send.failed.singleplayer"),
+				sendFailedText,
+				okText
+			)
 		end
 		Main:SupplyFileSelector("Save to Server", function(path, window)
 			if not IsValid(Main) then return end
@@ -903,26 +1028,34 @@ function ROTGB_CreateWavePanel()
 						net.SendToServer()
 					end
 				else
-					Derma_Message("#rotgb.wave_editor.send.failed.corrupted","#rotgb.wave_editor.send.failed","#rotgb.general.ok")
+					Derma_Message(
+						ROTGB_LocalizeString("rotgb.wave_editor.send.failed.corrupted"),
+						sendFailedText,
+						okText
+					)
 				end
 			else
-				Derma_Message("#rotgb.wave_editor.send.failed.not_found","#rotgb.wave_editor.send.failed","#rotgb.general.ok")
+				Derma_Message(
+					ROTGB_LocalizeString("rotgb.wave_editor.send.failed.not_found"),
+					sendFailedText,
+					okText
+				)
 			end
 		end)()
 	end):SetIcon("icon16/transmit_go.png")
 	
-	FileMenu = HeadingBar:AddMenu("#rotgb.wave_editor.category.edit")
+	FileMenu = HeadingBar:AddMenu(ROTGB_LocalizeString("rotgb.wave_editor.category.edit"))
 	
 	--[[local FileSubMenu, FileButton = FileMenu:AddSubMenu("Add New Wave")
 	FileButton:SetIcon("icon16/add.png")]]
 	
-	FileMenu:AddOption("#rotgb.wave_editor.add_wave.top", function()
+	FileMenu:AddOption(ROTGB_LocalizeString("rotgb.wave_editor.add_wave.top"), function()
 		localEdited = true
 		table.insert(localWaves, 1, { {"gballoon_red",10,10}, rbe=10, duration=10} )
 		ScrollPanel:Populate()
 	end):SetIcon("icon16/add.png")
 	
-	FileMenu:AddOption("#rotgb.wave_editor.add_wave.bottom", function()
+	FileMenu:AddOption(ROTGB_LocalizeString("rotgb.wave_editor.add_wave.bottom"), function()
 		localEdited = true
 		table.insert(localWaves, { {"gballoon_red",10,10}, rbe=10, duration=10} )
 		ScrollPanel:Populate()
@@ -947,7 +1080,7 @@ function ROTGB_CreateWavePanel()
 			
 			local editbutton = vgui.Create("DImageButton", buttonpanel)
 			editbutton:SetImage("icon16/cog.png")
-			editbutton:SetTooltip("#rotgb.wave_editor.wave.modify")
+			editbutton:SetTooltip(ROTGB_LocalizeString("rotgb.wave_editor.wave.modify"))
 			editbutton:SetSize(32,32)
 			editbutton:SetPos(0,32)
 			function editbutton:DoClick()
@@ -963,21 +1096,27 @@ function ROTGB_CreateWavePanel()
 			
 			local removebutton = vgui.Create("DImageButton", buttonpanel)
 			removebutton:SetImage("icon16/cancel.png")
-			removebutton:SetTooltip("#rotgb.wave_editor.wave.remove")
+			removebutton:SetTooltip(ROTGB_LocalizeString("rotgb.wave_editor.wave.remove"))
 			removebutton:SetSize(32,32)
 			removebutton:SetPos(32,32)
 			function removebutton:DoClick()
-				Derma_Query("#rotgb.wave_editor.wave.remove.confirmation","#rotgb.wave_editor.wave.remove","#rotgb.general.yes",function()
-					localEdited = true
-					if not IsValid(Main) then return end
-					table.remove(localWaves, i)
-					ScrollPanel:Populate()
-				end,"#rotgb.general.no")
+				Derma_Query(
+					ROTGB_LocalizeString("rotgb.wave_editor.wave.remove.confirmation"),
+					ROTGB_LocalizeString("rotgb.wave_editor.wave.remove"),
+					yesText,
+					function()
+						localEdited = true
+						if not IsValid(Main) then return end
+						table.remove(localWaves, i)
+						ScrollPanel:Populate()
+					end,
+					noText
+				)
 			end
 			
 			local copybutton = vgui.Create("DImageButton", buttonpanel)
 			copybutton:SetImage("icon16/page_copy.png")
-			copybutton:SetTooltip("#rotgb.wave_editor.wave.copy")
+			copybutton:SetTooltip(ROTGB_LocalizeString("rotgb.wave_editor.wave.copy"))
 			copybutton:SetSize(32,32)
 			copybutton:SetPos(0,64)
 			function copybutton:DoClick()
@@ -994,26 +1133,37 @@ function ROTGB_CreateWavePanel()
 			
 			local pastebutton = vgui.Create("DImageButton", buttonpanel)
 			pastebutton:SetImage("icon16/page_paste.png")
-			pastebutton:SetTooltip("#rotgb.wave_editor.wave.paste")
+			pastebutton:SetTooltip(ROTGB_LocalizeString("rotgb.wave_editor.wave.paste"))
 			pastebutton:SetSize(32,32)
 			pastebutton:SetPos(32,64)
 			function pastebutton:DoClick()
-				Derma_StringRequest("#rotgb.wave_editor.wave.paste","#rotgb.wave_editor.wave.paste.info","",function(text)
-					local data = util.JSONToTable(text)
-					if (data and data.rbe and data.duration) then
-						localEdited = true
-						localWaves[i] = data
-						ScrollPanel:Populate()
-					else
-						Derma_Message("#rotgb.wave_editor.wave.paste.failed.corrupted","#rotgb.wave_editor.wave.paste.failed","#rotgb.generic.ok")
-					end
-				end,nil,"#rotgb.wave_editor.wave.paste.button")
+				Derma_StringRequest(
+					ROTGB_LocalizeString("rotgb.wave_editor.wave.paste"),
+					ROTGB_LocalizeString("rotgb.wave_editor.wave.paste.info"),
+					"",
+					function(text)
+						local data = util.JSONToTable(text)
+						if (data and data.rbe and data.duration) then
+							localEdited = true
+							localWaves[i] = data
+							ScrollPanel:Populate()
+						else
+							Derma_Message(
+								ROTGB_LocalizeString("rotgb.wave_editor.wave.paste.failed.corrupted"),
+								ROTGB_LocalizeString("rotgb.wave_editor.wave.paste.failed"),
+								okText
+							)
+						end
+					end,
+					nil,
+					ROTGB_LocalizeString("rotgb.wave_editor.wave.paste.button")
+				)
 			end
 			
 			if i ~= 1 then
 				local upbutton = vgui.Create("DImageButton", buttonpanel)
 				upbutton:SetImage("icon16/bullet_arrow_up.png")
-				upbutton:SetTooltip("#rotgb.wave_editor.wave.move.up")
+				upbutton:SetTooltip(ROTGB_LocalizeString("rotgb.wave_editor.wave.move.up"))
 				upbutton:SetSize(32,32)
 				upbutton:SetPos(0,0)
 				function upbutton:DoClick()
@@ -1024,7 +1174,7 @@ function ROTGB_CreateWavePanel()
 				
 				local superupbutton = vgui.Create("DImageButton", buttonpanel)
 				superupbutton:SetImage("icon16/bullet_arrow_top.png")
-				superupbutton:SetTooltip("#rotgb.wave_editor.wave.move.top")
+				superupbutton:SetTooltip(ROTGB_LocalizeString("rotgb.wave_editor.wave.move.top"))
 				superupbutton:SetSize(32,32)
 				superupbutton:SetPos(32,0)
 				function superupbutton:DoClick()
@@ -1037,7 +1187,7 @@ function ROTGB_CreateWavePanel()
 			if i ~= #localWaves then
 				local downbutton = vgui.Create("DImageButton", buttonpanel)
 				downbutton:SetImage("icon16/bullet_arrow_down.png")
-				downbutton:SetTooltip("#rotgb.wave_editor.wave.move.down")
+				downbutton:SetTooltip(ROTGB_LocalizeString("rotgb.wave_editor.wave.move.down"))
 				downbutton:SetSize(32,32)
 				downbutton:SetPos(0,96)
 				function downbutton:DoClick()
@@ -1048,7 +1198,7 @@ function ROTGB_CreateWavePanel()
 				
 				local superdownbutton = vgui.Create("DImageButton", buttonpanel)
 				superdownbutton:SetImage("icon16/bullet_arrow_bottom.png")
-				superdownbutton:SetTooltip("#rotgb.wave_editor.wave.move.bottom")
+				superdownbutton:SetTooltip(ROTGB_LocalizeString("rotgb.wave_editor.wave.move.bottom"))
 				superdownbutton:SetSize(32,32)
 				superdownbutton:SetPos(32,96)
 				function superdownbutton:DoClick()
@@ -1145,6 +1295,9 @@ end
 
 function ROTGB_UpgradeMenu(ent)
 	if not IsValid(ent) then return end
+	local towerMissingText = ROTGB_LocalizeString("rotgb.tower.missing")
+	local displayedSellAmount = ent.SellAmount
+	
 	if not ent.SellAmount then
 		ent.SellAmount = ent.Cost and ROTGB_ScaleBuyCost(ent.Cost, ent, {type = ROTGB_TOWER_PURCHASE, ply = ent:GetTowerOwner()}) or 0
 	end
@@ -1152,7 +1305,7 @@ function ROTGB_UpgradeMenu(ent)
 	local Main = vgui.Create("DFrame")
 	Main:SetSize(math.max(ScrH()/2, 640), math.max(ScrH()/2, 480))
 	Main:Center()
-	Main:SetTitle(ROTGB_LocalizeString("rotgb.tower.upgrade.title", language.GetPhrase("rotgb.tower."..ent:GetClass()..".name")))
+	Main:SetTitle(ROTGB_LocalizeString("rotgb.tower.upgrade.title", ROTGB_LocalizeString("rotgb.tower."..ent:GetClass()..".name")))
 	Main:SetSizable(true)
 	Main:MakePopup()
 	function Main:Paint(w,h)
@@ -1204,7 +1357,9 @@ function ROTGB_UpgradeMenu(ent)
 		end
 	end
 	function Main:OnKeyCodePressed(key)
-		if input.LookupKeyBinding(key):lower() == "+use" then
+		local bind = input and input.LookupKeyBinding(key)
+		
+		if (bind and bind:lower()) == "+use" then
 			Main:Close()
 		end
 	end
@@ -1215,7 +1370,7 @@ function ROTGB_UpgradeMenu(ent)
 	local reference = ent.UpgradeReference
 	
 	local SellButton = vgui.Create("DButton",Main)
-	SellButton:SetText(ROTGB_LocalizeString("rotgb.tower.sell.amount", ROTGB_FormatCash(ent.SellAmount*0.8)))
+	SellButton:SetText(ROTGB_LocalizeString("rotgb.tower.sell.amount", ROTGB_FormatCash(displayedSellAmount*0.8)))
 	SellButton:SetTextColor(color_red)
 	SellButton:SetFont("DermaLarge")
 	SellButton:SetTall(32)
@@ -1226,18 +1381,23 @@ function ROTGB_UpgradeMenu(ent)
 	function SellButton:DoClick()
 		if not IsValid(ent) then
 			Main:Close()
-			return ROTGB_CauseNotification("#rotgb.tower.missing")
+			return ROTGB_CauseNotification(towerMissingText)
 		end
-		Derma_Query("#rotgb.tower.sell.confirmation","#rotgb.tower.sell",
-		"#rotgb.general.yes",function()
-			if IsValid(ent) then
-				if IsValid(Main) then Main:Close() end
-				net.Start("rotgb_openupgrademenu")
-				net.WriteEntity(ent)
-				net.WriteUInt(11,4)
-				net.SendToServer()
-			end
-		end,"#rotgb.general.no")
+		Derma_Query(
+			ROTGB_LocalizeString("rotgb.tower.sell.confirmation"),
+			ROTGB_LocalizeString("rotgb.tower.sell"),
+			ROTGB_LocalizeString("rotgb.general.yes"),
+			function()
+				if IsValid(ent) then
+					if IsValid(Main) then Main:Close() end
+					net.Start("rotgb_openupgrademenu")
+					net.WriteEntity(ent)
+					net.WriteUInt(11,4)
+					net.SendToServer()
+				end
+			end,
+			ROTGB_LocalizeString("rotgb.general.no")
+		)
 	end
 	
 	for i=0,#reference-1 do -- make this zero-indexed
@@ -1254,7 +1414,7 @@ function ROTGB_UpgradeMenu(ent)
 		function UpgradeStatement:Refresh(bool)
 			if not IsValid(ent) then
 				Main:Close()
-				return ROTGB_CauseNotification("#rotgb.tower.missing")
+				return ROTGB_CauseNotification(towerMissingText)
 			end
 			self.Tier = self.Tier or bit.band(bit.rshift(ent:GetUpgradeStatus(),i*4),15)+1
 			
@@ -1269,12 +1429,12 @@ function ROTGB_UpgradeMenu(ent)
 			self:SetText(text)
 			self:SetTextColor(not reftab.Funcs[self.Tier] and color_green or not self:IsEnabled() and color_red or color_white)
 			Main:Refresh(bool)
-			SellButton:SetText(ROTGB_LocalizeString("rotgb.tower.sell.amount", ROTGB_FormatCash(ent.SellAmount*0.8)))
+			SellButton:SetText(ROTGB_LocalizeString("rotgb.tower.sell.amount", ROTGB_FormatCash(displayedSellAmount*0.8)))
 		end
 		function UpgradeStatement:Paint(w,h)
 			if not IsValid(ent) then
 				Main:Close()
-				return ROTGB_CauseNotification("#rotgb.tower.missing")
+				return ROTGB_CauseNotification(towerMissingText)
 			end
 			self.price = ROTGB_ScaleBuyCost(reftab.Prices[self.Tier], ent, {type = ROTGB_TOWER_UPGRADE, path = i+1, tier = self.Tier})
 			curcash = ROTGB_GetCash(LocalPlayer())
@@ -1297,19 +1457,27 @@ function ROTGB_UpgradeMenu(ent)
 		function UpgradeStatement:DoClick()
 			if not IsValid(ent) then
 				Main:Close()
-				return ROTGB_CauseNotification("#rotgb.tower.missing")
+				return ROTGB_CauseNotification(towerMissingText)
 			end
-			if not reftab.Prices[self.Tier] then return ROTGB_CauseNotification("#rotgb.tower.upgrade.node.invalid") end
-			if curcash<self.price then return ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.upgrade.node.cannot_afford", ROTGB_FormatCash(self.price-curcash, true))) end
-			if (reftab.Funcs and reftab.Funcs[self.Tier]) then
+			if not reftab.Prices[self.Tier] then
+				return ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.upgrade.node.invalid"))
+			end
+			if curcash<self.price then
+				return ROTGB_CauseNotification(
+					ROTGB_LocalizeString("rotgb.tower.upgrade.node.cannot_afford",
+						ROTGB_FormatCash(self.price-curcash, true)
+					)
+				)
+			end
+			--[[if (reftab.Funcs and reftab.Funcs[self.Tier]) then
 				reftab.Funcs[self.Tier](ent)
-			end
+			end]]
 			net.Start("rotgb_openupgrademenu")
 			net.WriteEntity(ent)
 			net.WriteUInt(i,4)
 			net.WriteUInt(0,4)
 			net.SendToServer()
-			ent.SellAmount = (ent.SellAmount or 0) + self.price
+			displayedSellAmount = displayedSellAmount + self.price
 			self.Tier = self.Tier + 1
 			self.price = ROTGB_ScaleBuyCost(reftab.Prices[self.Tier], ent, {type = ROTGB_TOWER_UPGRADE, path = i+1, tier = self.Tier})
 			self:Refresh(true)
@@ -1330,6 +1498,10 @@ function ROTGB_UpgradeMenu(ent)
 			HoverButton:Dock(LEFT)
 			HoverButton.RequiredAmount = 0
 			function HoverButton:Paint(w,h)
+				if not IsValid(ent) then
+					Main:Close()
+					return ROTGB_CauseNotification(towerMissingText)
+				end
 				if self.Tier ~= UpgradeStatement.Tier then
 					self.Tier = UpgradeStatement.Tier
 				end
@@ -1368,7 +1540,7 @@ function ROTGB_UpgradeMenu(ent)
 			function HoverButton:DoClick()
 				if not IsValid(ent) then
 					Main:Close()
-					return ROTGB_CauseNotification("#rotgb.tower.missing")
+					return ROTGB_CauseNotification(towerMissingText)
 				end
 				if not (UpgradeStatement.MaxTier >= j or ROTGB_GetConVarValue("rotgb_ignore_upgrade_limits") or ent:GetNWBool("rotgb_noupgradelimit")) then return end
 				local moreCashNeeded = self:GetRequiredAmount() - curcash
@@ -1384,7 +1556,7 @@ function ROTGB_UpgradeMenu(ent)
 				net.WriteUInt(i,4)
 				net.WriteUInt(j-self.Tier,4)
 				net.SendToServer()
-				ent.SellAmount = (ent.SellAmount or 0) + self:GetRequiredAmount()
+				displayedSellAmount = displayedSellAmount + self:GetRequiredAmount()
 				UpgradeStatement:Refresh(true)
 			end
 		end
@@ -1404,10 +1576,10 @@ function ROTGB_UpgradeMenu(ent)
 	function TargetButton:UpdateText()
 		local targetingString
 		if ent.UserTargeting then
-			local localizedOption = language.GetPhrase(string.format("rotgb.tower.targeting.%u", self.CurSetting))
+			local localizedOption = ROTGB_LocalizeString(string.format("rotgb.tower.targeting.%u", self.CurSetting))
 			targetingString = ROTGB_LocalizeString("rotgb.tower.targeting", localizedOption)
 		else
-			targetingString = "#rotgb.tower.targeting.none"
+			targetingString = ROTGB_LocalizeString("rotgb.tower.targeting.none")
 		end
 		self:SetText(targetingString)
 	end
@@ -1417,7 +1589,7 @@ function ROTGB_UpgradeMenu(ent)
 	function TargetButton:DoClick()
 		if not IsValid(ent) then
 			Main:Close()
-			return ROTGB_CauseNotification("#rotgb.tower.missing")
+			return ROTGB_CauseNotification(towerMissingText)
 		end
 		if input.IsShiftDown() then
 			self.CurSetting = (self.CurSetting-1)%targetings
@@ -1438,12 +1610,12 @@ function ROTGB_UpgradeMenu(ent)
 	function TargetButton:DoRightClick()
 		if not IsValid(ent) then
 			Main:Close()
-			return ROTGB_CauseNotification("#rotgb.tower.missing")
+			return ROTGB_CauseNotification(towerMissingText)
 		end
 		if not ent.UserTargeting then return end
 		local TargetMenu = DermaMenu(self)
 		for i=0,targetings-1 do
-			local Option = TargetMenu:AddOption(string.format("#rotgb.tower.targeting.%u", i),function()
+			local Option = TargetMenu:AddOption(ROTGB_LocalizeString(string.format("rotgb.tower.targeting.%u", i)),function()
 				self.CurSetting = i
 				net.Start("rotgb_openupgrademenu")
 				net.WriteEntity(ent)

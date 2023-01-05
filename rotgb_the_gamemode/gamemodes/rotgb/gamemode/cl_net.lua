@@ -34,7 +34,7 @@ net.Receive("rotgb_statchanged", function()
 				ply.rtg_CashGenerated = net.ReadDouble()
 			end
 		end
-	elseif func == RTG_STAT_ACHIEVEMENTS then
+	elseif func == RTG_STAT_ACHIEVEMENTS and IsValid(LocalPlayer()) then
 		for i=1,net.ReadUInt(16) do
 			local stat = net.ReadUInt(16)+1
 			LocalPlayer():RTG_SetStat(stat, net.ReadDouble())
@@ -126,11 +126,11 @@ net.Receive("rotgb_gamemode", function()
 				{color_yellow}
 			)))
 		elseif suboperation == RTG_TEAM_SAME then
-			chat.AddText(color_white, "#rotgb_tg.teams.already_on_team")
+			chat.AddText(color_white, ROTGB_LocalizeString("rotgb_tg.teams.already_on_team"))
 		elseif suboperation == RTG_TEAM_INVALID then
-			chat.AddText(color_white, "#rotgb_tg.teams.invalid_team")
+			chat.AddText(color_white, ROTGB_LocalizeString("rotgb_tg.teams.invalid_team"))
 		elseif suboperation == RTG_TEAM_REJECTED then
-			chat.AddText(color_white, "#rotgb_tg.teams.rejected_from_team")
+			chat.AddText(color_white, ROTGB_LocalizeString("rotgb_tg.teams.rejected_from_team"))
 		elseif suboperation == RTG_TEAM_CHANGED then
 			local ply = Player(net.ReadUInt(16))
 			local oldTeam = net.ReadInt(32)
@@ -164,13 +164,13 @@ net.Receive("rotgb_gamemode", function()
 			if rewardType == 0 then
 				rewardText = ROTGB_LocalizeString("rotgb_tg.achievement.unlocked.player.reward.xp", ROTGB_Commatize(achievement.xp))
 			elseif rewardType == 1 then
-				rewardText = language.GetPhrase("rotgb_tg.achievement.unlocked.player.reward.skills")
+				rewardText = ROTGB_LocalizeString("rotgb_tg.achievement.unlocked.player.reward.skills")
 			end
 			chat.AddText(unpack(ROTGB_LocalizeMulticoloredString(
 				"rotgb_tg.achievement.unlocked.player",
 				{
 					ply:Nick(),
-					language.GetPhrase("rotgb_tg.achievement."..achievement.name..".name"),
+					ROTGB_LocalizeString("rotgb_tg.achievement."..achievement.name..".name"),
 					rewardText
 				},
 				color_white,

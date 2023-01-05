@@ -55,7 +55,7 @@ function GM:GetLocalizedMulticoloredString(token, replacements, defaultColor, re
 		end
 	end
 	return returnTable
-end]=]
+end
 
 function GM:InsertRichTextWithMulticoloredString(RichText, multiColoredString)
 	for i,v in ipairs(multiColoredString) do
@@ -65,14 +65,14 @@ function GM:InsertRichTextWithMulticoloredString(RichText, multiColoredString)
 			RichText:AppendText(tostring(v))
 		end
 	end
-end
+end]=]
 
 function GM:GetTeamName(teamID)
 	if teamID == TEAM_BUILDER then
-		return language.GetPhrase("rotgb_tg.teams.builder.name")
+		return ROTGB_LocalizeString("rotgb_tg.teams.builder.name")
 	elseif teamID == TEAM_SPECTATOR then
-		return language.GetPhrase("rotgb_tg.teams.spectator.name")
+		return ROTGB_LocalizeString("rotgb_tg.teams.spectator.name")
 	else
-		return language.GetPhrase(team.GetName(teamID))
+		return ROTGB_LocalizeString(team.GetName(teamID))
 	end
 end

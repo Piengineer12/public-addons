@@ -1,13 +1,12 @@
 GM.Name							= "RotgB: The Gamemode!"
 GM.Author						= "Piengineer12"
-GM.Version						= "1.9.0"
-GM.VersionDate					= "2022-09-11"
+GM.Version						= "2.0.0"
+GM.VersionDate					= "2023-01-05"
 GM.Email						= "[REDACTED]"
 GM.Website						= "https://steamcommunity.com/id/Piengineer12"
-GM.TeamBased					= true
+GM.TeamBased					= false
 GM.SecondsBetweenTeamSwitches	= 1
 GM.SpawnDelay					= 2
-GM.NetSendInterval				= 0.2 -- this is also the scoreboard refresh rate, but if this is too low, messages might be sent to the client so fast that the client might crash!
 GM.NetFullUpdateInterval		= 15
 GM.DatabaseFormatVersion		= 1
 GM.DatabaseSaveInterval			= 30
@@ -32,9 +31,10 @@ RTG_OPERATION_ACHIEVEMENT = 9
 RTG_OPERATION_ONESHOT = 10
 
 RTG_VOTE_KICK = 1
-RTG_VOTE_CHANGEDIFFICULTY = 2
-RTG_VOTE_RESTART = 3
-RTG_VOTE_MAP = 4
+RTG_VOTE_HOGALLXP = 2
+RTG_VOTE_CHANGEDIFFICULTY = 3
+RTG_VOTE_RESTART = 4
+RTG_VOTE_MAP = 5
 
 RTG_VOTERESULT_NOTARGET = 1
 RTG_VOTERESULT_COOLDOWN = 2
@@ -125,7 +125,8 @@ for i,v in ipairs(sharedFiles) do
 end
 
 if SERVER then
-	resource.AddWorkshop("1616333917")
+	resource.AddWorkshop("1616333917") -- the base RotgB addon
+	resource.AddWorkshop("2734409345") -- in case rotgb.txt doesn't do its job
 	for i,v in ipairs(serverFiles) do
 		include(v)
 	end

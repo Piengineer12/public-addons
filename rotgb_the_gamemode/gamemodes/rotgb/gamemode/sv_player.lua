@@ -44,6 +44,9 @@ function GM:PlayerSay(ply, message, forTeam)
 	elseif loweredMessage == "!skills" or loweredMessage == "!rtg_skills" then
 		ply:ConCommand("rotgb_tg_skill_web")
 		return ""
+	elseif loweredMessage == "!difficulty" or loweredMessage == "!rtg_difficulty" then
+		ply:ConCommand("rotgb_tg_difficulty_menu")
+		return ""
 	elseif loweredMessage == "!vote" or loweredMessage == "!rtg_vote" then
 		ply:ConCommand("rotgb_tg_vote")
 		return ""

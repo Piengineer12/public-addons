@@ -110,8 +110,15 @@ function GM:ResolveCurrentVote()
 			target = Player(tonumber(target) or -1)
 			if IsValid(target) then
 				timer.Simple(0.5,function()
-					target:Kick("#rotgb_tg.voting.result.kick.recipient")
+					target:Kick("Voted out of the server")
 				end)
+			else
+				return hook.Run("ClearAndSendVoteResult", RTG_VOTERESULT_NOTARGET)
+			end
+		elseif typ == RTG_VOTE_HOGALLXP then
+			target = Player(tonumber(target) or -1)
+			if IsValid(target) then
+				hook.Run("SetXPHogger", target)
 			else
 				return hook.Run("ClearAndSendVoteResult", RTG_VOTERESULT_NOTARGET)
 			end

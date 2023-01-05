@@ -22,7 +22,7 @@ function ENT:SetupDataTables()
 end
 
 function ENT:DetectionRadius()
-	return self:GetSpawnedTower().rotgb_TurretRange or 0
+	return self:GetSpawnedTower().rotgb_TurretRange
 end
 
 function ENT:AttackDamage()
@@ -60,9 +60,9 @@ function ENT:FindEnemy()
 			elseif mode==3 then
 				self.balloonTable[v] = -v:GetRgBE()
 			elseif mode==4 then
-				self.balloonTable[v] = v:BoundingRadius()^2/self:GetRangeSquaredTo(v)
+				self.balloonTable[v] = v:BoundingRadius()^2/self:GetPos():DistToSqr(v:GetPos())
 			elseif mode==5 then
-				self.balloonTable[v] = -v:BoundingRadius()^2/self:GetRangeSquaredTo(v)
+				self.balloonTable[v] = -v:BoundingRadius()^2/self:GetPos():DistToSqr(v:GetPos())
 			elseif mode==6 then
 				self.balloonTable[v] = v.loco:GetAcceleration()
 			elseif mode==7 then
@@ -250,7 +250,7 @@ function ENT:MoveToEnemy()
 	local enemy = self:GetEnemy()
 	local path = Path("Chase")
 	path:SetMinLookAheadDistance(64)
-	path:SetGoalTolerance(self:DetectionRadius()/8)
+	path:SetGoalTolerance(self:DetectionRadius()/2)
 	path:Compute(self, enemy:GetPos())
 	
 	local lastComputation = CurTime()
@@ -258,7 +258,7 @@ function ENT:MoveToEnemy()
 		self.StraightMovement = true
 		while not IsValid(path) and self:HaveEnemy() do
 			if self:GetEnemy() ~= enemy then break end
-			if self:GetPos():DistToSqr(enemy:GetPos()) <= self:DetectionRadius()^2/64 then
+			if self:GetShootPos():DistToSqr(enemy:GetPos()) <= self:DetectionRadius()^2/4 then
 				self.gBTraceData = self.gBTraceData or {
 					filter = self,
 					mask = MASK_SHOT,
@@ -267,9 +267,11 @@ function ENT:MoveToEnemy()
 				self.gBTraceData.start = self:GetShootPos()
 				self.gBTraceData.endpos = enemy:GetPos()+enemy:OBBCenter()
 				util.TraceLine(self.gBTraceData)
-				if self.lastBalloonTrace.Entity:GetClass() == "gballoon_base" then break end
+				
+				local ent = self.lastBalloonTrace.Entity
+				if (IsValid(ent) and ent:GetClass() == "gballoon_base") then break end
 			end
-			if CurTime() - lastComputation > 1 then
+			if CurTime() - lastComputation > 0.5 then
 				path:Compute(self, enemy:GetPos())
 			end
 			if self.loco:IsStuck() or (self.WallStuck or 0)>=4 then
@@ -315,7 +317,20 @@ function ENT:MoveToEnemy()
 	
 	while IsValid(path) and self:HaveEnemy() do
 		if self:GetEnemy() ~= enemy then break end
-		if CurTime() - lastComputation > 1 then
+		if self:GetShootPos():DistToSqr(enemy:GetPos()) <= self:DetectionRadius()^2/4 then
+			self.gBTraceData = self.gBTraceData or {
+				filter = self,
+				mask = MASK_SHOT,
+				output = self.lastBalloonTrace
+			}
+			self.gBTraceData.start = self:GetShootPos()
+			self.gBTraceData.endpos = enemy:GetPos()+enemy:OBBCenter()
+			util.TraceLine(self.gBTraceData)
+			
+			local ent = self.lastBalloonTrace.Entity
+			if (IsValid(ent) and ent:GetClass() == "gballoon_base") then break end
+		end
+		if CurTime() - lastComputation > 0.5 then
 			path:Compute(self, enemy:GetPos())
 		end
 		path:Chase(self, enemy)
@@ -350,7 +365,7 @@ function ENT:RunBehaviour()
 			if not IsValid(self:GetSpawnedTower()) then
 				self:Remove()
 			elseif self:HaveEnemy() and not GetConVar("ai_disabled"):GetBool() then
-				while (self:HaveEnemy() and self:GetRangeSquaredTo(self:GetEnemy()) <= self:DetectionRadius()^2) do
+				while (self:HaveEnemy() and self:GetShootPos():DistToSqr(self:GetEnemy():GetPos()) <= self:DetectionRadius()^2) do
 					self:FireAtEnemy()
 					coroutine.yield()
 				end

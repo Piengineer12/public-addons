@@ -297,14 +297,12 @@ GM.BaseDifficulties = {
 			rotgb_spawner_force_auto_start = 1
 		}
 	},
-	special_halloween = {
+	special_nightmare = {
 		category = "special",
 		place = 1,
 		extra = true,
-		xpmul = 0.5/2048,
-		condition = function()
-			return IsValid(player.GetBySteamID64("76561198144438879")) and player.GetCount() == 1
-		end,
+		xpmul = 0.5/256,
+		prerequisites = {"special_nightmare"},
 		convars = {
 			rotgb_difficulty = 1,
 			rotgb_default_first_wave = 666,
@@ -325,6 +323,10 @@ AccessorFunc(GM, "DifficultyCategoriesCustom", "DifficultyCategoriesCustom")
 AccessorFunc(GM, "CustomRemovedDifficulties", "CustomRemovedDifficulties")
 
 function GM:InitializeDifficulties()
+	if not hook.Run("GetDifficulty") then
+		hook.Run("SetDifficulty", "")
+	end
+	
 	local difficulties = table.Copy(self.BaseDifficulties)
 	hook.Run("GatherCustomDifficulties", difficulties)
 	hook.Run("SetDifficulties", difficulties)
@@ -389,6 +391,8 @@ function GM:IsDifficultyUnlocked(difficultyID)
 	end
 	
 	local difficulty = hook.Run("GetDifficulties")[difficultyID]
-	if difficulty then return not difficulty.condition or difficulty:condition() end
+	if difficulty then 
+		return not difficulty.condition or difficulty:condition()
+	end
 	return false
 end

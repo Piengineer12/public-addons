@@ -183,9 +183,10 @@ function ENT:Think()
 	self:TriggerOnMaxHealthChanged()
 end
 
-function ENT:PreEntityCopy()
+function ENT:PreEntityCopy(...)
 	self.CurHealth = self:Health()
 	self.CurMaxHealth = self:GetMaxHealth()
+	gballoon_pob.PreEntityCopy(self,...)
 end
 
 function ENT:PostEntityPaste(ply,ent,tab)

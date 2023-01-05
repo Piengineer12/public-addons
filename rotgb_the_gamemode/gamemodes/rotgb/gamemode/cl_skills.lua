@@ -1,10 +1,5 @@
 concommand.Add("rotgb_tg_skill_web", function(ply, cmd, args)
-	local towerCount = #ROTGB_GetAllTowers()
-	if ply:RTG_GetLevel() - towerCount > 0 then
-		hook.Run("ShowSkillWeb")
-	else
-		ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb_tg.skills.level_requirement", ROTGB_Commatize(towerCount+1)), ROTGB_NOTIFYTYPE_ERROR)
-	end
+	hook.Run("ShowSkillWeb")
 end, nil, "Opens the skill web menu.")
 
 function GM:PlayerAddSkills(ply, skillIDs)

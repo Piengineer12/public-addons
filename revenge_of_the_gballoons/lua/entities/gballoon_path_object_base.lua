@@ -69,6 +69,8 @@ function ENT:KeyValue(lkey,value)
 		self.TempStartFrozen = tobool(value)
 	elseif lkey=="start_hidden" then
 		self.TempIsHidden = tobool(value)
+	elseif lkey=="solid" then
+		self:SetCollisionGroup(tobool(value) and COLLISION_GROUP_WORLD or COLLISION_GROUP_NONE)
 	elseif lkey=="model" then
 		self.Model = value
 	elseif lkey=="skin" then
@@ -140,9 +142,16 @@ function ENT:AcceptInput(input,activator,caller,data)
 		self:SetUnSpectatable(not self:GetUnSpectatable())
 		scripted_ents.GetMember("point_rotgb_spectator", "TransmitChangeToSpectatingPlayers")(self)
 	elseif input=="enablemotion" then
-		self:EnableMotion(true)
+		local physobj = self:GetPhysicsObject()
+		if IsValid(physobj) then
+			physobj:EnableMotion(true)
+			physobj:Wake()
+		end
 	elseif input=="disablemotion" then
-		self:EnableMotion(false)
+		local physobj = self:GetPhysicsObject()
+		if IsValid(physobj) then
+			physobj:EnableMotion(false)
+		end
 	elseif input=="hide" then
 		self:SetNotSolid(true)
 		self:SetNoDraw(true)
@@ -161,10 +170,18 @@ function ENT:AcceptInput(input,activator,caller,data)
 			self:SetNoDraw(true)
 			self:SetMoveType(MOVETYPE_NOCLIP)
 		end
+	elseif input=="enablecollisions" then
+		self:SetCollisionGroup(COLLISION_GROUP_NONE)
+	elseif input=="disablecollisions" then
+		self:SetCollisionGroup(COLLISION_GROUP_WORLD)
+	elseif input=="togglecollisions" then
+		self:SetCollisionGroup(self:GetCollisionGroup() == COLLISION_GROUP_WORLD and COLLISION_GROUP_NONE or COLLISION_GROUP_WORLD)
 	end
 end
 
 function ENT:Initialize()
+	-- FIXME: This is a horrible way to generate a unique ID.
+	self.UniqueID = self.UniqueID or util.MD5(tostring(self:GetCreationID()+math.random()))
 	self:SetModel(self.Model or "models/props_c17/streetsign004e.mdl")
 	if self.Skin then
 		self:SetSkin(self.Skin)
@@ -189,7 +206,7 @@ function ENT:Initialize()
 		end
 	end
 	if self.TempIsHidden then
-		self:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
+		self:SetCollisionGroup(COLLISION_GROUP_WORLD)
 		self:SetNoDraw(true)
 	end
 	self:AddEFlags(EFL_FORCE_CHECK_TRANSMIT)
@@ -199,7 +216,64 @@ function ENT:UpdateTransmitState()
 	return TRANSMIT_ALWAYS 
 end
 
+function ENT:PreEntityCopy()
+	-- take note which targets we're connected to, in terms of UUIDs
+	self.TempTargetUIDs = {
+		to = {},
+		bossTo = {}
+	}
+	
+	for i=1, 16 do
+		local targetFuncName = string.format("GetNextTarget%u", i)
+		local ent = self[targetFuncName](self)
+		
+		if IsValid(ent) then
+			self.TempTargetUIDs.to[i] = ent.UniqueID
+		end
+		
+		targetFuncName = string.format("GetNextBlimpTarget%u", i)
+		ent = self[targetFuncName](self)
+		
+		if IsValid(ent) then
+			self.TempTargetUIDs.bossTo[i] = ent.UniqueID
+		end
+	end
+end
+
 function ENT:PostEntityPaste()
 	self:SetModel(self.Model)
 	self:PhysicsInit(SOLID_VPHYSICS)
+	
+	if self.TempTargetUIDs then
+		timer.Simple(0, function()
+			-- make a list of UIDs present on the world
+			local UIDTargets = {}
+			local targets = ents.FindByClass("gballoon_target")
+			for k,v in pairs(targets) do
+				if v.UniqueID then
+					UIDTargets[v.UniqueID] = v
+				end
+			end
+			
+			for i,uid in pairs(self.TempTargetUIDs.to) do
+				local ent = UIDTargets[uid]
+				if IsValid(ent) then
+					local targetFuncName = string.format("SetNextTarget%u", i)
+					self[targetFuncName](self, ent)
+				else
+					ROTGB_EntityLogError(self, "Failed to find and connect to target with UID "..uid.."!", "pathfinding")
+				end
+			end
+			
+			for i,uid in pairs(self.TempTargetUIDs.bossTo) do
+				local ent = UIDTargets[uid]
+				if IsValid(ent) then
+					local targetFuncName = string.format("SetNextBlimpTarget%u", i)
+					self[targetFuncName](self, ent)
+				else
+					ROTGB_EntityLogError(self, "Failed to find and connect to target with UID "..uid.."!", "pathfinding")
+				end
+			end
+		end)
+	end
 end

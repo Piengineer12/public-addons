@@ -9,27 +9,28 @@ AccessorFunc(GM, "MaxWaveReached", "MaxWaveReached", FORCE_NUMBER)
 AccessorFunc(GM, "TowersPlaced", "TowersPlaced")
 AccessorFunc(GM, "MaxTowersAtOnce", "MaxTowersAtOnce", FORCE_NUMBER)
 AccessorFunc(GM, "BLIMPSConditionsViolated", "BLIMPSConditionsViolated", FORCE_BOOL)
+AccessorFunc(GM, "XPHogger", "XPHogger")
 
 function GM:Initialize()
 	hook.Run("SetGameIsOver", false)
 	hook.Run("SetDefeated", false)
 	hook.Run("SetPlayerStatsRequireUpdates", {})
+	hook.Run("SetNightmareBeatenPlayers", {})
 	game.SetGlobalState("rotgb_gamemode_enabled", GLOBAL_ON)
 	hook.Run("SharedInitialize")
 end
 
 function GM:Think()
-	if nextUpdate < RealTime() then
-		nextUpdate = RealTime() + self.NetSendInterval
-		if hook.Run("GetStatRebroadcastRequired") then
-			hook.Run("SetStatRebroadcastRequired", false)
-			local playersToUpdate = {}
-			for k,v in pairs(player.GetAll()) do
-				if v.rotgb_LastSentgBalloonPops ~= v.rtg_gBalloonPops then
-					v.rotgb_LastSentgBalloonPops = v.rtg_gBalloonPops
-					table.insert(playersToUpdate, v)
-				end
+	if hook.Run("GetStatRebroadcastRequired") then
+		hook.Run("SetStatRebroadcastRequired", false)
+		local playersToUpdate = player.GetAll()
+		--[[for k,v in pairs(player.GetAll()) do
+			if v.rotgb_LastSentgBalloonPops ~= v.rtg_gBalloonPops then
+				v.rotgb_LastSentgBalloonPops = v.rtg_gBalloonPops
+				table.insert(playersToUpdate, v)
 			end
+		end]]
+		--if next(playersToUpdate) then
 			net.Start("rotgb_statchanged", true)
 			net.WriteUInt(RTG_STAT_POPS, 4)
 			net.WriteUInt(#playersToUpdate, 12)
@@ -40,14 +41,15 @@ function GM:Think()
 				net.WriteDouble(v.rtg_CashGenerated or 0)
 			end
 			net.Broadcast()
-		end
-		
-		for k,v in pairs(player.GetAll()) do
-			v:RTG_SetStat("cash", ROTGB_GetCash(v))
-		end
-		
-		hook.Run("CurrentVoteThink")
+		--end
 	end
+	
+	for k,v in pairs(player.GetAll()) do
+		v:RTG_SetStat("cash", ROTGB_GetCash(v))
+	end
+	
+	hook.Run("CurrentVoteThink")
+	
 	if nextFullUpdate < RealTime() then
 		nextFullUpdate = RealTime() + self.NetFullUpdateInterval
 		local playersToUpdate = player.GetAll()
@@ -55,11 +57,13 @@ function GM:Think()
 		net.WriteUInt(RTG_STAT_FULLUPDATE, 4)
 		net.WriteUInt(#playersToUpdate, 12)
 		for k,v in pairs(playersToUpdate) do
-			net.WriteInt(v:UserID(), 16)
-			net.WriteDouble(v.rtg_gBalloonPops or 0)
-			net.WriteDouble(v.rtg_PreviousXP or 0)
-			net.WriteDouble(v.rtg_XP)
-			net.WriteDouble(v.rtg_CashGenerated or 0)
+			if v.rtg_PreviousXP then
+				net.WriteInt(v:UserID(), 16)
+				net.WriteDouble(v.rtg_gBalloonPops or 0)
+				net.WriteDouble(v.rtg_PreviousXP)
+				net.WriteDouble(v.rtg_XP)
+				net.WriteDouble(v.rtg_CashGenerated or 0)
+			end
 		end
 		net.Broadcast()
 	end
@@ -114,6 +118,7 @@ function GM:PostCleanupMapServer()
 	hook.Run("SetMaxWaveReached", 0)
 	hook.Run("SetTowersPlaced", {})
 	hook.Run("SetMaxTowersAtOnce", 0)
+	hook.Run("SetXPHogger", nil)
 	for k,v in pairs(player.GetAll()) do
 		v:UnSpectate()
 		v:Spawn()
@@ -136,20 +141,34 @@ end
 function GM:gBalloonDamaged(bln, attacker, inflictor, damage, cash, deductedCash, isPopped)
 	if attacker:IsPlayer() and damage > 0 then
 		local scoreAdd = (damage - deductedCash) * hook.Run("GetScoreMultiplier")
-		local xpAdd = (damage - deductedCash) * hook.Run("GetXPMultiplier")
 		attacker.rtg_gBalloonPops = (attacker.rtg_gBalloonPops or 0) + scoreAdd
-		attacker.rtg_XP = (attacker.rtg_XP or 0) + xpAdd
 		attacker:RTG_AddStat("damage", damage)
 		attacker:RTG_AddStat("pops", cash)
 		attacker:RTG_SetStat("level", attacker:RTG_GetLevel())
-		net.Start("rotgb_statchanged", true)
+		
+		local xpAdd = (damage - deductedCash) * hook.Run("GetXPMultiplier")
+		local xpHogger = hook.Run("GetXPHogger")
+		local hogCount = 0
+		for k,v in pairs(player.GetAll()) do
+			if v:Team() == TEAM_BUILDER or v:Team() == TEAM_HUNTER then
+				if IsValid(xpHogger) then
+					hogCount = hogCount + 1
+				else
+					v.rtg_XP = (v.rtg_XP or 0) + xpAdd
+				end
+			end
+		end
+		if hogCount > 0 then
+			xpHogger.rtg_XP = (xpHogger.rtg_XP or 0) + xpAdd * hogCount
+		end
+		--[[net.Start("rotgb_statchanged", true)
 		net.WriteUInt(RTG_STAT_POPS, 4)
 		net.WriteUInt(1, 12)
 		net.WriteEntity(attacker)
 		net.WriteDouble(attacker.rtg_gBalloonPops or 0)
 		net.WriteDouble(attacker.rtg_XP)
 		net.WriteDouble(attacker.rtg_CashGenerated or 0)
-		net.Send(attacker)
+		net.Send(attacker)]]
 		hook.Run("SetStatRebroadcastRequired", true)
 		
 		if isPopped then
@@ -247,6 +266,23 @@ function GM:gBalloonTargetRemoved(target)
 	end)
 end
 
+function GM:gBalloonSpawnerWaveStarted(spawner, cwave)
+	local maxWave = cwave
+	
+	for k,v in pairs(ents.GetAll()) do
+		if v:GetClass() == "gballoon_spawner" then
+			maxWave = math.max(maxWave, v:GetWave()-1)
+		elseif v.Base == "gballoon_tower_base" then
+			local physObj = v:GetPhysicsObject()
+			if IsValid(physObj) then
+				physObj:EnableMotion(false)
+			end
+		end
+	end
+	
+	hook.Run("SetMaxWaveReached", maxWave)
+end
+
 function GM:AllTargetsDestroyed()
 	game.SetTimeScale(0.5)
 	for k,v in pairs(player.GetAll()) do
@@ -305,6 +341,8 @@ function GM:GameOver(success)
 					v:RTG_AddStat("success.insane_bosses", 1)
 				elseif difficulty == "icu_bosses" then
 					v:RTG_AddStat("success.icu_bosses", 1)
+				elseif difficulty == "special_nightmare" then
+					hook.Run("GetNightmareBeatenPlayers")[v] = true
 				end
 				
 				local categoryScore = hook.Run("GetDifficultyCategories")[hook.Run("GetDifficulties")[difficulty].category]

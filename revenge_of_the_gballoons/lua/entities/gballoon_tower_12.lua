@@ -19,6 +19,7 @@ ENT.AttackDamage = 20
 ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,20)
 ENT.UserTargeting = true
+ENT.rotgb_Count = math.huge
 ENT.rotgb_MaxPierce = 3
 ENT.rotgb_Size = 2
 ENT.rotgb_Torque = 80e3
@@ -201,7 +202,7 @@ end
 
 function ENT:FireFunction(tableOfBalloons)
 	local pind = 1
-	for i=1,(self.rotgb_Count and (self.rotgb_Hits or 0)>=self.rotgb_Count and 8 or 1) do
+	for i=1,(self.rotgb_Hits or 0)>=self.rotgb_Count and 8 or 1 do
 		local saw = ents.Create("prop_physics")
 		saw:SetPos(self:GetShootPos())
 		saw:AddCallback("PhysicsCollide",OnCollision)
@@ -242,7 +243,7 @@ function ENT:FireFunction(tableOfBalloons)
 		end
 		table.insert(self.rotgb_Sawblades,saw)
 	end
-	if (self.rotgb_Count and (self.rotgb_Hits or 0)>=self.rotgb_Count) then
+	if (self.rotgb_Hits or 0)>=self.rotgb_Count then
 		self.rotgb_Hits = 0
 	end
 end

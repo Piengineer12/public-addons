@@ -225,7 +225,10 @@ function GM:RotgBScaleBuyCost(num,ent,data)
 	local newAmount = num * (1 + (ROTGB_GetConVarValue("rotgb_difficulty") - 1)/5)
 	local typ = data.type
 	if typ == ROTGB_TOWER_PURCHASE or typ == ROTGB_TOWER_UPGRADE then
-		newAmount = newAmount * (1+hook.Run("GetSkillAmount", "towerCosts")/100)
+		--newAmount = newAmount * (1+hook.Run("GetSkillAmount", "towerCosts")/100)
+		if typ == ROTGB_TOWER_PURCHASE then
+			newAmount = newAmount * (1+hook.Run("GetSkillAmount", "towerPlaceCost")/100)
+		end
 		local class = ent.GetClass and ent:GetClass() or ent.ClassName
 		
 		if class == "gballoon_tower_02" then
@@ -235,7 +238,11 @@ function GM:RotgBScaleBuyCost(num,ent,data)
 		elseif class == "gballoon_tower_14" then
 			newAmount = newAmount * (1+hook.Run("GetSkillAmount", "microwaveGeneratorCosts")/100)
 		elseif class == "gballoon_tower_16" then
-			newAmount = newAmount * (1+hook.Run("GetSkillAmount", "hoverballFactoryCosts")/100)
+			if typ == ROTGB_TOWER_UPGRADE then
+				newAmount = math.max(newAmount + hook.Run("GetSkillAmount", "hoverballFactoryUpgradeCostsFlat"), 0)
+			elseif typ == ROTGB_TOWER_PURCHASE then
+				newAmount = newAmount * (1+hook.Run("GetSkillAmount", "hoverballFactoryTowerCost")/100)
+			end
 		elseif class == "gballoon_tower_07" and typ == ROTGB_TOWER_PURCHASE and IsValid(data.ply) and hook.Run("GetSkillAmount", "allyPawnFirstFree")>0 then
 			if not data.ply.rotgb_allyPawnFirstFreeDone then return 0 end
 		end

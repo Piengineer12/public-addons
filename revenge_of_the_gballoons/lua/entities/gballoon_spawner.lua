@@ -1473,7 +1473,7 @@ ROTGB_WAVES = { -- format: { balloon_type, amount=1, timespan=0, delay=0 }
 		{"gballoon_purple",20,10},
 		{"gballoon_black",10,10},
 		{"gballoon_fast_blue",10,10},
-		{"gballoon_fast_regen_green",nil,10},
+		{"gballoon_regen_green",nil,10},
 		duration=10,
 		rbe=353--30*11+10*2+3
 	},
@@ -1488,8 +1488,8 @@ ROTGB_WAVES = { -- format: { balloon_type, amount=1, timespan=0, delay=0 }
 	},
 	{ -- 28
 		{"gballoon_zebra",15,5},
-		{"gballoon_regen_white",3,3,7},
-		{"gballoon_regen_black",3,3,7},
+		{"gballoon_white",3,3,7},
+		{"gballoon_black",3,3,7},
 		duration=10,
 		rbe=411--15*23+6*11
 	}, -- 28
@@ -1518,7 +1518,7 @@ ROTGB_WAVES = { -- format: { balloon_type, amount=1, timespan=0, delay=0 }
 	},
 	{
 		{"gballoon_zebra",20,5},
-		{"gballoon_fast_regen_white",9,4.5,5.5},
+		{"gballoon_fast_white",9,4.5,5.5},
 		duration=10,
 		rbe=559--20*23+9*11
 	},
@@ -1553,14 +1553,14 @@ ROTGB_WAVES = { -- format: { balloon_type, amount=1, timespan=0, delay=0 }
 	}, -- 36
 	{
 		{"gballoon_rainbow",8,4},
-		{"gballoon_hidden_zebra",nil,4.5},
-		{"gballoon_fast_hidden_white",5,5,5},
+		{"gballoon_zebra",nil,4.5},
+		{"gballoon_hidden_white",5,5,5},
 		duration=10,
 		rbe=822--8*93+23+5*11
 	},
 	{
 		{"gballoon_ceramic",4,4},
-		{"gballoon_fast_regen_black",5,2.5,4},
+		{"gballoon_regen_black",5,2.5,4},
 		{"gballoon_shielded_error",nil,6.5},
 		{"gballoon_fast_hidden_regen_green",nil,10},
 		duration=10,
@@ -2305,8 +2305,8 @@ ROTGB_WAVES[666] = {
 	{"gballoon_fast_hidden_regen_shielded_blimp_rainbow",512,64,832},
 	{"gballoon_garrydecal",nil,nil,896},
 	{"gballoon_void",16,64,896},
-	{"gballoon_glass",nil,nil,960},
-	{"gballoon_cfiber",16,64,960},
+	{"gballoon_glass",16,64,960},
+	{"gballoon_cfiber",nil,nil,960},
 	
 	duration=1024,
 	rbe=128*(
@@ -2324,8 +2324,7 @@ ROTGB_WAVES[666] = {
 		+74000*2*4
 		+18827*2*4
 		+285668*2*4
-		+999999999/8
-	)+100000+500000+2007856+10000000+50e6+30+10e6+16+1
+	)+100000+500000+2007856+10000000+50e6+30+10e6+16+16+999999999
 }
 
 ROTGB_WAVES_2S = {}
@@ -2788,9 +2787,10 @@ function ENT:Initialize()
 	end
 end
 
-function ENT:PreEntityCopy()
+function ENT:PreEntityCopy(...)
 	self.rotgb_DuplicatorTimeOffset = CurTime()
 	self.rotgb_CopiedToSpawn = table.Copy(self.rotgb_ToSpawn)
+	gballoon_pob.PreEntityCopy(self,...)
 end
 
 function ENT:PostEntityPaste(ply,ent,tab)
@@ -2898,13 +2898,15 @@ function ENT:GenerateNextWave(cwave)
 	if not self:GetWaveTable()[cwave-1] then
 		self:GenerateNextWave(cwave-1)
 	end
-	local targetRBE = self:GetWaveTable()[cwave-1].assumerbe and self:GetWaveTable()[cwave-1].assumerbe*1.08 or self:GetWaveTable()[cwave-1].rbe*1.08
+	local lastRBE = self:GetWaveTable()[cwave-1].assumerbe or self:GetWaveTable()[cwave-1].rbe
+	local targetRBE = math.min(lastRBE*1.08, lastRBE+2.5e6)
 	local currentRBE = 0
 	local wavetab = {}
 	local choices = {"gballoon_blimp_blue","gballoon_blimp_red","gballoon_blimp_green","gballoon_fast_hidden_regen_shielded_blimp_gray","gballoon_blimp_purple","gballoon_fast_blimp_magenta","gballoon_blimp_rainbow"}
 	local factors = {40,20,10,5,2,1}
 	local maxFactor = 100
 	local missingChoices = 0
+	local duration = 10
 	while true do
 		if currentRBE > (self:GetWaveTable()[cwave-1].assumerbe or self:GetWaveTable()[cwave-1].rbe) then break end
 		local genval = util.SharedRandom("ROTGB_WAVEGEN__"..self:GetWaveFile().."_"..cwave,0,#choices,currentRBE)
@@ -2924,9 +2926,22 @@ function ENT:GenerateNextWave(cwave)
 			else
 				amount = 0
 			end
-		else
-			missingChoices = missingChoices + 1
-			if missingChoices == 1 then
+		elseif missingChoices < 2 then
+			if missingChoices == 0 then
+				if targetRBE-currentRBE > 999999999 then
+					choice = "gballoon_cfiber"
+				elseif targetRBE-currentRBE > 50e6 then
+					choice = "gballoon_blimp_long_rainbow_super"
+				end
+				if choice then
+					local keyValues = list.Get("NPC")[choice].KeyValues
+					typeRBE = scripted_ents.GetStored("gballoon_base").t.rotgb_rbetab[keyValues.BalloonType]
+					if tobool(keyValues.BalloonShielded) then
+						typeRBE = typeRBE * 2
+					end
+					amount = 1
+				end
+			elseif missingChoices == 1 then
 				choice = "gballoon_fast_hidden_regen_shielded_blimp_rainbow"
 				local keyValues = list.Get("NPC")[choice].KeyValues
 				typeRBE = scripted_ents.GetStored("gballoon_base").t.rotgb_rbetab[keyValues.BalloonType]
@@ -2934,16 +2949,24 @@ function ENT:GenerateNextWave(cwave)
 					typeRBE = typeRBE * 2
 				end
 				amount = math.ceil((targetRBE-currentRBE)/typeRBE)
-			else break
 			end
+			missingChoices = missingChoices + 1
+		else break
 		end
 		if amount > 0 then
-			table.insert(wavetab,{choice,amount,10})
+			if amount > 100 then
+				if amount > 1000 then
+					duration = math.max(duration, math.sqrt(1000)*amount/1000)
+				else
+					duration = math.max(duration, math.sqrt(amount))
+				end
+			end
+			table.insert(wavetab,{choice,amount,amount == 1 and 0 or duration})
 			currentRBE = currentRBE + typeRBE * amount
 		end
 	end
 	wavetab.rbe = math.Round(currentRBE)
-	wavetab.duration = 10
+	wavetab.duration = duration
 	--wavetab.unnatural = true
 	self:GetWaveTable()[cwave] = wavetab
 end
@@ -3128,7 +3151,7 @@ end
 
 function ENT:MusicThink()
 	local currentMusic = self.CurrentMusicString or ""
-	local newMusic = self:GetSingleMusicData(self.NewMusic).file or ""
+	local newMusic = self:GetWave() == 667 and "phyrnna_hexennacht.mp3" or self:GetWave() ~= 666 and self:GetSingleMusicData(self.NewMusic).file or ""
 	local volume = ROTGB_GetConVarValue("rotgb_music_volume")
 	local streamPlaying = IsValid(self.MusicStream) and self.MusicStream:GetState()==GMOD_CHANNEL_PLAYING
 	if self.NewMusic ~= self.CurrentMusic or currentMusic ~= newMusic or not streamPlaying and currentMusic ~= "" then
@@ -3168,7 +3191,12 @@ function ENT:MusicThink()
 			end
 			ROTGB_EntityLog(self, string.format("%i ~= %i or \"%s\" ~= \"%s\", music switched!", self.CurrentMusic, self.NewMusic, currentMusic, newMusic), "music")
 			
-			local texts = data.texts or {}
+			local texts = self:GetWave() == 667 and {
+				"Now Playing:",
+				"Phyrnna - Hexennacht",
+				"from the Newgrounds Audio Portal",
+				"http://www.newgrounds.com/audio/listen/710256"
+			} or self:GetWave() ~= 666 and data.texts or {}
 			if next(texts) then
 				local textsToDisplay = {}
 				for i,v in ipairs(texts) do

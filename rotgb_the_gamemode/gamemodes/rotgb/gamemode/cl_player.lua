@@ -1,7 +1,8 @@
 function GM:LoadClient()
 	local data = util.JSONToTable(file.Read("rotgb_tg_data.dat", "DATA") or "")
-	hook.Run("PerformLoadFixups", data)
 	if data then
+		hook.Run("PerformLoadFixups", data)
+		
 		local ply = LocalPlayer()
 		ply.rtg_PreviousXP = tonumber(data.xp) or 0
 		local skills = data.skills
@@ -42,14 +43,27 @@ function GM:LoadClient()
 			net.WriteDouble(v)
 		end
 		
-		net.SendToServer()
-		
 		hook.Run("SetCompletedDifficulties", data.completedDifficulties or {})
+		
+		-- figure out if the Nightmare difficulty has been beaten
+		local nightmareBeaten = false
+		for k,v in pairs(hook.Run("GetCompletedDifficulties")) do
+			for k2,v2 in pairs(v) do
+				if v2 and k2 == "special_nightmare" then
+					nightmareBeaten = true break
+				end
+			end
+			if nightmareBeaten then break end
+		end
+		
+		net.WriteBool(nightmareBeaten)
+		
+		net.SendToServer()
 	end
 end
 
 function GM:PerformLoadFixups(data)
-	if not data.savefileVersion then
+	if data and not data.savefileVersion then
 		if (data.statsitics["success.no_score"] or 0 >= 1) then
 			data.xp = (data.xp or 0) + 8.5e6
 		end
@@ -78,12 +92,12 @@ function GM:OnPlayerChat(ply, message, bTeam, bDead)
     if ply ~= LocalPlayer() then return end
 	local loweredMessage = message:lower()
 	if loweredMessage == "!help" or loweredMessage == "!rtg_help" then
-		chat.AddText(color_white, language.GetPhrase("rotgb_tg.help"))
-		for i=1, 7 do
+		chat.AddText(color_white, ROTGB_LocalizeString("rotgb_tg.help"))
+		for i=1, 8 do
 			local arguments = {
-				language.GetPhrase(string.format("rotgb_tg.help.entry.%i.%i", i, 1)),
-				language.GetPhrase(string.format("rotgb_tg.help.entry.%i.%i", i, 2)),
-				language.GetPhrase(string.format("rotgb_tg.help.entry.%i.%i", i, 3))
+				ROTGB_LocalizeString(string.format("rotgb_tg.help.entry.%i.%i", i, 1)),
+				ROTGB_LocalizeString(string.format("rotgb_tg.help.entry.%i.%i", i, 2)),
+				ROTGB_LocalizeString(string.format("rotgb_tg.help.entry.%i.%i", i, 3))
 			}
 			chat.AddText(unpack(ROTGB_LocalizeMulticoloredString(
 				"rotgb_tg.help.entry",

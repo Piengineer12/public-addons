@@ -19,9 +19,10 @@ ENT.BonusFireRate = 1
 
 local targetings = 8
 
-local color_red = Color(255,0,0)
-local color_aqua = Color(0,255,255)
-local color_blue = Color(0,0,255)
+local color_red = Color(255, 0, 0)
+local color_green = Color(0, 255, 0)
+local color_aqua = Color(0, 255, 255)
+local color_blue = Color(0, 0, 255)
 
 function ROTGB_GetAllTowers()
 	local towertable = {}
@@ -78,13 +79,12 @@ function ENT:Initialize()
 	end
 	self:ApplyPerks()
 	self:ROTGB_Initialize()
-	self.SellAmount = 0
 	
 	self.LOSOffset = self.LOSOffset or vector_origin
 	self.DetectionRadius = self.DetectionRadius * ROTGB_GetConVarValue("rotgb_tower_range_multiplier")
 	self.BuffIdentifiers = {}
 	
-	if not IsValid(self:GetTowerOwner()) then
+	if SERVER and not IsValid(self:GetTowerOwner()) then
 		if IsValid(Player(self:GetOwnerUserID())) then -- duplication always fails to copy entities properly
 			self:SetTowerOwner(Player(self:GetOwnerUserID()))
 		elseif IsValid(self:GetCreator()) then
@@ -157,7 +157,7 @@ hook.Add("EntityTakeDamage","ROTGB_TOWERS",function(vic,dmginfo)
 	local laser = dmginfo:GetAttacker()
 	local inflictor = dmginfo:GetInflictor()
 	if (IsValid(laser) and laser.rotgb_UseLaser) then
-		if (IsValid(laser.rotgb_Owner) and laser.rotgb_Owner.Base == "gballoon_tower_base") then
+		if (IsValid(laser.rotgb_Owner) and laser.rotgb_Owner.Base == "gballoon_tower_base" and IsValid(laser.rotgb_Owner:GetTowerOwner())) then
 			dmginfo:SetAttacker(laser.rotgb_Owner:GetTowerOwner())
 			dmginfo:SetInflictor(laser.rotgb_Owner)
 			
@@ -176,6 +176,28 @@ end)
 
 hook.Add("PhysgunPickup", "ROTGB_TOWERS", function(ply, ent)
 	if ent.Base == "gballoon_tower_base" and ROTGB_GetConVarValue("rotgb_tower_ignore_physgun") then return false end
+end)
+
+hook.Add("PreDrawHalos", "ROTGB_TOWERS", function()
+	if not ROTGB_GetConVarValue("rotgb_no_glow") then
+		local ours = {}
+		local unknown = {}
+		local invalidPlacement = {}
+		
+		for k,v in pairs(ents.GetAll()) do
+			if v.Base=="gballoon_tower_base" and player.GetCount() > 1 then
+				if v:GetTowerOwner() == LocalPlayer() then
+					table.insert(v:GetNWBool("ROTGB_Stun2") and invalidPlacement or ours, v)
+				elseif not IsValid(v:GetTowerOwner()) then
+					table.insert(unknown, v)
+				end
+			end
+		end
+		
+		halo.Add(invalidPlacement, color_red)
+		halo.Add(ours, color_green)
+		halo.Add(unknown, color_white)
+	end
 end)
 
 function ENT:PreEntityCopy()
@@ -248,31 +270,41 @@ hook.Add("gBalloonSpawnerWaveEnded", "ROTGB_TOWER_BASE", function(spawner,cwave)
 end)
 
 function ENT:Think()
-	if not self.LocalCost and IsValid(self:GetTowerOwner()) then
-		local amount = ROTGB_ScaleBuyCost(self.Cost or 0, self, {type = ROTGB_TOWER_PURCHASE, ply = self:GetTowerOwner()})
-		if self:GetUpgradeStatus()~=0 then
-			for i,v in ipairs(self.UpgradeReference) do
-				local tier = bit.band(bit.rshift(self:GetUpgradeStatus(),(i-1)*4),15)
-				for j=1,tier do
-					if (v.Funcs and v.Funcs[j]) then
-						v.Funcs[j](self)
-						amount = amount + ROTGB_ScaleBuyCost(v.Prices[j], self, {type = ROTGB_TOWER_UPGRADE, path = i, tier = j})
-					end
+	local trackPlacementCost = false
+	
+	if not self.SellAmount then
+		trackPlacementCost = true
+		self.SellAmount = ROTGB_ScaleBuyCost(self.Cost or 0, self, {type = ROTGB_TOWER_PURCHASE, ply = self:GetTowerOwner()})
+	end
+	if self.OldUpgradeStatus ~= self:GetUpgradeStatus() then
+		self.OldUpgradeStatus = self.OldUpgradeStatus or 0
+		local addAmount = 0
+		
+		for i,v in ipairs(self.UpgradeReference) do
+			local bitpos = (i-1)*4
+			local currentTier = bit.band(bit.rshift(self.OldUpgradeStatus,bitpos),15)
+			local newTier = bit.band(bit.rshift(self:GetUpgradeStatus(),bitpos),15)
+			for j=currentTier+1,newTier do
+				if (v.Funcs and v.Funcs[j]) then
+					v.Funcs[j](self)
+					addAmount = addAmount + ROTGB_ScaleBuyCost(v.Prices[j], self, {type = ROTGB_TOWER_UPGRADE, path = i, tier = j})
 				end
 			end
 		end
-		self.LocalCost = amount
-		if CLIENT then
-			self.SellAmount = self.LocalCost
-			hook.Run("RotgBTowerPlaced", self, self.LocalCost)
-		end
+		
+		self.OldUpgradeStatus = self:GetUpgradeStatus()
+		self.SellAmount = self.SellAmount + addAmount
 	end
+	
+	if trackPlacementCost then
+		hook.Run("RotgBTowerPlaced", self, self.SellAmount)
+	end
+	
 	if SERVER then
-		self:ROTGB_Think()
-		if not self.IsEnabled and self.LocalCost then
-			local towerOwner = self:GetTowerOwner()
-			local towerCost = self.LocalCost
+		if not self.IsEnabled then
 			self.IsEnabled = true
+			
+			local towerOwner = self:GetTowerOwner()
 			if engine.ActiveGamemode() == "rotgb" and towerOwner:IsPlayer() then
 				local towerIndex = 0
 				local towers = ROTGB_GetAllTowers()
@@ -305,6 +337,8 @@ function ENT:Think()
 				end
 			end
 			local maxCount = hook.Run("GetMaxRotgBTowerCount") or ROTGB_GetConVarValue("rotgb_tower_maxcount")
+			
+			local towerCost = self.SellAmount
 			if towerCost>ROTGB_GetCash(towerOwner) then
 				if towerOwner:IsPlayer() then
 					ROTGB_CauseNotification(ROTGB_NOTIFY_TOWERCASH, ROTGB_NOTIFYTYPE_ERROR, towerOwner, {"f", towerCost-ROTGB_GetCash(towerOwner)})
@@ -325,9 +359,8 @@ function ENT:Think()
 				end
 			end
 			ROTGB_RemoveCash(towerCost,towerOwner)
-			hook.Run("RotgBTowerPlaced", self, towerCost)
-			self.SellAmount = self.LocalCost
 		end
+		self:ROTGB_Think()
 		local curTime = CurTime()
 		if not self:IsStunned() then
 			self.ExpensiveThinkDelay = self.ExpensiveThinkDelay or curTime
@@ -525,10 +558,11 @@ function ENT:ROTGB_Draw()
 end
 
 function ENT:DrawTranslucent()
+	local cond1 = LocalPlayer():GetEyeTrace().Entity==self
 	if self.DetectionRadius < 16384 and ROTGB_GetConVarValue("rotgb_range_enable_indicators") then
 		local fadeout = ROTGB_GetConVarValue("rotgb_range_fade_time")
-		local cond1 = LocalPlayer():GetEyeTrace().Entity==self and self:LocalToWorld(self.LOSOffset):DistToSqr(EyePos())<=self.DetectionRadius*self.DetectionRadius
-		if cond1 then
+		local cond2 = self:GetShootPos():DistToSqr(EyePos())<=self.DetectionRadius*self.DetectionRadius
+		if cond1 and cond2 then
 			self.DrawFadeNext = RealTime()+fadeout+ROTGB_GetConVarValue("rotgb_range_hold_time")
 		end
 		if (self.DrawFadeNext or 0)>RealTime() then
@@ -537,21 +571,26 @@ function ENT:DrawTranslucent()
 			local alpha = math.Clamp(math.Remap(self.DrawFadeNext-RealTime(),fadeout,0,maxAlpha,0),0,maxAlpha)
 			scol = Color(scol.r,scol.g,scol.b,alpha)
 			render.SetColorMaterial()
-			render.DrawSphere(self:LocalToWorld(self.LOSOffset),-self.DetectionRadius,16,9,scol)
+			render.DrawSphere(self:GetShootPos(),-self.DetectionRadius,16,9,scol)
 		end
 	end
 	self:ROTGB_Draw()
-	if self.HasAbility then
+	if self.HasAbility or cond1 then
 		local selfpos = self:LocalToWorld(Vector(0,0,ROTGB_GetConVarValue("rotgb_hoverover_distance")+self:OBBMaxs().z))
 		local reqang = (selfpos-LocalPlayer():GetShootPos()):Angle()
 		reqang.p = 0
 		reqang.y = reqang.y-90
 		reqang.r = 90
 		cam.Start3D2D(selfpos,reqang,0.2)
-			surface.SetDrawColor(0,0,0,127)
-			local percent = math.Clamp(self:GetAbilityCharge(),0,1)
-			ROTGB_DrawCircle(0,0,16,percent,HSVToColor(percent*120,1,1))
-			ROTGB_DrawCircle(0,0,16,percent,HSVToColor(percent*120,1,1))
+			if cond1 and self:GetShootPos():DistToSqr(EyePos()) < 65536 then
+				local fontSize = ROTGB_GetConVarValue("rotgb_hud_size")
+				draw.RoundedBox(4, -fontSize/2, -fontSize/2, fontSize, fontSize, color_black)
+				--draw.RoundedBox(4, fontSize/2, -fontSize/2, -fontSize, fontSize, color_black)
+				draw.SimpleText(input.LookupBinding("+use"):upper(), "RotgB_font", 0, 0, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+			elseif self.HasAbility then
+				local percent = math.Clamp(self:GetAbilityCharge(),0,1)
+				ROTGB_DrawCircle(0,0,16,percent,HSVToColor(percent*120,1,1))
+			end
 		cam.End3D2D()
 	end
 end
@@ -615,7 +654,7 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 			local op = net.ReadUInt(2)
 			if op == ROTGB_TOWER_MENU then
 				ROTGB_UpgradeMenu(ent)
-			elseif op == ROTGB_TOWER_UPGRADE then
+			--[[elseif op == ROTGB_TOWER_UPGRADE then
 				-- get path number and upgrade amount
 				local path = net.ReadUInt(4)
 				local upgradeAmount = net.ReadUInt(4)+1
@@ -630,16 +669,15 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 						reference.Funcs[tier](ent)
 					end
 					tier = tier + 1
-				end
+				end]]
 			end
-		else
-			ROTGB_CauseNotification(ROTGB_NOTIFY_TOWERNOTOWNER, ROTGB_NOTIFYTYPE_ERROR, towerOwner)
 		end
 	end
 	if SERVER then
 		local ent = net.ReadEntity()
 		if not IsValid(ent) then return end
 		if ent.Base ~= "gballoon_tower_base" then return end
+		if ent:GetTowerOwner() ~= ply then return end
 		local path = net.ReadUInt(4) -- we actually only use 0-7; 8-10 are for targeting, 11 is for deletion and 12-15 are for other special cases.
 		if path==8 then
 			return ent:SetTargeting((ent:GetTargeting()+1)%targetings)
@@ -679,41 +717,48 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 			end
 		end
 		-- it's valid
-		local tier = bit.band(bit.rshift(ent:GetUpgradeStatus(),path*4),15)+1
+		local oldTiers = bit.band(bit.rshift(ent:GetUpgradeStatus(),path*4),15)+1
+		local tier = oldTiers
 		for i=1,upgradeAmount do
 			local price = ROTGB_ScaleBuyCost(reference.Prices[tier], ent, {type = ROTGB_TOWER_UPGRADE, path = path+1, tier = tier})
-			if ROTGB_GetCash(ply)<price then return end
-			ent.SellAmount = (ent.SellAmount or 0) + price
-			if (reference.Funcs and reference.Funcs[tier]) then
-				reference.Funcs[tier](ent)
+			if ROTGB_GetCash(ply)>=price then
+				--[[ent.SellAmount = (ent.SellAmount or 0) + price
+				if (reference.Funcs and reference.Funcs[tier]) then
+					reference.Funcs[tier](ent)
+				end]]
+				ROTGB_RemoveCash(price,ply)
+				hook.Run("RotgBTowerUpgraded", ent, path+1, tier, price)
+				tier = tier + 1
 			end
-			ROTGB_RemoveCash(price,ply)
-			hook.Run("RotgBTowerUpgraded", ent, path+1, tier, price)
-			tier = tier + 1
 		end
-		ent:SetUpgradeStatus(ent:GetUpgradeStatus()+bit.lshift(upgradeAmount,path*4))
-		ent:EmitSound("hl1/fvox/fuzz.wav", 75, 120+tier*5)
+		ent:SetUpgradeStatus(ent:GetUpgradeStatus()+bit.lshift(tier-oldTiers,path*4))
+		ent:EmitSound("interactions_pickup_retro_01.wav", 75, 100)
 		local effdata = EffectData()
 		effdata:SetEntity(ent)
 		util.Effect("entity_remove",effdata,true,true)
-		net.Start("rotgb_openupgrademenu")
+		--[[net.Start("rotgb_openupgrademenu")
 		net.WriteEntity(ent)
 		net.WriteUInt(ROTGB_TOWER_UPGRADE, 2)
 		net.WriteUInt(path, 4)
 		net.WriteUInt(upgradeAmount-1, 4)
-		net.SendOmit(ply)
+		net.SendOmit(ply)]]
 	end
 end)
 
 function ENT:Use(activator,caller,...)
-	if (IsValid(caller) and caller:IsPlayer()) then
+	if (IsValid(activator) and activator:IsPlayer()) then
 		if not IsValid(self:GetTowerOwner()) then
-			self:SetTowerOwner(caller)
+			self:SetTowerOwner(activator)
+			self:SetOwnerUserID(activator:UserID())
 		end
-		net.Start("rotgb_openupgrademenu")
-		net.WriteEntity(self)
-		net.WriteUInt(ROTGB_TOWER_MENU, 2)
-		net.Send(caller)
+		if self:GetTowerOwner() == activator then
+			net.Start("rotgb_openupgrademenu")
+			net.WriteEntity(self)
+			net.WriteUInt(ROTGB_TOWER_MENU, 2)
+			net.Send(activator)
+		else
+			ROTGB_CauseNotification(ROTGB_NOTIFY_TOWERNOTOWNER, ROTGB_NOTIFYTYPE_ERROR, activator)
+		end
 	end
 end
 

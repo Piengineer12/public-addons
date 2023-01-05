@@ -26,15 +26,15 @@ local SCOREBOARD_CELL_WIDTH_MULTIPLIERS = {1, 6, 6, 6, 3, 3, 9, {1, 3, 2}, 6}
 local SCOREBOARD_PADDING = 2
 local SCOREBOARD_CELL_SPACE = 1
 local SCOREBOARD_FIELDS = {
-	"#rotgb_tg.scoreboard.name",
-	"#rotgb_tg.scoreboard.score",
-	"#rotgb_tg.scoreboard.current_cash",
-	"#rotgb_tg.scoreboard.cash_generated",
-	"#rotgb_tg.scoreboard.ping",
-	"#rotgb_tg.scoreboard.level",
-	"#rotgb_tg.scoreboard.transfer",
-	"#rotgb_tg.scoreboard.voice",
-	"#rotgb_tg.scoreboard.kick"
+	"rotgb_tg.scoreboard.name",
+	"rotgb_tg.scoreboard.score",
+	"rotgb_tg.scoreboard.current_cash",
+	"rotgb_tg.scoreboard.cash_generated",
+	"rotgb_tg.scoreboard.ping",
+	"rotgb_tg.scoreboard.level",
+	"rotgb_tg.scoreboard.transfer",
+	"rotgb_tg.scoreboard.voice",
+	"rotgb_tg.scoreboard.kick"
 }
 local SCOREBOARD_FUNCS = {
 	[2] = function(ply)
@@ -44,7 +44,7 @@ local SCOREBOARD_FUNCS = {
 		return ROTGB_FormatCash(ROTGB_GetCash(ply))
 	end,
 	[4] = function(ply)
-		return ROTGB_FormatCash(math.max(ply.rtg_CashGenerated, 0), true)
+		return ROTGB_FormatCash(math.max(ply.rtg_CashGenerated or 0, 0), true)
 	end,
 	[5] = function(ply)
 		return ROTGB_LocalizeString("rotgb_tg.scoreboard.ping_ms", ROTGB_Commatize(ply:Ping()))
@@ -65,41 +65,34 @@ local SKILL_BEAM_SMOOTH_ALPHA_MIN = 127
 local SKILL_BEAM_SMOOTH_ALPHA_MAX = 255
 local SKILL_TOOLTIP_OFFSET = ScreenScale(3)
 local SKILL_TOOLTIP_PADDING = ScreenScale(3)
-local SKILL_TOOLTIP_TIERS = {{"#rotgb_tg.skills.perk_0", color_light_green}, {"#rotgb_tg.skills.perk_1", color_light_blue}, {"#rotgb_tg.skills.perk_2", color_light_orange}}
-local SKILL_LEFT_TEXTS = {
-	{
-		-- hardcoded
-	},
-	{
-		color_red, "#rotgb_tg.skills.skill_apply_warning"
-	}
-}
+local SKILL_TOOLTIP_TIERS = {{"rotgb_tg.skills.perk_0", color_light_green}, {"rotgb_tg.skills.perk_1", color_light_blue}, {"rotgb_tg.skills.perk_2", color_light_orange}}
 local SKILL_RIGHT_TEXTS = {
 	{
 		"rotgb_tg.skills.hint.drag",
-		{"#rotgb_tg.skills.hint.drag.1", "#rotgb_tg.skills.hint.drag.2"},
+		{"rotgb_tg.skills.hint.drag.1", "rotgb_tg.skills.hint.drag.2"},
 		color_white,
 		{color_yellow, color_yellow}
 	},
 	{
 		"rotgb_tg.skills.hint.constellation",
-		{"#rotgb_tg.skills.hint.constellation.1"},
+		{"rotgb_tg.skills.hint.constellation.1"},
 		color_white,
 		{color_yellow}
 	},
 	{
 		"rotgb_tg.skills.hint.keyboard",
-		{"#rotgb_tg.skills.hint.keyboard.1", "#rotgb_tg.skills.hint.keyboard.2"},
+		{"rotgb_tg.skills.hint.keyboard.1", "rotgb_tg.skills.hint.keyboard.2"},
 		color_white,
 		{color_yellow, color_yellow}
 	},
 	{
 		"rotgb_tg.skills.hint.keyboard.reset",
-		{"#rotgb_tg.skills.hint.keyboard.reset.1"},
+		{"rotgb_tg.skills.hint.keyboard.reset.1"},
 		color_white,
 		{color_yellow}
 	}
 }
+
 local CATEGORY_COLORS = {color_green, color_yellow, color_orange, color_red, color_magenta, color_purple, color_aqua}
 local ACHIEVEMENT_PADDING = ScreenScale(2)
 local ACHIEVEMENT_SIZE = ScreenScale(48)
@@ -113,7 +106,7 @@ local FONT_BODY_HEIGHT = ScreenScale(12)
 local FONT_EXTRA_HEIGHT = ScreenScale(8)
 local FONT_LEVEL_HEIGHT = ScreenScale(16)
 local FONT_EXPERIENCE_HEIGHT = ScreenScale(12)
-local FONT_SKILL_BODY_HEIGHT = ScreenScale(8)
+local FONT_SKILL_BODY_HEIGHT = ScreenScale(6)
 local FONT_ACHIEVEMENT_HEADER_HEIGHT = ScreenScale(12)
 local FONT_ACHIEVEMENT_BODY_HEIGHT = ScreenScale(8)
 
@@ -151,7 +144,8 @@ local SKILL_MATERIALS = {
 	},
 	beam = CreateSkillMaterial("rtg_SkillBeam", "sprites/laser"),
 	constellation_beam = CreateSkillMaterial("rtg_SkillConstellationBeam", "sprites/orangelight1"),
-	info = CreateSkillMaterial("rtg_SkillInfo", "sprites/flare1")
+	info = CreateSkillMaterial("rtg_SkillInfo", "sprites/flare1"),
+	active = CreateSkillMaterial("rtg_SkillActive", "sprites/muzzleflash1_hl1")
 }
 
 AccessorFunc(GM, "StartupMenu", "StartupMenu")
@@ -387,14 +381,14 @@ local function CreateTeamLeftPanel()
 	local AllTeams = team.GetAllTeams()
 	for k,v in pairs(AllTeams) do
 		if k ~= TEAM_CONNECTING and k ~= TEAM_UNASSIGNED then
-			local TeamButton = CreateButton(Panel, "#rotgb_tg.team.loading", v.Color, function()
+			local TeamButton = CreateButton(Panel, ROTGB_LocalizeString("rotgb_tg.team.loading"), v.Color, function()
 				hook.Run("HideTeam")
 				RunConsoleCommand("changeteam", k)
 			end)
 			function TeamButton:RefreshText()
 				local text = ROTGB_LocalizeString(
 					"rotgb_tg.buttons.team",
-					language.GetPhrase(v.Name),
+					ROTGB_LocalizeString(v.Name),
 					string.format("%u", team.NumPlayers(k))
 				)
 				self:SetText(text)
@@ -447,7 +441,7 @@ local function CreateTeamRightPanel()
 end
 
 local function CreateTeamCancelButtonPanel(parent, zPos)
-	local button = CreateButton(Panel, "#rotgb_tg.buttons.cancel", color_red, function()
+	local button = CreateButton(Panel, ROTGB_LocalizeString("rotgb_tg.buttons.cancel"), color_red, function()
 		hook.Run("HideTeam")
 	end)
 	local Panel = CreateElementCenteringPanel(button, parent)
@@ -685,7 +679,7 @@ local function CreateScoreboardVoiceCell(parent, ply)
 end
 
 local function CreateScoreboardKickCell(parent, ply)
-	local KickButton = CreateButton(parent, "#rotgb_tg.buttons.kick", color_red, function()
+	local KickButton = CreateButton(parent, ROTGB_LocalizeString("rotgb_tg.buttons.kick"), color_red, function()
 		hook.Run("ShowVoteMenu", {typ=RTG_VOTE_KICK, target=ply:UserID()})
 	end)
 	
@@ -724,7 +718,7 @@ local function CreateScoreboardHeader(parent, zPos)
 		width = width * FONT_SCOREBOARD_BODY_HEIGHT*SCOREBOARD_CELL_WIDTH_MULTIPLIERS[1]
 		
 		local textCell = vgui.Create("DLabel", Panel)
-		textCell:SetText(SCOREBOARD_FIELDS[i])
+		textCell:SetText(ROTGB_LocalizeString(SCOREBOARD_FIELDS[i]))
 		textCell:SetFont("rotgb_scoreboard_header")
 		textCell:SetTextColor(color_white)
 		textCell:SetZPos(-i)
@@ -812,20 +806,17 @@ local function CreateScoreboardPanel(parent)
 	Panel.OldThink = Panel.Think
 	Panel.NextUpdate = 0
 	function Panel:Think()
-		if self.NextUpdate < RealTime() then
-			self.NextUpdate = RealTime() + GAMEMODE.NetSendInterval
-			if self.PlayerCount ~= player.GetCount() then
-				self.PlayerCount = player.GetCount()
-				self:MarkScoreboardForRecreation()
-			end
-			if self.ScoreboardNeedsRefresh then
-				self:RecreateScoreboard()
-				self.ScoreboardNeedsRefresh = false
-			end
-			for k,v in pairs(self.ScoreboardRows) do
-				if v.Update then
-					v:Update()
-				end
+		if self.PlayerCount ~= player.GetCount() then
+			self.PlayerCount = player.GetCount()
+			self:MarkScoreboardForRecreation()
+		end
+		if self.ScoreboardNeedsRefresh then
+			self:RecreateScoreboard()
+			self.ScoreboardNeedsRefresh = false
+		end
+		for k,v in pairs(self.ScoreboardRows) do
+			if v.Update then
+				v:Update()
 			end
 		end
 		if self.OldThink then
@@ -850,12 +841,15 @@ local function CreateScoreboardPanel(parent)
 		for k,v in pairs(self.ScoreboardRows) do
 			v:Remove()
 		end
-		table.Empty(self.ScoreboardRows)
+		self.ScoreboardRows = {}
 		
 		self.ScoreboardRows[1] = CreateScoreboardHeader(self, 0)
-		table.Empty(self.PlayerOrder)
+		
+		self.PlayerOrder = {}
 		for k,v in SortedPairsByValue(self.Scores, true) do
-			table.insert(self.PlayerOrder, k)
+			if IsValid(k) then
+				table.insert(self.PlayerOrder, k)
+			end
 		end
 		for k,v in pairs(self.PlayerOrder) do
 			self.ScoreboardRows[k+1] = CreateScoreboardRow(self, v, k)
@@ -921,49 +915,58 @@ end
 end]=]
 
 local function ExitButtonFunction()
-	Derma_Query("#rotgb_tg.buttons.disconnect.warning", "#quit", "#GameUI_Yes", function()
-		RunConsoleCommand("disconnect")
-	end, "#GameUI_No")
+	Derma_Query(
+		ROTGB_LocalizeString("rotgb_tg.buttons.disconnect.warning"),
+		ROTGB_LocalizeString("quit"),
+		ROTGB_LocalizeString("rotgb.general.yes"),
+			function()
+			RunConsoleCommand("disconnect")
+		end,
+		ROTGB_LocalizeString("rotgb.general.no")
+	)
 end
 
 local function CreateGameOverButtons(parent, canContinue)
-	local ExitButton = CreateButton(nil, "#rotgb_tg.buttons.disconnect", color_red, ExitButtonFunction)
+	local ExitButton = CreateButton(nil, ROTGB_LocalizeString("rotgb_tg.buttons.disconnect"), color_red, ExitButtonFunction)
 	local ExitButtonCenteringPanel = CreateElementCenteringPanel(ExitButton, parent)
 	ExitButtonCenteringPanel:SetZPos(1)
 	ExitButtonCenteringPanel:Dock(BOTTOM)
 	
-	local RestartButton = CreateButton(nil, "#rotgb_tg.buttons.restart", color_yellow, function()
-		Derma_Query("#rotgb_tg.buttons.restart.warning", "#new_game", "#GameUI_Yes", function()
-			net.Start("rotgb_gamemode")
-			net.WriteUInt(RTG_OPERATION_GAMEOVER, 4)
-			net.SendToServer()
-			parent:Close()
-		end, "#GameUI_No")
+	local RestartButton = CreateButton(nil, ROTGB_LocalizeString("rotgb_tg.buttons.restart"), color_yellow, function()
+		Derma_Query(
+			ROTGB_LocalizeString("rotgb_tg.buttons.restart.warning"),
+			ROTGB_LocalizeString("new_game"),
+			ROTGB_LocalizeString("rotgb.general.yes"),
+			function()
+				net.Start("rotgb_gamemode")
+				net.WriteUInt(RTG_OPERATION_GAMEOVER, 4)
+				net.SendToServer()
+				parent:Close()
+			end,
+			ROTGB_LocalizeString("rotgb.general.no")
+		)
 	end)
 	local RestartButtonCenteringPanel = CreateElementCenteringPanel(RestartButton, parent)
 	RestartButtonCenteringPanel:SetZPos(2)
 	RestartButtonCenteringPanel:Dock(BOTTOM)
 	
-	if LocalPlayer():IsAdmin() then
-		local DifficultyButton = CreateButton(nil, "#rotgb_tg.buttons.select_difficulty", color_green, function()
-			parent:Close()
-			RunConsoleCommand("rotgb_tg_difficulty_menu")
-		end)
-		local DifficultyButtonCenteringPanel = CreateElementCenteringPanel(DifficultyButton, parent)
-		DifficultyButtonCenteringPanel:SetZPos(3)
-		DifficultyButtonCenteringPanel:Dock(BOTTOM)
-	else
-		local VoteButton = CreateButton(nil, "#rotgb_tg.buttons.start_vote", color_green, function()
-			parent:Close()
-			RunConsoleCommand("rotgb_tg_vote")
-		end)
-		local VoteButtonCenteringPanel = CreateElementCenteringPanel(VoteButton, parent)
-		VoteButtonCenteringPanel:SetZPos(3)
-		VoteButtonCenteringPanel:Dock(BOTTOM)
-	end
+	local DifficultyButton = CreateButton(nil, ROTGB_LocalizeString("rotgb_tg.buttons.select_difficulty"), color_green, function()
+		parent:Close()
+		RunConsoleCommand("rotgb_tg_difficulty_menu")
+	end)
+	local DifficultyButtonCenteringPanel = CreateElementCenteringPanel(DifficultyButton, parent)
+	DifficultyButtonCenteringPanel:SetZPos(3)
+	DifficultyButtonCenteringPanel:Dock(BOTTOM)
+	--[[local VoteButton = CreateButton(nil, ROTGB_LocalizeString("rotgb_tg.buttons.start_vote"), color_green, function()
+		parent:Close()
+		RunConsoleCommand("rotgb_tg_vote")
+	end)
+	local VoteButtonCenteringPanel = CreateElementCenteringPanel(VoteButton, parent)
+	VoteButtonCenteringPanel:SetZPos(3)
+	VoteButtonCenteringPanel:Dock(BOTTOM)]]
 	
 	if canContinue then
-		local ContinueButton = CreateButton(nil, "#rotgb_tg.buttons.freeplay", color_aqua, function()
+		local ContinueButton = CreateButton(nil, ROTGB_LocalizeString("rotgb_tg.buttons.close"), color_aqua, function()
 			parent:Close()
 		end)
 		local ContinueButtonCenteringPanel = CreateElementCenteringPanel(ContinueButton, parent)
@@ -983,10 +986,10 @@ local function CreateDifficultyDescriptionPanel()
 		if difficulty then
 			Header:SetText(ROTGB_LocalizeString(
 				"rotgb_tg.difficulty.subcategory",
-				language.GetPhrase("rotgb_tg.difficulty.category."..hook.Run("GetDifficulties")[difficulty].category),
-				language.GetPhrase("rotgb_tg.difficulty."..difficulty..".name")
+				ROTGB_LocalizeString("rotgb_tg.difficulty.category."..hook.Run("GetDifficulties")[difficulty].category),
+				ROTGB_LocalizeString("rotgb_tg.difficulty."..difficulty..".name")
 			))
-			Text:SetText("#rotgb_tg.difficulty."..difficulty..".description")
+			Text:SetText(ROTGB_LocalizeString("rotgb_tg.difficulty."..difficulty..".description"))
 		else
 			Header:SetText(ROTGB_LocalizeString("rotgb_tg.difficulty.info.header"))
 			Text:SetText(ROTGB_LocalizeString("rotgb_tg.difficulty.info"))
@@ -1082,7 +1085,7 @@ local function CreateDifficultySelectionPanel(parent)
 	local completedDifficulties = hook.Run("GetCompletedDifficulties")[game.GetMap()] or {}
 	
 	for i,v in ipairs(hook.Run("GetGamemodeDifficultyNodes")) do
-		local node = DTree:AddNode("#rotgb_tg.difficulty.category."..v.name, "icon16/bricks.png")
+		local node = DTree:AddNode(ROTGB_LocalizeString("rotgb_tg.difficulty.category."..v.name), "icon16/bricks.png")
 		node:SetExpanded(true, true)
 		node.Label:SetFont("rotgb_body")
 		node.Label:SetTextColor(color_white)
@@ -1101,7 +1104,7 @@ local function CreateDifficultySelectionPanel(parent)
 			local completed = bit.band(completedDifficulties[v2.name] or 0, 1)==1
 			allCompleted = allCompleted and completed
 			
-			local subnode = node:AddNode("#rotgb_tg.difficulty."..v2.name..".name", completed and "icon16/tick.png" or "icon16/brick.png")
+			local subnode = node:AddNode(ROTGB_LocalizeString("rotgb_tg.difficulty."..v2.name..".name"), completed and "icon16/tick.png" or "icon16/brick.png")
 			subnode.Label:SetFont("rotgb_body")
 			subnode.Label:SetTextColor(completed and color_light_green or color_white)
 			subnode.Label.Paint = DrawNodeLabel
@@ -1125,13 +1128,25 @@ end
 
 local function CreateDifficultyConfirmButtonPanel(parent, DifficultySelectionPanel, zPos)
 	local newDifficulty = nil
-	local button = CreateButton(nil, "#rotgb_tg.buttons.select_difficulty", color_green, function()
-		net.Start("rotgb_gamemode")
-		net.WriteUInt(RTG_OPERATION_DIFFICULTY, 4)
-		net.WriteString(newDifficulty)
-		net.SendToServer()
-		hook.Run("HideDifficultySelection")
-	end)
+	local canChangeImmediately = LocalPlayer():IsAdmin() or (hook.Run("GetDifficulty") or "") == ""
+	local button = CreateButton(
+		nil,
+		ROTGB_LocalizeString(
+			canChangeImmediately and "rotgb_tg.buttons.select_difficulty" or "rotgb_tg.buttons.vote_difficulty"
+		),
+		color_green,
+		function()
+			if canChangeImmediately then
+				net.Start("rotgb_gamemode")
+				net.WriteUInt(RTG_OPERATION_DIFFICULTY, 4)
+				net.WriteString(newDifficulty)
+				net.SendToServer()
+			else
+				hook.Run("ShowVoteMenu", {typ=RTG_VOTE_CHANGEDIFFICULTY, target=newDifficulty})
+			end
+			hook.Run("HideDifficultySelection")
+		end
+	)
 	local Panel = CreateElementCenteringPanel(button, parent)
 	
 	Panel:SetZPos(zPos)
@@ -1153,7 +1168,7 @@ local function CreateDifficultyConfirmButtonPanel(parent, DifficultySelectionPan
 end
 
 local function CreateDifficultyCancelButtonPanel(parent, zPos)
-	local button = CreateButton(Panel, "#rotgb_tg.buttons.cancel", color_red, function()
+	local button = CreateButton(Panel, ROTGB_LocalizeString("rotgb_tg.buttons.cancel"), color_red, function()
 		hook.Run("HideDifficultySelection")
 	end)
 	local Panel = CreateElementCenteringPanel(button, parent)
@@ -1167,33 +1182,40 @@ end
 local function CreateVoteLeftPanel()
 	local Panel = vgui.Create("DScrollPanel")
 	
-	local KickButton = CreateButton(Panel, "#rotgb_tg.voting.kick", color_red, function()
+	local KickButton = CreateButton(Panel, ROTGB_LocalizeString("rotgb_tg.voting.kick"), color_red, function()
 		Panel:UpdateRightPanel(RTG_VOTE_KICK)
 	end)
 	KickButton:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
 	KickButton:SetZPos(1)
 	KickButton:Dock(TOP)
 	
-	local DifficultyButton = CreateButton(Panel, "#rotgb_tg.voting.change_difficulty", color_yellow, function()
+	local DifficultyButton = CreateButton(Panel, ROTGB_LocalizeString("rotgb_tg.voting.change_difficulty"), color_orange, function()
 		Panel:UpdateRightPanel(RTG_VOTE_CHANGEDIFFICULTY)
 	end)
 	DifficultyButton:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
 	DifficultyButton:SetZPos(2)
 	DifficultyButton:Dock(TOP)
 	
-	local RestartButton = CreateButton(Panel, "#rotgb_tg.voting.restart", color_green, function()
+	local RestartButton = CreateButton(Panel, ROTGB_LocalizeString("rotgb_tg.voting.restart"), color_yellow, function()
 		Panel:UpdateRightPanel(RTG_VOTE_RESTART)
 	end)
 	RestartButton:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
 	RestartButton:SetZPos(3)
 	RestartButton:Dock(TOP)
 	
-	local MapButton = CreateButton(Panel, "#rotgb_tg.voting.change_map", color_aqua, function()
+	local MapButton = CreateButton(Panel, ROTGB_LocalizeString("rotgb_tg.voting.change_map"), color_green, function()
 		Panel:UpdateRightPanel(RTG_VOTE_MAP)
 	end)
 	MapButton:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
 	MapButton:SetZPos(4)
 	MapButton:Dock(TOP)
+	
+	local HogButton = CreateButton(Panel, ROTGB_LocalizeString("rotgb_tg.voting.hog_all_xp"), color_aqua, function()
+		Panel:UpdateRightPanel(RTG_VOTE_HOGALLXP)
+	end)
+	HogButton:DockMargin(0,0,0,FONT_HEADER_HEIGHT)
+	HogButton:SetZPos(5)
+	HogButton:Dock(TOP)
 	
 	return Panel
 end
@@ -1207,7 +1229,7 @@ local function CreateVoteRightPanel(VoteLeftPanel, data)
 			v:Remove()
 		end
 		table.Empty(Panel.TargetButtons)
-		if voteType == RTG_VOTE_KICK then
+		if voteType == RTG_VOTE_KICK or voteType == RTG_VOTE_HOGALLXP then
 			local plys = player.GetAll()
 			local nicknames = {}
 			for k,v in pairs(plys) do
@@ -1237,7 +1259,7 @@ local function CreateVoteRightPanel(VoteLeftPanel, data)
 					for k,v in pairs(Panel.TargetButtons) do
 						v:SetFlashing(v == self)
 					end
-					Panel:SetVote(RTG_VOTE_KICK, self.VoteTarget)
+					Panel:SetVote(voteType, self.VoteTarget)
 				end)
 				button.VoteTarget = v.userid
 				button:SetZPos(i)
@@ -1250,8 +1272,8 @@ local function CreateVoteRightPanel(VoteLeftPanel, data)
 				for j,v2 in ipairs(v.subnodes) do
 					local difficultyString = ROTGB_LocalizeString(
 						"rotgb_tg.difficulty.subcategory",
-						language.GetPhrase("rotgb_tg.difficulty.category."..v.name),
-						language.GetPhrase("rotgb_tg.difficulty."..v2.name..".name")
+						ROTGB_LocalizeString("rotgb_tg.difficulty.category."..v.name),
+						ROTGB_LocalizeString("rotgb_tg.difficulty."..v2.name..".name")
 					)
 					local button = CreateButton(Panel, difficultyString, CATEGORY_COLORS[i] or color_gray, function(self)
 						for k,v3 in pairs(Panel.TargetButtons) do
@@ -1267,7 +1289,7 @@ local function CreateVoteRightPanel(VoteLeftPanel, data)
 				end
 			end
 		elseif voteType == RTG_VOTE_RESTART then
-			local QuickButton = CreateButton(Panel, "#rotgb_tg.voting.restart.quick", color_green, function(self)
+			local QuickButton = CreateButton(Panel, ROTGB_LocalizeString("rotgb_tg.voting.restart.quick"), color_green, function(self)
 				for k,v in pairs(Panel.TargetButtons) do
 					v:SetFlashing(v == self)
 				end
@@ -1279,7 +1301,7 @@ local function CreateVoteRightPanel(VoteLeftPanel, data)
 			QuickButton:Dock(TOP)
 			table.insert(Panel.TargetButtons, QuickButton)
 			
-			local MapButton = CreateButton(Panel, "#rotgb_tg.voting.restart.full", color_yellow, function(self)
+			local MapButton = CreateButton(Panel, ROTGB_LocalizeString("rotgb_tg.voting.restart.full"), color_yellow, function(self)
 				for k,v in pairs(Panel.TargetButtons) do
 					v:SetFlashing(v == self)
 				end
@@ -1336,7 +1358,7 @@ local function CreateVoteReasonPanel()
 	TextEntry:Dock(FILL)
 	TextEntry:SetFont("rotgb_body")
 	TextEntry:SetTall(FONT_BODY_HEIGHT*5)
-	TextEntry:SetPlaceholderText("#rotgb_tg.voting.reason")
+	TextEntry:SetPlaceholderText(ROTGB_LocalizeString("rotgb_tg.voting.reason"))
 	TextEntry:SetPaintBackground(false)
 	TextEntry:SetTextColor(color_white)
 	
@@ -1350,7 +1372,7 @@ end
 local function CreateVoteButtonPanel(Menu, VoteRightPanel, VoteReasonPanel, data)
 	local VoteButtonPanel = vgui.Create("DPanel")
 	
-	local StartVoteButton = CreateButton(VoteButtonPanel, "#rotgb_tg.buttons.start_vote", color_green, function()
+	local StartVoteButton = CreateButton(VoteButtonPanel, ROTGB_LocalizeString("rotgb_tg.buttons.start_vote"), color_green, function()
 		net.Start("rotgb_gamemode")
 		net.WriteUInt(RTG_OPERATION_VOTESTART, 4)
 		net.WriteUInt(VoteButtonPanel.VoteType, 4)
@@ -1359,7 +1381,7 @@ local function CreateVoteButtonPanel(Menu, VoteRightPanel, VoteReasonPanel, data
 		net.SendToServer()
 		Menu:Close()
 	end)
-	local BackButton = CreateButton(VoteButtonPanel, "#rotgb_tg.buttons.cancel", color_yellow, function()
+	local BackButton = CreateButton(VoteButtonPanel, ROTGB_LocalizeString("rotgb_tg.buttons.cancel"), color_yellow, function()
 		Menu:Close()
 	end)
 	
@@ -1392,18 +1414,16 @@ local function CreateVoterStatementPanel(parent, voteInfo)
 	RichText:Dock(FILL)
 	local initiatorColor = IsValid(voteInfo.initiator) and team.GetColor(voteInfo.initiator:Team()) or color_white
 	local colorFragments = {initiatorColor}
-	local replacementFragments = {IsValid(voteInfo.initiator) and voteInfo.initiator:Nick() or language.GetPhrase("rotgb_tg.voting.initiated.missing_player")}
+	local replacementFragments = {IsValid(voteInfo.initiator) and voteInfo.initiator:Nick() or ROTGB_LocalizeString("rotgb_tg.voting.missing_player")}
 	
 	local voteType = voteInfo.typ
-	if voteType == RTG_VOTE_KICK then
+	if voteType == RTG_VOTE_KICK or voteType == RTG_VOTE_HOGALLXP then
 		local targetPlayer = Player(tonumber(voteInfo.target) or -1)
-		if IsValid(targetPlayer) then
-			table.insert(colorFragments, team.GetColor(targetPlayer:Team()))
-			table.insert(replacementFragments, (ROTGB_LocalizeString("rotgb_tg.voting.initiated.kick", targetPlayer:Nick())))
-		else
-			table.insert(colorFragments, color_white)
-			table.insert(replacementFragments, language.GetPhrase("rotgb_tg.voting.initiated.kick.missing_player"))
-		end
+		local targetNick = IsValid(targetPlayer) and targetPlayer:Nick() or ROTGB_LocalizeString("rotgb_tg.voting.missing_player")
+		local initiatedText = voteType == RTG_VOTE_KICK and "rotgb_tg.voting.initiated.kick" or "rotgb_tg.voting.initiated.hog_all_xp"
+		
+		table.insert(colorFragments, IsValid(targetPlayer) and team.GetColor(targetPlayer:Team()) or color_white)
+		table.insert(replacementFragments, (ROTGB_LocalizeString(initiatedText, targetNick)))
 	elseif voteType == RTG_VOTE_CHANGEDIFFICULTY then
 		local targetDifficulty = voteInfo.target
 		local targetMode = hook.Run("GetDifficulties")[targetDifficulty] or {}
@@ -1413,21 +1433,21 @@ local function CreateVoterStatementPanel(parent, voteInfo)
 			"rotgb_tg.voting.initiated.difficulty",
 			ROTGB_LocalizeString(
 				"rotgb_tg.difficulty.subcategory",
-				language.GetPhrase(category and "rotgb_tg.difficulty.category."..category or "rotgb_tg.difficulty.subcategory.invalid.1"),
-				language.GetPhrase(category and "rotgb_tg.difficulty."..targetDifficulty..".name" or "rotgb_tg.difficulty.subcategory.invalid.2")
+				ROTGB_LocalizeString(category and "rotgb_tg.difficulty.category."..category or "rotgb_tg.difficulty.subcategory.invalid.1"),
+				ROTGB_LocalizeString(category and "rotgb_tg.difficulty."..targetDifficulty..".name" or "rotgb_tg.difficulty.subcategory.invalid.2")
 			)
 		)))
 	elseif voteType == RTG_VOTE_RESTART then
 		local target = voteInfo.target
 		if target == "1" then
 			table.insert(colorFragments, color_green)
-			table.insert(replacementFragments, language.GetPhrase("rotgb_tg.voting.initiated.restart.quick"))
+			table.insert(replacementFragments, (ROTGB_LocalizeString("rotgb_tg.voting.initiated.restart.quick")))
 		elseif target == "2" then
 			table.insert(colorFragments, color_yellow)
-			table.insert(replacementFragments, language.GetPhrase("rotgb_tg.voting.initiated.restart.full"))
+			table.insert(replacementFragments, (ROTGB_LocalizeString("rotgb_tg.voting.initiated.restart.full")))
 		else
 			table.insert(colorFragments, color_white)
-			table.insert(replacementFragments, language.GetPhrase("rotgb_tg.voting.initiated.restart.invalid"))
+			table.insert(replacementFragments, (ROTGB_LocalizeString("rotgb_tg.voting.initiated.restart.invalid")))
 		end
 	elseif voteType == RTG_VOTE_MAP then
 		table.insert(colorFragments, color_green)
@@ -1436,17 +1456,17 @@ local function CreateVoterStatementPanel(parent, voteInfo)
 	
 	if voteInfo.reason=="" then
 		table.insert(colorFragments, color_yellow)
-		table.insert(replacementFragments, language.GetPhrase("rotgb_tg.voting.initiated.no_reason"))
+		table.insert(replacementFragments, (ROTGB_LocalizeString("rotgb_tg.voting.initiated.no_reason")))
 	else
 		table.insert(colorFragments, color_yellow)
 		table.insert(replacementFragments, (ROTGB_LocalizeString("rotgb_tg.voting.initiated.reason", voteInfo.reason)))
 	end
 	table.insert(colorFragments, color_green)
-	table.insert(replacementFragments, language.GetPhrase("rotgb_tg.voting.initiated.hint.yes"))
+	table.insert(replacementFragments, (ROTGB_LocalizeString("rotgb_tg.voting.initiated.hint.yes")))
 	table.insert(colorFragments, color_red)
-	table.insert(replacementFragments, language.GetPhrase("rotgb_tg.voting.initiated.hint.no"))
+	table.insert(replacementFragments, (ROTGB_LocalizeString("rotgb_tg.voting.initiated.hint.no")))
 	
-	hook.Run("InsertRichTextWithMulticoloredString", RichText, ROTGB_LocalizeMulticoloredString(
+	ROTGB_InsertRichTextWithMulticoloredString(RichText, ROTGB_LocalizeMulticoloredString(
 		"rotgb_tg.voting.initiated",
 		replacementFragments,
 		color_white,
@@ -1573,7 +1593,7 @@ local function CreateVoterResultStatementHeader(parent, voteInfo, result)
 	Header:Dock(TOP)
 	Header:SetFont("rotgb_body")
 	Header:SetTextColor(succeeded and color_green or color_red)
-	Header:SetText(succeeded and "#GameUI_vote_passed" or "#GameUI_vote_failed")
+	Header:SetText(succeeded and ROTGB_LocalizeString("rotgb_tg.voting.passed") or ROTGB_LocalizeString("rotgb_tg.voting.failed"))
 	Header:SetTall(FONT_BODY_HEIGHT)
 end
 
@@ -1583,21 +1603,31 @@ local function CreateVoterResultStatementPanel(parent, voteInfo, result)
 	RichText:Dock(FILL)
 	local multiColoredText = {color_white}
 	if result == RTG_VOTERESULT_NOTARGET then
-		table.insert(multiColoredText, language.GetPhrase("rotgb_tg.voting.result.no_target"))
+		table.insert(multiColoredText, (ROTGB_LocalizeString("rotgb_tg.voting.failed.no_target")))
 	elseif result == RTG_VOTERESULT_COOLDOWN then
-		table.insert(multiColoredText, language.GetPhrase("rotgb_tg.voting.result.another_vote"))
+		table.insert(multiColoredText, (ROTGB_LocalizeString("rotgb_tg.voting.failed.another_vote")))
 	elseif result == RTG_VOTERESULT_DISAGREED then
-		table.insert(multiColoredText, language.GetPhrase("rotgb_tg.voting.result.reject"))
+		table.insert(multiColoredText, (ROTGB_LocalizeString("rotgb_tg.voting.failed.reject")))
 	elseif result == RTG_VOTERESULT_KICKBYCHANGEDNICK then
-		table.insert(multiColoredText, language.GetPhrase("rotgb_tg.voting.result.target_changed_nick"))
+		table.insert(multiColoredText, (ROTGB_LocalizeString("rotgb_tg.voting.failed.target_changed_nick")))
 	elseif result == RTG_VOTERESULT_AGREED then
 		local typ = voteInfo.typ
 		if typ == RTG_VOTE_KICK then
 			local target = Player(voteInfo.target)
-			local userName = IsValid(target) and target:Nick() or "<already kicked>"
+			local userName = IsValid(target) and target:Nick() or ROTGB_LocalizeString("rotgb_tg.voting.passed.kick.player_not_found")
 			local appendColor = IsValid(target) and team.GetColor(target:Team()) or color_gray
 			table.Add(multiColoredText, ROTGB_LocalizeMulticoloredString(
-				"rotgb_tg.voting.result.kick",
+				"rotgb_tg.voting.passed.kick",
+				{userName},
+				color_white,
+				{appendColor}
+			))
+		elseif typ == RTG_VOTE_HOGALLXP then
+			local target = Player(voteInfo.target)
+			local userName = IsValid(target) and target:Nick() or ROTGB_LocalizeString("rotgb_tg.voting.missing_player")
+			local appendColor = IsValid(target) and team.GetColor(target:Team()) or color_white
+			table.Add(multiColoredText, ROTGB_LocalizeMulticoloredString(
+				"rotgb_tg.voting.passed.hog_all_xp",
 				{userName},
 				color_white,
 				{appendColor}
@@ -1607,28 +1637,28 @@ local function CreateVoterResultStatementPanel(parent, voteInfo, result)
 			local target = hook.Run("GetDifficulties")[difficulty]
 			local difficultyName = ROTGB_LocalizeString(
 				"rotgb_tg.difficulty.subcategory",
-				language.GetPhrase(target and "rotgb_tg.difficulty.category."..target.category or "rotgb_tg.difficulty.subcategory.invalid.1"),
-				language.GetPhrase(target and "rotgb_tg.difficulty."..difficulty..".name" or "rotgb_tg.difficulty.subcategory.invalid.2")
+				ROTGB_LocalizeString(target and "rotgb_tg.difficulty.category."..target.category or "rotgb_tg.difficulty.subcategory.invalid.1"),
+				ROTGB_LocalizeString(target and "rotgb_tg.difficulty."..difficulty..".name" or "rotgb_tg.difficulty.subcategory.invalid.2")
 			)
 			local appendColor = CATEGORY_COLORS[hook.Run("GetDifficultyCategories")[target.category]] or color_gray
 			table.Add(multiColoredText, ROTGB_LocalizeMulticoloredString(
-				"rotgb_tg.voting.result.difficulty",
+				"rotgb_tg.voting.passed.difficulty",
 				{difficultyName},
 				color_white,
 				{appendColor}
 			))
 		elseif typ == RTG_VOTE_RESTART then
-			table.insert(multiColoredText, language.GetPhrase("rotgb_tg.voting.result.restart"))
+			table.insert(multiColoredText, (ROTGB_LocalizeString("rotgb_tg.voting.passed.restart")))
 		elseif typ == RTG_VOTE_MAP then
 			table.Add(multiColoredText, ROTGB_LocalizeMulticoloredString(
-				"rotgb_tg.voting.result.map",
+				"rotgb_tg.voting.passed.map",
 				{voteInfo.target},
 				color_white,
 				{color_green}
 			))
 		end
 	end
-	hook.Run("InsertRichTextWithMulticoloredString", RichText, multiColoredText)
+	ROTGB_InsertRichTextWithMulticoloredString(RichText, multiColoredText)
 	return RichText
 end
 
@@ -1697,6 +1727,15 @@ local function CreateSkillButton(parent, skillID, skillTier)
 			end
 		end
 		
+		if parent:IsSkillActive(skillID) then
+			local regulatedSize = self:GetWide() * radiusMultiplier * 1.5
+			local regulatedOffset = self:GetWide() / 2
+			local rotation = RealTime()*-90%360
+			
+			surface.SetMaterial(SKILL_MATERIALS.active)
+			surface.DrawTexturedRectRotated(regulatedOffset, regulatedOffset, regulatedSize, regulatedSize, rotation)
+		end
+		
 		local offset = (self:GetWide() - size)/2
 		surface.SetMaterial(parent:GetSkillMaterial(skillID))
 		surface.SetDrawColor(255,255,255)
@@ -1734,7 +1773,7 @@ local function CreateTraitDescription(trait, amount)
 	if trait=="skillEffectiveness" then
 		return ROTGB_LocalizeMulticoloredString(
 			"rotgb_tg.skills.traits.skillEffectiveness",
-			{language.GetPhrase("rotgb_tg.skills.traits.skillEffectiveness.1"), string.format("%+.2f", amount)},
+			{ROTGB_LocalizeString("rotgb_tg.skills.traits.skillEffectiveness.1"), string.format("%+.2f", amount)},
 			color_white,
 			{color_yellow, color_white}
 		)
@@ -1758,7 +1797,7 @@ local function CreateSkillTooltip(skillTreeSurface)
 		local tierPalette = SKILL_TOOLTIP_TIERS[self.rtg_SkillTier+1]
 		local maxWidth = 0
 		
-		self.rtg_TitleText:SetText("#rotgb_tg.skills.names."..skill.name)
+		self.rtg_TitleText:SetText(ROTGB_LocalizeString("rotgb_tg.skills.names."..skill.name))
 		self.rtg_TitleText:SetTextColor(tierPalette[2])
 		self.rtg_TitleText:SizeToContentsX()
 		maxWidth = self.rtg_TitleText:GetWide()
@@ -1890,7 +1929,7 @@ local function CreateSkillSummaryPanel(parent)
 	local titleText = vgui.Create("DLabel", tooltip)
 	titleText:SetFont("rotgb_skill_body")
 	titleText:SetTall(FONT_SKILL_BODY_HEIGHT)
-	titleText:SetText("#rotgb_tg.skills.skill_effects")
+	titleText:SetText(ROTGB_LocalizeString("rotgb_tg.skills.skill_effects"))
 	titleText:SetTextColor(color_light_orange)
 	titleText:SizeToContentsX()
 	titleText:Dock(TOP)
@@ -1917,7 +1956,7 @@ local function CreateSkillSummaryPanel(parent)
 end
 
 local function CreateSkillSummaryBackButton(parent)
-	local backButton = CreateButton(nil, "#rotgb_tg.buttons.back", color_yellow, function(button)
+	local backButton = CreateButton(nil, ROTGB_LocalizeString("rotgb_tg.buttons.back"), color_yellow, function(button)
 		parent:CreateSkillWebSurface()
 	end)
 	local backButtonCenteringPanel = CreateElementCenteringPanel(backButton, parent)
@@ -2047,7 +2086,16 @@ local function CreateSkillWebSurface(parent)
 		DisableClipping(false)
 		
 		local skillPoints = ply:RTG_GetSkillPoints()
-		SKILL_LEFT_TEXTS[1] = ROTGB_LocalizeMulticoloredString(
+		local skillLeftTexts = {
+			[2] = {color_white, (ROTGB_LocalizeString("rotgb_tg.skills.hint.rays"))},
+			[4] = ROTGB_LocalizeMulticoloredString(
+				"rotgb_tg.skills.hint.multiplayer",
+				{ROTGB_LocalizeString("rotgb_tg.skills.hint.multiplayer.1")},
+				color_white,
+				{color_yellow}
+			)
+		}
+		skillLeftTexts[1] = ROTGB_LocalizeMulticoloredString(
 			"rotgb_tg.skills.skill_points",
 			{ROTGB_Commatize(skillPoints)},
 			color_white,
@@ -2058,13 +2106,29 @@ local function CreateSkillWebSurface(parent)
 		if delta > 1 then
 			delta = 2 - delta
 		end
-		SKILL_LEFT_TEXTS[2][1] = Color(255, 255 * delta * delta, 0)
+		skillLeftTexts[3] = {}
+		skillLeftTexts[3][1] = Color(255, 255 * delta * delta, 0)
+		skillLeftTexts[3][2] = ROTGB_LocalizeString("rotgb_tg.skills.skill_apply_warning")
 		
-		for i,v in ipairs(SKILL_LEFT_TEXTS) do
+		for i,v in ipairs(skillLeftTexts) do
 			draw.MultiColoredText(v, "rotgb_skill_body", 0, FONT_SKILL_BODY_HEIGHT*(i-1))
 		end
+		
 		for i,v in ipairs(SKILL_RIGHT_TEXTS) do
-			draw.MultiColoredText(ROTGB_LocalizeMulticoloredString(unpack(v)), "rotgb_skill_body", w, FONT_SKILL_BODY_HEIGHT*(i-1), TEXT_ALIGN_RIGHT)
+			local arguments = {}
+			
+			for k,v2 in pairs(v) do
+				if k == 2 then
+					arguments[2] = {}
+					for k2,v3 in pairs(v2) do
+						arguments[2][k2] = ROTGB_LocalizeString(v3)
+					end
+				else
+					arguments[k] = v2
+				end
+			end
+			
+			draw.MultiColoredText(ROTGB_LocalizeMulticoloredString(unpack(arguments)), "rotgb_skill_body", w, FONT_SKILL_BODY_HEIGHT*(i-1), TEXT_ALIGN_RIGHT)
 		end
 	end
 	function Surface:Think()
@@ -2153,7 +2217,9 @@ local function CreateSkillWebSurface(parent)
 		end
 	end
 	function Surface:HideSkillTooltip()
-		self.rtg_SkillTooltip:Hide()
+		if IsValid(self.rtg_SkillTooltip) then
+			self.rtg_SkillTooltip:Hide()
+		end
 	end
 	function Surface:IsSkillTooltipVisible()
 		return IsValid(self.rtg_SkillTooltip) and self.rtg_SkillTooltip:IsVisible()
@@ -2264,6 +2330,9 @@ local function CreateSkillWebSurface(parent)
 		elseif ply:RTG_SkillUnlocked(skillID, skills) then return skillMaterialTable.unlocked
 		else return skillMaterialTable.locked
 		end
+	end
+	function Surface:IsSkillActive(skillID)
+		return hook.Run("GetAppliedSkills")[skillID]
 	end
 	function Surface:GetSkillPositionAndAngles(skill)
 		if not self.rtg_SkillPositionData[skill] then
@@ -2415,23 +2484,29 @@ local function CreateSkillWebSurface(parent)
 end
 
 local function CreateSkillWebButtonsPanel(parent)
-	local effectsButton = CreateButton(nil, "#rotgb_tg.buttons.skills.skill_effects", color_aqua, function()
+	local effectsButton = CreateButton(nil, ROTGB_LocalizeString("rotgb_tg.buttons.skills.skill_effects"), color_aqua, function()
 		parent:CreateSkillSummary()
 	end)
-	local cameraButton = CreateButton(nil, "#rotgb_tg.buttons.skills.reset_camera", color_green, function()
+	local cameraButton = CreateButton(nil, ROTGB_LocalizeString("rotgb_tg.buttons.skills.reset_camera"), color_green, function()
 		parent:ResetSkillWebCamera()
 	end)
-	local resetButton = CreateButton(nil, "#rotgb_tg.buttons.skills.reset_skills", color_red, function()
+	local resetButton = CreateButton(nil, ROTGB_LocalizeString("rotgb_tg.buttons.skills.reset_skills"), color_red, function()
 		if next(LocalPlayer():RTG_GetSkills()) then
-			Derma_Query("#rotgb_tg.buttons.skills.reset_skills.warning", "#rotgb_tg.skills.reset_skills", "#GameUI_Yes", function()
-				net.Start("rotgb_gamemode")
-				net.WriteUInt(RTG_OPERATION_SKILLS, 4)
-				net.WriteUInt(RTG_SKILL_CLEAR, 2)
-				net.SendToServer()
-			end, "#GameUI_No")
+			Derma_Query(
+				ROTGB_LocalizeString("rotgb_tg.buttons.skills.reset_skills.warning"),
+				ROTGB_LocalizeString("rotgb_tg.skills.reset_skills"),
+				ROTGB_LocalizeString("rotgb.general.yes"),
+				function()
+					net.Start("rotgb_gamemode")
+					net.WriteUInt(RTG_OPERATION_SKILLS, 4)
+					net.WriteUInt(RTG_SKILL_CLEAR, 2)
+					net.SendToServer()
+				end,
+				(ROTGB_LocalizeString("rotgb.general.no"))
+			)
 		end
 	end)
-	local backButton = CreateButton(nil, "#rotgb_tg.buttons.back", color_yellow, function()
+	local backButton = CreateButton(nil, ROTGB_LocalizeString("rotgb_tg.buttons.back"), color_yellow, function()
 		hook.Run("HideSkillWeb")
 	end)
 	local Panel = CreateHorizontalPanelContainer(parent, {effectsButton, cameraButton, backButton, resetButton}, FONT_HEADER_HEIGHT)
@@ -2501,7 +2576,7 @@ local function CreateAchievementPanel(parent, achievementID, zPos)
 	if rewardType == 0 then
 		rewardText = ROTGB_LocalizeString("rotgb_tg.achievement.reward.xp", ROTGB_Commatize(achievement.xp))
 	elseif rewardType == 1 then
-		rewardText = language.GetPhrase("rotgb_tg.achievement.reward.skills")
+		rewardText = ROTGB_LocalizeString("rotgb_tg.achievement.reward.skills")
 	end
 	
 	local achievementXP = vgui.Create("DLabel", achievementHeader)
@@ -2526,7 +2601,7 @@ local function CreateAchievementPanel(parent, achievementID, zPos)
 	local achievementTitle = vgui.Create("DLabel", achievementHeader)
 	achievementTitle:SetFont("rotgb_achievement_header")
 	achievementTitle:SetTextColor(ACHIEVEMENT_TIERS[(tonumber(achievement.tier) or 1)] or color_light_red)
-	achievementTitle:SetText("#rotgb_tg.achievement."..name..".name")
+	achievementTitle:SetText(ROTGB_LocalizeString("rotgb_tg.achievement."..name..".name"))
 	achievementTitle:Dock(FILL)
 	
 	local achievementProgress = vgui.Create("DPanel", panel)
@@ -2543,7 +2618,7 @@ local function CreateAchievementPanel(parent, achievementID, zPos)
 	local achievementDescription = vgui.Create("DLabel", panel)
 	achievementDescription:SetFont("rotgb_achievement_body")
 	achievementDescription:SetTextColor(color_white)
-	achievementDescription:SetText("#rotgb_tg.achievement."..name..".description")
+	achievementDescription:SetText(ROTGB_LocalizeString("rotgb_tg.achievement."..name..".description"))
 	achievementDescription:SetWrap(true)
 	achievementDescription:SetContentAlignment(7)
 	achievementDescription:Dock(FILL)
@@ -2565,12 +2640,12 @@ local AchievementSorters = {
 		end
 	end},
 	{function(a,b)
-		local aName = language.GetPhrase("rotgb_tg.achievement."..a.name..".name")
-		local bName = language.GetPhrase("rotgb_tg.achievement."..b.name..".name")
+		local aName = ROTGB_LocalizeString("rotgb_tg.achievement."..a.name..".name")
+		local bName = ROTGB_LocalizeString("rotgb_tg.achievement."..b.name..".name")
 		return aName < bName
 	end, function(a,b)
-		local aName = language.GetPhrase("rotgb_tg.achievement."..a.name..".name")
-		local bName = language.GetPhrase("rotgb_tg.achievement."..b.name..".name")
+		local aName = ROTGB_LocalizeString("rotgb_tg.achievement."..a.name..".name")
+		local bName = ROTGB_LocalizeString("rotgb_tg.achievement."..b.name..".name")
 		return aName > bName
 	end}
 }
@@ -2582,7 +2657,7 @@ local function CreateAchievementFilterPanel(parent)
 	local searchBar = vgui.Create("DTextEntry", filterBar)
 	searchBar:SetTall(FONT_BODY_HEIGHT)
 	searchBar:SetFont("rotgb_body")
-	searchBar:SetPlaceholderText("#rotgb_tg.achievement.search")
+	searchBar:SetPlaceholderText(ROTGB_LocalizeString("rotgb_tg.achievement.search"))
 	searchBar:SetZPos(1)
 	searchBar:Dock(TOP)
 	function searchBar:OnChange()
@@ -2590,15 +2665,15 @@ local function CreateAchievementFilterPanel(parent)
 	end
 	
 	local text = vgui.Create("DLabel", filterBar)
-	text:SetText("#rotgb_tg.achievement.sort_by")
+	text:SetText(ROTGB_LocalizeString("rotgb_tg.achievement.sort_by"))
 	text:SetFont("rotgb_body")
 	text:SetZPos(2)
 	text:Dock(LEFT)
 	
 	local dropdown = vgui.Create("DComboBox", filterBar)
-	dropdown:AddChoice("#rotgb_tg.achievement.sort_by.id", 1, true)
-	dropdown:AddChoice("#rotgb_tg.achievement.sort_by.xp", 2)
-	dropdown:AddChoice("#rotgb_tg.achievement.sort_by.name", 3)
+	dropdown:AddChoice(ROTGB_LocalizeString("rotgb_tg.achievement.sort_by.id"), 1, true)
+	dropdown:AddChoice(ROTGB_LocalizeString("rotgb_tg.achievement.sort_by.xp"), 2)
+	dropdown:AddChoice(ROTGB_LocalizeString("rotgb_tg.achievement.sort_by.name"), 3)
 	dropdown:SetFont("rotgb_body")
 	dropdown:SetZPos(3)
 	dropdown:Dock(LEFT)
@@ -2607,7 +2682,7 @@ local function CreateAchievementFilterPanel(parent)
 	end
 	
 	local descendingCheckbox = vgui.Create("DCheckBoxLabel", filterBar)
-	descendingCheckbox:SetText("#rotgb_tg.achievement.sort_by.descending")
+	descendingCheckbox:SetText(ROTGB_LocalizeString("rotgb_tg.achievement.sort_by.descending"))
 	descendingCheckbox:SetFont("rotgb_body")
 	descendingCheckbox:SetZPos(4)
 	descendingCheckbox:Dock(LEFT)
@@ -2616,7 +2691,7 @@ local function CreateAchievementFilterPanel(parent)
 	end
 	
 	local hideCompleted = vgui.Create("DCheckBoxLabel", filterBar)
-	hideCompleted:SetText("#rotgb_tg.achievement.sort_by.hide_completed")
+	hideCompleted:SetText(ROTGB_LocalizeString("rotgb_tg.achievement.sort_by.hide_completed"))
 	hideCompleted:SetFont("rotgb_body")
 	hideCompleted:SetZPos(5)
 	hideCompleted:Dock(LEFT)
@@ -2633,7 +2708,7 @@ local function CreateAchievementFilterPanel(parent)
 	function filterBar:GetAchievements()
 		local newAchievements = {}
 		for k,v in pairs(hook.Run("GetAchievements")) do
-			local toSearch = string.lower(language.GetPhrase("rotgb_tg.achievement."..v.name..".name")..language.GetPhrase("rotgb_tg.achievement."..v.name..".description"))
+			local toSearch = string.lower(ROTGB_LocalizeString("rotgb_tg.achievement."..v.name..".name")..ROTGB_LocalizeString("rotgb_tg.achievement."..v.name..".description"))
 			local filterCondition1 = searchBar:GetValue() == "" or string.find(toSearch, string.lower(searchBar:GetValue()), 1, true)
 			local filterCondition2 = not (hideCompleted:GetChecked() and hook.Run("IsAchievementUnlocked", v.id))
 			if filterCondition1 and filterCondition2 then
@@ -2683,8 +2758,8 @@ local function CreateAchievementsPanel(parent)
 end
 
 local function WeaponSorter(a,b)
-	local aName = language.GetPhrase(a:GetPrintName())
-	local bName = language.GetPhrase(b:GetPrintName())
+	local aName = ROTGB_LocalizeString(a:GetPrintName())
+	local bName = ROTGB_LocalizeString(b:GetPrintName())
 	return aName < bName
 end
 
@@ -2701,14 +2776,15 @@ local function CreateWeaponPanel(parent, wep, zPos)
 	panel.rtg_CurrentX = WEAPON_SELECTOR_WIDTH
 	panel.rtg_CurrentColor = {r = 0, g = 0, b = 0, a = 223}
 	
+	local factor = 1/256
 	function panel:Think()
 		-- figure out the target X
 		local targetX = self:GetSelected() and 0
 		or self:GetActive() and WEAPON_SELECTOR_WIDTH - WEAPON_SELECTOR_HEIGHT
-		or WEAPON_SELECTOR_WIDTH*1.015625
+		or WEAPON_SELECTOR_WIDTH*(1.125)
 		
 		local zPos = self:GetZPos()
-		local lerpFactor = 1-0.015625^RealFrameTime()
+		local lerpFactor = 1-factor^RealFrameTime()
 		local nextX = Lerp(lerpFactor, self.rtg_CurrentX, targetX)
 		local nextY = (zPos - 1) * (WEAPON_SELECTOR_HEIGHT + WEAPON_SELECTOR_PADDING)
 		
@@ -2751,11 +2827,11 @@ local function CreateWeaponPanel(parent, wep, zPos)
 	descPanel:SetPos(WEAPON_SELECTOR_HEIGHT, 0)
 	descPanel:SetSize(WEAPON_SELECTOR_WIDTH - WEAPON_SELECTOR_HEIGHT, WEAPON_SELECTOR_HEIGHT)
 	descPanel:InsertColorChange(255,255,0,255)
-	descPanel:AppendText(language.GetPhrase(wep:GetPrintName() or "")..'\n')
+	descPanel:AppendText(ROTGB_LocalizeString(wep:GetPrintName() or "")..'\n')
 	descPanel:InsertColorChange(255,255,255,255)
-	descPanel:AppendText(language.GetPhrase(wep.Purpose or "")..'\n')
+	descPanel:AppendText(ROTGB_LocalizeString(wep.Purpose or "")..'\n')
 	descPanel:InsertColorChange(255,255,0,255)
-	descPanel:AppendText(language.GetPhrase(wep.Instructions or "")..'\n')
+	descPanel:AppendText(ROTGB_LocalizeString(wep.Instructions or "")..'\n')
 	
 	return panel
 end
@@ -2765,19 +2841,19 @@ end
 function GM:CreateStartupMenu()
 	local Menu = CreateMenu()
 	if ROTGB_SetCash then
-		CreateHeader(Menu, 1, "#rotgb_tg.welcome.header")
+		CreateHeader(Menu, 1, ROTGB_LocalizeString("rotgb_tg.welcome.header"))
 		CreateText(Menu, 2, ROTGB_LocalizeString("rotgb_tg.welcome"))
 		
-		local NextButton = CreateButton(Menu, "#rotgb_tg.buttons.proceed", color_green, function()
+		local NextButton = CreateButton(Menu, ROTGB_LocalizeString("rotgb_tg.buttons.proceed"), color_green, function()
 			hook.Run("ShowHelp")
 		end)
 		NextButton:SetPos(Menu:GetWide()-NextButton:GetWide()-indentX, Menu:GetTall()-NextButton:GetTall()-indentY)
 	else
-		CreateHeader(Menu, 1, "#rotgb_tg.rotgb_missing.header")
-		CreateText(Menu, 2, "#rotgb_tg.rotgb_missing.1")
-		CreateText(Menu, 3, "#rotgb_tg.rotgb_missing.2")
+		CreateHeader(Menu, 1, ROTGB_LocalizeString("rotgb_tg.rotgb_missing.header"))
+		CreateText(Menu, 2, ROTGB_LocalizeString("rotgb_tg.rotgb_missing.1"))
+		CreateText(Menu, 3, ROTGB_LocalizeString("rotgb_tg.rotgb_missing.2"))
 		
-		local OpenButton = CreateButton(Menu, "#rotgb_tg.buttons.rotgb_addon", color_green, function()
+		local OpenButton = CreateButton(Menu, ROTGB_LocalizeString("rotgb_tg.buttons.rotgb_addon"), color_green, function()
 			steamworks.ViewFile("1616333917")
 		end)
 		OpenButton:SetPos(Menu:GetWide()-OpenButton:GetWide()-indentX, Menu:GetTall()-OpenButton:GetTall()-indentY)
@@ -2788,10 +2864,10 @@ end
 
 function GM:CreateTeamSelectMenu(disableCancel)
 	local Menu = CreateMenu()
-	CreateHeader(Menu, 1, "#rotgb_tg.teams.header")
+	CreateHeader(Menu, 1, ROTGB_LocalizeString("rotgb_tg.teams.header"))
 	
 	if LocalPlayer():Team()~=TEAM_UNASSIGNED and LocalPlayer():Team()~=TEAM_SPECTATOR then
-		local WarningText = CreateText(Menu, 2, "#rotgb_tg.teams.change_warning")
+		local WarningText = CreateText(Menu, 2, ROTGB_LocalizeString("rotgb_tg.teams.change_warning"))
 		function WarningText:DoFlashAnim()
 			WarningText.anim = WarningText:NewAnimation(2, 0, 1, function(anim, panel)
 				panel:DoFlashAnim()
@@ -2836,15 +2912,15 @@ function GM:CreateScoreboard()
 	if (difficulty and difficulties[difficulty]) then
 		CreateHeader(Menu, 1, ROTGB_LocalizeString(
 			"rotgb_tg.scoreboard.header",
-			language.GetPhrase("rotgb_tg.scoreboard.title"),
+			ROTGB_LocalizeString("rotgb_tg.scoreboard.title"),
 			ROTGB_LocalizeString(
 				"rotgb_tg.difficulty.subcategory",
-				language.GetPhrase("rotgb_tg.difficulty.category."..difficulties[difficulty].category),
-				language.GetPhrase("rotgb_tg.difficulty."..difficulty..".name")
+				ROTGB_LocalizeString("rotgb_tg.difficulty.category."..difficulties[difficulty].category),
+				ROTGB_LocalizeString("rotgb_tg.difficulty."..difficulty..".name")
 			)
 		))
 	else
-		CreateHeader(Menu, 1, ROTGB_LocalizeString("rotgb_tg.scoreboard.header.no_difficulty", language.GetPhrase("rotgb_tg.scoreboard.title")))
+		CreateHeader(Menu, 1, ROTGB_LocalizeString("rotgb_tg.scoreboard.header.no_difficulty", ROTGB_LocalizeString("rotgb_tg.scoreboard.title")))
 	end
 	
 	function Menu:RecreateScoreboard()
@@ -2868,7 +2944,7 @@ function GM:CreateSuccessMenu()
 			flawless = false
 		end
 	end
-	local Header = CreateHeader(Menu, 1, flawless and "#rotgb_tg.result_screen.flawless_victory" or "#rotgb_tg.result_screen.victory")
+	local Header = CreateHeader(Menu, 1, flawless and ROTGB_LocalizeString("rotgb_tg.result_screen.flawless_victory") or ROTGB_LocalizeString("rotgb_tg.result_screen.victory"))
 	Header:SetTextColor(color_light_green)
 	
 	CreateScoreboardPanel(Menu)
@@ -2887,7 +2963,7 @@ function GM:CreateFailureMenu()
 			flawless = false
 		end
 	end
-	local Header = CreateHeader(Menu, 1, flawless and "#rotgb_tg.result_screen.flawless_defeat" or "#rotgb_tg.result_screen.defeat")
+	local Header = CreateHeader(Menu, 1, flawless and ROTGB_LocalizeString("rotgb_tg.result_screen.flawless_defeat") or ROTGB_LocalizeString("rotgb_tg.result_screen.defeat"))
 	Header:SetTextColor(color_light_red)
 	
 	CreateScoreboardPanel(Menu)
@@ -2896,20 +2972,16 @@ function GM:CreateFailureMenu()
 	return Menu
 end
 
-function GM:CreateDifficultyMenu(disableCancel)
-	if LocalPlayer():IsAdmin() then
-		local Menu = CreateMenu()
-		CreateHeader(Menu, 0, "#rotgb_tg.difficulty.header")
-		local DifficultySelectionPanel = CreateDifficultySelectionPanel(Menu)
-		local ConfirmButtonPanel = CreateDifficultyConfirmButtonPanel(Menu, DifficultySelectionPanel, 2)
-		if not disableCancel then
-			local CancelButton = CreateDifficultyCancelButtonPanel(Menu, 1)
-		end
-		
-		return Menu
-	else
-		ROTGB_LogError("This concommand is only available to admins.","")
+function GM:CreateDifficultyMenu()
+	local Menu = CreateMenu()
+	CreateHeader(Menu, 0, ROTGB_LocalizeString("rotgb_tg.difficulty.header"))
+	local DifficultySelectionPanel = CreateDifficultySelectionPanel(Menu)
+	local ConfirmButtonPanel = CreateDifficultyConfirmButtonPanel(Menu, DifficultySelectionPanel, 2)
+	if (self:GetDifficulty() or "") ~= "" then
+		local CancelButton = CreateDifficultyCancelButtonPanel(Menu, 1)
 	end
+	
+	return Menu
 end
 
 function GM:CreateVoteMenu(data)
@@ -3037,11 +3109,11 @@ end
 function GM:CreateAchievementsMenu()
 	local Menu = CreateMenu()
 	
-	CreateHeader(Menu, 1, "#rotgb_tg.achievement.header")
-	CreateText(Menu, 2, "#rotgb_tg.achievement.freeplay")
+	CreateHeader(Menu, 1, ROTGB_LocalizeString("rotgb_tg.achievement.header"))
+	CreateText(Menu, 2, ROTGB_LocalizeString("rotgb_tg.achievement.freeplay"))
 	CreateAchievementsPanel(Menu)
 	
-	local backButton = CreateButton(nil, "#rotgb_tg.buttons.back", color_yellow, function()
+	local backButton = CreateButton(nil, ROTGB_LocalizeString("rotgb_tg.buttons.back"), color_yellow, function()
 		hook.Run("HideAchievementsMenu")
 	end)
 	local backButtonCenteringPanel = CreateElementCenteringPanel(backButton, Menu)
@@ -3254,9 +3326,9 @@ function GM:ScoreboardHide()
 	end
 end
 
-function GM:ShowDifficultySelection(disableCancel)
+function GM:ShowDifficultySelection()
 	hook.Run("HideDifficultySelection")
-	hook.Run("SetDifficultySelectionMenu", hook.Run("CreateDifficultyMenu", disableCancel))
+	hook.Run("SetDifficultySelectionMenu", hook.Run("CreateDifficultyMenu"))
 end
 
 function GM:HideDifficultySelection()

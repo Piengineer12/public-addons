@@ -1,0 +1,5 @@
+LightmappedGeneric
+{
+	$basetexture maps/rotgb_aquatic/wall_controls
+	$surfaceprop concrete
+}

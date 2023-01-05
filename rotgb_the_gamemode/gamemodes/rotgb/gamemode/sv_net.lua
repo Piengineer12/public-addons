@@ -21,6 +21,10 @@ net.Receive("rotgb_statchanged", function(length, ply)
 				hook.Run("GetStatisticAmounts")[ply] = plyStats
 				hook.Run("GetPlayerStatsRequireUpdates")[ply] = plyStats
 				
+				if net.ReadBool() then
+					hook.Run("GetNightmareBeatenPlayers")[ply] = true
+				end
+				
 				-- send updated values to players
 				net.Start("rotgb_statchanged")
 				net.WriteUInt(RTG_STAT_INIT, 4)
@@ -35,9 +39,9 @@ net.Receive("rotgb_statchanged", function(length, ply)
 				net.WriteUInt(#plys, 12)
 				for k,v in pairs(plys) do
 					net.WriteInt(v:UserID(), 16)
-					net.WriteDouble(v.rtg_gBalloonPops)
-					net.WriteDouble(v.rtg_PreviousXP)
-					net.WriteDouble(v.rtg_XP)
+					net.WriteDouble(v.rtg_gBalloonPops or 0)
+					net.WriteDouble(v.rtg_PreviousXP or 0)
+					net.WriteDouble(v.rtg_XP or 0)
 				end
 				net.Send(ply)
 				
@@ -64,6 +68,11 @@ net.Receive("rotgb_statchanged", function(length, ply)
 				net.WriteUInt(RTG_OPERATION_ONESHOT, 4)
 				hook.Run("SendMapDifficulties")
 				net.Send(ply)
+				
+				net.Start("rotgb_gamemode")
+				net.WriteUInt(RTG_OPERATION_DIFFICULTY, 4)
+				net.WriteString(hook.Run("GetDifficulty"))
+				net.Send(ply)
 			end
 		elseif func == RTG_STAT_VOTES then
 			local currentVote = hook.Run("GetCurrentVote")
@@ -82,8 +91,10 @@ net.Receive("rotgb_gamemode", function(length, ply)
 	local operation = net.ReadUInt(4)
 	if operation == RTG_OPERATION_GAMEOVER and hook.Run("GetGameIsOver") then
 		hook.Run("CleanUpMap")
-	elseif operation == RTG_OPERATION_DIFFICULTY and ply:IsAdmin() then
-		hook.Run("ChangeDifficulty", net.ReadString())
+	elseif operation == RTG_OPERATION_DIFFICULTY then
+		if ply:IsAdmin() or (hook.Run("GetDifficulty") or "") == "" then
+			hook.Run("ChangeDifficulty", net.ReadString())
+		end
 	elseif operation == RTG_OPERATION_VOTESTART then
 		local typ = net.ReadUInt(4)
 		local target = net.ReadString()

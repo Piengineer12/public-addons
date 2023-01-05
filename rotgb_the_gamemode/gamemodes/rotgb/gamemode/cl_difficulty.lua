@@ -18,10 +18,8 @@ function GM:ReceiveMapDifficulties()
 					difficulties[k] = nil
 				end
 			end
-		else
-			if (difficulties[id] and not difficulties[id].custom and id ~= "__common") then
-				difficulties[id] = nil
-			end
+		elseif (difficulties[id] and not difficulties[id].custom and id ~= "__common") then
+			difficulties[id] = nil
 		end
 	end
 	
@@ -30,7 +28,7 @@ function GM:ReceiveMapDifficulties()
 		local customID = net.ReadString()
 		
 		difficultyTable.category = net.ReadString()
-		difficultyTable.position = net.ReadFloat()
+		difficultyTable.place = net.ReadFloat()
 		difficultyTable.convars = {}
 		
 		for i=1,net.ReadUInt(16) do
@@ -45,6 +43,7 @@ function GM:ReceiveMapDifficulties()
 		local category = net.ReadString()
 		difficultyCategories[category] = net.ReadFloat()
 	end
+	
 end
 
 function GM:GetGamemodeDifficultyNodes()

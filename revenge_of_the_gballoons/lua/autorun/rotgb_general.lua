@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		6.6.1
-Version Date:	2022-09-11
+Version:		6.6.3
+Version Date:	2023-01-05
 ]]
 
 local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","spawning","towers","music"}
@@ -615,7 +615,7 @@ end
 function ROTGB_AddCash(num,ply)
 	num = tonumber(num) or 0
 	if ROTGB_GetConVarValue("rotgb_individualcash") then
-		if ply then
+		if IsValid(ply) then
 			ROTGB_SetCash(ROTGB_GetCash(ply)+num,ply)
 		else
 			local plys = {}
@@ -638,7 +638,7 @@ end
 function ROTGB_RemoveCash(num,ply)
 	num = tonumber(num) or 0
 	if ROTGB_GetConVarValue("rotgb_individualcash") then
-		if ply then
+		if IsValid(ply) then
 			ROTGB_SetCash(ROTGB_GetCash(ply)-num,ply)
 		else
 			local plys = {}
@@ -948,7 +948,7 @@ if SERVER then
 				if v == worldspawn then
 					net.WriteUInt(0, 16)
 					net.WriteDouble(ROTGB_GetCash())
-				else
+				elseif IsValid(v) then
 					net.WriteUInt(v:UserID(), 16)
 					net.WriteDouble(ROTGB_GetCash(v))
 				end
@@ -986,6 +986,7 @@ if CLIENT then
 		for k,v in pairs({...}) do
 			pieces[string.format("%i", k)] = v
 		end
+		
 		local phrase = language.GetPhrase(token)
 		if phrase == token and ROTGB_HasLocalization(token..".1") then
 			-- it is a multipart
@@ -996,6 +997,10 @@ if CLIENT then
 			local multipartToken = token..".1"
 			repeat
 				local phrase = language.GetPhrase(multipartToken)
+				
+				-- remove all control characters
+				phrase = string.gsub(phrase, "%c+", "")
+				
 				-- remove quote marks if surrounded by them
 				if string.find(phrase, "^\".*\"$") then
 					phrase = string.match(phrase, "^\"(.*)\"$")
@@ -1008,6 +1013,9 @@ if CLIENT then
 			
 			phrase = table.concat(phrases)
 		else
+			-- remove all control characters
+			phrase = string.gsub(phrase, "%c+", "")
+			
 			-- remove quote marks if surrounded by them
 			if string.find(phrase, "^\".*\"$") then
 				phrase = string.match(phrase, "^\"(.*)\"$")
@@ -1023,12 +1031,26 @@ if CLIENT then
 	
 	function ROTGB_LocalizeMulticoloredString(token, replacements, defaultColor, replacementColors)
 		local returnTable = {}
-		local translationTable = ROTGB_StringExplodeIncludeSeperators("%%.", language.GetPhrase(token), true)
+		local template = language.GetPhrase(token)
+		
+		-- remove all control characters
+		template = string.gsub(template, "%c+", "")
+		
+		-- remove quote marks if surrounded by them
+		if string.find(template, "^\".*\"$") then
+			template = string.match(template, "^\"(.*)\"$")
+		end
+		
+		local translationTable = ROTGB_StringExplodeIncludeSeperators("%%.", template, true)
 		for i,v in ipairs(translationTable) do
 			if i%2==0 then
 				local token = string.match(v, "%%(.)")
 				if token == "%" then
 					table.insert(returnTable, "%")
+				elseif token == "n" then
+					table.insert(returnTable, "\n")
+				elseif token == "t" then
+					table.insert(returnTable, "\t")
 				else
 					token = tonumber(token)
 					if token then
@@ -1137,7 +1159,7 @@ if CLIENT then
 	end
 	
 	function ROTGB_GetBalloonName(balloonType, isFast, isHidden, isRegen, isShielded)
-		local balloonString = language.GetPhrase("rotgb.gballoon."..balloonType)
+		local balloonString = ROTGB_LocalizeString("rotgb.gballoon."..balloonType)
 		local fastString = ROTGB_LocalizeString(isFast and "rotgb.gballoon.property.fast" or "rotgb.gballoon.property.not_fast")
 		local hiddenString = ROTGB_LocalizeString(isHidden and "rotgb.gballoon.property.hidden" or "rotgb.gballoon.property.not_hidden")
 		local regenString = ROTGB_LocalizeString(isRegen and "rotgb.gballoon.property.regen" or "rotgb.gballoon.property.not_regen")
@@ -1147,9 +1169,9 @@ if CLIENT then
 	
 	function ROTGB_FormatCash(cash, roundUp)
 		if cash==math.huge then -- number is inf
-			return language.GetPhrase("rotgb.cash.inf")
+			return ROTGB_LocalizeString("rotgb.cash.inf")
 		elseif cash==-math.huge then -- number is negative inf
-			return language.GetPhrase("rotgb.cash.-inf")
+			return ROTGB_LocalizeString("rotgb.cash.-inf")
 		elseif cash<math.huge and cash>-math.huge then -- number is real
 			if cash>-1e12 and cash<1e12 then
 				return ROTGB_LocalizeString("rotgb.cash", ROTGB_Commatize((roundUp and math.ceil or math.floor)(cash)))
@@ -1157,7 +1179,7 @@ if CLIENT then
 				return ROTGB_LocalizeString("rotgb.cash", string.format("%.6E", cash))
 			end
 		else -- number isn't a number. Caused by inf minus inf
-			return language.GetPhrase("rotgb.cash.nan")
+			return ROTGB_LocalizeString("rotgb.cash.nan")
 		end
 	end
 	
@@ -1228,7 +1250,7 @@ if CLIENT then
 	 - Only enable this if you have a high-end PC.]])
 	
 	RegisterClientConVar("rotgb_no_glow","0",R_BOOL,
-	[[Disable all halo effects, including the turquoise halo around purple gBalloons.
+	[[Disable all halo effects, including owner halos and the turquoise halo around purple gBalloons.
 	 - Only enable this if you have a low-end PC.]])
 	
 	RegisterClientConVar("rotgb_circle_segments","24",R_INT,
@@ -1356,7 +1378,7 @@ if CLIENT then
 				v = (v + 1) / 2
 				color = HSVToColor(h,s,v)
 			else
-				displayName = language.GetPhrase(attackerLabel)
+				displayName = ROTGB_LocalizeString(attackerLabel)
 			end
 			
 			local existingEntry = hurtFeed[displayName]
@@ -1655,13 +1677,13 @@ if CLIENT then
 	end)
 
 	hook.Add("AddToolMenuTabs","RotgB",function()
-		spawnmenu.AddToolTab("RotgB","#rotgb.spawnmenu.category")
+		spawnmenu.AddToolTab("RotgB",ROTGB_LocalizeString("rotgb.spawnmenu.category"))
 	end)
 
 	hook.Add("AddToolMenuCategories","RotgB",function()
-		spawnmenu.AddToolCategory("RotgB","Client","#rotgb.spawnmenu.category.client")
-		spawnmenu.AddToolCategory("RotgB","Server","#rotgb.spawnmenu.category.server")
-		spawnmenu.AddToolCategory("RotgB","Tools","#rotgb.spawnmenu.category.tools")
+		spawnmenu.AddToolCategory("RotgB","Client",ROTGB_LocalizeString("rotgb.spawnmenu.category.client"))
+		spawnmenu.AddToolCategory("RotgB","Server",ROTGB_LocalizeString("rotgb.spawnmenu.category.server"))
+		spawnmenu.AddToolCategory("RotgB","Tools",ROTGB_LocalizeString("rotgb.spawnmenu.category.tools"))
 	end)
 	
 	local function AddDFormConVarDescription(DForm, conVar, ...)
@@ -1671,204 +1693,204 @@ if CLIENT then
 	
 	local function PopulateClientDForm(DForm)
 		DForm:Help("") --whitespace
-		DForm:ControlHelp("#rotgb.spawnmenu.category.client.display")
-		DForm:CheckBox("#rotgb.convar.rotgb_hud_enabled.name","rotgb_hud_enabled")
+		DForm:ControlHelp(ROTGB_LocalizeString("rotgb.spawnmenu.category.client.display"))
+		DForm:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_hud_enabled.name"),"rotgb_hud_enabled")
 		AddDFormConVarDescription(DForm, "rotgb_hud_enabled")
-		DForm:NumSlider("#rotgb.convar.rotgb_hud_x.name","rotgb_hud_x",0,1,3)
+		DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_hud_x.name"),"rotgb_hud_x",0,1,3)
 		AddDFormConVarDescription(DForm, "rotgb_hud_x")
-		DForm:NumSlider("#rotgb.convar.rotgb_hud_y.name","rotgb_hud_y",0,1,3)
+		DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_hud_y.name"),"rotgb_hud_y",0,1,3)
 		AddDFormConVarDescription(DForm, "rotgb_hud_y")
-		DForm:NumSlider("#rotgb.convar.rotgb_hud_size.name","rotgb_hud_size",0,128,0)
+		DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_hud_size.name"),"rotgb_hud_size",0,128,0)
 		AddDFormConVarDescription(DForm, "rotgb_hud_size")
 		DForm:Help("") --whitespace
-		DForm:ControlHelp("#rotgb.spawnmenu.category.client.ranges")
-		DForm:CheckBox("#rotgb.convar.rotgb_range_enable_indicators.name","rotgb_range_enable_indicators")
+		DForm:ControlHelp(ROTGB_LocalizeString("rotgb.spawnmenu.category.client.ranges"))
+		DForm:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_range_enable_indicators.name"),"rotgb_range_enable_indicators")
 		AddDFormConVarDescription(DForm, "rotgb_range_enable_indicators")
-		DForm:NumSlider("#rotgb.convar.rotgb_range_hold_time.name","rotgb_range_hold_time",0,10,3)
+		DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_range_hold_time.name"),"rotgb_range_hold_time",0,10,3)
 		AddDFormConVarDescription(DForm, "rotgb_range_hold_time")
-		DForm:NumSlider("#rotgb.convar.rotgb_range_fade_time.name","rotgb_range_fade_time",0,10,3)
+		DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_range_fade_time.name"),"rotgb_range_fade_time",0,10,3)
 		AddDFormConVarDescription(DForm, "rotgb_range_fade_time")
-		DForm:NumSlider("#rotgb.convar.rotgb_range_alpha.name","rotgb_range_alpha",0,255,0)
+		DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_range_alpha.name"),"rotgb_range_alpha",0,255,0)
 		AddDFormConVarDescription(DForm, "rotgb_range_alpha")
 		DForm:Help("") --whitespace
-		DForm:ControlHelp("#rotgb.spawnmenu.category.client.others")
-		DForm:NumSlider("#rotgb.convar.rotgb_music_volume.name","rotgb_music_volume",0,4,3)
+		DForm:ControlHelp(ROTGB_LocalizeString("rotgb.spawnmenu.category.client.others"))
+		DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_music_volume.name"),"rotgb_music_volume",0,4,3)
 		AddDFormConVarDescription(DForm, "rotgb_music_volume")
-		DForm:CheckBox("#rotgb.convar.rotgb_no_wave_hints.name","rotgb_no_wave_hints")
+		DForm:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_no_wave_hints.name"),"rotgb_no_wave_hints")
 		AddDFormConVarDescription(DForm, "rotgb_no_wave_hints")
-		DForm:NumSlider("#rotgb.convar.rotgb_circle_segments.name","rotgb_circle_segments",3,200,0)
+		DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_circle_segments.name"),"rotgb_circle_segments",3,200,0)
 		AddDFormConVarDescription(DForm, "rotgb_circle_segments")
-		DForm:NumSlider("#rotgb.convar.rotgb_hoverover_distance.name","rotgb_hoverover_distance",0,100,1)
+		DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_hoverover_distance.name"),"rotgb_hoverover_distance",0,100,1)
 		AddDFormConVarDescription(DForm, "rotgb_hoverover_distance")
-		DForm:CheckBox("#rotgb.convar.rotgb_freeze_effect.name","rotgb_freeze_effect")
+		DForm:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_freeze_effect.name"),"rotgb_freeze_effect")
 		AddDFormConVarDescription(DForm, "rotgb_freeze_effect")
-		DForm:CheckBox("#rotgb.convar.rotgb_no_glow.name","rotgb_no_glow")
+		DForm:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_no_glow.name"),"rotgb_no_glow")
 		AddDFormConVarDescription(DForm, "rotgb_no_glow")
 	end
 	
 	hook.Add("PopulateToolMenu","RotgB",function()
-		spawnmenu.AddToolMenuOption("RotgB","Server","RotgB_Server1","#rotgb.spawnmenu.category.server.cash","","",function(DForm)
-			DForm:TextEntry("#rotgb.convar.rotgb_cash_param.name","rotgb_cash_param")
+		spawnmenu.AddToolMenuOption("RotgB","Server","RotgB_Server1",ROTGB_LocalizeString("rotgb.spawnmenu.category.server.cash"),"","",function(DForm)
+			DForm:TextEntry(ROTGB_LocalizeString("rotgb.convar.rotgb_cash_param.name"),"rotgb_cash_param")
 			AddDFormConVarDescription(DForm, "rotgb_cash_param")
-			DForm:Button("#rotgb.command.rotgb_setcash.name","rotgb_setcash","*")
-			DForm:Button("#rotgb.command.rotgb_addcash.name","rotgb_addcash","*")
-			DForm:Button("#rotgb.command.rotgb_subcash.name","rotgb_subcash","*")
-			DForm:Help("#rotgb.command.presets")
-			DForm:Button("#rotgb.command.rotgb_cash_param_internal.0","rotgb_cash_param_internal","0")
-			DForm:Button("#rotgb.command.rotgb_cash_param_internal.650","rotgb_cash_param_internal","650")
-			DForm:Button("#rotgb.command.rotgb_cash_param_internal.850","rotgb_cash_param_internal","850")
-			DForm:Button("#rotgb.command.rotgb_cash_param_internal.20000","rotgb_cash_param_internal","20000")
-			DForm:Button("#rotgb.command.rotgb_cash_param_internal.0x1p128","rotgb_cash_param_internal","0x1p128")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_setcash.name"),"rotgb_setcash","*")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_addcash.name"),"rotgb_addcash","*")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_subcash.name"),"rotgb_subcash","*")
+			DForm:Help(ROTGB_LocalizeString("rotgb.command.presets"))
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_cash_param_internal.0"),"rotgb_cash_param_internal","0")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_cash_param_internal.650"),"rotgb_cash_param_internal","650")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_cash_param_internal.850"),"rotgb_cash_param_internal","850")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_cash_param_internal.20000"),"rotgb_cash_param_internal","20000")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_cash_param_internal.0x1p128"),"rotgb_cash_param_internal","0x1p128")
 			DForm:Help(ROTGB_LocalizeString("rotgb.command.rotgb_cash_param_internal.hint"))
-			DForm:NumSlider("#rotgb.convar.rotgb_cash_mul.name","rotgb_cash_mul",0,10,3)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_cash_mul.name"),"rotgb_cash_mul",0,10,3)
 			AddDFormConVarDescription(DForm, "rotgb_cash_mul")
-			DForm:CheckBox("#rotgb.convar.rotgb_individualcash.name","rotgb_individualcash")
+			DForm:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_individualcash.name"),"rotgb_individualcash")
 			AddDFormConVarDescription(DForm, "rotgb_individualcash")
-			DForm:NumSlider("#rotgb.convar.rotgb_starting_cash.name","rotgb_starting_cash",0,10000,0)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_starting_cash.name"),"rotgb_starting_cash",0,10000,0)
 			AddDFormConVarDescription(DForm, "rotgb_starting_cash")
 		end)
-		spawnmenu.AddToolMenuOption("RotgB","Server","RotgB_Server2","#rotgb.spawnmenu.category.server.gballoons","","",function(DForm)
-			DForm:NumSlider("#rotgb.convar.rotgb_difficulty.name","rotgb_difficulty",0,3,0)
+		spawnmenu.AddToolMenuOption("RotgB","Server","RotgB_Server2",ROTGB_LocalizeString("rotgb.spawnmenu.category.server.gballoons"),"","",function(DForm)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_difficulty.name"),"rotgb_difficulty",0,3,0)
 			AddDFormConVarDescription(DForm, "rotgb_difficulty")
-			DForm:NumSlider("#rotgb.convar.rotgb_fire_delay.name","rotgb_fire_delay",0,10,3)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_fire_delay.name"),"rotgb_fire_delay",0,10,3)
 			AddDFormConVarDescription(DForm, "rotgb_fire_delay")
-			DForm:NumSlider("#rotgb.convar.rotgb_regen_delay.name","rotgb_regen_delay",0,10,3)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_regen_delay.name"),"rotgb_regen_delay",0,10,3)
 			AddDFormConVarDescription(DForm, "rotgb_regen_delay")
-			DForm:NumSlider("#rotgb.convar.rotgb_rainbow_gblimp_regen_rate.name","rotgb_rainbow_gblimp_regen_rate",0,10,3)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_rainbow_gblimp_regen_rate.name"),"rotgb_rainbow_gblimp_regen_rate",0,10,3)
 			AddDFormConVarDescription(DForm, "rotgb_rainbow_gblimp_regen_rate")
-			DForm:NumSlider("#rotgb.convar.rotgb_scale.name","rotgb_scale",0,10,3)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_scale.name"),"rotgb_scale",0,10,3)
 			AddDFormConVarDescription(DForm, "rotgb_scale")
-			DForm:NumSlider("#rotgb.convar.rotgb_speed_mul.name","rotgb_speed_mul",0,10,3)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_speed_mul.name"),"rotgb_speed_mul",0,10,3)
 			AddDFormConVarDescription(DForm, "rotgb_speed_mul")
-			DForm:NumSlider("#rotgb.convar.rotgb_health_multiplier.name","rotgb_health_multiplier",0,10,3)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_health_multiplier.name"),"rotgb_health_multiplier",0,10,3)
 			AddDFormConVarDescription(DForm, "rotgb_health_multiplier")
-			DForm:NumSlider("#rotgb.convar.rotgb_blimp_health_multiplier.name","rotgb_blimp_health_multiplier",0,10,3)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_blimp_health_multiplier.name"),"rotgb_blimp_health_multiplier",0,10,3)
 			AddDFormConVarDescription(DForm, "rotgb_blimp_health_multiplier")
-			DForm:NumSlider("#rotgb.convar.rotgb_afflicted_damage_multiplier.name","rotgb_afflicted_damage_multiplier",0,10,3)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_afflicted_damage_multiplier.name"),"rotgb_afflicted_damage_multiplier",0,10,3)
 			AddDFormConVarDescription(DForm, "rotgb_afflicted_damage_multiplier")
-			DForm:CheckBox("#rotgb.convar.rotgb_ignore_damage_resistances.name","rotgb_ignore_damage_resistances")
+			DForm:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_ignore_damage_resistances.name"),"rotgb_ignore_damage_resistances")
 			AddDFormConVarDescription(DForm, "rotgb_ignore_damage_resistances")
-			DForm:CheckBox("#rotgb.convar.rotgb_use_kill_handler.name","rotgb_use_kill_handler")
+			DForm:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_use_kill_handler.name"),"rotgb_use_kill_handler")
 			AddDFormConVarDescription(DForm, "rotgb_use_kill_handler")
-			DForm:CheckBox("#rotgb.convar.rotgb_use_achievement_handler.name","rotgb_use_achievement_handler")
+			DForm:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_use_achievement_handler.name"),"rotgb_use_achievement_handler")
 			AddDFormConVarDescription(DForm, "rotgb_use_achievement_handler")
-			DForm:CheckBox("#rotgb.convar.rotgb_legacy_gballoons.name","rotgb_legacy_gballoons")
+			DForm:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_legacy_gballoons.name"),"rotgb_legacy_gballoons")
 			AddDFormConVarDescription(DForm, "rotgb_legacy_gballoons")
-			DForm:CheckBox("#rotgb.convar.rotgb_pertain_effects.name","rotgb_pertain_effects")
+			DForm:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_pertain_effects.name"),"rotgb_pertain_effects")
 			AddDFormConVarDescription(DForm, "rotgb_pertain_effects")
-			DForm:NumSlider("#rotgb.convar.rotgb_bloodtype.name","rotgb_bloodtype",-1,16,0)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_bloodtype.name"),"rotgb_bloodtype",-1,16,0)
 			AddDFormConVarDescription(DForm, "rotgb_bloodtype")
-			DForm:TextEntry("#rotgb.convar.rotgb_blooddecal.name","rotgb_blooddecal")
+			DForm:TextEntry(ROTGB_LocalizeString("rotgb.convar.rotgb_blooddecal.name"),"rotgb_blooddecal")
 			AddDFormConVarDescription(DForm, "rotgb_blooddecal", table.concat(list.Get("PaintMaterials"), ", "))
-			DForm:Button("#rotgb.command.rotgb_blacklist.name","rotgb_blacklist")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_blacklist.name"),"rotgb_blacklist")
 		end)
-		spawnmenu.AddToolMenuOption("RotgB","Server","RotgB_Server3","#rotgb.spawnmenu.category.server.spawners_targets","","",function(DForm)
-			DForm:TextEntry("#rotgb.convar.rotgb_health_param.name","rotgb_health_param")
+		spawnmenu.AddToolMenuOption("RotgB","Server","RotgB_Server3",ROTGB_LocalizeString("rotgb.spawnmenu.category.server.spawners_targets"),"","",function(DForm)
+			DForm:TextEntry(ROTGB_LocalizeString("rotgb.convar.rotgb_health_param.name"),"rotgb_health_param")
 			AddDFormConVarDescription(DForm, "rotgb_health_param")
-			DForm:Button("#rotgb.command.rotgb_sethealth.name","rotgb_sethealth","*")
-			DForm:Button("#rotgb.command.rotgb_healhealth.name","rotgb_healhealth","*")
-			DForm:Button("#rotgb.command.rotgb_addhealth.name","rotgb_addhealth","*")
-			DForm:Button("#rotgb.command.rotgb_subhealth.name","rotgb_subhealth","*")
-			DForm:Button("#rotgb.command.rotgb_setmaxhealth.name","rotgb_setmaxhealth","*")
-			DForm:Button("#rotgb.command.rotgb_addmaxhealth.name","rotgb_addmaxhealth","*")
-			DForm:Button("#rotgb.command.rotgb_submaxhealth.name","rotgb_submaxhealth","*")
-			DForm:Help("#rotgb.command.presets")
-			DForm:Button("#rotgb.command.rotgb_health_param_internal.1","rotgb_health_param_internal","1")
-			DForm:Button("#rotgb.command.rotgb_health_param_internal.100","rotgb_health_param_internal","100")
-			DForm:Button("#rotgb.command.rotgb_health_param_internal.150","rotgb_health_param_internal","150")
-			DForm:Button("#rotgb.command.rotgb_health_param_internal.200","rotgb_health_param_internal","200")
-			DForm:Button("#rotgb.command.rotgb_health_param_internal.999999999","rotgb_health_param_internal","999999999")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_sethealth.name"),"rotgb_sethealth","*")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_healhealth.name"),"rotgb_healhealth","*")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_addhealth.name"),"rotgb_addhealth","*")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_subhealth.name"),"rotgb_subhealth","*")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_setmaxhealth.name"),"rotgb_setmaxhealth","*")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_addmaxhealth.name"),"rotgb_addmaxhealth","*")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_submaxhealth.name"),"rotgb_submaxhealth","*")
+			DForm:Help(ROTGB_LocalizeString("rotgb.command.presets"))
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_health_param_internal.1"),"rotgb_health_param_internal","1")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_health_param_internal.100"),"rotgb_health_param_internal","100")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_health_param_internal.150"),"rotgb_health_param_internal","150")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_health_param_internal.200"),"rotgb_health_param_internal","200")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_health_param_internal.999999999"),"rotgb_health_param_internal","999999999")
 			DForm:Help(ROTGB_LocalizeString("rotgb.command.rotgb_health_param_internal.hint"))
-			DForm:NumSlider("#rotgb.convar.rotgb_target_natural_health.name","rotgb_target_natural_health",0,1000,0)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_target_natural_health.name"),"rotgb_target_natural_health",0,1000,0)
 			AddDFormConVarDescription(DForm, "rotgb_target_natural_health")
-			DForm:NumSlider("#rotgb.convar.rotgb_target_health_override.name","rotgb_target_health_override",0,1000,0)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_target_health_override.name"),"rotgb_target_health_override",0,1000,0)
 			AddDFormConVarDescription(DForm, "rotgb_target_health_override")
 			
-			DForm:NumSlider("#rotgb.convar.rotgb_default_first_wave.name","rotgb_default_first_wave",1,1000,0)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_default_first_wave.name"),"rotgb_default_first_wave",1,1000,0)
 			AddDFormConVarDescription(DForm, "rotgb_default_first_wave")
-			DForm:NumSlider("#rotgb.convar.rotgb_default_last_wave.name","rotgb_default_last_wave",1,1000,0)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_default_last_wave.name"),"rotgb_default_last_wave",1,1000,0)
 			AddDFormConVarDescription(DForm, "rotgb_default_last_wave")
-			DForm:CheckBox("#rotgb.convar.rotgb_freeplay.name","rotgb_freeplay")
+			DForm:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_freeplay.name"),"rotgb_freeplay")
 			AddDFormConVarDescription(DForm, "rotgb_freeplay")
-			DForm:NumberWang("#rotgb.convar.rotgb_spawner_force_auto_start.name","rotgb_spawner_force_auto_start",-1,1)
+			DForm:NumberWang(ROTGB_LocalizeString("rotgb.convar.rotgb_spawner_force_auto_start.name"),"rotgb_spawner_force_auto_start",-1,1)
 			AddDFormConVarDescription(DForm, "rotgb_spawner_force_auto_start")
-			DForm:NumberWang("#rotgb.convar.rotgb_spawner_no_multi_start.name","rotgb_spawner_no_multi_start",-1,1)
+			DForm:NumberWang(ROTGB_LocalizeString("rotgb.convar.rotgb_spawner_no_multi_start.name"),"rotgb_spawner_no_multi_start",-1,1)
 			AddDFormConVarDescription(DForm, "rotgb_spawner_no_multi_start")
-			DForm:NumSlider("#rotgb.convar.rotgb_spawner_spawn_rate.name","rotgb_spawner_spawn_rate",0,10,3)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_spawner_spawn_rate.name"),"rotgb_spawner_spawn_rate",0,10,3)
 			AddDFormConVarDescription(DForm, "rotgb_spawner_spawn_rate")
-			DForm:TextEntry("#rotgb.convar.rotgb_default_wave_preset.name","rotgb_default_wave_preset")
+			DForm:TextEntry(ROTGB_LocalizeString("rotgb.convar.rotgb_default_wave_preset.name"),"rotgb_default_wave_preset")
 			AddDFormConVarDescription(DForm, "rotgb_default_wave_preset")
-			DForm:Button("#rotgb.command.rotgb_waveeditor.name","rotgb_waveeditor")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_waveeditor.name"),"rotgb_waveeditor")
 		end)
-		spawnmenu.AddToolMenuOption("RotgB","Server","RotgB_Server4","#rotgb.spawnmenu.category.server.ai","","",function(DForm)
-			DForm:CheckBox("#rotgb.convar.rotgb_use_custom_pathfinding.name","rotgb_use_custom_pathfinding")
+		spawnmenu.AddToolMenuOption("RotgB","Server","RotgB_Server4",ROTGB_LocalizeString("rotgb.spawnmenu.category.server.ai"),"","",function(DForm)
+			DForm:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_use_custom_pathfinding.name"),"rotgb_use_custom_pathfinding")
 			AddDFormConVarDescription(DForm, "rotgb_use_custom_pathfinding")
-			--[[DForm:CheckBox("#rotgb.convar.rotgb_use_custom_ai.name","rotgb_use_custom_ai")
+			--[[DForm:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_use_custom_ai.name"),"rotgb_use_custom_ai")
 			AddDFormConVarDescription(DForm, "rotgb_use_custom_ai")]]
-			DForm:NumSlider("#rotgb.convar.rotgb_target_choice.name","rotgb_target_choice",-1,511,0)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_target_choice.name"),"rotgb_target_choice",-1,511,0)
 			AddDFormConVarDescription(DForm, "rotgb_target_choice")
-			DForm:NumberWang("#rotgb.convar.rotgb_target_sort.name","rotgb_target_sort",-1,3)
+			DForm:NumberWang(ROTGB_LocalizeString("rotgb.convar.rotgb_target_sort.name"),"rotgb_target_sort",-1,3)
 			AddDFormConVarDescription(DForm, "rotgb_target_sort")
-			DForm:NumSlider("#rotgb.convar.rotgb_search_size.name","rotgb_search_size",-1,2048,0)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_search_size.name"),"rotgb_search_size",-1,2048,0)
 			AddDFormConVarDescription(DForm, "rotgb_search_size")
-			DForm:NumSlider("#rotgb.convar.rotgb_target_tolerance.name","rotgb_target_tolerance",0,1000,1)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_target_tolerance.name"),"rotgb_target_tolerance",0,1000,1)
 			AddDFormConVarDescription(DForm, "rotgb_target_tolerance")
-			DForm:NumSlider("#rotgb.convar.rotgb_pop_on_contact.name","rotgb_pop_on_contact",-2,511,0)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_pop_on_contact.name"),"rotgb_pop_on_contact",-2,511,0)
 			AddDFormConVarDescription(DForm, "rotgb_pop_on_contact")
-			DForm:NumSlider("#rotgb.convar.rotgb_setminlookaheaddistance.name","rotgb_setminlookaheaddistance",0,1000,1)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_setminlookaheaddistance.name"),"rotgb_setminlookaheaddistance",0,1000,1)
 			AddDFormConVarDescription(DForm, "rotgb_setminlookaheaddistance")
-			DForm:NumSlider("#rotgb.convar.rotgb_func_nav_expand.name","rotgb_func_nav_expand",0,100,2)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_func_nav_expand.name"),"rotgb_func_nav_expand",0,100,2)
 			AddDFormConVarDescription(DForm, "rotgb_func_nav_expand")
 		end)
-		spawnmenu.AddToolMenuOption("RotgB","Server","RotgB_Server5","#rotgb.spawnmenu.category.server.towers","","",function(DForm)
-			DForm:TextEntry("#rotgb.convar.rotgb_tower_blacklist.name","rotgb_tower_blacklist")
+		spawnmenu.AddToolMenuOption("RotgB","Server","RotgB_Server5",ROTGB_LocalizeString("rotgb.spawnmenu.category.server.towers"),"","",function(DForm)
+			DForm:TextEntry(ROTGB_LocalizeString("rotgb.convar.rotgb_tower_blacklist.name"),"rotgb_tower_blacklist")
 			AddDFormConVarDescription(DForm, "rotgb_tower_blacklist")
-			DForm:NumberWang("#rotgb.convar.rotgb_tower_chess_only.name","rotgb_tower_chess_only",-1,1)
+			DForm:NumberWang(ROTGB_LocalizeString("rotgb.convar.rotgb_tower_chess_only.name"),"rotgb_tower_chess_only",-1,1)
 			AddDFormConVarDescription(DForm, "rotgb_tower_chess_only")
-			DForm:CheckBox("#rotgb.convar.rotgb_tower_damage_others.name","rotgb_tower_damage_others")
+			DForm:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_tower_damage_others.name"),"rotgb_tower_damage_others")
 			AddDFormConVarDescription(DForm, "rotgb_tower_damage_others")
-			DForm:CheckBox("#rotgb.convar.rotgb_tower_force_charge.name","rotgb_tower_force_charge")
+			DForm:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_tower_force_charge.name"),"rotgb_tower_force_charge")
 			AddDFormConVarDescription(DForm, "rotgb_tower_force_charge")
 			DForm:NumSlider("rotgb.convar.rotgb_tower_charge_rate.name","rotgb_tower_charge_rate",0,10,3)
 			AddDFormConVarDescription(DForm, "rotgb_tower_charge_rate")
-			DForm:CheckBox("#rotgb.convar.rotgb_ignore_upgrade_limits.name","rotgb_ignore_upgrade_limits")
+			DForm:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_ignore_upgrade_limits.name"),"rotgb_ignore_upgrade_limits")
 			AddDFormConVarDescription(DForm, "rotgb_ignore_upgrade_limits")
-			DForm:CheckBox("#rotgb.convar.rotgb_tower_ignore_physgun.name","rotgb_tower_ignore_physgun")
+			DForm:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_tower_ignore_physgun.name"),"rotgb_tower_ignore_physgun")
 			AddDFormConVarDescription(DForm, "rotgb_tower_ignore_physgun")
-			DForm:NumSlider("#rotgb.convar.rotgb_damage_multiplier.name","rotgb_damage_multiplier",0,10,3)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_damage_multiplier.name"),"rotgb_damage_multiplier",0,10,3)
 			AddDFormConVarDescription(DForm, "rotgb_damage_multiplier")
-			DForm:NumSlider("#rotgb.convar.rotgb_tower_range_multiplier.name","rotgb_tower_range_multiplier",0,10,3)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_tower_range_multiplier.name"),"rotgb_tower_range_multiplier",0,10,3)
 			AddDFormConVarDescription(DForm, "rotgb_tower_range_multiplier")
-			DForm:NumSlider("#rotgb.convar.rotgb_tower_income_mul.name","rotgb_tower_income_mul",0,10,3)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_tower_income_mul.name"),"rotgb_tower_income_mul",0,10,3)
 			AddDFormConVarDescription(DForm, "rotgb_tower_income_mul")
 		end)
-		spawnmenu.AddToolMenuOption("RotgB","Server","RotgB_Server6","#rotgb.spawnmenu.category.server.optimization","","",function(DForm)
-			DForm:CheckBox("#rotgb.convar.rotgb_notrails.name","rotgb_notrails")
+		spawnmenu.AddToolMenuOption("RotgB","Server","RotgB_Server6",ROTGB_LocalizeString("rotgb.spawnmenu.category.server.optimization"),"","",function(DForm)
+			DForm:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_notrails.name"),"rotgb_notrails")
 			AddDFormConVarDescription(DForm, "rotgb_notrails")
-			DForm:NumSlider("#rotgb.convar.rotgb_max_to_exist.name","rotgb_max_to_exist",0,1024,0)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_max_to_exist.name"),"rotgb_max_to_exist",0,1024,0)
 			AddDFormConVarDescription(DForm, "rotgb_max_to_exist")
-			DForm:NumSlider("#rotgb.convar.rotgb_max_effects_per_second.name","rotgb_max_effects_per_second",0,100,2)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_max_effects_per_second.name"),"rotgb_max_effects_per_second",0,100,2)
 			AddDFormConVarDescription(DForm, "rotgb_max_effects_per_second")
-			DForm:NumSlider("#rotgb.convar.rotgb_max_fires_per_second.name","rotgb_max_fires_per_second",0,100,2)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_max_fires_per_second.name"),"rotgb_max_fires_per_second",0,100,2)
 			AddDFormConVarDescription(DForm, "rotgb_max_fires_per_second")
-			DForm:NumSlider("#rotgb.convar.rotgb_resist_effect_delay.name","rotgb_resist_effect_delay",-1,10,3)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_resist_effect_delay.name"),"rotgb_resist_effect_delay",-1,10,3)
 			AddDFormConVarDescription(DForm, "rotgb_resist_effect_delay")
-			DForm:NumSlider("#rotgb.convar.rotgb_crit_effect_delay.name","rotgb_crit_effect_delay",-1,10,3)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_crit_effect_delay.name"),"rotgb_crit_effect_delay",-1,10,3)
 			AddDFormConVarDescription(DForm, "rotgb_crit_effect_delay")
-			DForm:NumSlider("#rotgb.convar.rotgb_path_delay.name","rotgb_path_delay",0,100,2)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_path_delay.name"),"rotgb_path_delay",0,100,2)
 			AddDFormConVarDescription(DForm, "rotgb_path_delay")
-			DForm:NumSlider("#rotgb.convar.rotgb_tower_maxcount.name","rotgb_tower_maxcount",-1,64,0)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_tower_maxcount.name"),"rotgb_tower_maxcount",-1,64,0)
 			AddDFormConVarDescription(DForm, "rotgb_tower_maxcount")
-			DForm:NumSlider("#rotgb.convar.rotgb_init_rate.name","rotgb_init_rate",-1,100,2)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_init_rate.name"),"rotgb_init_rate",-1,100,2)
 			AddDFormConVarDescription(DForm, "rotgb_init_rate")
 		end)
-		spawnmenu.AddToolMenuOption("RotgB","Server","RotgB_Server7","#rotgb.spawnmenu.category.server.miscellaneous","","",function(DForm)
-			DForm:NumSlider("#rotgb.convar.rotgb_visual_scale.name","rotgb_visual_scale",0,10,3)
+		spawnmenu.AddToolMenuOption("RotgB","Server","RotgB_Server7",ROTGB_LocalizeString("rotgb.spawnmenu.category.server.miscellaneous"),"","",function(DForm)
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_visual_scale.name"),"rotgb_visual_scale",0,10,3)
 			AddDFormConVarDescription(DForm, "rotgb_visual_scale")
-			DForm:ControlHelp("#rotgb.command.rotgb_reset_convars.hint")
-			local dangerbutton = DForm:Button("#rotgb.command.rotgb_reset_convars.name","rotgb_reset_convars")
+			DForm:ControlHelp(ROTGB_LocalizeString("rotgb.command.rotgb_reset_convars.hint"))
+			local dangerbutton = DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_reset_convars.name"),"rotgb_reset_convars")
 			dangerbutton:SetTextColor(Color(255,0,0))
-			local DTextEntry = DForm:TextEntry("#rotgb.convar.rotgb_debug.name","rotgb_debug")
+			local DTextEntry = DForm:TextEntry(ROTGB_LocalizeString("rotgb.convar.rotgb_debug.name"),"rotgb_debug")
 			function DTextEntry:GetAutoComplete(text)
 				local dbags = DebugArgs
 				local last = string.match(text,"[%w_]+$") or ""
@@ -1887,7 +1909,7 @@ if CLIENT then
 			end
 			AddDFormConVarDescription(DForm, "rotgb_debug", table.concat(DebugArgs, ", "))
 		end)
-		spawnmenu.AddToolMenuOption("RotgB","Client","RotgB_Client","#rotgb.spawnmenu.category.client.options","","",PopulateClientDForm)
+		spawnmenu.AddToolMenuOption("RotgB","Client","RotgB_Client",ROTGB_LocalizeString("rotgb.spawnmenu.category.client.options"),"","",PopulateClientDForm)
 		--[[spawnmenu.AddToolMenuOption("Options","RotgB","RotgB_Bestiary","Bestiary","","",function(DForm) -- Add panel
 			local CategoryList = vgui.Create("DCategoryList",DForm)
 			for i,v in ipairs(order) do
@@ -1897,55 +1919,55 @@ if CLIENT then
 			CategoryList:Dock(FILL)
 			DForm:AddItem(CategoryList)
 		end)]]
-		spawnmenu.AddToolMenuOption("RotgB","Tools","RotgB_NavEditorTool","#tool.rotgb_nav_editor.name",game.SinglePlayer() and "gmod_tool rotgb_nav_editor" or "","",function(form)
+		spawnmenu.AddToolMenuOption("RotgB","Tools","RotgB_NavEditorTool",ROTGB_LocalizeString("tool.rotgb_nav_editor.name"),game.SinglePlayer() and "gmod_tool rotgb_nav_editor" or "","",function(form)
 			if game.SinglePlayer() then
-				form:Help("#tool.rotgb_nav_editor.desc")
-				local label = form:Help("#tool.rotgb_nav_editor.singleplayer")
+				form:Help(ROTGB_LocalizeString("tool.rotgb_nav_editor.desc"))
+				local label = form:Help(ROTGB_LocalizeString("tool.rotgb_nav_editor.singleplayer"))
 				label:SetTextColor(Color(255,0,0))
-				form:ControlHelp("#tool.rotgb_nav_editor.rb655_easy_navedit.hint")
-				form:Button("#tool.rotgb_nav_editor.rb655_easy_navedit.equip","gmod_tool","rb655_easy_navedit")
-				local Button = form:Button("#tool.rotgb_nav_editor.rb655_easy_navedit.get")
+				form:ControlHelp(ROTGB_LocalizeString("tool.rotgb_nav_editor.rb655_easy_navedit.hint"))
+				form:Button(ROTGB_LocalizeString("tool.rotgb_nav_editor.rb655_easy_navedit.equip"),"gmod_tool","rb655_easy_navedit")
+				local Button = form:Button(ROTGB_LocalizeString("tool.rotgb_nav_editor.rb655_easy_navedit.get"))
 				Button.DoClick = function() gui.OpenURL("https://steamcommunity.com/sharedfiles/filedetails/?id=527885257") end
 			else
-				local label = form:Help("#tool.rotgb_nav_editor.singleplayer")
+				local label = form:Help(ROTGB_LocalizeString("tool.rotgb_nav_editor.singleplayer"))
 				label:SetTextColor(Color(255,0,0))
 			end
 		end)
-		spawnmenu.AddToolMenuOption("RotgB","Tools","RotgB_WaypointEditorTool","#tool.rotgb_waypoint_editor.name","gmod_tool rotgb_waypoint_editor","",function(form)
-			form:Help("#tool.rotgb_waypoint_editor.desc")
-			form:CheckBox("#rotgb.convar.rotgb_waypoint_editor_teleport.name","rotgb_waypoint_editor_teleport")
-			form:CheckBox("#rotgb.convar.rotgb_waypoint_editor_straight.name","rotgb_waypoint_editor_straight")
-			form:NumSlider("#rotgb.convar.rotgb_waypoint_editor_weight.name","rotgb_waypoint_editor_weight",0,100,0)
+		spawnmenu.AddToolMenuOption("RotgB","Tools","RotgB_WaypointEditorTool",ROTGB_LocalizeString("tool.rotgb_waypoint_editor.name"),"gmod_tool rotgb_waypoint_editor","",function(form)
+			form:Help(ROTGB_LocalizeString("tool.rotgb_waypoint_editor.desc"))
+			form:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_teleport.name"),"rotgb_waypoint_editor_teleport")
+			form:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_straight.name"),"rotgb_waypoint_editor_straight")
+			form:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_weight.name"),"rotgb_waypoint_editor_weight",0,100,0)
 			form:Help(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_weight.description"))
-			form:CheckBox("#rotgb.convar.rotgb_waypoint_editor_indicator_always.name","rotgb_waypoint_editor_indicator_always")
-			local choicelist = form:ComboBox("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.name","rotgb_waypoint_editor_indicator_effect")
+			form:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_always.name"),"rotgb_waypoint_editor_indicator_always")
+			local choicelist = form:ComboBox(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_effect.name"),"rotgb_waypoint_editor_indicator_effect")
 			choicelist:SetSortItems(false)
-			choicelist:AddChoice("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.sprites.glow04_noz","sprites/glow04_noz")
-			choicelist:AddChoice("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.sprites.light_ignorez","sprites/light_ignorez")
-			choicelist:AddChoice("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.sprites.physg_glow1","sprites/physg_glow1")
-			choicelist:AddChoice("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.sprites.physg_glow2","sprites/physg_glow2")
-			choicelist:AddChoice("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.sprites.sent_ball","sprites/sent_ball")
-			choicelist:AddChoice("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.effects.select_ring","effects/select_ring")
-			choicelist:AddChoice("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.effects.select_dot","effects/select_dot")
-			choicelist:AddChoice("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.gui.close_32","gui/close_32")
-			choicelist:AddChoice("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.icon16.circlecross.png","icon16/circlecross.png")
-			choicelist:AddChoice("#rotgb.convar.rotgb_waypoint_editor_indicator_effect.gui.progress_cog.png","gui/progress_cog.png")
-			form:NumSlider("#rotgb.convar.rotgb_waypoint_editor_indicator_scale.name","rotgb_waypoint_editor_indicator_scale",0,10)
-			form:NumSlider("#rotgb.convar.rotgb_waypoint_editor_indicator_speed.name","rotgb_waypoint_editor_indicator_speed",0.1,10)
-			form:CheckBox("#rotgb.convar.rotgb_waypoint_editor_indicator_bounce.name","rotgb_waypoint_editor_indicator_bounce")
-			choicelist = form:ComboBox("#rotgb.convar.rotgb_waypoint_editor_indicator_color.name","rotgb_waypoint_editor_indicator_color")
+			choicelist:AddChoice(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_effect.sprites.glow04_noz"),"sprites/glow04_noz")
+			choicelist:AddChoice(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_effect.sprites.light_ignorez"),"sprites/light_ignorez")
+			choicelist:AddChoice(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_effect.sprites.physg_glow1"),"sprites/physg_glow1")
+			choicelist:AddChoice(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_effect.sprites.physg_glow2"),"sprites/physg_glow2")
+			choicelist:AddChoice(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_effect.sprites.sent_ball"),"sprites/sent_ball")
+			choicelist:AddChoice(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_effect.effects.select_ring"),"effects/select_ring")
+			choicelist:AddChoice(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_effect.effects.select_dot"),"effects/select_dot")
+			choicelist:AddChoice(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_effect.gui.close_32"),"gui/close_32")
+			choicelist:AddChoice(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_effect.icon16.circlecross.png"),"icon16/circlecross.png")
+			choicelist:AddChoice(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_effect.gui.progress_cog.png"),"gui/progress_cog.png")
+			form:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_scale.name"),"rotgb_waypoint_editor_indicator_scale",0,10)
+			form:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_speed.name"),"rotgb_waypoint_editor_indicator_speed",0.1,10)
+			form:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_bounce.name"),"rotgb_waypoint_editor_indicator_bounce")
+			choicelist = form:ComboBox(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_color.name"),"rotgb_waypoint_editor_indicator_color")
 			for i=0,11 do
-				choicelist:AddChoice(string.format("#rotgb.convar.rotgb_waypoint_editor_indicator_color.%i", i), i)
+				choicelist:AddChoice(string.format(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_color.%i"), i), i)
 			end
 			local mixer = vgui.Create("DColorMixer")
-			mixer:SetLabel("#rotgb.convar.rotgb_waypoint_editor_indicator_color.solid_selection")
+			mixer:SetLabel(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_color.solid_selection"))
 			mixer:SetConVarR("rotgb_waypoint_editor_indicator_r")
 			mixer:SetConVarG("rotgb_waypoint_editor_indicator_g")
 			mixer:SetConVarB("rotgb_waypoint_editor_indicator_b")
 			mixer:SetConVarA("rotgb_waypoint_editor_indicator_a")
 			form:AddItem(mixer)
 			mixer = vgui.Create("DColorMixer")
-			mixer:SetLabel("#rotgb.convar.rotgb_waypoint_editor_indicator_color.solid_gblimp_selection")
+			mixer:SetLabel(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_color.solid_gblimp_selection"))
 			mixer:SetConVarR("rotgb_waypoint_editor_indicator_boss_r")
 			mixer:SetConVarG("rotgb_waypoint_editor_indicator_boss_g")
 			mixer:SetConVarB("rotgb_waypoint_editor_indicator_boss_b")
@@ -2036,12 +2058,12 @@ if CLIENT then
 				elseif message == ROTGB_NOTIFY_PLACEMENTILLEGAL then
 					local tower = net.ReadEntity()
 					if IsValid(tower) then
-						ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_build", language.GetPhrase("rotgb.tower."..tower:GetClass()..".name")), level, nil, additionalArguments)
+						ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_build", ROTGB_LocalizeString("rotgb.tower."..tower:GetClass()..".name")), level, nil, additionalArguments)
 					end
 				elseif message == ROTGB_NOTIFY_PLACEMENTILLEGALOFF then
 					local tower = net.ReadEntity()
 					if IsValid(tower) then
-						ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_build.off", language.GetPhrase("rotgb.tower."..tower:GetClass()..".name")), level, nil, additionalArguments)
+						ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_build.off", ROTGB_LocalizeString("rotgb.tower."..tower:GetClass()..".name")), level, nil, additionalArguments)
 					end
 				elseif message == ROTGB_NOTIFY_NOSPAWNERS then
 					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.gballoon_spawner.missing"), level, nil, additionalArguments)
@@ -2092,12 +2114,12 @@ if CLIENT then
 			elseif message == ROTGB_NOTIFYCHAT_PLACEMENTILLEGAL then
 				local tower = net.ReadEntity()
 				if IsValid(tower) then
-					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_build", language.GetPhrase("rotgb.tower."..tower:GetClass()..".name")), ROTGB_NOTIFYTYPE_CHAT)
+					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_build", ROTGB_LocalizeString("rotgb.tower."..tower:GetClass()..".name")), ROTGB_NOTIFYTYPE_CHAT)
 				end
 			elseif message == ROTGB_NOTIFYCHAT_PLACEMENTILLEGALOFF then
 				local tower = net.ReadEntity()
 				if IsValid(tower) then
-					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_build.off", language.GetPhrase("rotgb.tower."..tower:GetClass()..".name")), ROTGB_NOTIFYTYPE_CHAT)
+					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_build.off", ROTGB_LocalizeString("rotgb.tower."..tower:GetClass()..".name")), ROTGB_NOTIFYTYPE_CHAT)
 				end
 			elseif message == ROTGB_NOTIFYCHAT_NOSPAWNERS then
 				ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.gballoon_spawner.missing"), ROTGB_NOTIFYTYPE_CHAT)
@@ -2188,14 +2210,14 @@ if CLIENT then
 			end
 			SetClipboardText(resultantString)
 		else
-			print(ROTGB_LocalizeString("rotgb.convar.description.display", language.GetPhrase("rotgb.concommand.rotgb_debug_getversion5towerlang.description")))
+			print(ROTGB_LocalizeString("rotgb.convar.description.display", ROTGB_LocalizeString("rotgb.concommand.rotgb_debug_getversion5towerlang.description")))
 		end
 	end,"Copies the V6 language strings of V5 towers to your clipboard, which can be readily pasted into a .properties file.\n - Usage: rotgb_debug_getversion5towerlang <classname> <classname> ...")
 	
 	concommand.Add("rotgb_config_menu_client",function(ply,cmd,args,argStr)
 		local Frame = vgui.Create("DFrame")
 		Frame:SetSize(ScrW()/2, ScrH()/2)
-		Frame:SetTitle("#rotgb.spawnmenu.category.client")
+		Frame:SetTitle(ROTGB_LocalizeString("rotgb.spawnmenu.category.client"))
 		Frame:Center()
 		Frame:MakePopup()
 		
@@ -2207,7 +2229,7 @@ if CLIENT then
 		
 		local DForm = Scroller:Add("DForm")
 		DForm:Dock(FILL)
-		DForm:SetName("#rotgb.spawnmenu.category.client.options")
+		DForm:SetName(ROTGB_LocalizeString("rotgb.spawnmenu.category.client.options"))
 		PopulateClientDForm(DForm)
 	end,"Opens the client ConVar configuration menu.")
 end

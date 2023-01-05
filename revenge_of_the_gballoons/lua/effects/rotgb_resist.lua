@@ -50,6 +50,7 @@ end
 
 function EFFECT:Render()
 	if self.RainbowParticle then
-		self.particle:SetColor(HSVToColor((CurTime()-self.KillTime)*120%360,1,1):Unpack())
+		local desiredColor = HSVToColor((CurTime()-self.KillTime)*120%360,1,1)
+		self.particle:SetColor(desiredColor.r, desiredColor.g, desiredColor.b)
 	end 
 end

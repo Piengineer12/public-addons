@@ -161,13 +161,6 @@ function GM:gBalloonSpawnerPostSpawn(spawner, bln, keyValues)
 	bln:SetBalloonProperty("BalloonArmor", (bln:GetBalloonProperty("BalloonArmor") or 0)+math.ceil(hook.Run("GetSkillAmount", "gBalloonOuterArmor")))
 	hook.Run("SetPreventPlayerPhysgun", true)
 end
-function GM:gBalloonSpawnerWaveStarted(spawner, cwave)
-	local maxWave = cwave
-	for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
-		maxWave = math.max(maxWave, v:GetWave()-1)
-	end
-	hook.Run("SetMaxWaveReached", maxWave)
-end
 
 -- defined in gballoon_target.lua
 function GM:gballoonTargetTakeDamage(target, dmginfo)

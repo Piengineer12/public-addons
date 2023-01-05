@@ -1250,15 +1250,32 @@ return {
 				amount = 1,
 				parent = "gg1",
 				links = "parent",
+				pos = {0,1}
+			},
+			{
+				ref = "gg3",
+				name = "gold_glitters",
+				trait = "cashFromBalloons",
+				amount = 1,
+				parent = "gg2",
+				links = "parent",
 				pos = {1,1}
 			},
 			{
-				ref = "incomeGrower1",
-				name = "income_grower",
-				trait = "waveWaveIncome",
+				ref = "gg4",
+				name = "gold_glitters",
+				trait = "cashFromBalloons",
 				amount = 1,
-				tier = 1,
-				parent = "gg2",
+				parent = "gg1",
+				links = "parent",
+				pos = {1,0}
+			},
+			{
+				ref = "gg5",
+				name = "gold_glitters",
+				trait = "cashFromBalloons",
+				amount = 1,
+				parent = "gg4",
 				links = "parent",
 				pos = {1,1}
 			},
@@ -1269,9 +1286,9 @@ return {
 				name = "wave_bonus",
 				trait = "waveIncome",
 				amount = 2,
-				parent = "incomeGrower1",
+				parent = "gg3",
 				links = "parent",
-				pos = {-1,1}
+				pos = {1,1}
 			},
 			{
 				ref = "wb2",
@@ -1279,8 +1296,8 @@ return {
 				trait = "waveIncome",
 				amount = 2,
 				parent = "wb1",
-				links = {"incomeGrower1", "wb1"},
-				pos = {1,0}
+				links = "parent",
+				pos = {-1,0}
 			},
 			{
 				ref = "wb3",
@@ -1356,14 +1373,44 @@ return {
 			},
 		},
 		{
-			ref = "incomeGrower2",
-			name = "income_grower",
-			trait = "waveWaveIncome",
-			amount = 1,
-			tier = 1,
-			parent = "wb10",
-			links = {"wb9", "wb10"},
-			pos = {0,1}
+			{
+				ref = "incomeGrower1",
+				name = "income_grower",
+				trait = "waveWaveIncome",
+				amount = 1,
+				tier = 1,
+				parent = "wb9",
+				links = {"wb9", "wb10"},
+				pos = {0,1}
+			},
+			{
+				ref = "wb11",
+				name = "wave_bonus",
+				trait = "waveIncome",
+				amount = 2,
+				parent = "wb9",
+				links = {"wb7", "wb9", "incomeGrower1"},
+				pos = {1,0}
+			},
+			{
+				ref = "incomeGrower2",
+				name = "income_grower",
+				trait = "waveWaveIncome",
+				amount = 1,
+				tier = 1,
+				parent = "wb1",
+				links = {"wb1", "wb2"},
+				pos = {0,-1}
+			},
+			{
+				ref = "gg26",
+				name = "gold_glitters",
+				trait = "cashFromBalloons",
+				amount = 1,
+				parent = "wb1",
+				links = {"wb1", "wb3"},
+				pos = {1,0}
+			},
 		},
 		{
 			{
@@ -1371,9 +1418,9 @@ return {
 				name = "starting_cash",
 				trait = "startingCash",
 				amount = 25,
-				parent = "incomeGrower1",
-				links = {"incomeGrower1", "wb2"},
-				pos = {1,0}
+				parent = "gg5",
+				links = {"gg5", "incomeGrower2", "gg26"},
+				pos = {1,1}
 			},
 			{
 				ref = "sc2",
@@ -1381,7 +1428,7 @@ return {
 				trait = "startingCash",
 				amount = 25,
 				parent = "sc1",
-				links = {"incomeGrower1", "sc1"},
+				links = {"sc1", "incomeGrower2"},
 				pos = {0,-1}
 			},
 			{
@@ -1390,7 +1437,7 @@ return {
 				trait = "startingCash",
 				amount = 25,
 				parent = "sc1",
-				links = "parent",
+				links = {"sc1", "gg26"},
 				pos = {1,0}
 			},
 			{
@@ -1458,366 +1505,42 @@ return {
 			},
 		},
 		{
-			ref = "outsourcedHoverballParts",
-			name = "outsourced_hoverball_parts",
-			trait = "hoverballFactoryCosts",
-			amount = -10,
-			tier = 1,
-			parent = "sc9",
-			links = {"sc9", "sc10"},
-			pos = {1,0}
+			{
+				ref = "efficientFactorization",
+				name = "efficient_factorization",
+				trait = "hoverballFactoryTowerCost",
+				amount = -10,
+				tier = 1,
+				parent = "sc9",
+				links = {"sc9", "sc10"},
+				pos = {1,0}
+			},
+			{
+				ref = "sc21",
+				name = "starting_cash",
+				trait = "startingCash",
+				amount = 25,
+				parent = "sc9",
+				links = {"sc7", "sc9"},
+				pos = {0,1}
+			},
 		},
 		{
-			{
-				ref = "gg3",
-				name = "gold_glitters",
-				trait = "cashFromBalloons",
-				amount = 1,
-				parent = "incomeGrower1",
-				links = "parent",
-				pos = {1,1},
-			},
-			{
-				ref = "gg4",
-				name = "gold_glitters",
-				trait = "cashFromBalloons",
-				amount = 1,
-				parent = "gg3",
-				links = "parent",
-				pos = {1,1}
-			},
-			{
-				ref = "gg5",
-				name = "gold_glitters",
-				trait = "cashFromBalloons",
-				amount = 1,
-				parent = "gg4",
-				links = "parent",
-				pos = {1,1}
-			},
 			{
 				ref = "gg6",
 				name = "gold_glitters",
 				trait = "cashFromBalloons",
 				amount = 1,
-				parent = "gg5",
+				parent = "wb1",
 				links = "parent",
-				pos = {1,1}
+				pos = {1,1},
 			},
-			{
-				ref = "rainbowMassProduction",
-				name = "rainbow_factorization",
-				trait = "rainbowBeamerCosts",
-				amount = -10,
-				tier = 1,
-				parent = "gg6",
-				links = "parent",
-				pos = {1,1}
-			},
-			{
-				ref = "cheaperMines",
-				name = "cheaper_mines",
-				trait = "proximityMineCosts",
-				amount = -10,
-				tier = 1,
-				parent = "rainbowMassProduction",
-				links = "parent",
-				pos = {1,1}
-			},
-		},
-		{
-			{
-				ref = "sc11",
-				name = "starting_cash",
-				trait = "startingCash",
-				amount = 25,
-				parent = "cheaperMines",
-				links = {"cheaperMines", "rainbowMassProduction"},
-				pos = {0,-1}
-			},
-			{
-				ref = "sc12",
-				name = "starting_cash",
-				trait = "startingCash",
-				amount = 25,
-				parent = "sc11",
-				links = {"cheaperMines", "sc11"},
-				pos = {1,0}
-			},
-			{
-				ref = "sc13",
-				name = "starting_cash",
-				trait = "startingCash",
-				amount = 25,
-				parent = "sc11",
-				links = {"sc11", "rainbowMassProduction"},
-				pos = {0,-1}
-			},
-			{
-				ref = "sc14",
-				name = "starting_cash",
-				trait = "startingCash",
-				amount = 25,
-				parent = "sc12",
-				links = {"sc12", "sc13"},
-				pos = {0,-1}
-			},
-			{
-				ref = "sc15",
-				name = "starting_cash",
-				trait = "startingCash",
-				amount = 25,
-				parent = "sc13",
-				links = "parent",
-				pos = {0,-1}
-			},
-			{
-				ref = "sc16",
-				name = "starting_cash",
-				trait = "startingCash",
-				amount = 25,
-				parent = "sc14",
-				links = {"sc14", "sc15"},
-				pos = {0,-1}
-			},
-			{
-				ref = "sc17",
-				name = "starting_cash",
-				trait = "startingCash",
-				amount = 25,
-				parent = "sc15",
-				links = "parent",
-				pos = {0,-1}
-			},
-			{
-				ref = "sc18",
-				name = "starting_cash",
-				trait = "startingCash",
-				amount = 25,
-				parent = "sc16",
-				links = {"sc16", "sc17"},
-				pos = {0,-1}
-			},
-			{
-				ref = "sc19",
-				name = "starting_cash",
-				trait = "startingCash",
-				amount = 25,
-				parent = "sc17",
-				links = {"sc17", "outsourcedHoverballParts", "sc9"},
-				pos = {0,-1}
-			},
-			{
-				ref = "sc20",
-				name = "starting_cash",
-				trait = "startingCash",
-				amount = 25,
-				parent = "sc18",
-				links = {"sc18", "sc19", "outsourcedHoverballParts"},
-				pos = {0,-1}
-			},
-		},
-		{
-			{
-				ref = "tcg1",
-				name = "tower_cash_generation",
-				trait = "towerIncome",
-				amount = 1,
-				parent = "rainbowMassProduction",
-				links = "parent",
-				pos = {-1,1}
-			},
-			{
-				ref = "tcg2",
-				name = "tower_cash_generation",
-				trait = "towerIncome",
-				amount = 1,
-				parent = "tcg1",
-				links = {"rainbowMassProduction", "tcg1", "cheaperMines"},
-				pos = {1,0}
-			},
-			{
-				ref = "tcg3",
-				name = "tower_cash_generation",
-				trait = "towerIncome",
-				amount = 1,
-				parent = "tcg1",
-				links = "parent",
-				pos = {0,1}
-			},
-			{
-				ref = "tcg4",
-				name = "tower_cash_generation",
-				trait = "towerIncome",
-				amount = 1,
-				parent = "tcg2",
-				links = {"tcg2", "tcg3", "cheaperMines"},
-				pos = {0,1}
-			},
-			{
-				ref = "tcg5",
-				name = "tower_cash_generation",
-				trait = "towerIncome",
-				amount = 1,
-				parent = "tcg3",
-				links = "parent",
-				pos = {0,1}
-			},
-			{
-				ref = "tcg6",
-				name = "tower_cash_generation",
-				trait = "towerIncome",
-				amount = 1,
-				parent = "tcg4",
-				links = {"tcg4", "tcg5"},
-				pos = {0,1}
-			},
-			{
-				ref = "tcg7",
-				name = "tower_cash_generation",
-				trait = "towerIncome",
-				amount = 1,
-				parent = "tcg5",
-				links = "parent",
-				pos = {0,1}
-			},
-			{
-				ref = "tcg8",
-				name = "tower_cash_generation",
-				trait = "towerIncome",
-				amount = 1,
-				parent = "tcg6",
-				links = {"tcg6", "tcg7"},
-				pos = {0,1}
-			},
-			{
-				ref = "tcg9",
-				name = "tower_cash_generation",
-				trait = "towerIncome",
-				amount = 1,
-				parent = "tcg7",
-				links = "parent",
-				pos = {0,1}
-			},
-			{
-				ref = "tcg10",
-				name = "tower_cash_generation",
-				trait = "towerIncome",
-				amount = 1,
-				parent = "tcg8",
-				links = {"tcg8", "tcg9"},
-				pos = {0,1}
-			},
-		},
-		{
-			ref = "valuableHoverballs",
-			name = "valuable_hoverballs",
-			trait = "hoverballFactoryIncome",
-			amount = 15,
-			tier = 1,
-			parent = "tcg10",
-			links = {"tcg9", "tcg10"},
-			pos = {0,1}
-		},
-		{
-			{
-				ref = "tcg11",
-				name = "tower_cash_generation",
-				trait = "towerIncome",
-				amount = 1,
-				parent = "valuableHoverballs",
-				links = "parent",
-				pos = {1,1}
-			},
-			{
-				ref = "tcg12",
-				name = "tower_cash_generation",
-				trait = "towerIncome",
-				amount = 1,
-				parent = "tcg11",
-				links = {"valuableHoverballs", "tcg10", "tcg11"},
-				pos = {0,-1}
-			},
-			{
-				ref = "tcg13",
-				name = "tower_cash_generation",
-				trait = "towerIncome",
-				amount = 1,
-				parent = "tcg11",
-				links = "parent",
-				pos = {1,0}
-			},
-			{
-				ref = "tcg14",
-				name = "tower_cash_generation",
-				trait = "towerIncome",
-				amount = 1,
-				parent = "tcg12",
-				links = {"tcg12", "tcg13"},
-				pos = {1,0}
-			},
-			{
-				ref = "tcg15",
-				name = "tower_cash_generation",
-				trait = "towerIncome",
-				amount = 1,
-				parent = "tcg13",
-				links = "parent",
-				pos = {1,0}
-			},
-			{
-				ref = "tcg16",
-				name = "tower_cash_generation",
-				trait = "towerIncome",
-				amount = 1,
-				parent = "tcg14",
-				links = {"tcg14", "tcg15"},
-				pos = {1,0}
-			},
-			{
-				ref = "tcg17",
-				name = "tower_cash_generation",
-				trait = "towerIncome",
-				amount = 1,
-				parent = "tcg15",
-				links = "parent",
-				pos = {1,0}
-			},
-			{
-				ref = "tcg18",
-				name = "tower_cash_generation",
-				trait = "towerIncome",
-				amount = 1,
-				parent = "tcg16",
-				links = {"tcg16", "tcg17"},
-				pos = {1,0}
-			},
-			{
-				ref = "tcg19",
-				name = "tower_cash_generation",
-				trait = "towerIncome",
-				amount = 1,
-				parent = "tcg17",
-				links = "parent",
-				pos = {1,0}
-			},
-			{
-				ref = "tcg20",
-				name = "tower_cash_generation",
-				trait = "towerIncome",
-				amount = 1,
-				parent = "tcg18",
-				links = {"tcg18", "tcg19"},
-				pos = {1,0}
-			},
-		},
-		{
 			{
 				ref = "gg7",
 				name = "gold_glitters",
 				trait = "cashFromBalloons",
 				amount = 1,
-				parent = "cheaperMines",
+				parent = "gg6",
 				links = "parent",
 				pos = {1,1},
 			},
@@ -1828,7 +1551,7 @@ return {
 				amount = 1,
 				parent = "gg7",
 				links = "parent",
-				pos = {1,1}
+				pos = {1,1},
 			},
 			{
 				ref = "gg9",
@@ -1837,137 +1560,604 @@ return {
 				amount = 1,
 				parent = "gg8",
 				links = "parent",
-				pos = {1,1}
+				pos = {1,1},
 			},
 			{
 				ref = "gg10",
 				name = "gold_glitters",
 				trait = "cashFromBalloons",
 				amount = 1,
-				parent = "gg9",
+				parent = "sc1",
 				links = "parent",
+				pos = {1,1},
+			},
+			{
+				ref = "gg11",
+				name = "gold_glitters",
+				trait = "cashFromBalloons",
+				amount = 1,
+				parent = "gg10",
+				links = "parent",
+				pos = {1,1},
+			},
+			{
+				ref = "gg12",
+				name = "gold_glitters",
+				trait = "cashFromBalloons",
+				amount = 1,
+				parent = "gg11",
+				links = "parent",
+				pos = {1,1},
+			},
+			{
+				ref = "gg13",
+				name = "gold_glitters",
+				trait = "cashFromBalloons",
+				amount = 1,
+				parent = "gg12",
+				links = "parent",
+				pos = {1,1},
+			},
+		},
+		{
+			{
+				ref = "sc11",
+				name = "starting_cash",
+				trait = "startingCash",
+				amount = 25,
+				parent = "efficientFactorization",
+				links = {"efficientFactorization", "sc21"},
+				pos = {0,1}
+			},
+			{
+				ref = "sc12",
+				name = "starting_cash",
+				trait = "startingCash",
+				amount = 25,
+				parent = "sc11",
+				links = {"efficientFactorization", "sc11"},
+				pos = {1,0}
+			},
+			{
+				ref = "sc13",
+				name = "starting_cash",
+				trait = "startingCash",
+				amount = 25,
+				parent = "sc11",
+				links = {"sc11", "sc21"},
+				pos = {0,1}
+			},
+			{
+				ref = "sc14",
+				name = "starting_cash",
+				trait = "startingCash",
+				amount = 25,
+				parent = "sc12",
+				links = {"sc12", "sc13"},
+				pos = {0,1}
+			},
+			{
+				ref = "sc15",
+				name = "starting_cash",
+				trait = "startingCash",
+				amount = 25,
+				parent = "sc13",
+				links = "parent",
+				pos = {0,1}
+			},
+			{
+				ref = "sc16",
+				name = "starting_cash",
+				trait = "startingCash",
+				amount = 25,
+				parent = "sc14",
+				links = {"sc14", "sc15"},
+				pos = {0,1}
+			},
+			{
+				ref = "sc17",
+				name = "starting_cash",
+				trait = "startingCash",
+				amount = 25,
+				parent = "sc15",
+				links = "parent",
+				pos = {0,1}
+			},
+			{
+				ref = "sc18",
+				name = "starting_cash",
+				trait = "startingCash",
+				amount = 25,
+				parent = "sc16",
+				links = {"sc16", "sc17"},
+				pos = {0,1}
+			},
+			{
+				ref = "sc19",
+				name = "starting_cash",
+				trait = "startingCash",
+				amount = 25,
+				parent = "sc17",
+				links = {"sc17", "gg13"},
+				pos = {0,1}
+			},
+			{
+				ref = "sc20",
+				name = "starting_cash",
+				trait = "startingCash",
+				amount = 25,
+				parent = "sc18",
+				links = {"sc18", "sc19"},
+				pos = {0,1}
+			},
+		},
+		{
+			{
+				ref = "rainbowMassProduction",
+				name = "rainbow_factorization",
+				trait = "rainbowBeamerCosts",
+				amount = -10,
+				tier = 1,
+				parent = "sc19",
+				links = {"sc17", "sc19"},
+				pos = {-1,0}
+			},
+			{
+				ref = "cheaperMines",
+				name = "cheaper_mines",
+				trait = "proximityMineCosts",
+				amount = -10,
+				tier = 1,
+				parent = "sc19",
+				links = {"sc19", "sc20"},
+				pos = {0,1}
+			},
+		},
+		{
+			{
+				ref = "ed1",
+				name = "easy_deployment",
+				trait = "towerPlaceCost",
+				amount = -1,
+				parent = "gg9",
+				links = {"gg9", "rainbowMassProduction", "cheaperMines"},
 				pos = {1,1}
 			},
+			{
+				ref = "ed2",
+				name = "easy_deployment",
+				trait = "towerPlaceCost",
+				amount = -1,
+				parent = "ed1",
+				links = {"rainbowMassProduction", "ed1"},
+				pos = {-1,0}
+			},
+			{
+				ref = "ed3",
+				name = "easy_deployment",
+				trait = "towerPlaceCost",
+				amount = -1,
+				parent = "ed1",
+				links = {"ed1", "cheaperMines"},
+				pos = {0,1}
+			},
+			{
+				ref = "ed4",
+				name = "easy_deployment",
+				trait = "towerPlaceCost",
+				amount = -1,
+				parent = "ed2",
+				links = {"ed2", "ed3"},
+				pos = {0,1}
+			},
+			{
+				ref = "ed5",
+				name = "easy_deployment",
+				trait = "towerPlaceCost",
+				amount = -1,
+				parent = "ed3",
+				links = "parent",
+				pos = {0,1}
+			},
+			{
+				ref = "ed6",
+				name = "easy_deployment",
+				trait = "towerPlaceCost",
+				amount = -1,
+				parent = "ed4",
+				links = {"ed4", "ed5"},
+				pos = {0,1}
+			},
+			{
+				ref = "ed7",
+				name = "easy_deployment",
+				trait = "towerPlaceCost",
+				amount = -1,
+				parent = "ed5",
+				links = "parent",
+				pos = {0,1}
+			},
+			{
+				ref = "ed8",
+				name = "easy_deployment",
+				trait = "towerPlaceCost",
+				amount = -1,
+				parent = "ed6",
+				links = {"ed6", "ed7"},
+				pos = {0,1}
+			},
+			{
+				ref = "ed9",
+				name = "easy_deployment",
+				trait = "towerPlaceCost",
+				amount = -1,
+				parent = "ed7",
+				links = "parent",
+				pos = {0,1}
+			},
+			{
+				ref = "ed10",
+				name = "easy_deployment",
+				trait = "towerPlaceCost",
+				amount = -1,
+				parent = "ed8",
+				links = {"ed8", "ed9"},
+				pos = {0,1}
+			},
+		},
+		{
+			{
+				ref = "outsourcedHoverballParts",
+				name = "outsourced_hoverball_parts",
+				trait = "hoverballFactoryUpgradeCostsFlat",
+				amount = -100,
+				tier = 1,
+				parent = "ed9",
+				links = {"ed9", "ed10"},
+				pos = {0,1}
+			},
+			{
+				ref = "ed21",
+				name = "easy_deployment",
+				trait = "towerPlaceCost",
+				amount = -1,
+				parent = "ed9",
+				links = {"ed7", "ed9"},
+				pos = {1,0}
+			},
+		},
+		{
+			{
+				ref = "gg14",
+				name = "gold_glitters",
+				trait = "cashFromBalloons",
+				amount = 1,
+				parent = "ed1",
+				links = "parent",
+				pos = {1,1},
+			},
+			{
+				ref = "gg15",
+				name = "gold_glitters",
+				trait = "cashFromBalloons",
+				amount = 1,
+				parent = "gg14",
+				links = "parent",
+				pos = {1,1},
+			},
+			{
+				ref = "gg16",
+				name = "gold_glitters",
+				trait = "cashFromBalloons",
+				amount = 1,
+				parent = "gg15",
+				links = "parent",
+				pos = {1,1},
+			},
+			{
+				ref = "gg17",
+				name = "gold_glitters",
+				trait = "cashFromBalloons",
+				amount = 1,
+				parent = "gg16",
+				links = "parent",
+				pos = {1,1},
+			},
+			{
+				ref = "gg18",
+				name = "gold_glitters",
+				trait = "cashFromBalloons",
+				amount = 1,
+				parent = "sc19",
+				links = "parent",
+				pos = {1,1},
+			},
+			{
+				ref = "gg19",
+				name = "gold_glitters",
+				trait = "cashFromBalloons",
+				amount = 1,
+				parent = "gg18",
+				links = "parent",
+				pos = {1,1},
+			},
+			{
+				ref = "gg20",
+				name = "gold_glitters",
+				trait = "cashFromBalloons",
+				amount = 1,
+				parent = "gg19",
+				links = "parent",
+				pos = {1,1},
+			},
+			{
+				ref = "gg21",
+				name = "gold_glitters",
+				trait = "cashFromBalloons",
+				amount = 1,
+				parent = "gg20",
+				links = "parent",
+				pos = {1,1},
+			},
+		},
+		{
+			{
+				ref = "ed11",
+				name = "easy_deployment",
+				trait = "towerPlaceCost",
+				amount = -1,
+				parent = "outsourcedHoverballParts",
+				links = {"outsourcedHoverballParts", "ed21"},
+				pos = {1,0}
+			},
+			{
+				ref = "ed12",
+				name = "easy_deployment",
+				trait = "towerPlaceCost",
+				amount = -1,
+				parent = "ed11",
+				links = {"outsourcedHoverballParts", "ed11"},
+				pos = {0,1}
+			},
+			{
+				ref = "ed13",
+				name = "easy_deployment",
+				trait = "towerPlaceCost",
+				amount = -1,
+				parent = "ed11",
+				links = {"ed11", "ed21"},
+				pos = {1,0}
+			},
+			{
+				ref = "ed14",
+				name = "easy_deployment",
+				trait = "towerPlaceCost",
+				amount = -1,
+				parent = "ed12",
+				links = {"ed12", "ed13"},
+				pos = {1,0}
+			},
+			{
+				ref = "ed15",
+				name = "easy_deployment",
+				trait = "towerPlaceCost",
+				amount = -1,
+				parent = "ed13",
+				links = "parent",
+				pos = {1,0}
+			},
+			{
+				ref = "ed16",
+				name = "easy_deployment",
+				trait = "towerPlaceCost",
+				amount = -1,
+				parent = "ed14",
+				links = {"ed14", "ed15"},
+				pos = {1,0}
+			},
+			{
+				ref = "ed17",
+				name = "easy_deployment",
+				trait = "towerPlaceCost",
+				amount = -1,
+				parent = "ed15",
+				links = "parent",
+				pos = {1,0}
+			},
+			{
+				ref = "ed18",
+				name = "easy_deployment",
+				trait = "towerPlaceCost",
+				amount = -1,
+				parent = "ed16",
+				links = {"ed16", "ed17"},
+				pos = {1,0}
+			},
+			{
+				ref = "ed19",
+				name = "easy_deployment",
+				trait = "towerPlaceCost",
+				amount = -1,
+				parent = "ed17",
+				links = {"ed17", "gg17"},
+				pos = {1,0}
+			},
+			{
+				ref = "ed20",
+				name = "easy_deployment",
+				trait = "towerPlaceCost",
+				amount = -1,
+				parent = "ed18",
+				links = {"ed18", "ed19"},
+				pos = {1,0}
+			},
+		},
+		{
 			{
 				ref = "freeAllyPawn",
 				name = "free_ally_pawn",
 				trait = "allyPawnFirstFree",
 				amount = 1,
 				tier = 1,
-				parent = "gg10",
-				links = {"gg10", "tcg19", "tcg20"},
-				pos = {1,1}
-			},
-		},
-		{
-			{
-				ref = "tc1",
-				name = "tower_costs",
-				trait = "towerCosts",
-				amount = -1,
-				parent = "freeAllyPawn",
-				links = {"freeAllyPawn", "tcg20"},
-				pos = {0,-1}
-			},
-			{
-				ref = "tc2",
-				name = "tower_costs",
-				trait = "towerCosts",
-				amount = -1,
-				parent = "tc1",
-				links = {"tc1", "freeAllyPawn"},
+				parent = "ed19",
+				links = {"ed19", "ed20"},
 				pos = {1,0}
 			},
 			{
-				ref = "tc3",
-				name = "tower_costs",
-				trait = "towerCosts",
-				amount = -1,
-				parent = "tc1",
-				links = "parent",
-				pos = {0,-1}
-			},
-			{
-				ref = "tc4",
-				name = "tower_costs",
-				trait = "towerCosts",
-				amount = -1,
-				parent = "tc2",
-				links = {"tc2", "tc3"},
-				pos = {0,-1}
-			},
-			{
-				ref = "tc5",
-				name = "tower_costs",
-				trait = "towerCosts",
-				amount = -1,
-				parent = "tc3",
-				links = "parent",
-				pos = {0,-1}
-			},
-			{
-				ref = "tc6",
-				name = "tower_costs",
-				trait = "towerCosts",
-				amount = -1,
-				parent = "tc4",
-				links = {"tc4", "tc5"},
-				pos = {0,-1}
-			},
-			{
-				ref = "tc7",
-				name = "tower_costs",
-				trait = "towerCosts",
-				amount = -1,
-				parent = "tc5",
-				links = "parent",
-				pos = {0,-1}
-			},
-			{
-				ref = "tc8",
-				name = "tower_costs",
-				trait = "towerCosts",
-				amount = -1,
-				parent = "tc6",
-				links = {"tc6", "tc7"},
-				pos = {0,-1}
-			},
-			{
-				ref = "tc9",
-				name = "tower_costs",
-				trait = "towerCosts",
-				amount = -1,
-				parent = "tc7",
-				links = "parent",
-				pos = {0,-1}
-			},
-			{
-				ref = "tc10",
-				name = "tower_costs",
-				trait = "towerCosts",
-				amount = -1,
-				parent = "tc8",
-				links = {"tc8", "tc9"},
-				pos = {0,-1}
-			},
-		},
-		{
-			ref = "modularMicrowaveEmitters",
-			name = "modular_microwave_emitters",
-			trait = "microwaveGeneratorCosts",
-			amount = -10,
-			tier = 1,
-			parent = "tc9",
-			links = {"tc9", "tc10"},
-			pos = {0,-1}
-		},
-		{
-			{
-				ref = "gg11",
+				ref = "gg27",
 				name = "gold_glitters",
 				trait = "cashFromBalloons",
 				amount = 1,
-				parent = "freeAllyPawn",
+				parent = "ed19",
+				links = {"ed17", "ed19"},
+				pos = {0,-1},
+			},
+		},
+		{
+			{
+				ref = "tcg1",
+				name = "tower_cash_generation",
+				trait = "towerIncome",
+				amount = 1,
+				parent = "gg21",
+				links = {"gg21", "freeAllyPawn", "gg27"},
+				pos = {1,1}
+			},
+			{
+				ref = "tcg2",
+				name = "tower_cash_generation",
+				trait = "towerIncome",
+				amount = 1,
+				parent = "tcg1",
+				links = {"tcg1", "freeAllyPawn"},
+				pos = {1,0}
+			},
+			{
+				ref = "tcg3",
+				name = "tower_cash_generation",
+				trait = "towerIncome",
+				amount = 1,
+				parent = "tcg1",
+				links = {"tcg1", "gg27"},
+				pos = {0,-1}
+			},
+			{
+				ref = "tcg4",
+				name = "tower_cash_generation",
+				trait = "towerIncome",
+				amount = 1,
+				parent = "tcg2",
+				links = {"tcg2", "tcg3"},
+				pos = {0,-1}
+			},
+			{
+				ref = "tcg5",
+				name = "tower_cash_generation",
+				trait = "towerIncome",
+				amount = 1,
+				parent = "tcg3",
+				links = "parent",
+				pos = {0,-1}
+			},
+			{
+				ref = "tcg6",
+				name = "tower_cash_generation",
+				trait = "towerIncome",
+				amount = 1,
+				parent = "tcg4",
+				links = {"tcg4", "tcg5"},
+				pos = {0,-1}
+			},
+			{
+				ref = "tcg7",
+				name = "tower_cash_generation",
+				trait = "towerIncome",
+				amount = 1,
+				parent = "tcg5",
+				links = "parent",
+				pos = {0,-1}
+			},
+			{
+				ref = "tcg8",
+				name = "tower_cash_generation",
+				trait = "towerIncome",
+				amount = 1,
+				parent = "tcg6",
+				links = {"tcg6", "tcg7"},
+				pos = {0,-1}
+			},
+			{
+				ref = "tcg9",
+				name = "tower_cash_generation",
+				trait = "towerIncome",
+				amount = 1,
+				parent = "tcg7",
+				links = "parent",
+				pos = {0,-1}
+			},
+			{
+				ref = "tcg10",
+				name = "tower_cash_generation",
+				trait = "towerIncome",
+				amount = 1,
+				parent = "tcg8",
+				links = {"tcg8", "tcg9"},
+				pos = {0,-1}
+			},
+			{
+				ref = "modularMicrowaveEmitters",
+				name = "modular_microwave_emitters",
+				trait = "microwaveGeneratorCosts",
+				amount = -10,
+				tier = 1,
+				parent = "tcg9",
+				links = {"tcg9", "tcg10"},
+				pos = {0,-1}
+			},
+			{
+				ref = "tcg11",
+				name = "tower_cash_generation",
+				trait = "towerIncome",
+				amount = 1,
+				parent = "tcg9",
+				links = {"tcg7", "tcg9", "modularMicrowaveEmitters"},
+				pos = {-1,0}
+			},
+		},
+		{
+			{
+				ref = "gg22",
+				name = "gold_glitters",
+				trait = "cashFromBalloons",
+				amount = 1,
+				parent = "ed19",
+				links = "parent",
+				pos = {1,1},
+			},
+			{
+				ref = "gg23",
+				name = "gold_glitters",
+				trait = "cashFromBalloons",
+				amount = 1,
+				parent = "gg22",
+				links = "parent",
+				pos = {1,1},
+			},
+			{
+				ref = "gg24",
+				name = "gold_glitters",
+				trait = "cashFromBalloons",
+				amount = 1,
+				parent = "tcg1",
+				links = "parent",
+				pos = {1,1},
+			},
+			{
+				ref = "gg25",
+				name = "gold_glitters",
+				trait = "cashFromBalloons",
+				amount = 1,
+				parent = "gg24",
 				links = "parent",
 				pos = {1,1},
 			},
@@ -1977,9 +2167,9 @@ return {
 				trait = "gBlimpOuterHealthCash",
 				amount = 1000,
 				tier = 2,
-				parent = "gg11",
-				links = "parent",
-				pos = {1,1},
+				parent = "gg23",
+				links = {"gg23", "gg25"},
+				pos = {1,0},
 			},
 		},
 	},

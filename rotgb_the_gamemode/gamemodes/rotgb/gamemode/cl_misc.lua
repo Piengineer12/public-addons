@@ -58,9 +58,9 @@ function GM:Think()
 				if not IsValid(hook.Run("GetStartupMenu")) then
 					hook.Run("ShowHelp")
 				end
-			elseif localPlayer:IsAdmin() and (self:GetDifficulty() or "") == "" and startupState<2 then
+			elseif (localPlayer:IsAdmin() or (self:GetDifficulty() or "") == "") and startupState<2 then
 				if not IsValid(hook.Run("GetDifficultySelectionMenu")) then
-					hook.Run("ShowDifficultySelection", true)
+					hook.Run("ShowDifficultySelection")
 				end
 			elseif startupState<3 and not IsValid(hook.Run("GetTeamSelectionMenu")) then
 				hook.Run("ShowTeam", true)

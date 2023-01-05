@@ -9,15 +9,6 @@ function GM:PhysgunPickup(ply, ent)
 	return false
 end
 
-function GM:PhysgunDrop(ply, ent)
-	if ent.Base == "gballoon_tower_base" then
-		local physObj = ent:GetPhysicsObject()
-		if IsValid(physObj) then
-			physObj:EnableMotion(false)
-		end
-	end
-end
-
 function GM:PlayerNoClip(ply, desired)
 	return self.DebugMode
 end

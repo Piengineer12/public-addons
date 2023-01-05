@@ -36,7 +36,9 @@ function ENT:Touch(ent)
 			ent:SetNWBool("ROTGB_Stun2",true)
 			ent:Stun2()
 			ent:SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER)
-			ROTGB_CauseNotification(ROTGB_NOTIFY_PLACEMENTILLEGAL, ROTGB_NOTIFYTYPE_INFO, nil, {"e", ent})
+			
+			local owner = IsValid(ent:GetTowerOwner()) and ent:GetTowerOwner()
+			ROTGB_CauseNotification(ROTGB_NOTIFY_PLACEMENTILLEGAL, ROTGB_NOTIFYTYPE_INFO, owner, {"e", ent})
 		elseif ent.rotgb_isDetector and not ent.rotgb_isDetected then
 			--print("A", ent)
 			ent.rotgb_isDetected = true
@@ -50,7 +52,9 @@ function ENT:EndTouch(ent)
 		ent:SetNWBool("ROTGB_Stun2",false)
 		ent:UnStun2()
 		ent:SetCollisionGroup(COLLISION_GROUP_NONE)
-		ROTGB_CauseNotification(ROTGB_NOTIFYCHAT_PLACEMENTILLEGALOFF, ROTGB_NOTIFYTYPE_INFO, nil, {"e", ent})
+		
+		local owner = IsValid(ent:GetTowerOwner()) and ent:GetTowerOwner()
+		ROTGB_CauseNotification(ROTGB_NOTIFYCHAT_PLACEMENTILLEGALOFF, ROTGB_NOTIFYTYPE_INFO, owner, {"e", ent})
 	elseif ent.rotgb_isDetector and ent.rotgb_isDetected then
 		--print("B", ent)
 		ent.rotgb_isDetected = false
