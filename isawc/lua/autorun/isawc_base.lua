@@ -10,8 +10,8 @@ Links above are confirmed working as of 2022-04-16. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "5.4.3"
-ISAWC._VERSIONDATE = "2022-12-22"
+ISAWC._VERSION = "5.5.0"
+ISAWC._VERSIONDATE = "2023-01-10"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -25,7 +25,7 @@ local color_light_aqua = Color(127,255,255)
 local color_dark_blue_semitransparent = Color(0,0,127,63)
 local color_white_semitransparent = Color(255,255,255,63)
 local color_gray_semitransparent = Color(127,127,127,63)
-local color_black_semiopaque = Color(0,0,0,191)
+local color_black_doublesemiopaque = Color(0,0,0,223)
 local color_black_semitransparent = Color(0,0,0,63)
 
 ISAWC.MESSAGE_TYPES = {
@@ -57,7 +57,7 @@ ISAWC.MESSAGE_TYPES = {
 	open_container		= 26,
 	pickup				= 27,
 	pickup_denied		= 28,
-	send_maker_data		= 29,
+	send_weapon_data	= 29,
 	set_public			= 30,
 	spawn				= 31,
 	spawn_l				= 32,
@@ -107,6 +107,26 @@ end
 
 ISAWC.FilterIsValid = function(k,v)
 	return IsValid(v)
+end
+
+ISAWC.SelectWeightedRandom = function(self,tab)
+	local possibleSelections = {}
+	local selectionGaps = {}
+	
+	local weightSum = 0
+	for k,v in pairs(tab) do
+		table.insert(possibleSelections, k)
+		weightSum = weightSum + v
+		table.insert(selectionGaps, weightSum)
+	end
+	
+	-- generate a random number, then see where it fits
+	local selection = math.random()*weightSum
+	for i,v in ipairs(selectionGaps) do
+		if selection < v then return possibleSelections[i] end
+	end
+	
+	error("Failed to choose weighted random choice!")
 end
 
 ISAWC.ConCommands = {}
@@ -774,6 +794,49 @@ ISAWC:CreateListConCommand("isawc_remaplist", {
 	end
 })
 
+ISAWC.CustomImageList = ISAWC.CustomImageList or {}
+ISAWC:CreateListConCommand("isawc_imagelist", {
+	display = "The custom item image list is as follows: ",
+	display_table = "CustomImageList",
+	display_function = function(k,v)
+		ISAWC:Log(string.format("\t%q=%q,",k,v))
+	end,
+	purpose = "Adds or removes entity classes from the custom item image list. Can be used to specify a custom image for displaying an item, rather than using an image of the item's model. An image of ? means to use the entity's content image.",
+	fmt = "<model/class> <image path>",
+	help = {
+		"Use \"isawc_imagelist <model/class1> <image1> <model/class2> <image2> ...\" to update or add a class into the list. \z
+		If image is *, it will be removed from the list instead.",
+		"* and ? wildcards are supported.",
+		"Use \"isawc_imagelist *\" to clear the list."
+	},
+	help_small = "Usage: isawc_imagelist <model/class1> <image1> <model/class2> <image2> ...",
+	exe = function(args)
+		if args[1]=="*" then
+			ISAWC.CustomImageList = {}
+			ISAWC:Log("Removed everything from the custom item image list.")
+		elseif #args%2~=0 then
+			ISAWC:Log("Usage: isawc_imagelist <model/class1> <image1> <model/class2> <image2> ...")
+		else
+			for i,v in ipairs(args) do
+				if i%2==1 then
+					v = v:lower()
+					local newMap = args[i+1]
+					if newMap == "*" then
+						ISAWC.CustomImageList[v] = nil
+						ISAWC:Log("Removed \""..v.."\" from the custom item image list.")
+					elseif ISAWC.CustomImageList[v] then
+						ISAWC.CustomImageList[v] = newMap
+						ISAWC:Log("Updated \""..v.."\" in the custom item image list.")
+					else
+						ISAWC.CustomImageList[v] = newMap
+						ISAWC:Log("Added \""..v.."\" into the custom item image list.")
+					end
+				end
+			end
+		end
+	end
+})
+
 local defaultStoreRemapList = {
     ["wep_jack_gmod_amr"] = "ent_jack_gmod_ezweapon_amr",
     ["wep_jack_gmod_amsr"] = "ent_jack_gmod_ezweapon_amsr",
@@ -1008,6 +1071,41 @@ ISAWC:CreateListConCommand("isawc_stamps_asammo", {
 	end
 })
 
+ISAWC.LootTablesList = ISAWC.LootTablesList or {}
+--[[
+example loot table:
+{
+	["name1"] = {
+		rolls = 2,
+		replacement = true,
+		items = {
+			{
+				weight = 4,
+				isStamp = false,
+				name = "name2"
+			},
+			{
+				weight = 1
+			},
+			{}
+		}
+	},
+	["name2"] = {
+		items = {
+			{
+				weight = 1,
+				isStamp = true,
+				name = "item_battery"
+			},
+			{
+				isStamp = true,
+				name = "item_healthkit"
+			}
+		}
+	}
+}
+]]
+
 ISAWC.ConAllowDelete = CreateConVar("isawc_allow_delete","1",FCVAR_REPLICATED,
 "Enables players to delete props that they've picked up.")
 
@@ -1085,7 +1183,7 @@ ISAWC.ConCount3 = CreateConVar("isawc_pickup_countmul","1",FCVAR_REPLICATED,
 If you want to set the amount for individual items, see the isawc_countlist ConCommand.\
 Note that decimal values are rounded down within inventories, which can lead to confusion.")
 
-ISAWC.ConDeathRemoveDelay = CreateConVar("isawc_dropondeath_time","10",FCVAR_REPLICATED,
+ISAWC.ConDeathRemoveDelay = CreateConVar("isawc_dropondeath_fadetime","10",FCVAR_REPLICATED,
 "Sets the amount of time to wait before removing the container players drop upon death, after being emptied.")
 
 ISAWC.ConDropOnDeathAmount = CreateConVar("isawc_dropondeath_max","-1",FCVAR_REPLICATED,
@@ -1181,6 +1279,24 @@ Note that the Container Maker SWEP can still edit container properties even if t
 
 ISAWC.ConAllowHeldWeapons = CreateConVar("isawc_pickup_heldweapons", "1", FCVAR_REPLICATED,
 "If enabled, players will be able to store their currently held weapons into their inventory and into containers.")
+
+ISAWC.ConDropOnDeathLifetime = CreateConVar("isawc_dropondeath_lifetime", "-1", FCVAR_REPLICATED,
+"Sets the amount of time before containers dropped on player deaths are removed, even if not emptied. Note that the removal time is still limited by the isawc_dropondeath_fadetime ConVar.\
+A negative value means that death drops won't despawn.\
+If you want to set the maximum number of death drops, see the isawc_dropondeath_max ConVar.")
+
+ISAWC.ConDisableMass = CreateConVar("isawc_use_disabledmass", "0", FCVAR_REPLICATED,
+"Masses of items will be hidden from view and mass limits won't be enforced.")
+
+ISAWC.ConDisableVolume = CreateConVar("isawc_use_disabledvolume", "0", FCVAR_REPLICATED,
+"Volumes of items will be hidden from view and volume limits won't be enforced.")
+
+ISAWC.ConDisableCount = CreateConVar("isawc_use_disabledcount", "0", FCVAR_REPLICATED,
+"The number of inventory slots taken by items will be hidden from view, and slot limits are set to 65536 (the maximum the addon can handle properly).")
+
+ISAWC.ConForceCustomImage = CreateConVar("isawc_imagelist_force", "0", FCVAR_REPLICATED,
+"Stops 3D rendering of items. This causes those items to be displayed either with their custom image, entity content image, or as a broken model.\
+This can be useful with addons that hamper automatic model image generation.")
 
 --[[ISAWC.ConPickupViewModel = CreateConVar("isawc_pickup_weapon_viewmodel", "models/weapons/v_pistol.mdl", FCVAR_REPLICATED,
 "View model used by the Pickup SWEP.\
@@ -1343,10 +1459,12 @@ if SERVER then
 				ISAWC.Masslist = {}
 				ISAWC.Volumelist = {}
 				ISAWC.Countlist = {}
+				ISAWC.CustomImageList = {}
 				ISAWC.Remaplist = {}
 				ISAWC.StoreRemapList = table.Copy(defaultStoreRemapList)
 				ISAWC.DescList = {}
 				ISAWC.AmmoItemStampList = {}
+				ISAWC.LootTablesList = {}
 				ISAWC.MassMultiList = {}
 				ISAWC.VolumeMultiList = {}
 				ISAWC.CountMultiList = {}
@@ -1469,12 +1587,13 @@ if SERVER then
 			elseif not ply:IsAdmin() then
 				ISAWC:Log("Access denied.")
 			elseif next(args) then
-				local code = ISAWC:RestoreItemStamp(argStr, ply)
-				if code == 0 then
+				local status, item = ISAWC:RestoreItemStamp(argStr)
+				if status == 0 then
+					table.insert(ply.ISAWC_Inventory, item)
 					ISAWC:Log(string.format("Restored item from item stamp \"%s\". You may need to re-open your inventory to view the item.", argStr))
-				elseif code == 1 then
+				elseif status == 1 then
 					ISAWC:Log(string.format("Could not find item stamp \"%s\".", argStr))
-				elseif code == 2 then
+				elseif status == 2 then
 					ISAWC:Log(string.format("Found item stamp \"%s\" but failed to reconstruct item. The item stamp may have been corrupted.", argStr))
 				end
 			else
@@ -1723,22 +1842,22 @@ if CLIENT then
 end
 
 ISAWC.AddToolMenuTabs = function()
-	spawnmenu.AddToolTab("ISAWC")
+	spawnmenu.AddToolTab("isawc","ISAWC")
 end
 
 ISAWC.AddToolMenuCategories = function()
-	spawnmenu.AddToolCategory("ISAWC","client","Client")
-	spawnmenu.AddToolCategory("ISAWC","server","Server")
+	spawnmenu.AddToolCategory("isawc","client","Client")
+	spawnmenu.AddToolCategory("isawc","server","Server")
 end
 
 ISAWC.PopulateToolMenu = function()
-	spawnmenu.AddToolMenuOption("ISAWC","client","isawc_client","General","","",ISAWC.PopulateDFormClient)
-	spawnmenu.AddToolMenuOption("ISAWC","server","isawc_general","General","","",ISAWC.PopulateDFormGeneral)
-	spawnmenu.AddToolMenuOption("ISAWC","server","isawc_pickup","Pickups","","",ISAWC.PopulateDFormPickup)
-	spawnmenu.AddToolMenuOption("ISAWC","server","isawc_drop","Drops","","",ISAWC.PopulateDFormDrop)
-	spawnmenu.AddToolMenuOption("ISAWC","server","isawc_player","Players","","",ISAWC.PopulateDFormPlayer)
-	spawnmenu.AddToolMenuOption("ISAWC","server","isawc_container","Containers","","",ISAWC.PopulateDFormContainer)
-	spawnmenu.AddToolMenuOption("ISAWC","server","isawc_importexport","Imports & Exports","","",ISAWC.PopulateDFormImportExport)
+	spawnmenu.AddToolMenuOption("isawc","client","isawc_client","General","","",ISAWC.PopulateDFormClient)
+	spawnmenu.AddToolMenuOption("isawc","server","isawc_general","General","","",ISAWC.PopulateDFormGeneral)
+	--[[spawnmenu.AddToolMenuOption("isawc","server","isawc_pickup","Pickups","","",ISAWC.PopulateDFormPickup)
+	spawnmenu.AddToolMenuOption("isawc","server","isawc_drop","Drops","","",ISAWC.PopulateDFormDrop)
+	spawnmenu.AddToolMenuOption("isawc","server","isawc_player","Players","","",ISAWC.PopulateDFormPlayer)
+	spawnmenu.AddToolMenuOption("isawc","server","isawc_container","Containers","","",ISAWC.PopulateDFormContainer)
+	spawnmenu.AddToolMenuOption("isawc","server","isawc_importexport","Imports & Exports","","",ISAWC.PopulateDFormImportExport)]]
 end
 
 ISAWC.PopulateDFormClient = function(DForm)
@@ -1783,7 +1902,9 @@ ISAWC.PopulateDFormClient = function(DForm)
 end
 
 ISAWC.PopulateDFormGeneral = function(DForm)
-	DForm:NumSlider("Mass Multiplier",ISAWC.ConMassMul3:GetName(),0,10,2)
+	DForm:ControlHelp("All options have been moved to a newer GUI.")
+	DForm:Button("Server ISAWC Options","isawc_activate_options_menu_server")
+	--[[DForm:NumSlider("Mass Multiplier",ISAWC.ConMassMul3:GetName(),0,10,2)
 	DForm:Help(" - "..ISAWC.ConMassMul3:GetHelpText().."\n")
 	DForm:NumSlider("Volume Multiplier",ISAWC.ConVolMul3:GetName(),0,10,2)
 	DForm:Help(" - "..ISAWC.ConVolMul3:GetHelpText().."\n")
@@ -1809,10 +1930,10 @@ ISAWC.PopulateDFormGeneral = function(DForm)
 	DForm:CheckBox("[EXPERIMENTAL] Save Engine Tables",ISAWC.ConSaveTable:GetName())
 	DForm:Help(" - "..ISAWC.ConSaveTable:GetHelpText().."\n")
 	local dangerbutton = DForm:Button("Set All To Default","isawc_options_reset")
-	dangerbutton:SetTextColor(Color(255,0,0))
+	dangerbutton:SetTextColor(Color(255,0,0))]]
 end
 
-ISAWC.PopulateDFormPickup = function(DForm)
+--[=[ISAWC.PopulateDFormPickup = function(DForm)
 	DForm:CheckBox("Override Hooks",ISAWC.ConOverride:GetName())
 	DForm:Help(" - "..ISAWC.ConOverride:GetHelpText().."\n")
 	DForm:CheckBox("Hide Pickup Fail Events",ISAWC.ConPickupDenyLogs:GetName())
@@ -1890,6 +2011,8 @@ ISAWC.PopulateDFormPlayer = function(DForm)
 	DForm:Help(" - "..ISAWC.ConDropOnDeath:GetHelpText().."\n")
 	DForm:CheckBox("Use Death Drop Whitelist",ISAWC.ConDropOnDeathWhitelistEnabled:GetName())
 	DForm:Help(" - "..ISAWC.ConDropOnDeathWhitelistEnabled:GetHelpText().."\n")
+	DForm:NumSlider("Death Drop Life Time",ISAWC.ConDropOnDeathLifetime:GetName(),0,100,1)
+	DForm:Help(" - "..ISAWC.ConDropOnDeathLifetime:GetHelpText().."\n")
 	DForm:NumSlider("Death Drop Remove Time",ISAWC.ConDeathRemoveDelay:GetName(),0,100,1)
 	DForm:Help(" - "..ISAWC.ConDeathRemoveDelay:GetHelpText().."\n")
 	DForm:NumSlider("Max Death Drops",ISAWC.ConDropOnDeathAmount:GetName(),-1,100,0)
@@ -1960,7 +2083,7 @@ ISAWC.PopulateDFormImportExport = function(DForm)
 	DForm:Help(" - "..ISAWC.ConExporterAutoHealth:GetHelpText().."\n")
 	DForm:NumSlider("Exporter Health Regen",ISAWC.ConExporterRegen:GetName(),-100,100,1)
 	DForm:Help(" - "..ISAWC.ConExporterRegen:GetHelpText().."\n")
-end
+end]=]
 
 ISAWC.BuildClientVars = function(self)
 	self.SW,self.SH,self.LP = ScrW(),ScrH(),LocalPlayer()
@@ -1981,6 +2104,21 @@ ISAWC.ServerOptionsInfo = {
 	{
 		name = "General",
 		options = {
+			{
+				name = "Disable Mass System",
+				convar = ISAWC.ConDisableMass,
+				type = "bool"
+			},
+			{
+				name = "Disable Volume System",
+				convar = ISAWC.ConDisableVolume,
+				type = "bool"
+			},
+			{
+				name = "Disable Slots System",
+				convar = ISAWC.ConDisableCount,
+				type = "bool"
+			},
 			{
 				name = "Mass Multiplier",
 				convar = ISAWC.ConMassMul3,
@@ -2051,6 +2189,17 @@ ISAWC.ServerOptionsInfo = {
 				type = "bool"
 			},
 			{
+				name = "Custom Item Images",
+				type = "sslist",
+				concommand = "isawc_imagelist",
+				pointer = "CustomImageList"
+			},
+			{
+				name = "Do Not 3D Render Items",
+				convar = ISAWC.ConForceCustomImage,
+				type = "bool"
+			},
+			{
 				name = "Custom Item Mappings",
 				type = "sslist",
 				concommand = "isawc_remaplist",
@@ -2087,6 +2236,11 @@ ISAWC.ServerOptionsInfo = {
 				name = "Item Stamps As Ammo",
 				type = "xlist",
 				pointer = "AmmoItemStampList"
+			},
+			{
+				name = "Loot Tables",
+				type = "xlist",
+				pointer = "LootTablesList"
 			},
 			{
 				name = "Use Save Data Compression",
@@ -2354,6 +2508,13 @@ ISAWC.ServerOptionsInfo = {
 				pointer = "DropOnDeath"
 			},
 			{
+				name = "Death Drop Life Time",
+				convar = ISAWC.ConDropOnDeathLifetime,
+				type = "number",
+				min = -1,
+				max = 100
+			},
+			{
 				name = "Death Drop Remove Time",
 				convar = ISAWC.ConDeathRemoveDelay,
 				type = "number",
@@ -2429,7 +2590,10 @@ ISAWC.ServerOptionsInfo = {
 			{
 				name = "Always Openable By Everyone",
 				convar = ISAWC.ConAlwaysPublic,
-				type = "bool"
+				type = "number",
+				min = 0,
+				max = 2,
+				decimals = 0
 			},
 			{
 				name = "Lockpick Time",
@@ -2600,12 +2764,12 @@ ISAWC.BuildListMenu = function(self, title, name, listType, data, func)
 	
 	local Main = vgui.Create("DFrame")
 	Main:SetTitle(title)
-	Main:SetSize(self.SW*2/3, self.SH*2/3)
+	Main:SetSize(self.SW*0.75, self.SH*0.75)
 	Main:Center()
 	Main:MakePopup()
 	function Main:Paint(w,h)
-		draw.RoundedBox(8,0,0,w,h,color_black_semiopaque)
-		draw.RoundedBox(8,0,0,w,24,color_black_semiopaque)
+		draw.RoundedBox(8,0,0,w,h,color_black_doublesemiopaque)
+		draw.RoundedBox(8,0,0,w,24,color_black_doublesemiopaque)
 	end
 	
 	if listType == "bwlist" then
@@ -2625,7 +2789,7 @@ ISAWC.BuildListMenu = function(self, title, name, listType, data, func)
 		
 		local BlacklistPanel = vgui.Create("DPanel")
 		function BlacklistPanel:Paint(w,h)
-			draw.RoundedBox(8,0,0,w,h,color_black_semiopaque)
+			draw.RoundedBox(8,0,0,w,h,color_black_doublesemiopaque)
 		end
 		VerticalDivider:SetTop(BlacklistPanel)
 		
@@ -2711,7 +2875,7 @@ ISAWC.BuildListMenu = function(self, title, name, listType, data, func)
 		
 		local WhitelistPanel = vgui.Create("DPanel")
 		function WhitelistPanel:Paint(w,h)
-			draw.RoundedBox(8,0,0,w,h,color_black_semiopaque)
+			draw.RoundedBox(8,0,0,w,h,color_black_doublesemiopaque)
 		end
 		VerticalDivider:SetBottom(WhitelistPanel)
 			
@@ -2802,7 +2966,7 @@ ISAWC.BuildListMenu = function(self, title, name, listType, data, func)
 		local Panel = vgui.Create("DPanel", Main)
 		Panel:Dock(FILL)
 		function Panel:Paint(w,h)
-			draw.RoundedBox(8,0,0,w,h,color_black_semiopaque)
+			draw.RoundedBox(8,0,0,w,h,color_black_doublesemiopaque)
 		end
 		
 		local Help = vgui.Create("DLabel", Panel)
@@ -2932,7 +3096,7 @@ ISAWC.BuildListMenu = function(self, title, name, listType, data, func)
 		local Panel = vgui.Create("DPanel", Main)
 		Panel:Dock(FILL)
 		function Panel:Paint(w,h)
-			draw.RoundedBox(8,0,0,w,h,color_black_semiopaque)
+			draw.RoundedBox(8,0,0,w,h,color_black_doublesemiopaque)
 		end
 		
 		local Help = vgui.Create("DLabel", Panel)
@@ -3020,7 +3184,7 @@ ISAWC.BuildListMenu = function(self, title, name, listType, data, func)
 		local Panel = vgui.Create("DPanel", Main)
 		Panel:Dock(FILL)
 		function Panel:Paint(w,h)
-			draw.RoundedBox(8,0,0,w,h,color_black_semiopaque)
+			draw.RoundedBox(8,0,0,w,h,color_black_doublesemiopaque)
 		end
 		
 		local Help = vgui.Create("DLabel", Panel)
@@ -3203,6 +3367,299 @@ ISAWC.BuildListMenu = function(self, title, name, listType, data, func)
 			end
 		end
 		ScrollPanel:Refresh()
+	elseif name == "LootTablesList" then
+		for k,v in SortedPairs(data) do
+			table.insert(returnData, {k,v})
+		end
+		
+		local Panel = vgui.Create("DPanel", Main)
+		Panel:Dock(FILL)
+		function Panel:Paint(w,h)
+			draw.RoundedBox(8,0,0,w,h,color_black_doublesemiopaque)
+		end
+		
+		local Help = vgui.Create("DLabel", Panel)
+		Help:SetText("TODO")
+		Help:SetWrap(true)
+		Help:SetAutoStretchVertical(true)
+		Help:DockMargin(4,4,4,0)
+		Help:Dock(TOP)
+		
+		local ScrollPanel = vgui.Create("DScrollPanel", Panel)
+		ScrollPanel:DockMargin(4,0,4,0)
+		ScrollPanel:Dock(FILL)
+		ScrollPanel.EntryPanels = {}
+		function ScrollPanel:Refresh()
+			for k,v in pairs(self.EntryPanels) do
+				v:Remove()
+			end
+			self.EntryPanels = {}
+			
+			for k,v in pairs(returnData) do
+				local EntryPanel = vgui.Create("DPanel", self)
+				EntryPanel:SetTall(16)
+				EntryPanel:SetZPos(k)
+				EntryPanel:DockMargin(0,4,0,0)
+				EntryPanel:Dock(TOP)
+				EntryPanel.Paint = nil
+				function EntryPanel:PerformLayout(w,h)
+					self.TextEntry:SetWide((w-24)/2)
+				end
+				table.insert(self.EntryPanels, EntryPanel)
+				
+				local DeleteButton = vgui.Create("DImageButton", EntryPanel)
+				DeleteButton:SetWide(16)
+				DeleteButton:SetImage("icon16/delete.png")
+				DeleteButton:Dock(RIGHT)
+				function DeleteButton:DoClick()
+					table.remove(returnData, k)
+					ScrollPanel:Refresh()
+				end
+				
+				local TextEntry = vgui.Create("DTextEntry", EntryPanel)
+				TextEntry:SetPaintBackground(false)
+				TextEntry:SetDrawBorder(false)
+				TextEntry:SetTextColor(color_white)
+				TextEntry:SetCursorColor(color_white)
+				TextEntry:SetHighlightColor(color_aqua)
+				TextEntry:SetValue(v[1])
+				TextEntry:DockMargin(0,0,4,0)
+				TextEntry:Dock(LEFT)
+				function TextEntry:OnChange()
+					returnData[k][1] = self:GetValue()
+				end
+				function TextEntry:OnGetFocus()
+					self.DrawEditOverlay = true
+					hook.Run("OnTextEntryGetFocus",self)
+				end
+				function TextEntry:OnLoseFocus()
+					self.DrawEditOverlay = nil
+					hook.Run("OnTextEntryLoseFocus",self)
+				end
+				function TextEntry:PaintOver(w,h)
+					if self.DrawEditOverlay then
+						draw.RoundedBox(8,0,0,w,h,color_white_semitransparent)
+					else
+						draw.RoundedBox(8,0,0,w,h,color_gray_semitransparent)
+					end
+				end
+				EntryPanel.TextEntry = TextEntry
+				
+				local TextEntry2 = ISAWC:CreateListButton(EntryPanel, string.format("Loot Table %u", k), "LootTableList", "xlist", function()
+					return v[2]
+				end, function(itemReturnData)
+					returnData[k][2] = itemReturnData
+				end)
+				TextEntry2:DockMargin(0,0,4,0)
+				TextEntry2:Dock(FILL)
+			end
+			
+			local AddPanel = ISAWC:CreateElementCenteringPanel(self, 1)
+			AddPanel:SetTall(16)
+			AddPanel:SetZPos(#returnData+1)
+			AddPanel:Dock(TOP)
+			table.insert(self.EntryPanels, AddPanel)
+			
+			local AddButton = vgui.Create("DImageButton", AddPanel)
+			AddButton:SetSize(16, 16)
+			AddButton:SetImage("icon16/add.png")
+			function AddButton:DoClick()
+				table.insert(returnData, {"", {}})
+				ScrollPanel:Refresh()
+			end
+		end
+		ScrollPanel:Refresh()
+	elseif name == "LootTableList" then
+		returnData = table.Copy(data)
+		
+		local Panel = vgui.Create("DPanel", Main)
+		Panel:Dock(FILL)
+		function Panel:Paint(w,h)
+			draw.RoundedBox(8,0,0,w,h,color_black_doublesemiopaque)
+		end
+		
+		local RollsPanel = vgui.Create("DPanel", Panel)
+		RollsPanel:SetTall(16)
+		RollsPanel:SetZPos(1)
+		RollsPanel:DockMargin(4,4,4,0)
+		RollsPanel:Dock(TOP)
+		RollsPanel.Paint = nil
+		function RollsPanel:PerformLayout(w,h)
+			self.Label:SetWide((w-4)/2)
+		end
+		
+		local RollsLabel = vgui.Create("DLabel", RollsPanel)
+		RollsLabel:SetTextColor(color_white)
+		RollsLabel:SetText("Number of Rolls")
+		RollsLabel:DockMargin(0,0,4,0)
+		RollsLabel:Dock(LEFT)
+		RollsPanel.Label = RollsLabel
+		
+		local RollsEntry = vgui.Create("DTextEntry", RollsPanel)
+		RollsEntry:SetPaintBackground(false)
+		RollsEntry:SetDrawBorder(false)
+		RollsEntry:SetTextColor(color_white)
+		RollsEntry:SetCursorColor(color_white)
+		RollsEntry:SetHighlightColor(color_aqua)
+		RollsEntry:SetValue(returnData.rolls or 0)
+		RollsEntry:DockMargin(0,0,0,0)
+		RollsEntry:Dock(FILL)
+		function RollsEntry:OnChange()
+			returnData.rolls = tonumber(self:GetValue()) or 0
+		end
+		function RollsEntry:OnGetFocus()
+			self.DrawEditOverlay = true
+			hook.Run("OnTextEntryGetFocus",self)
+		end
+		function RollsEntry:OnLoseFocus()
+			self.DrawEditOverlay = nil
+			hook.Run("OnTextEntryLoseFocus",self)
+		end
+		function RollsEntry:PaintOver(w,h)
+			if self.DrawEditOverlay then
+				draw.RoundedBox(8,0,0,w,h,color_white_semitransparent)
+			else
+				draw.RoundedBox(8,0,0,w,h,color_gray_semitransparent)
+			end
+		end
+		
+		local CheckBoxPanel = vgui.Create("DCheckBoxLabel", Panel)
+		CheckBoxPanel:SetText("Allow same choice per roll")
+		CheckBoxPanel:SetValue(returnData.replacement)
+		CheckBoxPanel:SetZPos(2)
+		CheckBoxPanel:Dock(TOP)
+		function CheckBoxPanel:OnChange(value)
+			returnData.replacement = value
+		end
+		
+		local Help = vgui.Create("DLabel", Panel)
+		Help:SetText("TODO")
+		Help:SetWrap(true)
+		Help:SetAutoStretchVertical(true)
+		Help:DockMargin(4,4,4,0)
+		Help:SetZPos(3)
+		Help:Dock(TOP)
+		
+		local ScrollPanel = vgui.Create("DScrollPanel", Panel)
+		ScrollPanel:DockMargin(4,0,4,0)
+		ScrollPanel:Dock(FILL)
+		ScrollPanel.EntryPanels = {}
+		function ScrollPanel:Refresh()
+			for k,v in pairs(self.EntryPanels) do
+				v:Remove()
+			end
+			self.EntryPanels = {}
+			
+			returnData.items = returnData.items or {}
+			for k,v in pairs(returnData.items) do
+				local EntryPanel = vgui.Create("DPanel", self)
+				EntryPanel:SetTall(16)
+				EntryPanel:SetZPos(k)
+				EntryPanel:DockMargin(0,4,0,0)
+				EntryPanel:Dock(TOP)
+				EntryPanel.Paint = nil
+				function EntryPanel:PerformLayout(w,h)
+					local entryWidth = (w-16)/3-4
+					
+					self.CheckBox:SetWide(entryWidth)
+					self.TextEntry:SetWide(entryWidth)
+				end
+				table.insert(self.EntryPanels, EntryPanel)
+				
+				local DeleteButton = vgui.Create("DImageButton", EntryPanel)
+				DeleteButton:SetWide(16)
+				DeleteButton:SetImage("icon16/delete.png")
+				DeleteButton:Dock(RIGHT)
+				function DeleteButton:DoClick()
+					table.remove(returnData.items, k)
+					ScrollPanel:Refresh()
+				end
+				
+				local CheckBox = vgui.Create("DComboBox", EntryPanel)
+				CheckBox:SetZPos(1)
+				CheckBox:DockMargin(0,0,4,0)
+				CheckBox:Dock(LEFT)
+				CheckBox:AddChoice("Item Stamp", true, v.isStamp)
+				CheckBox:AddChoice("Loot Table", false, not v.isStamp)
+				function CheckBox:OnSelect(index, display, data)
+					v.isStamp = data
+				end
+				EntryPanel.CheckBox = CheckBox
+				
+				local TextEntry = vgui.Create("DTextEntry", EntryPanel)
+				TextEntry:SetPaintBackground(false)
+				TextEntry:SetDrawBorder(false)
+				TextEntry:SetTextColor(color_white)
+				TextEntry:SetCursorColor(color_white)
+				TextEntry:SetHighlightColor(color_aqua)
+				TextEntry:SetValue(v.name or "")
+				TextEntry:SetZPos(2)
+				TextEntry:DockMargin(0,0,4,0)
+				TextEntry:Dock(LEFT)
+				function TextEntry:OnChange()
+					v.name = self:GetValue()
+				end
+				function TextEntry:OnGetFocus()
+					self.DrawEditOverlay = true
+					hook.Run("OnTextEntryGetFocus",self)
+				end
+				function TextEntry:OnLoseFocus()
+					self.DrawEditOverlay = nil
+					hook.Run("OnTextEntryLoseFocus",self)
+				end
+				function TextEntry:PaintOver(w,h)
+					if self.DrawEditOverlay then
+						draw.RoundedBox(8,0,0,w,h,color_white_semitransparent)
+					else
+						draw.RoundedBox(8,0,0,w,h,color_gray_semitransparent)
+					end
+				end
+				EntryPanel.TextEntry = TextEntry
+				
+				local TextEntry2 = vgui.Create("DTextEntry", EntryPanel)
+				TextEntry2:SetPaintBackground(false)
+				TextEntry2:SetDrawBorder(false)
+				TextEntry2:SetTextColor(color_white)
+				TextEntry2:SetCursorColor(color_white)
+				TextEntry2:SetHighlightColor(color_aqua)
+				TextEntry2:SetValue(v.weight or 0)
+				TextEntry2:DockMargin(0,0,4,0)
+				TextEntry2:Dock(FILL)
+				function TextEntry2:OnChange()
+					v.weight = tonumber(self:GetValue()) or 0
+				end
+				function TextEntry2:OnGetFocus()
+					self.DrawEditOverlay = true
+					hook.Run("OnTextEntryGetFocus",self)
+				end
+				function TextEntry2:OnLoseFocus()
+					self.DrawEditOverlay = nil
+					hook.Run("OnTextEntryLoseFocus",self)
+				end
+				function TextEntry2:PaintOver(w,h)
+					if self.DrawEditOverlay then
+						draw.RoundedBox(8,0,0,w,h,color_white_semitransparent)
+					else
+						draw.RoundedBox(8,0,0,w,h,color_gray_semitransparent)
+					end
+				end
+			end
+			
+			local AddPanel = ISAWC:CreateElementCenteringPanel(self, 1)
+			AddPanel:SetTall(16)
+			AddPanel:SetZPos(#returnData.items+1)
+			AddPanel:Dock(TOP)
+			table.insert(self.EntryPanels, AddPanel)
+			
+			local AddButton = vgui.Create("DImageButton", AddPanel)
+			AddButton:SetSize(16, 16)
+			AddButton:SetImage("icon16/add.png")
+			function AddButton:DoClick()
+				table.insert(returnData.items, {weight = 1})
+				ScrollPanel:Refresh()
+			end
+		end
+		ScrollPanel:Refresh()
 	end
 	
 	local OKButton = vgui.Create("DButton", Main)
@@ -3220,15 +3677,23 @@ ISAWC.BuildListMenu = function(self, title, name, listType, data, func)
 		draw.RoundedBox(8,0,0,w,h,col)
 	end
 	function OKButton:DoClick()
-		if listType == "xlist" and name == "StampList" then
-			local stampNames = {}
-			for k,v in pairs(returnData) do
-				if v[2] == "" then
-					return Derma_Message("Item stamp names cannot be empty.", "Invalid Names Detected", "OK")
-				elseif stampNames[v[2]] then
-					return Derma_Message("Item stamp names must be unique.", "Duplicate Names Detected", "OK")
-				else
-					stampNames[v[2]] = true
+		if listType == "xlist" then
+			if name == "StampList" then
+				local stampNames = {}
+				for k,v in pairs(returnData) do
+					if v[2] == "" then
+						return Derma_Message("Item stamp names cannot be empty.", "Invalid Names Detected", "OK")
+					elseif stampNames[v[2]] then
+						return Derma_Message("Item stamp names must be unique.", "Duplicate Names Detected", "OK")
+					else
+						stampNames[v[2]] = true
+					end
+				end
+			elseif name == "LootTablesList" then
+				for k,v in pairs(returnData) do
+					if v[1] == "" then
+						return Derma_Message("Loot table names cannot be empty.", "Invalid Names Detected", "OK")
+					end
 				end
 			end
 		end
@@ -3248,6 +3713,8 @@ ISAWC.BuildListMenu = function(self, title, name, listType, data, func)
 				kvReturnData[v[1]] = {v[2], v[3], v[4], v[5] ~= "" and v[5] or string.format("%s x %u", game.GetAmmoName(v[2]), v[3])}
 			end
 			func(kvReturnData)
+		elseif listType == "xlist" and name == "LootTableList" then
+			func(returnData)
 		else
 			local kvReturnData = {}
 			for i,v in ipairs(returnData) do
@@ -3301,8 +3768,8 @@ ISAWC.BuildServerOptionsMenu = function(self, data)
 	Main:Center()
 	Main:MakePopup()
 	function Main:Paint(w,h)
-		draw.RoundedBox(8,0,0,w,h,color_black_semiopaque)
-		draw.RoundedBox(8,0,0,w,24,color_black_semiopaque)
+		draw.RoundedBox(8,0,0,w,h,color_black_doublesemiopaque)
+		draw.RoundedBox(8,0,0,w,24,color_black_doublesemiopaque)
 	end
 	self.OptionsWindow = Main
 	
@@ -3321,7 +3788,7 @@ ISAWC.BuildServerOptionsMenu = function(self, data)
 				col = self:GetExpanded() and color_light_aqua or color_white_semitransparent
 			end
 			
-			draw.RoundedBox(8,0,0,w,h,color_black_semiopaque)
+			draw.RoundedBox(8,0,0,w,h,color_black_doublesemiopaque)
 			draw.RoundedBox(8,0,0,w,18,col)
 		end
 		
@@ -3460,13 +3927,11 @@ ISAWC.BuildServerOptionsMenu = function(self, data)
 				
 				optionPanel = Button
 			elseif typ == "xlist" then
-				local dataFunc
+				local dataFunc = function()
+					return newConVarValues[v2.pointer] or data[v2.pointer]
+				end
 				
-				if v2.pointer == "StampList" then
-					dataFunc = function()
-						return newConVarValues[v2.pointer] or data[v2.pointer]
-					end
-				elseif v2.pointer == "AmmoItemStampList" then
+				if v2.pointer == "AmmoItemStampList" then
 					dataFunc = function()
 						return {
 							newConVarValues[v2.pointer] or data[v2.pointer],
@@ -3492,11 +3957,13 @@ ISAWC.BuildServerOptionsMenu = function(self, data)
 				
 				local DescText = vgui.Create("DLabel", Category)
 				DescText:SetText(" - "..v2.convar:GetHelpText())
-				DescText:DockMargin(4,0,4,4)
+				DescText:DockMargin(4,0,4,16)
 				DescText:SetZPos(currentZ)
 				DescText:SetWrap(true)
 				DescText:SetAutoStretchVertical(true)
 				DescText:Dock(TOP)
+			else
+				optionPanel:DockMargin(4,0,4,16)
 			end
 		end
 		
@@ -3562,6 +4029,8 @@ ISAWC.GetClientToOpenOptionsMenu = function(self, ply)
 				elseif v2.pointer == "AmmoItemStampList" then
 					data.AmmoItemStampList = self.AmmoItemStampList
 					self.AmmoItemStampListLastUpdate._ = RealTime()
+				else
+					data[v2.pointer] = self[v2.pointer]
 				end
 			end
 		end
@@ -3584,24 +4053,44 @@ ISAWC.GetPercentageColor = function(self,percent)
 	return HSVToColor(math.Clamp(math.Remap(percent,0,1,180,0),0,180),1,1)
 end
 
+ISAWC.DetermineInfosHeight = function(self)
+	local bars = 0
+	if not self.ConDisableMass:GetBool() then
+		bars = bars + 1
+	end
+	if not self.ConDisableVolume:GetBool() then
+		bars = bars + 1
+	end
+	if not self.ConDisableCount:GetBool() then
+		bars = bars + 1
+	end
+	return bars*self.FontH
+end
+
 ISAWC.DrawInfos = function(self,invinfo,w,h)
 	local cw,mw,cv,mv,cc,mc = unpack(invinfo)
 	if mc == 0 then mc = 65536 end
 	local pw,pv,pc = cw/mw,cv/mv,cc/mc
-	draw.RoundedBox(4,0,h-self.FontH*3,w,self.FontH,color_black_semiopaque)
-	draw.RoundedBox(4,0,h-self.FontH*2,w,self.FontH,color_black_semiopaque)
-	draw.RoundedBox(4,0,h-self.FontH,w,self.FontH,color_black_semiopaque)
-	if pw>=0 then
-		draw.RoundedBox(4,0,h-self.FontH*3,w*math.min(pw,1),self.FontH,color_dark_red_semitransparent)
-		draw.SimpleTextOutlined(string.format("    Mass: %.2f kg/%.2f kg (%i%%)",cw,mw,pw*100),"DermaDefault",0,h-self.FontH*2.5,self:GetPercentageColor(pw),TEXT_ALIGN_LEFT,TEXT_ALIGN_CENTER,1,color_black_semitransparent)
-	end
-	if pv>=0 then
-		draw.RoundedBox(4,0,h-self.FontH*2,w*math.min(pv,1),self.FontH,color_dark_green_semitransparent)
-		draw.SimpleTextOutlined(string.format("    Volume: %.2f dm³/%.2f dm³ (%i%%)",cv*self.dm3perHu,mv*self.dm3perHu,pv*100),"DermaDefault",0,h-self.FontH*1.5,self:GetPercentageColor(pv),TEXT_ALIGN_LEFT,TEXT_ALIGN_CENTER,1,color_black_semitransparent)
-	end
-	if pc>=0 then
-		draw.RoundedBox(4,0,h-self.FontH,w*math.min(pc,1),self.FontH,color_dark_blue_semitransparent)
+	
+	local currentY = h-self.FontH
+	if pc>=0 and not self.ConDisableCount:GetBool() then
+		draw.RoundedBox(4,0,currentY,w,self.FontH,color_black_doublesemiopaque)
+		draw.RoundedBox(4,0,currentY,w*math.min(pc,1),self.FontH,color_dark_blue_semitransparent)
 		draw.SimpleTextOutlined(string.format("    Number of Items: %u/%u (%i%%)",cc,mc,pc*100),"DermaDefault",0,h-self.FontH*0.5,self:GetPercentageColor(pc),TEXT_ALIGN_LEFT,TEXT_ALIGN_CENTER,1,color_black_semitransparent)
+		
+		currentY = currentY - self.FontH
+	end
+	if pv>=0 and not self.ConDisableVolume:GetBool() then
+		draw.RoundedBox(4,0,currentY,w,self.FontH,color_black_doublesemiopaque)
+		draw.RoundedBox(4,0,currentY,w*math.min(pv,1),self.FontH,color_dark_green_semitransparent)
+		draw.SimpleTextOutlined(string.format("    Volume: %.2f dm³/%.2f dm³ (%i%%)",cv*self.dm3perHu,mv*self.dm3perHu,pv*100),"DermaDefault",0,h-self.FontH*1.5,self:GetPercentageColor(pv),TEXT_ALIGN_LEFT,TEXT_ALIGN_CENTER,1,color_black_semitransparent)
+	
+		currentY = currentY - self.FontH
+	end
+	if pw>=0 and not self.ConDisableMass:GetBool() then
+		draw.RoundedBox(4,0,currentY,w,self.FontH,color_black_doublesemiopaque)
+		draw.RoundedBox(4,0,currentY,w*math.min(pw,1),self.FontH,color_dark_red_semitransparent)
+		draw.SimpleTextOutlined(string.format("    Mass: %.2f kg/%.2f kg (%i%%)",cw,mw,pw*100),"DermaDefault",0,h-self.FontH*2.5,self:GetPercentageColor(pw),TEXT_ALIGN_LEFT,TEXT_ALIGN_CENTER,1,color_black_semitransparent)
 	end
 end
 
@@ -3849,8 +4338,8 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 	Main:SetSizable(true)
 	Main:Receiver("ISAWC.ItemMoveOut", ISAWC.DoNothing) -- This is so that items don't accidentally get dropped into the world
 	function Main:Paint(w,h)
-		draw.RoundedBox(8,0,0,w,h,color_black_semiopaque)
-		draw.RoundedBox(8,0,0,w,24,color_black_semiopaque)
+		draw.RoundedBox(8,0,0,w,h,color_black_doublesemiopaque)
+		draw.RoundedBox(8,0,0,w,24,color_black_doublesemiopaque)
 	end
 	ISAWC.reliantwindow = Main
 	
@@ -3859,7 +4348,7 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 	InvBase:SetSelectionCanvas(true)
 	
 	local InfoPanel = Main:Add("DPanel")
-	InfoPanel:SetHeight(ISAWC.FontH*3)
+	InfoPanel:SetHeight(ISAWC:DetermineInfosHeight())
 	InfoPanel:Dock(BOTTOM)
 	function InfoPanel:Paint(w,h)
 		ISAWC:DrawInfos(ISAWC.InvData,w,h)
@@ -3923,9 +4412,21 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 				--local enum,info = next(v)
 				local info = v
 				if (info and info.Class) then
-					local Item = InvPanel:Add("SpawnIcon")
+					local Item
+					if info.Skin < 0 then
+						Item = InvPanel:Add("DImageButton")
+						Item:SetImage(info.BodyGroups, "vgui/spawnmenu/broken")
+						Item.OverlayFade = 0
+						function Item:Think()
+							self.OverlayFade = math.Clamp( self.OverlayFade - RealFrameTime() * 640 * 2, 0, 255 )
+							if dragndrop.IsDragging() or not self:IsHovered() then return end
+							self.OverlayFade = math.Clamp( self.OverlayFade + RealFrameTime() * 640 * 8, 0, 255 )
+						end
+					else
+						Item = InvPanel:Add("SpawnIcon")
+						Item:SetModel(info.Model,info.Skin,info.BodyGroups)
+					end
 					Item:SetSize(64,64)
-					Item:SetModel(info.Model,info.Skin,info.BodyGroups)
 					Item:SetSelectable(true)
 					Item:Droppable("ISAWC.ItemMove")
 					Item:Droppable("ISAWC.ItemMoveOut")
@@ -3939,6 +4440,8 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 						end
 					elseif info.Desc ~= "" then
 						Item:SetTooltip(info.Model.."\n"..info.Desc)
+					elseif info.Skin < 0 then
+						Item:SetTooltip(info.Model)
 					end
 					function Item:PaintOver(w,h)
 						local hasClip1 = false
@@ -4039,18 +4542,20 @@ ISAWC.BuildInventory = function(iconPanel,Main)
 							Option:SetIcon("icon16/accept.png")
 						end
 						Options:AddSpacer()
-						Option = Options:AddOption("Edit Icon",function()
-							if IsValid(self) then
-								local IconEditor = vgui.Create("IconEditor")
-								IconEditor:SetSize(ISAWC.SW/2,ISAWC.SH/2)
-								IconEditor:SetIcon(Item)
-								IconEditor:Refresh()
-								IconEditor:Center()
-								IconEditor:SetSizable(true)
-								IconEditor:MakePopup()
-							end
-						end)
-						Option:SetIcon("icon16/wrench.png")
+						if info.Skin >= 0 then
+							Option = Options:AddOption("Edit Icon",function()
+								if IsValid(self) then
+									local IconEditor = vgui.Create("IconEditor")
+									IconEditor:SetSize(ISAWC.SW/2,ISAWC.SH/2)
+									IconEditor:SetIcon(Item)
+									IconEditor:Refresh()
+									IconEditor:Center()
+									IconEditor:SetSizable(true)
+									IconEditor:MakePopup()
+								end
+							end)
+							Option:SetIcon("icon16/wrench.png")
+						end
 						Option = Options:AddOption("Copy Class Name",function()
 							SetClipboardText(info.Class)
 						end)
@@ -4131,8 +4636,8 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 	Main:Receiver("ISAWC.ItemMoveContainer", ISAWC.DoNothing)
 	Main:Receiver("ISAWC.ItemMoveContainer2", ISAWC.DoNothing)
 	function Main:Paint(w,h)
-		draw.RoundedBox(8,0,0,w,h,color_black_semiopaque)
-		draw.RoundedBox(8,0,0,w,24,color_black_semiopaque)
+		draw.RoundedBox(8,0,0,w,h,color_black_doublesemiopaque)
+		draw.RoundedBox(8,0,0,w,24,color_black_doublesemiopaque)
 	end
 	function Main:OnRemove()
 		ISAWC:StartNetMessage("close_container")
@@ -4170,7 +4675,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 	Divider:SetLeft(InvBaseLeft)
 	
 	local InfoLeft = InvBaseLeft:Add("DPanel")
-	InfoLeft:SetHeight(ISAWC.FontH*3)
+	InfoLeft:SetHeight(ISAWC:DetermineInfosHeight())
 	InfoLeft:Dock(BOTTOM)
 	function InfoLeft:Paint(w,h)
 		ISAWC:DrawInfos(ISAWC.InvData,w,h)
@@ -4244,7 +4749,7 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 	Divider:SetRight(InvBaseRight)
 	
 	local InfoRight = InvBaseRight:Add("DPanel")
-	InfoRight:SetHeight(ISAWC.FontH*3)
+	InfoRight:SetHeight(ISAWC:DetermineInfosHeight())
 	InfoRight:Dock(BOTTOM)
 	function InfoRight:Paint(w,h)
 		ISAWC:DrawInfos(ISAWC.InvData2,w,h)
@@ -4336,9 +4841,21 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 				--local enum,info = next(v)
 				local info = v
 				if (info and info.Class) then
-					local Item = InvLeft:Add("SpawnIcon")
+					local Item
+					if info.Skin < 0 then
+						Item = InvLeft:Add("DImageButton")
+						Item:SetImage(info.BodyGroups, "vgui/spawnmenu/broken")
+						Item.OverlayFade = 0
+						function Item:Think()
+							self.OverlayFade = math.Clamp( self.OverlayFade - RealFrameTime() * 640 * 2, 0, 255 )
+							if dragndrop.IsDragging() or not self:IsHovered() then return end
+							self.OverlayFade = math.Clamp( self.OverlayFade + RealFrameTime() * 640 * 8, 0, 255 )
+						end
+					else
+						Item = InvLeft:Add("SpawnIcon")
+						Item:SetModel(info.Model,info.Skin,info.BodyGroups)
+					end
 					Item:SetSize(64,64)
-					Item:SetModel(info.Model,info.Skin,info.BodyGroups)
 					Item:SetSelectable(true)
 					Item:Droppable("ISAWC.ItemMoveContainer")
 					Item:Droppable("ISAWC.ItemMoveOut")
@@ -4352,6 +4869,8 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 						end
 					elseif info.Desc ~= "" then
 						Item:SetTooltip(info.Model.."\n"..info.Desc)
+					elseif info.Skin < 0 then
+						Item:SetTooltip(info.Model)
 					end
 					function Item:PaintOver(w,h)
 						local hasClip1 = false
@@ -4495,18 +5014,20 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 							Option:SetIcon("icon16/accept.png")
 						end
 						Options:AddSpacer()
-						Option = Options:AddOption("Edit Icon",function()
-							if IsValid(self) then
-								local IconEditor = vgui.Create("IconEditor")
-								IconEditor:SetSize(ISAWC.SW/2,ISAWC.SH/2)
-								IconEditor:SetIcon(self)
-								IconEditor:Refresh()
-								IconEditor:Center()
-								IconEditor:SetSizable(true)
-								IconEditor:MakePopup()
-							end
-						end)
-						Option:SetIcon("icon16/wrench.png")
+						if info.Skin >= 0 then
+							Option = Options:AddOption("Edit Icon",function()
+								if IsValid(self) then
+									local IconEditor = vgui.Create("IconEditor")
+									IconEditor:SetSize(ISAWC.SW/2,ISAWC.SH/2)
+									IconEditor:SetIcon(Item)
+									IconEditor:Refresh()
+									IconEditor:Center()
+									IconEditor:SetSizable(true)
+									IconEditor:MakePopup()
+								end
+							end)
+							Option:SetIcon("icon16/wrench.png")
+						end
 						Option = Options:AddOption("Copy Class Name",function()
 							SetClipboardText(info.Class)
 						end)
@@ -4562,9 +5083,21 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 				--local enum,info = next(v)
 				local info = v
 				if (info and info.Class) then
-					local Item = InvRight:Add("SpawnIcon")
+					local Item
+					if info.Skin < 0 then
+						Item = InvRight:Add("DImageButton")
+						Item:SetImage(info.BodyGroups, "vgui/spawnmenu/broken")
+						Item.OverlayFade = 0
+						function Item:Think()
+							self.OverlayFade = math.Clamp( self.OverlayFade - RealFrameTime() * 640 * 2, 0, 255 )
+							if dragndrop.IsDragging() or not self:IsHovered() then return end
+							self.OverlayFade = math.Clamp( self.OverlayFade + RealFrameTime() * 640 * 8, 0, 255 )
+						end
+					else
+						Item = InvRight:Add("SpawnIcon")
+						Item:SetModel(info.Model,info.Skin,info.BodyGroups)
+					end
 					Item:SetSize(64,64)
-					Item:SetModel(info.Model,info.Skin,info.BodyGroups)
 					Item:SetSelectable(true)
 					Item:Droppable("ISAWC.ItemMoveContainer2")
 					Item:Droppable("ISAWC.ItemMoveOut")
@@ -4578,6 +5111,8 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 						end
 					elseif info.Desc ~= "" then
 						Item:SetTooltip(info.Model.."\n"..info.Desc)
+					elseif info.Skin < 0 then
+						Item:SetTooltip(info.Model)
 					end
 					function Item:PaintOver(w,h)
 						local hasClip1 = false
@@ -4721,18 +5256,20 @@ ISAWC.BuildOtherInventory = function(self,container,inv1,inv2,info1,info2)
 							Option:SetIcon("icon16/accept.png")
 						end
 						Options:AddSpacer()
-						Option = Options:AddOption("Edit Icon",function()
-							if IsValid(self) then
-								local IconEditor = vgui.Create("IconEditor")
-								IconEditor:SetSize(ISAWC.SW/2,ISAWC.SH/2)
-								IconEditor:SetIcon(self)
-								IconEditor:Refresh()
-								IconEditor:Center()
-								IconEditor:SetSizable(true)
-								IconEditor:MakePopup()
-							end
-						end)
-						Option:SetIcon("icon16/wrench.png")
+						if info.Skin >= 0 then
+							Option = Options:AddOption("Edit Icon",function()
+								if IsValid(self) then
+									local IconEditor = vgui.Create("IconEditor")
+									IconEditor:SetSize(ISAWC.SW/2,ISAWC.SH/2)
+									IconEditor:SetIcon(Item)
+									IconEditor:Refresh()
+									IconEditor:Center()
+									IconEditor:SetSizable(true)
+									IconEditor:MakePopup()
+								end
+							end)
+							Option:SetIcon("icon16/wrench.png")
+						end
 						Option = Options:AddOption("Copy Class Name",function()
 							SetClipboardText(info.Class)
 						end)
@@ -4818,13 +5355,31 @@ ISAWC.WriteModelFromDupeTable = function(self,dupe)
 	for k,v in pairs(ent.BodyG or {}) do
 		bodyGroups = string.SetChar(bodyGroups,k,v)
 	end
-	net.WriteString(ent.Model or "models/error.mdl")
-	net.WriteString(ent.Class or "worldspawn")
+	
+	-- if the entity is in the custom image list, then we need to treat it differently
+	local model = ent.Model or "models/error.mdl"
+	local class = ent.Class or "worldspawn"
+	local customImage = self:StringMatchParams(class, self.CustomImageList) or self:StringMatchParams(model, self.CustomImageList)
+	
+	if self.ConForceCustomImage:GetBool() then
+		customImage = customImage or '?'
+	end
+	
+	if customImage then
+		if customImage == '?' then
+			bodyGroups = Material("vgui/entities/"..class):IsError() and "entities/"..class..".png" or "vgui/entities/"..class
+		else
+			bodyGroups = customImage
+		end
+	end
+	
+	net.WriteString(model)
+	net.WriteString(class)
 	net.WriteString(ent.EntityMods and ent.EntityMods.WireName and ent.EntityMods.WireName.name~="" and ent.EntityMods.WireName.name
 	or ent.Name~="" and ent.Name or ent.name~="" and ent.name or ent.PrintName~="" and ent.PrintName~="Scripted Weapon" and ent.PrintName
-	or ent.Class or "worldspawn")
-	net.WriteString(self:StringMatchParams(ent.Class, self.DescList) or self:StringMatchParams(ent.Model or "models/error.mdl", self.DescList) or "")
-	net.WriteUInt(ent.Skin or 0, 16)
+	or class)
+	net.WriteString(self:StringMatchParams(class, self.DescList) or self:StringMatchParams(model, self.DescList) or "")
+	net.WriteInt(customImage and -1 or ent.Skin or 0, 16)
 	net.WriteString(bodyGroups)
 	net.WriteInt(ent.SavedClip1 or -1, 32)
 	net.WriteInt(ent.SavedClip2 or -1, 32)
@@ -4894,9 +5449,9 @@ ISAWC.GetClientStats = function(self,ply,user)
 		mv = mv * (self:StringMatchParams(ply:GetUserGroup(), ISAWC.VolumeMultiList) or 1)
 		mc = mc * (self:StringMatchParams(ply:GetUserGroup(), ISAWC.CountMultiList) or 1)
 	end
-	if mw <= 0 then mw = math.huge end
-	if mv <= 0 then mv = math.huge end
-	if mc <= 0 then mc = 65536 end
+	if mw <= 0 or self.ConDisableMass:GetBool() then mw = math.huge end
+	if mv <= 0 or self.ConDisableVolume:GetBool() then mv = math.huge end
+	if mc <= 0 or self.ConDisableCount:GetBool() then mc = 65536 end
 	return {cw,mw,cv,mv,cc,mc}
 end
 
@@ -5096,6 +5651,69 @@ ISAWC.IsUnserializable = function(self,tab)
 	return unserializable
 end
 
+ISAWC.AddLootIntoInventory = function(self,inv,lootTable)
+	self.ISAWC_TotalRolls = 0
+	self:AddLootIntoInventoryRecursive(inv,lootTable)
+end
+
+ISAWC.AddLootIntoInventoryRecursive = function(self,inv,lootTable)
+	local lootData = self.LootTablesList[lootTable]
+	if lootData then
+		-- get the weight of each entry
+		local entryWeights = {}
+		for k,v in pairs(lootData.items) do
+			if (v.weight or 0) > 0 then
+				entryWeights[k] = v.weight
+			end
+		end
+		
+		-- do we need to ensure no replacements?
+		local mustNoReplacements = not lootData.replacement
+		
+		if next(entryWeights) then
+			-- now roll
+			for i=1,(lootData.rolls or 0) do
+				if self.ISAWC_TotalRolls > 1000 then
+					self:Log("Failed to generate loot table within 1,000 rolls! Please check for recursion problems!") break
+				end
+				self.ISAWC_TotalRolls = self.ISAWC_TotalRolls + 1
+				
+				-- refill if empty
+				if table.IsEmpty(entryWeights) then
+					for k,v in pairs(lootData.items) do
+						if (v.weight or 0) > 0 then
+							entryWeights[k] = v.weight
+						end
+					end
+				end
+				
+				local selectedIndex = self:SelectWeightedRandom(entryWeights)
+				if mustNoReplacements then
+					entryWeights[selectedIndex] = nil
+				end
+				
+				local selectedLoot = lootData.items[selectedIndex]
+				if (selectedLoot.name or "") ~= "" then
+					if selectedLoot.isStamp then
+						local status, item = self:RestoreItemStamp(selectedLoot.name)
+						if status == 0 then
+							table.insert(inv, item)
+						elseif status == 1 then
+							self:Log(string.format("Failed to find item stamp \"%s\" for loot table \"%s\"!", selectedLoot.name, lootTable))
+						elseif status == 2 then
+							self:Log(string.format("Found item stamp \"%s\" but failed to reconstruct item! The item stamp may have been corrupted!", selectedLoot.name))
+						end
+					else
+						self:AddLootIntoInventoryRecursive(inv, selectedLoot.name)
+					end
+				end
+			end
+		end
+	else
+		self:Log("Failed to find loot table "..lootTable..'!')
+	end
+end
+
 ISAWC.SQL = function(self,query,...)
 	local params = {...}
 	for k,v in pairs(params) do
@@ -5124,10 +5742,12 @@ ISAWC.SaveData = function(self)
 	data.Masslist = self.Masslist or {}
 	data.Volumelist = self.Volumelist or {}
 	data.Countlist = self.Countlist or {}
+	data.CustomImageList = self.CustomImageList or {}
 	data.Remaplist = self.Remaplist or {}
 	data.StoreRemapList = self.StoreRemapList or {}
 	data.DescList = self.DescList or {}
 	data.AmmoItemStampList = self.AmmoItemStampList or {}
+	data.LootTablesList = self.LootTablesList or {}
 	data.MassMultiList = self.MassMultiList or {}
 	data.VolumeMultiList = self.VolumeMultiList or {}
 	data.CountMultiList = self.CountMultiList or {}
@@ -5147,10 +5767,18 @@ ISAWC.SaveData = function(self)
 		end
 	end
 	
+	
+	
 	if self.ConUseCompression:GetBool() then
-		file.Write("isawc_data.dat",util.Compress(util.TableToJSON(data)))
+		local binaryData = util.Compress(util.TableToJSON(data))
+		
+		file.Write("isawc_data.dat",binaryData)
+		file.Write("isawc_data.bak.dat",binaryData)
 	else
-		file.Write("isawc_data.dat",util.TableToJSON(data))
+		local textData = util.TableToJSON(data)
+		
+		file.Write("isawc_data.dat",textData)
+		file.Write("isawc_data.bak.dat",textData)
 	end
 end
 
@@ -5340,16 +5968,30 @@ ISAWC.Initialize = function()
 		if table.IsEmpty(data) then
 			data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "") or "") or {}
 		end
+		if table.IsEmpty(data) then
+			ISAWC:Log("Save data appears to be invalid! Attempting to restore from backup!")
+			data = util.JSONToTable(file.Read("isawc_data.bak.dat") or "") or {}
+		end
+		if table.IsEmpty(data) then
+			data = util.JSONToTable(util.Decompress(file.Read("isawc_data.bak.dat") or "") or "") or {}
+		end
+		if next(data) then
+			ISAWC:Log("Save data loaded successfully!")
+		else
+			ISAWC:Log("Backup save data failed to load!")
+		end
 		ISAWC:PerformCompatibilityLoad(data)
 		
 		ISAWC.Stacklist = data.Stacklist or ISAWC.Stacklist
 		ISAWC.Masslist = data.Masslist or ISAWC.Masslist
 		ISAWC.Volumelist = data.Volumelist or ISAWC.Volumelist
 		ISAWC.Countlist = data.Countlist or ISAWC.Countlist
+		ISAWC.CustomImageList = data.CustomImageList or ISAWC.CustomImageList
 		ISAWC.Remaplist = data.Remaplist or ISAWC.Remaplist
 		ISAWC.StoreRemapList = data.StoreRemapList or ISAWC.StoreRemapList
 		ISAWC.DescList = data.DescList or ISAWC.DescList
 		ISAWC.AmmoItemStampList = data.AmmoItemStampList or ISAWC.AmmoItemStampList
+		ISAWC.LootTablesList = data.LootTablesList or ISAWC.LootTablesList
 		ISAWC.MassMultiList = data.MassMultiList or ISAWC.MassMultiList
 		ISAWC.VolumeMultiList = data.VolumeMultiList or ISAWC.VolumeMultiList
 		ISAWC.CountMultiList = data.CountMultiList or ISAWC.CountMultiList
@@ -5419,6 +6061,7 @@ ISAWC.PlayerDeath = function(ply)
 		else
 			briefcase:SetPos(ply:GetPos() + ply:OBBCenter())
 			--briefcase:SetCreator(ply)
+			briefcase:SetOwnerAccountID(ply:AccountID() or 0)
 			if modelOverride ~= "" then
 				briefcase.ContainerModel = modelOverride
 			end
@@ -6381,27 +7024,41 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 				exporter:SetCollisionGroup(COLLISION_GROUP_NONE)
 				--exporter:UpdateWireOutputs()
 			end
-		elseif self:IsMessageType(func, "send_maker_data") then
+		elseif self:IsMessageType(func, "send_weapon_data") then
 			local weapon = ply:GetActiveWeapon()
-			if (IsValid(weapon) and weapon:GetClass()=="weapon_isawc_maker") then
-				local localized = net.ReadBool()
-				local massMul, volumeMul, countMul, lockMul = net.ReadFloat(), net.ReadFloat(), net.ReadFloat(), net.ReadFloat()
-				local massConstant, volumeConstant = net.ReadFloat(), net.ReadFloat()
-				local openSounds, closeSounds = net.ReadString(), net.ReadString()
-				local additionalAccess = net.ReadString()
-				--print(massMul, volumeMul, massConstant, volumeConstant, openSounds, closeSounds)
-				weapon:SetIsPlayerLocalized(localized)
-				weapon:SetMassMul(massMul)
-				weapon:SetVolumeMul(volumeMul)
-				weapon:SetCountMul(countMul)
-				weapon:SetLockMul(lockMul)
-				weapon:SetMassConstant(massConstant)
-				weapon:SetVolumeConstant(volumeConstant)
-				weapon:SetOpenSounds(openSounds)
-				weapon:SetCloseSounds(closeSounds)
-				weapon:SetAdditionalAccess(additionalAccess)
-				weapon:EmitSound("buttons/button17.wav")
-				ply:PrintMessage(HUD_PRINTTALK, "Properties set! They will take place the next time you transform a container.")
+			if IsValid(weapon) then
+				local class = weapon:GetClass()
+				if class=="weapon_isawc_maker" then
+					local localized = net.ReadBool()
+					local massMul, volumeMul, countMul, lockMul = net.ReadFloat(), net.ReadFloat(), net.ReadFloat(), net.ReadFloat()
+					local massConstant, volumeConstant = net.ReadFloat(), net.ReadFloat()
+					local openSounds, closeSounds = net.ReadString(), net.ReadString()
+					local additionalAccess = net.ReadString()
+					--print(massMul, volumeMul, massConstant, volumeConstant, openSounds, closeSounds)
+					weapon:SetIsPlayerLocalized(localized)
+					weapon:SetMassMul(massMul)
+					weapon:SetVolumeMul(volumeMul)
+					weapon:SetCountMul(countMul)
+					weapon:SetLockMul(lockMul)
+					weapon:SetMassConstant(massConstant)
+					weapon:SetVolumeConstant(volumeConstant)
+					weapon:SetOpenSounds(openSounds)
+					weapon:SetCloseSounds(closeSounds)
+					weapon:SetAdditionalAccess(additionalAccess)
+					weapon:EmitSound("buttons/button17.wav")
+					ply:PrintMessage(HUD_PRINTTALK, "Properties set! They will take place the next time you transform a container.")
+				elseif class=="weapon_isawc_loot" then
+					local lootTable = net.ReadString()
+					
+					if self.LootTablesList[lootTable] then
+						weapon:SetLootTable(lootTable)
+						weapon:EmitSound("buttons/button17.wav")
+						ply:PrintMessage(HUD_PRINTTALK, "Properties set! They will take place the next time you attach a loot table.")
+					else
+						weapon:EmitSound("items/medshotno1.wav")
+						ply:PrintMessage(HUD_PRINTTALK, "That is not a valid loot table!")
+					end
+				end
 			end
 		elseif self:IsMessageType(func, "set_public") then
 			local isPublic = net.ReadBool()
@@ -6425,68 +7082,62 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					stampAmount = math.min(stampAmount, math.floor(maximum / ammoItemStamp[2]))
 				end
 				if stampAmount > 0 then
-					local results = ISAWC:SQL("SELECT \"name\", \"data\" FROM \"isawc_item_stamps\" WHERE \"name\" = %s;", ammoItemStamp[3])
-					if (results and results[1]) then
-						local item = util.JSONToTable(results[1].data)
-						if not item then
-							item = util.JSONToTable(util.Decompress(util.Base64Decode(results[1].data)))
-						end
-						if item then
-							local isContainer = self:IsMessageType(func, "ammo_item_stamp_r")
-							local targetInventory = isContainer and container or ply
-							local data = self:GetClientStats(targetInventory)
-							
-							if data[5]+item.TotalCount>data[6] then
-								local required = math.ceil(data[5]+item.TotalCount-data[6])
-								if isContainer then
-									self:NoPickup(string.format("The container needs %u more slot(s) before it can accept the item!", required), ply)
-								else
-									self:NoPickup(string.format("You need %u more slot(s) to take that item!", required), ply)
-								end
-							elseif data[3]+item.TotalVolume>data[4] then
-								local required = (data[3]+item.TotalVolume-data[4])*self.dm3perHu
-								if isContainer then
-									self:NoPickup(string.format("The container needs %.2f dm³ more before it can accept the item!", required), ply)
-								else
-									self:NoPickup(string.format("You need %.2f dm³ more to take that item!", required), ply)
-								end
-							elseif data[1]+item.TotalMass>data[2] then
-								local required = data[1]+item.TotalMass-data[2]
-								if isContainer then
-									self:NoPickup(string.format("The container needs %.2f kg more before it can accept the item!", required), ply)
-								else
-									self:NoPickup(string.format("You need %.2f kg more to take that item!", required), ply)
-								end
+					local status, item = ISAWC:RestoreItemStamp(ammoItemStamp[3])
+					if status == 0 then
+						local isContainer = self:IsMessageType(func, "ammo_item_stamp_r")
+						local targetInventory = isContainer and container or ply
+						local data = self:GetClientStats(targetInventory)
+						
+						if data[5]+item.TotalCount>data[6] then
+							local required = math.ceil(data[5]+item.TotalCount-data[6])
+							if isContainer then
+								self:NoPickup(string.format("The container needs %u more slot(s) before it can accept the item!", required), ply)
 							else
-								if item.TotalMass > 0 then
-									stampAmount = math.min(stampAmount, (data[2]-data[1]) / item.TotalMass)
-								end
-								if item.TotalVolume > 0 then
-									stampAmount = math.min(stampAmount, (data[4]-data[3]) / item.TotalVolume)
-								end
-								if item.TotalCount > 0 then
-									stampAmount = math.min(stampAmount, (data[6]-data[5]) / item.TotalCount)
-								end
-								for i=1, stampAmount do
-									table.insert(targetInventory.ISAWC_Inventory, item)
-								end
-								local lostAmmo = stampAmount * ammoItemStamp[2]
-								ply:PrintMessage(HUD_PRINTTALK, string.format("%i ammunition stored.", lostAmmo))
-								ply:SetAmmo(ply:GetAmmoCount(ammoItemStamp[1]) - lostAmmo, ammoItemStamp[1])
+								self:NoPickup(string.format("You need %u more slot(s) to take that item!", required), ply)
 							end
-							
-							if container then
-								self:SendInventory2(ply,container)
+						elseif data[3]+item.TotalVolume>data[4] then
+							local required = (data[3]+item.TotalVolume-data[4])*self.dm3perHu
+							if isContainer then
+								self:NoPickup(string.format("The container needs %.2f dm³ more before it can accept the item!", required), ply)
 							else
-								self:SendInventory(ply)
+								self:NoPickup(string.format("You need %.2f dm³ more to take that item!", required), ply)
+							end
+						elseif data[1]+item.TotalMass>data[2] then
+							local required = data[1]+item.TotalMass-data[2]
+							if isContainer then
+								self:NoPickup(string.format("The container needs %.2f kg more before it can accept the item!", required), ply)
+							else
+								self:NoPickup(string.format("You need %.2f kg more to take that item!", required), ply)
 							end
 						else
-							self:NoPickup("The server's stamp required to store that ammo is corrupted!", ply)
+							if item.TotalMass > 0 then
+								stampAmount = math.min(stampAmount, (data[2]-data[1]) / item.TotalMass)
+							end
+							if item.TotalVolume > 0 then
+								stampAmount = math.min(stampAmount, (data[4]-data[3]) / item.TotalVolume)
+							end
+							if item.TotalCount > 0 then
+								stampAmount = math.min(stampAmount, (data[6]-data[5]) / item.TotalCount)
+							end
+							for i=1, stampAmount do
+								table.insert(targetInventory.ISAWC_Inventory, item)
+							end
+							local lostAmmo = stampAmount * ammoItemStamp[2]
+							ply:PrintMessage(HUD_PRINTTALK, string.format("%i ammunition stored.", lostAmmo))
+							ply:SetAmmo(ply:GetAmmoCount(ammoItemStamp[1]) - lostAmmo, ammoItemStamp[1])
 						end
-					else
+						
+						if container then
+							self:SendInventory2(ply,container)
+						else
+							self:SendInventory(ply)
+						end
+					elseif status == 1 then
 						self:NoPickup("The server is missing the stamp required to store that ammo!", ply)
+					elseif status == 2 then
+						self:NoPickup("The server's stamp required to store that ammo is corrupted!", ply)
 					end
-				elseif maximum >= 0 then
+				elseif maximum ~= 0 then
 					self:NoPickup("You don't have enough ammo!", ply)
 				end
 			end
@@ -6537,7 +7188,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 									self:SQL("BEGIN;")
 									for k,v in pairs(newValues.StampList) do
 										if v == "" then
-											self:SQL("DELETE FROM \"isawc_item_stamps\" WHERE \"name\" = %s;", k)
+											self:DeleteItemStamp(k)
 										elseif k ~= v then
 											self:SQL("UPDATE \"isawc_item_stamps\" SET \"name\" = %s WHERE \"name\" = %s;", v, k)
 										end
@@ -6546,6 +7197,8 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 									self:SQL("COMMIT;")
 								elseif v2.pointer == "AmmoItemStampList" and newValues.AmmoItemStampList then
 									self.AmmoItemStampList = newValues.AmmoItemStampList
+								elseif v2.pointer == "LootTablesList" and newValues.LootTablesList then
+									self[v2.pointer] = newValues[v2.pointer]
 								end
 							elseif conVarType ~= "button" then
 								local conVar = v2.convar
@@ -6564,6 +7217,8 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 							end
 						end
 					end
+					
+					self:SaveData()
 				else
 					local consoleArguments = {net.ReadString()}
 					if consoleArguments[1] == "isawc_activate_options_menu_server" then
@@ -6622,7 +7277,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					self.reliantwindow:ReceiveInventory(util.JSONToTable(net.ReadData(bytes)))]]
 					local data = {}
 					for i=1,net.ReadUInt(16) do
-						data[i] = {Model=net.ReadString(), Class=net.ReadString(), Name=net.ReadString(), Desc=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
+						data[i] = {Model=net.ReadString(), Class=net.ReadString(), Name=net.ReadString(), Desc=net.ReadString(), Skin=net.ReadInt(16), BodyGroups=net.ReadString(),
 						Clip1=net.ReadInt(32), Clip2=net.ReadInt(32), MaxClip1=net.ReadInt(32), MaxClip2=net.ReadInt(32)}
 					end
 					self.reliantwindow:ReceiveInventory(data)
@@ -6665,11 +7320,11 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					local data2 = util.JSONToTable(net.ReadData(bytes2))]]
 					local nt1, nt2 = {}, {}
 					for i=1,net.ReadUInt(16) do
-						nt1[i] = {Model=net.ReadString(), Class=net.ReadString(), Name=net.ReadString(), Desc=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
+						nt1[i] = {Model=net.ReadString(), Class=net.ReadString(), Name=net.ReadString(), Desc=net.ReadString(), Skin=net.ReadInt(16), BodyGroups=net.ReadString(),
 						Clip1=net.ReadInt(32), Clip2=net.ReadInt(32), MaxClip1=net.ReadInt(32), MaxClip2=net.ReadInt(32)}
 					end
 					for i=1,net.ReadUInt(16) do
-						nt2[i] = {Model=net.ReadString(), Class=net.ReadString(), Name=net.ReadString(), Desc=net.ReadString(), Skin=net.ReadUInt(16), BodyGroups=net.ReadString(),
+						nt2[i] = {Model=net.ReadString(), Class=net.ReadString(), Name=net.ReadString(), Desc=net.ReadString(), Skin=net.ReadInt(16), BodyGroups=net.ReadString(),
 						Clip1=net.ReadInt(32), Clip2=net.ReadInt(32), MaxClip1=net.ReadInt(32), MaxClip2=net.ReadInt(32)}
 					end
 					self.reliantwindow:ReceiveInventory(nt1,nt2)
@@ -6684,7 +7339,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			if IsValid(questionEnt) then
 				questionEnt:BuildConfigGUI()
 			end
-		elseif self:IsMessageType(func, "send_maker_data") then
+		elseif self:IsMessageType(func, "send_weapon_data") then
 			local weapon = net.ReadEntity()
 			if IsValid(weapon) then
 				weapon:OpenMakerMenu()
@@ -6999,15 +7654,15 @@ ISAWC.CreateItemStamp = function(self, name, item)
 	self:SQL("INSERT INTO \"isawc_item_stamps\" (\"name\", \"data\") VALUES (%s, %s);", name, data)
 end
 
-ISAWC.RestoreItemStamp = function(self, name, ply)
-	local results = ISAWC:SQL("SELECT \"name\", \"data\" FROM \"isawc_item_stamps\" WHERE \"name\" = %s;", name)
+ISAWC.RestoreItemStamp = function(self, name)
+	local results = ISAWC:SQL("SELECT \"data\" FROM \"isawc_item_stamps\" WHERE \"name\" = %s;", name)
 	if (results and results[1]) then
 		local item = util.JSONToTable(results[1].data)
 		if not item then
 			item = util.JSONToTable(util.Decompress(util.Base64Decode(results[1].data)))
 		end
 		if item then
-			return 0, table.insert(ply.ISAWC_Inventory, item)
+			return 0, item
 		else return 2
 		end
 	else return 1

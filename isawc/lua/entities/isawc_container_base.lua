@@ -28,10 +28,11 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Int",0,"ContainerHealth",{KeyName="isawc_health",Edit={type="Int",title="Container Health",min=0,max=1000,order=4}})
 	self:NetworkVar("Int",1,"OwnerAccountID")
 	self:NetworkVar("Int",2,"PlayerTeam")
-	self:NetworkVar("Float",0,"MassMul",{KeyName="isawc_mass_mul",Edit={type="Float",category="Multipliers",title="Mass Mult.",min=0,max=10,order=5}})
-	self:NetworkVar("Float",1,"VolumeMul",{KeyName="isawc_volume_mul",Edit={type="Float",category="Multipliers",title="Volume Mult.",min=0,max=10,order=6}})
-	self:NetworkVar("Float",2,"CountMul",{KeyName="isawc_count_mul",Edit={type="Float",category="Multipliers",title="Count Mult.",min=0,max=10,order=7}})
-	self:NetworkVar("Float",3,"LockMul",{KeyName="isawc_lock_mul",Edit={type="Float",category="Multipliers",title="(DarkRP) Lock Mult.",min=0,max=10,order=8}})
+	self:NetworkVar("Float",0,"MassMul",{KeyName="isawc_mass_mul",Edit={type="Float",category="Multipliers",title="Mass Mult.",min=0,max=10,order=6}})
+	self:NetworkVar("Float",1,"VolumeMul",{KeyName="isawc_volume_mul",Edit={type="Float",category="Multipliers",title="Volume Mult.",min=0,max=10,order=7}})
+	self:NetworkVar("Float",2,"CountMul",{KeyName="isawc_count_mul",Edit={type="Float",category="Multipliers",title="Count Mult.",min=0,max=10,order=8}})
+	self:NetworkVar("Float",3,"LockMul",{KeyName="isawc_lock_mul",Edit={type="Float",category="Multipliers",title="(DarkRP) Lock Mult.",min=0,max=10,order=9}})
+	self:NetworkVar("String",0,"LootTable",{KeyName="loot_table",Edit={type="Generic",title="Loot Table Name",order=5}})
 	self:NetworkVar("String",1,"FileID")
 	self:NetworkVar("String",2,"EnderInvName",{KeyName="enderchest_inv_name",Edit={type="Generic",title="Inv. ID (for EnderChests)",order=3}})
 	
@@ -247,6 +248,7 @@ function ENT:Use(activator,caller,typ,data)
 				end
 			end
 		end
+		self:PopulateLoot(activator)
 		if ISAWC:IsLegalContainer(self, activator, true) then
 			for k,v in pairs(self.ISAWC_Openers) do
 				if not IsValid(k) then self.ISAWC_Openers[k] = nil end
@@ -377,9 +379,15 @@ function ENT:Think()
 				end
 			end
 		end
+		
+		local shouldDespawn = not self.ISAWC_IsDropAll and ISAWC.ConDropOnDeathLifetime:GetFloat() > 0
+			and CurTime() > self:GetCreationTime() + ISAWC.ConDropOnDeathLifetime:GetFloat() - ISAWC.ConDeathRemoveDelay:GetFloat()
+			or not self.ISAWC_Inventory[1]
+		
 		if ISAWC.ConMagnet:GetFloat() > 0 and ISAWC:SatisfiesBWLists(self:GetClass(), "ContainerMagnetContainer") and not self.ISAWC_IsDeathDrop then
 			self:FindMagnetablesInSphere()
-		elseif self.ISAWC_IsDeathDrop and not self.ISAWC_Inventory[1] then
+		elseif self.ISAWC_IsDeathDrop and shouldDespawn and not self.ISAWC_Fading then
+			self.ISAWC_Fading = true
 			local delay = self.ISAWC_IsDropAll and ISAWC.ConDropAllTime:GetFloat() or ISAWC.ConDeathRemoveDelay:GetFloat()
 			timer.Simple(delay-4.24, function()
 				if IsValid(self) then
@@ -502,7 +510,7 @@ function ENT:GetInventory(ply)
 		ISAWC:Log("The inventory will be reset, expect item loss!")
 	end
 	if self:GetIsPlayerLocalized() then
-		if ply:IsPlayer() then
+		if (IsValid(ply) and ply:IsPlayer()) then
 			local steamID = ply:SteamID()
 			if not self.ISAWC_PlayerLocalizedInventories[steamID] then
 				self.ISAWC_PlayerLocalizedInventories[steamID] = {}
@@ -517,6 +525,31 @@ function ENT:GetInventory(ply)
 		end
 	end
 	return self.ISAWC_Inventory
+end
+
+function ENT:PopulateLoot(ply)
+	local lootTable = self:GetLootTable() or ""
+	
+	if lootTable ~= "" then
+		local inv = self:GetInventory(ply)
+		
+		if self:GetIsPlayerLocalized() and (IsValid(ply) and ply:IsPlayer()) then
+			-- figure out if we need to ditch our current knowledge on who has looted us
+			if self.ISAWC_LootTableLocalized ~= lootTable then
+				self.ISAWC_LootTableLocalizedPlayers = {}
+				self.ISAWC_LootTableLocalized = lootTable
+			end
+			
+			local steamID = ply:SteamID()
+			if not self.ISAWC_LootTableLocalizedPlayers[steamID] then
+				self.ISAWC_LootTableLocalizedPlayers[steamID] = true
+				ISAWC:AddLootIntoInventory(inv, lootTable)
+			end
+		else
+			ISAWC:AddLootIntoInventory(inv, lootTable)
+			self:SetLootTable("")
+		end
+	end
 end
 
 hook.Add("canLockpick", "ISAWC × DarkRP", function(ply, ent, trace)

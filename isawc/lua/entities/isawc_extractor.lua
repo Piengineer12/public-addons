@@ -564,6 +564,11 @@ function ENT:Think()
 				end
 			end
 		end
+		
+		local spawnDelay = math.max(self:GetSpawnDelay(), ISAWC.ConMinExportDelay:GetFloat(), 0.05)
+		if (self.ISAWC_NextSpawn or 0) > CurTime() + spawnDelay * 2 then
+			self.ISAWC_NextSpawn = CurTime() + spawnDelay
+		end
 		if (self.ISAWC_NextSpawn or 0) < CurTime() then
 			self:SpawnProp()
 		end
