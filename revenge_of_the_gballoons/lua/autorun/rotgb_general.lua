@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		6.6.3
-Version Date:	2023-01-05
+Version:		6.6.4
+Version Date:	2023-01-14
 ]]
 
 local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","spawning","towers","music"}
@@ -1022,7 +1022,7 @@ if CLIENT then
 			end
 		end
 		
-		return string.gsub(phrase, "%%(.)", pieces)
+		return (string.gsub(phrase, "%%(.)", pieces))
 	end
 	
 	function ROTGB_HasLocalization(token)

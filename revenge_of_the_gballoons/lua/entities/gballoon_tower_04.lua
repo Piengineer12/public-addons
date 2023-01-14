@@ -34,7 +34,7 @@ ENT.UpgradeReference = {
 			"Fires an even bigger beam that obliterates all gBalloons in its path, regardless of immunities.",
 			"BLARGGGH!!!"
 		},
-		Prices = {250,750,5000,50000,400000,25e6},
+		Prices = {250,750,4500,50000,400000,25e6},
 		Funcs = {
 			function(self)
 				self.rotgb_Spread = self.rotgb_Spread / 1.5

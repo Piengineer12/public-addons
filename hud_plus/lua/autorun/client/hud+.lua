@@ -238,9 +238,11 @@ HUD_PLUS.DrawTargetID = true
 HUD_PLUS.CachedEntity = NULL
 HUD_PLUS.EntityNextFade = 0
 HUD_PLUS.TargetIDFadeTime = 1
+HUD_PLUS.TranslateClass = true
+HUD_PLUS.ShowZeroHealth = false
 local customnames = {}
 HUD_PLUS.GetNameFunction = function(self,ent)
-	return customnames[ent:GetClass()] or ent:IsPlayer() and ent:Nick() or ent.PrintName or language.GetPhrase(ent:GetClass())
+	return customnames[ent:GetClass()] or ent:IsPlayer() and ent:Nick() or not self.TranslateClass and ent:GetClass() or ent.PrintName or language.GetPhrase(ent:GetClass())
 end
 HUD_PLUS.DrawTargetIDHUD = function(self)
 	if not self.DrawTargetID then return false end
@@ -252,7 +254,7 @@ HUD_PLUS.DrawTargetIDHUD = function(self)
 	elseif self.EntityNextFade > self.RealTime then
 		ent = self.CachedEntity
 	end
-	if (IsValid(ent) and ent:Health()>0) then
+	if (IsValid(ent) and (self.ShowZeroHealth or ent:Health()>0)) then
 		local drawpos = ent:GetPos()
 		drawpos.z = drawpos.z + ent:OBBMaxs().z
 		if self.TargetIDDynamic then
@@ -873,6 +875,8 @@ HUD_PLUS.ShowOptions = function()
 	HUD_PLUS:AddNumberOption(ItemList,"itemhudpanelsizeratio","Border Size Multiplier",0,10,2,1.5)
 	local TargetIDList = Sheets:InstallSheet("TargetIDs","icon16/report_user.png")
 	HUD_PLUS:AddCheckBoxOption(TargetIDList,"DrawTargetID","Draw Target IDs")
+	HUD_PLUS:AddCheckBoxOption(TargetIDList,"TranslateClass","Show Translated Class Names")
+	HUD_PLUS:AddCheckBoxOption(TargetIDList,"ShowZeroHealth","Show Zero Health Entities")
 	HUD_PLUS:AddNumberOption(TargetIDList,"TargetIDFadeTime","Fade Time",0,10,2,1)
 	HUD_PLUS:AddNumberOption(TargetIDList,"TargetIDX","X Position",0,1,3,0.5)
 	HUD_PLUS:AddNumberOption(TargetIDList,"TargetIDY","Y Position",0,1,3,0.2)

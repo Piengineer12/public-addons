@@ -20,14 +20,6 @@ ENT.AttackDamage = 10
 ENT.rotgb_AbilityDamage = 32768
 ENT.UpgradeReference = {
 	{
-		Names = {"Faster Blasting","Faster-er Blasting","Cluster Bombs","Recursive Cluster Bombs","Field Destroyer"},
-		Descs = {
-			"Slightly increases explosion rate.",
-			"Considerably increases explosion rate.",
-			"Each explosion created by this tower causes 8 more explosions!",
-			"Considerably reduces fire rate, but more explosions are created!",
-			"Tremendously increases blast range and damage."
-		},
 		Prices = {400,1200,7000,27500,275000},
 		Funcs = {
 			function(self)
@@ -50,16 +42,8 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Fat Bombs","Mysterious Gadget","Concentrated Explosions","Antimatter Bombs","The Biggest One","Pyromaniac"},
-		Descs = {
-			"Slightly increases blast size.",
-			"Enables the tower to pop hidden gBalloons.",
-			"Tremendously increases blast damage.",
-			"Enables the tower to pop Black gBalloons, Zebra gBalloons and Monochrome gBlimps.",
-			"Increases blast size considerably and damage colossally.",
-			"Considerably increases blast damage and colossally increases fire rate!"
-		},
-		Prices = {400,1500,5000,8500,125000,1.25e6},
+		-- 1.5, 2, 3, 2, 10 (5*2), 10 (2*5)
+		Prices = {400,1200,4500,6500,120000,1.2e6},
 		Funcs = {
 			function(self)
 				self.DetectionRadius = self.DetectionRadius * 1.5
@@ -85,15 +69,6 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Heavy Bombs","WOWsplosions","Flex Remover","Ice Bombs","The Tsar Bomba","Meteor Nuke"},
-		Descs = {
-			"Considerably increases damage versus gBlimps.",
-			"gBalloons hit by this tower move 50% slower for 3 seconds.",
-			"Explosions strip gBalloons of their Shielded and Fast properties.",
-			"Freezes gBalloons for 2 seconds per hit. Note that White and Black gBalloons cannot be frozen by this upgrade.",
-			"Once every 30 seconds, firing at this tower deals massive damage to all gBalloons regardless of immunities.",
-			"The Tsar Bomba deals far more damage, enough to wipe out all Purple gBlimps on the map!",
-		},
 		Prices = {400,3500,12500,30000,100000,1.25e6},
 		Funcs = {
 			function(self)

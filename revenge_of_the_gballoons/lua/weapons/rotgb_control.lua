@@ -980,8 +980,18 @@ function SWEP:CreateUpperPanel(Main)
 							surface.DrawRect(0, 0, w, h)
 						end
 						if not self.activatable then
-							local percent = math.Clamp(tower:GetAbilityCharge(),0,1)
-							local circleColor = HSVToColor(percent*120,1,1)
+							local percent = 1
+							local circleColor
+							local abilityActiveCutoff = tower.AbilityCooldown == 0 and 1 or (tower.AbilityDuration or 0) / tower.AbilityCooldown
+							if tower:GetAbilityCharge() <= abilityActiveCutoff then
+								percent = math.Remap(tower:GetAbilityCharge(), 0, abilityActiveCutoff, 1, 0)
+								percent = math.Clamp(percent,0,1)
+								circleColor = color_aqua
+							else
+								percent = math.Remap(tower:GetAbilityCharge(), abilityActiveCutoff, 1, 0, 1)
+								percent = math.Clamp(percent,0,1)
+								circleColor = HSVToColor(percent*120,1,1)
+							end
 							ROTGB_DrawCircle(
 								halfSize,halfSize,halfSize,percent,
 								circleColor.r,circleColor.g,circleColor.b,circleColor.a

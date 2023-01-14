@@ -19,6 +19,7 @@ ENT.DetectionRadius = 512
 ENT.AttackDamage = 10
 ENT.UserTargeting = true
 ENT.AbilityCooldown = 30
+ENT.AbilityDuration = 10
 ENT.rotgb_ExploRadius = 64
 ENT.rotgb_TravelTime = 0.5
 ENT.rotgb_Stun = 0
@@ -305,7 +306,7 @@ end
 function ENT:TriggerAbility()
 	local abilityType = self.rotgb_AbilityType
 	if bit.band(abilityType, 1)==1 then
-		self:ApplyBuff(self, "ROTGB_TOWER_11_AC", 10, function(tower)
+		self:ApplyBuff(self, "ROTGB_TOWER_11_AC", self.AbilityDuration, function(tower)
 			tower.rotgb_Stun = tower.rotgb_Stun + 1
 			tower.rotgb_StunMaxRgBE = tower.rotgb_StunMaxRgBE + 2e9
 			tower.FireRate = tower.FireRate*5
@@ -318,7 +319,7 @@ function ENT:TriggerAbility()
 		end)
 	end
 	if bit.band(abilityType, 4)==4 then
-		self:ApplyBuff(self, "ROTGB_TOWER_11_GFC", 10, function(tower)
+		self:ApplyBuff(self, "ROTGB_TOWER_11_GFC", self.AbilityDuration, function(tower)
 			tower.rotgb_FireDamage = tower.rotgb_FireDamage + 199880
 			tower.rotgb_HeavyCrits = true
 		end, function(tower)
@@ -326,7 +327,7 @@ function ENT:TriggerAbility()
 			tower.rotgb_HeavyCrits = nil
 		end)
 		for k,v in pairs(ents.FindByClass("gballoon_tower_11")) do
-			v:ApplyBuff(self, "ROTGB_TOWER_11_GFC_OTHER", 10, function(tower)
+			v:ApplyBuff(self, "ROTGB_TOWER_11_GFC_OTHER", self.AbilityDuration, function(tower)
 				tower.rotgb_Stun = tower.rotgb_Stun + 2
 				tower.rotgb_StunMaxRgBE = tower.rotgb_StunMaxRgBE + 4668
 				tower.rotgb_FireDamage = tower.rotgb_FireDamage + 20

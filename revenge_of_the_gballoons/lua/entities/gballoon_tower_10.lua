@@ -16,6 +16,7 @@ ENT.FireRate = 20
 ENT.Cost = 650
 ENT.DetectionRadius = 256
 ENT.AbilityCooldown = 30
+ENT.AbilityDuration = 15
 ENT.FireWhenNoEnemies = true
 ENT.AttackDamage = 10
 ENT.UseLOS = true
@@ -27,15 +28,6 @@ ENT.rotgb_MaxCharges = 200
 ENT.rotgb_AbilityDamage = 1000
 ENT.UpgradeReference = {
 	{
-		Names = {"Faster Production", "Erratic Spinner", "Omega Battery", "Infinity Chip", "Machine Gun Module", "Showdown Module"},
-		Descs = {
-			"Considerably increases maximum charges and charge rate.",
-			"Slightly increases fire rate and tremendously increases maximum charges and charge rate.",
-			"Considerably increases fire rate and colossally increases maximum charges and charge rate.",
-			"This tower can now spend 1 extra charge per extra hit required to instantly pop gBalloons. Balloons popped by this tower do not spawn any children.",
-			"Once every 60 seconds, shooting at this tower increases attack damage by 100 layers for 15 seconds!",
-			"Machine Gun Module now increases damage by 1000 layers!",
-		},
 		Prices = {600,4000,45000,200000,1e6,8.5e6},
 		Funcs = {
 			function(self)
@@ -65,16 +57,8 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Higher Speed Particles", "Magnetic Particles", "Antimatter Particles", ".99c Particles", "Exotic Particles", "Game Breaking Particles"},
-		Descs = {
-			"Considerably increases attack damage.",
-			"Allows the tower to see Hidden gBalloons.",
-			"Tremendously increases attack damage.",
-			"Colossally increases attack damage! Balloons popped by this tower do not spawn any children.",
-			"Considerably reduces maximum charges... but you probably won't need it.",
-			"This tower deals so much damage, Rainbow gBlimps are destroyed in 4 hits!"
-		},
-		Prices = {600,1500,5000,65000,650000,35e6},
+		-- 2, 2, 3, 10 (5*2), 10 (20/2), 50
+		Prices = {600,1000,4000,50000,500000,25e6},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 10
@@ -99,15 +83,6 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Particle Splitter", "Long Range Shots", "Transforming Particles", "Particle Pulverizer", "Terraforming Particles", "Armour-Sundering Particles"},
-		Descs = {
-			"The tower now pops up to three gBalloons per shot.",
-			"Considerably increases the tower's range.",
-			"Whenever a particle from this tower hits a gBalloon, gain $5.",
-			"The tower now hits all gBalloons within its radius each shot.",
-			"gBalloons hit by this tower's shots permanently lose all damage type immunities.",
-			"gBalloons hit by this tower's shots permanently lose all armor and take 15 more layers of damage from all sources."
-		},
 		Prices = {600,1000,3500,20000,75000,300000},
 		Funcs = {
 			function(self)
@@ -263,7 +238,7 @@ function ENT:ROTGB_Draw()
 	end
 	local delta = (self.DispAngAEndTime-CurTime())/shifttime
 	self.DispAngA = LerpAngle(delta,self.DispAngAEnd,self.DispAngAStart)
-	local valval = 1-math.max(self:GetNWFloat("rotgb_CC")-CurTime(),0)/15
+	local valval = 1-math.max(self:GetNWFloat("rotgb_CC")-CurTime(),0)/self.AbilityDuration
 	local mul = FrameTime()*self:GetNWFloat("rotgb_Charges")*0.05/valval
 	self.DispAng = self.DispAng + self.DispAngA*mul
 	local mapval = math.min(self:GetNWFloat("rotgb_Charges")/self.rotgb_MaxCharges,1)
@@ -275,8 +250,8 @@ end
 
 function ENT:TriggerAbility()
 	local addDamage = self.rotgb_AbilityDamage
-	self:SetNWFloat("rotgb_CC",CurTime()+15)
-	self:ApplyBuff(self, "ROTGB_TOWER_10_ABILITY", 15, function(tower)
+	self:SetNWFloat("rotgb_CC",CurTime()+self.AbilityDuration)
+	self:ApplyBuff(self, "ROTGB_TOWER_10_ABILITY", self.AbilityDuration, function(tower)
 		--tower.FireRate = tower.FireRate * 2
 		tower.AttackDamage = tower.AttackDamage + addDamage
 		--tower.rotgb_PopAqua2 = true

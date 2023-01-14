@@ -90,6 +90,18 @@ local SKILL_RIGHT_TEXTS = {
 		{"rotgb_tg.skills.hint.keyboard.reset.1"},
 		color_white,
 		{color_yellow}
+	},
+	{
+		"rotgb_tg.skills.hint.rays",
+		{},
+		color_white,
+		{}
+	},
+	{
+		"rotgb_tg.skills.hint.multiplayer",
+		{"rotgb_tg.skills.hint.multiplayer.1"},
+		color_white,
+		{color_yellow}
 	}
 }
 
@@ -100,13 +112,14 @@ local ACHIEVEMENT_TIERS = {color_light_green, color_light_blue, color_light_oran
 local WEAPON_SELECTOR_WIDTH = ScreenScale(144)
 local WEAPON_SELECTOR_HEIGHT = ScreenScale(48)
 local WEAPON_SELECTOR_PADDING = ScreenScale(0)
+local SKILL_HELP_SIZE = ScreenScale(16)
 
 local FONT_HEADER_HEIGHT = ScreenScale(16)
 local FONT_BODY_HEIGHT = ScreenScale(12)
 local FONT_EXTRA_HEIGHT = ScreenScale(8)
 local FONT_LEVEL_HEIGHT = ScreenScale(16)
 local FONT_EXPERIENCE_HEIGHT = ScreenScale(12)
-local FONT_SKILL_BODY_HEIGHT = ScreenScale(6)
+local FONT_SKILL_BODY_HEIGHT = ScreenScale(8)
 local FONT_ACHIEVEMENT_HEADER_HEIGHT = ScreenScale(12)
 local FONT_ACHIEVEMENT_BODY_HEIGHT = ScreenScale(8)
 
@@ -1769,6 +1782,23 @@ local function CreateSkillButton(parent, skillID, skillTier)
 	return button
 end
 
+local function CreateSkillHelpButton(parent)
+	local button = vgui.Create("DImage", parent)
+	button:SetSize(SKILL_HELP_SIZE, SKILL_HELP_SIZE)
+	button:SetImage("rotgb_the_gamemode/lorc_molecule.png")
+	button:SetImageColor(color_light_red)
+	button:SetMouseInputEnabled(true)
+	
+	function button:OnCursorEntered()
+		parent:OnSkillHovered(-1)
+	end
+	function button:OnCursorExited()
+		parent:OnSkillUnhovered(-1)
+	end
+	
+	return button
+end
+
 local function CreateTraitDescription(trait, amount)
 	if trait=="skillEffectiveness" then
 		return ROTGB_LocalizeMulticoloredString(
@@ -1809,7 +1839,7 @@ local function CreateSkillTooltip(skillTreeSurface)
 		for k,v in pairs(self.rtg_DescTexts) do
 			v:Remove()
 		end
-		table.Empty(self.rtg_DescTexts)
+		self.rtg_DescTexts = {}
 		
 		local traits = istable(skill.trait) and table.Copy(skill.trait) or {skill.trait}
 		local amounts = istable(skill.amount) and table.Copy(skill.amount) or {skill.amount}
@@ -1868,7 +1898,71 @@ local function CreateSkillTooltip(skillTreeSurface)
 		end
 		self:SetSize(maxWidth+SKILL_TOOLTIP_PADDING*2, FONT_SKILL_BODY_HEIGHT*(1+#traits)+SKILL_TOOLTIP_PADDING*2)
 	end
-	function tooltip:UpdateInfo()
+	function tooltip:UpdateHelp()
+		local maxWidth = 0
+		
+		self.rtg_TitleText:SetText(ROTGB_LocalizeString("rotgb_tg.skills.hint.title"))
+		self.rtg_TitleText:SetTextColor(color_light_red)
+		self.rtg_TitleText:SizeToContentsX()
+		maxWidth = self.rtg_TitleText:GetWide()
+		
+		for k,v in pairs(self.rtg_DescTexts) do
+			v:Remove()
+		end
+		self.rtg_DescTexts = {}
+		
+		surface.SetFont("rotgb_skill_body")
+		for k,v in pairs(SKILL_RIGHT_TEXTS) do
+			local textPanel = vgui.Create("DPanel", self)
+			textPanel:SetPos(SKILL_TOOLTIP_PADDING, SKILL_TOOLTIP_PADDING+FONT_SKILL_BODY_HEIGHT*k)
+			
+			local arguments = {}
+			for k2,v2 in pairs(v) do
+				if k2 == 2 then
+					arguments[2] = {}
+					for k3,v3 in pairs(v2) do
+						arguments[2][k3] = ROTGB_LocalizeString(v3)
+					end
+				else
+					arguments[k2] = v2
+				end
+			end
+			
+			textPanel.rtg_Texts = ROTGB_LocalizeMulticoloredString(unpack(arguments))
+			
+			-- the commented code below is no longer needed
+			--[[-- if "{1}" eventually does get added, this part needs to be improved
+			local traitText = traitsText[v]
+			if traitText then 
+				local pos2,pos3 = string.find(traitText, "{0}")
+				local borders = {1,pos2,pos3 and pos3+1}
+				
+				for k2,v2 in pairs(borders) do
+					local nextBorder = borders[k2+1]
+					local subtext = string.sub(traitText, v2, (nextBorder or 0)-1)
+					
+					if k2%2==0 then
+						textPanel.rtg_Texts[k2] = string.format("%+.2f", textPanel.amounts[k2/2])
+					else
+						textPanel.rtg_Texts[k2] = subtext
+					end
+				end
+			else
+				textPanel.rtg_Texts[1] = "No trait description found! Trait: "..v
+			end]]
+			
+			function textPanel:Paint(w,h)
+				draw.MultiColoredText(self.rtg_Texts, "rotgb_skill_body", 0, 0, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
+			end
+			
+			self.rtg_DescTexts[k] = textPanel
+			textPanel:SetSize(draw.GetMultiColoredTextSize(textPanel.rtg_Texts, "rotgb_skill_body"))
+			maxWidth = math.max(maxWidth, textPanel:GetWide())
+		end
+		self:SetSize(maxWidth+SKILL_TOOLTIP_PADDING*2, FONT_SKILL_BODY_HEIGHT*(1+#SKILL_RIGHT_TEXTS)+SKILL_TOOLTIP_PADDING*2)
+		
+	end
+	--[[function tooltip:UpdateInfo()
 		local maxWidth = 0
 		
 		self.rtg_TitleText:SetText("Current Skill Effects:")
@@ -1902,7 +1996,7 @@ local function CreateSkillTooltip(skillTreeSurface)
 			order = order + 1
 		end
 		self:SetSize(maxWidth+SKILL_TOOLTIP_PADDING*2, FONT_SKILL_BODY_HEIGHT*order+SKILL_TOOLTIP_PADDING*2)
-	end
+	end]]
 	
 	local titleText = vgui.Create("DLabel", tooltip)
 	titleText:SetFont("rotgb_skill_body")
@@ -1930,7 +2024,7 @@ local function CreateSkillSummaryPanel(parent)
 	titleText:SetFont("rotgb_skill_body")
 	titleText:SetTall(FONT_SKILL_BODY_HEIGHT)
 	titleText:SetText(ROTGB_LocalizeString("rotgb_tg.skills.skill_effects"))
-	titleText:SetTextColor(color_light_orange)
+	titleText:SetTextColor(color_light_red)
 	titleText:SizeToContentsX()
 	titleText:Dock(TOP)
 	
@@ -1981,6 +2075,7 @@ local function CreateSkillWebSurface(parent)
 	Surface.rtg_SkillPositionData = {}
 	Surface.rtg_SkillButtons = {}
 	Surface.rtg_KeyFlags = 0
+	Surface.rtg_HelpButton = CreateSkillHelpButton(Surface)
 	
 	--[[function Surface:OnCursorEntered()
 	end
@@ -2086,49 +2181,26 @@ local function CreateSkillWebSurface(parent)
 		DisableClipping(false)
 		
 		local skillPoints = ply:RTG_GetSkillPoints()
-		local skillLeftTexts = {
-			[2] = {color_white, (ROTGB_LocalizeString("rotgb_tg.skills.hint.rays"))},
-			[4] = ROTGB_LocalizeMulticoloredString(
-				"rotgb_tg.skills.hint.multiplayer",
-				{ROTGB_LocalizeString("rotgb_tg.skills.hint.multiplayer.1")},
-				color_white,
-				{color_yellow}
-			)
-		}
-		skillLeftTexts[1] = ROTGB_LocalizeMulticoloredString(
-			"rotgb_tg.skills.skill_points",
-			{ROTGB_Commatize(skillPoints)},
-			color_white,
-			{skillPoints > 0 and color_yellow or color_white}
-		)
-		
 		local delta = RealTime() % 2
 		if delta > 1 then
 			delta = 2 - delta
 		end
-		skillLeftTexts[3] = {}
-		skillLeftTexts[3][1] = Color(255, 255 * delta * delta, 0)
-		skillLeftTexts[3][2] = ROTGB_LocalizeString("rotgb_tg.skills.skill_apply_warning")
+		
+		local skillLeftTexts = {
+			ROTGB_LocalizeMulticoloredString(
+				"rotgb_tg.skills.skill_points",
+				{ROTGB_Commatize(skillPoints)},
+				color_white,
+				{skillPoints > 0 and color_yellow or color_white}
+			),
+			{
+				Color(255, 255 * delta * delta, 0),
+				ROTGB_LocalizeString("rotgb_tg.skills.skill_apply_warning")
+			}
+		}
 		
 		for i,v in ipairs(skillLeftTexts) do
 			draw.MultiColoredText(v, "rotgb_skill_body", 0, FONT_SKILL_BODY_HEIGHT*(i-1))
-		end
-		
-		for i,v in ipairs(SKILL_RIGHT_TEXTS) do
-			local arguments = {}
-			
-			for k,v2 in pairs(v) do
-				if k == 2 then
-					arguments[2] = {}
-					for k2,v3 in pairs(v2) do
-						arguments[2][k2] = ROTGB_LocalizeString(v3)
-					end
-				else
-					arguments[k] = v2
-				end
-			end
-			
-			draw.MultiColoredText(ROTGB_LocalizeMulticoloredString(unpack(arguments)), "rotgb_skill_body", w, FONT_SKILL_BODY_HEIGHT*(i-1), TEXT_ALIGN_RIGHT)
 		end
 	end
 	function Surface:Think()
@@ -2175,6 +2247,8 @@ local function CreateSkillWebSurface(parent)
 		if self:IsSkillTooltipVisible() then
 			self:RepositionSkillTooltip()
 		end
+		
+		self.rtg_HelpButton:SetPos(w-SKILL_HELP_SIZE, 0)
 	end
 	
 	
@@ -2225,7 +2299,11 @@ local function CreateSkillWebSurface(parent)
 		return IsValid(self.rtg_SkillTooltip) and self.rtg_SkillTooltip:IsVisible()
 	end
 	function Surface:UpdateSkillTooltip(skillID)
-		self.rtg_SkillTooltip:Update(skills, skillID)
+		if skillID == -1 then
+			self.rtg_SkillTooltip:UpdateHelp()
+		else
+			self.rtg_SkillTooltip:Update(skills, skillID)
+		end
 		
 		--[=[local maxWidth = 0
 		tooltip.rtg_SkillTier = skill.tier
@@ -2298,8 +2376,8 @@ local function CreateSkillWebSurface(parent)
 	end
 	function Surface:RepositionSkillTooltip()
 		local skillTooltip = self.rtg_SkillTooltip
-		local skillButton = self.rtg_SkillButtons[hoveredSkillID]
-		local radius = SKILL_SPRITE_RADIUS_MULTIPLIERS[skillTooltip.rtg_SkillTier+1]
+		local skillButton = hoveredSkillID == -1 and self.rtg_HelpButton or self.rtg_SkillButtons[hoveredSkillID]
+		local radius = hoveredSkillID == -1 and 1 or SKILL_SPRITE_RADIUS_MULTIPLIERS[skillTooltip.rtg_SkillTier+1]
 		local buttonX, buttonY, buttonW, buttonH = skillButton:GetBounds()
 		
 		local posX = buttonX + buttonW * (radius+1)/2
@@ -2502,7 +2580,7 @@ local function CreateSkillWebButtonsPanel(parent)
 					net.WriteUInt(RTG_SKILL_CLEAR, 2)
 					net.SendToServer()
 				end,
-				(ROTGB_LocalizeString("rotgb.general.no"))
+				ROTGB_LocalizeString("rotgb.general.no")
 			)
 		end
 	end)

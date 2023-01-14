@@ -134,10 +134,10 @@ end
 
 -- defined in gballoon_spawner.lua
 function GM:gBalloonSpawnerPostSpawn(spawner, bln, keyValues)
-	if bln:GetBalloonProperty("BalloonBlimp") then
-		local cashBonus = bln:GetBalloonProperty("BalloonCashBonus") + bln:GetMaxHealth() * hook.Run("GetSkillAmount", "gBlimpOuterHealthCash")/100
+	if bln:GetBalloonProperty("BalloonBlimp") or bln:GetBalloonProperty("BalloonBoss") then
+		local cashBonus = bln:GetBalloonProperty("BalloonCashBonus") + bln:GetMaxHealth() * hook.Run("GetSkillAmount", "gBlimpAndBossOuterHealthCash")/100
 		bln:SetBalloonProperty("BalloonCashBonus", cashBonus)
-		bln:SetHealth(bln:GetMaxHealth()*(1+hook.Run("GetSkillAmount", "gBlimpOuterHealth")/100))
+		bln:SetHealth(bln:GetMaxHealth()*(1+hook.Run("GetSkillAmount", "gBlimpAndBossOuterHealth")/100))
 	end
 	if hook.Run("GetSkillAmount", "gBalloonMissingProperty") > 0 then
 		local missingPropertyChance = hook.Run("GetSkillAmount", "gBalloonMissingProperty")/100
@@ -192,8 +192,8 @@ end]]
 -- defined in gballoon_base.lua
 function GM:gBalloonPostInitialize(bln)
 	local slowDown = 1+hook.Run("GetSkillAmount", "gBalloonSpeed")/100
-	if bln:GetBalloonProperty("BalloonBlimp") then
-		slowDown = slowDown * (1+hook.Run("GetSkillAmount", "gBlimpSpeed")/100)
+	if bln:GetBalloonProperty("BalloonBlimp") or bln:GetBalloonProperty("BalloonBoss") then
+		slowDown = slowDown * (1+hook.Run("GetSkillAmount", "gBlimpAndBossSpeed")/100)
 	end
 	bln:Slowdown("gBalloonSpeedSkill", slowDown, 9999)
 	if bln:GetBalloonProperty("BalloonFast") then	
@@ -207,11 +207,11 @@ function GM:gBalloonKeyValuesApply(keyValues)
 	if keyValues.BalloonType == "gballoon_error" and hook.Run("GetSkillAmount", "gBalloonErrorExplosionUnimmune") > 0 then
 		keyValues.BalloonBlack = "0"
 	end
-	if tobool(keyValues.BalloonBlimp) then
-		local newHealth = (tonumber(keyValues.BalloonHealth) or 1) * (1+hook.Run("GetSkillAmount", "gBlimpHealth")/100)
+	if tobool(keyValues.BalloonBlimp) or tobool(keyValues.BalloonBoss) then
+		local newHealth = (tonumber(keyValues.BalloonHealth) or 1) * (1+hook.Run("GetSkillAmount", "gBlimpAndBossHealth")/100)
 		keyValues.BalloonHealth = string.format("%i", math.ceil(newHealth))
 		if (tonumber(keyValues.BalloonArmor) or 0) > 0 then
-			local newArmor = tonumber(keyValues.BalloonArmor) + hook.Run("GetSkillAmount", "gBlimpArmoredArmor")
+			local newArmor = tonumber(keyValues.BalloonArmor) + hook.Run("GetSkillAmount", "gBlimpAndBossArmoredArmor")
 			keyValues.BalloonArmor = string.format("%i", math.ceil(newArmor))
 		end
 	end

@@ -1,5 +1,8 @@
 function GM:LoadClient()
 	local data = util.JSONToTable(file.Read("rotgb_tg_data.dat", "DATA") or "")
+	if not data then
+		data = util.JSONToTable(file.Read("rotgb_tg_data.bak.dat", "DATA") or "")
+	end
 	if data then
 		hook.Run("PerformLoadFixups", data)
 		
@@ -84,7 +87,12 @@ function GM:SaveClient()
 	data.completedDifficulties = hook.Run("GetCompletedDifficulties")
 	data.statsitics = hook.Run("GetStatisticsSaveTable")
 	data.savefileVersion = 2
-	file.Write("rotgb_tg_data.dat", util.TableToJSON(data))
+	
+	local jsonData = util.TableToJSON(data)
+	file.Write("rotgb_tg_data.dat", jsonData)
+	timer.Simple(5, function()
+		file.Write("rotgb_tg_data.bak.dat", jsonData)
+	end)
 end
 
 local color_aqua = Color(0, 255, 255)

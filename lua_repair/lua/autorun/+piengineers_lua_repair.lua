@@ -8,8 +8,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_REPAIR_VERSION = "1.8.2"
-LUA_REPAIR_VERSION_DATE = "2022-12-22"
+LUA_REPAIR_VERSION = "1.8.3"
+LUA_REPAIR_VERSION_DATE = "2023-01-14"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
@@ -43,6 +43,7 @@ local function FixAllErrors()
 	local STRING = getmetatable("") or {}
 	local VECTOR = FindMetaTable("Vector")
 	local ENTITY = FindMetaTable("Entity")
+	local PLAYER = FindMetaTable("Player")
 	local CLUAEMITTER = FindMetaTable("CLuaEmitter")
 	local NULL_META = getmetatable(NULL) or {}
 	local CTAKEDAMAGEINFO = FindMetaTable("CTakeDamageInfo")
@@ -213,6 +214,11 @@ local function FixAllErrors()
 		else return oldindex(ent,key)
 		end
 	end]]
+	local oldGetCurrentCommand = PLAYER.GetCurrentCommand
+	PLAYER.GetCurrentCommand = function(ply, ...)
+		if ply == GetPredictionPlayer() then return oldGetCurrentCommand(ply, ...)
+		else LogError("Some code attempted to call Player:GetCurrentCommand() on a player with no commands currently being processed.") end
+	end
 	if CLUAEMITTER then
 		local oldAdd = CLUAEMITTER.Add
 		CLUAEMITTER.Add = function(emitter,...)

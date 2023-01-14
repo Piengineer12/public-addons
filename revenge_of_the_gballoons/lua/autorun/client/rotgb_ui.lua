@@ -662,7 +662,7 @@ local function GetUserWaveEntry(wavedata, run_func)
 				end
 				WaveComponents.first = false
 			end,
-			(ROTGB_LocalizeString("rotgb.general.no"))
+			ROTGB_LocalizeString("rotgb.general.no")
 		)
 	end 
 	
@@ -1396,6 +1396,16 @@ function ROTGB_UpgradeMenu(ent)
 					net.SendToServer()
 				end
 			end,
+			ROTGB_LocalizeString("rotgb.tower.sell.all"),
+			function()
+				if IsValid(ent) then
+					if IsValid(Main) then Main:Close() end
+					net.Start("rotgb_openupgrademenu")
+					net.WriteEntity(ent)
+					net.WriteUInt(12,4)
+					net.SendToServer()
+				end
+			end,
 			ROTGB_LocalizeString("rotgb.general.no")
 		)
 	end
@@ -1546,9 +1556,9 @@ function ROTGB_UpgradeMenu(ent)
 				local moreCashNeeded = self:GetRequiredAmount() - curcash
 				if moreCashNeeded>0 then return ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.upgrade.node.cannot_afford", ROTGB_FormatCash(moreCashNeeded, true))) end
 				for k=self.Tier,j do
-					if (reftab.Funcs and reftab.Funcs[k]) then
+					--[[if (reftab.Funcs and reftab.Funcs[k]) then
 						reftab.Funcs[k](ent)
-					end
+					end]]
 					UpgradeStatement.Tier = UpgradeStatement.Tier + 1
 				end
 				net.Start("rotgb_openupgrademenu")

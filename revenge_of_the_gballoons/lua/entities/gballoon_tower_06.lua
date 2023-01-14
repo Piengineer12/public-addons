@@ -15,6 +15,7 @@ ENT.Model = Model("models/maxofs2d/hover_propeller.mdl")
 ENT.FireRate = 100
 ENT.Cost = 600
 ENT.AbilityCooldown = 30
+ENT.AbilityDuration = 15
 ENT.LOSOffset = Vector(0,0,25)
 ENT.AttackDamage = 0
 ENT.DetectionRadius = 512
@@ -23,7 +24,7 @@ ENT.InfiniteRange2 = true
 ENT.rotgb_Buff = 0
 ENT.UpgradeReference = {
 	{
-		Prices = {500,2000,7500,30000,125000,500000},
+		Prices = {500,3000,12000,45000,150000,500000},
 		Funcs = {
 			function(self)
 				self.rotgb_NoRegen = true
@@ -46,7 +47,7 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Prices = {2000,3000,19000,170000,790000,3.65e6,18e6,50e6},
+		Prices = {2000,3000,19000,170000,790000,3.65e6,18e6,51e6,210e6,1e9},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 20
@@ -72,6 +73,12 @@ ENT.UpgradeReference = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 513280
 			end,
+			function(self)
+				self.AttackDamage = self.AttackDamage + 2116680
+			end,
+			function(self)
+				self.AttackDamage = self.AttackDamage + 10999990
+			end,
 		}
 	},
 	{
@@ -96,7 +103,7 @@ ENT.UpgradeReference = {
 		}
 	}
 }
-ENT.UpgradeLimits = {8,2,0}
+ENT.UpgradeLimits = {10,2,0}
 
 --[[function ENT:FireFunction(gBalloons)
 	if self.rotgb_Buff > 4 then
@@ -182,7 +189,7 @@ end
 function ENT:TriggerAbility()
 	for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
 		if v.Base=="gballoon_tower_base" then
-			v:ApplyBuff(self, "ROTGB_TOWER_06_TM", 15, function(tower)
+			v:ApplyBuff(self, "ROTGB_TOWER_06_TM", self.AbilityDuration, function(tower)
 				tower.AttackDamage = (tower.AttackDamage or 0) + 400
 			end, function(tower)
 				tower.AttackDamage = (tower.AttackDamage or 0) - 400

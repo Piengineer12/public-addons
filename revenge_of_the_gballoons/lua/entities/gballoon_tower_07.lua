@@ -16,6 +16,7 @@ ENT.FireRate = 2
 ENT.Cost = 250
 ENT.DetectionRadius = 256
 ENT.AbilityCooldown = 30
+ENT.AbilityDuration = 10
 ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,25)
 ENT.UserTargeting = true
@@ -25,16 +26,6 @@ ENT.rotgb_AbilityDamage = 0
 ENT.rotgb_Targets = 1
 ENT.UpgradeReference = {
 	{
-		Names = {"Faster Cycle","Rapid Cycle","Flaring Shot","Hot Hail","Incinerator","Hellfire Hearth","Of The Sun's Embrace"},
-		Descs = {
-			"Slightly increases attack speed.",
-			"Considerably increases attack speed.",
-			"Attacks deal one additional layer of damage and can pop Gray gBalloons.",
-			"Fires searing hot shots that set their victims on fire, dealing 10 layers of damage over 5 seconds.",
-			"All gBalloons within the tower's range get set on fire. Also considerably increases fire duration.",
-			"Once every 30 seconds, shooting at this tower causes it to erupt with a deadly flame, dealing large damage to all gBalloons regardless of immunities and setting them on fire that deals 2,000 layers of damage over 10 seconds.",
-			"Hellfire Hearth's fire damage is increased to 50,000 layers of damage over 10 seconds!"
-		},
 		Prices = {100,300,1750,3500,20000,100000,2e6},
 		Funcs = {
 			function(self)
@@ -63,15 +54,8 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Long Range Bullets","Optical Lens","Binocular Vision","Queen's Grace","Rainbow Beamer Fan Club"},
-		Descs = {
-			"Slightly increases tower range.",
-			"Allows the tower to see Hidden gBalloons.",
-			"Considerably increases tower range. This tower now fires two shots at once.",
-			"This tower fires an additional shot. Once every 30 seconds, shooting at this tower causes all Ally Pawns within its range to turn into Ally Queens, increasing damage dealt by 10 layers for 20 seconds.",
-			"Once every 30 seconds, shooting at this tower causes all Ally Pawns within its range to turn into Rainbow Beamer Prisms, increasing fire rate by 300%, simultaneous hits by 200% and damage dealt by 30 layers for 20 seconds."
-		},
-		Prices = {100,400,2000,40000,350000},
+		-- 1.5, 2, 4, 8.5 (1.5*(2/3+1/3*3*5)), 24 2/3 (2/3+1/3*3*3*4*2)
+		Prices = {100,300,1750,15000,400000},
 		Funcs = {
 			function(self)
 				self.DetectionRadius = self.DetectionRadius * 1.5
@@ -220,14 +204,14 @@ function ENT:TriggerAbility()
 				util.Effect("Explosion",effdata,true,true)
 				ent:TakeDamage(8192,self:GetTowerOwner(),self)
 				--ent.FireSusceptibility = (ent.FireSusceptibility or 0) + 99
-				ent:RotgB_Ignite(self.rotgb_AbilityDamage, self:GetTowerOwner(), self, 10)
+				ent:RotgB_Ignite(self.rotgb_AbilityDamage, self:GetTowerOwner(), self, self.AbilityDuration)
 			end
 		elseif not self.rotgb_Transformation then return true end
 	end
 	if self.rotgb_Transformation then
 		for index,ent in pairs(ents.FindInSphere(self:GetShootPos(), self.DetectionRadius)) do
 			if ent:GetClass()=="gballoon_tower_07" then
-				ent:ApplyBuff(self, "ROTGB_TOWER_07_TRANSFORM", 10, function(tower)
+				ent:ApplyBuff(self, "ROTGB_TOWER_07_TRANSFORM", self.AbilityDuration, function(tower)
 					success = true
 					local effdata = EffectData()
 					effdata:SetOrigin(Vector(tower:GetPos()))

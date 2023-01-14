@@ -16,6 +16,7 @@ ENT.FireRate = 0.4
 ENT.Cost = 450
 ENT.DetectionRadius = 256
 ENT.AbilityCooldown = 30
+ENT.AbilityDuration = 15
 ENT.FireWhenNoEnemies = true
 ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,40)
@@ -27,7 +28,7 @@ ENT.rotgb_SpeedPercent = 1
 ENT.rotgb_FireRateMul = 1
 ENT.UpgradeReference = {
 	{
-		Prices = {400,900,1250,12500,125000,1.25e6},
+		Prices = {400,800,1500,15000,100000,1e6},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 10
@@ -244,19 +245,19 @@ function ENT:TriggerAbility()
 	local entities = ROTGB_GetBalloons()
 	if not next(entities) then return true end
 	for index,ent in pairs(entities) do
-		ent:Slowdown("ROTGB_ICE_TOWER_ABILITY",0.25,15)
+		ent:Slowdown("ROTGB_ICE_TOWER_ABILITY",0.25,self.AbilityDuration)
 		if self.rotgb_Wonderland then
 			if self.rotgb_FireLight then
 				ent:RotgB_Ignite(1000, self:GetTowerOwner(), self, 5)
 			end
 			if not ent:GetBalloonProperty("BalloonBlimp") or ent:GetRgBE()<=ent:GetRgBEByType("gballoon_blimp_green") then
 				if self.rotgb_Intense then
-					ent:Freeze2(15)
+					ent:Freeze2(self.AbilityDuration)
 				else
-					ent:Freeze(15)
+					ent:Freeze(self.AbilityDuration)
 				end
 				if self.rotgb_SpeedPercent ~= 1 then
-					ent:Slowdown("ROTGB_ICE_TOWER",self.rotgb_SpeedPercent,18)
+					ent:Slowdown("ROTGB_ICE_TOWER",self.rotgb_SpeedPercent,self.AbilityDuration+3)
 				end
 				if self.rotgb_PowerFreeze then
 					ent:InflictRotgBStatusEffect("unimmune",1)

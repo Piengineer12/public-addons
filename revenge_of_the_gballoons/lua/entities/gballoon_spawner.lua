@@ -2976,12 +2976,9 @@ function ENT:TriggerWaveEnded()
 	local inFreeplay = cwave > self:GetLastWave()
 	if (self.lastEndWaveTriggered or 1) ~= cwave then
 		self.lastEndWaveTriggered = cwave
-		local income = 100
-		if engine.ActiveGamemode() == "rotgb" then
-			income = income + hook.Run("GetSkillAmount", "waveWaveIncome")*(cwave-1)
-			income = income * (1+hook.Run("GetSkillAmount", "waveIncome")/100)
-		end
+		local income = hook.Run("gBalloonSpawnerIncome",self,cwave-1) or 100
 		ROTGB_AddCash(income/self:GetSpawnDivider()*ROTGB_GetConVarValue("rotgb_cash_mul"))
+		
 		hook.Run("gBalloonSpawnerWaveEnded",self,cwave-1)
 		if self:GetNWString("rotgb_validwave","") == "" then
 			ROTGB_CauseNotification(ROTGB_NOTIFY_WAVEEND, ROTGB_NOTIFYTYPE_CHAT, nil, {"i32", cwave-1})

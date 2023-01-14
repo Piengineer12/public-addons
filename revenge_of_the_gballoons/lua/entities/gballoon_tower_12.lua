@@ -25,16 +25,8 @@ ENT.rotgb_Size = 2
 ENT.rotgb_Torque = 80e3
 ENT.UpgradeReference = {
 	{
-		Names = {"BB Module","RF Module","TX Module","C4 Module","PB Module","5X Module"},
-		Descs = {
-			"Slightly increases the sawblades' size and considerably increases the sawblades' pierce.",
-			"Enables the tower to see Hidden gBalloons.",
-			"Sawblades deal considerably more damage.",
-			"Sawblades explode with triple damage when expiring!",
-			"Slightly increases the sawblades' size and tremendously increases damage dealt!",
-			"Considerably reduces fire rate, but explosions pop Black gBalloons and deal 5 times more damage! Also colossally increases damage dealt!",
-		},
-		Prices = {400,1000,1750,5000,15000,500000},
+		-- 2, 2, 2, 3, 3, 8.75 (5/2*3.5)
+		Prices = {400,750,1500,6000,17500,200000},
 		Funcs = {
 			function(self)
 				self.rotgb_Size = self.rotgb_Size * 1.5
@@ -63,15 +55,6 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"OD Module","OV Module","FX Module","EV Module","DX Module","8X Module"},
-		Descs = {
-			"Slightly increases fire rate. Once every 200 pops, the tower overdrives, causing 8 sawblades to be released at once.",
-			"Considerably increases fire rate. Reduces pops required to overdrive the tower by 100.",
-			"Sawblades pierce considerably more gBalloons before shattering.",
-			"Sawblades deal 300% electrical damage per impact!",
-			"Sawblades pierce tremendously more gBalloons before shattering!",
-			"This tower now always overdrives!"
-		},
 		Prices = {200,750,1250,7500,20000,90000},
 		Funcs = {
 			function(self)
@@ -115,10 +98,10 @@ local function ExpirySaw(ent,tower)
 		dmginfo:SetInflictor(tower)
 		if tower.rotgb_GigaExplosive then
 			dmginfo:SetDamageType(DMG_GENERIC)
-			dmginfo:SetDamage(tower.AttackDamage * 15)
+			dmginfo:SetDamage(tower.AttackDamage * 3)
 		else
 			dmginfo:SetDamageType(DMG_BLAST)
-			dmginfo:SetDamage(tower.AttackDamage * 3)
+			dmginfo:SetDamage(tower.AttackDamage / 2)
 		end
 		dmginfo:SetMaxDamage(dmginfo:GetDamage())
 		dmginfo:SetReportedPosition(pos)
@@ -208,9 +191,9 @@ function ENT:FireFunction(tableOfBalloons)
 		saw:AddCallback("PhysicsCollide",OnCollision)
 		saw:SetModel("models/props_junk/sawblade001a.mdl")
 		saw:SetModelScale(self.rotgb_Size)
+		saw:SetCollisionGroup(COLLISION_GROUP_WORLD)
 		saw:Spawn()
 		saw:Activate()
-		saw:SetCollisionGroup(COLLISION_GROUP_WORLD)
 		saw.Tower = self
 		saw.rotgb_MaxPierce = self.rotgb_MaxPierce
 		if i == 1 then

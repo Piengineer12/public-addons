@@ -17,6 +17,7 @@ ENT.MaxFireRate = 10
 ENT.Cost = 2500
 ENT.DetectionRadius = 512
 ENT.AbilityCooldown = 60
+ENT.AbilityDuration = 11
 ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,150)
 ENT.UserTargeting = true
@@ -247,6 +248,8 @@ local AlertSound = Sound("npc/attack_helicopter/aheli_megabomb_siren1.wav")
 
 abilityFunction = function(self)
 	if IsValid(self) then
+		local duration = self.AbilityDuration
+		
 		local ent = self:ChooseSomething()
 		if IsValid(ent) then
 			if self.rotgb_Infinite then
@@ -279,7 +282,7 @@ abilityFunction = function(self)
 			effdata:SetFlags(self.UseLOS and 0 or 1)
 			effdata:SetMagnitude(512/numberOfCannons)
 			util.Effect("gballoon_tower_08_wave",effdata)
-			util.ScreenShake(ecp,1.25/numberOfCannons,5,6,5000)
+			util.ScreenShake(ecp,1.25/numberOfCannons,5,duration-5,5000)
 			local beam = ents.Create("env_beam")
 			beam:SetPos(ecp)
 			beam:SetKeyValue("renderamt","255")
@@ -300,11 +303,11 @@ abilityFunction = function(self)
 			self.rotgb_CannonPositions[endPos] = beam
 			timer.Create("ROTGB_08_AB_"..endPos:GetCreationID(),0.05,120,function()
 				if IsValid(beam) then
-					beam.CurAlpha = (beam.CurAlpha or 255) - 0.05/6*255
+					beam.CurAlpha = (beam.CurAlpha or 255) - 0.05/(duration-5)*255
 					beam:Fire("Alpha",beam.CurAlpha)
 				end
 			end)
-			timer.Simple(6,function()
+			timer.Simple(duration-5,function()
 				if IsValid(startPos) then
 					startPos:Remove()
 				end

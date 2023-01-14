@@ -1374,10 +1374,10 @@ return {
 		},
 		{
 			{
-				ref = "incomeGrower1",
-				name = "income_grower",
-				trait = "waveWaveIncome",
-				amount = 1,
+				ref = "startupAid1",
+				name = "startup_aid",
+				trait = "earlyWaveIncome",
+				amount = 40,
 				tier = 1,
 				parent = "wb9",
 				links = {"wb9", "wb10"},
@@ -1389,14 +1389,14 @@ return {
 				trait = "waveIncome",
 				amount = 2,
 				parent = "wb9",
-				links = {"wb7", "wb9", "incomeGrower1"},
+				links = {"wb7", "wb9", "startupAid1"},
 				pos = {1,0}
 			},
 			{
-				ref = "incomeGrower2",
-				name = "income_grower",
-				trait = "waveWaveIncome",
-				amount = 1,
+				ref = "startupAid2",
+				name = "startup_aid",
+				trait = "earlyWaveIncome",
+				amount = 40,
 				tier = 1,
 				parent = "wb1",
 				links = {"wb1", "wb2"},
@@ -1419,7 +1419,7 @@ return {
 				trait = "startingCash",
 				amount = 25,
 				parent = "gg5",
-				links = {"gg5", "incomeGrower2", "gg26"},
+				links = {"gg5", "startupAid2", "gg26"},
 				pos = {1,1}
 			},
 			{
@@ -1428,7 +1428,7 @@ return {
 				trait = "startingCash",
 				amount = 25,
 				parent = "sc1",
-				links = {"sc1", "incomeGrower2"},
+				links = {"sc1", "startupAid2"},
 				pos = {0,-1}
 			},
 			{
@@ -2164,7 +2164,7 @@ return {
 			{
 				ref = "atgig",
 				name = "all_that_glitters_is_gold",
-				trait = "gBlimpOuterHealthCash",
+				trait = "gBlimpAndBossOuterHealthCash",
 				amount = 1000,
 				tier = 2,
 				parent = "gg23",
@@ -2445,7 +2445,7 @@ return {
 			{
 				ref = "agbs1",
 				name = "advanced_gballoon_sabotage",
-				trait = "gBlimpOuterHealth",
+				trait = "gBlimpAndBossOuterHealth",
 				amount = -1,
 				links = "parent",
 				pos = {1,-1},
@@ -2454,7 +2454,7 @@ return {
 			{
 				ref = "agbs2",
 				name = "advanced_gballoon_sabotage",
-				trait = "gBlimpOuterHealth",
+				trait = "gBlimpAndBossOuterHealth",
 				amount = -1,
 				links = "parent",
 				pos = {1,-1},
@@ -2463,7 +2463,7 @@ return {
 			{
 				ref = "agbs3",
 				name = "advanced_gballoon_sabotage",
-				trait = "gBlimpOuterHealth",
+				trait = "gBlimpAndBossOuterHealth",
 				amount = -1,
 				links = "parent",
 				pos = {1,-1},
@@ -2472,7 +2472,7 @@ return {
 			{
 				ref = "agbs4",
 				name = "advanced_gballoon_sabotage",
-				trait = "gBlimpOuterHealth",
+				trait = "gBlimpAndBossOuterHealth",
 				amount = -1,
 				links = "parent",
 				pos = {-1,1},
@@ -2481,7 +2481,7 @@ return {
 			{
 				ref = "agbs5",
 				name = "advanced_gballoon_sabotage",
-				trait = "gBlimpOuterHealth",
+				trait = "gBlimpAndBossOuterHealth",
 				amount = -1,
 				links = "parent",
 				pos = {-1,1},
@@ -2490,7 +2490,7 @@ return {
 			{
 				ref = "agbs6",
 				name = "advanced_gballoon_sabotage",
-				trait = "gBlimpOuterHealth",
+				trait = "gBlimpAndBossOuterHealth",
 				amount = -1,
 				links = "parent",
 				pos = {-1,1},
@@ -2511,7 +2511,7 @@ return {
 			{
 				ref = "agbs7",
 				name = "advanced_gballoon_sabotage",
-				trait = "gBlimpOuterHealth",
+				trait = "gBlimpAndBossOuterHealth",
 				amount = -1,
 				links = "parent",
 				pos = {1,1},
@@ -2520,7 +2520,7 @@ return {
 			{
 				ref = "agbs8",
 				name = "advanced_gballoon_sabotage",
-				trait = "gBlimpOuterHealth",
+				trait = "gBlimpAndBossOuterHealth",
 				amount = -1,
 				links = "parent",
 				pos = {1,1},
@@ -2529,7 +2529,7 @@ return {
 			{
 				ref = "bigArmorMalfunction",
 				name = "big_armor_malfunction",
-				trait = "gBlimpArmoredArmor",
+				trait = "gBlimpAndBossArmoredArmor",
 				amount = -2,
 				tier = 1,
 				links = "parent",
@@ -2539,7 +2539,7 @@ return {
 			{
 				ref = "agbs9",
 				name = "advanced_gballoon_sabotage",
-				trait = "gBlimpOuterHealth",
+				trait = "gBlimpAndBossOuterHealth",
 				amount = -1,
 				links = "parent",
 				pos = {-1,-1},
@@ -2548,7 +2548,7 @@ return {
 			{
 				ref = "agbs10",
 				name = "advanced_gballoon_sabotage",
-				trait = "gBlimpOuterHealth",
+				trait = "gBlimpAndBossOuterHealth",
 				amount = -1,
 				links = "parent",
 				pos = {-1,-1},
@@ -2689,7 +2689,7 @@ return {
 			{
 				ref = "gbls1",
 				name = "gblimp_sabotage",
-				trait = "gBlimpSpeed",
+				trait = "gBlimpAndBossSpeed",
 				amount = -1,
 				links = "parent",
 				pos = {1,1},
@@ -2698,7 +2698,7 @@ return {
 			{
 				ref = "gbls2",
 				name = "gblimp_sabotage",
-				trait = "gBlimpSpeed",
+				trait = "gBlimpAndBossSpeed",
 				amount = -1,
 				links = "parent",
 				pos = {1,1},
@@ -2707,7 +2707,7 @@ return {
 			{
 				ref = "gbls3",
 				name = "gblimp_sabotage",
-				trait = "gBlimpSpeed",
+				trait = "gBlimpAndBossSpeed",
 				amount = -1,
 				links = "parent",
 				pos = {1,0.5},
@@ -2716,7 +2716,7 @@ return {
 			{
 				ref = "gbls4",
 				name = "gblimp_sabotage",
-				trait = "gBlimpSpeed",
+				trait = "gBlimpAndBossSpeed",
 				amount = -1,
 				links = "parent",
 				pos = {1,0.5},
@@ -2725,7 +2725,7 @@ return {
 			{
 				ref = "gbls5",
 				name = "gblimp_sabotage",
-				trait = "gBlimpSpeed",
+				trait = "gBlimpAndBossSpeed",
 				amount = -1,
 				links = "parent",
 				pos = {1,0},
@@ -2734,7 +2734,7 @@ return {
 			{
 				ref = "gbls6",
 				name = "gblimp_sabotage",
-				trait = "gBlimpSpeed",
+				trait = "gBlimpAndBossSpeed",
 				amount = -1,
 				links = "parent",
 				pos = {1,0},
@@ -2743,7 +2743,7 @@ return {
 			{
 				ref = "gbls7",
 				name = "gblimp_sabotage",
-				trait = "gBlimpSpeed",
+				trait = "gBlimpAndBossSpeed",
 				amount = -1,
 				links = "parent",
 				pos = {1,-0.5},
@@ -2752,7 +2752,7 @@ return {
 			{
 				ref = "gbls8",
 				name = "gblimp_sabotage",
-				trait = "gBlimpSpeed",
+				trait = "gBlimpAndBossSpeed",
 				amount = -1,
 				links = "parent",
 				pos = {1,-0.5},
@@ -2763,7 +2763,7 @@ return {
 			{
 				ref = "gbls9",
 				name = "gblimp_sabotage",
-				trait = "gBlimpSpeed",
+				trait = "gBlimpAndBossSpeed",
 				amount = -1,
 				links = "parent",
 				pos = {1,1},
@@ -2772,7 +2772,7 @@ return {
 			{
 				ref = "gbls10",
 				name = "gblimp_sabotage",
-				trait = "gBlimpSpeed",
+				trait = "gBlimpAndBossSpeed",
 				amount = -1,
 				links = "parent",
 				pos = {1,1},
@@ -2781,7 +2781,7 @@ return {
 			{
 				ref = "gbls11",
 				name = "gblimp_sabotage",
-				trait = "gBlimpSpeed",
+				trait = "gBlimpAndBossSpeed",
 				amount = -1,
 				links = "parent",
 				pos = {0.5,1},
@@ -2790,7 +2790,7 @@ return {
 			{
 				ref = "gbls12",
 				name = "gblimp_sabotage",
-				trait = "gBlimpSpeed",
+				trait = "gBlimpAndBossSpeed",
 				amount = -1,
 				links = "parent",
 				pos = {0.5,1},
@@ -2799,7 +2799,7 @@ return {
 			{
 				ref = "gbls13",
 				name = "gblimp_sabotage",
-				trait = "gBlimpSpeed",
+				trait = "gBlimpAndBossSpeed",
 				amount = -1,
 				links = "parent",
 				pos = {0,1},
@@ -2808,7 +2808,7 @@ return {
 			{
 				ref = "gbls14",
 				name = "gblimp_sabotage",
-				trait = "gBlimpSpeed",
+				trait = "gBlimpAndBossSpeed",
 				amount = -1,
 				links = "parent",
 				pos = {0,1},
@@ -2817,7 +2817,7 @@ return {
 			{
 				ref = "gbls15",
 				name = "gblimp_sabotage",
-				trait = "gBlimpSpeed",
+				trait = "gBlimpAndBossSpeed",
 				amount = -1,
 				links = "parent",
 				pos = {-0.5,1},
@@ -2826,7 +2826,7 @@ return {
 			{
 				ref = "gbls16",
 				name = "gblimp_sabotage",
-				trait = "gBlimpSpeed",
+				trait = "gBlimpAndBossSpeed",
 				amount = -1,
 				links = "parent",
 				pos = {-0.5,1},

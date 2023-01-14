@@ -46,6 +46,7 @@ ENT.UpgradeReference = {
 			function(self)
 				self.HasAbility = true
 				self.rotgb_AbilityType = bit.bor(self.rotgb_AbilityType, 1)
+				self.AbilityDuration = 60
 			end,
 			function(self)
 				self.rotgb_AbilityType = bit.bor(self.rotgb_AbilityType, 8)
@@ -103,7 +104,7 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Prices = {125,1000,12500,25000,1e6},
+		Prices = {125,1500,12500,25000,1e6},
 		Funcs = {
 			function(self)
 				self.DetectionRadius = self.DetectionRadius * 4/3
@@ -367,7 +368,7 @@ end
 function ENT:TriggerAbility()
 	if bit.band(self.rotgb_AbilityType, 1) ~= 0 then
 		if bit.band(self.rotgb_AbilityType, 8) == 0 then
-			self:ApplyBuff(self, "ROTGB_TOWER_17_ABILITY", 60, function(tower)
+			self:ApplyBuff(self, "ROTGB_TOWER_17_ABILITY", self.AbilityDuration, function(tower)
 				tower.FireRate = tower.FireRate * 3
 				tower.rotgb_Pills = tower.rotgb_Pills * 2
 			end, function(tower)
@@ -375,7 +376,7 @@ function ENT:TriggerAbility()
 				tower.rotgb_Pills = tower.rotgb_Pills / 2
 			end)
 		else
-			self:ApplyBuff(self, "ROTGB_TOWER_17_ABILITY", 60, function(tower)
+			self:ApplyBuff(self, "ROTGB_TOWER_17_ABILITY", self.AbilityDuration, function(tower)
 				tower.FireRate = tower.FireRate * 15
 				tower.rotgb_Pills = tower.rotgb_Pills * 6
 			end, function(tower)

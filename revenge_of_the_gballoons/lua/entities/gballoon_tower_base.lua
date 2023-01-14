@@ -381,7 +381,11 @@ function ENT:Think()
 			end
 		end
 		if self.HasAbility and self:GetAbilityCharge() < 1 and (self:GetSpawnerActive() or ROTGB_GetConVarValue("rotgb_tower_force_charge")) then
-			self:SetAbilityCharge(math.min(1, self:GetAbilityCharge()+FrameTime()/self.AbilityCooldown*ROTGB_GetConVarValue("rotgb_tower_charge_rate")))
+			if self.AbilityCooldown == 0 then
+				self:SetAbilityCharge(1)
+			else
+				self:SetAbilityCharge(math.min(1, self:GetAbilityCharge()+FrameTime()/self.AbilityCooldown*ROTGB_GetConVarValue("rotgb_tower_charge_rate")))
+			end
 		end
 		self:BuffThink()
 		self:NextThink(curTime)
@@ -588,8 +592,19 @@ function ENT:DrawTranslucent()
 				--draw.RoundedBox(4, fontSize/2, -fontSize/2, -fontSize, fontSize, color_black)
 				draw.SimpleText(input.LookupBinding("+use"):upper(), "RotgB_font", 0, 0, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 			elseif self.HasAbility then
-				local percent = math.Clamp(self:GetAbilityCharge(),0,1)
-				ROTGB_DrawCircle(0,0,16,percent,HSVToColor(percent*120,1,1))
+				local percent = 1
+				local color
+				local abilityActiveCutoff = self.AbilityCooldown == 0 and 1 or (self.AbilityDuration or 0) / self.AbilityCooldown
+				if self:GetAbilityCharge() <= abilityActiveCutoff then
+					percent = math.Remap(self:GetAbilityCharge(), 0, abilityActiveCutoff, 1, 0)
+					percent = math.Clamp(percent,0,1)
+					color = color_aqua
+				else
+					percent = math.Remap(self:GetAbilityCharge(), abilityActiveCutoff, 1, 0, 1)
+					percent = math.Clamp(percent,0,1)
+					color = HSVToColor(percent*120,1,1)
+				end
+				ROTGB_DrawCircle(0,0,16,percent,color.r,color.g,color.b,color.a)
 			end
 		cam.End3D2D()
 	end
@@ -678,7 +693,7 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 		if not IsValid(ent) then return end
 		if ent.Base ~= "gballoon_tower_base" then return end
 		if ent:GetTowerOwner() ~= ply then return end
-		local path = net.ReadUInt(4) -- we actually only use 0-7; 8-10 are for targeting, 11 is for deletion and 12-15 are for other special cases.
+		local path = net.ReadUInt(4) -- we actually only use 0-7; 8-10 are for targeting, 11-12 are for deletion and 13-15 are for other special cases.
 		if path==8 then
 			return ent:SetTargeting((ent:GetTargeting()+1)%targetings)
 		elseif path==9 then
@@ -697,6 +712,21 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 				ply:SendLua("achievements.Remover()")
 			end
 			return SafeRemoveEntityDelayed(ent,1)
+		elseif path==12 then
+			for k,v in pairs(ents.FindByClass(ent:GetClass())) do
+				constraint.RemoveAll(v)
+				v:SetNotSolid(true)
+				v:SetMoveType(MOVETYPE_NONE)
+				v:SetNoDraw(true)
+				local effdata = EffectData()
+				effdata:SetEntity(v)
+				util.Effect("entity_remove",effdata,true,true)
+				if IsValid(ply) then
+					ply:SendLua("achievements.Remover()")
+				end
+				SafeRemoveEntityDelayed(v,1)
+			end
+			return
 		end
 		
 		local reference = ent.UpgradeReference[path+1]

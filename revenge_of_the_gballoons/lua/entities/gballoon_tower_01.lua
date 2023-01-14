@@ -21,14 +21,6 @@ ENT.rotgb_Radius = 64
 ENT.rotgb_Bounces = 4
 ENT.UpgradeReference = {
 	{
-		--[[Names = {"High Voltage","Faster Recharge","Instant Discharger","Recursive Zap","Extreme Voltage"},
-		Descs = {
-			"Considerably increases the number of electrostatic jumps.",
-			"Static electricity is generated considerably faster.",
-			"Static electricity is generated tremendously faster and deals considerably more damage.",
-			"Static electricity can now hit multiple gBalloons and bounce on the same gBalloon multiple times, resulting in extremely large amounts of damage per hit.",
-			"Tremendously increases the number of electrostatic jumps. Enables the tower to pop Purple gBalloons.",
-		},]]
 		Prices = {450,850,7500,125000,1.2e6},
 		Funcs = {
 			function(self)
@@ -51,21 +43,14 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		--[[Names = {"Long Spark","Wild Sparks","Heart Stopper","Electromagnetic Pulser","Supercell"},
-		Descs = {
-			"Considerably increases the travel distance of electrostatic jumps.",
-			"Electrostatic jumps can hit hidden gBalloons.",
-			"On hit, stuns gBalloons for 0.25s and Regen gBalloons may only regenerate up to their current tier.",
-			"This tower now radiates an electric field that shocks all gBalloons within its radius. Also considerably increases range and enables the tower to pop Purple gBalloons.",
-			"Tremendously increases attack damage, fire rate and range."
-		},]]
-		Prices = {450,1000,2000,25000,750000},
+		-- 2, 2, 2, 8 (2*2*2), 27 (3*3*3)
+		Prices = {450,900,1750,25000,700000},
 		Funcs = {
 			function(self)
-				self.rotgb_Radius = self.rotgb_Radius * 2
+				self.SeeCamo = true
 			end,
 			function(self)
-				self.SeeCamo = true
+				self.rotgb_Radius = self.rotgb_Radius * 2
 			end,
 			function(self)
 				self.rotgb_StopRegen = true

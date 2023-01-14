@@ -96,7 +96,7 @@ function GM:RebuildSkills()
 			end
 		end
 	end
-	hook.Run("RTG_Log", string.format("Finished building skill web in %.2f mcs.", (SysTime()-buildTime)*1e6), RTG_LOGGING_INFO)
+	hook.Run("RTG_Log", string.format("Finished building skill web in %.2f ms.", (SysTime()-buildTime)*1e3), RTG_LOGGING_INFO)
 	hook.Run("RTG_Log", string.format("Nodes: %i, Links: %i", #skills, links), RTG_LOGGING_INFO)
 end
 

@@ -23,16 +23,8 @@ ENT.IsChessPiece = true
 ENT.rotgb_MaxMarkers = 1000
 ENT.UpgradeReference = {
 	{
-		Names = {"Sniping Scope","Night Vision Goggles","Semi-Automatic Rifle","Fully-Automatic Rifle","Marking Shots","England's Grace"},
-		Descs = {
-			"Increases range to infinite.",
-			"Considerably increases fire rate and grants Hidden gBalloon popping power.",
-			"Tremendously increases fire rate.",
-			"Colossally increases fire rate!",
-			"This tower now places markers on gBalloons. Every 10 markers placed will increase damage taken from Sniper Queens by one layer, up to 100 extra layers of damage. Markers only affect the gBalloon's outermost layer.",
-			"Doubles fire rate, increases the maximum marker limit to 1,000 extra layers of damage and all shots hit all gBalloons in its radius!"
-		},
-		Prices = {300,2000,5000,25000,250000,20e6},
+		-- 2, 4, 3, 5, 10, 25
+		Prices = {300,1750,4500,25000,250000,20e6},
 		Funcs = {
 			function(self)
 				self.InfiniteRange = true
@@ -58,15 +50,6 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Point Five Oh","Large Calibre","Armour Piercing Rounds","Blimp Beatdown","Blimp Eliminator","gBalloon Annihilator"},
-		Descs = {
-			"Pops five layers per shot.",
-			"Grants Gray gBalloon popping power and pops eight layers per shot!",
-			"Pops 18 layers per shot, enough to completely destroy a Ceramic gBalloon.",
-			"Pops 54 layers per shot! Shots will also stun gBlimps for 3 seconds. This upgrade can't stun Purple gBlimps and above.",
-			"Pops 270 layers per shot! Shots will also deal colossally increased damage versus gBlimps, enough to destroy Red gBlimps in a single hit!",
-			"Pops 2700 layers per shot! Shots will also cause gBalloons to lose all damage type immunities for 1 second and strips Fast, Hidden, Regen and Shielded properties off gBalloons!"
-		},
 		Prices = {200,1250,2000,20000,500000,20e6},
 		Funcs = {
 			function(self)
@@ -122,8 +105,8 @@ local function SnipeEntity()
 		if self.rotgb_StunBlimp and ent:GetBalloonProperty("BalloonBlimp") and ent:GetRgBE()<ent:GetRgBEByType("gballoon_blimp_purple")-ent:GetMaxHealth() then
 			ent:Stun(1)
 		end
-		if self.rotgb_MarkingShots then
-			ent.rotgb_AdditionslSniperDamage = math.min((ent.rotgb_AdditionslSniperDamage or 0) + 1, self.rotgb_MaxMarkers)
+		if self.rotgb_MarkingShots and (ent.rotgb_AdditionslSniperDamage or 0) < self.rotgb_MaxMarkers then
+			ent.rotgb_AdditionslSniperDamage = (ent.rotgb_AdditionslSniperDamage or 0) + 1
 		end
 		if self.rotgb_ExtraToBlimp and ent:GetBalloonProperty("BalloonBlimp") then
 			bullet.Damage = bullet.Damage * 5

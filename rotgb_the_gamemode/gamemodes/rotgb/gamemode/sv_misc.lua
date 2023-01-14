@@ -283,6 +283,17 @@ function GM:gBalloonSpawnerWaveStarted(spawner, cwave)
 	hook.Run("SetMaxWaveReached", maxWave)
 end
 
+function GM:gBalloonSpawnerIncome(spawner, cwave)
+	local income = 100
+	--income = income + hook.Run("GetSkillAmount", "waveWaveIncome")*(cwave-1)
+	
+	local incomeBonus = math.Remap(cwave, 1, 41, hook.Run("GetSkillAmount", "earlyWaveIncome"), 0)
+	income = income + math.max(incomeBonus, 0)
+	income = income * (1+hook.Run("GetSkillAmount", "waveIncome")/100)
+	
+	return income
+end
+
 function GM:AllTargetsDestroyed()
 	game.SetTimeScale(0.5)
 	for k,v in pairs(player.GetAll()) do

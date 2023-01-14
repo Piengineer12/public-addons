@@ -19,6 +19,7 @@ ENT.AttackDamage = 10
 ENT.LOSOffset = Vector(0,0,32)
 ENT.UserTargeting = true
 ENT.AbilityCooldown = 45
+ENT.AbilityDuration = 15
 ENT.rotgb_MicrowaveAngle = 15
 ENT.rotgb_AbilityType = 0
 ENT.rotgb_Lighten = 0
@@ -26,13 +27,14 @@ ENT.rotgb_Shatter = 0
 ENT.rotgb_FiresMade = {}
 ENT.UpgradeReference = {
 	{
-		Prices = {650,1500,5000,65000,150000,600000,2.5e6},
+		-- 2, 2, 3, 10 (2*5), 3 1/6 (2/3+1/3*5*3/2), 4 (2*2), 8 (2*2*2)
+		Prices = {650,1250,5000,65000,150000,600000,2.5e6},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 10
 			end,
 			function(self)
-				self.SeeCamo = true
+				self.DetectionRadius = self.DetectionRadius * 2
 			end,
 			function(self)
 				self.AttackDamage = self.AttackDamage + 40
@@ -55,10 +57,11 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Prices = {300,1750,5000,20000,100000,3e6},
+		-- 2, 3, 4
+		Prices = {650,2500,10000,20000,100000,3e6},
 		Funcs = {
 			function(self)
-				self.DetectionRadius = self.DetectionRadius * 1.5
+				self.SeeCamo = true
 			end,
 			function(self)
 				self.rotgb_MicrowaveAngle = self.rotgb_MicrowaveAngle * 3
@@ -165,9 +168,9 @@ function ENT:ROTGB_Draw()
 end
 
 function ENT:TriggerAbility()
-	self:SetNWFloat("rotgb_CC", CurTime()+15)
+	self:SetNWFloat("rotgb_CC", CurTime()+self.AbilityDuration)
 	if bit.band(self.rotgb_AbilityType, 1) == 1 then
-		self:ApplyBuff(self, "ROTGB_TOWER_14_ABILITY", 15, function(tower)
+		self:ApplyBuff(self, "ROTGB_TOWER_14_ABILITY", self.AbilityDuration, function(tower)
 			tower.FireRate = tower.FireRate * 5
 			tower.rotgb_MicrowaveAngle = tower.rotgb_MicrowaveAngle * 3
 		end, function(tower)
@@ -177,7 +180,7 @@ function ENT:TriggerAbility()
 	end
 	if bit.band(self.rotgb_AbilityType, 2) == 2 then
 		self.AttackDamage = self.AttackDamage + 190
-		local timetoinsert = CurTime() + 15
+		local timetoinsert = CurTime() + self.AbilityDuration
 		for i=1,95 do
 			table.insert(self.rotgb_FiresMade, timetoinsert)
 		end

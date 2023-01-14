@@ -29,16 +29,8 @@ ENT.rotgb_PostFireRate = 1
 ENT.rotgb_PostMul = 1
 ENT.UpgradeReference = {
 	{
-		Names = {"Speed Up","High Tech Turrets","All Out Attack","Final Moments","Golden Bullets","Rope Bullets"},
-		Descs = {
-			"Reduces turret generation delay by 1 second.",
-			"Reduces turret generation delay by another second. Also allows turrets to detect Hidden gBalloons.",
-			"Turrets that are sparking fire 10 times faster!",
-			"Turrets that are sparking deal decuple (x10) damage!",
-			"Every time a turret hits a gBalloon, gain $20!",
-			"Bullets slow down Green gBlimps and lower by 75% for 1 second!"
-		},
-		Prices = {150,1500,1750,20000,50000,5e6},
+		-- 4/3, 3 (1.5*2), 1.45 (19/20+1/20*10), 5.95 (19/20+1/20*10*10)
+		Prices = {150,1250,850,12500,50000,5e6},
 		Funcs = {
 			function(self)
 				self.AbilityCooldown = self.AbilityCooldown * 3/4
@@ -62,14 +54,6 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Better Clockwork","Even Better Clockwork","Little Machine Guns","LAZARS!","MOAR LAZARS!!!"},
-		Descs = {
-			"Slightly increases turrets' speeds and fire rates.",
-			"Considerably increases turrets' speeds and fire rates.",
-			"Tremendously increases turrets' speeds and fire rates.",
-			"All turrets now shoot lasers!",
-			"All turrets can now hit multiple gBalloons at once!",
-		},
 		Prices = {200,650,2500,4000,30000},
 		Funcs = {
 			function(self)
@@ -95,16 +79,6 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Names = {"Bigger Bullets","Critical Bullets","Super Bullets","One With The Crits","Real Bangers","Killshots","Extreme Precision"},
-		Descs = {
-			"Considerably increases the turrets' damage.",
-			"Turrets have a 20% chance to critically hit, dealing quintuple (x5) damage and ignoring resistances.",
-			"Critical hits now deal quindecuple (x15) damage instead of quintuple damage.",
-			"Critical hits now deal quinqueseptuagintuple (x75) damage!",
-			"Critical hit chance is reduced to 10%, but critical hits deal quincentuple (x500) damage!",
-			"Critical hit chance is reduced to 1%, but if it crits...!",
-			"Critical hit chance is increased back to 20%."
-		},
 		Prices = {450,850,1850,10000,30000,1.5e6,30e6},
 		Funcs = {
 			function(self)
