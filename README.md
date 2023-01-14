@@ -6,3 +6,13 @@ You can download the addons manually from here by downloading the repository, th
 You can view my to-do list and current addon progress [here](https://github.com/users/Piengineer12/projects/1).
 
 All Lua files here are licensed under the MIT License, see LICENSE.txt for license information.
+
+## Abandoned Addons
+These addons have been abandoned and no more support will be given:
+- basic_advanced_calculator
+- error_fixer_tools
+- hud_plus
+- hud_sway
+- minecraft_firework
+- pointshop_trail_modifier
+- simple_achievement_hud_display
