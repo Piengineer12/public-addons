@@ -2165,7 +2165,7 @@ return {
 				ref = "atgig",
 				name = "all_that_glitters_is_gold",
 				trait = "gBlimpAndBossOuterHealthCash",
-				amount = 1000,
+				amount = 200,
 				tier = 2,
 				parent = "gg23",
 				links = {"gg23", "gg25"},

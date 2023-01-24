@@ -2,11 +2,10 @@ Installation instructions (Windows):
 1. In the Steam Library, right-click on Garry's Mod and press "Properties...".
 2. Click on the Local Files tab on the left, then click on "Browse...".
 3. Open the "bin" folder.
-4. Put rotgb.fgd into the folder.
-5. Open hammer.exe in the same folder.
-6. Click on the Tools tab on the top menu bar, then click on Options.
-7. To the right of the "Game Data files" panel in the Game Configurations tab, click on the Add buttton.
-8. Load the rotgb.fgd file.
+4. Put rotgb.fgd into the folder, then open hammer.exe in the same folder.
+5. In Hammer, click on the Tools tab on the top menu bar, then click on Options.
+6. To the right of the "Game Data files" panel in the Game Configurations tab, click on the Add buttton.
+7. Load the rotgb.fgd file.
 
 Entities added:
 - gballoon_spawner
@@ -25,7 +24,7 @@ Entities added:
 To view the Help of an entity, open the Entity Properties dialog, then click on "Help" near the top-right of the opened window.
 
 Additional Notes:
-'gballoon_base' and 'gballoon_tower_base' entities are not included within the .fgd file because they are not meant to be placed directly in a map. However, the entities mentioned above still can receive certain inputs. For the sake of documentation, their inputs are listed below. 'X' represents the value of the parameter override.
+'gballoon_base' and 'gballoon_tower_base' entities are not included within the .fgd file because they are not meant to be placed directly in a map. However, they still can receive certain inputs. For the sake of documentation, their inputs are listed below. 'X' represents the value of the parameter override.
 
 gballoon_base:
 - Pop <integer>

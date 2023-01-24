@@ -930,6 +930,7 @@ function SWEP:CreateUpperPanel(Main)
 		TowersPanel:Clear()
 		local towerPanelSize = wep:DeterminePowerOfTwoSize(ScrH()*0.15-padding*4.5-24)
 		local halfSize = towerPanelSize/2
+		local threeEighthSize = towerPanelSize*3/8
 		local success = false
 		local AllTowersPanel = false
 		
@@ -980,22 +981,15 @@ function SWEP:CreateUpperPanel(Main)
 							surface.DrawRect(0, 0, w, h)
 						end
 						if not self.activatable then
-							local percent = 1
-							local circleColor
-							local abilityActiveCutoff = tower.AbilityCooldown == 0 and 1 or (tower.AbilityDuration or 0) / tower.AbilityCooldown
-							if tower:GetAbilityCharge() <= abilityActiveCutoff then
-								percent = math.Remap(tower:GetAbilityCharge(), 0, abilityActiveCutoff, 1, 0)
-								percent = math.Clamp(percent,0,1)
-								circleColor = color_aqua
-							else
-								percent = math.Remap(tower:GetAbilityCharge(), abilityActiveCutoff, 1, 0, 1)
-								percent = math.Clamp(percent,0,1)
-								circleColor = HSVToColor(percent*120,1,1)
+							local percent = math.Clamp(tower:GetAbilityCharge(),0,1)
+							local color = HSVToColor(percent*120,1,1)
+							ROTGB_DrawCircle(halfSize,halfSize,halfSize,percent,color.r,color.g,color.b,color.a)
+							
+							if tower:GetAbilityFraction() > 0 then
+								percent = math.Clamp(tower:GetAbilityFraction(),0,1)
+								color = color_aqua
+								ROTGB_DrawCircle(halfSize,halfSize,threeEighthSize,percent,color.r,color.g,color.b,color.a)
 							end
-							ROTGB_DrawCircle(
-								halfSize,halfSize,halfSize,percent,
-								circleColor.r,circleColor.g,circleColor.b,circleColor.a
-							)
 						end
 						draw.SimpleTextOutlined(self.upgradeText, "RotgBUIBody", w/2, h, drawColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM, 1, color_black)
 					else

@@ -137,7 +137,7 @@ local laserMat = Material("trails/laser")
 local layer_color = Color(255,255,255,31)
 function ENT:ROTGB_Draw()
 	local delta = math.Clamp(math.Remap(1/self.FireRate+self:GetNWFloat("LastFireTime",0)-CurTime(),1/self.FireRate,0,1,0),0,1)
-	local abilitydelta = math.Clamp(math.Remap(self:GetNWFloat("rotgb_CC")-CurTime(),10,0,1,0),0,1)
+	local abilitydelta = self:GetAbilityFraction()
 	local desiredangle = Angle(0,90*CurTime()%360,0)
 	if not self:GetNWVector("OurTurning",vector_origin):IsZero() and delta > 0 then
 		local gdir = self:GetNWVector("OurTurning")+vector_origin
@@ -168,7 +168,6 @@ function ENT:ROTGB_Draw()
 end
 
 function ENT:TriggerAbility()
-	self:SetNWFloat("rotgb_CC", CurTime()+self.AbilityDuration)
 	if bit.band(self.rotgb_AbilityType, 1) == 1 then
 		self:ApplyBuff(self, "ROTGB_TOWER_14_ABILITY", self.AbilityDuration, function(tower)
 			tower.FireRate = tower.FireRate * 5

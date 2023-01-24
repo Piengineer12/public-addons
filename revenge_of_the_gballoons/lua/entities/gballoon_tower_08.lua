@@ -17,7 +17,7 @@ ENT.MaxFireRate = 10
 ENT.Cost = 2500
 ENT.DetectionRadius = 512
 ENT.AbilityCooldown = 60
-ENT.AbilityDuration = 11
+ENT.AbilityDuration = 5
 ENT.UseLOS = true
 ENT.LOSOffset = Vector(0,0,150)
 ENT.UserTargeting = true
@@ -248,7 +248,7 @@ local AlertSound = Sound("npc/attack_helicopter/aheli_megabomb_siren1.wav")
 
 abilityFunction = function(self)
 	if IsValid(self) then
-		local duration = self.AbilityDuration
+		local duration = 6
 		
 		local ent = self:ChooseSomething()
 		if IsValid(ent) then
@@ -280,9 +280,9 @@ abilityFunction = function(self)
 			ecp.z = ecp.z + 24
 			effdata:SetOrigin(ecp)
 			effdata:SetFlags(self.UseLOS and 0 or 1)
-			effdata:SetMagnitude(512/numberOfCannons)
+			--effdata:SetMagnitude(512/numberOfCannons)
 			util.Effect("gballoon_tower_08_wave",effdata)
-			util.ScreenShake(ecp,1.25/numberOfCannons,5,duration-5,5000)
+			util.ScreenShake(ecp,1.25/numberOfCannons,5,duration,5000)
 			local beam = ents.Create("env_beam")
 			beam:SetPos(ecp)
 			beam:SetKeyValue("renderamt","255")
@@ -303,11 +303,11 @@ abilityFunction = function(self)
 			self.rotgb_CannonPositions[endPos] = beam
 			timer.Create("ROTGB_08_AB_"..endPos:GetCreationID(),0.05,120,function()
 				if IsValid(beam) then
-					beam.CurAlpha = (beam.CurAlpha or 255) - 0.05/(duration-5)*255
+					beam.CurAlpha = (beam.CurAlpha or 255) - 0.05/duration*255
 					beam:Fire("Alpha",beam.CurAlpha)
 				end
 			end)
-			timer.Simple(duration-5,function()
+			timer.Simple(duration,function()
 				if IsValid(startPos) then
 					startPos:Remove()
 				end
@@ -330,10 +330,11 @@ end
 
 function ENT:TriggerAbility()
 	if not ROTGB_BalloonsExist() then return true end
-	self:EmitSound(ShotSound,0)
-	self:EmitSound(AlertSound,0)
-	timer.Simple(5,function()
-		abilityFunction(self)
+	self:ApplyBuff(self, "ABILITY", self.AbilityDuration, function(tower)
+		tower:EmitSound(ShotSound,0)
+		tower:EmitSound(AlertSound,0)
+	end, function(tower)
+		abilityFunction(tower)
 	end)
 end
 
@@ -346,8 +347,8 @@ function ENT:ChooseSomething()
 end
 
 if CLIENT then
-
 	-- This will be a highly bootlegged version to avoid potential lag.
+	-- Also, it should look unnaturally regular compared to a normal Orbital Friendship Cannon, since a DASH-E unit is performing it.
 
 	local EFFECT = {}
 	function EFFECT:Init(data)
@@ -355,15 +356,15 @@ if CLIENT then
 		sound.Play("ambient/explosions/explode_6.wav", start, 100, 100, bit.band(data:GetFlags(),1)==1 and 0.5 or 1)
 		local emitter = ParticleEmitter(start)
 		local pi2 = math.pi*2
-		for i=360*2/data:GetMagnitude(),360,360*2/data:GetMagnitude() do
+		for i=0,pi2*4,pi2/1024*4 do
 			local particle = emitter:Add("particle/smokesprites_0009",start)
 			if particle then
-				local radians = math.rad(i)
-				local sine,cosine = math.sin(radians),math.cos(radians)
+				local sine,cosine = math.sin(i),math.cos(i)
 				local vellgh = math.random(425,500)
-				local vel = Vector(sine,cosine,0)*vellgh
+				local vel = Vector(sine,cosine,0)
+				vel:Mul(vellgh)
 				particle:SetVelocity(vel)
-				local col = HSVToColor(math.Remap(sine,-1,1,0,360),1,1)
+				local col = HSVToColor(math.Remap(math.abs(i%pi2-math.pi),0,math.pi,360,0),1,1)
 				particle:SetColor(col.r,col.g,col.b)
 				particle:SetDieTime(5+math.random())
                 particle:SetLifeTime(1+math.random())
@@ -373,11 +374,13 @@ if CLIENT then
 				particle:SetRollDelta(4*math.random()-2)
 			end
 		end
-		for i=1,data:GetMagnitude()/4 do
+		for i=0,pi2,pi2/512 do
 			local particle = emitter:Add("particle/smokesprites_0010",start)
 			if particle then
-				local vel = Vector(math.random(-100,100),math.random(-100,100),math.random(-3,3)):GetNormal()*math.random(25,600)
-				local vellgh = vel:Length2D()
+				local vel = Vector(math.random(-100,100),math.random(-100,100),math.random(-3,3))
+				local vellgh = math.random(25,600)
+				vel:Normalize()
+				vel:Mul(vellgh)
 				particle:SetVelocity(vel)
 				particle:SetColor(255,255,255)
 				particle:SetDieTime(5+math.random())
@@ -389,7 +392,9 @@ if CLIENT then
 			end
 			particle = emitter:Add("particle/smokesprites_0010",start)
 			if particle then
-				particle:SetVelocity(Vector(math.random(-10,10),math.random(-10,10),0):GetNormal()*500)
+				local vel = Vector(math.sin(i),math.cos(i),0)
+				vel:Mul(500)
+				particle:SetVelocity(vel)
 				particle:SetColor(255,255,255)
 				particle:SetDieTime(5+math.random())
                 particle:SetLifeTime(0.5+math.random()/2)

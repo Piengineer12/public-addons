@@ -1,7 +1,7 @@
 @include "base.fgd"
 
-// rotgb.fgd for RotgB Version 6.5.X, by Piengineer12
-// last updated 2022-08-14
+// rotgb.fgd for RotgB Version 6.6.4, by Piengineer12
+// last updated 2023-01-18
 // https://steamcommunity.com/workshop/filedetails/discussion/1616333917/1742231705671196872/
 
 @BaseClass = RotgBTarget
@@ -97,12 +97,20 @@
 		0 : "No"
 		1 : "Yes"
 	]
+	Solid(choices) : "Solid" : 0 : "Set whether or not this should collide with other entities." =
+	[
+		0: "Solid"
+		1: "Nonsolid"
+	]
 	
 	input Hide(void) : "Hides the entity."
 	input Unhide(void) : "Unhides the entity."
 	input ToggleHide(void) : "Toggles the hidden state of the entity."
 	input EnableMotion(void) : "Enables motion."
 	input DisableMotion(void) : "Disables motion."
+	input EnableCollisions(void) : "Enables collisions."
+	input DisableCollisions(void) : "Disables collisions."
+	input ToggleCollisions(void) : "Toggles collisions."
 ]
 
 @BaseClass = RotgBMusicEmitter
@@ -324,7 +332,7 @@
 
 
 
-@PointClass base(Targetname, Parentname, Studiomodel, RotgBTarget, RotgBSpectatable, RotgBHidable, RotgBMusicEmitter) studioprop() = gballoon_spawner :
+@PointClass base(Targetname, Parentname, Angles, Studiomodel, RotgBTarget, RotgBSpectatable, RotgBHidable, RotgBMusicEmitter) studioprop() = gballoon_spawner :
 	"Spawns gBalloons. Will also send a Trigger input to an entity named wave_start_relay when a wave starts and to an entity named wave_finished_relay when a wave ends."
 [
 	hide_wave(choices) : "Hide Wave" : 0 : "The gBalloon Spawner's wave display will be hidden in the world and on the HUD. Useful in tandem with Spawn Divider and Don't Show Messages." =
@@ -383,7 +391,7 @@
 	output OnAutoStartDisabled(void) : "Fires when Auto-Start is disabled."
 ]
 
-@PointClass base(Targetname, Parentname, Studiomodel, RotgBTarget, RotgBSpectatable, RotgBHidable) studioprop() = gballoon_target :
+@PointClass base(Targetname, Parentname, Angles, Studiomodel, RotgBTarget, RotgBSpectatable, RotgBHidable) studioprop() = gballoon_target :
 	"gBalloons will always make this entity a priority target regardless of targeting settings."
 [
 	natural_health_multiplier(float) : "Natural Health Multiplier" : "1.0" : "Multiplier for the gBalloon Target's natural maximum health."
@@ -412,7 +420,7 @@
 		0 : "No"
 		1 : "Yes"
 	]
-	straight_path(choices) : "Straight Path" : 0 : "gBalloons that target this gBalloon Target will move in a straight line to it." =
+	straight_path(choices) : "Straight Path" : 0 : "gBalloons that target this gBalloon Target will move in a straight line to it, ignoring the Navigation Mesh." =
 	[
 		0 : "No"
 		1 : "Yes"

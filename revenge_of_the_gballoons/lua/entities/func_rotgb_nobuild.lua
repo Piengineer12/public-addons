@@ -1,6 +1,6 @@
 ENT.Type = "brush"
 ENT.Base = "base_brush"
-ENT.Author = "Piengineer"
+ENT.Author = "Piengineer12"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Defines an area where towers can't be placed."
 ENT.Instructions = "Cover a volume up and go. Has start_disabled KeyValue and EnableDisable inputs."

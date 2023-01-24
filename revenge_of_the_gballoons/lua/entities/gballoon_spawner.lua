@@ -3136,7 +3136,7 @@ end
 function ENT:CheckForMusicPlay(cwave)
 	self.NewMusic = -1
 	if ROTGB_GetConVarValue("rotgb_music_volume") > 0 then
-		for i,v in ipairs(self.MusicData) do
+		for i,v in ipairs(self.MusicData or {}) do
 			if v.wave < 0 then break
 			elseif cwave >= v.wave then
 				self.NewMusic = i break

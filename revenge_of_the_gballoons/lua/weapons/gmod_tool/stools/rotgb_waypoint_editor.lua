@@ -124,6 +124,7 @@ TOOL.LeftClick = function(self,trace)
 					ent:Spawn()
 					ent:Activate()
 					ent:SetIsBeacon(true)
+					ent:SetGBOnly(true)
 					ent:SetTeleport(tobool(self:GetClientInfo("teleport")))
 					ent:SetStraightPath(tobool(self:GetClientInfo("straight")))
 					ent:SetWeight(tonumber(self:GetClientInfo("weight")) or 0)
@@ -134,44 +135,43 @@ TOOL.LeftClick = function(self,trace)
 	elseif self:GetOperation()==2 then
 		local ent = trace.Entity
 		local start = self:GetEnt(1)
-		if self:IsValidEndPoint(ent) and self:IsValidStartPoint(start) and ent~=start then
+		if self:IsValidStartPoint(start) and ent~=start then
 			local placepos = 17
-			if self:GetOwner():KeyDown(IN_DUCK) then
-				if not self:GenerateNextTargetFunction(start,function(target,num)
-					if not IsValid(target) then
-						placepos = math.min(placepos,num)
-					elseif target == ent then
-						return true
-					end
-				end,true) then
-					if placepos == 17 then
-						ROTGB_CauseNotification("#tool.rotgb_waypoint_editor.max_16_waypoints.gblimp", self:GetOwner())
-					else
-						start[string.format("SetNextBlimpTarget%i", placepos)](start,ent)
+			local isBlimp = self:GetOwner():KeyDown(IN_DUCK)
+			
+			local alreadyConnected = self:GenerateNextTargetFunction(start, function(target,num)
+				if not IsValid(target) then
+					placepos = math.min(placepos, num)
+				elseif target == ent then
+					return true
+				end
+			end, isBlimp)
+			
+			if not alreadyConnected then
+				if placepos == 17 then
+					ROTGB_CauseNotification(ROTGB_LocalizeString("tool.rotgb_waypoint_editor.max_16_waypoints"..(isBlimp and ".gblimp" or "")), self:GetOwner())
+				else
+					if not self:IsValidEndPoint(ent) then
+						if not SERVER then return true end
+						
+						ent = ents.Create("gballoon_target")
+						ent:SetPos(trace.HitPos+trace.HitNormal*5)
+						ent:Spawn()
+						ent:Activate()
+						ent:SetIsBeacon(true)
+						ent:SetGBOnly(true)
 						ent:SetTeleport(tobool(self:GetClientInfo("teleport")))
 						ent:SetStraightPath(tobool(self:GetClientInfo("straight")))
-						self:ClearObjects()
-						self:SetOperation(1)
-						return true
+						ent:SetWeight(tonumber(self:GetClientInfo("weight")) or 0)
 					end
-				end
-			else
-				if not self:GenerateNextTargetFunction(start,function(target,num)
-					if not IsValid(target) then
-						placepos = math.min(placepos,num)
-					elseif target == ent then
-						return true
-					end
-				end) then
-					if placepos == 17 then
-						ROTGB_CauseNotification("#tool.rotgb_waypoint_editor.max_16_waypoints", self:GetOwner())
-					else
-						start[string.format("SetNextTarget%i", placepos)](start,ent)
-						ent:SetTeleport(tobool(self:GetClientInfo("teleport")))
-						self:ClearObjects()
-						self:SetOperation(1)
-						return true
-					end
+					
+					start[string.format("SetNext%sTarget%i", isBlimp and "Blimp" or "", placepos)](start,ent)
+					ent:SetTeleport(tobool(self:GetClientInfo("teleport")))
+					ent:SetStraightPath(tobool(self:GetClientInfo("straight")))
+					ent:SetWeight(tonumber(self:GetClientInfo("weight")) or 0)
+					self:ClearObjects()
+					self:SetOperation(1)
+					return true
 				end
 			end
 		end

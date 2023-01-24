@@ -276,6 +276,8 @@ local credits = {
 	{"FallenVoid", "76561198178506377"},
 	{"berry", "76561198158864042"},
 	{"glamrock neon plushtrap", "76561198804430511"},
+	{"King David™", "id/jesusofish"},
+	{"bucket of wet slop", "id/awfullyhammy"},
 	{"#rotgb.guide.contributors.person.various"}
 }
 

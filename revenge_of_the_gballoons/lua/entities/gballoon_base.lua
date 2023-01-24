@@ -26,19 +26,19 @@ ENT.rotgb_rbetab = {
 	gballoon_zebra=23,
 	gballoon_gray=23,
 	gballoon_aqua=23,
-	gballoon_error=24,
-	gballoon_rainbow=94,
-	gballoon_ceramic=198,
-	gballoon_brick=431,
-	gballoon_marble=982,
+	gballoon_error=23,
+	gballoon_rainbow=93,
+	gballoon_ceramic=196,
+	gballoon_brick=427,
+	gballoon_marble=974,
 	
-	gballoon_blimp_blue=992,
-	gballoon_blimp_red=4668,
-	gballoon_blimp_green=22672,
-	gballoon_blimp_gray=4328,
-	gballoon_blimp_purple=74000,
-	gballoon_blimp_magenta=18827,
-	gballoon_blimp_rainbow=285668,
+	gballoon_blimp_blue=984,
+	gballoon_blimp_red=4636,
+	gballoon_blimp_green=22544,
+	gballoon_blimp_gray=4296,
+	gballoon_blimp_purple=73680,
+	gballoon_blimp_magenta=18684,
+	gballoon_blimp_rainbow=284727,
 	
 	gballoon_glass=1,
 	gballoon_void=1,
@@ -55,8 +55,8 @@ ENT.rotgb_rbetab = {
 	gballoon_blimp_ggos_super=2007856,
 	gballoon_hot_air=500000,
 	gballoon_hot_air_super=10000000,
-	gballoon_blimp_long_rainbow=2.5e6+15,
-	gballoon_blimp_long_rainbow_super=50e6+30,
+	gballoon_blimp_long_rainbow=2.5e6,
+	gballoon_blimp_long_rainbow_super=50e6,
 	gballoon_garrydecal=10e6,
 	gballoon_garrydecal_super=200e6
 }
@@ -1723,7 +1723,7 @@ function ENT:OnInjured(dmginfo)
 		if self:HasRotgBStatusEffect("shell_shocked") then
 			dmginfo:AddDamage(1)
 		end
-		local armor = self:GetBalloonProperty("BalloonArmor")*(self:GetBalloonProperty("BalloonShielded") and 2 or 1)
+		local armor = self:GetBalloonProperty("BalloonArmor")
 		if armor and not ignoreResistances then
 			if armor < 0 then
 				dmginfo:AddDamage(-armor)
@@ -1811,16 +1811,16 @@ function ENT:DetermineNextBalloons(blns,dmgbits,damageLeft,instant)
 			hook.Run("gBalloonKeyValuesApply", keyvals)
 			savedKeyValueTables[class] = keyvals
 		end
-		local effectiveHealth = (v.Armor or 0) + v.Health
+		local effectiveHealth = --[[(v.Armor or 0) +]] v.Health
 		
 		if TestDamageResistances(keyvals,dmgbits,v.Frozen) and not self:HasRotgBStatusEffect("unimmune") then
 			table.insert(newspawns,v)
 		elseif effectiveHealth > 1 and not instant then
-			if (v.Armor or 0) > 0 then
+			--[[if (v.Armor or 0) > 0 then
 				v.Armor = v.Armor - 1
-			else
+			else]]
 				v.Health = v.Health - 1
-			end
+			--end
 			minimumEffectiveHealthLeft = math.min(minimumEffectiveHealthLeft, effectiveHealth - 1)
 			pops = pops + v.Amount
 			table.insert(newspawns,v)
@@ -1840,7 +1840,7 @@ function ENT:DetermineNextBalloons(blns,dmgbits,damageLeft,instant)
 						(keyvals2.BalloonHealth or 1)*(nextBalloonShielded and 2 or 1)
 						*(keyvals2.BalloonBlimp and ROTGB_GetConVarValue("rotgb_blimp_health_multiplier") or 1)*ROTGB_GetConVarValue("rotgb_health_multiplier")
 					),
-					Armor=(keyvals2.BalloonArmor or 0)*(nextBalloonShielded and 2 or 1),
+					--Armor=(keyvals2.BalloonArmor or 0)*(nextBalloonShielded and 2 or 1),
 					Properties=bit.bor(v.Properties, keyvals2.BalloonShielded and 4 or 0)
 				}
 				crt.Health = hook.Run("GetgBalloonHealth", crt.BalloonType, crt.Health) or crt.Health
@@ -1855,10 +1855,10 @@ function ENT:DetermineNextBalloons(blns,dmgbits,damageLeft,instant)
 			end
 			minimumEffectiveHealthLeft = 0
 			pluses = pluses + v.Amount * (1+(v.ExtraCash or 0))
-			pops = pops + v.Amount * (v.Health + (v.Armor or 0))
+			pops = pops + v.Amount * (v.Health --[[+ (v.Armor or 0)]])
 		else
 			pluses = pluses + v.Amount * (1+(v.ExtraCash or 0))
-			pops = pops + v.Amount * (v.Health + (v.Armor or 0))
+			pops = pops + v.Amount * (v.Health --[[+ (v.Armor or 0)]])
 		end
 	end
 	damageLeft = damageLeft - 1
@@ -1874,11 +1874,11 @@ function ENT:DetermineNextBalloons(blns,dmgbits,damageLeft,instant)
 					savedKeyValueTables[class] = keyvals
 				end
 				if not TestDamageResistances(keyvals,dmgbits,v.Frozen) or self:HasRotgBStatusEffect("unimmune") then
-					if (v.Armor or 0) > 0 then
+					--[[if (v.Armor or 0) > 0 then
 						local resisted = math.min(v.Armor, extraDamage)
 						extraDamage = extraDamage - resisted
 						v.Armor = v.Armor - resisted
-					end
+					end]]
 					v.Health = v.Health - extraDamage
 				end
 			end
@@ -1902,7 +1902,7 @@ function ENT:Pop(damage,target,dmgbits)
 		Blimp=self:GetBalloonProperty("BalloonBlimp"),
 		Frozen=(self.FreezeUntil2 or 0)>self:CurTime(),
 		ExtraCash=self:GetBalloonProperty("BalloonCashBonus"),
-		Armor=IsValid(target) and (self:GetBalloonProperty("BalloonArmor")*(self:GetBalloonProperty("BalloonShielded") and 2 or 1)) or 0
+		--[[Armor=IsValid(target) and (self:GetBalloonProperty("BalloonArmor")*(self:GetBalloonProperty("BalloonShielded") and 2 or 1)) or 0]]
 	}}
 	local cash = 0
 	local deductedCash = 0

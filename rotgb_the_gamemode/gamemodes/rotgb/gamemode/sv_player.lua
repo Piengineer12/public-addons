@@ -12,13 +12,17 @@ function GM:PlayerSpawn(ply, fromTransition)
 		self:PlayerSpawnAsSpectator(ply) -- see sv_spectators.lua
 	else
 		ply:UnSpectate()
-		ply:SetupHands()
+		ply:StripWeapons()
 		player_manager.OnPlayerSpawn(ply, fromTransition)
 		player_manager.RunClass(ply, "Spawn")
 		
-		ply:StripWeapons()
 		hook.Run("PlayerLoadout", ply)
 		hook.Run("PlayerSetModel", ply)
+		
+		 -- hands can only be determined after the playermodel is set
+		 -- thanks to Wheatley126 for pointing this out
+		 -- https://github.com/Piengineer12/public-addons/issues/106
+		ply:SetupHands()
 	end
 	hook.Run("SetStatRebroadcastRequired", true)
 end

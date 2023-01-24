@@ -1,6 +1,6 @@
 ENT.Type = "filter"
 ENT.Base = "base_filter"
-ENT.Author = "Piengineer"
+ENT.Author = "Piengineer12"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Special filter / damage filter for RotgB."
 ENT.Instructions = ""

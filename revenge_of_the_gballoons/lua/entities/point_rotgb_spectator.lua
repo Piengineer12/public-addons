@@ -1,6 +1,6 @@
 ENT.Type = "point"
 ENT.PrintName = "RotgB Spectator Point"
-ENT.Author = "Piengineer"
+ENT.Author = "Piengineer12"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "A spectator viewing point. Only used in RotgB: The Gamemode."
 ENT.Instructions = "Hook this entity's inputs and outputs to something."

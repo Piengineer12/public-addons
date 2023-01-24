@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		6.6.4
-Version Date:	2023-01-14
+Version:		6.6.5
+Version Date:	2023-01-24
 ]]
 
 local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","spawning","towers","music"}
@@ -1957,7 +1957,7 @@ if CLIENT then
 			form:CheckBox(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_bounce.name"),"rotgb_waypoint_editor_indicator_bounce")
 			choicelist = form:ComboBox(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_color.name"),"rotgb_waypoint_editor_indicator_color")
 			for i=0,11 do
-				choicelist:AddChoice(string.format(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_color.%i"), i), i)
+				choicelist:AddChoice(ROTGB_LocalizeString(string.format("rotgb.convar.rotgb_waypoint_editor_indicator_color.%i", i)), i)
 			end
 			local mixer = vgui.Create("DColorMixer")
 			mixer:SetLabel(ROTGB_LocalizeString("rotgb.convar.rotgb_waypoint_editor_indicator_color.solid_selection"))
@@ -1973,6 +1973,10 @@ if CLIENT then
 			mixer:SetConVarB("rotgb_waypoint_editor_indicator_boss_b")
 			mixer:SetConVarA("rotgb_waypoint_editor_indicator_boss_a")
 			form:AddItem(mixer)
+		end)
+		spawnmenu.AddToolMenuOption("RotgB","Tools","RotgB_NobuildEditorTool",ROTGB_LocalizeString("tool.rotgb_nobuild_editor.name"),"gmod_tool rotgb_nobuild_editor","",function(form)
+			form:Help(ROTGB_LocalizeString("tool.rotgb_nobuild_editor.desc"))
+			form:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_nobuild_editor_scale.name"),"rotgb_nobuild_editor_scale",0.1,10,3)
 		end)
 	end)
 	
@@ -2077,6 +2081,7 @@ if CLIENT then
 				elseif message == ROTGB_NOTIFY_NAVMESHMISSING then
 					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.navmesh.missing"), level, nil, additionalArguments)
 					ROTGB_LogError("DEPRECATION WARNING: ROTGB_NOTIFY_NAVMESHMISSING is now unused and will be deleted in the future.", "")
+					debug.Trace()
 				elseif message == ROTGB_NOTIFY_TOWERBLACKLISTED then
 					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.blacklist"), level, nil, additionalArguments)
 				elseif message == ROTGB_NOTIFY_TOWERCHESSONLY then

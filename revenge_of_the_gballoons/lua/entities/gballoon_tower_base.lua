@@ -55,6 +55,7 @@ function ENT:SetupDataTables()
 	self:NetworkVar("Int",3,"OwnerUserID")
 	self:NetworkVar("Float",0,"AbilityCharge")
 	self:NetworkVar("Float",1,"CashGenerated")
+	self:NetworkVar("Float",2,"AbilityFraction")
 	self:NetworkVar("Entity",0,"TowerOwner")
 end
 
@@ -213,7 +214,9 @@ function ENT:AddTimePhase(timeToAdd)
 	self.ExpensiveThinkDelay = (self.ExpensiveThinkDelay or 0) + timeToAdd
 	self.StunUntil = (self.StunUntil or 0) + timeToAdd
 	for identifier,info in pairs(self.BuffIdentifiers) do
-		info.expiry = info.expiry + timeToAdd
+		if info.expiry then
+			info.expiry = info.expiry + timeToAdd
+		end
 	end
 end
 
@@ -463,10 +466,30 @@ function ENT:DoFireFunction()
 end
 
 function ENT:BuffThink()
-	for identifier,info in pairs(self.BuffIdentifiers) do
-		if not IsValid(info.tower) or info.expiry < CurTime() then
-			info.unapplyFunc(self)
-			self.BuffIdentifiers[identifier] = nil
+	if self:GetSpawnerActive() or ROTGB_GetConVarValue("rotgb_tower_force_charge") then
+		local frameTime = FrameTime()
+		
+		for identifier,info in pairs(self.BuffIdentifiers) do
+			if info.expiry then -- DEPRECATED
+				info.duration = info.expiry - CurTime()
+				info.expiry = nil
+			end
+			if not IsValid(info.tower) or info.duration < 0 then
+				if info.unapplyFunc then
+					info.unapplyFunc(self)
+				end
+				self.BuffIdentifiers[identifier] = nil
+			else
+				info.duration = info.duration - frameTime
+			end
+		end
+		
+		local abilityInfo = self:GetBuff("ABILITY")
+		
+		if abilityInfo and (self.AbilityDuration or 0) > 0 then
+			self:SetAbilityFraction(abilityInfo.duration / self.AbilityDuration)
+		elseif self:GetAbilityFraction() > 0 then
+			self:SetAbilityFraction(0)
 		end
 	end
 end
@@ -477,21 +500,31 @@ end
 
 function ENT:ApplyBuff(tower, identifier, duration, applyFunc, unapplyFunc)
 	identifier = identifier or #self.BuffIdentifiers+1
-	if self.BuffIdentifiers[identifier] then
-		self.BuffIdentifiers[identifier].expiry = CurTime() + duration
+	
+	local buffInfo = self:GetBuff(identifier)
+	
+	if buffInfo then
+		buffInfo.duration = math.max(buffInfo.duration, duration)
 	else
-		duration = duration or math.huge
-		self.BuffIdentifiers[identifier] = {tower = tower, expiry = CurTime() + duration, unapplyFunc = unapplyFunc}
-		applyFunc(self)
+		self.BuffIdentifiers[identifier] = {tower = tower, duration = duration or math.huge, unapplyFunc = unapplyFunc}
+		if applyFunc then
+			applyFunc(self)
+		end
 	end
 end
 
 function ENT:TowerBuffed(identifier)
+	ROTGB_EntityLogError(self, "DEPRECATION WARNING: ENT.TowerBuffed and ENT.TowerBuffedBy are now unused and will be deleted in the future. Use ENT.GetBuff instead.", "")
+	debug.Trace()
 	return IsValid(self.BuffIdentifiers[identifier])
 end
 
 function ENT:TowerBuffedBy(identifier)
 	return self:TowerBuffed(identifier) and self.BuffIdentifiers[identifier]
+end
+
+function ENT:GetBuff(identifier)
+	return self.BuffIdentifiers[identifier]
 end
 
 function ENT:ValidTarget(v)
@@ -592,19 +625,15 @@ function ENT:DrawTranslucent()
 				--draw.RoundedBox(4, fontSize/2, -fontSize/2, -fontSize, fontSize, color_black)
 				draw.SimpleText(input.LookupBinding("+use"):upper(), "RotgB_font", 0, 0, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 			elseif self.HasAbility then
-				local percent = 1
-				local color
-				local abilityActiveCutoff = self.AbilityCooldown == 0 and 1 or (self.AbilityDuration or 0) / self.AbilityCooldown
-				if self:GetAbilityCharge() <= abilityActiveCutoff then
-					percent = math.Remap(self:GetAbilityCharge(), 0, abilityActiveCutoff, 1, 0)
-					percent = math.Clamp(percent,0,1)
-					color = color_aqua
-				else
-					percent = math.Remap(self:GetAbilityCharge(), abilityActiveCutoff, 1, 0, 1)
-					percent = math.Clamp(percent,0,1)
-					color = HSVToColor(percent*120,1,1)
-				end
+				local percent = math.Clamp(self:GetAbilityCharge(),0,1)
+				local color = HSVToColor(percent*120,1,1)
 				ROTGB_DrawCircle(0,0,16,percent,color.r,color.g,color.b,color.a)
+				
+				if self:GetAbilityFraction() > 0 then
+					percent = math.Clamp(self:GetAbilityFraction(),0,1)
+					color = color_aqua
+					ROTGB_DrawCircle(0,0,12,percent,color.r,color.g,color.b,color.a)
+				end
 			end
 		cam.End3D2D()
 	end
@@ -621,12 +650,17 @@ function ENT:DoAbility()
 		local failed = self:TriggerAbility()
 		if not failed then
 			self:SetAbilityCharge(0)
+			self:SetAbilityFraction(1)
 			if engine.ActiveGamemode() == "rotgb" then
 				for k,v in pairs(ents.GetAll()) do
 					if v.Base == "gballoon_tower_base" then
 						v.OtherTowerAbilityActivatedTime = math.max(v.OtherTowerAbilityActivatedTime or 0, self.AbilityCooldown/3)
 					end
 				end
+			end
+			
+			if not self:GetBuff("ABILITY") and (self.AbilityDuration or 0) > 0 then
+				self:ApplyBuff(self, "ABILITY", self.AbilityDuration)
 			end
 		end
 	end
@@ -714,17 +748,19 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 			return SafeRemoveEntityDelayed(ent,1)
 		elseif path==12 then
 			for k,v in pairs(ents.FindByClass(ent:GetClass())) do
-				constraint.RemoveAll(v)
-				v:SetNotSolid(true)
-				v:SetMoveType(MOVETYPE_NONE)
-				v:SetNoDraw(true)
-				local effdata = EffectData()
-				effdata:SetEntity(v)
-				util.Effect("entity_remove",effdata,true,true)
-				if IsValid(ply) then
-					ply:SendLua("achievements.Remover()")
+				if v:GetTowerOwner() == ply then
+					constraint.RemoveAll(v)
+					v:SetNotSolid(true)
+					v:SetMoveType(MOVETYPE_NONE)
+					v:SetNoDraw(true)
+					local effdata = EffectData()
+					effdata:SetEntity(v)
+					util.Effect("entity_remove",effdata,true,true)
+					if IsValid(ply) then
+						ply:SendLua("achievements.Remover()")
+					end
+					SafeRemoveEntityDelayed(v,1)
 				end
-				SafeRemoveEntityDelayed(v,1)
 			end
 			return
 		end

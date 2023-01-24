@@ -238,7 +238,7 @@ function ENT:ROTGB_Draw()
 	end
 	local delta = (self.DispAngAEndTime-CurTime())/shifttime
 	self.DispAngA = LerpAngle(delta,self.DispAngAEnd,self.DispAngAStart)
-	local valval = 1-math.max(self:GetNWFloat("rotgb_CC")-CurTime(),0)/self.AbilityDuration
+	local valval = math.min(1-self:GetAbilityFraction(), 1e6)
 	local mul = FrameTime()*self:GetNWFloat("rotgb_Charges")*0.05/valval
 	self.DispAng = self.DispAng + self.DispAngA*mul
 	local mapval = math.min(self:GetNWFloat("rotgb_Charges")/self.rotgb_MaxCharges,1)
@@ -250,8 +250,7 @@ end
 
 function ENT:TriggerAbility()
 	local addDamage = self.rotgb_AbilityDamage
-	self:SetNWFloat("rotgb_CC",CurTime()+self.AbilityDuration)
-	self:ApplyBuff(self, "ROTGB_TOWER_10_ABILITY", self.AbilityDuration, function(tower)
+	self:ApplyBuff(self, "ABILITY", self.AbilityDuration, function(tower)
 		--tower.FireRate = tower.FireRate * 2
 		tower.AttackDamage = tower.AttackDamage + addDamage
 		--tower.rotgb_PopAqua2 = true

@@ -47,7 +47,7 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Prices = {2000,3000,19000,170000,790000,3.65e6,18e6,51e6,210e6,1e9},
+		Prices = {2000,3000,18000,170000,785000,3.65e6,17.5e6,51e6,210e6,1.00e9},
 		Funcs = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 20
@@ -56,28 +56,28 @@ ENT.UpgradeReference = {
 				self.AttackDamage = self.AttackDamage + 30
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 190
+				self.AttackDamage = self.AttackDamage + 180
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 1740
+				self.AttackDamage = self.AttackDamage + 1730
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 7940
+				self.AttackDamage = self.AttackDamage + 7880
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 36760
+				self.AttackDamage = self.AttackDamage + 36520
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 180040
+				self.AttackDamage = self.AttackDamage + 179080
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 513280
+				self.AttackDamage = self.AttackDamage + 511360
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 2116680
+				self.AttackDamage = self.AttackDamage + 2110470
 			end,
 			function(self)
-				self.AttackDamage = self.AttackDamage + 10999990
+				self.AttackDamage = self.AttackDamage + 10499990
 			end,
 		}
 	},

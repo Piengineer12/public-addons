@@ -1,6 +1,6 @@
 ENT.Type = "point"
 ENT.PrintName = "RotgB Timescale Logic"
-ENT.Author = "Piengineer"
+ENT.Author = "Piengineer12"
 ENT.Contact = "http://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose = "Sets or gets the current timescale multiplier."
 ENT.Instructions = "Hook this entity's inputs and outputs to something."
