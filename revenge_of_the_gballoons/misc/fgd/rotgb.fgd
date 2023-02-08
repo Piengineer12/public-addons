@@ -1,7 +1,7 @@
 @include "base.fgd"
 
-// rotgb.fgd for RotgB Version 6.6.4, by Piengineer12
-// last updated 2023-01-18
+// rotgb.fgd for RotgB Version 6.6.5, by Piengineer12
+// last updated 2023-01-30
 // https://steamcommunity.com/workshop/filedetails/discussion/1616333917/1742231705671196872/
 
 @BaseClass = RotgBTarget
@@ -553,6 +553,20 @@
 ]
 
 @SolidClass base(Targetname) = func_rotgb_nobuild : "Hammer-exclusive entity. When enabled, towers cannot be placed inside the brush, not even partially. Should be textured with tools/toolstrigger for best results."
+[
+	start_disabled(choices) : "Start Disabled" : 0 =
+	[
+		0 : "No"
+		1 : "Yes"
+	]
+
+	// Inputs
+	input Enable(void) : "Enable"
+	input Disable(void) : "Disable"
+	input Toggle(void) : "Toggle"
+]
+
+@PointClass base(Targetname, Angles, Studiomodel) = prop_rotgb_nobuild : "When enabled, towers cannot be placed inside the prop, not even partially. This entity is created by the RotgB Tower Placement Editor STool and needs a model to work."
 [
 	start_disabled(choices) : "Start Disabled" : 0 =
 	[

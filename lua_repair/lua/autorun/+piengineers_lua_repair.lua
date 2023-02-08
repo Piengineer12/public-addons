@@ -8,8 +8,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_REPAIR_VERSION = "1.8.3"
-LUA_REPAIR_VERSION_DATE = "2023-01-14"
+LUA_REPAIR_VERSION = "1.8.4"
+LUA_REPAIR_VERSION_DATE = "2023-02-08"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
@@ -24,7 +24,7 @@ end
 
 local function LogError(...)
 	if conVarLogging:GetBool() and lastError < RealTime() and not string.find(debug.traceback(), "'pcall'") then
-		lastError = RealTime() + 1
+		lastError = RealTime() + 10
 		local message = {color_aqua, "[Lua Repair ", SERVER and "Server] " or "Client] ", color_white, ...}
 		table.insert(message, '\n')
 		MsgC(unpack(message))
@@ -159,13 +159,13 @@ local function FixAllErrors()
 		return oldsub(isvector(a) and a or Vector(a),isvector(b) and b or Vector(b))
 	end
 	VECTOR.__mul = function(a,b)
-		if not (isnumber(a) or isnumber(b)) then
+		if not (isnumber(a) or isnumber(b) or isvector(a) and isvector(b)) then
 			LogError("Some code attempted to multiply a vector with something that isn't a number.")
 		end
 		return oldmul(a or 1,b or 1)
 	end
 	VECTOR.__div = function(a,b)
-		if not (isnumber(a) or isnumber(b)) then
+		if not (isnumber(a) or isnumber(b) or isvector(a) and isvector(b)) then
 			LogError("Some code attempted to divide a vector with something that isn't a number.")
 		end
 		return olddiv(a or 1,b or 1)

@@ -10,8 +10,8 @@ Links above are confirmed working as of 2022-04-16. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "5.5.0"
-ISAWC._VERSIONDATE = "2023-01-10"
+ISAWC._VERSION = "5.5.1"
+ISAWC._VERSIONDATE = "2023-02-08"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -1806,6 +1806,37 @@ if CLIENT then
 	
 	ISAWC:AddConCommand("isawc_activate_inventory_menu", inventoryOpenTable)
 	ISAWC:AddConCommand("isawc_inventory", inventoryOpenTable)
+	ISAWC:AddConCommand("isawc_pickup", {
+		exec = function(ply,cmd,args)
+			local probent = ply:GetEyeTrace().Entity
+			if not IsValid(probent) then
+				local tracedata = {
+					start = ply:GetShootPos(),
+					endpos = ply:GetAimVector()*32768,
+					filter = ply,
+					mask = MASK_ALL
+				}
+				local traceresult = util.TraceLine(tracedata)
+				if traceresult.HitWorld then
+					tracedata = {}
+					local hitpos = traceresult.HitPos
+					for k,v in pairs(ents.FindInSphere(hitpos,16)) do
+						tracedata[v] = -v:GetPos():DistToSqr(hitpos)
+					end
+					probent = table.GetWinningKey(tracedata)
+				else
+					probent = traceresult.Entity
+				end
+			end
+			local ent = probent or NULL
+			if (IsValid(ent) and not (ent:IsWeapon() and ent:GetOwner() == ply)) then
+				ISAWC:StartNetMessage("pickup")
+				net.WriteEntity(ent)
+				net.SendToServer()
+			end
+		end,
+		help = "Pick up the item you're looking at."
+	})
 	
 	ISAWC:AddConCommand("+isawc_inventory", {
 		exec = function(ply,cmd,args)
@@ -4213,6 +4244,8 @@ ISAWC.InstallSortFunctions = function(self,panel,InvPanel,messageSuffix,containe
 					net.WriteBool(false)
 					net.WriteEntity(container)
 					net.SendToServer()
+					
+					container:SetIsPublic(false)
 				end):SetIcon("icon16/lock_add.png")
 			else
 				containerOptions:AddOption("Disable Access Restriction",function()
@@ -4220,6 +4253,8 @@ ISAWC.InstallSortFunctions = function(self,panel,InvPanel,messageSuffix,containe
 					net.WriteBool(true)
 					net.WriteEntity(container)
 					net.SendToServer()
+					
+					container:SetIsPublic(true)
 				end):SetIcon("icon16/lock_delete.png")
 			end
 		else
@@ -5547,6 +5582,7 @@ ISAWC.SendInventory2 = function(self,ply,container)
 		net.WriteUInt(stats[i],16)
 	end
 	self:WriteAmmoItemStamps(ply)
+	net.WriteBool(container:GetIsPublic())
 	net.Send(ply)
 	ISAWC:UpdateContainerInventories(container)
 	ISAWC:SaveContainerInventory(container)
@@ -5773,12 +5809,16 @@ ISAWC.SaveData = function(self)
 		local binaryData = util.Compress(util.TableToJSON(data))
 		
 		file.Write("isawc_data.dat",binaryData)
-		file.Write("isawc_data.bak.dat",binaryData)
+		timer.Simple(5, function()
+			file.Write("isawc_data.bak.dat",binaryData)
+		end)
 	else
 		local textData = util.TableToJSON(data)
 		
 		file.Write("isawc_data.dat",textData)
-		file.Write("isawc_data.bak.dat",textData)
+		timer.Simple(5, function()
+			file.Write("isawc_data.bak.dat",textData)
+		end)
 	end
 end
 
@@ -7327,8 +7367,12 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 						nt2[i] = {Model=net.ReadString(), Class=net.ReadString(), Name=net.ReadString(), Desc=net.ReadString(), Skin=net.ReadInt(16), BodyGroups=net.ReadString(),
 						Clip1=net.ReadInt(32), Clip2=net.ReadInt(32), MaxClip1=net.ReadInt(32), MaxClip2=net.ReadInt(32)}
 					end
+					local plyStat = {net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadUInt(16),net.ReadUInt(16)}
+					local contStat = {net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadUInt(16),net.ReadUInt(16)}
+					local isPublic = net.ReadBool()
+					
 					self.reliantwindow:ReceiveInventory(nt1,nt2)
-					self.reliantwindow:ReceiveStats({net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadUInt(16),net.ReadUInt(16)},{net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadFloat(),net.ReadUInt(16),net.ReadUInt(16)})
+					self.reliantwindow:ReceiveStats(plyStat, contStat)
 					self.reliantwindow:ReceiveAmmoItemStamps(self:ReadAmmoItemStamps())
 				else
 					self.reliantwindow:Close()
