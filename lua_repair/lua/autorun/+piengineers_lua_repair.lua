@@ -8,8 +8,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_REPAIR_VERSION = "1.8.4"
-LUA_REPAIR_VERSION_DATE = "2023-02-08"
+LUA_REPAIR_VERSION = "1.8.5"
+LUA_REPAIR_VERSION_DATE = "2023-03-18"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
@@ -214,6 +214,12 @@ local function FixAllErrors()
 		else return oldindex(ent,key)
 		end
 	end]]
+	local oldEntsFindInSphere = ents.FindInSphere
+	function ents.FindInSphere(origin, radius, ...)
+		origin = origin or vector_origin
+		radius = radius or 0
+		return oldEntsFindInSphere(origin, radius, ...)
+	end
 	local oldGetCurrentCommand = PLAYER.GetCurrentCommand
 	PLAYER.GetCurrentCommand = function(ply, ...)
 		if ply == GetPredictionPlayer() then return oldGetCurrentCommand(ply, ...)
