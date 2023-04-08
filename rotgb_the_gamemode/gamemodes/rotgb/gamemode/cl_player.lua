@@ -120,6 +120,10 @@ function GM:OnPlayerChat(ply, message, bTeam, bDead)
 end
 
 function GM:PlayerBindPress(ply, bind, pressed, code)
+	-- if the PhysGun is active and the player is holding ATTACK, do not care about weapon selection
+	local wep = ply:GetActiveWeapon()
+	local shouldIgnore = IsValid(wep) and wep:GetClass() == "weapon_physgun" and ply:KeyDown(IN_ATTACK)
+	
 	--[[ invnext match:
 	invnext
 	invnext allen
@@ -134,7 +138,7 @@ function GM:PlayerBindPress(ply, bind, pressed, code)
 	need to match:
 	invnext, invprev, slotX
 	]]
-	if not GetConVar("hud_fastswitch"):GetBool() then
+	if not (GetConVar("hud_fastswitch"):GetBool() or shouldIgnore) then
 		for command in string.gmatch(';'..bind, ";%s*(%w+)") do
 			if pressed and (command == "invnext" or command == "invprev" or string.match(command, "^slot%d+$")) then
 				hook.Run("ProcessWeaponBind", command)

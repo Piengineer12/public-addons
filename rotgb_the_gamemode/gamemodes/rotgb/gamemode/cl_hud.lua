@@ -63,7 +63,8 @@ end
 local blockedElements = {
 	CHudHealth = true,
 	CHudBattery = true,
-	CHUDQuickInfo = true
+	CHUDQuickInfo = true,
+	CHudWeaponSelection = true
 }
 function GM:HUDShouldDraw(name)
 	if blockedElements[name] then return false end

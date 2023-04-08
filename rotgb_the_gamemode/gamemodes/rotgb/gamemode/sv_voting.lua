@@ -73,7 +73,8 @@ end
 function GM:CurrentVoteThink()
 	local currentVote = hook.Run("GetCurrentVote")
 	if currentVote then
-		if currentVote.expiry<RealTime() or currentVote.agrees+currentVote.disagrees == player.GetCount() then
+		local requiredPlayerCount = Lerp((currentVote.expiry - RealTime())/self.VoteTime, 0.5, 1) * player.GetCount()
+		if currentVote.expiry<RealTime() or currentVote.agrees >= requiredPlayerCount or currentVote.disagrees >= requiredPlayerCount then
 			hook.Run("ResolveCurrentVote")
 		elseif currentVote.typ==RTG_VOTE_KICK then
 			local ply = Player(tonumber(currentVote.target) or -1)
