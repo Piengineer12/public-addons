@@ -10,8 +10,8 @@ Links above are confirmed working as of 2022-04-16. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "5.5.1"
-ISAWC._VERSIONDATE = "2023-02-08"
+ISAWC._VERSION = "5.5.2"
+ISAWC._VERSIONDATE = "2023-03-18"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -6431,6 +6431,9 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 				ent:PhysWake()
 				if not isSpawn then
 					ent:Use(ply)
+					if ent:IsWeapon() and ent.PickupWeapon then
+						ent:PickupWeapon(ply)
+					end
 				end
 			end
 		else
@@ -6468,6 +6471,9 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 				v.Entity = v
 				if not isSpawn then
 					v:Use(ply)
+					if v:IsWeapon() and v.PickupWeapon then
+						v:PickupWeapon(ply)
+					end
 				end
 				v.NextPickup2 = CurTime() + 0.5
 			end
@@ -7733,6 +7739,7 @@ ISAWC.Tick = function()
 		if nextsave < RealTime() and ISAWC.ConDoSave:GetInt() > 0 then
 			nextsave = RealTime() + ISAWC.ConDoSaveDelay:GetFloat()
 			ISAWC:SaveInventory(player.GetAll())
+			ISAWC:SaveData()
 			ISAWC:Log("Player inventories saved!")
 		end
 		if ISAWC.ConPlayerMagnet:GetFloat() > 0 then
