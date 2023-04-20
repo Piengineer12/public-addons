@@ -426,55 +426,57 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 				end
 				
 				-- status effects
-				local iconsPerRow = math.max(math.floor(healthBarWidth / iconSize), 5)
-				local startX = infoX
-				local startY = infoY + InsaneStats.FONT_BIG
-				local statusEffectOrder = {}
-				for k,v in pairs(lookEntityInfo.statusEffects) do
-					if v.expiry > CurTime() and v.level ~= 0 then
-						table.insert(statusEffectOrder, k)
-					end
-				end
-				table.sort(statusEffectOrder, function(a,b)
-					local statusEffectA = lookEntityInfo.statusEffects[a]
-					local statusEffectB = lookEntityInfo.statusEffects[b]
-					
-					if statusEffectA.level ~= statusEffectB.level then
-						return statusEffectA.level > statusEffectB.level
-					elseif statusEffectA.expiry ~= statusEffectB.expiry then
-						return statusEffectA.expiry > statusEffectB.expiry
-					else
-						return a < b
-					end
-				end)
-				
-				for i,v in ipairs(statusEffectOrder) do
-					local currentX = startX + (i-1) % iconsPerRow * iconSize
-					local currentY = startY + math.floor((i-1) / iconsPerRow) * iconSize
-					
-					local statusEffectInfo = InsaneStats:GetStatusEffectInfo(v)
-					local statusEffectData = lookEntityInfo.statusEffects[v]
-					local statusEffectColor = statusEffectColors[statusEffectInfo.typ]
-					
-					surface.SetMaterial(statusEffectInfo.img)
-					-- draw the outline
-					surface.SetDrawColor(0,0,0,statusEffectColor.a)
-					for j=-2,2 do
-						for k=-2,2 do
-							if j ~= 0 and k ~= 0 then
-								surface.DrawTexturedRect(currentX+j, currentY+k, iconSize, iconSize)
-							end
+				if lookEntityInfo.statusEffects then
+					local iconsPerRow = math.max(math.floor(healthBarWidth / iconSize), 5)
+					local startX = infoX
+					local startY = infoY + InsaneStats.FONT_BIG
+					local statusEffectOrder = {}
+					for k,v in pairs(lookEntityInfo.statusEffects) do
+						if v.expiry > CurTime() and v.level ~= 0 then
+							table.insert(statusEffectOrder, k)
 						end
 					end
+					table.sort(statusEffectOrder, function(a,b)
+						local statusEffectA = lookEntityInfo.statusEffects[a]
+						local statusEffectB = lookEntityInfo.statusEffects[b]
+						
+						if statusEffectA.level ~= statusEffectB.level then
+							return statusEffectA.level > statusEffectB.level
+						elseif statusEffectA.expiry ~= statusEffectB.expiry then
+							return statusEffectA.expiry > statusEffectB.expiry
+						else
+							return a < b
+						end
+					end)
 					
-					surface.SetDrawColor(statusEffectColor.r, statusEffectColor.g, statusEffectColor.b, statusEffectColor.a)
-					surface.DrawTexturedRect(currentX, currentY, iconSize, iconSize)
-					
-					if statusEffectData.level ~= 1 then
-						draw.SimpleTextOutlined(InsaneStats:FormatNumber(statusEffectData.level, {decimals = 0}),
-							"InsaneStats.Small", currentX + iconSize - 2, currentY + iconSize - 2, statusEffectColor,
-							TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black
-						)
+					for i,v in ipairs(statusEffectOrder) do
+						local currentX = startX + (i-1) % iconsPerRow * iconSize
+						local currentY = startY + math.floor((i-1) / iconsPerRow) * iconSize
+						
+						local statusEffectInfo = InsaneStats:GetStatusEffectInfo(v)
+						local statusEffectData = lookEntityInfo.statusEffects[v]
+						local statusEffectColor = statusEffectColors[statusEffectInfo.typ]
+						
+						surface.SetMaterial(statusEffectInfo.img)
+						-- draw the outline
+						surface.SetDrawColor(0,0,0,statusEffectColor.a)
+						for j=-2,2 do
+							for k=-2,2 do
+								if j ~= 0 and k ~= 0 then
+									surface.DrawTexturedRect(currentX+j, currentY+k, iconSize, iconSize)
+								end
+							end
+						end
+						
+						surface.SetDrawColor(statusEffectColor.r, statusEffectColor.g, statusEffectColor.b, statusEffectColor.a)
+						surface.DrawTexturedRect(currentX, currentY, iconSize, iconSize)
+						
+						if statusEffectData.level ~= 1 then
+							draw.SimpleTextOutlined(InsaneStats:FormatNumber(statusEffectData.level, {decimals = 0}),
+								"InsaneStats.Small", currentX + iconSize - 2, currentY + iconSize - 2, statusEffectColor,
+								TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black
+							)
+						end
 					end
 				end
 				

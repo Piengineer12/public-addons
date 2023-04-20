@@ -225,13 +225,6 @@ local modifiers = {
 		},
 		weight = 0.5
 	},
-	bloodbath = {
-		prefix = "Bloodbathing",
-		modifiers = {
-			lifesteal = 0.2
-		},
-		weight = 0.5
-	},
 	amplify = {
 		prefix = "Amplifying",
 		modifiers = {
@@ -239,6 +232,13 @@ local modifiers = {
 			amp_damage = 1.21
 		},
 		weight = 0.5,
+	},
+	bloodbath = {
+		prefix = "Bloodbathing",
+		modifiers = {
+			lifesteal = 0.2
+		},
+		weight = 0.5
 	},
 	heal = {
 		prefix = "Healing",
@@ -582,7 +582,7 @@ local modifiers = {
 		prefix = "Sluggish",
 		suffix = "Sluggishness",
 		modifiers = {
-			combat5s_firerate = 1/1.1,
+			firerate = 1/1.1,
 			combat5s_damage = 1.331
 		},
 		weight = 0.5,
@@ -594,9 +594,7 @@ local modifiers = {
 		suffix = "Laziness",
 		modifiers = {
 			damage = 1/1.1,
-			firerate = 1/1.1,
-			combat5s_damage = 1.21,
-			combat5s_firerate = 1.21
+			combat5s_firerate = 1.331,
 		},
 		weight = 0.5,
 		max = 5,
@@ -617,13 +615,11 @@ local modifiers = {
 		prefix = "Terrible",
 		suffix = "Terribleness",
 		modifiers = {
-			damage = 1.21,
-			firerate = 1.21,
-			kill5s_damage = 1/1.1,
-			kill5s_firerate = 1/1.1,
+			evenlevel_damage = 1.331,
+			oddlevel_damage = 1/1.1
 		},
+		flags = InsaneStats.WPASS2_FLAGS.XP,
 		weight = 0.5,
-		max = 3,
 		cost = 2
 	},
 	danger = {
@@ -651,12 +647,12 @@ local modifiers = {
 		prefix = "Taboo",
 		suffix = "Tabooness",
 		modifiers = {
-			combat5s_damage = 1/1.1,
-			combat5s_firerate = 1.331,
+			oddlevel_damage = 1.331,
+			evenlevel_damage = 1/1.1
 		},
+		flags = InsaneStats.WPASS2_FLAGS.XP,
 		weight = 0.5,
-		cost = 2,
-		max = 5
+		cost = 2
 	},
 	
 	-- damage inaccessible
@@ -1145,10 +1141,20 @@ local modifiers = {
 	bloodletting = {
 		prefix = "Bloodletting",
 		modifiers = {
-			bloodletting = 1/1.02
+			bloodletting = -0.02
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5
+		weight = 0.5,
+		max = 25
+	},
+	glutton = {
+		prefix = "Gluttony",
+		modifiers = {
+			armor_fullpickup = 0.15
+		},
+		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		weight = 0.5e3,
+		max = 5
 	},
 	resist = {
 		prefix = "Resisting",
@@ -1213,6 +1219,15 @@ local modifiers = {
 		weight = 0.5,
 		max = 5
 	},
+	harden = {
+		prefix = "Hardening",
+		modifiers = {
+			combat5s_damagetaken = 1/1.1
+		},
+		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		weight = 0.5,
+		max = 5
+	},
 	
 	-- defensive, half weight double cost
 	unhappy = {
@@ -1225,15 +1240,6 @@ local modifiers = {
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
 		cost = 2
-	},
-	harden = {
-		prefix = "Hardening",
-		modifiers = {
-			combat5s_damagetaken = 1/1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		max = 5
 	},
 	--[[warm = {
 		prefix = "Warming",
@@ -1394,6 +1400,12 @@ local attributes = {
 		display = "%s damage dealt to higher-level entities",
 		mul = 2
 	},
+	oddlevel_damage = {
+		display = "%s damage dealt against odd-levelled entities"
+	},
+	evenlevel_damage = {
+		display = "%s damage dealt against even-levelled entities"
+	},
 	mark_damage = {
 		display = "%s damage dealt against marked entities"
 	},
@@ -1479,11 +1491,11 @@ local attributes = {
 		invert = true
 	},
 	oddlevel_damagetaken = {
-		display = "%s damage taken while on odd-numbered levels",
+		display = "%s damage taken while odd-levelled",
 		invert = true
 	},
 	evenlevel_damagetaken = {
-		display = "%s damage taken while on even-numbered levels",
+		display = "%s damage taken while even-levelled",
 		invert = true
 	},
 	perdebuff_resistance = {
@@ -1595,19 +1607,19 @@ local attributes = {
 	},
 	kill5s_damage = {
 		display = "%s damage dealt for 5s after kill",
-		mul = 3
+		mul = 2
 	},
 	kill5s_ally_damage = {
 		display = "%s damage dealt for 5s after ally kill",
-		mul = 10
+		mul = 5
 	},
 	kill5s_firerate = {
 		display = "%s fire rate for 5s after kill",
-		mul = 3
+		mul = 2
 	},
 	kill5s_speed = {
 		display = "%s movement speed for 5s after kill",
-		mul = 3
+		mul = 2
 	},
 	kill5s_regen = {
 		display = "%s health regen for 5s after kill",
@@ -1621,7 +1633,7 @@ local attributes = {
 	},
 	kill5s_damagetaken = {
 		display = "%s damage taken for 5s after kill",
-		mul = 3,
+		mul = 2,
 		invert = true
 	},
 	kill5s_damageaura = {
@@ -1814,7 +1826,13 @@ local attributes = {
 	bloodletting = {
 		display = "Health above %s turned into armor, reduced above full armor",
 		start = 2,
-		mode = 1
+		mode = 3
+	},
+	armor_fullpickup = {
+		display = "Armor batteries can overcharge armor at %s efficiency, reduced further above full armor",
+		start = 0,
+		invert = true,
+		mode = 3
 	},
 	else_xp = {
 		display = "%s XP gain from other's kills",

@@ -1,6 +1,5 @@
 --[[NEXT:
-make npc_helicopter behave properly when killed (don't let it set health to extreme values)
-make sure poison headcrabs do not instakill
+make npc_helicopter behave properly when killed (don't let it set health to extreme values) (test!)
 test what happens when DLib is not present
 GUI options, and DForm for options
 ]]

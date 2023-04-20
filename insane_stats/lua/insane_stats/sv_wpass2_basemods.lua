@@ -244,6 +244,12 @@ local function CalculateDamage(vic, attacker, dmginfo)
 		totalMul = totalMul * vic:InsaneStats_GetAttributeValue("oddlevel_damagetaken")
 	end
 	
+	if vic:InsaneStats_GetLevel() % 2 == 0 then
+		totalMul = totalMul * attacker:InsaneStats_GetAttributeValue("evenlevel_damage")
+	else
+		totalMul = totalMul * attacker:InsaneStats_GetAttributeValue("oddlevel_damage")
+	end
+	
 	--print(totalMul)
 	dmginfo:ScaleDamage(totalMul)
 	
@@ -509,6 +515,8 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 				local shouldCosmicurse = attacker:InsaneStats_GetAttributeValue("cosmicurse") > 1
 				
 				if shouldExplode or shouldShock or shouldElectroblast or shouldCosmicurse then
+					--error(tostring(vic))
+					
 					CauseDelayedDamage({
 						pos = worldPos,
 						attacker = attacker,
@@ -891,6 +899,28 @@ local function AttemptDupeEntity(ply, item)
 				itemDuplicate:Spawn()
 			end
 		end
+		
+		if item:GetClass() == "item_battery" and not itemHasModifiers and ply:InsaneStats_GetAttributeValue("armor_fullpickup") ~= 1 then
+			local expectedArmor = GetConVar("sk_battery"):GetFloat() * (ply.insaneStats_CurrentArmorAdd or 1)
+			
+			if ply:InsaneStats_GetArmor() + expectedArmor > ply:InsaneStats_GetMaxArmor() then
+				
+				if ply:InsaneStats_GetArmor() < ply:InsaneStats_GetMaxArmor() then
+					expectedArmor = expectedArmor + ply:InsaneStats_GetArmor() - ply:InsaneStats_GetMaxArmor()
+					ply:SetArmor(ply:InsaneStats_GetMaxArmor())
+				end
+				ply:InsaneStats_AddArmorNerfed(expectedArmor * ply:InsaneStats_GetAttributeValue("armor_fullpickup"))
+				
+				ply:EmitSound("ItemBattery.Touch")
+				net.Start("insane_stats")
+				net.WriteUInt(2, 8)
+				net.WriteString("item_battery")
+				net.Send(ply)
+				item:Remove()
+				
+				return false
+			end
+		end
 	end
 end
 
@@ -1163,6 +1193,7 @@ hook.Add("PlayerSpawn", "InsaneStatsWPASS2", function(ply, fromTransition)
 		ply:InsaneStats_ClearStatusEffectsByType(1)
 		
 		if fromTransition then
+			ply:InsaneStats_ClearStatusEffectsByType(-2)
 			ply:InsaneStats_ClearStatusEffectsByType(2)
 		else
 			ply.insaneStats_OldMoveMul = 1

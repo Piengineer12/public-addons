@@ -215,29 +215,34 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 			
 			-- nerf damage to make sure high damage attacks aren't directly lethal
 			multiplier = multiplier * math.abs(vic:InsaneStats_GetRawHealth()) / math.abs(vic:InsaneStats_GetHealth())
-			
-			if not (dmginfo:GetDamage() * multiplier < math.huge) then
-				multiplier = 1
-				dmginfo:SetDamage(math.huge)
-			elseif dmginfo:IsDamageType(DMG_POISON) and dmginfo:GetDamage() + 1 > vic:InsaneStats_GetRawHealth() and vic:InsaneStats_GetRawHealth() > 0 then
-				-- poison damage cannot be lethal
-				multiplier = 1
-				dmginfo:SetDamage(vic:InsaneStats_GetRawMaxHealth()*0.99)
-			end
 		end
 		
 		dmginfo:ScaleDamage(multiplier)
+		
+		if InsaneStats:GetConVarValue("infhealth_enabled") then
+			if not (dmginfo:GetDamage() < math.huge) then
+				dmginfo:SetDamage(math.huge)
+			elseif dmginfo:IsDamageType(DMG_POISON) and dmginfo:GetDamage() + 1 > vic:InsaneStats_GetRawHealth() and vic:InsaneStats_GetRawHealth() > 0 then
+				-- poison damage should ideally leave the user at 1 health, but the limitations of
+				-- single floating-point arithmetic is making this more difficult than it needs to be
+				dmginfo:SetDamage(vic:InsaneStats_GetRawHealth() * 8388607 / 8388608 - 1)
+			end
+		end
 	end
 	
 	-- important for next part
 	vic.insaneStats_Health = vic:InsaneStats_GetHealth()
 	vic.insaneStats_Armor = vic:InsaneStats_GetArmor()
 	vic.insaneStats_OldVelocity = vic:GetVelocity()
+	--print("PreEntityTakeDamage", vic, dmginfo:GetAttacker(), dmginfo:GetDamageType(), dmginfo:GetDamage(), vic:InsaneStats_GetRawHealth())
 end)
 
 hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo, notImmune, ...)
+	--print("PostEntityTakeDamage", vic, dmginfo:GetAttacker(), dmginfo:GetDamageType(), dmginfo:GetDamage(), vic:InsaneStats_GetRawHealth())
 	vic.insaneStats_OldVelocity = vic.insaneStats_OldVelocity or vic:GetVelocity()
-	vic:InsaneStats_ApplyKnockback(dmginfo:GetDamageForce(), vic.insaneStats_OldVelocity-vic:GetVelocity())
+	if not dmginfo:IsDamageType(DMG_FALL) then
+		vic:InsaneStats_ApplyKnockback(dmginfo:GetDamageForce(), vic.insaneStats_OldVelocity-vic:GetVelocity())
+	end
 	
 	if not vic:IsVehicle() then
 		local reportedDamage = dmginfo:GetDamage()
