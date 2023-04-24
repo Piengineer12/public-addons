@@ -120,12 +120,20 @@ function InsaneStats:RegisterClientConVar(name, internal, default, data)
 		)
 	end
 	
+	self.numConVars = self.numConVars + 1
+	
 	local conVarData = {
 		conVar = conVar,
 		internal = internal,
-		default = default
+		default = default,
+		id = self.numConVars
 	}
 	table.Merge(conVarData, data)
+	
+	if not conVarData.category then
+		conVarData.category = self:GetDefaultConVarCategory()
+	end
+	
 	self.conVars[name] = conVarData
 	
 	return conVar

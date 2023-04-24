@@ -176,63 +176,79 @@ end)
 
 local nextEntityUpdatePlayers = {}
 net.Receive("insane_stats", function(length, ply)
-	local steamID = ply:SteamID()
-	local updateEntity = net.ReadEntity()
-	
-	nextEntityUpdatePlayers[steamID] = nextEntityUpdatePlayers[steamID] or {}
-	
-	if IsValid(updateEntity) then
-		local creationID = updateEntity:GetCreationID()
+	local func = net.ReadUInt(8)
+	if func == 1 then
+		local steamID = ply:SteamID()
+		local updateEntity = net.ReadEntity()
 		
-		if (nextEntityUpdatePlayers[steamID][creationID] or 0) < RealTime() then
-			nextEntityUpdatePlayers[steamID][creationID] = RealTime() + 1
+		nextEntityUpdatePlayers[steamID] = nextEntityUpdatePlayers[steamID] or {}
+		
+		if IsValid(updateEntity) then
+			local creationID = updateEntity:GetCreationID()
 			
-			net.Start("insane_stats")
-			net.WriteUInt(1, 8)
-			net.WriteUInt(1, 8)
-			net.WriteUInt(updateEntity:EntIndex(), 16)
-			net.WriteUInt(31, 8)
-			net.WriteDouble(updateEntity:InsaneStats_GetHealth())
-			net.WriteDouble(updateEntity:InsaneStats_GetMaxHealth())
-			net.WriteDouble(updateEntity:InsaneStats_GetArmor())
-			net.WriteDouble(updateEntity:InsaneStats_GetMaxArmor())
-			
-			net.WriteDouble(updateEntity:InsaneStats_GetXP())
-			
-			net.WriteString(updateEntity:GetClass())
-			net.WriteString(updateEntity:GetName())
-			if updateEntity:IsNPC() then
-				net.WriteInt(updateEntity:Disposition(ply), 4)
-			else
-				net.WriteInt(-1, 4)
-			end
+			if (nextEntityUpdatePlayers[steamID][creationID] or 0) < RealTime() then
+				nextEntityUpdatePlayers[steamID][creationID] = RealTime() + 1
 				
-			net.WriteDouble(updateEntity.insaneStats_BatteryXP or 0)
-			net.WriteBool(updateEntity.insaneStats_ModifierChangeReason == 1)
-			net.WriteUInt(updateEntity.insaneStats_Tier or 0, 16)
-			local modifiers = updateEntity.insaneStats_Modifiers or {}
-			net.WriteUInt(table.Count(modifiers), 16)
-			for k2,v2 in pairs(modifiers) do
-				net.WriteString(k2)
-				net.WriteUInt(v2-1, 16)
+				net.Start("insane_stats")
+				net.WriteUInt(1, 8)
+				net.WriteUInt(1, 8)
+				net.WriteUInt(updateEntity:EntIndex(), 16)
+				net.WriteUInt(31, 8)
+				net.WriteDouble(updateEntity:InsaneStats_GetHealth())
+				net.WriteDouble(updateEntity:InsaneStats_GetMaxHealth())
+				net.WriteDouble(updateEntity:InsaneStats_GetArmor())
+				net.WriteDouble(updateEntity:InsaneStats_GetMaxArmor())
+				
+				net.WriteDouble(updateEntity:InsaneStats_GetXP())
+				
+				net.WriteString(updateEntity:GetClass())
+				net.WriteString(updateEntity:GetName())
+				if updateEntity:IsNPC() then
+					net.WriteInt(updateEntity:Disposition(ply), 4)
+				else
+					net.WriteInt(-1, 4)
+				end
+					
+				net.WriteDouble(updateEntity.insaneStats_BatteryXP or 0)
+				net.WriteBool(updateEntity.insaneStats_ModifierChangeReason == 1)
+				net.WriteUInt(updateEntity.insaneStats_Tier or 0, 16)
+				local modifiers = updateEntity.insaneStats_Modifiers or {}
+				net.WriteUInt(table.Count(modifiers), 16)
+				for k2,v2 in pairs(modifiers) do
+					net.WriteString(k2)
+					net.WriteUInt(v2-1, 16)
+				end
+				
+				local allStatusEffectData = {}
+				for k,v in pairs(updateEntity.insaneStats_StatusEffects or {}) do
+					table.insert(allStatusEffectData, {
+						id = InsaneStats:GetStatusEffectID(k),
+						expiry = v.expiry,
+						level = v.level
+					})
+				end
+				
+				net.WriteUInt(#allStatusEffectData, 16)
+				for k,v in pairs(allStatusEffectData) do
+					net.WriteUInt(v.id, 16)
+					net.WriteDouble(v.level)
+					net.WriteFloat(v.expiry)
+				end
+				net.Send(ply)
 			end
+		end
+	elseif func == 2 and ply:IsAdmin() then
+		for i=1, net.ReadUInt(8) do
+			local conVarName = net.ReadString()
+			local typ = InsaneStats:GetConVarData(conVarName).type
 			
-			local allStatusEffectData = {}
-			for k,v in pairs(updateEntity.insaneStats_StatusEffects or {}) do
-				table.insert(allStatusEffectData, {
-					id = InsaneStats:GetStatusEffectID(k),
-					expiry = v.expiry,
-					level = v.level
-				})
+			if typ == InsaneStats.BOOL then
+				InsaneStats:GetConVarData(conVarName).conVar:SetBool(net.ReadBool())
+			elseif typ == InsaneStats.INT then
+				InsaneStats:GetConVarData(conVarName).conVar:SetInt(net.ReadInt(8))
+			elseif typ == InsaneStats.FLOAT then
+				InsaneStats:GetConVarData(conVarName).conVar:SetFloat(net.ReadDouble())
 			end
-			
-			net.WriteUInt(#allStatusEffectData, 16)
-			for k,v in pairs(allStatusEffectData) do
-				net.WriteUInt(v.id, 16)
-				net.WriteDouble(v.level)
-				net.WriteFloat(v.expiry)
-			end
-			net.Send(ply)
 		end
 	end
 end)

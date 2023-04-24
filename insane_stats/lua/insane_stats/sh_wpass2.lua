@@ -1,80 +1,8 @@
+InsaneStats:SetDefaultConVarCategory("Weapon Prefixes and Suffixes System 2")
+
 InsaneStats:RegisterConVar("wpass2_enabled", "insanestats_wpass2_enabled", "1", {
-	desc = "Enables WPASS2, allowing weapons / armor batteries to gain prefixes and suffixes.", type = InsaneStats.BOOL
-})
-
-InsaneStats:RegisterConVar("wpass2_tier_start", "insanestats_wpass2_tier_start", "1", {
-	desc = "Starting tier for weapons / armor batteries.",
-	type = InsaneStats.FLOAT, min = 0, max = 10000
-})
-InsaneStats:RegisterConVar("wpass2_tier_start_battery", "insanestats_wpass2_tier_start_battery", "-1", {
-	desc = "If 0 or above, overrides insanestats_wpass2_tier_start for armor batteries.",
-	type = InsaneStats.FLOAT, min = -1, max = 10000
-})
-InsaneStats:RegisterConVar("wpass2_tier_max", "insanestats_wpass2_tier_max", "999", {
-	desc = "Maximum possible weapon / armor battery tier.",
-	type = InsaneStats.INT, min = 0, max = 10000
-})
-InsaneStats:RegisterConVar("wpass2_tier_max_battery", "insanestats_wpass2_tier_max_battery", "-1", {
-	desc = "If 0 or above, overrides insanestats_wpass2_tier_max for armor batteries.",
-	type = InsaneStats.INT, min = -1, max = 10000
-})
-InsaneStats:RegisterConVar("wpass2_tier_upchance", "insanestats_wpass2_tier_upchance", "50", {
-	desc = "% chance for a weapon / armor battery to have its tier increased by 1. This is rolled for continuously until the roll fails.",
-	type = InsaneStats.FLOAT, min = 0, max = 100
-})
-InsaneStats:RegisterConVar("wpass2_tier_upchance_battery", "insanestats_wpass2_tier_upchance_battery", "75", {
-	desc = "If 0 or above, overrides insanestats_wpass2_tier_upchance for armor batteries.",
-	type = InsaneStats.FLOAT, min = -1, max = 100
-})
-InsaneStats:RegisterConVar("wpass2_tier_newmodifiercost", "insanestats_wpass2_tier_newmodifiercost", "2", {
-	desc = "Number of tiers before another weapon / armor battery modifier is attached. Tier 1 weapons / armor batteries will always have one modifier.",
-	type = InsaneStats.FLOAT, min = 0, max = 100
-})
-InsaneStats:RegisterConVar("wpass2_tier_newmodifiercost_battery", "insanestats_wpass2_tier_newmodifiercost_battery", "4", {
-	desc = "If 0 or above, overrides insanestats_wpass2_tier_newmodifiercost for armor batteries.",
-	type = InsaneStats.FLOAT, min = -1, max = 100
-})
-InsaneStats:RegisterConVar("wpass2_tier_raritycost", "insanestats_wpass2_tier_raritycost", "2", {
-	desc = "Number of tiers per rarity.",
-	type = InsaneStats.FLOAT, min = 0, max = 100
-})
-InsaneStats:RegisterConVar("wpass2_tier_raritycost_battery", "insanestats_wpass2_tier_raritycost_battery", "4", {
-	desc = "If 0 or above, overrides insanestats_wpass2_tier_raritycost for armor batteries.",
-	type = InsaneStats.FLOAT, min = -1, max = 100
-})
-
-InsaneStats:RegisterConVar("wpass2_chance_unowned", "insanestats_wpass2_chance_unowned", "20", {
-	desc = "Chance for an unowned weapon / armor battery to be above tier 0, creating at least a tier 1 weapon / armor battery. \z
-		Note that weapons / armor batteries above tier 0 cannot be picked up for ammo / armor.",
-	type = InsaneStats.FLOAT, min = 0, max = 100
-})
-InsaneStats:RegisterConVar("wpass2_chance_unowned_battery", "insanestats_wpass2_chance_unowned_battery", "-1", {
-	desc = "If 0 or above, overrides insanestats_wpass2_chance_unowned for armor batteries.",
-	type = InsaneStats.FLOAT, min = -1, max = 100
-})
-InsaneStats:RegisterConVar("wpass2_chance_player", "insanestats_wpass2_chance_player", "100", {
-	desc = "Chance for a player-owned weapon / armor battery to be above tier 0.",
-	type = InsaneStats.FLOAT, min = 0, max = 100
-})
-InsaneStats:RegisterConVar("wpass2_chance_player_battery", "insanestats_wpass2_chance_player_battery", "-1", {
-	desc = "If 0 or above, overrides insanestats_wpass2_chance_player for armor batteries.",
-	type = InsaneStats.FLOAT, min = -1, max = 100
-})
-InsaneStats:RegisterConVar("wpass2_chance_player_drop", "insanestats_wpass2_chance_player_drop", "100", {
-	desc = "Chance for dead players to drop their weapon / armor battery. Note that other addons can still force players to drop their weapon on death.",
-	type = InsaneStats.FLOAT, min = 0, max = 100
-})
-InsaneStats:RegisterConVar("wpass2_chance_player_drop_battery", "insanestats_wpass2_chance_player_drop_battery", "0", {
-	desc = "If 0 or above, overrides insanestats_wpass2_chance_player_drop for armor batteries.",
-	type = InsaneStats.FLOAT, min = -1, max = 100
-})
-InsaneStats:RegisterConVar("wpass2_chance_other", "insanestats_wpass2_chance_other", "20", {
-	desc = "Chance for an NPC owned weapon / armor battery to be above tier 0.",
-	type = InsaneStats.FLOAT, min = 0, max = 100
-})
-InsaneStats:RegisterConVar("wpass2_chance_other_battery", "insanestats_wpass2_chance_other_battery", "-1", {
-	desc = "If 0 or above, overrides insanestats_wpass2_chance_other for armor batteries.",
-	type = InsaneStats.FLOAT, min = -1, max = 100
+	display = "Enable WPASS2", desc = "Enables WPASS2, allowing weapons / armor batteries to gain prefixes and suffixes.",
+	type = InsaneStats.BOOL
 })
 InsaneStats.WPASS2_FLAGS = {
 	ARMOR = 1,
@@ -86,41 +14,132 @@ InsaneStats.WPASS2_FLAGS = {
 	-- 7: same as 5
 }
 
-InsaneStats:RegisterConVar("wpass2_chance_other_battery_sensible", "insanestats_wpass2_chance_other_battery_sensible", "1", {
-	desc = "If enabled, only humanoid and Combine entities are able to spawn with a modified armor battery.",
-	type = InsaneStats.BOOL
+InsaneStats:RegisterConVar("wpass2_tier_start", "insanestats_wpass2_tier_start", "1", {
+	display = "Starting Tier", desc = "Starting tier for weapons / armor batteries.",
+	type = InsaneStats.FLOAT, min = 0, max = 10000
 })
-InsaneStats:RegisterConVar("wpass2_chance_other_drop", "insanestats_wpass2_chance_other_drop", "100", {
-	desc = "Chance for NPCs to drop their weapon / armor battery. This only applies in maps where NPCs do not normally drop their weapons.",
+InsaneStats:RegisterConVar("wpass2_tier_start_battery", "insanestats_wpass2_tier_start_battery", "-1", {
+	display = "Battery Starting Tier", desc = "If 0 or above, overrides insanestats_wpass2_tier_start for armor batteries.",
+	type = InsaneStats.FLOAT, min = -1, max = 10000
+})
+InsaneStats:RegisterConVar("wpass2_tier_max", "insanestats_wpass2_tier_max", "999", {
+	display = "Maximum Tier", desc = "Maximum possible weapon / armor battery tier.",
+	type = InsaneStats.INT, min = 0, max = 10000
+})
+InsaneStats:RegisterConVar("wpass2_tier_max_battery", "insanestats_wpass2_tier_max_battery", "-1", {
+	display = "Battery Maximum Tier", desc = "If 0 or above, overrides insanestats_wpass2_tier_max for armor batteries.",
+	type = InsaneStats.INT, min = -1, max = 10000
+})
+InsaneStats:RegisterConVar("wpass2_tier_upchance", "insanestats_wpass2_tier_upchance", "70.71", {
+	display = "Tier Up Chance", desc = "% chance for a weapon / armor battery to have its tier increased by 1. This is rolled for continuously until the roll fails.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
-InsaneStats:RegisterConVar("wpass2_chance_other_drop_battery", "insanestats_wpass2_chance_other_drop_battery", "-1", {
-	desc = "If 0 or above, overrides insanestats_wpass2_chance_other_drop for armor batteries.",
+InsaneStats:RegisterConVar("wpass2_tier_upchance_battery", "insanestats_wpass2_tier_upchance_battery", "84.09", {
+	display = "Battery Tier Up Chance", desc = "If 0 or above, overrides insanestats_wpass2_tier_upchance for armor batteries.",
+	type = InsaneStats.FLOAT, min = -1, max = 100
+})
+InsaneStats:RegisterConVar("wpass2_tier_newmodifiercost", "insanestats_wpass2_tier_newmodifiercost", "2", {
+	display = "New Modifier Cost", desc = "Number of tiers before another weapon / armor battery modifier is attached. Tier 1 weapons / armor batteries will always have one modifier.",
+	type = InsaneStats.FLOAT, min = 0, max = 100
+})
+InsaneStats:RegisterConVar("wpass2_tier_newmodifiercost_battery", "insanestats_wpass2_tier_newmodifiercost_battery", "4", {
+	display = "New Battery Modifier Cost", desc = "If 0 or above, overrides insanestats_wpass2_tier_newmodifiercost for armor batteries.",
+	type = InsaneStats.FLOAT, min = -1, max = 100
+})
+InsaneStats:RegisterConVar("wpass2_tier_raritycost", "insanestats_wpass2_tier_raritycost", "2", {
+	display = "Tiers Per Rarity", desc = "Number of tiers per rarity.",
+	type = InsaneStats.FLOAT, min = 0, max = 100
+})
+InsaneStats:RegisterConVar("wpass2_tier_raritycost_battery", "insanestats_wpass2_tier_raritycost_battery", "4", {
+	display = "Battery Tiers Per Rarity", desc = "If 0 or above, overrides insanestats_wpass2_tier_raritycost for armor batteries.",
 	type = InsaneStats.FLOAT, min = -1, max = 100
 })
 
+InsaneStats:RegisterConVar("wpass2_chance_unowned", "insanestats_wpass2_chance_unowned", "20", {
+	display = "Unowned Chance", desc = "Chance for an unowned weapon / armor battery to be above tier 0, creating at least a tier 1 weapon / armor battery. \z
+		Note that weapons / armor batteries above tier 0 cannot be picked up for ammo / armor.",
+	type = InsaneStats.FLOAT, min = 0, max = 100
+})
+InsaneStats:RegisterConVar("wpass2_chance_unowned_battery", "insanestats_wpass2_chance_unowned_battery", "-1", {
+	display = "Unowned Battery Chance", desc = "If 0 or above, overrides insanestats_wpass2_chance_unowned for armor batteries.",
+	type = InsaneStats.FLOAT, min = -1, max = 100
+})
+InsaneStats:RegisterConVar("wpass2_chance_player", "insanestats_wpass2_chance_player", "100", {
+	display = "Player Chance", desc = "Chance for a player-owned weapon / armor battery to be above tier 0.",
+	type = InsaneStats.FLOAT, min = 0, max = 100
+})
+InsaneStats:RegisterConVar("wpass2_chance_player_battery", "insanestats_wpass2_chance_player_battery", "-1", {
+	display = "Player Battery Chance", desc = "If 0 or above, overrides insanestats_wpass2_chance_player for armor batteries.",
+	type = InsaneStats.FLOAT, min = -1, max = 100
+})
+InsaneStats:RegisterConVar("wpass2_chance_player_drop", "insanestats_wpass2_chance_player_drop", "100", {
+	display = "Player Drop Chance", desc = "Chance for dead players to drop their weapon / armor battery. Note that other addons can still force players to drop their weapon on death.",
+	type = InsaneStats.FLOAT, min = 0, max = 100
+})
+InsaneStats:RegisterConVar("wpass2_chance_player_drop_battery", "insanestats_wpass2_chance_player_drop_battery", "0", {
+	display = "Player Battery Drop Chance", desc = "If 0 or above, overrides insanestats_wpass2_chance_player_drop for armor batteries.",
+	type = InsaneStats.FLOAT, min = -1, max = 100
+})
+InsaneStats:RegisterConVar("wpass2_chance_other", "insanestats_wpass2_chance_other", "20", {
+	display = "Non-player Chance", desc = "Chance for an NPC owned weapon / armor battery to be above tier 0.",
+	type = InsaneStats.FLOAT, min = 0, max = 100
+})
+InsaneStats:RegisterConVar("wpass2_chance_other_battery", "insanestats_wpass2_chance_other_battery", "-1", {
+	display = "Non-player Battery Chance", desc = "If 0 or above, overrides insanestats_wpass2_chance_other for armor batteries.",
+	type = InsaneStats.FLOAT, min = -1, max = 100
+})
+InsaneStats:RegisterConVar("wpass2_chance_other_battery_sensible", "insanestats_wpass2_chance_other_battery_sensible", "1", {
+	display = "Sensible NPCs Only", desc = "If enabled, only humanoid and Combine entities are able to spawn with a modified armor battery.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterConVar("wpass2_chance_other_drop", "insanestats_wpass2_chance_other_drop", "100", {
+	display = "Non-player Drop Chance", desc = "Chance for NPCs to drop their weapon / armor battery. This only applies in maps where NPCs do not normally drop their weapons.",
+	type = InsaneStats.FLOAT, min = 0, max = 100
+})
+InsaneStats:RegisterConVar("wpass2_chance_other_drop_battery", "insanestats_wpass2_chance_other_drop_battery", "-1", {
+	display = "Non-player Battery Drop Chance", desc = "If 0 or above, overrides insanestats_wpass2_chance_other_drop for armor batteries.",
+	type = InsaneStats.FLOAT, min = -1, max = 100
+})
+
+InsaneStats:RegisterConVar("wpass2_attributes_player_enabled", "insanestats_wpass2_attributes_player_enabled", "1", {
+	display = "Player Attirbute Effects", desc = "If disabled, modified weapons / armor batteries will have no effect on players.",
+	type = InsaneStats.INT, min = 0, max = 1
+})
+InsaneStats:RegisterConVar("wpass2_attributes_player_enabled_battery", "insanestats_wpass2_attributes_player_enabled_battery", "-1", {
+	display = "Player Battery Attirbute Effects", desc = "If 0 or above, overrides insanestats_wpass2_effects_player_enabled for armor batteries.",
+	type = InsaneStats.INT, min = -1, max = 1
+})
+InsaneStats:RegisterConVar("wpass2_attributes_other_enabled", "insanestats_wpass2_attributes_other_enabled", "1", {
+	display = "Non-player Attirbute Effects", desc = "If disabled, modified weapons / armor batteries will have no effect on NPCs.",
+	type = InsaneStats.INT, min = 0, max = 1
+})
+InsaneStats:RegisterConVar("wpass2_attributes_other_enabled_battery", "insanestats_wpass2_attributes_other_enabled_battery", "-1", {
+	display = "Non-player Battery Attirbute Effects", desc = "If 0 or above, overrides insanestats_wpass2_effects_other_enabled for armor batteries.",
+	type = InsaneStats.INT, min = -1, max = 1
+})
+
 InsaneStats:RegisterConVar("wpass2_tier_xp_enable", "insanestats_wpass2_tier_xp_enable", "1", {
-	desc = "Allows the weapon's / armor battery's level to influence its tier. Only relevant when Insane Stats XP is enabled.",
+	display = "Experience Integration", desc = "Allows the weapon's / armor battery's level to influence its tier. Only relevant when Insane Stats XP is enabled.",
 	type = InsaneStats.BOOL
 })
 InsaneStats:RegisterConVar("wpass2_tier_xp_level_start", "insanestats_wpass2_tier_xp_level_start", "5", {
-	desc = "Level before weapons / armor batteries are guaranteed to be tier 1. Below this, weapons / armor batteries may sometimes spawn at tier 0 even after passing the insanestats_wpass2_chance_* check.",
-	type = InsaneStats.FLOAT, min = 0, max = 10000
-})
-InsaneStats:RegisterConVar("wpass2_tier_xp_level_start_battery", "insanestats_wpass2_tier_xp_level_start_battery", "2.5", {
-	desc = "If 0 or above, overrides insanestats_wpass2_xp_tier_levelstart for armor batteries.",
-	type = InsaneStats.FLOAT, min = -1, max = 10000
-})
-InsaneStats:RegisterConVar("wpass2_tier_xp_level_add", "insanestats_wpass2_tier_xp_level_add", "100", {
-	desc = "% additional levels needed per tier up.",
+	display = "Starting Level", desc = "Level before weapons / armor batteries are guaranteed to be tier 1. Below this, weapons / armor batteries may sometimes spawn at tier 0 even after passing the insanestats_wpass2_chance_* check.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
-InsaneStats:RegisterConVar("wpass2_tier_xp_level_add_battery", "insanestats_wpass2_tier_xp_level_add_battery", "50", {
-	desc = "If 0 or above, overrides insanestats_wpass2_tier_xp_level_add for armor batteries.",
+InsaneStats:RegisterConVar("wpass2_tier_xp_level_start_battery", "insanestats_wpass2_tier_xp_level_start_battery", "2.5", {
+	display = "Battery Starting Level", desc = "If 0 or above, overrides insanestats_wpass2_xp_tier_levelstart for armor batteries.",
+	type = InsaneStats.FLOAT, min = -1, max = 1000
+})
+InsaneStats:RegisterConVar("wpass2_tier_xp_level_add", "insanestats_wpass2_tier_xp_level_add", "100", {
+	display = "Level Scaling", desc = "% additional levels needed per tier up.",
+	type = InsaneStats.FLOAT, min = 0, max = 1000
+})
+InsaneStats:RegisterConVar("wpass2_tier_xp_level_add_battery", "insanestats_wpass2_tier_xp_level_add_battery", "41.42", {
+	display = "Battery Level Scaling", desc = "If 0 or above, overrides insanestats_wpass2_tier_xp_level_add for armor batteries.",
 	type = InsaneStats.FLOAT, min = -1, max = 1000
 })
 InsaneStats:RegisterConVar("wpass2_tier_xp_level_add_mode", "insanestats_wpass2_tier_xp_level_add_mode", "-1", {
-	desc = "If enabled, the level tier up % is applied additively rather than multiplicatively. \z
+	display = "Level Mode", desc = "If enabled, the level tier up % is applied additively rather than multiplicatively. \z
 		-1 causes this ConVar to use the value of insanestats_xp_mode.",
 	type = InsaneStats.INT, min = -1, max = 1
 })
@@ -155,7 +174,7 @@ timer.Create("InsaneStatsSharedWPASS", 0.5, 0, function()
 	
 	entities = {}
 	for k,v in pairs(ents.GetAll()) do
-		if IsValid(v:GetPhysicsObject()) and v:InsaneStats_GetHealth() > 0 then
+		if v:InsaneStats_GetHealth() > 0 then
 			table.insert(entities, v)
 		end
 	end
@@ -362,11 +381,19 @@ local ENTITY = FindMetaTable("Entity")
 
 function ENTITY:InsaneStats_GetAttributeValue(attribute)
 	local totalMul = 1
-	totalMul = totalMul * (self.insaneStats_Attributes and self.insaneStats_Attributes[attribute] or 1)
-	local wep = self.GetActiveWeapon and self:GetActiveWeapon()
+	local weaponEffectVar = self:IsPlayer() and "wpass2_attributes_player_enabled" or "wpass2_attributes_other_enabled"
+	local weaponHasEffect = InsaneStats:GetConVarValue(weaponEffectVar)
+	local armorBatteryHasEffect = InsaneStats:GetConVarValueDefaulted(weaponEffectVar.."_battery", weaponEffectVar)
+	
+	if armorBatteryHasEffect > 0 then
+		totalMul = totalMul * (self.insaneStats_Attributes and self.insaneStats_Attributes[attribute] or 1)
+	end
+	
+	local wep = weaponHasEffect > 0 and self.GetActiveWeapon and self:GetActiveWeapon()
 	if IsValid(wep) then
 		totalMul = totalMul * (wep.insaneStats_Attributes and wep.insaneStats_Attributes[attribute] or 1)
 	end
+	
 	return totalMul
 end
 
@@ -508,6 +535,7 @@ hook.Add("Think", "InsaneStatsSharedWPASS", function()
 	for k,v in pairs(entities) do
 		if v.insaneStats_StatusEffects then
 			for k2,v2 in pairs(expiryEffects) do
+				--print(v, k2, v.insaneStats_StatusEffects[k2])
 				if (v.insaneStats_StatusEffects[k2] and (v.insaneStats_StatusEffects[k2].expiry or 0) < CurTime()) then
 					DoExpiryEffect(v, k2)
 					v.insaneStats_StatusEffects[k2] = nil

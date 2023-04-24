@@ -7,6 +7,7 @@ function ENT:InsaneStats_MarkForUpdate()
 		
 		-- probe the server for status update
 		net.Start("insane_stats")
+		net.WriteUInt(1, 8)
 		net.WriteEntity(self)
 		net.SendToServer()
 	end

@@ -1,25 +1,34 @@
+InsaneStats:SetDefaultConVarCategory("Infinite Health and Armor")
+
 InsaneStats:RegisterClientConVar("hud_damage_enabled", "insanestats_hud_damage_enabled", "1", {
-	desc = "Shows the damage numbers.", type = InsaneStats.BOOL
+	display = "Damage Numbers", desc = "Shows the damage numbers.",
+	type = InsaneStats.BOOL
 })
 
 InsaneStats:RegisterClientConVar("hud_dps_enabled", "insanestats_hud_dps_enabled", "1", {
-	desc = "Shows the DPS meter.", type = InsaneStats.BOOL
+	display = "DPS Meter", desc = "Shows the DPS meter.",
+	type = InsaneStats.BOOL
 })
 InsaneStats:RegisterClientConVar("hud_dps_x", "insanestats_hud_dps_x", "0.35", {
-	desc = "Horizontal position of DPS meter.", type = InsaneStats.FLOAT, min = 0, max = 1
+	display = "DPS Meter X", desc = "Horizontal position of DPS meter.",
+	type = InsaneStats.FLOAT, min = 0, max = 1
 })
-InsaneStats:RegisterClientConVar("hud_dps_y", "insanestats_hud_dps_y", "0.9", {
-	desc = "Vertical position of DPS meter.", type = InsaneStats.FLOAT, min = 0, max = 1
+InsaneStats:RegisterClientConVar("hud_dps_y", "insanestats_hud_dps_y", "0.94", {
+	display = "DPS Meter Y", desc = "Vertical position of DPS meter.",
+	type = InsaneStats.FLOAT, min = 0, max = 1
 })
 
 InsaneStats:RegisterClientConVar("hud_hp_enabled", "insanestats_hud_hp_enabled", "1", {
-	desc = "Shows the health meter.", type = InsaneStats.BOOL
+	display = "Health and Armor Meters", desc = "Shows the health meter. For the target info HUD, see the hud_target_enabled ConVar.",
+	type = InsaneStats.BOOL
 })
-InsaneStats:RegisterClientConVar("hud_hp_x", "insanestats_hud_hp_x", "0.025", {
-	desc = "Horizontal position of DPS meter.", type = InsaneStats.FLOAT, min = 0, max = 1
+InsaneStats:RegisterClientConVar("hud_hp_x", "insanestats_hud_hp_x", "0.01", {
+	display = "Health and Armor Meters X", desc = "Horizontal position of DPS meter.",
+	type = InsaneStats.FLOAT, min = 0, max = 1
 })
-InsaneStats:RegisterClientConVar("hud_hp_y", "insanestats_hud_hp_y", "0.95", {
-	desc = "Vertical position of DPS meter.", type = InsaneStats.FLOAT, min = 0, max = 1
+InsaneStats:RegisterClientConVar("hud_hp_y", "insanestats_hud_hp_y", "0.98", {
+	display = "Health and Armor Meters Y", desc = "Vertical position of DPS meter.",
+	type = InsaneStats.FLOAT, min = 0, max = 1
 })
 
 local color_gray = InsaneStats:GetColor("gray")

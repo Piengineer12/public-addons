@@ -2,13 +2,24 @@ InsaneStats = {
 	BOOL = 1,
 	INT = 2,
 	FLOAT = 3,
-	NOP = function()end
+	NOP = function()end,
+	
+	numConVars = 0,
+	conVars = {},
+	defaultConVarCategory = "",
+	--defaultConVarCategoryDisplay = ""
 }
 
 -- this is on the shared side, because the client needs to know
 -- the server's ConVars for the GUI menu, but at the same time
 -- the server doesn't need to know about the client's ConVars
-InsaneStats.conVars = {}
+AccessorFunc(InsaneStats, "defaultConVarCategory", "DefaultConVarCategory", FORCE_STRING)
+
+--[[function InsaneStats:SetDefaultConVarCategory(name, display)
+	self.defaultConVarCategory = name
+	self.defaultConVarCategoryDisplay = display
+end]]
+
 function InsaneStats:RegisterConVar(name, internal, default, data)
 	local conVar
 	
@@ -36,12 +47,21 @@ function InsaneStats:RegisterConVar(name, internal, default, data)
 		)
 	end
 	
+	self.numConVars = self.numConVars + 1
+	
 	local conVarData = {
 		conVar = conVar,
 		internal = internal,
-		default = default
+		default = default,
+		id = self.numConVars
 	}
 	table.Merge(conVarData, data)
+	
+	if not conVarData.category then
+		conVarData.category = self:GetDefaultConVarCategory()
+		--conVarData.category, conVarData.categoryDisplay = self:GetDefaultConVarCategory()
+	end
+	
 	self.conVars[name] = conVarData
 	
 	return conVar

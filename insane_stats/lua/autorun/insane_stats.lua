@@ -1,13 +1,16 @@
 --[[NEXT:
 make npc_helicopter behave properly when killed (don't let it set health to extreme values) (test!)
-test what happens when DLib is not present
-GUI options, and DForm for options
+fix props having health set to -inf after taking damage
+fix health, armor, damage becoming inf when too high after level transition
+fix picked up SMGs having 50M ammo
+rework Mysticality and possibly other modifiers
 ]]
 
 local clientFiles = {
 	"cl_base",
 	"cl_infhealth",
 	"cl_net",
+	"cl_options",
 	"cl_wpass2",
 	"cl_wpass2_basemods",
 	"cl_xp"

@@ -1,29 +1,31 @@
+InsaneStats:SetDefaultConVarCategory("Infinite Health and Armor")
+
 InsaneStats:RegisterConVar("infhealth_enabled", "insanestats_infhealth_enabled", "1", {
-	desc = "Health and armor limits are removed. NPCs are also able to spawn with armor.",
+	display = "Infinite Health", desc = "Health and armor limits are removed. NPCs are also able to spawn with armor.",
 	type = InsaneStats.BOOL
 })
 InsaneStats:RegisterConVar("infhealth_armor_chance", "insanestats_infhealth_armor_chance", "100", {
-	desc = "Chance for NPCs to have armor.",
+	display = "Armor Chance", desc = "Chance for NPCs to have armor.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
 InsaneStats:RegisterConVar("infhealth_armor_mul", "insanestats_infhealth_armor_mul", "1", {
-	desc = "Multiplier of NPC armor.",
+	display = "Armor Multiplier", desc = "Multiplier of NPC armor.",
 	type = InsaneStats.FLOAT, min = 0, max = 10
 })
 InsaneStats:RegisterConVar("infhealth_armor_regen", "insanestats_infhealth_armor_regen", "5", {
-	desc = "% of NPC armor regenerated per second.",
+	display = "Armor Regen", desc = "% of NPC armor regenerated per second.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
 InsaneStats:RegisterConVar("infhealth_armor_regen_delay", "insanestats_infhealth_armor_regen_delay", "10", {
-	desc = "Amount of time before NPCs are able to regenerate their armor.",
+	display = "Armor Regen Delay", desc = "Amount of time before NPCs are able to regenerate their armor.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
 InsaneStats:RegisterConVar("infhealth_armor_sensible", "insanestats_infhealth_armor_sensible", "1", {
-	desc = "Only humanoid and Combine entities are able to spawn with armor.",
+	display = "Sensible NPCs Only", desc = "Only humanoid and Combine entities are able to spawn with armor.",
 	type = InsaneStats.BOOL
 })
 InsaneStats:RegisterConVar("hud_damage_enabled", "insanestats_hud_damage_enabled", "1", {
-	desc = "If disabled, Insane Stats damage numbers and DPS meters will stop working.",
+	display = "Damage Numbers", desc = "If disabled, everyone's Insane Stats damage numbers and DPS meters will stop working.",
 	type = InsaneStats.BOOL
 })
 

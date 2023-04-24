@@ -1,30 +1,41 @@
+InsaneStats:SetDefaultConVarCategory("Experience")
+
 InsaneStats:RegisterClientConVar("hud_xp_enabled", "insanestats_hud_xp_enabled", "1", {
-	desc = "Enables the XP bar and gain display.", type = InsaneStats.BOOL
+	display = "XP Bar", desc = "Enables the XP bar and gain display.",
+	type = InsaneStats.BOOL
 })
 InsaneStats:RegisterClientConVar("hud_xp_cumulative", "insanestats_hud_xp_cumulative", "1", {
-	desc = "Show cumulative XP instead of current level XP.", type = InsaneStats.BOOL
+	display = "XP Numbers Are Cumulative", desc = "Show cumulative XP instead of current level XP.",
+	type = InsaneStats.BOOL
 })
 InsaneStats:RegisterClientConVar("hud_xp_x", "insanestats_hud_xp_x", "0.5", {
-	desc = "Horizontal position of XP bar.", type = InsaneStats.FLOAT, min = 0, max = 1
+	display = "XP Bar X", desc = "Horizontal position of XP bar.",
+	type = InsaneStats.FLOAT, min = 0, max = 1
 })
-InsaneStats:RegisterClientConVar("hud_xp_y", "insanestats_hud_xp_y", "0.95", {
-	desc = "Vertical position of XP bar.", type = InsaneStats.FLOAT, min = 0, max = 1
+InsaneStats:RegisterClientConVar("hud_xp_y", "insanestats_hud_xp_y", "0.98", {
+	display = "XP Bar Y", desc = "Vertical position of XP bar.",
+	type = InsaneStats.FLOAT, min = 0, max = 1
 })
 InsaneStats:RegisterClientConVar("hud_xp_gained_x", "insanestats_hud_xp_gain_x", "0", {
-	desc = "Horizontal offset of XP gain display.", type = InsaneStats.FLOAT, min = -1, max = 1
+	display = "XP Gained Offset X", desc = "Horizontal offset of XP gain display.",
+	type = InsaneStats.FLOAT, min = -1, max = 1
 })
 InsaneStats:RegisterClientConVar("hud_xp_gained_y", "insanestats_hud_xp_gain_y", "-0.3", {
-	desc = "Vertical offset of XP gain display.", type = InsaneStats.FLOAT, min = -1, max = 1
+	display = "XP Gained Offset Y", desc = "Vertical offset of XP gain display.",
+	type = InsaneStats.FLOAT, min = -1, max = 1
 })
 
 InsaneStats:RegisterClientConVar("hud_target_enabled", "insanestats_hud_target_enabled", "1", {
-	desc = "Enables the target info HUD.", type = InsaneStats.BOOL
+	display = "Target Info", desc = "Enables the target info HUD.",
+	type = InsaneStats.BOOL
 })
 InsaneStats:RegisterClientConVar("hud_target_x", "insanestats_hud_target_x", "0.5", {
-	desc = "Horizontal position of target info.", type = InsaneStats.FLOAT, min = 0, max = 1
+	display = "Target Info X", desc = "Horizontal position of target info.",
+	type = InsaneStats.FLOAT, min = 0, max = 1
 })
 InsaneStats:RegisterClientConVar("hud_target_y", "insanestats_hud_target_y", "0.25", {
-	desc = "Vertical position of target info.", type = InsaneStats.FLOAT, min = 0, max = 1
+	display = "Target Info Y", desc = "Vertical position of target info.",
+	type = InsaneStats.FLOAT, min = 0, max = 1
 })
 
 local oldLevel, olderLevel = -1, -1

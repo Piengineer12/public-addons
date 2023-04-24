@@ -1135,7 +1135,7 @@ local modifiers = {
 			lowhealth_damagetaken = 1/1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		max = 3,
+		max = 2,
 		weight = 0.5
 	},
 	bloodletting = {
@@ -1371,7 +1371,7 @@ local attributes = {
 	},
 	lowhealth_damage = {
 		display = "Up to %s damage dealt at low health",
-		mul = 4
+		mul = 5
 	},
 	lowhealth_victim_damage = {
 		display = "Up to %s damage dealt against low health entities",
@@ -1468,7 +1468,7 @@ local attributes = {
 	},
 	lowhealth_damagetaken = {
 		display = "Up to %s damage taken at low health",
-		mul = 4,
+		mul = 5,
 		invert = true
 	},
 	lowlevel_damagetaken = {
