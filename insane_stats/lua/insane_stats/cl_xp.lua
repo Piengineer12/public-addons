@@ -4,7 +4,7 @@ InsaneStats:RegisterClientConVar("hud_xp_enabled", "insanestats_hud_xp_enabled",
 	display = "XP Bar", desc = "Enables the XP bar and gain display.",
 	type = InsaneStats.BOOL
 })
-InsaneStats:RegisterClientConVar("hud_xp_cumulative", "insanestats_hud_xp_cumulative", "1", {
+InsaneStats:RegisterClientConVar("hud_xp_cumulative", "insanestats_hud_xp_cumulative", "0", {
 	display = "XP Numbers Are Cumulative", desc = "Show cumulative XP instead of current level XP.",
 	type = InsaneStats.BOOL
 })
@@ -20,7 +20,7 @@ InsaneStats:RegisterClientConVar("hud_xp_gained_x", "insanestats_hud_xp_gain_x",
 	display = "XP Gained Offset X", desc = "Horizontal offset of XP gain display.",
 	type = InsaneStats.FLOAT, min = -1, max = 1
 })
-InsaneStats:RegisterClientConVar("hud_xp_gained_y", "insanestats_hud_xp_gain_y", "-0.3", {
+InsaneStats:RegisterClientConVar("hud_xp_gained_y", "insanestats_hud_xp_gain_y", "-0.4", {
 	display = "XP Gained Offset Y", desc = "Vertical offset of XP gain display.",
 	type = InsaneStats.FLOAT, min = -1, max = 1
 })
@@ -86,11 +86,20 @@ local statusEffectColors = {
 	[2] = color_light_aqua
 }
 
-local function UpdateLookEntityInfo(ent)
+local function UpdateLookEntityInfo(ent, reset)
 	local realTime = RealTime()
 	
+	if (ent.insaneStats_TargetLastUpdate or 0) + 0.5 < realTime then
+		ent.insaneStats_TargetLastUpdate = realTime
+		ent:InsaneStats_MarkForUpdate()
+	end
+	
+	if lookEntityInfo.ent ~= ent then
+		lookEntityInfo = {}
+	end
+	
 	-- if we're still looking at the same entity, only update specific fields
-	if lookEntityInfo.ent == ent then
+	if next(lookEntityInfo) and not reset then
 		lookEntityInfo.health = ent:InsaneStats_GetHealth()
 		lookEntityInfo.maxHealth = ent:InsaneStats_GetMaxHealth()
 		lookEntityInfo.armor = ent:InsaneStats_GetArmor()
@@ -98,52 +107,46 @@ local function UpdateLookEntityInfo(ent)
 		lookEntityInfo.level = ent:InsaneStats_GetLevel()
 		lookEntityInfo.statusEffects = ent.insaneStats_StatusEffects
 		lookEntityInfo.decayTimestamp = realTime + 2
-	else
-		-- do we know its real class?
-		if ent.insaneStats_Class then
-			-- set the data for lookEntityInfo
-			lookEntityInfo = {
-				health = ent:InsaneStats_GetHealth(),
-				maxHealth = ent:InsaneStats_GetMaxHealth(),
-				armor = ent:InsaneStats_GetArmor(),
-				maxArmor = ent:InsaneStats_GetMaxArmor(),
-				level = ent:InsaneStats_GetLevel(),
-				statusEffects = ent.insaneStats_StatusEffects,
-				decayTimestamp = realTime + 2,
-				isPlayer = false,
-				teamColor = color_white,
-				startingHue = 60,
-				ent = ent
-			}
+	elseif ent.insaneStats_Class then -- do we know its real class?
+		-- set the data for lookEntityInfo
+		lookEntityInfo.health = ent:InsaneStats_GetHealth()
+		lookEntityInfo.maxHealth = ent:InsaneStats_GetMaxHealth()
+		lookEntityInfo.armor = ent:InsaneStats_GetArmor()
+		lookEntityInfo.maxArmor = ent:InsaneStats_GetMaxArmor()
+		lookEntityInfo.level = ent:InsaneStats_GetLevel()
+		lookEntityInfo.statusEffects = ent.insaneStats_StatusEffects
+		lookEntityInfo.decayTimestamp = realTime + 2
+		
+		lookEntityInfo.isPlayer = ent:IsPlayer()
+		lookEntityInfo.startingHue = 60
+		lookEntityInfo.ent = ent
+		
+		-- figure out class color
+		if lookEntityInfo.isPlayer then
+			lookEntityInfo.teamColor = team.GetColor(ent:Team())
+			lookEntityInfo.name = ent:Nick()
 			
-			-- figure out class color
-			if ent:IsPlayer() then
-				lookEntityInfo.teamColor = team.GetColor(ent:Team())
-				lookEntityInfo.name = ent:Nick()
-				lookEntityInfo.isPlayer = true
-				
-				if LocalPlayer():Team() == ent:Team() then
-					lookEntityInfo.startingHue = 120
-				else
-					lookEntityInfo.startingHue = 0
-				end
+			if LocalPlayer():Team() == ent:Team() then
+				lookEntityInfo.startingHue = 120
 			else
-				local class = ent.insaneStats_Class
-				lookEntityInfo.name = language.GetPhrase(class)
-				
-				if ent:IsNPC() then
-					local disposition = ent.insaneStats_Disposition
-					
-					if disposition == 1 then
-						lookEntityInfo.startingHue = 0
-					elseif disposition == 3 then
-						lookEntityInfo.startingHue = 120
-					end
-				end
+				lookEntityInfo.startingHue = 0
 			end
 		else
-			ent:InsaneStats_MarkForUpdate()
+			lookEntityInfo.teamColor = color_white
+			lookEntityInfo.name = language.GetPhrase(ent.insaneStats_Class)
+			
+			if ent:IsNPC() then
+				local disposition = ent.insaneStats_Disposition
+				
+				if disposition == 1 then
+					lookEntityInfo.startingHue = 0
+				elseif disposition == 3 then
+					lookEntityInfo.startingHue = 120
+				end
+			end
 		end
+	else
+		ent:InsaneStats_MarkForUpdate()
 	end
 end
 
@@ -160,7 +163,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 		
 		local barX = (scrW - barWidth) * InsaneStats:GetConVarValue("hud_xp_x")
 		local barY = scrH * InsaneStats:GetConVarValue("hud_xp_y") - InsaneStats.FONT_MEDIUM + 2
-		local maxSaturation = 0.875
+		local maxSaturation = 0.75
 		
 		local xp = math.floor(ply:InsaneStats_GetXP())
 		local levelHue = (level*5+60) % 360
@@ -172,6 +175,12 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 		end
 		local fgColor = HSVToColor(levelHue, maxSaturation, 1)
 		local bgColor = HSVToColor(levelHue, maxSaturation, 0.5)
+		
+		if not ply.insaneStats_XP then
+			-- ask the server
+			xp = -1
+			ply:InsaneStats_MarkForUpdate()
+		end
 		
 		local barFGColor = fgColor
 		local barBGColor = bgColor
@@ -322,7 +331,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 				if lookEntityInfo.maxHealth == ourAttack then
 					healthBarWidthPercent = 1
 				end
-				local healthBarWidth = healthBarWidthPercent * InsaneStats.FONT_MEDIUM * 20 + barH
+				local healthBarWidth = healthBarWidthPercent * InsaneStats.FONT_MEDIUM * 20 + barH * 2
 				infoW = infoW + math.max(healthBarWidth, surface.GetTextSize(lookEntityInfo.name))
 				
 				local infoX = (scrW - infoW) * InsaneStats:GetConVarValue("hud_target_x")
@@ -350,10 +359,10 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 					end
 					
 					-- determine color based on strengthMul
-					-- e^-0.5 -> aqua, e^0 -> green, e^0.5 -> yellow, e^1 -> red
+					-- e^-2.5 -> sky, e^-2 -> aqua, e^-1 -> green, e^0 -> yellow, e^1 -> red, e^2 -> magenta, e^2.5 -> purple
 					local strengthMod = math.log(strengthMul)
-					local levelColorHue = math.Remap(math.Clamp(strengthMod, -0.5, 1), -0.5, 1, 180, 0)
-					local levelColor = HSVToColor(levelColorHue, 1, 1)
+					local levelColorHue = math.Remap(math.Clamp(strengthMod, -2, 2), -2, 2, 180, -60)
+					local levelColor = HSVToColor(levelColorHue % 360, 1, 1)
 					
 					-- now actually draw the text
 					--surface.DrawRect(infoX, infoY, 36, 36)
@@ -499,6 +508,6 @@ end)
 
 hook.Add("InsaneStatsEntityUpdated", "InsaneStatsXP", function(ent, flags)
 	if ent == lookEntityInfo.ent then
-		UpdateLookEntityInfo(ent)
+		UpdateLookEntityInfo(ent, bit.band(flags, 4) == 4)
 	end
 end)

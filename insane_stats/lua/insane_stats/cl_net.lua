@@ -52,7 +52,6 @@ net.Receive("insane_stats", function()
 				if bit.band(flags, 4) ~= 0 then
 					ent.insaneStats_Class = net.ReadString()
 					ent.insaneStats_Name = net.ReadString()
-					ent.insaneStats_Disposition = net.ReadInt(4)
 				end
 				
 				if bit.band(flags, 8) ~= 0 then
@@ -63,7 +62,12 @@ net.Receive("insane_stats", function()
 					for i=1, net.ReadUInt(16) do
 						local key = net.ReadString()
 						local value = net.ReadUInt(16)+1
-						modifiers[key] = value
+						
+						if key == "" then
+							InsaneStats:Log("Received an empty string for modifier, is the network toasted?")
+						else
+							modifiers[key] = value
+						end
 					end
 					
 					hook.Run("InsaneStatsModifiersChanging", ent, ent.insaneStats_Modifiers, modifiers, modifierChangeReason)
@@ -88,6 +92,10 @@ net.Receive("insane_stats", function()
 							ent.insaneStats_StatusEffects[idStr] = {level = level, expiry = expiry}
 						end
 					end
+				end
+				
+				if bit.band(flags, 32) ~= 0 then
+					ent.insaneStats_Disposition = net.ReadInt(4)
 				end
 				
 				hook.Run("InsaneStatsEntityUpdated", ent, flags)

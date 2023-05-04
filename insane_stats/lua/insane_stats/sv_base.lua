@@ -1,7 +1,6 @@
 gameevent.Listen("entity_killed")
 gameevent.Listen("break_prop")
 gameevent.Listen("break_breakable")
-gameevent.Listen("player_activate")
 
 hook.Add("OnEntityCreated", "InsaneStats", function(ent)
 	timer.Simple(0, function()

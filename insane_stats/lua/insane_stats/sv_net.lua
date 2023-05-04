@@ -3,13 +3,20 @@ util.AddNetworkString("insane_stats")
 local ENT = FindMetaTable("Entity")
 local players = {}
 local entitiesRequireUpdate = {}
+--local entityDispositionsRequireUpdate = {}
 local damageInfosRequireUpdate = {}
 
 function ENT:InsaneStats_MarkForUpdate(flag)
-	if (self:GetModel() or "") ~= "" then
+	if (self:GetModel() or "") ~= "" and IsValid(self) then
 		entitiesRequireUpdate[self] = bit.bor(entitiesRequireUpdate[self] or 0, flag)
 	end
 end
+
+--[[function ENT:InsaneStats_MarkForDispositionUpdate()
+	if self:IsNPC() then
+		entityDispositionsRequireUpdate[self] = true
+	end
+end]]
 
 function ENT:InsaneStats_DamageNumber(attacker, damage, types, hitgroup)
 	local entIndex = self:EntIndex()
@@ -41,9 +48,11 @@ local function BroadcastEntityUpdates()
 		end
 	end
 	
+	local sentEntities = {}
+	
 	net.Start("insane_stats")
 	net.WriteUInt(1, 8)
-	local count = math.min(table.Count(entitiesRequireUpdate), 127)
+	local count = math.min(table.Count(entitiesRequireUpdate), 32)
 	net.WriteUInt(count, 8)
 	
 	for k,v in pairs(entitiesRequireUpdate) do
@@ -66,7 +75,7 @@ local function BroadcastEntityUpdates()
 			net.WriteDouble(k:InsaneStats_GetXP())
 		end
 		
-		-- bitflag 4 is for entity name, class and disposition, which usually don't change
+		-- bitflag 4 is for entity name and class, which usually don't change
 		
 		if bit.band(v, 8) ~= 0 then
 			net.WriteDouble(k.insaneStats_BatteryXP or 0)
@@ -111,14 +120,55 @@ local function BroadcastEntityUpdates()
 			k.insaneStats_StatusEffectsToNetwork = {}
 		end
 		
+		-- bitflag 32 is for disposition, but that works on a per player basis, so broadcasting isn't suitable
+		
 		--print(k, v)
 		entitiesRequireUpdate[k] = nil
+		table.insert(sentEntities, k)
 		count = count - 1
 		if count == 0 then break end
 	end
 	
+	local bytesWritten = net.BytesWritten()
+	if bytesWritten > 2048 then
+		InsaneStats:Log("WARNING: A "..string.Comma(bytesWritten).." byte entity broadcast packet in a single tick?! At this rate we'd be sending "..string.NiceSize(bytesWritten*200/3).."/s to everyone!")
+		InsaneStats:Log("Sent entities: ")
+		PrintTable(sentEntities)
+	end
+	
 	net.Broadcast()
 end
+
+--[[local function BroadcastEntityDispositionUpdates()
+	for k,v in pairs(entityDispositionsRequireUpdate) do
+		if not IsValid(k) then
+			entityDispositionsRequireUpdate[k] = nil
+		end
+	end
+	
+	if next(entityDispositionsRequireUpdate) then
+		for k,v in pairs(player.GetAll()) do
+			net.Start("insane_stats")
+			net.WriteUInt(1, 8)
+			local count = math.min(table.Count(entityDispositionsRequireUpdate), 127)
+			net.WriteUInt(count, 8)
+			
+			for k2,v2 in pairs(entityDispositionsRequireUpdate) do
+				net.WriteUInt(k2:EntIndex(), 16)
+				net.WriteUInt(32, 8)
+				
+				-- bitflag 32 is for disposition, but that works on a per player basis, so broadcasting isn't suitable
+				
+				--print(k, v)
+				entityDispositionsRequireUpdate[k2] = nil
+				count = count - 1
+				if count == 0 then break end
+			end
+			
+			net.Send(v)
+		end
+	end
+end]]
 
 local function BroadcastDamageUpdates()
 	net.Start("insane_stats")
@@ -141,11 +191,7 @@ local function BroadcastDamageUpdates()
 		local isAlly = false
 		local ent = Entity(k)
 		if (IsValid(ent) and ent:IsNPC()) then
-			for k,v in pairs(players) do
-				if ent:Disposition(v) == D_LI then
-					isAlly = true break
-				end
-			end
+			isAlly = ent.insaneStats_IsAlly
 		end
 		net.WriteUInt(bit.bor(
 			v.miss and 1 or 0,
@@ -162,12 +208,34 @@ end
 
 timer.Create("InsaneStatsNet", 0.5, 0, function()
 	players = player.GetAll()
+	
+	local isAlly, isEnemy = false, false
+	for k,v in pairs(ents.GetAll()) do
+		if v:IsNPC() then
+			for k2,v2 in pairs(players) do
+				if v:Disposition(v2) == D_LI then
+					isAlly = true
+				elseif v:Disposition(v2) == D_HT then
+					isEnemy = true
+				end
+			end
+			
+			v.insaneStats_IsAlly = isAlly
+			v.insaneStats_IsEnemy = isEnemy
+			
+			--print("v.insaneStats_IsAlly, v.insaneStats_IsEnemy", isAlly, isEnemy)
+		end
+	end
 end)
 
 hook.Add("Think", "InsaneStatsNet", function()
 	if next(entitiesRequireUpdate) then
 		BroadcastEntityUpdates()
 	end
+	
+	--[[if next(entityDispositionsRequireUpdate) then
+		BroadcastEntityDispositionUpdates()
+	end]]
 	
 	if next(damageInfosRequireUpdate) then
 		BroadcastDamageUpdates()
@@ -193,7 +261,9 @@ net.Receive("insane_stats", function(length, ply)
 				net.WriteUInt(1, 8)
 				net.WriteUInt(1, 8)
 				net.WriteUInt(updateEntity:EntIndex(), 16)
-				net.WriteUInt(31, 8)
+				
+				net.WriteUInt(63, 8)
+				
 				net.WriteDouble(updateEntity:InsaneStats_GetHealth())
 				net.WriteDouble(updateEntity:InsaneStats_GetMaxHealth())
 				net.WriteDouble(updateEntity:InsaneStats_GetArmor())
@@ -203,11 +273,6 @@ net.Receive("insane_stats", function(length, ply)
 				
 				net.WriteString(updateEntity:GetClass())
 				net.WriteString(updateEntity:GetName())
-				if updateEntity:IsNPC() then
-					net.WriteInt(updateEntity:Disposition(ply), 4)
-				else
-					net.WriteInt(-1, 4)
-				end
 					
 				net.WriteDouble(updateEntity.insaneStats_BatteryXP or 0)
 				net.WriteBool(updateEntity.insaneStats_ModifierChangeReason == 1)
@@ -234,6 +299,13 @@ net.Receive("insane_stats", function(length, ply)
 					net.WriteDouble(v.level)
 					net.WriteFloat(v.expiry)
 				end
+				
+				if updateEntity:IsNPC() then
+					net.WriteInt(updateEntity:Disposition(ply), 4)
+				else
+					net.WriteInt(-1, 4)
+				end
+				
 				net.Send(ply)
 			end
 		end

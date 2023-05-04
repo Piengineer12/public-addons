@@ -1,4 +1,4 @@
-InsaneStats:SetDefaultConVarCategory("Experience")
+InsaneStats:SetDefaultConVarCategory("XP - General")
 
 InsaneStats:RegisterConVar("xp_enabled", "insanestats_xp_enabled", "1", {
 	display = "Enable Experience", desc = "Enables the experience system.",
@@ -18,29 +18,20 @@ InsaneStats:RegisterConVar("xp_damagemode", "insanestats_xp_damagemode", "1", {
 	type = InsaneStats.INT, min = 0, max = 3
 })
 
-InsaneStats:RegisterConVar("xp_other_mul", "insanestats_xp_other_mul", "1", {
-	display = "Non-player Drop Multiplier", desc = "Multiplier for experience dropped by non-players. The amount of experience dropped is based on max starting health and level.",
-	type = InsaneStats.FLOAT, min = 0, max = 10
-})
-InsaneStats:RegisterConVar("xp_player_mul", "insanestats_xp_player_mul", "1", {
-	display = "Player Drop Multiplier", desc = "Multiplier for experience dropped by players. The amount of experience dropped is based on max starting health and level.",
-	type = InsaneStats.FLOAT, min = 0, max = 10
-})
-InsaneStats:RegisterConVar("xp_other_kill", "insanestats_xp_other_yieldmul", "3", {
-	display = "Non-player Yield Multiplier", desc = "Multiplier for added experience dropped when a non-player kills another non-player.",
-	type = InsaneStats.FLOAT, min = 0, max = 10
-})
-InsaneStats:RegisterConVar("xp_player_kill", "insanestats_xp_player_yieldmul", "3", {
-	display = "Player Yield Multiplier", desc = "Multiplier for added experience dropped when a non-player kills a player.",
-	type = InsaneStats.FLOAT, min = 0, max = 10
-})
-InsaneStats:RegisterConVar("xp_other_extra", "insanestats_xp_other_extrapercent", "100", {
-	display = "Non-player Additional XP %", desc = "Experience % added when non-players kill other non-players, scaled by the difference between levels.",
+InsaneStats:SetDefaultConVarCategory("XP - XP Calculations")
+
+InsaneStats:RegisterConVar("xp_scale_start", "insanestats_xp_scale_level_start", "100", {
+	display = "Starting XP Required", desc = "Experience required to reach level 2.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
-InsaneStats:RegisterConVar("xp_player_lose", "insanestats_xp_player_losepercent", "0", {
-	display = "Player XP % Lost On Death", desc = "Experience % lost when a player dies. Non-players will always lose 100% of their experience on death.",
-	type = InsaneStats.FLOAT, min = 0, max = 100
+InsaneStats:RegisterConVar("xp_scale_add", "insanestats_xp_scale_add", "20", {
+	display = "XP Scaling", desc = "Additional % experience required per level.",
+	type = InsaneStats.FLOAT, min = 0, max = 1000
+})
+InsaneStats:RegisterConVar("xp_scale_add_mode", "insanestats_xp_scale_add_mode", "-1", {
+	display = "XP Scaling Mode", desc = "If 1, experience required is applied multiplicatively rather than additively. \z
+		-1 causes this ConVar to use the value of insanestats_xp_mode.",
+	type = InsaneStats.INT, min = -1, max = 1
 })
 
 InsaneStats:RegisterConVar("xp_drop_add", "insanestats_xp_drop_add", "10", {
@@ -63,23 +54,44 @@ InsaneStats:RegisterConVar("xp_drop_add_add_mode", "insanestats_xp_drop_add_add_
 	type = InsaneStats.INT, min = -1, max = 1
 })
 
+InsaneStats:RegisterConVar("xp_player_mul", "insanestats_xp_player_mul", "1", {
+	display = "Player Drop Multiplier", desc = "Multiplier for experience dropped by players. The amount of experience dropped is based on max starting health and level.",
+	type = InsaneStats.FLOAT, min = 0, max = 10
+})
+InsaneStats:RegisterConVar("xp_player_kill", "insanestats_xp_player_yieldmul", "3", {
+	display = "Player Yield Multiplier", desc = "Multiplier for added experience dropped when a non-player kills a player.",
+	type = InsaneStats.FLOAT, min = 0, max = 10
+})
+InsaneStats:RegisterConVar("xp_player_lose", "insanestats_xp_player_losepercent", "0", {
+	display = "Player XP % Lost On Death", desc = "Experience % lost when a player dies. Non-players will always lose 100% of their experience on death.",
+	type = InsaneStats.FLOAT, min = 0, max = 100
+})
+InsaneStats:RegisterConVar("xp_other_mul", "insanestats_xp_other_mul", "1", {
+	display = "Non-player Drop Multiplier", desc = "Multiplier for experience dropped by non-players. The amount of experience dropped is based on max starting health and level.",
+	type = InsaneStats.FLOAT, min = 0, max = 10
+})
+InsaneStats:RegisterConVar("xp_other_kill", "insanestats_xp_other_yieldmul", "3", {
+	display = "Non-player Yield Multiplier", desc = "Multiplier for added experience dropped when a non-player kills another non-player.",
+	type = InsaneStats.FLOAT, min = 0, max = 10
+})
+InsaneStats:RegisterConVar("xp_other_extra", "insanestats_xp_other_extrapercent", "100", {
+	display = "Non-player Additional XP %", desc = "Experience % added when non-players kill other non-players, scaled by the difference between levels.",
+	type = InsaneStats.FLOAT, min = 0, max = 1000
+})
+
+InsaneStats:SetDefaultConVarCategory("XP - Level Calculations")
+
+InsaneStats:RegisterConVar("xp_scale_maxlevel", "insanestats_xp_scale_level_max", "-1", {
+	display = "Maximum Level", desc = "Maximum level. At this level, it takes an infinite amount of experience to level up. Set to -1 for no limit.",
+	type = InsaneStats.FLOAT, min = -1, max = 10000
+})
+InsaneStats:RegisterConVar("xp_player_level_start", "insanestats_xp_player_level_start", "1", {
+	display = "Player Starting Level", desc = "Starting level for spawned players.",
+	type = InsaneStats.FLOAT, min = 0, max = 1000
+})
 InsaneStats:RegisterConVar("xp_other_level_start", "insanestats_xp_other_level_start", "1", {
 	display = "Non-player Starting Level", desc = "Starting level for spawned non-players.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
-})
-InsaneStats:RegisterConVar("xp_other_level_drift", "insanestats_xp_other_level_drift", "10", {
-	display = "Non-player Level Drift", desc = "Randomly alters NPC levels by +/- this value.",
-	type = InsaneStats.FLOAT, min = 0, max = 1000
-})
-InsaneStats:RegisterConVar("xp_other_level_drift_mode", "insanestats_xp_other_level_drift_mode", "-1", {
-	display = "Non-player Level Drift Mode", desc = "If 1, the level drift is interpreted as an absolute value instead of a percentage. \z
-		-1 causes this ConVar to use the value of insanestats_xp_mode.",
-	type = InsaneStats.INT, min = -1, max = 1
-})
-InsaneStats:RegisterConVar("xp_other_level_drift_harshness", "insanestats_xp_other_level_drift_harshness", "1", {
-	display = "Non-player Level Drift Harshness", desc = "Reduces the chance for high amounts of level drift. \z
-		At 0, the drift distribution is uniform (every possible drift amount is equally likely).",
-	type = InsaneStats.FLOAT, min = 0, max = 10
 })
 InsaneStats:RegisterConVar("xp_other_level_factor", "insanestats_xp_other_level_factor", "1", {
 	display = "Non-player Level Scaling", desc = "Determines factor for increasing the XP of spawned entities.\n\z
@@ -113,30 +125,23 @@ InsaneStats:RegisterConVar("xp_other_level_maps_minimum", "insanestats_xp_other_
 	display = "Non-player Maps Level Minimum", desc = "Minimum level increase of spawned entities per map.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
-
-InsaneStats:RegisterConVar("xp_player_level_start", "insanestats_xp_player_level_start", "1", {
-	display = "Player Starting Level", desc = "Starting level for spawned players.",
+InsaneStats:RegisterConVar("xp_other_level_drift", "insanestats_xp_other_level_drift", "10", {
+	display = "Non-player Level Drift", desc = "Randomly alters NPC levels by +/- this value.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
-InsaneStats:RegisterConVar("xp_scale_maxlevel", "insanestats_xp_scale_level_max", "-1", {
-	display = "Maximum Level", desc = "Maximum level. At this level, it takes an infinite amount of experience to level up. Set to -1 for no limit.",
-	type = InsaneStats.FLOAT, min = -1, max = 10000
-})
-InsaneStats:RegisterConVar("xp_scale_start", "insanestats_xp_scale_level_start", "100", {
-	display = "Starting XP Required", desc = "Experience required to reach level 2.",
-	type = InsaneStats.FLOAT, min = 0, max = 1000
-})
-InsaneStats:RegisterConVar("xp_scale_add", "insanestats_xp_scale_add", "20", {
-	display = "XP Scaling", desc = "Additional % experience required per level.",
-	type = InsaneStats.FLOAT, min = 0, max = 1000
-})
-InsaneStats:RegisterConVar("xp_scale_add_mode", "insanestats_xp_scale_add_mode", "-1", {
-	display = "XP Scaling Mode", desc = "If 1, experience required is applied multiplicatively rather than additively. \z
+InsaneStats:RegisterConVar("xp_other_level_drift_mode", "insanestats_xp_other_level_drift_mode", "-1", {
+	display = "Non-player Level Drift Mode", desc = "If 1, the level drift is interpreted as an absolute value instead of a percentage. \z
 		-1 causes this ConVar to use the value of insanestats_xp_mode.",
 	type = InsaneStats.INT, min = -1, max = 1
 })
+InsaneStats:RegisterConVar("xp_other_level_drift_harshness", "insanestats_xp_other_level_drift_harshness", "1", {
+	display = "Non-player Level Drift Harshness", desc = "Reduces the chance for high amounts of level drift. \z
+		At 0, the drift distribution is uniform (every possible drift amount is equally likely).",
+	type = InsaneStats.FLOAT, min = 0, max = 10
+})
 
--- TODO: make health, armor, damage and resistance scaling quadratic
+InsaneStats:SetDefaultConVarCategory("XP - Player Scales")
+
 InsaneStats:RegisterConVar("xp_player_health", "insanestats_xp_player_health_add", "10", {
 	display = "Player Health Scaling", desc = "Player % max health gained per level.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
@@ -210,6 +215,8 @@ InsaneStats:RegisterConVar("xp_player_resistance_add_mode", "insanestats_xp_play
 		-1 causes this ConVar to use the value of insanestats_xp_mode.",
 	type = InsaneStats.INT, min = -1, max = 1
 })
+
+InsaneStats:SetDefaultConVarCategory("XP - Non-Player Scales")
 
 InsaneStats:RegisterConVar("xp_other_health", "insanestats_xp_other_health_add", "10", {
 	display = "Non-player Health Scaling", desc = "Non-player % max health gained per level.",
@@ -400,9 +407,15 @@ function ENT:InsaneStats_SetXP(xp, dropValue)
 	assert(xp >= -math.huge, "Something tried to set XP on "..tostring(self).." to nan!")
 	
 	self.insaneStats_XP = xp
+	if xp > 0 then
+		self.insaneStats_XPRoot8 = xp^0.125
+	end
 	
 	if dropValue then
 		self.insaneStats_DropXP = dropValue
+		if dropValue > 0 then
+			self.insaneStats_DropXPRoot8 = dropValue^0.125
+		end
 	end
 	
 	local newLevel = math.floor(InsaneStats:GetLevelByXPRequired(xp))

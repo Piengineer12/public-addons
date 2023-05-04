@@ -1,10 +1,24 @@
---[[NEXT:
-make npc_helicopter behave properly when killed (don't let it set health to extreme values) (test!)
-fix props having health set to -inf after taking damage
-fix health, armor, damage becoming inf when too high after level transition
-fix picked up SMGs having 50M ammo
-rework Mysticality and possibly other modifiers
+--[[
+NEXT:
+
 ]]
+
+InsaneStats = {
+	VERSION = "0.5.0",
+	VERSION_DATE = "2023-05-04"
+}
+
+function InsaneStats:Log(msg)
+	MsgC(
+		Color(0, 255, 255),
+		SERVER and "[Insane Stats Server] " or "[Insane Stats Client] ",
+		color_white,
+		msg,
+		"\n"
+	)
+end
+
+InsaneStats:Log(string.format("Loading Insane Stats version %s (%s) by Piengineer12", InsaneStats.VERSION, InsaneStats.VERSION_DATE))
 
 local clientFiles = {
 	"cl_base",
@@ -16,6 +30,14 @@ local clientFiles = {
 	"cl_xp"
 }
 
+local sharedFiles = {
+	"sh_base",
+	"sh_infhealth",
+	"sh_wpass2",
+	"sh_wpass2_basemods",
+	"sh_xp"
+}
+
 local serverFiles = {
 	"sv_base",
 	"sv_infhealth",
@@ -23,14 +45,6 @@ local serverFiles = {
 	"sv_wpass2",
 	"sv_wpass2_basemods",
 	"sv_xp"
-}
-
-local sharedFiles = {
-	"sh_base",
-	"sh_infhealth",
-	"sh_wpass2",
-	"sh_wpass2_basemods",
-	"sh_xp"
 }
 
 local baseFilePath = "insane_stats/%s.lua"

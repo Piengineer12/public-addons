@@ -182,7 +182,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 					if bit.band(types, DMG_DROWNRECOVER) ~= 0 then
 						table.insert(numberColors, color_green)
 					end
-					if bit.band(types, bit.bor(DMG_SONIC, DMG_AIRBOAT, DMG_DISSOLVE, DMG_SNIPER)) ~= 0 then
+					if bit.band(types, bit.bor(DMG_SONIC, DMG_AIRBOAT, DMG_SNIPER)) ~= 0 then
 						table.insert(numberColors, color_marine)
 					end
 					if bit.band(types, DMG_DROWN) ~= 0 then
@@ -194,7 +194,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 					if entityDamageInfo.isAlly then
 						table.insert(numberColors, color_purple)
 					end
-					if bit.band(types, bit.bor(DMG_REMOVENORAGDOLL, DMG_PLASMA)) ~= 0 then
+					if bit.band(types, bit.bor(DMG_DISSOLVE, DMG_REMOVENORAGDOLL, DMG_PLASMA)) ~= 0 then
 						table.insert(numberColors, color_magenta)
 					end
 					if bit.band(types, bit.bor(DMG_FALL, DMG_DIRECT)) ~= 0 then

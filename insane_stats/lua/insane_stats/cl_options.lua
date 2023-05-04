@@ -14,10 +14,11 @@ function InsaneStats:ConstructCategoryOptionTables()
 end
 
 function InsaneStats:CreateAppropriateDFormPanel(DForm, data)
-	local mustSendValueToServer = data[2].conVar:IsFlagSet(FCVAR_REPLICATED)
+	local conVar = data[2].conVar
+	local mustSendValueToServer = conVar:IsFlagSet(FCVAR_REPLICATED)
 	local conVarName = data[1]
 	local conVarValue = self:GetConVarValue(conVarName)
-	local displayName = data[2].display or data[2].conVar:GetName()
+	local displayName = data[2].display or conVar:GetName()
 	
 	if data[2].type == self.BOOL then
 		if mustSendValueToServer then
@@ -31,7 +32,7 @@ function InsaneStats:CreateAppropriateDFormPanel(DForm, data)
 
 			DForm:AddItem(left, nil)
 		else
-			DForm:CheckBox(displayName, data[2].conVar:GetName())
+			DForm:CheckBox(displayName, conVar:GetName())
 		end
 	elseif data[2].type == self.INT then
 		if mustSendValueToServer then
@@ -50,7 +51,7 @@ function InsaneStats:CreateAppropriateDFormPanel(DForm, data)
 			
 			DForm:AddItem(left, right)
 		else
-			DForm:NumberWang(displayName, data[2].conVar:GetName(), data[2].min, data[2].max, 0)
+			DForm:NumberWang(displayName, conVar:GetName(), data[2].min, data[2].max, 0)
 		end
 	elseif data[2].type == self.FLOAT then
 		-- think about number of decimals
@@ -71,13 +72,13 @@ function InsaneStats:CreateAppropriateDFormPanel(DForm, data)
 
 			DForm:AddItem(left, nil)
 		else
-			left = DForm:NumSlider(displayName, data[2].conVar:GetName(), data[2].min, data[2].max, decimals)
+			left = DForm:NumSlider(displayName, conVar:GetName(), data[2].min, data[2].max, decimals)
 		end
 		
-		left:SetDefaultValue(data[2].conVar:GetDefault())
+		left:SetDefaultValue(conVar:GetDefault())
 	end
 	
-	return DForm.Items[#DForm.Items]
+	DForm:Help(conVar:GetHelpText())
 end
 
 function InsaneStats:GetDFormGenerator(title, conVarsData)

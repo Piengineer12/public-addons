@@ -13,7 +13,7 @@ InsaneStats:RegisterClientConVar("hud_wpass2_height", "insanestats_hud_wpass2_he
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
 
-InsaneStats:RegisterClientConVar("hud_wpass2_current_x", "insanestats_hud_wpass2_current_x", "0.65", {
+InsaneStats:RegisterClientConVar("hud_wpass2_current_x", "insanestats_hud_wpass2_current_x", "0.7", {
 	display = "Current Weapon Panel X", desc = "Horizontal position of current weapon panel.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
@@ -21,7 +21,7 @@ InsaneStats:RegisterClientConVar("hud_wpass2_current_y", "insanestats_hud_wpass2
 	display = "Current Weapon Panel Y", desc = "Vertical position of current weapon panel.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
-InsaneStats:RegisterClientConVar("hud_wpass2_hovered_x", "insanestats_hud_wpass2_hovered_x", "0.65", {
+InsaneStats:RegisterClientConVar("hud_wpass2_hovered_x", "insanestats_hud_wpass2_hovered_x", "0.7", {
 	display = "Hovered Weapon Panel X", desc = "Horizontal position of hovered weapon panel.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
@@ -146,6 +146,7 @@ local function CreateName(wep)
 	wep.insaneStats_AttributeOrder = attribOrder
 	wep.insaneStats_Rarity = rarityTier
 	wep.insaneStats_WPASS2Name = name
+	wep.insaneStats_WPASS2NameLastRefresh = RealTime()
 	wep.insaneStats_BatteryLevel = math.floor(InsaneStats:GetLevelByXPRequired(wep.insaneStats_BatteryXP))
 end
 
@@ -313,7 +314,8 @@ hook.Add("InsaneStatsModifiersChanging", "InsaneStatsWPASS", function(ent, oldMo
 			if baseText then
 				local entityName = language.GetPhrase(ent:IsPlayer() and "item_battery" or ent:GetClass())
 				local modifierName = modifiers[k].suffix or modifiers[k].prefix
-				notification.AddLegacy(string.format(baseText, entityName, modifierName), NOTIFY_GENERIC, 5)
+				--notification.AddLegacy(string.format(baseText, entityName, modifierName), NOTIFY_GENERIC, 5)
+				chat.AddText(string.format(baseText, entityName, modifierName))
 			end
 		end
 	end
@@ -371,7 +373,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 			end
 			
 			if wep.insaneStats_Modifiers then
-				if not wep.insaneStats_WPASS2Name then
+				if not wep.insaneStats_WPASS2Name or (wep.insaneStats_WPASS2NameLastRefresh or 0) + 5 < RealTime() then
 					CreateName(wep)
 				end
 				if panelDisplayDieTime > realTime then
@@ -383,6 +385,8 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 						math.min(1, panelDisplayDieTime - realTime),
 						{levelDiff = wep:InsaneStats_GetLevel() - olderLevel}
 					)
+				else
+					olderLevel = oldLevel
 				end
 			else
 				wep:InsaneStats_MarkForUpdate()
@@ -391,7 +395,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 		
 		if IsValid(lastLookedAtWep2) then
 			if lastLookedAtWep2.insaneStats_Modifiers then
-				if not lastLookedAtWep2.insaneStats_WPASS2Name then
+				if not lastLookedAtWep2.insaneStats_WPASS2Name or (wep.insaneStats_WPASS2NameLastRefresh or 0) + 5 < RealTime() then
 					CreateName(lastLookedAtWep2)
 				end
 				if mouseOverDieTime > realTime then

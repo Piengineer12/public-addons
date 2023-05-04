@@ -21,10 +21,10 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 		if (IsValid(ent) and not ent:IsDormant()) then
 			markedEntityInfo.pos = ent:WorldSpaceCenter()
 			markedEntityInfo.class = ent:GetClass()
-			markedEntityInfo.hp = ent:InsaneStats_GetHealth()
+			--[[markedEntityInfo.hp = ent:InsaneStats_GetHealth()
 			markedEntityInfo.mhp = ent:InsaneStats_GetMaxHealth()
 			markedEntityInfo.ar = ent:InsaneStats_GetArmor()
-			markedEntityInfo.mar = ent:InsaneStats_GetMaxArmor()
+			markedEntityInfo.mar = ent:InsaneStats_GetMaxArmor()]]
 		end
 		
 		-- get the entity position in 2D space

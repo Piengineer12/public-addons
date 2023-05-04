@@ -21,7 +21,7 @@ local modifiers = {
 		modifiers = {
 			knockback = 1.4641
 		},
-		max = 10
+		max = 5
 	},
 	split = {
 		prefix = "Splitting",
@@ -104,17 +104,36 @@ local modifiers = {
 		},
 		max = 10
 	},
-	
-	-- damage, half weight
+	arc = {
+		prefix = "Arcing",
+		modifiers = {
+			arc_chance = 1/1.1
+		}
+	},
+	heal = {
+		prefix = "Healing",
+		modifiers = {
+			kill_lifesteal = 1.1
+		}
+	},
+	charge = {
+		prefix = "Charging",
+		modifiers = {
+			kill_armorsteal = 1.1,
+			armor_full = 2,
+			armor_full2 = 2
+		}
+	},
 	luck = {
 		prefix = "Lucky",
 		suffix = "Luck",
 		modifiers = {
 			crit_chance = 1.1
 		},
-		weight = 0.5,
 		max = 7
 	},
+	
+	-- damage, half weight
 	ranged = {
 		prefix = "Ranged",
 		suffix = "Range",
@@ -130,13 +149,6 @@ local modifiers = {
 		modifiers = {
 			shortrange_damage = 1.21,
 			melee_damage = 1/1.1
-		},
-		weight = 0.5
-	},
-	arc = {
-		prefix = "Arcing",
-		modifiers = {
-			arc_chance = 1/1.1
 		},
 		weight = 0.5
 	},
@@ -225,47 +237,36 @@ local modifiers = {
 		},
 		weight = 0.5
 	},
-	amplify = {
+	--[[amplify = {
 		prefix = "Amplifying",
 		modifiers = {
 			amp_armorloss = 1/1.1,
 			amp_damage = 1.21
 		},
 		weight = 0.5,
-	},
-	bloodbath = {
-		prefix = "Bloodbathing",
+	},]]
+	energetic = {
+		prefix = "Energetic",
+		suffix = "Energy",
 		modifiers = {
-			lifesteal = 0.2
+			armor_damage = 1.1,
 		},
-		weight = 0.5
-	},
-	heal = {
-		prefix = "Healing",
-		modifiers = {
-			kill_lifesteal = 1
-		},
-		weight = 0.5
+		weight = 0.5,
 	},
 	rejuvenate = {
 		prefix = "Rejuvenating",
 		suffix = "Rejuvenation",
 		modifiers = {
-			kill5s_regen = 0.25
-		},
-		weight = 0.5
-	},
-	charge = {
-		prefix = "Charging",
-		modifiers = {
-			kill_armorsteal = 1
+			kill5s_regen = 1.1
 		},
 		weight = 0.5
 	},
 	build = {
 		prefix = "Building",
 		modifiers = {
-			kill5s_armorregen = 0.25
+			kill5s_armorregen = 1.1,
+			armor_full = 2,
+			armor_full2 = 2
 		},
 		weight = 0.5
 	},
@@ -273,10 +274,9 @@ local modifiers = {
 		prefix = "Unpleasant",
 		suffix = "Unpleasantness",
 		modifiers = {
-			hit10s_damage = 1.1,
+			hit1s_damage = 1.1,
 		},
-		weight = 0.5,
-		max = 10
+		weight = 0.5
 	},
 	hurt = {
 		prefix = "Hurtful",
@@ -290,7 +290,7 @@ local modifiers = {
 		prefix = "Godly",
 		suffix = "Godliness",
 		modifiers = {
-			hit100_damage = 1.1
+			hit100_damagepulse = 1.1
 		},
 		weight = 0.5,
 	},
@@ -306,14 +306,14 @@ local modifiers = {
 		prefix = "Savage",
 		suffix = "Savageness",
 		modifiers = {
-			combat5s_damage = 1.1,
+			lowhealth_firerate = 1.1,
 		},
 		weight = 0.5,
 	},
 	gatling = {
 		prefix = "Gatling",
 		modifiers = {
-			combat5s_firerate = 1.1,
+			hitstack_firerate = 1.1,
 		},
 		weight = 0.5,
 		max = 10
@@ -398,11 +398,11 @@ local modifiers = {
 		prefix = "Wild",
 		suffix = "Wilderness",
 		modifiers = {
-			kill_clipsteal = 0.1,
+			kill_clipsteal = 1.1,
 			melee_damage = 1.1
 		},
 		weight = 0.5,
-		max = 10
+		max = 7
 	},
 	unreal = {
 		prefix = "Unreal",
@@ -413,15 +413,6 @@ local modifiers = {
 		},
 		weight = 0.5,
 		max = 7
-	},
-	mystic = {
-		prefix = "Mystic",
-		suffix = "Mysticality",
-		modifiers = {
-			hit10s_firerate = 1.1
-		},
-		weight = 0.5,
-		max = 10
 	},
 	intense = {
 		prefix = "Intense",
@@ -436,6 +427,15 @@ local modifiers = {
 		suffix = "Celestiality",
 		modifiers = {
 			kill5s_damageaura = 1.1
+		},
+		weight = 0.5
+	},
+	violent = {
+		prefix = "Violent",
+		suffix = "Violence",
+		modifiers = {
+			armored_victim_damage = 1.1,
+			nonliving_damage = 1.1
 		},
 		weight = 0.5
 	},
@@ -484,7 +484,7 @@ local modifiers = {
 			damage = 1.331
 		},
 		weight = 0.5,
-		max = 10,
+		max = 5,
 		cost = 2
 	},
 	dull = {
@@ -583,7 +583,7 @@ local modifiers = {
 		suffix = "Sluggishness",
 		modifiers = {
 			firerate = 1/1.1,
-			combat5s_damage = 1.331
+			kill5s_damage = 1.331
 		},
 		weight = 0.5,
 		max = 5,
@@ -594,7 +594,7 @@ local modifiers = {
 		suffix = "Laziness",
 		modifiers = {
 			damage = 1/1.1,
-			combat5s_firerate = 1.331,
+			kill5s_firerate = 1.331,
 		},
 		weight = 0.5,
 		max = 5,
@@ -736,75 +736,6 @@ local modifiers = {
 	},
 	
 	-- utility, half weight
-	volatile = {
-		prefix = "Volatile",
-		suffix = "Volatility",
-		modifiers = {
-			explode_damage = 1.331,
-			explode_damagetaken = 1/1.331
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5
-	},
-	pyro = {
-		prefix = "Pyrogenic",
-		suffix = "Pyromancy",
-		modifiers = {
-			fire_damage = 1.331,
-			fire_damagetaken = 1/1.331
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5
-	},
-	cryo = {
-		prefix = "Cryogenic",
-		suffix = "Cryomancy",
-		modifiers = {
-			freeze_damage = 1.331,
-			freeze_damagetaken = 1/1.331
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5
-	},
-	geo = {
-		prefix = "Geologic",
-		suffix = "Geomancy",
-		modifiers = {
-			poison_damage = 1.331,
-			poison_damagetaken = 1/1.331
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5
-	},
-	electro = {
-		prefix = "Electronic",
-		suffix = "Electromancy",
-		modifiers = {
-			shock_damage = 1.331,
-			shock_damagetaken = 1/1.331
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5
-	},
-	jagged = {
-		prefix = "Jagged",
-		suffix = "Jaggedness",
-		modifiers = {
-			bleed_damage = 1.331,
-			bleed_damagetaken = 1/1.331
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5
-	},
-	violent = {
-		prefix = "Violent",
-		suffix = "Violence",
-		modifiers = {
-			perdebuff_damage = 1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5
-	},
 	brisk = {
 		prefix = "Brisk",
 		suffix = "Brisking",
@@ -833,15 +764,6 @@ local modifiers = {
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
 		max = 5
-	},
-	rash = {
-		prefix = "Rash",
-		suffix = "Rashness",
-		modifiers = {
-			debuff_damage = 1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5
 	},
 	nasty = {
 		prefix = "Nasty",
@@ -955,8 +877,100 @@ local modifiers = {
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		max = 1
 	},
+	dilate = {
+		prefix = "Dilating",
+		suffix = "Dilation",
+		modifiers = {
+			speed_timedilation = 1.1
+		},
+		weight = 0.5,
+		max = 5,
+		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SP_ONLY),
+	},
+	rash = {
+		prefix = "Rash",
+		suffix = "Rashness",
+		modifiers = {
+			mark = 2,
+			killstackmarked_damage = 1.1
+		},
+		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		weight = 0.5
+	},
 	
 	-- utility, half weight doubled cost
+	volatile = {
+		prefix = "Volatile",
+		suffix = "Volatility",
+		modifiers = {
+			explode_damage = 1.1,
+			explode_damagetaken = 1/1.1
+		},
+		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		weight = 0.5,
+		cost = 2,
+		max = 2
+	},
+	pyro = {
+		prefix = "Pyrogenic",
+		suffix = "Pyromancy",
+		modifiers = {
+			fire_damage = 1.1,
+			fire_damagetaken = 1/1.1
+		},
+		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		weight = 0.5,
+		cost = 2,
+		max = 2
+	},
+	cryo = {
+		prefix = "Cryogenic",
+		suffix = "Cryomancy",
+		modifiers = {
+			freeze_damage = 1.1,
+			freeze_damagetaken = 1/1.1
+		},
+		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		weight = 0.5,
+		cost = 2,
+		max = 2
+	},
+	geo = {
+		prefix = "Geologic",
+		suffix = "Geomancy",
+		modifiers = {
+			poison_damage = 1.1,
+			poison_damagetaken = 1/1.1
+		},
+		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		weight = 0.5,
+		cost = 2,
+		max = 2
+	},
+	electro = {
+		prefix = "Electronic",
+		suffix = "Electromancy",
+		modifiers = {
+			shock_damage = 1.1,
+			shock_damagetaken = 1/1.1
+		},
+		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		weight = 0.5,
+		cost = 2,
+		max = 2
+	},
+	jagged = {
+		prefix = "Jagged",
+		suffix = "Jaggedness",
+		modifiers = {
+			bleed_damage = 1.1,
+			bleed_damagetaken = 1/1.1
+		},
+		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		weight = 0.5,
+		cost = 2,
+		max = 2
+	},
 	aggravate = {
 		prefix = "Aggravating",
 		suffix = "Aggravation",
@@ -1023,7 +1037,8 @@ local modifiers = {
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
-		cost = 2
+		cost = 2,
+		max = 5
 	},
 	glass = {
 		prefix = "Glass",
@@ -1034,7 +1049,8 @@ local modifiers = {
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
-		cost = 2
+		cost = 2,
+		max = 10
 	},
 	
 	-- defensive
@@ -1071,7 +1087,8 @@ local modifiers = {
 		modifiers = {
 			health = 1.21
 		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR
+		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		max = 10
 	},
 	armor = {
 		prefix = "Armored",
@@ -1079,7 +1096,8 @@ local modifiers = {
 		modifiers = {
 			armor = 1.21
 		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR
+		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		max = 10
 	},
 	
 	-- defensive, half weight
@@ -1113,7 +1131,8 @@ local modifiers = {
 		prefix = "Hard",
 		suffix = "Hardness",
 		modifiers = {
-			perdebuff_resistance = 1.1
+			mark = 2,
+			killstackmarked_resistance = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5
@@ -1141,7 +1160,9 @@ local modifiers = {
 	bloodletting = {
 		prefix = "Bloodletting",
 		modifiers = {
-			bloodletting = -0.02
+			bloodletting = 1.02,
+			armor_full = 2,
+			armor_full2 = 2
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
@@ -1150,11 +1171,14 @@ local modifiers = {
 	glutton = {
 		prefix = "Gluttony",
 		modifiers = {
-			armor_fullpickup = 0.15
+			armor_fullpickup = 0.15,
+			charger_fullpickup = 0.15,
+			armor_full = 2,
+			armor_full2 = 2
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5e3,
-		max = 5
+		weight = 0.5,
+		max = 6
 	},
 	resist = {
 		prefix = "Resisting",
@@ -1167,10 +1191,9 @@ local modifiers = {
 	ward = {
 		prefix = "Warding",
 		modifiers = {
-			debuff_damagetaken = 1/1.1
+			hittakenstack_resistance = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		max = 5,
 		weight = 0.5
 	},
 	fleeting = {
@@ -1182,11 +1205,11 @@ local modifiers = {
 		weight = 0.5,
 		max = 10
 	},
-	regen = {
-		prefix = "Regenerating",
-		suffix = "Regeneration",
+	revital = {
+		prefix = "Revitalizing",
+		suffix = "Revitalization",
 		modifiers = {
-			combat5s_regen = 0.2
+			hittaken_regen = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5
@@ -1194,7 +1217,9 @@ local modifiers = {
 	shield = {
 		prefix = "Shielding",
 		modifiers = {
-			combat5s_armorregen = 0.2
+			hittaken_armorregen = 1.1,
+			armor_full = 2,
+			armor_full2 = 2
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5
@@ -1219,14 +1244,34 @@ local modifiers = {
 		weight = 0.5,
 		max = 5
 	},
-	harden = {
-		prefix = "Hardening",
+	brave = {
+		prefix = "Brave",
+		suffix = "Bravery",
 		modifiers = {
-			combat5s_damagetaken = 1/1.1
+			highlevel_damagetaken = 1/1.331,
+			lowlevel_damage = 1/1.1
+		},
+		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		weight = 0.5,
+		max = 2
+	},
+	mystic = {
+		prefix = "Mystic",
+		suffix = "Mysticality",
+		modifiers = {
+			hittaken1s_damagetaken = 1/1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
 		max = 5
+	},
+	bloodbath = {
+		prefix = "Bloodbathing",
+		modifiers = {
+			crit_lifesteal = 1.1
+		},
+		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		weight = 0.5
 	},
 	
 	-- defensive, half weight double cost
@@ -1282,7 +1327,8 @@ local modifiers = {
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
-		cost = 2
+		cost = 2,
+		max = 10
 	},
 	small = {
 		prefix = "Small",
@@ -1309,7 +1355,8 @@ local modifiers = {
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
-		cost = 2
+		cost = 2,
+		max = 10
 	},
 	massive = {
 		prefix = "Massive",
@@ -1320,7 +1367,8 @@ local modifiers = {
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
-		cost = 2
+		cost = 2,
+		max = 10
 	},
 	awful = {
 		prefix = "Awful",
@@ -1373,74 +1421,101 @@ local attributes = {
 		display = "Up to %s damage dealt at low health",
 		mul = 5
 	},
+	lowhealth_firerate = {
+		display = "Up to %s fire rate at low health",
+		mul = 5
+	},
 	lowhealth_victim_damage = {
-		display = "Up to %s damage dealt against low health entities",
+		display = "Up to %s damage dealt vs. low health",
 		mul = 2
 	},
 	lowhealth_victim_melee_damage = {
-		display = "Up to %s melee damage dealt against low health entities",
+		display = "Up to %s melee damage dealt vs. low health",
 		mul = 5
 	},
 	high90health_victim_damage = {
-		display = "%s damage dealt against entities above 90%% health",
+		display = "%s damage dealt vs. above 90%% health",
 		mul = 5
 	},
 	lowxhealth_victim_doubledamage = {
-		display = "Doubled damage dealt against entities below %s health",
+		display = "Doubled damage dealt vs. below %s health",
 	},
 	speed_damage = {
-		display = "%s damage dealt, scaled by velocity",
+		display = "%s damage dealt, scaled by speed",
+		mul = 2
+	},
+	armor_damage = {
+		display = "%s damage dealt, scaled by armor %%",
+		mul = 2
+	},
+	armored_victim_damage = {
+		display = "%s damage dealt vs. armored",
+		mul = 2
+	},
+	nonliving_damage = {
+		display = "%s damage dealt vs. non-living entities",
 		mul = 2
 	},
 	crit_damage = {
-		display = "%s critical damage dealt",
+		display = "%s crit damage dealt",
 		mul = 2
 	},
 	highlevel_damage = {
-		display = "%s damage dealt to higher-level entities",
+		display = "%s damage dealt vs. higher levels",
+		mul = 2
+	},
+	lowlevel_damage = {
+		display = "%s damage dealt vs. lower levels",
 		mul = 2
 	},
 	oddlevel_damage = {
-		display = "%s damage dealt against odd-levelled entities"
+		display = "%s damage dealt vs. odd levels"
 	},
 	evenlevel_damage = {
-		display = "%s damage dealt against even-levelled entities"
+		display = "%s damage dealt vs. even levels"
 	},
 	mark_damage = {
-		display = "%s damage dealt against marked entities"
+		display = "%s damage dealt vs. marked",
+		mul = 2
 	},
 	ally_damage = {
-		display = "%s damage dealt against allies unless Alt is held",
+		display = "%s damage dealt vs. allies unless Alt is held",
 		invert = true
 	},
 	random_damage = {
-		display = "Damage dealt randomly altered by +/%s",
+		display = "+/%s random damage dealt",
 		mode = 3
 	},
-	perdebuff_damage = {
+	--[[perdebuff_damage = {
 		display = "%s damage dealt per Insane Stats victim debuff"
 	},
 	debuff_damage = {
 		display = "%s Insane Stats debuff damage dealt",
 		mul = 2
-	},
+	},]]
 	explode_damage = {
-		display = "%s explosive damage dealt"
+		display = "%s explosive damage dealt",
+		mul = 5
 	},
 	fire_damage = {
-		display = "%s fire damage dealt"
+		display = "%s fire damage dealt",
+		mul = 10
 	},
 	poison_damage = {
-		display = "%s poison, chemical and radiation damage dealt"
+		display = "%s poison, chemical and radiation damage dealt",
+		mul = 10
 	},
 	freeze_damage = {
-		display = "%s freeze and drowning damage dealt"
+		display = "%s freeze and drowning damage dealt",
+		mul = 10
 	},
 	shock_damage = {
-		display = "%s shock and fall damage dealt"
+		display = "%s shock and fall damage dealt",
+		mul = 10
 	},
 	bleed_damage = {
-		display = "%s laceration and bleed damage dealt"
+		display = "%s laceration and bleed damage dealt",
+		mul = 10
 	},
 	
 	-- pure damage taken
@@ -1454,7 +1529,7 @@ local attributes = {
 		invert = true
 	},
 	crit_damagetaken = {
-		display = "%s critical damage taken",
+		display = "%s crit damage taken",
 		mul = 2,
 		invert = true
 	},
@@ -1471,8 +1546,13 @@ local attributes = {
 		mul = 5,
 		invert = true
 	},
+	highlevel_damagetaken = {
+		display = "%s damage taken from higher levels",
+		invert = true,
+		mul = 2
+	},
 	lowlevel_damagetaken = {
-		display = "%s damage taken from lower-level entities",
+		display = "%s damage taken from lower levels",
 		invert = true,
 		mul = 2
 	},
@@ -1482,57 +1562,64 @@ local attributes = {
 		invert = true
 	},
 	speed_damagetaken = {
-		display = "%s damage taken, scaled by velocity",
+		display = "%s damage taken, scaled by speed",
 		invert = true,
 		mul = 2
 	},
 	mark_damagetaken = {
 		display = "%s damage taken from marked entities",
-		invert = true
+		invert = true,
+		mul = 2
 	},
 	oddlevel_damagetaken = {
-		display = "%s damage taken while odd-levelled",
+		display = "%s damage taken on odd levels",
 		invert = true
 	},
 	evenlevel_damagetaken = {
-		display = "%s damage taken while even-levelled",
+		display = "%s damage taken on even levels",
 		invert = true
 	},
-	perdebuff_resistance = {
+	--[[perdebuff_resistance = {
 		display = "%s defence per Insane Stats debuff"
 	},
 	debuff_damagetaken = {
 		display = "%s damage taken from Insane Stats debuffs",
 		mul = 2,
 		invert = true
-	},
+	},]]
 	explode_damagetaken = {
 		display = "%s explosive damage taken",
+		mul = 5,
 		invert = true
 	},
 	fire_damagetaken = {
 		display = "%s fire damage taken",
+		mul = 5,
 		invert = true
 	},
 	poison_damagetaken = {
 		display = "%s poison, chemical and radiation damage taken",
+		mul = 5,
 		invert = true
 	},
 	freeze_damagetaken = {
 		display = "%s freeze and drowning damage taken",
+		mul = 5,
 		invert = true
 	},
 	shock_damagetaken = {
 		display = "%s shock and fall damage taken",
+		mul = 5,
 		invert = true
 	},
 	bleed_damagetaken = {
 		display = "%s laceration and bleed damage taken",
+		mul = 5,
 		invert = true
 	},
 	
 	crit_chance = {
-		display = "%s random critical hit chance",
+		display = "%s random crit chance",
 	},
 	firerate = {
 		display = "%s fire rate",
@@ -1561,12 +1648,12 @@ local attributes = {
 		display = "%s XP gain",
 	},
 	crit_xp = {
-		display = "%s XP gain on critical kills",
+		display = "%s XP gain on crit kills",
 		mul = 2
 	},
 	simul_xp = {
-		display = "%s XP gain per additional multikilled entity",
-		mul = 10
+		display = "%s XP gain per multikilled entity",
+		mul = 20
 	},
 	explode = {
 		display = "%s explosion chance after 0.5s",
@@ -1623,12 +1710,12 @@ local attributes = {
 	},
 	kill5s_regen = {
 		display = "%s health regen for 5s after kill",
-		mode = 3,
+		mul = 2.5,
 		nopercent = true
 	},
 	kill5s_armorregen = {
-		display = "%s armor regen for 5s after kill, reduced above full armor",
-		mode = 3,
+		display = "%s armor regen for 5s after kill",
+		mul = 2.5,
 		nopercent = true
 	},
 	kill5s_damagetaken = {
@@ -1643,38 +1730,48 @@ local attributes = {
 	},
 	killstack_damage = {
 		display = "%s damage dealt per kill, decays over time",
-		mul = 0.25
+		mul = 0.05
 	},
 	killstack_firerate = {
 		display = "%s fire rate per kill, decays over time",
-		mul = 0.25
+		mul = 0.05
 	},
 	killstack_resistance = {
 		display = "%s defence per kill, decays over time",
-		mul = 0.25
+		mul = 0.05
 	},
 	--[[killstack_speed = {
 		display = "%s movement speed per kill, decays over time",
 	},]]
 	killstack_xp = {
 		display = "%s XP gain per kill, decays over time",
-		mul = 0.25
+		mul = 0.05
 	},
-	hit10s_damage = {
-		display = "%s damage dealt for 10s, 60s cooldown",
-		mul = 7
+	killstackmarked_damage = {
+		display = "%s damage dealt per marked kill, decays over time",
+		mul = 0.1
 	},
-	hit10s_firerate = {
-		display = "%s fire rate for 10s, 60s cooldown",
-		mul = 7
+	killstackmarked_resistance = {
+		display = "%s defence per marked kill, decays over time",
+		mul = 0.1
+	},
+	hit1s_damage = {
+		display = "%s damage dealt, 1s cooldown",
+		mul = 2
+	},
+	hittaken1s_damagetaken = {
+		display = "%s damage taken, 1s cooldown",
+		mul = 2,
+		invert = true
 	},
 	hit3_damage = {
 		display = "%s damage dealt every third hit",
 		mul = 3
 	},
-	hit100_damage = {
-		display = "%s damage dealt every 100th hit",
-		mul = 100
+	hit100_damagepulse = {
+		display = "%s damage to visible enemies every 100th hit",
+		mul = 10000,
+		nopercent = true
 	},
 	hit100_self_damage = {
 		display = "%s damage dealt to self every 100th hit",
@@ -1683,21 +1780,34 @@ local attributes = {
 	},
 	hitstack_damage = {
 		display = "%s damage dealt per hit, decays over time",
-		mul = 0.03125
+		mul = 0.005
+	},
+	hitstack_firerate = {
+		display = "%s fire rate per hit, decays over time",
+		mul = 0.005
 	},
 	hittaken_damage = {
-		display = "%s damage dealt after taking damage for 10s, 60s cooldown",
-		mul = 7
+		display = "%s damage dealt for 10s after taking damage, 60s cooldown",
+		mul = 8
 	},
 	hittaken_invincible = {
-		display = "Become invincible when below 70%% health after taking damage, for 10s, 60s cooldown"
+		display = "Gain invincibility for 10s below 70%% health, 60s cooldown"
 	},
-	lifesteal = {
-		display = "Up to %s life steal based on squared victim distance",
-		mode = 3,
+	hittaken_regen = {
+		display = "%s health regen for 10s after taking damage, 60s cooldown",
+		mul = 10,
 		nopercent = true
 	},
-	amp_armorloss = {
+	hittaken_armorregen = {
+		display = "%s armor regen for 10s after taking damage, 60s cooldown",
+		mul = 10,
+		nopercent = true
+	},
+	hittakenstack_resistance = {
+		display = "%s defence per hit taken, decays over time",
+		mul = 0.05
+	},
+	--[[amp_armorloss = {
 		display = "At full armor, %s armor converted to amp damage",
 		start = math.sqrt(1.1),
 		mode = 1,
@@ -1706,8 +1816,8 @@ local attributes = {
 	amp_damage = {
 		display = "%s amp damage",
 		start = 10
-	},
-	combat5s_damage = {
+	},]]
+	--[[combat5s_damage = {
 		display = "Up to %s damage dealt over 5s in combat",
 		mul = 2
 	},
@@ -1715,6 +1825,21 @@ local attributes = {
 		display = "Up to %s fire rate over 5s in combat",
 		mul = 2
 	},
+	combat5s_damagetaken = {
+		display = "Up to %s damage taken over 5s in combat",
+		mul = 2,
+		invert = true
+	},
+	combat5s_regen = {
+		display = "Up to %s health regen over 5s in combat",
+		mode = 3,
+		nopercent = true
+	},
+	combat5s_armorregen = {
+		display = "Up to %s armor regen over 5s in combat",
+		mode = 3,
+		nopercent = true
+	},]]
 	speed = {
 		display = "%s movement speed",
 	},
@@ -1755,19 +1880,23 @@ local attributes = {
 		display = "%s XP gain from allies",
 		mode = 3
 	},
+	crit_lifesteal = {
+		display = "%s healing on crit",
+		mul = 2,
+		nopercent = true
+	},
 	kill_lifesteal = {
 		display = "%s healing on kill",
-		mode = 3,
+		mul = 10,
 		nopercent = true
 	},
 	kill_armorsteal = {
-		display = "%s armor on kill, reduced above full armor",
-		mode = 3,
+		display = "%s armor on kill",
+		mul = 10,
 		nopercent = true
 	},
 	kill_clipsteal = {
-		display = "%s clip refilled on kill",
-		mode = 3
+		display = "%s clip refilled on kill"
 	},
 	--[[kill_victim_damage = {
 		display = "%s damage dealt by nearby enemies on kill",
@@ -1785,6 +1914,9 @@ local attributes = {
 		display = "%s bullet aimbot chance"
 	},
 	
+	speed_timedilation = {
+		display = "%s time dilation, scaled by speed"
+	},
 	toggle_damage = {
 		display = "%s damage dealt or defence, switched every 5s"
 	},
@@ -1803,6 +1935,13 @@ local attributes = {
 	},
 	armor_trueblock = {
 		display = "Armor blocks all health damage",
+	},
+	armor_full = {
+		display = "Insane Stats armor gains can exceed full armor",
+	},
+	armor_full2 = {
+		display = "Insane Stats armor gains reduced above full armor",
+		invert = true
 	},
 	dodge = {
 		display = "%s dodge chance",
@@ -1824,12 +1963,18 @@ local attributes = {
 		mul = 2
 	},
 	bloodletting = {
-		display = "Health above %s turned into armor, reduced above full armor",
-		start = 2,
-		mode = 3
+		display = "Health above max %s turned into armor",
+		invert = true,
+		mode = 2
 	},
 	armor_fullpickup = {
-		display = "Armor batteries can overcharge armor at %s efficiency, reduced further above full armor",
+		display = "Armor batteries can overcharge at %s efficiency",
+		start = 0,
+		invert = true,
+		mode = 3
+	},
+	charger_fullpickup = {
+		display = "Suit chargers can overcharge at %s efficiency",
 		start = 0,
 		invert = true,
 		mode = 3
@@ -1844,20 +1989,15 @@ local attributes = {
 	},
 	alt_damage = {
 		display = "%s damage dealt after Alt double tap, 60s cooldown",
-		mul = 2
+		mul = 7
 	},
 	alt_firerate = {
 		display = "%s fire rate after Alt double tap, 60s cooldown",
-		mul = 2
+		mul = 7
 	},
 	alt_speed = {
 		display = "%s movement speed after Alt double tap, 60s cooldown",
-		mul = 2
-	},
-	combat5s_damagetaken = {
-		display = "Up to %s damage taken over 5s in combat",
-		mul = 2,
-		invert = true
+		mul = 7
 	},
 	--[[combat5s_dodge = {
 		display = "Up to %s dodge chance over 5s in combat",
@@ -1865,16 +2005,6 @@ local attributes = {
 	},]]
 	jumps = {
 		display = "%s extra jumps",
-		mode = 3,
-		nopercent = true
-	},
-	combat5s_regen = {
-		display = "Up to %s health regen over 5s in combat",
-		mode = 3,
-		nopercent = true
-	},
-	combat5s_armorregen = {
-		display = "Up to %s armor regen over 5s in combat",
 		mode = 3,
 		nopercent = true
 	},
@@ -1974,36 +2104,36 @@ local statusEffects = {
 		typ = 1,
 		img = Material("insane_stats/status_effects/blade-fall.png", "mips smooth")
 	},
-	hit100_damage_stacks = {
+	hit100_damagepulse_stacks = {
 		name = "Godly Buildup",
 		typ = 1,
-		img = Material("insane_stats/status_effects/blade-fall.png", "mips smooth")
+		img = Material("insane_stats/status_effects/orbital-rays.png", "mips smooth")
 	},
-	hit10s_damage_up = {
+	--[[hit10s_damage_up = {
 		name = "Unpleasant Damage Up",
 		typ = 2,
 		img = Material("insane_stats/status_effects/pointy-sword.png", "mips smooth"),
 		expiry = SERVER and function(ent, level, attacker)
 			ent:InsaneStats_ApplyStatusEffect("hit10s_damage_cooldown", 1, 60)
 		end
-	},
-	hit10s_damage_cooldown = {
+	},]]
+	hit1s_damage_cooldown = {
 		name = "Unpleasancy Cooldown",
 		typ = -1,
-		img = Material("insane_stats/status_effects/sword-in-stone.png", "mips smooth")
+		img = Material("insane_stats/status_effects/shattered-sword.png", "mips smooth")
 	},
-	hit10s_firerate_up = {
+	--[[hit10s_firerate_up = {
 		name = "Mystical Fire Rate Up",
 		typ = 2,
 		img = Material("insane_stats/status_effects/striking-arrows.png", "mips smooth"),
 		expiry = SERVER and function(ent, level, attacker)
 			ent:InsaneStats_ApplyStatusEffect("hit10s_firerate_cooldown", 1, 60)
 		end
-	},
-	hit10s_firerate_cooldown = {
+	},]]
+	hittaken1s_damagetaken_cooldown = {
 		name = "Mystical Cooldown",
 		typ = -1,
-		img = Material("insane_stats/status_effects/hand.png", "mips smooth")
+		img = Material("insane_stats/status_effects/cracked-shield.png", "mips smooth")
 	},
 	hittaken_invincible = {
 		name = "Sharp Invincibility",
@@ -2030,6 +2160,32 @@ local statusEffects = {
 		name = "Fury Cooldown",
 		typ = -1,
 		img = Material("insane_stats/status_effects/sword-in-stone.png", "mips smooth")
+	},
+	hittaken_regen = {
+		name = "Revitalizing Regeneration",
+		typ = 2,
+		img = Material("insane_stats/status_effects/heart-bottle.png", "mips smooth"),
+		expiry = SERVER and function(ent, level, attacker)
+			ent:InsaneStats_ApplyStatusEffect("hittaken_regen_cooldown", 1, 60)
+		end
+	},
+	hittaken_regen_cooldown = {
+		name = "Revitalization Cooldown",
+		typ = -1,
+		img = Material("insane_stats/status_effects/bubbling-flask.png", "mips smooth")
+	},
+	hittaken_armorregen = {
+		name = "Shielding Armor Regeneration",
+		typ = 2,
+		img = Material("insane_stats/status_effects/bolt-shield.png", "mips smooth"),
+		expiry = SERVER and function(ent, level, attacker)
+			ent:InsaneStats_ApplyStatusEffect("hittaken_armorregen_cooldown", 1, 60)
+		end
+	},
+	hittaken_armorregen_cooldown = {
+		name = "Shielding Cooldown",
+		typ = -1,
+		img = Material("insane_stats/status_effects/lightning-shield.png", "mips smooth")
 	},
 	
 	damage_down = {
@@ -2074,7 +2230,7 @@ local statusEffects = {
 	},
 	arcane_damage_up = {
 		name = "Arcane Damage Up",
-		typ = 2,
+		typ = 1,
 		img = Material("insane_stats/status_effects/pointy-sword.png", "mips smooth"),
 		expiry = function(ent, level, attacker)
 			if ent:InsaneStats_GetAttributeValue("toggle_damage") ~= 1 then
@@ -2085,7 +2241,7 @@ local statusEffects = {
 	},
 	arcane_defence_up = {
 		name = "Arcane Defence Up",
-		typ = 2,
+		typ = 1,
 		img = Material("insane_stats/status_effects/checked-shield.png", "mips smooth"),
 		expiry = function(ent, level, attacker)
 			if ent:InsaneStats_GetAttributeValue("toggle_damage") ~= 1 then
@@ -2102,7 +2258,7 @@ local statusEffects = {
 	armor_regen = {
 		name = "Armor Regeneration",
 		typ = 1,
-		img = Material("insane_stats/status_effects/energy-shield.png", "mips smooth")
+		img = Material("insane_stats/status_effects/bolt-shield.png", "mips smooth")
 	},
 	damage_aura = {
 		name = "Damage Aura",
@@ -2195,13 +2351,15 @@ local statusEffects = {
 hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 	local attacker = data.attacker
 	if IsValid(attacker) then
-		local combatFraction = SERVER and math.Clamp(attacker:InsaneStats_GetCombatTime()/5, 0, 1) or 0
+		--local combatFraction = SERVER and math.Clamp(attacker:InsaneStats_GetCombatTime()/5, 0, 1) or 0
+		local healthFraction = 1-math.Clamp(attacker:InsaneStats_GetHealth() / attacker:InsaneStats_GetMaxHealth(), 0, 1)
 		local totalMul = attacker:InsaneStats_GetAttributeValue("firerate")
-		totalMul = totalMul * (1 + (attacker:InsaneStats_GetAttributeValue("combat5s_firerate") - 1) * combatFraction)
+		--totalMul = totalMul * (1 + (attacker:InsaneStats_GetAttributeValue("combat5s_firerate") - 1) * combatFraction)
+		totalMul = totalMul * (1 + (attacker:InsaneStats_GetAttributeValue("lowhealth_firerate") - 1) * healthFraction)
 		
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetStatusEffectLevel("firerate_up")/100)
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetStatusEffectLevel("alt_firerate_up")/100)
-		totalMul = totalMul * (1 + attacker:InsaneStats_GetStatusEffectLevel("hit10s_firerate_up")/100)
+		--totalMul = totalMul * (1 + attacker:InsaneStats_GetStatusEffectLevel("hit10s_firerate_up")/100)
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetStatusEffectLevel("stack_firerate_up")/100)
 		totalMul = totalMul * (1 - attacker:InsaneStats_GetStatusEffectLevel("firerate_down")/100)
 		totalMul = totalMul * (1 - attacker:InsaneStats_GetStatusEffectLevel("menacing_firerate_down")/100)
@@ -2428,11 +2586,17 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 			attacker:InsaneStats_ApplyStatusEffect("damage_aura", stacks, 5, {extend = true})
 			
 			if SERVER then
-				local isAlly = victim:IsNPC() and victim:Disposition(attacker) == D_LI
-				if attacker:InsaneStats_GetAttributeValue("kill5s_ally_damage") ~= 1 and isAlly then
-					local stacks = (1 - attacker:InsaneStats_GetAttributeValue("kill5s_ally_damage")) * 100
+				if attacker:InsaneStats_IsValidAlly(victim) then
+					stacks = (1 - attacker:InsaneStats_GetAttributeValue("kill5s_ally_damage")) * 100
 					attacker:InsaneStats_ApplyStatusEffect("damage_down", stacks, 5, {extend = true})
 				end
+				
+				if attacker.insaneStats_MarkedEntity == victim then
+					stacks = (attacker:InsaneStats_GetAttributeValue("killstackmarked_damage") - 1) * 100
+					attacker:InsaneStats_ApplyStatusEffect("stack_damage_up", stacks, math.huge, {amplify = true})
+					stacks = (attacker:InsaneStats_GetAttributeValue("killstackmarked_resistance") - 1) * 100
+					attacker:InsaneStats_ApplyStatusEffect("stack_defence_up", stacks, math.huge, {amplify = true})
+				end 
 			end
 			
 			--[[if SERVER then

@@ -1,19 +1,17 @@
-InsaneStats = {
-	BOOL = 1,
-	INT = 2,
-	FLOAT = 3,
-	NOP = function()end,
-	
-	numConVars = 0,
-	conVars = {},
-	defaultConVarCategory = "",
-	--defaultConVarCategoryDisplay = ""
-}
+InsaneStats.BOOL = 1
+InsaneStats.INT = 2
+InsaneStats.FLOAT = 3
+InsaneStats.NOP = function()end
+
+InsaneStats.numConVars = 0
+InsaneStats.conVars = {}
+InsaneStats._defaultConVarCategory = ""
+--defaultConVarCategoryDisplay = ""
 
 -- this is on the shared side, because the client needs to know
 -- the server's ConVars for the GUI menu, but at the same time
 -- the server doesn't need to know about the client's ConVars
-AccessorFunc(InsaneStats, "defaultConVarCategory", "DefaultConVarCategory", FORCE_STRING)
+AccessorFunc(InsaneStats, "_defaultConVarCategory", "DefaultConVarCategory", FORCE_STRING)
 
 --[[function InsaneStats:SetDefaultConVarCategory(name, display)
 	self.defaultConVarCategory = name
@@ -82,17 +80,23 @@ function InsaneStats:GetConVarValue(name)
 	end
 end
 
-function InsaneStats:GetConVarValueDefaulted(name, altName)
-	if name then
-		local value = self:GetConVarValue(name)
-		if value < 0 then
-			return self:GetConVarValue(altName)
-		else
-			return value
-		end
-	else
-		return self:GetConVarValue(altName)
+function InsaneStats:GetConVarValueDefaulted(...)
+	local vars = {...}
+	
+	if istable(vars[1]) then
+		vars = vars[1]
 	end
+	
+	for i,v in ipairs(vars) do
+		if v then
+			local value = self:GetConVarValue(v)
+			if value >= 0 then
+				return value
+			end
+		end
+	end
+	
+	return self:GetConVarValue(vars[#vars])
 end
 
 function InsaneStats:GetConVarData(name)

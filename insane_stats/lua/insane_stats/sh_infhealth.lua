@@ -8,6 +8,10 @@ InsaneStats:RegisterConVar("infhealth_armor_chance", "insanestats_infhealth_armo
 	display = "Armor Chance", desc = "Chance for NPCs to have armor.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
+InsaneStats:RegisterConVar("infhealth_armor_sensible", "insanestats_infhealth_armor_sensible", "1", {
+	display = "Sensible NPCs Only", desc = "Only humanoid and Combine entities are able to spawn with armor.",
+	type = InsaneStats.BOOL
+})
 InsaneStats:RegisterConVar("infhealth_armor_mul", "insanestats_infhealth_armor_mul", "1", {
 	display = "Armor Multiplier", desc = "Multiplier of NPC armor.",
 	type = InsaneStats.FLOAT, min = 0, max = 10
@@ -19,14 +23,6 @@ InsaneStats:RegisterConVar("infhealth_armor_regen", "insanestats_infhealth_armor
 InsaneStats:RegisterConVar("infhealth_armor_regen_delay", "insanestats_infhealth_armor_regen_delay", "10", {
 	display = "Armor Regen Delay", desc = "Amount of time before NPCs are able to regenerate their armor.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
-})
-InsaneStats:RegisterConVar("infhealth_armor_sensible", "insanestats_infhealth_armor_sensible", "1", {
-	display = "Sensible NPCs Only", desc = "Only humanoid and Combine entities are able to spawn with armor.",
-	type = InsaneStats.BOOL
-})
-InsaneStats:RegisterConVar("hud_damage_enabled", "insanestats_hud_damage_enabled", "1", {
-	display = "Damage Numbers", desc = "If disabled, everyone's Insane Stats damage numbers and DPS meters will stop working.",
-	type = InsaneStats.BOOL
 })
 
 local ENT = FindMetaTable("Entity")
@@ -62,6 +58,9 @@ local function OverrideHealth()
 			error("Something tried to set health on "..tostring(self).." to nan!")
 		end
 		self.insaneStats_Health = newHealth
+		if newHealth > 0 then
+			self.insaneStats_HealthRoot8 = newHealth^0.125
+		end
 		
 		if self.InsaneStats_SetRawHealth then
 			local scaledHealth = newHealth
@@ -87,6 +86,9 @@ local function OverrideHealth()
 			error("Something tried to set max health on "..tostring(self).." to nan!")
 		end
 		self.insaneStats_MaxHealth = newHealth
+		if newHealth > 0 then
+			self.insaneStats_MaxHealthRoot8 = newHealth^0.125
+		end
 		
 		if self.InsaneStats_SetRawMaxHealth then
 			local scaledMaxHealth = math.Clamp(math.ceil(newHealth), -999999999, 999999999)
@@ -136,6 +138,9 @@ local function OverrideArmor()
 			error("Something tried to set armor on "..tostring(self).." to nan!")
 		end
 		self.insaneStats_Armor = newArmor
+		if newArmor > 0 then
+			self.insaneStats_ArmorRoot8 = newArmor^0.125
+		end
 		self:InsaneStats_MarkForUpdate(1)
 	end
 
@@ -148,6 +153,9 @@ local function OverrideArmor()
 			error("Something tried to set max armor on "..tostring(self).." to nan!")
 		end
 		self.insaneStats_MaxArmor = newArmor
+		if newArmor > 0 then
+			self.insaneStats_MaxArmorRoot8 = newArmor^0.125
+		end
 		self:InsaneStats_MarkForUpdate(1)
 	end
 	
@@ -160,6 +168,9 @@ local function OverrideArmor()
 			error("Something tried to set armor on "..tostring(self).." to nan!")
 		end
 		self.insaneStats_Armor = newArmor
+		if newArmor > 0 then
+			self.insaneStats_ArmorRoot8 = newArmor^0.125
+		end
 		
 		if self.InsaneStats_SetRawArmor then
 			local scaledArmor = newArmor
@@ -184,6 +195,9 @@ local function OverrideArmor()
 			error("Something tried to set max armor on "..tostring(self).." to nan!")
 		end
 		self.insaneStats_MaxArmor = newArmor
+		if newArmor > 0 then
+			self.insaneStats_MaxArmorRoot8 = newArmor^0.125
+		end
 		
 		if self.InsaneStats_SetRawMaxArmor then
 			local scaledMaxArmor = math.Clamp(math.ceil(newArmor), -999999999, 999999999)
@@ -227,6 +241,19 @@ end
 
 local doHealthOverride = false
 hook.Add("Think", "InsaneStatsShared", function()
+	if doHealthOverride ~= InsaneStats:GetConVarValue("infhealth_enabled") then
+		doHealthOverride = InsaneStats:GetConVarValue("infhealth_enabled")
+		if doHealthOverride then
+			OverrideHealth()
+			OverrideArmor()
+		else
+			DeOverrideHealth()
+			DeOverrideArmor()
+		end
+	end
+end)
+
+hook.Add("Initialize", "InsaneStatsUnlimitedHealth", function()
 	if doHealthOverride ~= InsaneStats:GetConVarValue("infhealth_enabled") then
 		doHealthOverride = InsaneStats:GetConVarValue("infhealth_enabled")
 		if doHealthOverride then
