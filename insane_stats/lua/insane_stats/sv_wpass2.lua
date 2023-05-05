@@ -341,23 +341,34 @@ function ENTITY:InsaneStats_UpdateCombatTime()
 end
 
 function ENTITY:InsaneStats_AddArmorNerfed(armor)
-	local unnerfedArmorRestored = math.Clamp(self:InsaneStats_GetMaxArmor() - self:InsaneStats_GetArmor(), 0, armor)
-	armor = armor - unnerfedArmorRestored
-	if unnerfedArmorRestored > 0 then
-		self:SetArmor(self:InsaneStats_GetArmor() + unnerfedArmorRestored)
-	end
-	
-	if armor > 0 then
-		-- nerfed amount, yes it is a bit complicated
-		local currentArmorPercent = self:InsaneStats_GetArmor() / self:InsaneStats_GetMaxArmor()
-		local wouldRestoreToPercent = currentArmorPercent + armor / self:InsaneStats_GetMaxArmor()
-		
-		if wouldRestoreToPercent > currentArmorPercent then
-			local nerfMul = math.log(wouldRestoreToPercent/currentArmorPercent) / (wouldRestoreToPercent-currentArmorPercent)
-			armor = armor * nerfMul
-			self:SetArmor(self:InsaneStats_GetArmor() + armor)
+	if self:InsaneStats_GetArmor() < math.huge then
+		local unnerfedArmorRestored = math.Clamp(self:InsaneStats_GetMaxArmor() - self:InsaneStats_GetArmor(), 0, armor)
+		armor = armor - unnerfedArmorRestored
+		if unnerfedArmorRestored > 0 then
+			self:SetArmor(self:InsaneStats_GetArmor() + unnerfedArmorRestored)
 		end
+		
+		if armor > 0 then
+			-- nerfed amount, yes it is a bit complicated
+			local currentArmorPercent = self:InsaneStats_GetArmor() / self:InsaneStats_GetMaxArmor()
+			local wouldRestoreToPercent = currentArmorPercent + armor / self:InsaneStats_GetMaxArmor()
+			
+			if wouldRestoreToPercent > currentArmorPercent then
+				local nerfMul = math.log(wouldRestoreToPercent/currentArmorPercent) / (wouldRestoreToPercent-currentArmorPercent)
+				armor = armor * nerfMul
+				self:SetArmor(self:InsaneStats_GetArmor() + armor)
+			end
+		end
+		
+		local armorAdded = unnerfedArmorRestored + armor
+		self:InsaneStats_DamageNumber(self, -armorAdded, DMG_DROWN)
 	end
+end
+
+function ENTITY:InsaneStats_AddHealthCapped(health)
+	local healthAdded = self:InsaneStats_GetHealth() < math.huge and math.min(health, self:InsaneStats_GetMaxHealth() - self:InsaneStats_GetHealth()) or 0
+	self:SetHealth(self:InsaneStats_GetHealth() + healthAdded)
+	self:InsaneStats_DamageNumber(self, -healthAdded, DMG_DROWNRECOVER)
 end
 
 function ENTITY:InsaneStats_IsValidEnemy(ent)

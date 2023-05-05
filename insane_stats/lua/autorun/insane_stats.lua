@@ -1,10 +1,10 @@
 --[[
 NEXT:
-
+test health / armor gain displays
 ]]
 
 InsaneStats = {
-	VERSION = "0.5.0",
+	VERSION = "0.5.1",
 	VERSION_DATE = "2023-05-04"
 }
 

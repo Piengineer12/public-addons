@@ -537,7 +537,7 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 						lifeSteal = lifeSteal / 2
 					end
 					
-					attacker:SetHealth(math.min(attacker:InsaneStats_GetHealth() + lifeSteal, attacker:InsaneStats_GetMaxHealth()))
+					attacker:InsaneStats_AddHealthCapped(lifeSteal)
 				end
 				
 				if not isArcingDamage and math.random() < attacker:InsaneStats_GetAttributeValue("arc_chance") - 1 then
@@ -1124,7 +1124,7 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 						healthRestored = healthRestored / 2
 					end
 					
-					v:SetHealth(math.min(v:InsaneStats_GetMaxHealth(), v:InsaneStats_GetHealth()+healthRestored))
+					v:InsaneStats_AddHealthCapped(healthRestored)
 				end
 				
 				--if v:InsaneStats_GetAttributeValue("combat5s_armorregen") ~= 1 or v:InsaneStats_GetStatusEffectLevel("armor_regen") ~= 0 then
@@ -1179,7 +1179,7 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 						victim = v,
 						stat = "cosmicurse",
 						ammoType = 8,
-						damageType = bit.bor(DMG_POISON, DMG_SLASH, DMG_BURN, DMG_DROWN, DMG_SHOCK, DMG_BLAST)
+						damageType = bit.bor(DMG_SLASH, DMG_BURN, DMG_BLAST, DMG_POISON, DMG_AIRBOAT, DMG_DROWN, DMG_SHOCK, DMG_PLASMA)
 					})
 					
 					if v:InsaneStats_GetAttributeValue("toggle_damage") ~= 1
@@ -1373,7 +1373,7 @@ hook.Add("PlayerUse", "InsaneStatsWPASS2", function(ply, ent)
 			
 			ply:InsaneStats_AddArmorNerfed(armorToAdd)
 			if ent:HasSpawnFlags(8192) then
-				ply:SetHealth(math.min(ply:InsaneStats_GetMaxHealth(), ply:InsaneStats_GetHealth() + armorToAdd/2))
+				ply:InsaneStats_AddHealthCapped(armorToAdd/2)
 			end
 			
 			ent:SetSaveValue("m_iJuice",0)

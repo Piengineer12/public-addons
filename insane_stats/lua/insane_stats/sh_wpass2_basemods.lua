@@ -1003,7 +1003,7 @@ local modifiers = {
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
 		cost = 2,
-		max = 10
+		max = 5
 	},
 	superior = {
 		prefix = "Superior",
@@ -1479,7 +1479,7 @@ local attributes = {
 		mul = 2
 	},
 	ally_damage = {
-		display = "%s damage dealt vs. allies unless Alt is held",
+		display = "%s damage dealt vs. allies unless Alt held",
 		invert = true
 	},
 	random_damage = {
@@ -1729,30 +1729,30 @@ local attributes = {
 		mul = 10,
 	},
 	killstack_damage = {
-		display = "%s damage dealt per kill, decays over time",
+		display = "%s decaying damage dealt per kill",
 		mul = 0.05
 	},
 	killstack_firerate = {
-		display = "%s fire rate per kill, decays over time",
+		display = "%s decaying fire rate per kill",
 		mul = 0.05
 	},
 	killstack_resistance = {
-		display = "%s defence per kill, decays over time",
+		display = "%s decaying defence per kill",
 		mul = 0.05
 	},
 	--[[killstack_speed = {
-		display = "%s movement speed per kill, decays over time",
+		display = "%s decaying movement speed per kill",
 	},]]
 	killstack_xp = {
-		display = "%s XP gain per kill, decays over time",
+		display = "%s decaying XP gain per kill",
 		mul = 0.05
 	},
 	killstackmarked_damage = {
-		display = "%s damage dealt per marked kill, decays over time",
+		display = "%s decaying damage dealt per marked kill",
 		mul = 0.1
 	},
 	killstackmarked_resistance = {
-		display = "%s defence per marked kill, decays over time",
+		display = "%s decaying defence per marked kill",
 		mul = 0.1
 	},
 	hit1s_damage = {
@@ -1779,32 +1779,32 @@ local attributes = {
 		invert = true
 	},
 	hitstack_damage = {
-		display = "%s damage dealt per hit, decays over time",
+		display = "%s decaying damage dealt per hit",
 		mul = 0.005
 	},
 	hitstack_firerate = {
-		display = "%s fire rate per hit, decays over time",
+		display = "%s decaying fire rate per hit",
 		mul = 0.005
 	},
 	hittaken_damage = {
-		display = "%s damage dealt for 10s after taking damage, 60s cooldown",
+		display = "%s damage dealt for 10s after damage taken (60s)",
 		mul = 8
 	},
 	hittaken_invincible = {
-		display = "Gain invincibility for 10s below 70%% health, 60s cooldown"
+		display = "Gain invincibility for 10s below 70%% health (60s)"
 	},
 	hittaken_regen = {
-		display = "%s health regen for 10s after taking damage, 60s cooldown",
+		display = "%s health regen for 10s after damage taken (60s)",
 		mul = 10,
 		nopercent = true
 	},
 	hittaken_armorregen = {
-		display = "%s armor regen for 10s after taking damage, 60s cooldown",
+		display = "%s armor regen for 10s after damage taken (60s)",
 		mul = 10,
 		nopercent = true
 	},
 	hittakenstack_resistance = {
-		display = "%s defence per hit taken, decays over time",
+		display = "%s decaying defence per hit taken",
 		mul = 0.05
 	},
 	--[[amp_armorloss = {
@@ -1968,13 +1968,13 @@ local attributes = {
 		mode = 2
 	},
 	armor_fullpickup = {
-		display = "Armor batteries can overcharge at %s efficiency",
+		display = "Armor batteries overcharge at %s efficiency",
 		start = 0,
 		invert = true,
 		mode = 3
 	},
 	charger_fullpickup = {
-		display = "Suit chargers can overcharge at %s efficiency",
+		display = "Suit chargers overcharge at %s efficiency",
 		start = 0,
 		invert = true,
 		mode = 3
@@ -1983,20 +1983,20 @@ local attributes = {
 		display = "%s XP gain from other's kills",
 	},
 	alt_invisible = {
-		display = "%ss invisibility after Alt double tap, 60s cooldown",
+		display = "%ss invisibility after Alt double tap (60s)",
 		start = 5,
 		nopercent = true
 	},
 	alt_damage = {
-		display = "%s damage dealt after Alt double tap, 60s cooldown",
+		display = "%s damage dealt after Alt double tap (60s)",
 		mul = 7
 	},
 	alt_firerate = {
-		display = "%s fire rate after Alt double tap, 60s cooldown",
+		display = "%s fire rate after Alt double tap (60s)",
 		mul = 7
 	},
 	alt_speed = {
-		display = "%s movement speed after Alt double tap, 60s cooldown",
+		display = "%s movement speed after Alt double tap (60s)",
 		mul = 7
 	},
 	--[[combat5s_dodge = {
@@ -2037,7 +2037,7 @@ local statusEffects = {
 	bleed = {
 		name = "Bleeding",
 		typ = -1,
-		img = Material("insane_stats/status_effects/bleeding-wound.png", "mips smooth")
+		img = Material("insane_stats/status_effects/droplets.png", "mips smooth")
 	},
 	hemotoxin = {
 		name = "Hemotoxicated",
@@ -2082,7 +2082,7 @@ local statusEffects = {
 	stun_immune = {
 		name = "Stun Immunity",
 		typ = 1,
-		img = Material("insane_stats/status_effects/extra-lucid.png", "mips smooth")
+		img = Material("insane_stats/status_effects/surprised.png", "mips smooth")
 	},
 	retaliation10_buildup = {
 		name = "Retaliation Buildup",
@@ -2172,7 +2172,7 @@ local statusEffects = {
 	hittaken_regen_cooldown = {
 		name = "Revitalization Cooldown",
 		typ = -1,
-		img = Material("insane_stats/status_effects/bubbling-flask.png", "mips smooth")
+		img = Material("insane_stats/status_effects/square-bottle.png", "mips smooth")
 	},
 	hittaken_armorregen = {
 		name = "Shielding Armor Regeneration",
@@ -2185,7 +2185,7 @@ local statusEffects = {
 	hittaken_armorregen_cooldown = {
 		name = "Shielding Cooldown",
 		typ = -1,
-		img = Material("insane_stats/status_effects/lightning-shield.png", "mips smooth")
+		img = Material("insane_stats/status_effects/bottled-bolt.png", "mips smooth")
 	},
 	
 	damage_down = {

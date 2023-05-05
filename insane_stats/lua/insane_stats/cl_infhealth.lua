@@ -91,7 +91,7 @@ hook.Add("InsaneStatsHUDDamageTaken", "InsaneStats", function(entIndex, attacker
 		})
 	end
 	
-	if attacker == LocalPlayer() and not missed then
+	if attacker == LocalPlayer() and not missed and damage > 0 then
 		shouldUpdateDPS = true
 		table.insert(ourDamages, {
 			damage = damage,
@@ -204,7 +204,10 @@ hook.Add("HUDPaint", "InsaneStats", function()
 						numberColors = {color_white}
 					end
 					
-					local numberText, suffixText = InsaneStats:FormatNumber(math.floor(entityDamageInfo.damage), {separateSuffix = true})
+					local numberText, suffixText = InsaneStats:FormatNumber(
+						math.floor(math.abs(entityDamageInfo.damage)),
+						{separateSuffix = true, plus = entityDamageInfo.damage < 0}
+					)
 					if entityDamageInfo.miss then
 						numberText = "Miss!"
 						suffixText = ""
