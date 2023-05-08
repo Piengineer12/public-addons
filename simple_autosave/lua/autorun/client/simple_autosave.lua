@@ -28,16 +28,28 @@ hook.Add("Think", "SimpleAutoSave", function()
 			manual = false
 			if GAMEMODE.IsSandboxDerived then
 				RunConsoleCommand("gm_save")
-				notification.AddLegacy("#simple_autosave.game_saved", NOTIFY_GENERIC, 5)
+				
+				chat.AddText(
+					"[Simple Autosave] ",
+					language.GetPhrase("simple_autosave.game_saved")
+				)
+				surface.PlaySound("garrysmod/content_downloaded.wav")
 			elseif not nonSandboxWarningTriggered then
 				nonSandboxWarningTriggered = true
-				notification.AddLegacy("#simple_autosave.sandbox_only.2", NOTIFY_ERROR, 10)
-				notification.AddLegacy("#simple_autosave.sandbox_only.1", NOTIFY_ERROR, 10)
+				
+				chat.AddText(
+					"[Simple Autosave] ",
+					language.GetPhrase("simple_autosave.sandbox_only.1"),
+					"\n[Simple Autosave] ",
+					language.GetPhrase("simple_autosave.sandbox_only.2")
+				)
+				surface.PlaySound("buttons/button10.wav")
 			end
 		elseif nextSave < CurTime() + ConWarning:GetFloat() and not warningTriggered then
 			warningTriggered = true
 			if GAMEMODE.IsSandboxDerived then
-				notification.AddLegacy(
+				chat.AddText(
+					"[Simple Autosave] ",
 					string.Replace(
 						language.GetPhrase("simple_autosave.in_x"),
 						"%1",
@@ -45,14 +57,19 @@ hook.Add("Think", "SimpleAutoSave", function()
 							"%.1f",
 							nextSave - CurTime()
 						)
-					),
-					NOTIFY_GENERIC,
-					7.5
+					)
 				)
+				surface.PlaySound("common/warning.wav")
 			elseif not nonSandboxWarningTriggered then
 				nonSandboxWarningTriggered = true
-				notification.AddLegacy("#simple_autosave.sandbox_only.2", NOTIFY_ERROR, 10)
-				notification.AddLegacy("#simple_autosave.sandbox_only.1", NOTIFY_ERROR, 10)
+				
+				chat.AddText(
+					"[Simple Autosave] ",
+					language.GetPhrase("simple_autosave.sandbox_only.1"),
+					"\n[Simple Autosave] ",
+					language.GetPhrase("simple_autosave.sandbox_only.2")
+				)
+				surface.PlaySound("buttons/button10.wav")
 			end
 		end
 	else
