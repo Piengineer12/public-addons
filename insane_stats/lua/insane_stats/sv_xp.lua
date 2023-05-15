@@ -648,6 +648,20 @@ hook.Add("AcceptInput", "InsaneStatsXP", function(ent, input, activator, caller,
 			
 			return true
 		end
+	elseif input == "setplayerhealth" and ent:GetClass() == "logic_playerproxy" then
+		if (tonumber(data) and tonumber(data) > 0) then
+			for k,v in pairs(player.GetAll()) do
+				local healthMul = v.insaneStats_CurrentHealthAdd or 1
+				local newHealth = healthMul * tonumber(data)
+				v:SetHealth(newHealth)
+				
+				if v:InsaneStats_GetMaxHealth() < newHealth then
+					v:SetMaxHealth(newHealth)
+				end
+			end
+			
+			return true
+		end
 	elseif input == "addoutput" then
 		local key, value = data:lower():match("(%w*health)%s+(%w*)$")
 		

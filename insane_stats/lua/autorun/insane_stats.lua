@@ -9,7 +9,7 @@ add support for font scaling
 ]]
 
 InsaneStats = {
-	VERSION = "0.6.0",
+	VERSION = "0.6.1",
 	VERSION_DATE = "2023-05-15"
 }
 
