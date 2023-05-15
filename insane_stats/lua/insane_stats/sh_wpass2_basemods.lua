@@ -15,14 +15,6 @@ local modifiers = {
 		},
 		max = 10
 	},
-	force = {
-		prefix = "Forceful",
-		suffix = "Forcefulness",
-		modifiers = {
-			knockback = 1.4641
-		},
-		max = 5
-	},
 	split = {
 		prefix = "Splitting",
 		modifiers = {
@@ -39,14 +31,6 @@ local modifiers = {
 			nonbullet_damage = 1.1
 		},
 		max = 10
-	},
-	inspire = {
-		prefix = "Inspiring",
-		suffix = "Inspiration",
-		modifiers = {
-			xp = 1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.XP
 	},
 	explode = {
 		prefix = "Explosive",
@@ -96,32 +80,10 @@ local modifiers = {
 		},
 		max = 7
 	},
-	perserve = {
-		prefix = "Perserving",
-		modifiers = {
-			ammo_savechance = 1/1.21,
-			melee_damage = 1.1
-		},
-		max = 10
-	},
 	arc = {
 		prefix = "Arcing",
 		modifiers = {
 			arc_chance = 1/1.1
-		}
-	},
-	heal = {
-		prefix = "Healing",
-		modifiers = {
-			kill_lifesteal = 1.1
-		}
-	},
-	charge = {
-		prefix = "Charging",
-		modifiers = {
-			kill_armorsteal = 1.1,
-			armor_full = 2,
-			armor_full2 = 2
 		}
 	},
 	luck = {
@@ -131,6 +93,14 @@ local modifiers = {
 			crit_chance = 1.1
 		},
 		max = 7
+	},
+	perserve = {
+		prefix = "Perserving",
+		modifiers = {
+			ammo_savechance = 1/1.21,
+			melee_damage = 1.1
+		},
+		max = 10
 	},
 	
 	-- damage, half weight
@@ -253,23 +223,6 @@ local modifiers = {
 		},
 		weight = 0.5,
 	},
-	rejuvenate = {
-		prefix = "Rejuvenating",
-		suffix = "Rejuvenation",
-		modifiers = {
-			kill5s_regen = 1.1
-		},
-		weight = 0.5
-	},
-	build = {
-		prefix = "Building",
-		modifiers = {
-			kill5s_armorregen = 1.1,
-			armor_full = 2,
-			armor_full2 = 2
-		},
-		weight = 0.5
-	},
 	unpleasant = {
 		prefix = "Unpleasant",
 		suffix = "Unpleasantness",
@@ -318,39 +271,12 @@ local modifiers = {
 		weight = 0.5,
 		max = 10
 	},
-	lethargic = {
-		prefix = "Lethargic",
-		suffix = "Lethargy",
-		modifiers = {
-			victim_speed = 1/1.1
-		},
-		weight = 0.5,
-		max = 10
-	},
 	wound = {
 		prefix = "Wounding",
 		modifiers = {
 			victim_damagetaken = 1.1
 		},
 		weight = 0.5
-	},
-	demon = {
-		prefix = "Demonic",
-		suffix = "Demons",
-		modifiers = {
-			victim_damage = 1/1.1
-		},
-		max = 10,
-		weight = 0.5
-	},
-	intimidate = {
-		prefix = "Intimidating",
-		suffix = "Intimidation",
-		modifiers = {
-			victim_firerate = 1/1.1
-		},
-		weight = 0.5,
-		max = 10
 	},
 	empower = {
 		prefix = "Empowering",
@@ -367,15 +293,6 @@ local modifiers = {
 		},
 		weight = 0.5
 	},
-	manic = {
-		prefix = "Manic",
-		suffix = "Mania",
-		modifiers = {
-			killstack_xp = 1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.XP,
-		weight = 0.5
-	},
 	ruthless = {
 		prefix = "Ruthless",
 		suffix = "Ruthlessness",
@@ -383,16 +300,6 @@ local modifiers = {
 			hit3_damage = 1.1
 		},
 		weight = 0.5
-	},
-	practical = {
-		prefix = "Practical",
-		suffix = "Practicality",
-		modifiers = {
-			prop_xp = 1.1
-		},
-		weight = 0.5,
-		max = 10,
-		flags = InsaneStats.WPASS2_FLAGS.XP
 	},
 	wild = {
 		prefix = "Wild",
@@ -556,17 +463,6 @@ local modifiers = {
 		max = 10,
 		cost = 2
 	},
-	conscious = {
-		prefix = "Conscious",
-		suffix = "Consciousness",
-		modifiers = {
-			xp = 1.331,
-			ally_xp = -1
-		},
-		weight = 0.5,
-		cost = 2,
-		flags = InsaneStats.WPASS2_FLAGS.XP
-	},
 	broken = {
 		prefix = "Broken",
 		suffix = "Breaking",
@@ -708,6 +604,147 @@ local modifiers = {
 		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY),
 	},
 	
+	-- damage utility
+	force = {
+		prefix = "Forceful",
+		suffix = "Forcefulness",
+		modifiers = {
+			knockback = 1.4641
+		},
+		max = 5
+	},
+	inspire = {
+		prefix = "Inspiring",
+		suffix = "Inspiration",
+		modifiers = {
+			xp = 1.1
+		},
+		flags = InsaneStats.WPASS2_FLAGS.XP
+	},
+	heal = {
+		prefix = "Healing",
+		modifiers = {
+			kill_lifesteal = 1.1
+		}
+	},
+	charge = {
+		prefix = "Charging",
+		modifiers = {
+			kill_armorsteal = 1.1,
+			armor_full = 1.1,
+			armor_full2 = 1.1
+		}
+	},
+	
+	-- damage utility, half weight
+	bolster = {
+		prefix = "Bolstering",
+		modifiers = {
+			kill5s_damagetaken = 1/1.1
+		},
+		weight = 0.5,
+		max = 7
+	},
+	rejuvenate = {
+		prefix = "Rejuvenating",
+		suffix = "Rejuvenation",
+		modifiers = {
+			kill5s_regen = 1.1
+		},
+		weight = 0.5
+	},
+	build = {
+		prefix = "Building",
+		modifiers = {
+			kill5s_armorregen = 1.1,
+			armor_full = 1.1,
+			armor_full2 = 1.1
+		},
+		weight = 0.5
+	},
+	lethargic = {
+		prefix = "Lethargic",
+		suffix = "Lethargy",
+		modifiers = {
+			victim_speed = 1/1.1
+		},
+		weight = 0.5,
+		max = 10
+	},
+	demon = {
+		prefix = "Demonic",
+		suffix = "Demons",
+		modifiers = {
+			victim_damage = 1/1.1
+		},
+		max = 10,
+		weight = 0.5
+	},
+	intimidate = {
+		prefix = "Intimidating",
+		suffix = "Intimidation",
+		modifiers = {
+			victim_firerate = 1/1.1
+		},
+		weight = 0.5,
+		max = 10
+	},
+	manic = {
+		prefix = "Manic",
+		suffix = "Mania",
+		modifiers = {
+			killstack_xp = 1.1
+		},
+		flags = InsaneStats.WPASS2_FLAGS.XP,
+		weight = 0.5
+	},
+	practical = {
+		prefix = "Practical",
+		suffix = "Practicality",
+		modifiers = {
+			prop_xp = 1.1
+		},
+		weight = 0.5,
+		max = 10,
+		flags = InsaneStats.WPASS2_FLAGS.XP
+	},
+	fleeting = {
+		prefix = "Fleeting",
+		modifiers = {
+			kill5s_speed = 1.1
+		},
+		weight = 0.5,
+		max = 10
+	},
+	resist = {
+		prefix = "Resisting",
+		modifiers = {
+			killstack_defence = 1.1
+		},
+		weight = 0.5
+	},
+	supply = {
+		prefix = "Supplying",
+		modifiers = {
+			kill_supplychance = 1.21
+		},
+		weight = 0.5,
+		max = 5
+	},
+	
+	-- damage utility, half weight doubled cost
+	conscious = {
+		prefix = "Conscious",
+		suffix = "Consciousness",
+		modifiers = {
+			xp = 1.331,
+			ally_xp = -1
+		},
+		weight = 0.5,
+		cost = 2,
+		flags = InsaneStats.WPASS2_FLAGS.XP
+	},
+	
 	-- utility
 	speed = {
 		prefix = "Speedy",
@@ -718,10 +755,11 @@ local modifiers = {
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		max = 12
 	},
-	supplying = {
-		prefix = "Supplying",
+	copy = {
+		prefix = "Copycat",
+		suffix = "Copying",
 		modifiers = {
-			supplying = 1.21
+			copying = 1.21
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		max = 10
@@ -807,7 +845,7 @@ local modifiers = {
 	cloaking = {
 		prefix = "Cloaking",
 		modifiers = {
-			alt_invisible = 1.21
+			alt_invisible = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
@@ -891,7 +929,7 @@ local modifiers = {
 		prefix = "Rash",
 		suffix = "Rashness",
 		modifiers = {
-			mark = 2,
+			mark = 1.1,
 			killstackmarked_damage = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
@@ -1005,9 +1043,9 @@ local modifiers = {
 		cost = 2,
 		max = 5
 	},
-	superior = {
-		prefix = "Superior",
-		suffix = "Superiority",
+	supreme = {
+		prefix = "Supreme",
+		suffix = "Supremacy",
 		modifiers = {
 			highlevel_damage = 1.331,
 			lowlevel_damagetaken = 1.1
@@ -1031,14 +1069,14 @@ local modifiers = {
 		prefix = "Sighted",
 		suffix = "Sight",
 		modifiers = {
-			mark = 2,
+			mark = 1.1,
 			mark_damage = 1.1,
 			mark_damagetaken = 1/1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
 		cost = 2,
-		max = 5
+		max = 7
 	},
 	glass = {
 		prefix = "Glass",
@@ -1078,7 +1116,7 @@ local modifiers = {
 		modifiers = {
 			crit_damagetaken = 1/1.1
 		},
-		max = 5,
+		max = 7,
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR
 	},
 	health = {
@@ -1131,8 +1169,8 @@ local modifiers = {
 		prefix = "Hard",
 		suffix = "Hardness",
 		modifiers = {
-			mark = 2,
-			killstackmarked_resistance = 1.1
+			mark = 1.1,
+			killstackmarked_defence = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5
@@ -1161,8 +1199,8 @@ local modifiers = {
 		prefix = "Bloodletting",
 		modifiers = {
 			bloodletting = 1.02,
-			armor_full = 2,
-			armor_full2 = 2
+			armor_full = 1.1,
+			armor_full2 = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
@@ -1173,37 +1211,20 @@ local modifiers = {
 		modifiers = {
 			armor_fullpickup = 0.15,
 			charger_fullpickup = 0.15,
-			armor_full = 2,
-			armor_full2 = 2
+			armor_full = 1.1,
+			armor_full2 = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
 		max = 6
 	},
-	resist = {
-		prefix = "Resisting",
-		modifiers = {
-			killstack_resistance = 1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5
-	},
 	ward = {
 		prefix = "Warding",
 		modifiers = {
-			hittakenstack_resistance = 1.1
+			hittakenstack_defence = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5
-	},
-	fleeting = {
-		prefix = "Fleeting",
-		modifiers = {
-			kill5s_speed = 1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		max = 10
 	},
 	revital = {
 		prefix = "Revitalizing",
@@ -1218,8 +1239,8 @@ local modifiers = {
 		prefix = "Shielding",
 		modifiers = {
 			hittaken_armorregen = 1.1,
-			armor_full = 2,
-			armor_full2 = 2
+			armor_full = 1.1,
+			armor_full2 = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5
@@ -1228,11 +1249,11 @@ local modifiers = {
 		prefix = "Sharp",
 		suffix = "Sharpness",
 		modifiers = {
-			hittaken_invincible = 2
+			hittaken_invincible = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
-		max = 1
+		max = 2
 	},
 	ignorant = {
 		prefix = "Ignorant",
@@ -1242,7 +1263,7 @@ local modifiers = {
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
-		max = 5
+		max = 7
 	},
 	brave = {
 		prefix = "Brave",
@@ -1263,12 +1284,20 @@ local modifiers = {
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
-		max = 5
+		max = 7
 	},
 	bloodbath = {
 		prefix = "Bloodbathing",
 		modifiers = {
 			crit_lifesteal = 1.1
+		},
+		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		weight = 0.5
+	},
+	sap = {
+		prefix = "Sapping",
+		modifiers = {
+			crit_armorsteal = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5
@@ -1579,7 +1608,7 @@ local attributes = {
 		display = "%s damage taken on even levels",
 		invert = true
 	},
-	--[[perdebuff_resistance = {
+	--[[perdebuff_defence = {
 		display = "%s defence per Insane Stats debuff"
 	},
 	debuff_damagetaken = {
@@ -1618,6 +1647,125 @@ local attributes = {
 		invert = true
 	},
 	
+	-- kills and hits
+	kill5s_damage = {
+		display = "%s damage dealt for 5s after kill",
+		mul = 2
+	},
+	kill5s_damagetaken = {
+		display = "%s damage taken for 5s after kill",
+		mul = 2,
+		invert = true
+	},
+	kill5s_ally_damage = {
+		display = "%s damage dealt for 5s after ally kill",
+		mul = 5
+	},
+	kill5s_firerate = {
+		display = "%s fire rate for 5s after kill",
+		mul = 2
+	},
+	kill5s_speed = {
+		display = "%s movement speed for 5s after kill",
+		mul = 2
+	},
+	kill5s_regen = {
+		display = "%s health regen for 5s after kill",
+		mul = 2.5,
+		nopercent = true
+	},
+	kill5s_armorregen = {
+		display = "%s armor regen for 5s after kill",
+		mul = 2.5,
+		nopercent = true
+	},
+	kill5s_damageaura = {
+		display = "%s damage aura for 5s after kill",
+		nopercent = true,
+		mul = 10,
+	},
+	killstack_damage = {
+		display = "%s decaying damage dealt per kill",
+		mul = 0.1
+	},
+	killstack_firerate = {
+		display = "%s decaying fire rate per kill",
+		mul = 0.1
+	},
+	killstack_defence = {
+		display = "%s decaying defence per kill",
+		mul = 0.1
+	},
+	--[[killstack_speed = {
+		display = "%s decaying movement speed per kill",
+	},]]
+	killstack_xp = {
+		display = "%s decaying XP gain per kill",
+		mul = 0.1
+	},
+	killstackmarked_damage = {
+		display = "%s decaying damage dealt per marked kill",
+		mul = 0.2
+	},
+	killstackmarked_defence = {
+		display = "%s decaying defence per marked kill",
+		mul = 0.2
+	},
+	hit1s_damage = {
+		display = "%s damage dealt, 1s cooldown",
+		mul = 2
+	},
+	hittaken1s_damagetaken = {
+		display = "%s damage taken, 1s cooldown",
+		mul = 2,
+		invert = true
+	},
+	hit3_damage = {
+		display = "%s damage dealt every third hit",
+		mul = 3
+	},
+	hit100_damagepulse = {
+		display = "%s damage to visible enemies every 100th hit",
+		mul = 10000,
+		nopercent = true
+	},
+	hit100_self_damage = {
+		display = "%s damage dealt to self every 100th hit",
+		mul = 100,
+		invert = true
+	},
+	hitstack_damage = {
+		display = "%s decaying damage dealt per hit",
+		mul = 0.01
+	},
+	hitstack_firerate = {
+		display = "%s decaying fire rate per hit",
+		mul = 0.01
+	},
+	hittaken_damage = {
+		display = "%s damage dealt for 10s on hit taken, 60s cooldown",
+		mul = 8
+	},
+	hittaken_invincible = {
+		display = "%ss invincibility on hit taken, 60s cooldown",
+		mul = 60,
+		nopercent = true
+	},
+	hittaken_regen = {
+		display = "%s health regen for 10s on hit taken, 60s cooldown",
+		mul = 10,
+		nopercent = true
+	},
+	hittaken_armorregen = {
+		display = "%s armor regen for 10s on hit taken, 60s cooldown",
+		mul = 10,
+		nopercent = true
+	},
+	hittakenstack_defence = {
+		display = "%s decaying defence per hit taken",
+		mul = 0.1
+	},
+	
 	crit_chance = {
 		display = "%s random crit chance",
 	},
@@ -1653,7 +1801,7 @@ local attributes = {
 	},
 	simul_xp = {
 		display = "%s XP gain per multikilled entity",
-		mul = 20
+		mul = 100
 	},
 	explode = {
 		display = "%s explosion chance after 0.5s",
@@ -1691,121 +1839,7 @@ local attributes = {
 	},
 	repeat1s_damage = {
 		display = "%s doom damage dealt after 1s",
-	},
-	kill5s_damage = {
-		display = "%s damage dealt for 5s after kill",
 		mul = 2
-	},
-	kill5s_ally_damage = {
-		display = "%s damage dealt for 5s after ally kill",
-		mul = 5
-	},
-	kill5s_firerate = {
-		display = "%s fire rate for 5s after kill",
-		mul = 2
-	},
-	kill5s_speed = {
-		display = "%s movement speed for 5s after kill",
-		mul = 2
-	},
-	kill5s_regen = {
-		display = "%s health regen for 5s after kill",
-		mul = 2.5,
-		nopercent = true
-	},
-	kill5s_armorregen = {
-		display = "%s armor regen for 5s after kill",
-		mul = 2.5,
-		nopercent = true
-	},
-	kill5s_damagetaken = {
-		display = "%s damage taken for 5s after kill",
-		mul = 2,
-		invert = true
-	},
-	kill5s_damageaura = {
-		display = "%s damage aura for 5s after kill",
-		nopercent = true,
-		mul = 10,
-	},
-	killstack_damage = {
-		display = "%s decaying damage dealt per kill",
-		mul = 0.05
-	},
-	killstack_firerate = {
-		display = "%s decaying fire rate per kill",
-		mul = 0.05
-	},
-	killstack_resistance = {
-		display = "%s decaying defence per kill",
-		mul = 0.05
-	},
-	--[[killstack_speed = {
-		display = "%s decaying movement speed per kill",
-	},]]
-	killstack_xp = {
-		display = "%s decaying XP gain per kill",
-		mul = 0.05
-	},
-	killstackmarked_damage = {
-		display = "%s decaying damage dealt per marked kill",
-		mul = 0.1
-	},
-	killstackmarked_resistance = {
-		display = "%s decaying defence per marked kill",
-		mul = 0.1
-	},
-	hit1s_damage = {
-		display = "%s damage dealt, 1s cooldown",
-		mul = 2
-	},
-	hittaken1s_damagetaken = {
-		display = "%s damage taken, 1s cooldown",
-		mul = 2,
-		invert = true
-	},
-	hit3_damage = {
-		display = "%s damage dealt every third hit",
-		mul = 3
-	},
-	hit100_damagepulse = {
-		display = "%s damage to visible enemies every 100th hit",
-		mul = 10000,
-		nopercent = true
-	},
-	hit100_self_damage = {
-		display = "%s damage dealt to self every 100th hit",
-		mul = 100,
-		invert = true
-	},
-	hitstack_damage = {
-		display = "%s decaying damage dealt per hit",
-		mul = 0.005
-	},
-	hitstack_firerate = {
-		display = "%s decaying fire rate per hit",
-		mul = 0.005
-	},
-	hittaken_damage = {
-		display = "%s damage dealt for 10s after damage taken (60s)",
-		mul = 8
-	},
-	hittaken_invincible = {
-		display = "Gain invincibility for 10s below 70%% health (60s)"
-	},
-	hittaken_regen = {
-		display = "%s health regen for 10s after damage taken (60s)",
-		mul = 10,
-		nopercent = true
-	},
-	hittaken_armorregen = {
-		display = "%s armor regen for 10s after damage taken (60s)",
-		mul = 10,
-		nopercent = true
-	},
-	hittakenstack_resistance = {
-		display = "%s decaying defence per hit taken",
-		mul = 0.05
 	},
 	--[[amp_armorloss = {
 		display = "At full armor, %s armor converted to amp damage",
@@ -1885,6 +1919,11 @@ local attributes = {
 		mul = 2,
 		nopercent = true
 	},
+	crit_armorsteal = {
+		display = "%s armor on crit",
+		mul = 2,
+		nopercent = true
+	},
 	kill_lifesteal = {
 		display = "%s healing on kill",
 		mul = 10,
@@ -1897,6 +1936,10 @@ local attributes = {
 	},
 	kill_clipsteal = {
 		display = "%s clip refilled on kill"
+	},
+	kill_supplychance = {
+		display = "%s random items dropped on kill",
+		nopercent = true
 	},
 	--[[kill_victim_damage = {
 		display = "%s damage dealt by nearby enemies on kill",
@@ -1951,7 +1994,7 @@ local attributes = {
 		display = "%s retaliation damage when hurt 10 times",
 		mul = 10
 	},
-	supplying = {
+	copying = {
 		display = "%s item pickups"
 	},
 	noncombat_speed = {
@@ -1983,20 +2026,20 @@ local attributes = {
 		display = "%s XP gain from other's kills",
 	},
 	alt_invisible = {
-		display = "%ss invisibility after Alt double tap (60s)",
-		start = 5,
+		display = "%ss invisibility after Alt double tap, 60s cooldown",
+		mul = 60,
 		nopercent = true
 	},
 	alt_damage = {
-		display = "%s damage dealt after Alt double tap (60s)",
+		display = "%s damage dealt after Alt double tap, 60s cooldown",
 		mul = 7
 	},
 	alt_firerate = {
-		display = "%s fire rate after Alt double tap (60s)",
+		display = "%s fire rate after Alt double tap, 60s cooldown",
 		mul = 7
 	},
 	alt_speed = {
-		display = "%s movement speed after Alt double tap (60s)",
+		display = "%s movement speed after Alt double tap, 60s cooldown",
 		mul = 7
 	},
 	--[[combat5s_dodge = {
@@ -2101,12 +2144,12 @@ local statusEffects = {
 	},
 	hit3_damage_stacks = {
 		name = "Strong Buildup",
-		typ = 1,
+		typ = 2,
 		img = Material("insane_stats/status_effects/blade-fall.png", "mips smooth")
 	},
 	hit100_damagepulse_stacks = {
 		name = "Godly Buildup",
-		typ = 1,
+		typ = 2,
 		img = Material("insane_stats/status_effects/orbital-rays.png", "mips smooth")
 	},
 	--[[hit10s_damage_up = {
@@ -2266,6 +2309,14 @@ local statusEffects = {
 		img = Material("insane_stats/status_effects/broken-heart-zone.png", "mips smooth")
 	},
 	
+	invincible = {
+		name = "Invincible",
+		typ = 1,
+		img = Material("insane_stats/status_effects/mesh-ball.png", "mips smooth"),
+		expiry = SERVER and function(ent, level, attacker)
+			ent:InsaneStats_ApplyStatusEffect("hittaken_invincible_cooldown", 1, 60)
+		end
+	},
 	invisible = {
 		name = "Invisible",
 		typ = 2,
@@ -2363,12 +2414,6 @@ hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetStatusEffectLevel("stack_firerate_up")/100)
 		totalMul = totalMul * (1 - attacker:InsaneStats_GetStatusEffectLevel("firerate_down")/100)
 		totalMul = totalMul * (1 - attacker:InsaneStats_GetStatusEffectLevel("menacing_firerate_down")/100)
-		
-		if attacker:InsaneStats_GetStatusEffectLevel("shock") > 0
-		or attacker:InsaneStats_GetStatusEffectLevel("electroblast") > 0
-		or attacker:InsaneStats_GetStatusEffectLevel("cosmicurse") > 0 then
-			totalMul = totalMul / 2
-		end
 		
 		data.next = (data.next - CurTime()) / totalMul + CurTime()
 	end
@@ -2486,145 +2531,6 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 				movedata:SetVelocity(desiredVector)
 			end
 		end
-	end
-end)
-
-local function ProcessKillEvent(victim, attacker, inflictor)
-	if not IsValid(attacker) and IsValid(inflictor) then
-		attacker = inflictor
-	end
-	
-	if IsValid(attacker) then
-		if victim ~= attacker then
-			if attacker:InsaneStats_GetHealth() < attacker:InsaneStats_GetMaxHealth() then
-				local healthRestored = (attacker:InsaneStats_GetAttributeValue("kill_lifesteal") - 1) * (attacker.insaneStats_CurrentHealthAdd or 1)
-				if attacker:InsaneStats_GetStatusEffectLevel("bleed") > 0
-				or attacker:InsaneStats_GetStatusEffectLevel("hemotoxin") > 0
-				or attacker:InsaneStats_GetStatusEffectLevel("cosmicurse") > 0 then
-					healthRestored = healthRestored / 2
-				end
-				attacker:SetHealth(math.min(attacker:InsaneStats_GetHealth() + healthRestored, attacker:InsaneStats_GetMaxHealth()))
-			end
-			--print(attacker:InsaneStats_GetHealth(), healthRestored, attacker:InsaneStats_GetMaxHealth())
-			
-			if attacker.GetMaxArmor then
-				local armorRestored = (attacker:InsaneStats_GetAttributeValue("kill_armorsteal") - 1)* (attacker.insaneStats_CurrentArmorAdd or 1)
-				attacker:InsaneStats_AddArmorNerfed(armorRestored)
-			end
-			
-			local wep = attacker.GetActiveWeapon and attacker:GetActiveWeapon() or NULL
-			local clipSteal = attacker:InsaneStats_GetAttributeValue("kill_clipsteal") - 1
-			if IsValid(wep) and SERVER and clipSteal ~= 0 then
-				local ammoToGive1 = wep:GetMaxClip1() * clipSteal
-				local ammoToGive2 = wep:GetMaxClip2() * clipSteal
-				local clip1Used = wep:GetMaxClip1() > 0
-				local clip2Used = wep:GetMaxClip2() > 0
-				
-				local isPlayer = attacker:IsPlayer()
-				if not clip1Used and isPlayer and wep:GetPrimaryAmmoType() > 0 then
-					ammoToGive1 = game.GetAmmoMax(wep:GetPrimaryAmmoType()) / 5 * clipSteal
-				end
-				if not clip2Used and isPlayer and wep:GetSecondaryAmmoType() > 0 then
-					ammoToGive2 = game.GetAmmoMax(wep:GetSecondaryAmmoType()) / 5 * clipSteal
-				end
-				
-				ammoToGive1 = ((math.random() < ammoToGive1 % 1) and math.ceil or math.floor)(ammoToGive1)
-				ammoToGive2 = ((math.random() < ammoToGive2 % 1) and math.ceil or math.floor)(ammoToGive2)
-				
-				if clip1Used then
-					wep:SetClip1(wep:Clip1()+ammoToGive1)
-				elseif isPlayer then
-					attacker:GiveAmmo(ammoToGive1, wep:GetPrimaryAmmoType())
-				end
-				
-				if clip2Used then
-					wep:SetClip2(wep:Clip2()+ammoToGive2)
-				elseif isPlayer then
-					attacker:GiveAmmo(ammoToGive2, wep:GetSecondaryAmmoType())
-				end
-			end
-			
-			local stacks = (attacker:InsaneStats_GetAttributeValue("killstack_damage") - 1) * 100
-			attacker:InsaneStats_ApplyStatusEffect("stack_damage_up", stacks, math.huge, {amplify = true})
-			stacks = (attacker:InsaneStats_GetAttributeValue("killstack_resistance") - 1) * 100
-			attacker:InsaneStats_ApplyStatusEffect("stack_defence_up", stacks, math.huge, {amplify = true})
-			--[[stacks = (attacker:InsaneStats_GetAttributeValue("killstack_speed") - 1) * 100
-			attacker:InsaneStats_ApplyStatusEffect("stack_speed_up", stacks, math.huge, {amplify = true})]]
-			stacks = (attacker:InsaneStats_GetAttributeValue("killstack_xp") - 1) * 100
-			attacker:InsaneStats_ApplyStatusEffect("stack_xp_up", stacks, math.huge, {amplify = true})
-			stacks = (attacker:InsaneStats_GetAttributeValue("killstack_firerate") - 1) * 100
-			attacker:InsaneStats_ApplyStatusEffect("stack_firerate_up", stacks, math.huge, {amplify = true})
-			
-			
-			stacks = (attacker:InsaneStats_GetAttributeValue("kill5s_damage") - 1) * 100
-			if stacks < 0 then
-				attacker:InsaneStats_ApplyStatusEffect("damage_down", -stacks, 5, {extend = true})
-			else
-				attacker:InsaneStats_ApplyStatusEffect("damage_up", stacks, 5, {extend = true})
-			end
-			
-			stacks = (1 / attacker:InsaneStats_GetAttributeValue("kill5s_damagetaken") - 1) * 100
-			attacker:InsaneStats_ApplyStatusEffect("defence_up", stacks, 5, {extend = true})
-			
-			stacks = (attacker:InsaneStats_GetAttributeValue("kill5s_firerate") - 1) * 100
-			if stacks < 0 then
-				attacker:InsaneStats_ApplyStatusEffect("firerate_down", -stacks, 5, {extend = true})
-			else
-				attacker:InsaneStats_ApplyStatusEffect("firerate_up", stacks, 5, {extend = true})
-			end
-			
-			stacks = (attacker:InsaneStats_GetAttributeValue("kill5s_speed") - 1) * 100
-			attacker:InsaneStats_ApplyStatusEffect("speed_up", stacks, 5, {extend = true})
-			
-			stacks = attacker:InsaneStats_GetAttributeValue("kill5s_regen") - 1
-			attacker:InsaneStats_ApplyStatusEffect("regen", stacks, 5, {extend = true})
-			
-			stacks = attacker:InsaneStats_GetAttributeValue("kill5s_armorregen") - 1
-			attacker:InsaneStats_ApplyStatusEffect("armor_regen", stacks, 5, {extend = true})
-			
-			stacks = attacker:InsaneStats_GetAttributeValue("kill5s_damageaura") - 1
-			attacker:InsaneStats_ApplyStatusEffect("damage_aura", stacks, 5, {extend = true})
-			
-			if SERVER then
-				if attacker:InsaneStats_IsValidAlly(victim) then
-					stacks = (1 - attacker:InsaneStats_GetAttributeValue("kill5s_ally_damage")) * 100
-					attacker:InsaneStats_ApplyStatusEffect("damage_down", stacks, 5, {extend = true})
-				end
-				
-				if attacker.insaneStats_MarkedEntity == victim then
-					stacks = (attacker:InsaneStats_GetAttributeValue("killstackmarked_damage") - 1) * 100
-					attacker:InsaneStats_ApplyStatusEffect("stack_damage_up", stacks, math.huge, {amplify = true})
-					stacks = (attacker:InsaneStats_GetAttributeValue("killstackmarked_resistance") - 1) * 100
-					attacker:InsaneStats_ApplyStatusEffect("stack_defence_up", stacks, math.huge, {amplify = true})
-				end 
-			end
-			
-			--[[if SERVER then
-				for k,v in pairs(ents.FindInSphere(victim:GetPos(), 512)) do
-					if (v:IsNPC() and v:Disposition(attacker) == D_HT) then
-						local stacks = (1-attacker:InsaneStats_GetAttributeValue("kill_victim_damage"))*100
-						if stacks ~= 0 then
-							v:InsaneStats_ApplyStatusEffect("menacing_damage_down", stacks, 5, {extend = true})
-						end
-						
-						stacks = (1-attacker:InsaneStats_GetAttributeValue("kill_victim_firerate"))*100
-						if stacks ~= 0 then
-							v:InsaneStats_ApplyStatusEffect("menacing_firerate_down", stacks, 5, {extend = true})
-						end
-					end
-				end
-			end]]
-		end
-	end
-end
-
-hook.Add("entity_killed", "InsaneStatsSharedWPASS2", function(data)
-	if InsaneStats:GetConVarValue("wpass2_enabled") then
-		local victim = Entity(data.entindex_killed or 0)
-		local attacker = Entity(data.entindex_attacker or 0)
-		local inflictor = Entity(data.entindex_inflictor or 0)
-		
-		ProcessKillEvent(victim, attacker, inflictor)
 	end
 end)
 

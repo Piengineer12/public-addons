@@ -16,6 +16,22 @@ InsaneStats:RegisterClientConVar("hud_xp_y", "insanestats_hud_xp_y", "0.98", {
 	display = "XP Bar Y", desc = "Vertical position of XP bar.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
+--[[InsaneStats:RegisterClientConVar("hud_xp_w", "insanestats_hud_xp_w", "200", {
+	display = "XP Bar Width", desc = "Width of XP bar.",
+	type = InsaneStats.FLOAT, min = 0, max = 1000
+})
+InsaneStats:RegisterClientConVar("hud_xp_h", "insanestats_hud_xp_h", "8", {
+	display = "XP Bar Height", desc = "Height of XP bar.",
+	type = InsaneStats.FLOAT, min = 0, max = 1000
+})
+InsaneStats:RegisterClientConVar("hud_xp_font_level", "insanestats_hud_xp_font_level", "8", {
+	display = "Level Font Size", desc = "Size of XP bar level font.",
+	type = InsaneStats.INT, min = 0, max = 100
+})
+InsaneStats:RegisterClientConVar("hud_xp_font", "insanestats_hud_xp_font", "8", {
+	display = "XP Font Size", desc = "Size of XP font.",
+	type = InsaneStats.INT, min = 0, max = 100
+})]]
 InsaneStats:RegisterClientConVar("hud_xp_gained_x", "insanestats_hud_xp_gain_x", "0", {
 	display = "XP Gained Offset X", desc = "Horizontal offset of XP gain display.",
 	type = InsaneStats.FLOAT, min = -1, max = 1
@@ -24,6 +40,10 @@ InsaneStats:RegisterClientConVar("hud_xp_gained_y", "insanestats_hud_xp_gain_y",
 	display = "XP Gained Offset Y", desc = "Vertical offset of XP gain display.",
 	type = InsaneStats.FLOAT, min = -1, max = 1
 })
+--[[InsaneStats:RegisterClientConVar("hud_xp_gained_font", "insanestats_hud_xp_gained_font", "8", {
+	display = "XP Gained Font Size", desc = "Size of XP gained font.",
+	type = InsaneStats.INT, min = 0, max = 100
+})]]
 
 InsaneStats:RegisterClientConVar("hud_target_enabled", "insanestats_hud_target_enabled", "1", {
 	display = "Target Info", desc = "Enables the target info HUD.",
@@ -61,7 +81,7 @@ function InsaneStats:CalculateMultibar(x, mx, startHue)
 	if x == math.huge then
 		data.bars = math.huge
 		data.frac = 1
-		currentHue = RealTime()*60
+		currentHue = RealTime()*120
 	else
 		data.bars = math.max(math.ceil(x / mx), 1)
 		data.frac = x / mx - data.bars + 1
@@ -150,6 +170,26 @@ local function UpdateLookEntityInfo(ent, reset)
 	end
 end
 
+local function DrawOutlinedImage(img, x, y, w, h, color, outline, bgColor)
+	surface.SetMaterial(img)
+	
+	-- draw the outline
+	surface.SetDrawColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a)
+	
+	-- use the same algorithm as SimpleTextOutlined, otherwise both will look slightly, annoyingly different!
+	local steps = outline * 2/3
+	if steps < 1 then steps = 1 end
+	
+	for dx = -outline, outline, steps do
+		for dy = -outline, outline, steps do
+			surface.DrawTexturedRect(x+dx, y+dy, w, h)
+		end
+	end
+	
+	surface.SetDrawColor(color.r, color.g, color.b, color.a)
+	surface.DrawTexturedRect(x, y, w, h)
+end
+
 hook.Add("HUDPaint", "InsaneStatsXP", function()
 	local scrW = ScrW()
 	local scrH = ScrH()
@@ -168,7 +208,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 		local xp = math.floor(ply:InsaneStats_GetXP())
 		local levelHue = (level*5+60) % 360
 		if ply:InsaneStats_GetXP() == math.huge then
-			levelHue = realTime*60 % 360
+			levelHue = realTime*120 % 360
 		elseif math.abs(level) > 9007199254740992 then
 			-- return a random number seeded with the level
 			levelHue = math.floor(util.SharedRandom("InsaneStatsLevelHue"..level, 0, 72))*5
@@ -354,7 +394,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 						"xp_drop_add_add_mode"
 					)
 					local strengthMul = theirStrength / ourStrength
-					if theirStrength == ourStrength then -- inf
+					if theirStrength == ourStrength then -- to deal with inf
 						strengthMul = 1
 					end
 					
@@ -391,7 +431,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 						draw.SimpleTextOutlined("x"..InsaneStats:FormatNumber(healthBars), "InsaneStats.Medium", infoX + healthBarWidth, infoY, currentBarColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, 2, color_black)
 					end
 					
-					local currentHealthBarWidth = barFrac > 0 and (barW-4) * barFrac or -2
+					local currentHealthBarWidth = math.floor(barFrac > 0 and (barW-4) * barFrac or -2)
 					
 					surface.SetDrawColor(0,0,0)
 					surface.DrawRect(barX, barY, barW, barH)
@@ -430,7 +470,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 							draw.SimpleTextOutlined("x"..InsaneStats:FormatNumber(armorBars), "InsaneStats.Medium", infoX + armorBarWidth, infoY, currentBarColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, 2, color_black)
 						end
 						
-						local currentArmorBarWidth = barFrac > 0 and (barW-4) * barFrac or -2
+						local currentArmorBarWidth = math.floor(barFrac > 0 and (barW-4) * barFrac or -2)
 						
 						surface.SetDrawColor(0,0,0)
 						surface.DrawRect(barX, barY, barW, barH)
@@ -477,19 +517,13 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 						local statusEffectData = lookEntityInfo.statusEffects[v]
 						local statusEffectColor = statusEffectColors[statusEffectInfo.typ]
 						
-						surface.SetMaterial(statusEffectInfo.img)
-						-- draw the outline
-						surface.SetDrawColor(0,0,0,statusEffectColor.a)
-						for j=-2,2 do
-							for k=-2,2 do
-								if j ~= 0 and k ~= 0 then
-									surface.DrawTexturedRect(currentX+j, currentY+k, iconSize, iconSize)
-								end
-							end
-						end
-						
-						surface.SetDrawColor(statusEffectColor.r, statusEffectColor.g, statusEffectColor.b, statusEffectColor.a)
-						surface.DrawTexturedRect(currentX, currentY, iconSize, iconSize)
+						DrawOutlinedImage(
+							statusEffectInfo.img,
+							currentX, currentY,
+							iconSize, iconSize,
+							statusEffectColor,
+							2, color_black
+						)
 						
 						if statusEffectData.level ~= 1 then
 							draw.SimpleTextOutlined(InsaneStats:FormatNumber(statusEffectData.level, {decimals = 0}),

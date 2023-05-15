@@ -22,16 +22,18 @@ function ENT:InsaneStats_DamageNumber(attacker, damage, types, hitgroup)
 	local entIndex = self:EntIndex()
 	
 	damageInfosRequireUpdate[entIndex] = damageInfosRequireUpdate[entIndex]
-		or {damage = 0, types = 0, hitgroup = 10, position = self:LocalToWorld(self:OBBCenter())}
+		or {damage = 0, types = 0, flags = 0, hitgroup = 10, position = self:LocalToWorld(self:OBBCenter())}
 	
 	local currentDamageInfo = damageInfosRequireUpdate[entIndex]
 	currentDamageInfo.attacker = IsValid(attacker) and attacker or currentDamageInfo.attacker
-	if damage == "miss" then
-		currentDamageInfo.miss = true
-	else
+	if tonumber(damage) then
 		currentDamageInfo.damage = currentDamageInfo.damage + damage
+	elseif damage == "miss" then
+		currentDamageInfo.flags = bit.bor(currentDamageInfo.flags, 1)
+	elseif damage == "immune" then
+		currentDamageInfo.flags = bit.bor(currentDamageInfo.flags, 2)
 	end
-	currentDamageInfo.types = bit.bor(currentDamageInfo.types, types)
+	currentDamageInfo.types = bit.bor(currentDamageInfo.types, types or 0)
 					
 	-- generic hitgroup has value 8 for our purposes
 	local hitgroup = hitgroup or 0
@@ -171,7 +173,7 @@ end
 end]]
 
 local function BroadcastDamageUpdates()
-	net.Start("insane_stats")
+	net.Start("insane_stats", true)
 	net.WriteUInt(3, 8)
 	local count = math.min(table.Count(damageInfosRequireUpdate), 255)
 	net.WriteUInt(count, 8)
@@ -186,7 +188,7 @@ local function BroadcastDamageUpdates()
 		else
 			net.WriteInt(v.hitgroup or 0, 8)
 		end
-		net.WriteVector(v.position or v:LocalToWorld(v:OBBCenter()))
+		net.WriteVector(v.position)
 		
 		local isAlly = false
 		local ent = Entity(k)
@@ -194,8 +196,8 @@ local function BroadcastDamageUpdates()
 			isAlly = ent.insaneStats_IsAlly
 		end
 		net.WriteUInt(bit.bor(
-			v.miss and 1 or 0,
-			isAlly and 2 or 0
+			v.flags,
+			isAlly and 4 or 0
 		), 8)
 		
 		damageInfosRequireUpdate[k] = nil
@@ -209,9 +211,10 @@ end
 timer.Create("InsaneStatsNet", 0.5, 0, function()
 	players = player.GetAll()
 	
-	local isAlly, isEnemy = false, false
 	for k,v in pairs(ents.GetAll()) do
 		if v:IsNPC() then
+			local isAlly, isEnemy = false, false
+			
 			for k2,v2 in pairs(players) do
 				if v:Disposition(v2) == D_LI then
 					isAlly = true
@@ -317,7 +320,7 @@ net.Receive("insane_stats", function(length, ply)
 			if typ == InsaneStats.BOOL then
 				InsaneStats:GetConVarData(conVarName).conVar:SetBool(net.ReadBool())
 			elseif typ == InsaneStats.INT then
-				InsaneStats:GetConVarData(conVarName).conVar:SetInt(net.ReadInt(8))
+				InsaneStats:GetConVarData(conVarName).conVar:SetInt(net.ReadInt(32))
 			elseif typ == InsaneStats.FLOAT then
 				InsaneStats:GetConVarData(conVarName).conVar:SetFloat(net.ReadDouble())
 			end

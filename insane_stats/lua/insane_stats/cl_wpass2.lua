@@ -12,6 +12,10 @@ InsaneStats:RegisterClientConVar("hud_wpass2_height", "insanestats_hud_wpass2_he
 	display = "Weapon Panel Height", desc = "Maximum height of weapon panels.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
+InsaneStats:RegisterClientConVar("hud_wpass2_lootbeams", "insanestats_hud_wpass2_lootbeams", "1", {
+	display = "Loot Beams", desc = "Shows loot beams for weapons and armor batteries that have modifiers.",
+	type = InsaneStats.BOOL
+})
 
 InsaneStats:RegisterClientConVar("hud_wpass2_current_x", "insanestats_hud_wpass2_current_x", "0.7", {
 	display = "Current Weapon Panel X", desc = "Horizontal position of current weapon panel.",
@@ -45,9 +49,9 @@ local rarityNames = {
 	"Uncommon",
 	"Rare",
 	"Epic",
-	"Super",
+	"Superior",
 	"Legendary",
-	"Intangible",
+	"Insane",
 	"Galactic",
 	"Monstrous",
 	"Aetheric",
@@ -55,9 +59,9 @@ local rarityNames = {
 	"Mythical Uncommon",
 	"Mythical Rare",
 	"Mythical Epic",
-	"Mythical Super",
+	"Mythical Superior",
 	"Mythical Legendary",
-	"Mythical Intangible",
+	"Mythical Insane",
 	"Mythical Galactic",
 	"Mythical Monstrous",
 	"Mythical Aetheric",
@@ -65,9 +69,9 @@ local rarityNames = {
 	"Ultimate Uncommon",
 	"Ultimate Rare",
 	"Ultimate Epic",
-	"Ultimate Super",
+	"Ultimate Superior",
 	"Ultimate Legendary",
-	"Ultimate Intangible",
+	"Ultimate Insane",
 	"Ultimate Galactic",
 	"Ultimate Monstrous",
 	"Ultimate Aetheric",
@@ -106,28 +110,28 @@ local function CreateName(wep)
 	
 	for i,v in ipairs(modifiersAscending) do
 		local modifierInfo = modifiers[v]
-		if not modifierInfo then
-			error(v)
-		end
-		
-		if i % 2 == 0 then
-			name = modifierInfo.prefix .. ' ' .. name
-		else
-			local suffix = modifierInfo.suffix or modifierInfo.prefix
-			if i == 1 then
-				name = name .. " of " .. suffix
-			elseif i == lastSuffix then
-				name = name .. " and " .. suffix
+		if modifierInfo then
+			if i % 2 == 0 then
+				name = modifierInfo.prefix .. ' ' .. name
 			else
-				name = name .. ", " .. suffix
+				local suffix = modifierInfo.suffix or modifierInfo.prefix
+				if i == 1 then
+					name = name .. " of " .. suffix
+				elseif i == lastSuffix then
+					name = name .. " and " .. suffix
+				else
+					name = name .. ", " .. suffix
+				end
 			end
+		else
+			InsaneStats:Log("Couldn't recognize modifier with ID \""..v.."\"!")
 		end
 	end
 	
 	local rarityDivide = InsaneStats:GetConVarValueDefaulted(not isWep and "wpass2_tier_raritycost_battery", "wpass2_tier_raritycost")
-	local rarityTier = math.floor(wep.insaneStats_Tier/rarityDivide)+2
-	rarityTier = math.min(rarityTier, #rarityNames)
-	name = rarityNames[rarityTier] .. ' ' .. name
+	local rarityTier = math.floor(wep.insaneStats_Tier/rarityDivide)
+	rarityTier = math.min(rarityTier, #rarityNames-2)
+	name = rarityNames[rarityTier+2] .. ' ' .. name
 	
 	local attribOrder = {}
 	local attribOrderValues = {}
@@ -150,16 +154,15 @@ local function CreateName(wep)
 	wep.insaneStats_BatteryLevel = math.floor(InsaneStats:GetLevelByXPRequired(wep.insaneStats_BatteryXP))
 end
 
-local function GetRarityColor(tier)
-	tier = tier - 2
+function InsaneStats:GetRarityColor(tier)
 	if tier < 0 then return color_gray
 	elseif tier == 0 then return color_white
-	elseif tier > 30 then return HSVToColor(RealTime() * 60 % 360, 1, 1)
+	elseif tier > 30 then return HSVToColor(RealTime() * 120 % 360, 1, 1)
 	else
 		local hue = baseHues[ (tier-1)%10+1 ]
 		local lum = 0.75
 		if tier > 20 then
-			lum = math.abs( RealTime()*2%2-1 )
+			lum = math.abs( RealTime()%2-1 )
 		elseif tier > 10 then
 			lum = math.abs( RealTime()%1-0.5 ) + 0.5
 		end
@@ -174,7 +177,7 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 	local maxW = ScrW() * InsaneStats:GetConVarValue("hud_wpass2_width")
 	local maxH = ScrH() * InsaneStats:GetConVarValue("hud_wpass2_height")
 	local maxY = panelY + maxH
-	local rarityColor = GetRarityColor(wep.insaneStats_Rarity)
+	local rarityColor = InsaneStats:GetRarityColor(wep.insaneStats_Rarity)
 	local typeText = wep:IsWeapon() and " Weapon" or " Battery"
 	local outlineThickness = 2
 	extra = extra or {}
@@ -313,7 +316,7 @@ hook.Add("InsaneStatsModifiersChanging", "InsaneStatsWPASS", function(ent, oldMo
 			
 			if baseText then
 				local entityName = language.GetPhrase(ent:IsPlayer() and "item_battery" or ent:GetClass())
-				local modifierName = modifiers[k].suffix or modifiers[k].prefix
+				local modifierName = modifiers[k] and (modifiers[k].suffix or modifiers[k].prefix) or k
 				--notification.AddLegacy(string.format(baseText, entityName, modifierName), NOTIFY_GENERIC, 5)
 				chat.AddText(string.format(baseText, entityName, modifierName))
 			end
@@ -482,6 +485,26 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 				
 				local durationText = InsaneStats:FormatNumber(statusEffectData.expiry - CurTime(), {decimals = 1}) .. (statusEffectData.expiry == math.huge and "" or "s")
 				draw.SimpleTextOutlined(durationText, "InsaneStats.Small", baseX+iconSize, baseY+(i-0.5)*iconSize, statusEffectColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 2, color_black)
+			end
+		end
+	end
+end)
+
+timer.Create("InsaneStatsWPASS", 1, 0, function()
+	if InsaneStats:GetConVarValue("hud_wpass2_lootbeams") then
+		for k,v in pairs(ents.GetAll()) do
+			if v:InsaneStats_IsWPASS2Pickup() and not IsValid(v:GetOwner()) and not v:IsDormant() then
+				if v.insaneStats_Modifiers then
+					if not v.insaneStats_WPASS2Name or (v.insaneStats_WPASS2NameLastRefresh or 0) + 5 < RealTime() then
+						CreateName(v)
+					end
+					
+					local effData = EffectData()
+					effData:SetEntity(v)
+					util.Effect("insane_stats_tier", effData)
+				else
+					v:InsaneStats_MarkForUpdate()
+				end
 			end
 		end
 	end

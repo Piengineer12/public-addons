@@ -1,3 +1,5 @@
+--local createdFonts = {}
+
 InsaneStats.FONT_SMALL = ScreenScale(6)
 InsaneStats.FONT_MEDIUM = ScreenScale(8)
 InsaneStats.FONT_BIG = ScreenScale(12)
@@ -38,6 +40,20 @@ local colors = {
 	light_magenta = Color(255, 127, 255)
 }
 
+--[[function InsaneStats:GetFont(size)
+	local fontName = string.format("InsaneStats-%u", size)
+	if not createdFonts[fontName] then
+		surface.CreateFont(fontName, {
+			font = "Orbitron Medium",
+			size = ScreenScale(size)
+		})
+		
+		createdFonts[fontName] = true
+	end
+	
+	return fontName
+end]]
+
 function InsaneStats:GetColor(color)
 	return colors[color]
 end
@@ -50,7 +66,7 @@ function InsaneStats:TransitionUINumber(a, b)
 	end
 end
 
-local order = {"M", "B", "T", "Q", "Qt", "S", "Sp", "O", "N", "D", "U", "Du", "Te", "Qtd"--[[, "Qid", "Sd", "Spd"]]}
+local order = {"M", "B", "T", "Q", "Qt", "S", "Sp", "Oc", "N", "De", "U", "Du", "Te", "Qtd"--[[, "Qid", "Sd", "Spd", "Ocd", "Nd", "V"]]}
 function InsaneStats:FormatNumber(number, data)
 	data = data or {}
 	local plusStr = data.plus and number > 0 and "+" or ""
@@ -138,3 +154,10 @@ function InsaneStats:RegisterClientConVar(name, internal, default, data)
 	
 	return conVar
 end
+
+--[[InsaneStats:SetDefaultConVarCategory("HUD")
+
+InsaneStats:RegisterClientConVar("hud_outline", "insanestats_hud_outline", "1", {
+	display = "Outline Thickness", desc = "Outline thickness of elements. A value of -1 disables outlines.",
+	type = InsaneStats.FLOAT, min = -1, max = 100
+})]]

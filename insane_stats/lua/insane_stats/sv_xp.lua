@@ -53,7 +53,7 @@ function ENT:InsaneStats_ApplyLevel(level)
 		end
 		self.insaneStats_CurrentHealthAddRoot8 = self.insaneStats_CurrentHealthAdd^0.125
 		
-		if self.SetMaxArmor then
+		if self:InsaneStats_GetMaxArmor() > 0 then
 			local currentArmorFrac = self:InsaneStats_GetMaxArmor() == 0 and 0
 				or self:InsaneStats_GetArmor() == math.huge and 1
 				or self:InsaneStats_GetArmor() / self:InsaneStats_GetMaxArmor()
@@ -114,10 +114,10 @@ hook.Add("InsaneStatsScaleXP", "InsaneStatsXP", function(data)
 	
 end)
 
-local function ProcessKillEvent(victim, attacker, inflictor)
+hook.Add("InsaneStatsEntityKilled", "InsaneStatsXP", function(victim, attacker, inflictor)
 	--print(victim, attacker, inflictor, victim.insaneStats_LastAttacker)
 	--print(IsValid(attacker), attacker ~= victim, IsValid(victim.insaneStats_LastAttacker))
-	if IsValid(victim) then
+	if InsaneStats:GetConVarValue("xp_enabled") then
 		local wep = victim.GetActiveWeapon and victim:GetActiveWeapon()
 		if victim:IsNPC() and (IsValid(wep) and wep:GetClass() == "weapon_smg1") then
 			timer.Simple(0, function()
@@ -130,12 +130,18 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 				end
 			end)
 		end
-		
+	end
+end)
+
+local function ProcessKillEvent(victim, attacker, inflictor)
+	-- this function may be called multitudes of times, make sure it is only called once
+	if IsValid(victim) then
+		-- determine attacker and inflictor
 		if not (IsValid(attacker) and attacker ~= victim) and IsValid(victim.insaneStats_LastAttacker) then
 			attacker = victim.insaneStats_LastAttacker
 			inflictor = victim.insaneStats_LastAttacker
 		end
-		--print(victim, attacker, inflictor, victim.insaneStats_LastAttacker)
+		
 		if not IsValid(attacker) and IsValid(inflictor) then
 			attacker = inflictor
 		elseif (not IsValid(inflictor) or inflictor == attacker) and (attacker.GetActiveWeapon and IsValid(attacker:GetActiveWeapon())) then
@@ -144,120 +150,124 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 		
 		inflictor = IsValid(inflictor) and inflictor or attacker
 		
-		if IsValid(attacker) and victim ~= attacker then
-			local xpMul = InsaneStats:GetConVarValue(victim:IsPlayer() and "xp_player_mul" or "xp_other_mul")
-			local currentHealthAdd = victim.insaneStats_CurrentHealthAdd or 1
-			local startingHealth = victim:InsaneStats_GetMaxHealth() / currentHealthAdd
-			local startXPToGive = victim.insaneStats_IsDead and 0 or startingHealth * xpMul / 5
-
-			--print(startXPToGive)
-			-- do not add XP on nan
-			if not (startXPToGive >= -math.huge) then
-				startXPToGive = 0
-			end
-			
-			local data = {
-				xp = startXPToGive,
-				attacker = attacker, inflictor = inflictor, victim = victim,
-				receivers = {[attacker] = 1, [inflictor] = 1}
-			}
-			hook.Run("InsaneStatsScaleXP", data)
-			
-			local xpToGive = data.xp
-			--print(xpToGive)
-			local extraXP = 0
-			
-			local xpDropMul = 1
-			if victim:IsPlayer() then
-				xpDropMul = InsaneStats:GetConVarValue("xp_player_kill")
-			else
-				xpDropMul = InsaneStats:GetConVarValue("xp_other_kill")
+		if not victim.insaneStats_IsDead then
+			hook.Run("InsaneStatsEntityKilled", victim, attacker, inflictor)
+		end
+		
+		-- we WANT this to be called multiple times, in case the victim gained XP after being revived
+		if InsaneStats:GetConVarValue("xp_enabled") then
+			if IsValid(attacker) and victim ~= attacker then
+				local xpMul = InsaneStats:GetConVarValue(victim:IsPlayer() and "xp_player_mul" or "xp_other_mul")
+				local currentHealthAdd = victim.insaneStats_CurrentHealthAdd or 1
+				local startingHealth = victim:InsaneStats_GetMaxHealth() / currentHealthAdd
+				local startXPToGive = victim.insaneStats_IsDead and 0 or startingHealth * xpMul / 5
 				
-				if xpToGive > 0 then
-					-- give xp % based on NPC level
-					local level = victim:InsaneStats_GetLevel()
-					local currentXP = InsaneStats:GetXPRequiredToLevel(level)
-					if currentXP ~= math.huge then
-						local levelsBack = InsaneStats:ScaleValueToLevel(
-							1,
-							InsaneStats:GetConVarValue("xp_drop_add_add")/100,
-							level,
-							"xp_drop_add_add_mode"
-						)
-						local previousXP = InsaneStats:GetXPRequiredToLevel(level-levelsBack)
-						extraXP = (currentXP - previousXP) * InsaneStats:GetConVarValue("xp_other_mul")/100
-						--print(currentXP, extraXP)
-					else
-						extraXP = math.huge
+				--print(startXPToGive)
+				-- do not add XP on nan
+				if not (startXPToGive >= -math.huge) then
+					startXPToGive = 0
+				end
+				
+				local data = {
+					xp = startXPToGive,
+					attacker = attacker, inflictor = inflictor, victim = victim,
+					receivers = {[attacker] = 1, [inflictor] = 1}
+				}
+				hook.Run("InsaneStatsScaleXP", data)
+				
+				local xpToGive = data.xp
+				--print(xpToGive)
+				local extraXP = 0
+				
+				local xpDropMul = 1
+				if victim:IsPlayer() then
+					xpDropMul = InsaneStats:GetConVarValue("xp_player_kill")
+				else
+					xpDropMul = InsaneStats:GetConVarValue("xp_other_kill")
+					
+					if xpToGive > 0 then
+						-- give xp % based on NPC level
+						local level = victim:InsaneStats_GetLevel()
+						local currentXP = InsaneStats:GetXPRequiredToLevel(level)
+						if currentXP ~= math.huge then
+							local levelsBack = InsaneStats:ScaleValueToLevel(
+								1,
+								InsaneStats:GetConVarValue("xp_drop_add_add")/100,
+								level,
+								"xp_drop_add_add_mode"
+							)
+							local previousXP = InsaneStats:GetXPRequiredToLevel(level-levelsBack)
+							extraXP = (currentXP - previousXP) * InsaneStats:GetConVarValue("xp_other_mul")/100
+							--print(currentXP, extraXP)
+						else
+							extraXP = math.huge
+						end
 					end
 				end
-			end
+				
+				--print(xpToGive, xpDropMul)
+				
+				data.receivers[victim] = nil
+				-- shouldDropMul contains entities that DIRECTLY caused the entity to drop EXP, not other receivers
+				-- else we get an infinite loop
+				local shouldDropMul = {[attacker] = true, [inflictor] = true}
+				for k,v in pairs(shouldDropMul) do
+					local wep = k.GetActiveWeapon and k:GetActiveWeapon()
+					if IsValid(wep) then
+						shouldDropMul[wep] = true
+					end
+					
+					local driver = k.GetDriver and k:GetDriver()
+					if IsValid(driver) then
+						shouldDropMul[driver] = true
+					end
+				end
 			
-			--print(xpToGive, xpDropMul)
-			
-			data.receivers[victim] = nil
-			-- shouldDropMul contains entities that DIRECTLY caused the entity to drop EXP, not other receivers
-			local shouldDropMul = {[attacker] = true, [inflictor] = true}
-			for k,v in pairs(shouldDropMul) do
-				local wep = k.GetActiveWeapon and k:GetActiveWeapon()
-				if IsValid(wep) then
-					shouldDropMul[wep] = true
+				for k,v in pairs(data.receivers) do
+					local tempExtraXP = (k:IsPlayer() or k:GetOwner():IsPlayer()) and 0 or extraXP * v
+					local tempDropMul = shouldDropMul[k] and xpDropMul or 0
+					local xp = xpToGive * v
+					--print("xp, tempExtraXP, tempDropMul")
+					--print(xp, tempExtraXP, tempDropMul)
+					--print(k, xp, xpToGive, v, victim.insaneStats_DropXP, tempExtraXP)
+					k:InsaneStats_AddXP(xp+tempExtraXP, xp*tempDropMul)
+					k.insaneStats_BatteryXP = (k.insaneStats_BatteryXP or 0) + xp
+					
+					local wep = k.GetActiveWeapon and k:GetActiveWeapon()
+					if IsValid(wep) and not data.receivers[wep] then
+						--print(wep, xp, xpToGive, victim.insaneStats_DropXP, tempExtraXP)
+						wep:InsaneStats_AddXP(xp+tempExtraXP, xp*tempDropMul)
+						wep.insaneStats_BatteryXP = (wep.insaneStats_BatteryXP or 0) + xp
+					end
+					
+					local driver = k.GetDriver and k:GetDriver()
+					if IsValid(driver) and not data.receivers[driver] then
+						driver:InsaneStats_AddXP(xp+tempExtraXP, xp*tempDropMul)
+						driver.insaneStats_BatteryXP = (driver.insaneStats_BatteryXP or 0) + xp
+					end
 				end
 				
-				local driver = k.GetDriver and k:GetDriver()
-				if IsValid(driver) then
-					shouldDropMul[driver] = true
-				end
-			end
-		
-			for k,v in pairs(data.receivers) do
-				local tempExtraXP = (k:IsPlayer() or k:GetOwner():IsPlayer()) and 0 or extraXP * v
-				local tempDropMul = shouldDropMul[k] and xpDropMul or 0
-				local xp = xpToGive * v
-				--print("xp, tempExtraXP, tempDropMul")
-				--print(xp, tempExtraXP, tempDropMul)
-				--print(k, xp, xpToGive, v, victim.insaneStats_DropXP, tempExtraXP)
-				k:InsaneStats_AddXP(xp+tempExtraXP, xp*tempDropMul)
-				k.insaneStats_BatteryXP = (k.insaneStats_BatteryXP or 0) + xp
-				
-				local wep = k.GetActiveWeapon and k:GetActiveWeapon()
-				if IsValid(wep) and not data.receivers[wep] then
-					--print(wep, xp, xpToGive, victim.insaneStats_DropXP, tempExtraXP)
-					wep:InsaneStats_AddXP(xp+tempExtraXP, xp*tempDropMul)
-					wep.insaneStats_BatteryXP = (wep.insaneStats_BatteryXP or 0) + xp
-				end
-				
-				local driver = k.GetDriver and k:GetDriver()
-				if IsValid(driver) and not data.receivers[driver] then
-					driver:InsaneStats_AddXP(xp+tempExtraXP, xp*tempDropMul)
-					driver.insaneStats_BatteryXP = (driver.insaneStats_BatteryXP or 0) + xp
-				end
+				--print(attackerXP, attackerXP*xpDropMul)
 			end
 			
-			--print(attackerXP, attackerXP*xpDropMul)
+			if victim:IsPlayer() then
+				-- deduct xp %
+				local newXP = victim:InsaneStats_GetXP() * (1-InsaneStats:GetConVarValue("xp_player_lose")/100)
+				victim:InsaneStats_SetXP(newXP, 0)
+			end
+			
+			victim.insaneStats_IsDead = true
+			victim.insaneStats_DropXP = 0
 		end
-		
-		victim.insaneStats_IsDead = true
-		victim.insaneStats_DropXP = 0
-		
-		if victim:IsPlayer() then
-			-- deduct xp %
-			local newXP = victim:InsaneStats_GetXP() * (1-InsaneStats:GetConVarValue("xp_player_lose")/100)
-			victim:InsaneStats_SetXP(newXP, 0)
-		end
-		
-		hook.Run("InsaneStatsPostScaleXP", data)
 	end
 end
 
 hook.Add("entity_killed", "InsaneStatsXP", function(data)
-	if InsaneStats:GetConVarValue("xp_enabled") then
-		local victim = Entity(data.entindex_killed or 0)
-		local attacker = Entity(data.entindex_attacker or 0)
-		local inflictor = Entity(data.entindex_inflictor or 0)
-		
-		ProcessKillEvent(victim, attacker, inflictor)
-	end
+	local victim = Entity(data.entindex_killed or 0)
+	local attacker = Entity(data.entindex_attacker or 0)
+	local inflictor = Entity(data.entindex_inflictor or 0)
+	
+	ProcessKillEvent(victim, attacker, inflictor)
 end)
 
 local needCorrectiveDeathClasses = {
@@ -274,9 +284,7 @@ hook.Add("break_prop", "InsaneStatsXP", function(data)
 end]]
 
 hook.Add("OnNPCKilled", "InsaneStatsXP", function(victim, attacker, inflictor)
-	if InsaneStats:GetConVarValue("xp_enabled") then
-		ProcessKillEvent(victim, attacker, inflictor)
-	end
+	ProcessKillEvent(victim, attacker, inflictor)
 end)
 
 function InsaneStats:DetermineEntitySpawnedXP(pos)
@@ -497,8 +505,13 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsXP", function(ent)
 			ent:Fire("AddOutput", "OnDeath !activator:InsaneStats_OnNPCKilled")
 			if ent:GetClass()=="npc_helicopter" then
 				ent:Fire("AddOutput", "OnShotDown !activator:InsaneStats_OnNPCKilled")
-			elseif (ent:GetClass()=="prop_vehicle_apc" and IsValid(ent:GetDriver())) then
-				ent:Fire("AddOutput", "OnDeath "..ent:GetDriver():GetName()..":SetHealth:0")
+			elseif ent:GetClass()=="npc_turret_floor" then
+				ent:Fire("AddOutput", "OnTipped !self:InsaneStats_OnNPCKilled")
+			end
+		elseif ent:GetClass()=="prop_vehicle_apc" then
+			ent:Fire("AddOutput", "OnDeath !activator:InsaneStats_OnNPCKilled")
+			if (IsValid(ent:GetDriver()) and (ent:GetDriver():GetName() or "") ~= "") then
+				ent:Fire("AddOutput", "OnDeath "..ent:GetDriver():GetName()..":SetHealth:0:0:-1")
 			end
 		end
 	end
@@ -555,6 +568,7 @@ end)
 
 hook.Add("AcceptInput", "InsaneStatsXP", function(ent, input, activator, caller, data)
 	input = input:lower()
+	data = data or ""
 	
 	if InsaneStats:GetConVarValue("xp_enabled") then
 		--[[if input == "InsaneStatsHealthChargerPoint" then
@@ -580,14 +594,16 @@ hook.Add("AcceptInput", "InsaneStatsXP", function(ent, input, activator, caller,
 			end
 			
 			return true
-		elseif input == "insanestats_onnpckilled" and activator:IsPlayer() then
-			ProcessKillEvent(caller, activator)
+		elseif input == "insanestats_onnpckilled" then
+			--print("insanestats_onnpckilled", activator, "killed", caller)
+			ProcessKillEvent(caller, activator, activator)
+			return true
 		end
 	end
 	
 	if input == "sethealth" then
 		local healthMul = ent.insaneStats_CurrentHealthAdd or 1
-		if tonumber(data) then
+		if (tonumber(data) and tonumber(data) > 0) then
 			local newHealth = healthMul * tonumber(data)
 			ent:SetHealth(newHealth)
 			
@@ -622,7 +638,7 @@ hook.Add("AcceptInput", "InsaneStatsXP", function(ent, input, activator, caller,
 			return true
 		end
 	elseif input == "sethealthfraction" then
-		if tonumber(data) then
+		if (tonumber(data) and tonumber(data) > 0) then
 			local newHealth = ent:InsaneStats_GetMaxHealth() * tonumber(data) / 100
 			ent:SetHealth(newHealth)
 			
@@ -714,6 +730,8 @@ hook.Add("GravGunOnPickedUp", "InsaneStatsXP", function(ply, ent)
 end)
 
 hook.Add("PlayerSpawn", "InsaneStatsXP", function(ply, fromTransition)
+	ply.insaneStats_IsDead = false
+	
 	if fromTransition then
 		if ply.insaneStats_HealthRoot8 then
 			ply.insaneStats_Health = ply.insaneStats_HealthRoot8 ^ 8

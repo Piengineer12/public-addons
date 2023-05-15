@@ -20,18 +20,74 @@ net.Receive("insane_stats", function()
 		--print(count)
 		for i=1,count do
 			local entIndex = net.ReadUInt(16)
-			local ent = Entity(entIndex)
+			local flags = net.ReadUInt(8)
+			local health, maxHealth, armor, maxArmor
+			local xp, class, name, disposition
+			local batteryXP, modifierChangeReason, tier
+			local modifiers, statusEffects
 			
-			if IsValid(ent) and entIndex == ent:EntIndex() then
-				local flags = net.ReadUInt(8)
-				--print(flags)
+			if bit.band(flags, 1) ~= 0 then
+				health = net.ReadDouble()
+				maxHealth = net.ReadDouble()
+				armor = net.ReadDouble()
+				maxArmor = net.ReadDouble()
+			end
 				
-				if bit.band(flags, 1) ~= 0 then
-					local health = net.ReadDouble()
-					local maxHealth = net.ReadDouble()
-					local armor = net.ReadDouble()
-					local maxArmor = net.ReadDouble()
+			if bit.band(flags, 2) ~= 0 then
+				xp = net.ReadDouble()
+			end
+				
+			if bit.band(flags, 4) ~= 0 then
+				class = net.ReadString()
+				name = net.ReadString()
+			end
+			
+			if bit.band(flags, 8) ~= 0 then
+				batteryXP = net.ReadDouble()
+				modifierChangeReason = net.ReadBool()
+				tier = net.ReadUInt(16)
+				
+				modifiers = {}
+				for i=1, net.ReadUInt(16) do
+					local key = net.ReadString()
+					local value = net.ReadUInt(16)+1
 					
+					if key == "" then
+						InsaneStats:Log("Received an empty string for modifier, is the network toasted?")
+						InsaneStats:Log("This occured while processing entity "..entIndex..".")
+					else
+						modifiers[key] = value
+					end
+				end
+			end
+			
+			if bit.band(flags, 16) ~= 0 then
+				statusEffects = {}
+				
+				for i=1, net.ReadUInt(16) do
+					local id = net.ReadUInt(16)
+					local level = net.ReadDouble()
+					local expiry = net.ReadFloat()
+					
+					-- decode the id to a named one
+					local idStr = InsaneStats:GetStatusEffectName(id)
+					
+					if idStr then
+						statusEffects[idStr] = {level = level, expiry = expiry}
+					else
+						InsaneStats:Log("Received unknown status effect ID "..id..", is the network toasted?")
+						InsaneStats:Log("This occured while processing entity "..entIndex..".")
+					end
+				end
+			end
+			
+			if bit.band(flags, 32) ~= 0 then
+				disposition = net.ReadInt(4)
+			end
+			
+			local ent = Entity(entIndex)
+			if IsValid(ent) and entIndex == ent:EntIndex() then
+				if health then
 					ent:SetHealth(health)
 					if ent.SetMaxHealth then
 						ent:SetMaxHealth(maxHealth)
@@ -44,31 +100,18 @@ net.Receive("insane_stats", function()
 					end
 				end
 				
-				if bit.band(flags, 2) ~= 0 then
-					ent:InsaneStats_SetXP(net.ReadDouble())
-					--print(ent, ent:InsaneStats_GetXP())
+				if xp then
+					ent:InsaneStats_SetXP(xp)
 				end
 				
-				if bit.band(flags, 4) ~= 0 then
-					ent.insaneStats_Class = net.ReadString()
-					ent.insaneStats_Name = net.ReadString()
+				if class then
+					ent.insaneStats_Class = class
+					ent.insaneStats_Name = name
 				end
 				
-				if bit.band(flags, 8) ~= 0 then
-					ent.insaneStats_BatteryXP = net.ReadDouble()
-					local modifierChangeReason = net.ReadBool()
-					ent.insaneStats_Tier = net.ReadUInt(16)
-					local modifiers = {}
-					for i=1, net.ReadUInt(16) do
-						local key = net.ReadString()
-						local value = net.ReadUInt(16)+1
-						
-						if key == "" then
-							InsaneStats:Log("Received an empty string for modifier, is the network toasted?")
-						else
-							modifiers[key] = value
-						end
-					end
+				if batteryXP then
+					ent.insaneStats_BatteryXP = batteryXP
+					ent.insaneStats_Tier = tier
 					
 					hook.Run("InsaneStatsModifiersChanging", ent, ent.insaneStats_Modifiers, modifiers, modifierChangeReason)
 					
@@ -77,30 +120,19 @@ net.Receive("insane_stats", function()
 					ent.insaneStats_WPASS2Name = nil
 				end
 				
-				if bit.band(flags, 16) ~= 0 then
+				if statusEffects then
 					ent.insaneStats_StatusEffects = ent.insaneStats_StatusEffects or {}
 					
-					for i=1, net.ReadUInt(16) do
-						local id = net.ReadUInt(16)
-						local level = net.ReadDouble()
-						local expiry = net.ReadFloat()
-						
-						-- decode the id to a named one
-						local idStr = InsaneStats:GetStatusEffectName(id)
-						
-						if idStr then
-							ent.insaneStats_StatusEffects[idStr] = {level = level, expiry = expiry}
-						end
+					for k,v in pairs(statusEffects) do
+						ent.insaneStats_StatusEffects[k] = v
 					end
 				end
 				
-				if bit.band(flags, 32) ~= 0 then
-					ent.insaneStats_Disposition = net.ReadInt(4)
+				if disposition then
+					ent.insaneStats_Disposition = disposition
 				end
 				
 				hook.Run("InsaneStatsEntityUpdated", ent, flags)
-			--[[else -- oh no
-				return]]
 			end
 		end
 	elseif func == 2 then

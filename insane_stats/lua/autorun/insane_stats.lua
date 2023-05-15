@@ -1,11 +1,16 @@
 --[[
-NEXT:
-test health / armor gain displays
+Workshop:		TBD
+Profile Page:	https://steamcommunity.com/id/Piengineer12
+GitHub Page:	https://github.com/Piengineer12/public-addons/tree/master/insane_stats
+Donate:			https://ko-fi.com/piengineer12
+
+TODO:
+add support for font scaling
 ]]
 
 InsaneStats = {
-	VERSION = "0.5.1",
-	VERSION_DATE = "2023-05-04"
+	VERSION = "0.6.0",
+	VERSION_DATE = "2023-05-15"
 }
 
 function InsaneStats:Log(msg)

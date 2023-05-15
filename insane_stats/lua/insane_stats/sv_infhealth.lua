@@ -26,8 +26,14 @@ function ENT:InsaneStats_ArmorSensible()
 	end
 end
 
+-- due to info_target_*crash entities, we can't apply non-standard knockback lest we break map logic
+local doNotKnockbackClasses = {
+	npc_combinegunship = true,
+	npc_helicopter = true,
+	prop_physics = true
+}
 function ENT:InsaneStats_ApplyKnockback(knockback, additionalVelocity)
-	if IsValid(self:GetPhysicsObject()) then
+	if IsValid(self:GetPhysicsObject()) and not doNotKnockbackClasses[self:GetClass()] then
 		local reductionFactor = self:GetPhysicsObject():GetMass()
 	
 		local originalVelocity = self:IsPlayer() and vector_origin or self:GetVelocity()
@@ -119,41 +125,44 @@ timer.Create("InsaneStatsUnlimitedHealth", 0.5, 0, function()
 			end
 		end
 		
+		hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealthPre", function(vic, dmginfo, ...)
+			InsaneStats:SetDamage(nil)
+		end, -1)
 		hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", hookTable.EntityTakeDamage.InsaneStatsUnlimitedHealth, 1)
 		hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", hookTable.PostEntityTakeDamage.InsaneStatsUnlimitedHealth, -1)
 	end
 end)
 
 hook.Add("Think", "InsaneStatsUnlimitedHealth", function()
-	for k,v in pairs(entities) do
-		if IsValid(v) then
-			if InsaneStats:GetConVarValue("infhealth_enabled") and v.InsaneStats_GetRawHealth then
-				v.insaneStats_OldRawHealth = v.insaneStats_OldRawHealth or v:InsaneStats_GetRawHealth()
-				
-				if v.insaneStats_OldRawHealth ~= v:InsaneStats_GetRawHealth() then
-					local difference = v:InsaneStats_GetRawHealth() - v.insaneStats_OldRawHealth
-					--print(difference)
-					if difference < 0 and v:IsOnFire() then -- getting set on fire resets the entity's health. Valve, pls fix.
-						difference = 0
+	if InsaneStats:GetConVarValue("infhealth_enabled") then
+		for k,v in pairs(entities) do
+			if IsValid(v) then
+				if v.InsaneStats_GetRawHealth then
+					v.insaneStats_OldRawHealth = v.insaneStats_OldRawHealth or v:InsaneStats_GetRawHealth()
+					
+					if v.insaneStats_OldRawHealth ~= v:InsaneStats_GetRawHealth() then
+						local difference = v:InsaneStats_GetRawHealth() - v.insaneStats_OldRawHealth
+						--print(difference)
+						if difference < 0 and v:IsOnFire() then -- getting set on fire resets the entity's health. Valve, pls fix.
+							difference = 0
+						end
+						
+						difference = difference * (v.insaneStats_CurrentHealthAdd or 1)
+						
+						v:SetHealth(v:InsaneStats_GetHealth() + difference)
 					end
 					
-					difference = difference * (v.insaneStats_CurrentHealthAdd or 1)
-					
-					v:SetHealth(v:InsaneStats_GetHealth() + difference)
+					if v:GetMaxArmor() > 0
+					and v:InsaneStats_GetArmor() < v:GetMaxArmor()
+					and not v:IsPlayer()
+					and (v.insaneStats_LastDamageTaken or 0) + InsaneStats:GetConVarValue("infhealth_armor_regen_delay") <= CurTime() then
+						local armorToAdd = v:GetMaxArmor() * InsaneStats:GetConVarValue("infhealth_armor_regen") / 100 * FrameTime()
+						--print(v:InsaneStats_GetArmor(), armorToAdd, v:InsaneStats_GetArmor() + armorToAdd)
+						v:SetArmor(math.min(v:InsaneStats_GetArmor() + armorToAdd, v:GetMaxArmor()))
+					end
 				end
 				
-				if v:GetMaxArmor() > 0
-				and v:InsaneStats_GetArmor() < v:GetMaxArmor()
-				and not v:IsPlayer()
-				and (v.insaneStats_LastDamageTaken or 0) + InsaneStats:GetConVarValue("infhealth_armor_regen_delay") <= CurTime() then
-					local armorToAdd = v:GetMaxArmor() * InsaneStats:GetConVarValue("infhealth_armor_regen") / 100 * FrameTime()
-					--print(v:InsaneStats_GetArmor(), armorToAdd, v:InsaneStats_GetArmor() + armorToAdd)
-					v:SetArmor(math.min(v:InsaneStats_GetArmor() + armorToAdd, v:GetMaxArmor()))
-				end
-			end
-			
-			if v:IsPlayer() then
-				if InsaneStats:GetConVarValue("infhealth_enabled") then
+				if v.InsaneStats_GetRawArmor then
 					v.insaneStats_OldRawArmor = v.insaneStats_OldRawArmor or v:InsaneStats_GetRawArmor()
 					if v.insaneStats_OldRawArmor ~= v:InsaneStats_GetRawArmor() then
 						local difference = v:InsaneStats_GetRawArmor() - v.insaneStats_OldRawArmor
@@ -166,17 +175,26 @@ hook.Add("Think", "InsaneStatsUnlimitedHealth", function()
 	end
 end)
 
+AccessorFunc(InsaneStats, "currentAbsorbedDamage", "AbsorbedDamage")
+
+local armorBypassingDamage = bit.bor(DMG_FALL, DMG_DROWN, DMG_POISON, DMG_RADIATION)
 hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo, ...)
+	if not dLibbed then
+		InsaneStats:SetDamage(nil)
+	end
+	
 	-- run the others first
 	local shouldNegate = hook.Run("NonInsaneStatsEntityTakeDamage", vic, dmginfo, ...)
 	if shouldNegate then return shouldNegate end
-	vic.insaneStats_LastDamageTaken = CurTime()
 	
+	vic.insaneStats_LastDamageTaken = CurTime()
 	vic.insaneStats_OldRawHealth = vic.InsaneStats_GetRawHealth and vic:InsaneStats_GetRawHealth() or vic:Health()
 	vic.insaneStats_CurrentRawDamage = dmginfo:GetDamage()
+	InsaneStats:SetAbsorbedDamage(0)
 	
 	if not vic:IsVehicle() then
 		local multiplier = InsaneStats:DetermineDamageMul(vic, dmginfo)
+		dmginfo:ScaleDamage(multiplier)
 		
 		if InsaneStats:GetConVarValue("infhealth_enabled") then
 			-- if armor is present and the entity is not a player, reduce raw damage
@@ -184,58 +202,53 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 			if armor > 0 then
 				-- if entity is marked to block ALL damage with armor, use special handling
 				if vic.insaneStats_ArmorBlocksAll then
-					local fullDamage = dmginfo:GetDamage() * multiplier
-					local reportedDamage = math.min(armor, fullDamage)
-					local newArmor = math.max(armor - fullDamage, 0)
+					local fullDamage = InsaneStats:GetDamage()
+					local absorbedDamage = math.min(armor, fullDamage)
+					--[[local newArmor = math.max(armor - fullDamage, 0)
 					vic:SetArmor(newArmor)
+					vic:InsaneStats_DamageNumber(dmginfo:GetAttacker(), absorbedDamage, dmginfo:GetDamageType(), vic.insaneStats_LastHitGroup)]]
 					
-					if fullDamage > 0 then
-						vic:InsaneStats_DamageNumber(dmginfo:GetAttacker(), reportedDamage, dmginfo:GetDamageType(), vic.insaneStats_LastHitGroup)
-					end
+					InsaneStats:SetAbsorbedDamage(absorbedDamage)
+					dmginfo:SubtractDamage(absorbedDamage)
 					
-					if newArmor == 0 then
-						multiplier = multiplier * (fullDamage - reportedDamage) / fullDamage
+					--[[if newArmor == 0 then
+						multiplier = multiplier * (fullDamage - absorbedDamage) / fullDamage
 					else
 						dmginfo:ScaleDamage(multiplier)
 						hook.Run("PostEntityTakeDamage", vic, dmginfo, false)
 						vic:InsaneStats_ApplyKnockback(dmginfo:GetDamageForce())
 						return true
-					end
-				elseif not vic:IsPlayer() then
-					local fullDamage = dmginfo:GetDamage() * multiplier
-					local preventedDamage = math.min(armor, fullDamage/1.25)
+					end]]
+				elseif not vic:IsPlayer() and bit.band(dmginfo:GetDamageType(), armorBypassingDamage) == 0 then
+					local fullDamage = InsaneStats:GetDamage()
+					local absorbedDamage = math.min(armor, fullDamage/1.25)
 					
-					if fullDamage ~= 0 then
-						multiplier = multiplier * (fullDamage - preventedDamage) / fullDamage
-					end
+					InsaneStats:SetAbsorbedDamage(absorbedDamage)
+					dmginfo:SubtractDamage(absorbedDamage)
+					
+					--[[if fullDamage ~= 0 then
+						multiplier = multiplier * (fullDamage - absorbedDamage) / fullDamage
+					end]]
 				end
 			end
 			
-			-- nerf damage to make sure high damage attacks aren't directly lethal
+			if not (InsaneStats:GetDamage() < math.huge) then
+				InsaneStats:SetDamage(math.huge)
+			end
+			
+			-- determine the ACTUAL damage to deal
 			if vic:InsaneStats_GetHealth() ~= 0 then
-				multiplier = multiplier * math.abs(vic:InsaneStats_GetRawHealth()) / math.abs(vic:InsaneStats_GetHealth())
+				dmginfo:InsaneStats_SetRawDamage(InsaneStats:GetDamage() * math.abs(vic:InsaneStats_GetRawHealth()) / math.abs(vic:InsaneStats_GetHealth()))
+			end
+			
+			if InsaneStats:GetConVarValue("infhealth_enabled") then
+				if dmginfo:IsDamageType(DMG_POISON) and dmginfo:InsaneStats_GetRawDamage() + 1 > vic:InsaneStats_GetRawHealth() and vic:InsaneStats_GetRawHealth() > 0 then
+					-- poison damage should ideally leave the user at 1 health, but the limitations of
+					-- single floating-point arithmetic is making this more difficult than it needs to be
+					dmginfo:InsaneStats_SetRawDamage(vic:InsaneStats_GetRawHealth() * 8388607 / 8388608 - 1)
+				end
 			end
 		end
-		
-		dmginfo:ScaleDamage(multiplier)
-		
-		if InsaneStats:GetConVarValue("infhealth_enabled") then
-			if dmginfo:IsDamageType(DMG_POISON) and dmginfo:GetDamage() + 1 > vic:InsaneStats_GetRawHealth() and vic:InsaneStats_GetRawHealth() > 0 then
-				-- poison damage should ideally leave the user at 1 health, but the limitations of
-				-- single floating-point arithmetic is making this more difficult than it needs to be
-				dmginfo:SetDamage(vic:InsaneStats_GetRawHealth() * 8388607 / 8388608 - 1)
-			elseif not (dmginfo:GetDamage() < math.huge) then
-				dmginfo:SetDamage(math.huge)
-			end
-		end
-		
-		--[[ if the damage would be lethal to npc_strider, npc_combinegunship or prop_vehicle_apc, set their health to 1
-		local class = vic:GetClass()
-		if class == "npc_strider" or class == "npc_combinegunship" or class == "prop_vehicle_apc" then
-			if vic:InsaneStats_GetHealth() < dmginfo:GetDamage() then
-				
-			end
-		end]]
 	end
 	
 	-- important for next part
@@ -261,29 +274,26 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 		
 		if (notImmune or rawHealthDamage ~= 0) and vic:GetClass() ~= "npc_turret_floor" and InsaneStats:GetConVarValue("infhealth_enabled") then
 			local healthDamage = dmginfo:GetDamage()
-			local armorDamage = vic.InsaneStats_GetRawArmor and vic.insaneStats_OldRawArmor - vic:InsaneStats_GetRawArmor() or 0
+			local armorDamage = InsaneStats:GetAbsorbedDamage()
 			
 			--print(healthDamage, armorDamage)
 			if healthDamage == 0 then -- calculate damage from total HP
 				healthDamage = rawHealthDamage
-			end
-			
-			-- reverse damage nerf, noting that the raw health may be 0
-			local antiNerf = 1
-			if vic.insaneStats_OldRawHealth ~= 0 then
-				antiNerf = vic:InsaneStats_GetHealth() / vic.insaneStats_OldRawHealth
-				healthDamage = healthDamage * antiNerf
+				
+				-- reverse damage nerf, noting that the raw health may be 0
+				if vic.insaneStats_OldRawHealth ~= 0 then
+					local antiNerf = vic:InsaneStats_GetHealth() / vic.insaneStats_OldRawHealth
+					healthDamage = healthDamage * antiNerf
+				end
 			end
 			
 			--print(healthDamage, armorDamage)
 			if vic:InsaneStats_GetArmor() > 0 then -- it gets complicated
-				if vic:IsPlayer() then
-					if armorDamage ~= 0 then
-						armorDamage = math.min(vic:InsaneStats_GetArmor(), healthDamage/1.25)
-						healthDamage = healthDamage - armorDamage
-					end
-				else
-					armorDamage = math.min(vic:InsaneStats_GetArmor(), healthDamage*4)
+				if vic:IsPlayer() and armorDamage == 0 then
+					armorDamage = math.min(vic:InsaneStats_GetArmor(), healthDamage/1.25)
+					healthDamage = healthDamage - armorDamage
+				--[[elseif bit.band(dmginfo:GetDamageType(), armorBypassingDamage) == 0 then
+					armorDamage = math.min(vic:InsaneStats_GetArmor(), healthDamage*4)]]
 				end
 			end
 			
@@ -299,7 +309,7 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 				if vic:InsaneStats_GetRawHealth() < 0 then -- they are already dead!
 					newHealth = 0
 				else -- scale down our damage to be x/(x+y)
-					newHealth = vic:InsaneStats_GetHealth() * (1 - healthDamage / (healthDamage + rawHealthDamage * antiNerf))
+					newHealth = vic:InsaneStats_GetHealth() * (1 - healthDamage / (healthDamage + vic:InsaneStats_GetHealth()))
 				end
 			end
 			
@@ -317,20 +327,18 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 			vic:SetArmor(newArmor)
 		end
 		
-		if not notImmune then
+		if not notImmune or rawHealthDamage == 0 then
 			reportedDamage = 0
 		end
 		--print(vic, dmginfo:GetDamage(), vic:InsaneStats_GetRawHealth(), vic:InsaneStats_GetHealth())
-		
-		if rawHealthDamage ~= 0 or rawArmorDamage ~= 0 then
-			vic:InsaneStats_DamageNumber(dmginfo:GetAttacker(), reportedDamage, dmginfo:GetDamageType(), vic.insaneStats_LastHitGroup)
-		end
+		vic:InsaneStats_DamageNumber(dmginfo:GetAttacker(), reportedDamage, dmginfo:GetDamageType(), vic.insaneStats_LastHitGroup)
 	end
 	
-	if vic.insaneStats_CurrentRawDamage then
-		dmginfo:SetDamage(vic.insaneStats_CurrentRawDamage)
+	if vic.insaneStats_CurrentRawDamage and dmginfo.InsaneStats_SetRawDamage then
+		dmginfo:InsaneStats_SetRawDamage(vic.insaneStats_CurrentRawDamage)
 	end
 	
+	InsaneStats:SetDamage(nil)
 	hook.Run("NonInsaneStatsPostEntityTakeDamage", vic, dmginfo, notImmune, ...)
 end)
 

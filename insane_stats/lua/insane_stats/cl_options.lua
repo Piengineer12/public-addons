@@ -55,7 +55,7 @@ function InsaneStats:CreateAppropriateDFormPanel(DForm, data)
 		end
 	elseif data[2].type == self.FLOAT then
 		-- think about number of decimals
-		local decimals = math.max(math.Round(4 - math.log10(data[2].max - data[2].min)), 0)
+		local decimals = data[2].decimals or math.max(math.Round(4 - math.log10(data[2].max - data[2].min)), 0)
 		local left 
 		
 		if mustSendValueToServer then
@@ -109,7 +109,7 @@ function InsaneStats:GetDFormGenerator(title, conVarsData)
 						if typ == InsaneStats.BOOL then
 							net.WriteBool(v)
 						elseif typ == InsaneStats.INT then
-							net.WriteInt(v, 8)
+							net.WriteInt(v, 32)
 						elseif typ == InsaneStats.FLOAT then
 							net.WriteDouble(v)
 						end

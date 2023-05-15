@@ -76,7 +76,7 @@ local function ApplyWPASS2StartTier(ent)
 		probability = InsaneStats:GetConVarValueDefaulted(isNotWep and "wpass2_chance_other_battery", "wpass2_chance_other")
 	end
 	
-	local canGetModifiers = ent:IsPlayer() or ent:IsNPC() or ent:IsNextBot() or ent:IsWeapon() or ent:GetClass() == "item_battery"
+	local canGetModifiers = ent:InsaneStats_IsMob() or ent:IsWeapon() or ent:GetClass() == "item_battery"
 	if InsaneStats:GetConVarValue("wpass2_chance_other_battery_sensible") and not ent:InsaneStats_ArmorSensible() then
 		canGetModifiers = false
 	end
@@ -289,7 +289,7 @@ local SaveData, SaveDataFile
 local toSavePlayers = {}
 local playerLoadoutData = {}
 local saveRequested = false
-local saveThinkCooldown = 30
+local saveThinkCooldown = 10
 timer.Create("InsaneStatsWPASS", 0.5, 0, function()
 	if next(toUpdateModifierEntities) then
 		for k,v in pairs(toUpdateModifierEntities) do
@@ -312,7 +312,7 @@ timer.Create("InsaneStatsWPASS", 0.5, 0, function()
 		for k,v in pairs(player.GetAll()) do
 			SaveData(v)
 		end
-		saveThinkCooldown = RealTime() + 30
+		saveThinkCooldown = RealTime() + 10
 	end
 	
 	if saveRequested then
@@ -341,7 +341,7 @@ function ENTITY:InsaneStats_UpdateCombatTime()
 end
 
 function ENTITY:InsaneStats_AddArmorNerfed(armor)
-	if self:InsaneStats_GetArmor() < math.huge then
+	if self:InsaneStats_GetArmor() < math.huge and self:InsaneStats_GetHealth() > 0 then
 		local unnerfedArmorRestored = math.Clamp(self:InsaneStats_GetMaxArmor() - self:InsaneStats_GetArmor(), 0, armor)
 		armor = armor - unnerfedArmorRestored
 		if unnerfedArmorRestored > 0 then
@@ -366,14 +366,20 @@ function ENTITY:InsaneStats_AddArmorNerfed(armor)
 end
 
 function ENTITY:InsaneStats_AddHealthCapped(health)
-	local healthAdded = self:InsaneStats_GetHealth() < math.huge and math.min(health, self:InsaneStats_GetMaxHealth() - self:InsaneStats_GetHealth()) or 0
-	self:SetHealth(self:InsaneStats_GetHealth() + healthAdded)
-	self:InsaneStats_DamageNumber(self, -healthAdded, DMG_DROWNRECOVER)
+	if self:InsaneStats_GetHealth() > 0 and self:InsaneStats_GetHealth() < self:InsaneStats_GetMaxHealth() then
+		local healthAdded = self:InsaneStats_GetHealth() < math.huge and math.min(health, self:InsaneStats_GetMaxHealth() - self:InsaneStats_GetHealth()) or 0
+		self:SetHealth(self:InsaneStats_GetHealth() + healthAdded)
+		self:InsaneStats_DamageNumber(self, -healthAdded, DMG_DROWNRECOVER)
+	end
+end
+
+function ENTITY:InsaneStats_IsMob()
+	return self:IsPlayer() or self:IsNPC() or self:IsNextBot() or self:GetClass()=="prop_vehicle_apc"
 end
 
 function ENTITY:InsaneStats_IsValidEnemy(ent)
 	if not (IsValid(ent) and ent:GetClass() ~= "npc_enemyfinder") then return false end
-	if ent:InsaneStats_GetHealth() <= 0 then return false end
+	if ent:InsaneStats_GetHealth() <= 0 or ent.insaneStats_IsDead then return false end
 	
 	-- poll Disposition to figure out if they're enemies
 	if (ent.Disposition and ent:Disposition(self) == D_HT) then return true end
@@ -522,8 +528,8 @@ hook.Add("PlayerUse", "InsaneStatsWPASS", function(ply, ent)
 			if ply:KeyDown(IN_SPEED) then
 				ent.insaneStats_DisableWPASS2Pickup = RealTime() + 1
 			else
-				--ent.insaneStats_NextPickup = CurTime() + 0.1
 				local oldEnt = ply:GetWeapon(ent:GetClass())
+				oldEnt.insaneStats_NextPickup = CurTime() + 0.1
 				ply:DropWeapon(oldEnt)
 				ply:PickupWeapon(ent)
 			end
@@ -783,28 +789,41 @@ hook.Add("PlayerSpawn", "InsaneStatsWPASS", function(ply, fromTransition)
 	end)
 end)
 
-local function ProcessKillEvent(victim, attacker, inflictor)
-	local selfHasModifiers = victim.insaneStats_Modifiers and next(victim.insaneStats_Modifiers)
-	
-	if selfHasModifiers then
-		local chance = victim:IsPlayer()
-		and InsaneStats:GetConVarValueDefaulted("wpass2_chance_player_drop_battery", "wpass2_chance_player_drop")
-		or InsaneStats:GetConVarValueDefaulted("wpass2_chance_other_drop_battery", "wpass2_chance_other_drop")
+hook.Add("InsaneStatsEntityKilled", "InsaneStatsWPASS", function(victim, attacker, inflictor)
+	if InsaneStats:GetConVarValue("wpass2_enabled") then
+		local selfHasModifiers = victim.insaneStats_Modifiers and next(victim.insaneStats_Modifiers)
 		
-		if math.random() * 100 < chance then
-			-- drop the old one
-			local oldItem = ents.Create("item_battery")
-			oldItem:SetPos(victim.GetShootPos and victim:GetShootPos() or victim:WorldSpaceCenter())
-			oldItem:Spawn()
-			oldItem:InsaneStats_SetXP(victim.insaneStats_BatteryXP or 0)
-			oldItem.insaneStats_StartTier = victim.insaneStats_StartTier
-			oldItem.insaneStats_Modifiers = victim.insaneStats_Modifiers or {}
-			InsaneStats:ApplyWPASS2Attributes(oldItem)
+		if selfHasModifiers then
+			local chance = victim:IsPlayer()
+			and InsaneStats:GetConVarValueDefaulted("wpass2_chance_player_drop_battery", "wpass2_chance_player_drop")
+			or InsaneStats:GetConVarValueDefaulted("wpass2_chance_other_drop_battery", "wpass2_chance_other_drop")
 			
-			if victim:IsPlayer() then
-				timer.Simple(0, function()
+			if math.random() * 100 < chance then
+				-- drop the old one
+				local oldItem = ents.Create("item_battery")
+				oldItem:SetPos(victim.GetShootPos and victim:GetShootPos() or victim:WorldSpaceCenter())
+				oldItem:Spawn()
+				oldItem:InsaneStats_SetXP(victim.insaneStats_BatteryXP or 0)
+				oldItem.insaneStats_StartTier = victim.insaneStats_StartTier
+				oldItem.insaneStats_Modifiers = victim.insaneStats_Modifiers or {}
+				InsaneStats:ApplyWPASS2Attributes(oldItem)
+				
+				if victim:IsPlayer() then
+					timer.Simple(0, function()
+						if IsValid(victim) then
+							-- set our modifiers to the null one if we dropped the battery
+							victim.insaneStats_Tier = 0
+							victim.insaneStats_Modifiers = {}
+							victim.insaneStats_BatteryXP = 0
+							InsaneStats:ApplyWPASS2Attributes(victim)
+							victim.insaneStats_ModifierChangeReason = 2
+							victim:InsaneStats_MarkForUpdate(8)
+						end
+					end)
+				else
 					if IsValid(victim) then
-						-- set our modifiers to the null one if we dropped the battery
+						-- set our modifiers to the null one
+						-- we do this because NPCs such as npc_turret_floor for example can be revived
 						victim.insaneStats_Tier = 0
 						victim.insaneStats_Modifiers = {}
 						victim.insaneStats_BatteryXP = 0
@@ -812,36 +831,9 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 						victim.insaneStats_ModifierChangeReason = 2
 						victim:InsaneStats_MarkForUpdate(8)
 					end
-				end)
-			else
-				if IsValid(victim) then
-					-- set our modifiers to the null one
-					-- we do this because NPCs such as npc_turret_floor for example can be revived
-					victim.insaneStats_Tier = 0
-					victim.insaneStats_Modifiers = {}
-					victim.insaneStats_BatteryXP = 0
-					InsaneStats:ApplyWPASS2Attributes(victim)
-					victim.insaneStats_ModifierChangeReason = 2
-					victim:InsaneStats_MarkForUpdate(8)
 				end
 			end
 		end
-	end
-end
-
-hook.Add("entity_killed", "InsaneStatsWPASS", function(data)
-	if InsaneStats:GetConVarValue("wpass2_enabled") then
-		local victim = Entity(data.entindex_killed or 0)
-		local attacker = Entity(data.entindex_attacker or 0)
-		local inflictor = Entity(data.entindex_inflictor or 0)
-		
-		ProcessKillEvent(victim, attacker, inflictor)
-	end
-end)
-
-hook.Add("OnNPCKilled", "InsaneStatsWPASS", function(victim, attacker, inflictor)
-	if InsaneStats:GetConVarValue("wpass2_enabled") then
-		ProcessKillEvent(victim, attacker, inflictor)
 	end
 end)
 

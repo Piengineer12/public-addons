@@ -60,7 +60,6 @@ local shouldUpdateDPS = false
 hook.Add("InsaneStatsHUDDamageTaken", "InsaneStats", function(entIndex, attacker, damage, types, hitgroup, position, flags)
 	allDamageNumbers[entIndex] = allDamageNumbers[entIndex] or {}
 	
-	local missed = bit.band(flags, 1) ~= 0 and damage == 0
 	local entityDamageNumbers = allDamageNumbers[entIndex]
 	local requireNewAdd = Entity(entIndex) ~= LocalPlayer()
 	if next(entityDamageNumbers) and requireNewAdd then
@@ -72,22 +71,20 @@ hook.Add("InsaneStatsHUDDamageTaken", "InsaneStats", function(entIndex, attacker
 			latestEntDamage.crit = latestEntDamage.crit or hitgroup == 1
 			--latestEntDamage.time = RealTime()
 			--latestEntDamage.origin = position
-			latestEntDamage.ally = bit.band(flags, 2) ~= 0
-			latestEntDamage.miss = latestEntDamage.miss and missed
+			latestEntDamage.flags = flags
 			
 			requireNewAdd = false
 		end
 	end
 	
-	if requireNewAdd then
+	if requireNewAdd and (LocalPlayer():IsLineOfSightClear(position) or attacker == LocalPlayer()) then
 		table.insert(entityDamageNumbers, {
 			damage = damage,
 			types = types,
 			crit = hitgroup == 1,
 			time = RealTime(),
 			origin = position,
-			ally = isAlly,
-			miss = missed
+			flags = flags
 		})
 	end
 	
@@ -167,10 +164,10 @@ hook.Add("HUDPaint", "InsaneStats", function()
 					local numberColors = {}
 					local types = entityDamageInfo.types
 					local ent = Entity(k)
-					if bit.band(types, DMG_SLASH) ~= 0 then
+					if bit.band(types, bit.bor(DMG_SLASH)) ~= 0 then
 						table.insert(numberColors, color_red)
 					end
-					if bit.band(types, bit.bor(DMG_BURN, DMG_ENERGYBEAM, DMG_SLOWBURN, DMG_PHYSGUN)) ~= 0 then
+					if bit.band(types, bit.bor(DMG_BURN, DMG_SLOWBURN, DMG_PHYSGUN)) ~= 0 then
 						table.insert(numberColors, color_orange)
 					end
 					if bit.band(types, bit.bor(DMG_BLAST, DMG_ALWAYSGIB, DMG_BLAST_SURFACE)) ~= 0 then
@@ -179,22 +176,22 @@ hook.Add("HUDPaint", "InsaneStats", function()
 					if bit.band(types, bit.bor(DMG_PARALYZE, DMG_NERVEGAS, DMG_POISON, DMG_RADIATION, DMG_ACID)) ~= 0 then
 						table.insert(numberColors, color_lime)
 					end
-					if bit.band(types, DMG_DROWNRECOVER) ~= 0 then
+					if bit.band(types, bit.bor(DMG_DROWNRECOVER)) ~= 0 then
 						table.insert(numberColors, color_green)
 					end
-					if bit.band(types, bit.bor(DMG_SONIC, DMG_AIRBOAT, DMG_SNIPER)) ~= 0 then
+					if bit.band(types, bit.bor(DMG_SONIC, DMG_AIRBOAT, DMG_SNIPER, DMG_DISSOLVE)) ~= 0 then
 						table.insert(numberColors, color_marine)
 					end
-					if bit.band(types, DMG_DROWN) ~= 0 then
+					if bit.band(types, bit.bor(DMG_DROWN, DMG_VEHICLE)) ~= 0 then
 						table.insert(numberColors, color_aqua)
 					end
-					if bit.band(types, DMG_SHOCK) ~= 0 then
+					if bit.band(types, bit.bor(DMG_SHOCK)) ~= 0 then
 						table.insert(numberColors, color_sky)
 					end
-					if entityDamageInfo.isAlly then
+					if bit.band(entityDamageInfo.flags, 4) ~= 0 and entityDamageInfo.damage > 0 then
 						table.insert(numberColors, color_purple)
 					end
-					if bit.band(types, bit.bor(DMG_DISSOLVE, DMG_REMOVENORAGDOLL, DMG_PLASMA)) ~= 0 then
+					if bit.band(types, bit.bor(DMG_ENERGYBEAM, DMG_REMOVENORAGDOLL, DMG_PLASMA)) ~= 0 then
 						table.insert(numberColors, color_magenta)
 					end
 					if bit.band(types, bit.bor(DMG_FALL, DMG_DIRECT)) ~= 0 then
@@ -208,8 +205,13 @@ hook.Add("HUDPaint", "InsaneStats", function()
 						math.floor(math.abs(entityDamageInfo.damage)),
 						{separateSuffix = true, plus = entityDamageInfo.damage < 0}
 					)
-					if entityDamageInfo.miss then
-						numberText = "Miss!"
+					if bit.band(entityDamageInfo.flags, 3) ~= 0 and entityDamageInfo.damage == 0 then
+						if bit.band(entityDamageInfo.flags, 2) ~= 0 then
+							numberText = "Immune!"
+						else
+							numberText = "Miss!"
+						end
+						
 						suffixText = ""
 						numberColors = {color_red}
 					end
@@ -311,7 +313,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 	if InsaneStats:GetConVarValue("hud_hp_enabled") then
 		local baseX = scrW * InsaneStats:GetConVarValue("hud_hp_x")
 		local baseY = scrH * InsaneStats:GetConVarValue("hud_hp_y")
-		local barW = InsaneStats.FONT_MEDIUM * 17
+		local barW = InsaneStats.FONT_MEDIUM * 16
 		local barH = InsaneStats.FONT_MEDIUM
 		local ply = LocalPlayer()
 		
@@ -322,9 +324,10 @@ hook.Add("HUDPaint", "InsaneStats", function()
 			slowArmor = InsaneStats:TransitionUINumber(slowArmor, armor)
 			
 			local barData = InsaneStats:CalculateMultibar(slowArmor, maxArmor, 180)
+			local bars = barData.bars
 			local barColor = barData.color
 			local nextColor = barData.nextColor
-			local barFracWidth = barData.frac > 0 and (barW - 4) * barData.frac or -2
+			local barFracWidth = math.floor(barData.frac > 0 and (barW - 4) * barData.frac or -2)
 			
 			surface.SetDrawColor(0, 0, 0)
 			surface.DrawRect(baseX, baseY - barH, barW, barH)
@@ -338,7 +341,12 @@ hook.Add("HUDPaint", "InsaneStats", function()
 			local text = InsaneStats:FormatNumber(math.Round(slowArmor)).." / "..InsaneStats:FormatNumber(math.Round(maxArmor))
 			draw.SimpleTextOutlined("Shield", "InsaneStats.Medium", baseX + 2, baseY - barH, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
 			draw.SimpleTextOutlined(text, "InsaneStats.Medium", baseX + barW - 2, baseY - barH, barColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
+			if slowArmor > maxArmor then
+				draw.SimpleTextOutlined("x"..InsaneStats:FormatNumber(bars), "InsaneStats.Medium", baseX + barW, baseY - 2, barColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
+			end
 			baseY = baseY - barH * 2
+		else
+			slowArmor = armor
 		end
 		
 		-- health bar
@@ -347,9 +355,10 @@ hook.Add("HUDPaint", "InsaneStats", function()
 		slowHealth = InsaneStats:TransitionUINumber(slowHealth, health)
 			
 		local barData = InsaneStats:CalculateMultibar(slowHealth, maxHealth, 120)
+		local bars = barData.bars
 		local barColor = barData.color
 		local nextColor = barData.nextColor
-		local barFracWidth = barData.frac > 0 and (barW - 4) * barData.frac or -2
+		local barFracWidth = math.floor(barData.frac > 0 and (barW - 4) * barData.frac or -2)
 		
 		surface.SetDrawColor(0, 0, 0)
 		surface.DrawRect(baseX, baseY - barH, barW, barH)
@@ -363,6 +372,9 @@ hook.Add("HUDPaint", "InsaneStats", function()
 		local text = InsaneStats:FormatNumber(math.Round(slowHealth)).." / "..InsaneStats:FormatNumber(math.Round(maxHealth))
 		draw.SimpleTextOutlined("Health", "InsaneStats.Medium", baseX + 2, baseY - barH, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
 		draw.SimpleTextOutlined(text, "InsaneStats.Medium", baseX + barW - 2, baseY - barH, barColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
+		if slowHealth > maxHealth then
+			draw.SimpleTextOutlined("x"..InsaneStats:FormatNumber(bars), "InsaneStats.Medium", baseX + barW, baseY - 2, barColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
+		end
 	end
 end)
 

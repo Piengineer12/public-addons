@@ -94,7 +94,7 @@ InsaneStats:RegisterConVar("wpass2_tier_upchance", "insanestats_wpass2_tier_upch
 	display = "Tier Up Chance", desc = "% chance for a weapon / armor battery to have its tier increased by 1. This is rolled for continuously until the roll fails.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
-InsaneStats:RegisterConVar("wpass2_tier_upchance_battery", "insanestats_wpass2_tier_upchance_battery", "70.71", {
+InsaneStats:RegisterConVar("wpass2_tier_upchance_battery", "insanestats_wpass2_tier_upchance_battery", "-1", {
 	display = "Battery Tier Up Chance", desc = "If 0 or above, overrides insanestats_wpass2_tier_upchance for armor batteries.",
 	type = InsaneStats.FLOAT, min = -1, max = 100
 })
@@ -102,7 +102,7 @@ InsaneStats:RegisterConVar("wpass2_tier_newmodifiercost", "insanestats_wpass2_ti
 	display = "New Modifier Cost", desc = "Number of tiers before another weapon / armor battery modifier is attached. Tier 1 weapons / armor batteries will always have one modifier.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
-InsaneStats:RegisterConVar("wpass2_tier_newmodifiercost_battery", "insanestats_wpass2_tier_newmodifiercost_battery", "4", {
+InsaneStats:RegisterConVar("wpass2_tier_newmodifiercost_battery", "insanestats_wpass2_tier_newmodifiercost_battery", "-1", {
 	display = "New Battery Modifier Cost", desc = "If 0 or above, overrides insanestats_wpass2_tier_newmodifiercost for armor batteries.",
 	type = InsaneStats.FLOAT, min = -1, max = 100
 })
@@ -110,7 +110,7 @@ InsaneStats:RegisterConVar("wpass2_tier_raritycost", "insanestats_wpass2_tier_ra
 	display = "Tiers Per Rarity", desc = "Number of tiers per rarity.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
-InsaneStats:RegisterConVar("wpass2_tier_raritycost_battery", "insanestats_wpass2_tier_raritycost_battery", "4", {
+InsaneStats:RegisterConVar("wpass2_tier_raritycost_battery", "insanestats_wpass2_tier_raritycost_battery", "-1", {
 	display = "Battery Tiers Per Rarity", desc = "If 0 or above, overrides insanestats_wpass2_tier_raritycost for armor batteries.",
 	type = InsaneStats.FLOAT, min = -1, max = 100
 })
@@ -123,7 +123,7 @@ InsaneStats:RegisterConVar("wpass2_tier_xp_level_start", "insanestats_wpass2_tie
 	display = "Starting Level", desc = "Level before weapons / armor batteries are guaranteed to be tier 1. Below this, weapons / armor batteries may sometimes spawn at tier 0 even after passing the insanestats_wpass2_chance_* check.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
-InsaneStats:RegisterConVar("wpass2_tier_xp_level_start_battery", "insanestats_wpass2_tier_xp_level_start_battery", "2.5", {
+InsaneStats:RegisterConVar("wpass2_tier_xp_level_start_battery", "insanestats_wpass2_tier_xp_level_start_battery", "-1", {
 	display = "Battery Starting Level", desc = "If 0 or above, overrides insanestats_wpass2_xp_tier_levelstart for armor batteries.",
 	type = InsaneStats.FLOAT, min = -1, max = 1000
 })
@@ -131,7 +131,7 @@ InsaneStats:RegisterConVar("wpass2_tier_xp_level_add", "insanestats_wpass2_tier_
 	display = "Level Scaling", desc = "% additional levels needed per tier up.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
-InsaneStats:RegisterConVar("wpass2_tier_xp_level_add_battery", "insanestats_wpass2_tier_xp_level_add_battery", "41.42", {
+InsaneStats:RegisterConVar("wpass2_tier_xp_level_add_battery", "insanestats_wpass2_tier_xp_level_add_battery", "-1", {
 	display = "Battery Level Scaling", desc = "If 0 or above, overrides insanestats_wpass2_tier_xp_level_add for armor batteries.",
 	type = InsaneStats.FLOAT, min = -1, max = 1000
 })
@@ -519,7 +519,7 @@ function ENTITY:InsaneStats_ApplyStatusEffect(id, level, duration, data)
 		end
 		
 		effectTable.attacker = IsValid(data.attacker) and data.attacker or effectTable.attacker
-	else
+	elseif level ~= 0 then
 		self.insaneStats_StatusEffects[id] = {
 			expiry = CurTime() + duration,
 			level = level,
@@ -594,7 +594,7 @@ function ENTITY:InsaneStats_GetStatusEffectAttacker(id)
 	and self.insaneStats_StatusEffects[id].attacker
 end
 
-function ENTITY:InsaneStats_GetStatusEffectCountByType(typ)
+--[[function ENTITY:InsaneStats_GetStatusEffectCountByType(typ)
 	EntityInitStatusEffects(self)
 	local count = 0
 	for k,v in pairs(self.insaneStats_StatusEffects) do
@@ -603,7 +603,7 @@ function ENTITY:InsaneStats_GetStatusEffectCountByType(typ)
 		end
 	end
 	return count
-end
+end]]
 
 function ENTITY:InsaneStats_ClearStatusEffectsByType(typ)
 	EntityInitStatusEffects(self)

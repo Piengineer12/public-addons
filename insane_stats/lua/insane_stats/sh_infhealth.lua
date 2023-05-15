@@ -25,6 +25,8 @@ InsaneStats:RegisterConVar("infhealth_armor_regen_delay", "insanestats_infhealth
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
 
+AccessorFunc(InsaneStats, "currentDamage", "Damage")
+
 local ENT = FindMetaTable("Entity")
 local PLAYER = FindMetaTable("Player")
 
@@ -51,7 +53,7 @@ local function OverrideHealth()
 		ENT.InsaneStats_SetRawMaxHealth = ENT.SetMaxHealth
 		ENT.InsaneStats_GetRawMaxHealth = ENT.GetMaxHealth
 	end
-
+	
 	function ENT:SetHealth(newHealth)
 		newHealth = tonumber(newHealth)
 		if not (newHealth >= -math.huge) then -- nan
@@ -74,6 +76,10 @@ local function OverrideHealth()
 		end
 		
 		self:InsaneStats_MarkForUpdate(1)
+		--[[if self:IsPlayer() then
+			print(newHealth)
+			debug.Trace()
+		end]]
 	end
 	
 	function ENT:Health()
@@ -239,6 +245,61 @@ local function DeOverrideArmor()
 	end
 end
 
+local function OverrideDamage()
+	local DMGINFO = FindMetaTable("CTakeDamageInfo")
+	if not DMGINFO.InsaneStats_SetRawDamage then
+		DMGINFO.InsaneStats_SetRawDamage = DMGINFO.SetDamage
+		DMGINFO.InsaneStats_AddRawDamage = DMGINFO.AddDamage
+		DMGINFO.InsaneStats_SubtractRawDamage = DMGINFO.SubtractDamage
+		DMGINFO.InsaneStats_ScaleRawDamage = DMGINFO.ScaleDamage
+		DMGINFO.InsaneStats_GetRawDamage = DMGINFO.GetDamage
+	end
+	
+	function DMGINFO:SetDamage(num)
+		InsaneStats:SetDamage(num)
+		self:InsaneStats_SetRawDamage(num)
+	end
+	
+	function DMGINFO:AddDamage(num)
+		InsaneStats:SetDamage(self:GetDamage() + num)
+		self:InsaneStats_AddRawDamage(num)
+		self:SetMaxDamage(self:GetMaxDamage() + num)
+	end
+	
+	function DMGINFO:SubtractDamage(num)
+		InsaneStats:SetDamage(self:GetDamage() - num)
+		self:InsaneStats_SubtractRawDamage(num)
+		self:SetMaxDamage(self:GetMaxDamage() - num)
+	end
+	
+	function DMGINFO:ScaleDamage(num)
+		InsaneStats:SetDamage(self:GetDamage() * num)
+		self:InsaneStats_ScaleRawDamage(num)
+		self:SetMaxDamage(self:GetMaxDamage() * num)
+	end
+	
+	function DMGINFO:GetDamage()
+		return InsaneStats:GetDamage() or self:InsaneStats_GetRawDamage()
+	end
+end
+
+local function DeOverrideDamage()
+	local DMGINFO = FindMetaTable("CTakeDamageInfo")
+	if DMGINFO.InsaneStats_SetRawDamage then
+		DMGINFO.SetDamage = DMGINFO.InsaneStats_SetRawDamage
+		DMGINFO.AddDamage = DMGINFO.InsaneStats_AddRawDamage
+		DMGINFO.SubtractDamage = DMGINFO.InsaneStats_SubtractRawDamage
+		DMGINFO.ScaleDamage = DMGINFO.InsaneStats_ScaleRawDamage
+		DMGINFO.GetDamage = DMGINFO.InsaneStats_GetRawDamage
+		
+		DMGINFO.InsaneStats_SetRawDamage = nil
+		DMGINFO.InsaneStats_AddRawDamage = nil
+		DMGINFO.InsaneStats_SubtractRawDamage = nil
+		DMGINFO.InsaneStats_ScaleRawDamage = nil
+		DMGINFO.InsaneStats_GetRawDamage = nil
+	end
+end
+
 local doHealthOverride = false
 hook.Add("Think", "InsaneStatsShared", function()
 	if doHealthOverride ~= InsaneStats:GetConVarValue("infhealth_enabled") then
@@ -246,9 +307,11 @@ hook.Add("Think", "InsaneStatsShared", function()
 		if doHealthOverride then
 			OverrideHealth()
 			OverrideArmor()
+			OverrideDamage()
 		else
 			DeOverrideHealth()
 			DeOverrideArmor()
+			DeOverrideDamage()
 		end
 	end
 end)
@@ -259,9 +322,11 @@ hook.Add("Initialize", "InsaneStatsUnlimitedHealth", function()
 		if doHealthOverride then
 			OverrideHealth()
 			OverrideArmor()
+			OverrideDamage()
 		else
 			DeOverrideHealth()
 			DeOverrideArmor()
+			DeOverrideDamage()
 		end
 	end
 end)
