@@ -28,10 +28,10 @@ function ENT:InsaneStats_DamageNumber(attacker, damage, types, hitgroup)
 	currentDamageInfo.attacker = IsValid(attacker) and attacker or currentDamageInfo.attacker
 	if tonumber(damage) then
 		currentDamageInfo.damage = currentDamageInfo.damage + damage
-	elseif damage == "miss" then
-		currentDamageInfo.flags = bit.bor(currentDamageInfo.flags, 1)
 	elseif damage == "immune" then
 		currentDamageInfo.flags = bit.bor(currentDamageInfo.flags, 2)
+	elseif damage == "miss" then
+		currentDamageInfo.flags = bit.bor(currentDamageInfo.flags, 1)
 	end
 	currentDamageInfo.types = bit.bor(currentDamageInfo.types, types or 0)
 					
@@ -80,7 +80,7 @@ local function BroadcastEntityUpdates()
 		-- bitflag 4 is for entity name and class, which usually don't change
 		
 		if bit.band(v, 8) ~= 0 then
-			net.WriteDouble(k.insaneStats_BatteryXP or 0)
+			net.WriteDouble(k:InsaneStats_GetBatteryXP())
 			net.WriteBool(k.insaneStats_ModifierChangeReason == 1)
 			net.WriteUInt(k.insaneStats_Tier, 16)
 			local modifiers = k.insaneStats_Modifiers
@@ -131,12 +131,12 @@ local function BroadcastEntityUpdates()
 		if count == 0 then break end
 	end
 	
-	local bytesWritten = net.BytesWritten()
+	--[[local bytesWritten = net.BytesWritten()
 	if bytesWritten > 2048 then
 		InsaneStats:Log("WARNING: A "..string.Comma(bytesWritten).." byte entity broadcast packet in a single tick?! At this rate we'd be sending "..string.NiceSize(bytesWritten*200/3).."/s to everyone!")
 		InsaneStats:Log("Sent entities: ")
 		PrintTable(sentEntities)
-	end
+	end]]
 	
 	net.Broadcast()
 end
@@ -277,7 +277,7 @@ net.Receive("insane_stats", function(length, ply)
 				net.WriteString(updateEntity:GetClass())
 				net.WriteString(updateEntity:GetName())
 					
-				net.WriteDouble(updateEntity.insaneStats_BatteryXP or 0)
+				net.WriteDouble(updateEntity:InsaneStats_GetBatteryXP())
 				net.WriteBool(updateEntity.insaneStats_ModifierChangeReason == 1)
 				net.WriteUInt(updateEntity.insaneStats_Tier or 0, 16)
 				local modifiers = updateEntity.insaneStats_Modifiers or {}

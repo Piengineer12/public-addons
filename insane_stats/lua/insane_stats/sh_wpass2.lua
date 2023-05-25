@@ -119,7 +119,7 @@ InsaneStats:RegisterConVar("wpass2_tier_xp_enable", "insanestats_wpass2_tier_xp_
 	display = "Experience Integration", desc = "Allows the weapon's / armor battery's level to influence its tier. Only relevant when Insane Stats XP is enabled.",
 	type = InsaneStats.BOOL
 })
-InsaneStats:RegisterConVar("wpass2_tier_xp_level_start", "insanestats_wpass2_tier_xp_level_start", "5", {
+InsaneStats:RegisterConVar("wpass2_tier_xp_level_start", "insanestats_wpass2_tier_xp_level_start", "3", {
 	display = "Starting Level", desc = "Level before weapons / armor batteries are guaranteed to be tier 1. Below this, weapons / armor batteries may sometimes spawn at tier 0 even after passing the insanestats_wpass2_chance_* check.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
@@ -127,7 +127,7 @@ InsaneStats:RegisterConVar("wpass2_tier_xp_level_start_battery", "insanestats_wp
 	display = "Battery Starting Level", desc = "If 0 or above, overrides insanestats_wpass2_xp_tier_levelstart for armor batteries.",
 	type = InsaneStats.FLOAT, min = -1, max = 1000
 })
-InsaneStats:RegisterConVar("wpass2_tier_xp_level_add", "insanestats_wpass2_tier_xp_level_add", "100", {
+InsaneStats:RegisterConVar("wpass2_tier_xp_level_add", "insanestats_wpass2_tier_xp_level_add", "50", {
 	display = "Level Scaling", desc = "% additional levels needed per tier up.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
@@ -441,6 +441,17 @@ end
 
 local ENTITY = FindMetaTable("Entity")
 
+function ENTITY:InsaneStats_SetBatteryXP(xp)
+	self.insaneStats_BatteryXP = xp
+	if xp then
+		self.insaneStats_BatteryXPRoot8 = xp^0.125
+	end
+end
+
+function ENTITY:InsaneStats_GetBatteryXP()
+	return self.insaneStats_BatteryXP or 0
+end
+
 function ENTITY:InsaneStats_GetAttributeValue(attribute)
 	local totalMul = 1
 	local weaponEffectVars = {"wpass2_attributes_other_enabled"}
@@ -498,17 +509,18 @@ function ENTITY:InsaneStats_ApplyStatusEffect(id, level, duration, data)
 	EntityInitStatusEffects(self)
 	local effectTable = self.insaneStats_StatusEffects[id]
 	local changeOccured = false
+	local curTime = CurTime()
 	
 	data = data or {}
-	if (effectTable and effectTable.expiry > CurTime()) then
+	if (effectTable and effectTable.expiry > curTime) then
 		if data.amplify then level = level + effectTable.level end
 		
 		if level >= effectTable.level then
 			if data.extend and duration ~= 0 then
 				effectTable.expiry = effectTable.expiry + duration
 				changeOccured = true
-			elseif CurTime() + duration > effectTable.expiry then
-				effectTable.expiry = CurTime() + duration
+			elseif curTime + duration > effectTable.expiry then
+				effectTable.expiry = curTime + duration
 				changeOccured = true
 			end
 		end
@@ -519,9 +531,16 @@ function ENTITY:InsaneStats_ApplyStatusEffect(id, level, duration, data)
 		end
 		
 		effectTable.attacker = IsValid(data.attacker) and data.attacker or effectTable.attacker
+		
+		-- we do this after setting the attacker and level since those as passed as part of DoExpiryEffect
+		if effectTable.expiry <= curTime then
+			DoExpiryEffect(self, id)
+			self.insaneStats_StatusEffects[id] = nil
+			changeOccured = true
+		end
 	elseif level ~= 0 then
 		self.insaneStats_StatusEffects[id] = {
-			expiry = CurTime() + duration,
+			expiry = curTime + duration,
 			level = level,
 			attacker = data.attacker
 		}
@@ -571,6 +590,20 @@ function ENTITY:InsaneStats_ClearStatusEffect(id)
 	end
 end
 
+function ENTITY:InsaneStats_ClearAllStatusEffects()
+	EntityInitStatusEffects(self)
+	for k,v in pairs(self.insaneStats_StatusEffects) do
+		if v.expiry > CurTime() then
+			DoExpiryEffect(self, k)
+			self.insaneStats_StatusEffects[k] = nil
+			if SERVER then
+				self.insaneStats_StatusEffectsToNetwork[k] = true
+				self:InsaneStats_MarkForUpdate(16)
+			end
+		end
+	end
+end
+
 function ENTITY:InsaneStats_GetStatusEffectLevel(id)
 	EntityInitStatusEffects(self)
 	return self.insaneStats_StatusEffects[id]
@@ -609,15 +642,12 @@ function ENTITY:InsaneStats_ClearStatusEffectsByType(typ)
 	EntityInitStatusEffects(self)
 	for k,v in pairs(self.insaneStats_StatusEffects) do
 		local statusEffectInfo = registeredEffects[k]
-		if statusEffectInfo.typ == typ then
-			local effectTable = self.insaneStats_StatusEffects[k]
-			if (effectTable and effectTable.expiry > CurTime()) then
-				DoExpiryEffect(self, k)
-				self.insaneStats_StatusEffects[k] = nil
-				if SERVER then
-					self.insaneStats_StatusEffectsToNetwork[k] = true
-					self:InsaneStats_MarkForUpdate(16)
-				end
+		if statusEffectInfo.typ == typ and v.expiry > CurTime() then
+			DoExpiryEffect(self, k)
+			self.insaneStats_StatusEffects[k] = nil
+			if SERVER then
+				self.insaneStats_StatusEffectsToNetwork[k] = true
+				self:InsaneStats_MarkForUpdate(16)
 			end
 		end
 	end

@@ -371,7 +371,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 				if lookEntityInfo.maxHealth == ourAttack then
 					healthBarWidthPercent = 1
 				end
-				local healthBarWidth = healthBarWidthPercent * InsaneStats.FONT_MEDIUM * 20 + barH * 2
+				local healthBarWidth = healthBarWidthPercent * InsaneStats.FONT_MEDIUM * 20 + barH * 10
 				infoW = infoW + math.max(healthBarWidth, surface.GetTextSize(lookEntityInfo.name))
 				
 				local infoX = (scrW - infoW) * InsaneStats:GetConVarValue("hud_target_x")
@@ -453,7 +453,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 						if lookEntityInfo.maxArmor == ourAttack then
 							armorBarWidthPercent = 1
 						end
-						armorBarWidth = armorBarWidthPercent * 192 + barH
+						armorBarWidth = armorBarWidthPercent * InsaneStats.FONT_MEDIUM * 20 + barH * 10
 						local armor = IsValid(lookEntityInfo.ent) and lookEntityInfo.armor or 0
 						lookEntityInfo.slowArmor = InsaneStats:TransitionUINumber(lookEntityInfo.slowArmor or armor, armor)
 						local barData = InsaneStats:CalculateMultibar(lookEntityInfo.slowArmor, math.min(lookEntityInfo.maxArmor, ourAttack), 180)
@@ -541,7 +541,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 end)
 
 hook.Add("InsaneStatsEntityUpdated", "InsaneStatsXP", function(ent, flags)
-	if ent == lookEntityInfo.ent then
+	if ent == lookEntityInfo.ent or ent:GetClass() == "func_breakable" then
 		UpdateLookEntityInfo(ent, bit.band(flags, 4) == 4)
 	end
 end)

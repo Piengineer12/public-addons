@@ -6,11 +6,12 @@ Donate:			https://ko-fi.com/piengineer12
 
 TODO:
 add support for font scaling
+fix bug where modified armor batteries can be briefly copied after swapping
 ]]
 
 InsaneStats = {
-	VERSION = "0.6.1",
-	VERSION_DATE = "2023-05-15"
+	VERSION = "1.0.0",
+	VERSION_DATE = "2023-05-25"
 }
 
 function InsaneStats:Log(msg)
@@ -38,6 +39,7 @@ local clientFiles = {
 local sharedFiles = {
 	"sh_base",
 	"sh_infhealth",
+	"sh_soundfixes",
 	"sh_wpass2",
 	"sh_wpass2_basemods",
 	"sh_xp"

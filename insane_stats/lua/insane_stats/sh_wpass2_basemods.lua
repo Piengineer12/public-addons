@@ -309,7 +309,7 @@ local modifiers = {
 			melee_damage = 1.1
 		},
 		weight = 0.5,
-		max = 7
+		max = 10
 	},
 	unreal = {
 		prefix = "Unreal",
@@ -346,6 +346,22 @@ local modifiers = {
 		},
 		weight = 0.5
 	},
+	terrible = {
+		prefix = "Terrible",
+		suffix = "Terribleness",
+		modifiers = {
+			back_damage = 1.21
+		},
+		weight = 0.5
+	},
+	taboo = {
+		prefix = "Taboo",
+		suffix = "Tabooness",
+		modifiers = {
+			front_damage = 1.21
+		},
+		weight = 0.5
+	},
 	
 	-- damage, half weight doubled cost
 	heavy = {
@@ -356,7 +372,7 @@ local modifiers = {
 			damage = 1.331,
 		},
 		weight = 0.5,
-		max = 10,
+		max = 5,
 		cost = 2
 	},
 	sniper = {
@@ -426,7 +442,7 @@ local modifiers = {
 			damage = 1.331
 		},
 		weight = 0.5,
-		max = 5,
+		max = 3,
 		cost = 2
 	},
 	shoddy = {
@@ -437,7 +453,7 @@ local modifiers = {
 			damage = 1.331
 		},
 		weight = 0.5,
-		max = 5,
+		max = 3,
 		cost = 2
 	},
 	power = {
@@ -507,17 +523,6 @@ local modifiers = {
 		max = 2,
 		cost = 2
 	},
-	terrible = {
-		prefix = "Terrible",
-		suffix = "Terribleness",
-		modifiers = {
-			evenlevel_damage = 1.331,
-			oddlevel_damage = 1/1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.XP,
-		weight = 0.5,
-		cost = 2
-	},
 	danger = {
 		prefix = "Dangerous",
 		suffix = "Danger",
@@ -536,17 +541,6 @@ local modifiers = {
 			spread = 1.21,
 			nonbullet_damage = 1/1.1
 		},
-		weight = 0.5,
-		cost = 2
-	},
-	taboo = {
-		prefix = "Taboo",
-		suffix = "Tabooness",
-		modifiers = {
-			oddlevel_damage = 1.331,
-			evenlevel_damage = 1/1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.XP,
 		weight = 0.5,
 		cost = 2
 	},
@@ -594,23 +588,25 @@ local modifiers = {
 		max = 21
 	},
 	cosmicurse = {
-		prefix = "Cosmicursing",
+		prefix = "Judgemental",
+		suffix = "Judgement",
 		modifiers = {
 			cosmicurse = 1.1
 		},
 		merge = {
-			"frostfire", "electroblast", "hemotoxic"
+			"frostfire", "electroblast", "hemotoxic", "doom"
 		},
 		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY),
 	},
 	
-	-- damage utility
+	-- damage utility, doubled weight
 	force = {
 		prefix = "Forceful",
 		suffix = "Forcefulness",
 		modifiers = {
 			knockback = 1.4641
 		},
+		weight = 2,
 		max = 5
 	},
 	inspire = {
@@ -619,48 +615,60 @@ local modifiers = {
 		modifiers = {
 			xp = 1.1
 		},
+		weight = 2,
+		flags = InsaneStats.WPASS2_FLAGS.XP
+	},
+	chaining = {
+		prefix = "Chaining",
+		modifiers = {
+			kill5s_xp = 1.1
+		},
+		weight = 2,
 		flags = InsaneStats.WPASS2_FLAGS.XP
 	},
 	heal = {
 		prefix = "Healing",
 		modifiers = {
-			kill_lifesteal = 1.1
-		}
+			kill_lifesteal = 1.21
+		},
+		max = 10,
+		weight = 2
 	},
 	charge = {
 		prefix = "Charging",
 		modifiers = {
-			kill_armorsteal = 1.1,
+			kill_armorsteal = 1.21,
 			armor_full = 1.1,
 			armor_full2 = 1.1
-		}
+		},
+		weight = 2
 	},
 	
-	-- damage utility, half weight
+	-- damage utility
 	bolster = {
 		prefix = "Bolstering",
 		modifiers = {
 			kill5s_damagetaken = 1/1.1
 		},
-		weight = 0.5,
 		max = 7
 	},
 	rejuvenate = {
 		prefix = "Rejuvenating",
 		suffix = "Rejuvenation",
 		modifiers = {
-			kill5s_regen = 1.1
+			kill5s_regen = 1.21
 		},
-		weight = 0.5
+		max = 10,
+		weight = 1
 	},
 	build = {
 		prefix = "Building",
 		modifiers = {
-			kill5s_armorregen = 1.1,
+			kill5s_armorregen = 1.21,
 			armor_full = 1.1,
 			armor_full2 = 1.1
 		},
-		weight = 0.5
+		weight = 1
 	},
 	lethargic = {
 		prefix = "Lethargic",
@@ -668,8 +676,7 @@ local modifiers = {
 		modifiers = {
 			victim_speed = 1/1.1
 		},
-		weight = 0.5,
-		max = 10
+		max = 5
 	},
 	demon = {
 		prefix = "Demonic",
@@ -678,7 +685,7 @@ local modifiers = {
 			victim_damage = 1/1.1
 		},
 		max = 10,
-		weight = 0.5
+		weight = 1
 	},
 	intimidate = {
 		prefix = "Intimidating",
@@ -686,7 +693,6 @@ local modifiers = {
 		modifiers = {
 			victim_firerate = 1/1.1
 		},
-		weight = 0.5,
 		max = 10
 	},
 	manic = {
@@ -696,7 +702,7 @@ local modifiers = {
 			killstack_xp = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.XP,
-		weight = 0.5
+		weight = 1
 	},
 	practical = {
 		prefix = "Practical",
@@ -704,35 +710,40 @@ local modifiers = {
 		modifiers = {
 			prop_xp = 1.1
 		},
-		weight = 0.5,
 		max = 10,
 		flags = InsaneStats.WPASS2_FLAGS.XP
-	},
-	fleeting = {
-		prefix = "Fleeting",
-		modifiers = {
-			kill5s_speed = 1.1
-		},
-		weight = 0.5,
-		max = 10
 	},
 	resist = {
 		prefix = "Resisting",
 		modifiers = {
 			killstack_defence = 1.1
 		},
-		weight = 0.5
+		weight = 1
 	},
 	supply = {
 		prefix = "Supplying",
 		modifiers = {
 			kill_supplychance = 1.21
 		},
-		weight = 0.5,
-		max = 5
+		max = 3
+	},
+	scavenge = {
+		prefix = "Scavenging",
+		modifiers = {
+			prop_supplychance = 1.21
+		},
+		max = 3
+	},
+	empathy = {
+		prefix = "Empathetic",
+		suffix = "Empathy",
+		modifiers = {
+			ally_damage = 0
+		},
+		max = 1
 	},
 	
-	-- damage utility, half weight doubled cost
+	-- damage utility doubled cost
 	conscious = {
 		prefix = "Conscious",
 		suffix = "Consciousness",
@@ -740,20 +751,19 @@ local modifiers = {
 			xp = 1.331,
 			ally_xp = -1
 		},
-		weight = 0.5,
 		cost = 2,
 		flags = InsaneStats.WPASS2_FLAGS.XP
 	},
 	
 	-- utility
-	speed = {
-		prefix = "Speedy",
-		suffix = "Speed",
+	quick = {
+		prefix = "Quick",
+		suffix = "Quickness",
 		modifiers = {
 			speed = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		max = 12
+		max = 5
 	},
 	copy = {
 		prefix = "Copycat",
@@ -774,7 +784,7 @@ local modifiers = {
 	},
 	
 	-- utility, half weight
-	brisk = {
+	--[[brisk = {
 		prefix = "Brisk",
 		suffix = "Brisking",
 		modifiers = {
@@ -783,16 +793,26 @@ local modifiers = {
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
 		max = 10
-	},
-	quick = {
-		prefix = "Quick",
-		suffix = "Quickness",
+	},]]
+	agile = {
+		prefix = "Agile",
+		suffix = "Agility",
 		modifiers = {
 			sprint_speed = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
-		max = 10
+		max = 5
+	},
+	fleeting = {
+		prefix = "Fleeting",
+		modifiers = {
+			crouch_speed = 1.1
+			--kill5s_speed = 1.1
+		},
+		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		weight = 0.5,
+		max = 5
 	},
 	buckle = {
 		prefix = "Buckling",
@@ -822,7 +842,7 @@ local modifiers = {
 		weight = 0.5,
 		max = 10
 	},
-	agile = {
+	--[[agile = {
 		prefix = "Agile",
 		suffix = "Agility",
 		modifiers = {
@@ -830,8 +850,8 @@ local modifiers = {
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
-		max = 10
-	},
+		max = 3
+	},]]
 	acknowledge = {
 		prefix = "Acknowledging",
 		suffix = "Acknowledgement",
@@ -840,7 +860,7 @@ local modifiers = {
 		},
 		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP),
 		weight = 0.5,
-		max = 7
+		max = 10
 	},
 	cloaking = {
 		prefix = "Cloaking",
@@ -849,7 +869,7 @@ local modifiers = {
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
-		max = 10
+		max = 5
 	},
 	spike = {
 		prefix = "Spiked",
@@ -891,7 +911,9 @@ local modifiers = {
 		prefix = "Masterful",
 		suffix = "Mastery",
 		modifiers = {
-			simul_xp = 1.1
+			kill1s_xp = 1.1,
+			kill1s_xp2 = 1.1
+			--simul_xp = 1.1
 		},
 		weight = 0.5,
 		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP)
@@ -905,24 +927,14 @@ local modifiers = {
 		weight = 0.5,
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR
 	},
-	empathy = {
-		prefix = "Empathetic",
-		suffix = "Empathy",
+	brisk = {
+		prefix = "Brisk",
+		suffix = "Brisking",
 		modifiers = {
-			ally_damage = 0
+			dilation = 1.1
 		},
 		weight = 0.5,
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		max = 1
-	},
-	dilate = {
-		prefix = "Dilating",
-		suffix = "Dilation",
-		modifiers = {
-			speed_timedilation = 1.1
-		},
-		weight = 0.5,
-		max = 5,
+		max = 15,
 		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SP_ONLY),
 	},
 	rash = {
@@ -1030,7 +1042,7 @@ local modifiers = {
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
 		cost = 2,
-		max = 4
+		max = 2
 	},
 	jump = {
 		prefix = "Jumpy",
@@ -1147,7 +1159,7 @@ local modifiers = {
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
-		max = 5
+		max = 3
 	},
 	dampening = {
 		prefix = "Dampening",
@@ -1230,15 +1242,16 @@ local modifiers = {
 		prefix = "Revitalizing",
 		suffix = "Revitalization",
 		modifiers = {
-			hittaken_regen = 1.1
+			hittaken_regen = 1.21
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		max = 10,
 		weight = 0.5
 	},
 	shield = {
 		prefix = "Shielding",
 		modifiers = {
-			hittaken_armorregen = 1.1,
+			hittaken_armorregen = 1.21,
 			armor_full = 1.1,
 			armor_full2 = 1.1
 		},
@@ -1249,7 +1262,8 @@ local modifiers = {
 		prefix = "Sharp",
 		suffix = "Sharpness",
 		modifiers = {
-			hittaken_invincible = 1.1
+			hittaken_invincible = 1.1,
+			hittaken_invincible_meleebreak = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
@@ -1289,18 +1303,39 @@ local modifiers = {
 	bloodbath = {
 		prefix = "Bloodbathing",
 		modifiers = {
-			crit_lifesteal = 1.1
+			crit_lifesteal = 1.21
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		max = 10,
 		weight = 0.5
 	},
 	sap = {
 		prefix = "Sapping",
 		modifiers = {
-			crit_armorsteal = 1.1
+			crit_armorsteal = 1.21
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5
+	},
+	awful = {
+		prefix = "Awful",
+		suffix = "Awfulness",
+		modifiers = {
+			back_damagetaken = 1/1.21,
+		},
+		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		weight = 0.5,
+		max = 2,
+	},
+	inept = {
+		prefix = "Inept",
+		suffix = "Ineptivity",
+		modifiers = {
+			front_damagetaken = 1/1.21,
+		},
+		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		weight = 0.5,
+		max = 2,
 	},
 	
 	-- defensive, half weight double cost
@@ -1335,7 +1370,7 @@ local modifiers = {
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
 		cost = 2,
-		max = 12
+		max = 5
 	},
 	guard = {
 		prefix = "Guarding",
@@ -1371,7 +1406,7 @@ local modifiers = {
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
 		cost = 2,
-		max = 10
+		max = 5
 	},
 	large = {
 		prefix = "Large",
@@ -1398,28 +1433,6 @@ local modifiers = {
 		weight = 0.5,
 		cost = 2,
 		max = 10
-	},
-	awful = {
-		prefix = "Awful",
-		suffix = "Awfulness",
-		modifiers = {
-			oddlevel_damagetaken = 1.1,
-			evenlevel_damagetaken = 1/1.331,
-		},
-		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP),
-		weight = 0.5,
-		cost = 2
-	},
-	inept = {
-		prefix = "Inept",
-		suffix = "Ineptivity",
-		modifiers = {
-			evenlevel_damagetaken = 1.1,
-			oddlevel_damagetaken = 1/1.331,
-		},
-		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP),
-		weight = 0.5,
-		cost = 2
 	},
 }
 
@@ -1485,6 +1498,14 @@ local attributes = {
 		display = "%s damage dealt vs. non-living entities",
 		mul = 2
 	},
+	back_damage = {
+		display = "%s damage dealt from behind",
+		mul = 2.5
+	},
+	front_damage = {
+		display = "%s damage dealt from front",
+		mul = 0.625
+	},
 	crit_damage = {
 		display = "%s crit damage dealt",
 		mul = 2
@@ -1497,12 +1518,12 @@ local attributes = {
 		display = "%s damage dealt vs. lower levels",
 		mul = 2
 	},
-	oddlevel_damage = {
+	--[[oddlevel_damage = {
 		display = "%s damage dealt vs. odd levels"
 	},
 	evenlevel_damage = {
 		display = "%s damage dealt vs. even levels"
-	},
+	},]]
 	mark_damage = {
 		display = "%s damage dealt vs. marked",
 		mul = 2
@@ -1590,6 +1611,16 @@ local attributes = {
 		mul = 5,
 		invert = true
 	},
+	back_damagetaken = {
+		display = "%s damage taken from behind",
+		invert = true,
+		mul = 2.5
+	},
+	front_damagetaken = {
+		display = "%s damage taken from front",
+		invert = true,
+		mul = 0.625
+	},
 	speed_damagetaken = {
 		display = "%s damage taken, scaled by speed",
 		invert = true,
@@ -1600,7 +1631,7 @@ local attributes = {
 		invert = true,
 		mul = 2
 	},
-	oddlevel_damagetaken = {
+	--[[oddlevel_damagetaken = {
 		display = "%s damage taken on odd levels",
 		invert = true
 	},
@@ -1608,7 +1639,7 @@ local attributes = {
 		display = "%s damage taken on even levels",
 		invert = true
 	},
-	--[[perdebuff_defence = {
+	perdebuff_defence = {
 		display = "%s defence per Insane Stats debuff"
 	},
 	debuff_damagetaken = {
@@ -1669,20 +1700,32 @@ local attributes = {
 		display = "%s movement speed for 5s after kill",
 		mul = 2
 	},
+	kill5s_xp = {
+		display = "%s XP gain for 5s after kill",
+		mul = 2
+	},
 	kill5s_regen = {
 		display = "%s health regen for 5s after kill",
-		mul = 2.5,
+		mul = 1.25,
 		nopercent = true
 	},
 	kill5s_armorregen = {
 		display = "%s armor regen for 5s after kill",
-		mul = 2.5,
+		mul = 1.25,
 		nopercent = true
 	},
 	kill5s_damageaura = {
 		display = "%s damage aura for 5s after kill",
 		nopercent = true,
 		mul = 10,
+	},
+	kill1s_xp = {
+		display = "%s XP gain for 1s after kill, scaled by duration",
+		mul = 100
+	},
+	kill1s_xp2 = {
+		display = "%s XP gain for 1s from props, scaled by duration",
+		mul = 100
 	},
 	killstack_damage = {
 		display = "%s decaying damage dealt per kill",
@@ -1751,14 +1794,19 @@ local attributes = {
 		mul = 60,
 		nopercent = true
 	},
+	hittaken_invincible_meleebreak = {
+		display = "%ss invincibility per melee hit taken",
+		mul = -20,
+		nopercent = true
+	},
 	hittaken_regen = {
 		display = "%s health regen for 10s on hit taken, 60s cooldown",
-		mul = 10,
+		mul = 5,
 		nopercent = true
 	},
 	hittaken_armorregen = {
 		display = "%s armor regen for 10s on hit taken, 60s cooldown",
-		mul = 10,
+		mul = 5,
 		nopercent = true
 	},
 	hittakenstack_defence = {
@@ -1799,10 +1847,10 @@ local attributes = {
 		display = "%s XP gain on crit kills",
 		mul = 2
 	},
-	simul_xp = {
+	--[[simul_xp = {
 		display = "%s XP gain per multikilled entity",
 		mul = 100
-	},
+	},]]
 	explode = {
 		display = "%s explosion chance after 0.5s",
 	},
@@ -1831,7 +1879,8 @@ local attributes = {
 		display = "%s hemotoxin chance",
 	},
 	cosmicurse = {
-		display = "%s cosmicurse damage dealt",
+		display = "%s cosmic damage dealt",
+		mul = 9
 	},
 	arc_chance = {
 		display = "%s arc damage chance",
@@ -1916,30 +1965,29 @@ local attributes = {
 	},
 	crit_lifesteal = {
 		display = "%s healing on crit",
-		mul = 2,
+		mul = 1,
 		nopercent = true
 	},
 	crit_armorsteal = {
 		display = "%s armor on crit",
-		mul = 2,
+		mul = 1,
 		nopercent = true
 	},
 	kill_lifesteal = {
 		display = "%s healing on kill",
-		mul = 10,
+		mul = 5,
 		nopercent = true
 	},
 	kill_armorsteal = {
 		display = "%s armor on kill",
-		mul = 10,
+		mul = 5,
 		nopercent = true
 	},
 	kill_clipsteal = {
 		display = "%s clip refilled on kill"
 	},
 	kill_supplychance = {
-		display = "%s random items dropped on kill",
-		nopercent = true
+		display = "%s chance for random item on kill",
 	},
 	--[[kill_victim_damage = {
 		display = "%s damage dealt by nearby enemies on kill",
@@ -1956,9 +2004,16 @@ local attributes = {
 	aimbot = {
 		display = "%s bullet aimbot chance"
 	},
+	prop_supplychance = {
+		display = "%s chance for random item from props",
+		--mul = 0.5
+	},
 	
-	speed_timedilation = {
+	--[[speed_timedilation = {
 		display = "%s time dilation, scaled by speed"
+	},]]
+	dilation = {
+		display = "%s time dilation on WASD"
 	},
 	toggle_damage = {
 		display = "%s damage dealt or defence, switched every 5s"
@@ -2005,6 +2060,10 @@ local attributes = {
 		display = "%s sprint speed",
 		mul = 2
 	},
+	crouch_speed = {
+		display = "%s speed while crouched",
+		mul = 2
+	},
 	bloodletting = {
 		display = "Health above max %s turned into armor",
 		invert = true,
@@ -2032,16 +2091,16 @@ local attributes = {
 	},
 	alt_damage = {
 		display = "%s damage dealt after Alt double tap, 60s cooldown",
-		mul = 7
+		mul = 8
 	},
 	alt_firerate = {
 		display = "%s fire rate after Alt double tap, 60s cooldown",
-		mul = 7
+		mul = 8
 	},
-	alt_speed = {
+	--[[alt_speed = {
 		display = "%s movement speed after Alt double tap, 60s cooldown",
-		mul = 7
-	},
+		mul = 8
+	},]]
 	--[[combat5s_dodge = {
 		display = "Up to %s dodge chance over 5s in combat",
 		mode = 2
@@ -2098,9 +2157,9 @@ local statusEffects = {
 		img = Material("insane_stats/status_effects/sonic-lightning.png", "mips smooth")
 	},
 	cosmicurse = {
-		name = "Cosmicurse",
+		name = "Cosmic Annihilation",
 		typ = -1,
-		img = Material("insane_stats/status_effects/cursed-star.png", "mips smooth")
+		img = Material("insane_stats/status_effects/black-hole-bolas.png", "mips smooth")
 	},
 	doom = {
 		name = "Doomed",
@@ -2145,7 +2204,7 @@ local statusEffects = {
 	hit3_damage_stacks = {
 		name = "Strong Buildup",
 		typ = 2,
-		img = Material("insane_stats/status_effects/blade-fall.png", "mips smooth")
+		img = Material("insane_stats/status_effects/triple-scratches.png", "mips smooth")
 	},
 	hit100_damagepulse_stacks = {
 		name = "Godly Buildup",
@@ -2271,11 +2330,16 @@ local statusEffects = {
 		typ = 1,
 		img = Material("insane_stats/status_effects/striking-arrows.png", "mips smooth")
 	},
+	xp_up = {
+		name = "XP Up",
+		typ = 1,
+		img = Material("insane_stats/status_effects/brain.png", "mips smooth")
+	},
 	arcane_damage_up = {
 		name = "Arcane Damage Up",
 		typ = 1,
 		img = Material("insane_stats/status_effects/pointy-sword.png", "mips smooth"),
-		expiry = function(ent, level, attacker)
+		expiry = SERVER and function(ent, level, attacker)
 			if ent:InsaneStats_GetAttributeValue("toggle_damage") ~= 1 then
 				local stacks = (ent:InsaneStats_GetAttributeValue("toggle_damage")-1)*100
 				ent:InsaneStats_ApplyStatusEffect("arcane_defence_up", stacks, 5)
@@ -2286,7 +2350,7 @@ local statusEffects = {
 		name = "Arcane Defence Up",
 		typ = 1,
 		img = Material("insane_stats/status_effects/checked-shield.png", "mips smooth"),
-		expiry = function(ent, level, attacker)
+		expiry = SERVER and function(ent, level, attacker)
 			if ent:InsaneStats_GetAttributeValue("toggle_damage") ~= 1 then
 				local stacks = (ent:InsaneStats_GetAttributeValue("toggle_damage")-1)*100
 				ent:InsaneStats_ApplyStatusEffect("arcane_damage_up", stacks, 5)
@@ -2308,14 +2372,16 @@ local statusEffects = {
 		typ = 1,
 		img = Material("insane_stats/status_effects/broken-heart-zone.png", "mips smooth")
 	},
+	masterful_xp = {
+		name = "Masterful XP Up",
+		typ = 1,
+		img = Material("insane_stats/status_effects/brain.png", "mips smooth")
+	},
 	
 	invincible = {
 		name = "Invincible",
 		typ = 1,
-		img = Material("insane_stats/status_effects/mesh-ball.png", "mips smooth"),
-		expiry = SERVER and function(ent, level, attacker)
-			ent:InsaneStats_ApplyStatusEffect("hittaken_invincible_cooldown", 1, 60)
-		end
+		img = Material("insane_stats/status_effects/mesh-ball.png", "mips smooth")
 	},
 	invisible = {
 		name = "Invisible",
@@ -2359,7 +2425,7 @@ local statusEffects = {
 		typ = -1,
 		img = Material("insane_stats/status_effects/hand.png", "mips smooth")
 	},
-	alt_speed_up = {
+	--[[alt_speed_up = {
 		name = "Agility Speed Up",
 		typ = 2,
 		img = Material("insane_stats/status_effects/sprint.png", "mips smooth"),
@@ -2371,7 +2437,7 @@ local statusEffects = {
 		name = "Agility Cooldown",
 		typ = -1,
 		img = Material("insane_stats/status_effects/barefoot.png", "mips smooth")
-	},
+	},]]
 	stack_damage_up = {
 		name = "Stacking Damage Up",
 		typ = 2,
@@ -2433,7 +2499,7 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 		--speedMul = speedMul * (1 + ent:InsaneStats_GetStatusEffectLevel("stack_speed_up") / 100)
 	
 		speedMul = speedMul * (1+ent:InsaneStats_GetStatusEffectLevel("speed_up")/100)
-		speedMul = speedMul * (1+ent:InsaneStats_GetStatusEffectLevel("alt_speed_up")/100)
+		--speedMul = speedMul * (1+ent:InsaneStats_GetStatusEffectLevel("alt_speed_up")/100)
 		speedMul = speedMul * (1-ent:InsaneStats_GetStatusEffectLevel("speed_down")/100)
 		
 		if ent:InsaneStats_GetStatusEffectLevel("freeze") > 0
@@ -2444,6 +2510,7 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 		
 		data.speed = data.speed * speedMul
 		data.sprintSpeed = data.sprintSpeed * ent:InsaneStats_GetAttributeValue("sprint_speed")
+		data.crouchedSpeed = data.crouchedSpeed * ent:InsaneStats_GetAttributeValue("crouch_speed")
 	end
 end)
 
@@ -2476,7 +2543,7 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 				ply.insaneStats_LastAltPress = 0
 				
 				local invisibilityDuration = ply:InsaneStats_GetAttributeValue("alt_invisible") - 1
-				if ply:InsaneStats_GetStatusEffectDuration("invisible_cooldown") <= 0 and invisibilityDuration ~= 0 and not ply:IsFlagSet(FL_NOTARGET) then
+				if ply:InsaneStats_GetStatusEffectLevel("invisible_cooldown") <= 0 and invisibilityDuration ~= 0 and not ply:IsFlagSet(FL_NOTARGET) then
 					ply:AddFlags(FL_NOTARGET)
 					ply:RemoveFlags(FL_AIMTARGET)
 					ply:AddEffects(bit.bor(EF_NOSHADOW, EF_NODRAW, EF_NORECEIVESHADOW))
@@ -2484,25 +2551,25 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 				end
 				
 				local stacks = (ply:InsaneStats_GetAttributeValue("alt_damage") - 1) * 100
-				if ply:InsaneStats_GetStatusEffectDuration("alt_damage_cooldown") <= 0
-				and ply:InsaneStats_GetStatusEffectDuration("alt_damage_up") <= 0
+				if ply:InsaneStats_GetStatusEffectLevel("alt_damage_cooldown") <= 0
+				and ply:InsaneStats_GetStatusEffectLevel("alt_damage_up") <= 0
 				and stacks ~= 0 then
 					ply:InsaneStats_ApplyStatusEffect("alt_damage_up", stacks, 10)
 				end
 				
 				stacks = (ply:InsaneStats_GetAttributeValue("alt_firerate") - 1) * 100
-				if ply:InsaneStats_GetStatusEffectDuration("alt_firerate_cooldown") <= 0
-				and ply:InsaneStats_GetStatusEffectDuration("alt_firerate_up") <= 0
+				if ply:InsaneStats_GetStatusEffectLevel("alt_firerate_cooldown") <= 0
+				and ply:InsaneStats_GetStatusEffectLevel("alt_firerate_up") <= 0
 				and stacks ~= 0 then
 					ply:InsaneStats_ApplyStatusEffect("alt_firerate_up", stacks, 10)
 				end
 				
-				stacks = (ply:InsaneStats_GetAttributeValue("alt_speed") - 1) * 100
-				if ply:InsaneStats_GetStatusEffectDuration("alt_speed_cooldown") <= 0
-				and ply:InsaneStats_GetStatusEffectDuration("alt_speed_up") <= 0
+				--[[stacks = (ply:InsaneStats_GetAttributeValue("alt_speed") - 1) * 100
+				if ply:InsaneStats_GetStatusEffectLevel("alt_speed_cooldown") <= 0
+				and ply:InsaneStats_GetStatusEffectLevel("alt_speed_up") <= 0
 				and stacks ~= 0 then
 					ply:InsaneStats_ApplyStatusEffect("alt_speed_up", stacks, 10)
-				end
+				end]]
 			else
 				ply.insaneStats_LastAltPress = CurTime()
 			end

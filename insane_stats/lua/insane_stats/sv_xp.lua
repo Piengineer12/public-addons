@@ -8,6 +8,27 @@ end, nil, "Shows recorded maps.")
 concommand.Add("insanestats_xp_other_level_maps_reset", function(ply, cmd, args, argStr)
 	mapOrder = {}
 end, nil, "Resets recorded maps.")
+concommand.Add("insanestats_xp_other_level_maps_remove", function(ply, cmd, args, argStr)
+	for k,v in pairs(mapOrder) do
+		if argStr == v then
+			table.remove(mapOrder, k)
+			InsaneStats:Log("Removed map "..v..".")
+			return
+		end
+	end
+	
+	if tonumber(argStr) then
+		local toRemove = math.min(#mapOrder, tonumber(argStr) or 0)
+		for i=1, toRemove do
+			local value = table.remove(mapOrder)
+			InsaneStats:Log("Removed map "..value..".")
+		end
+	elseif argStr == "" then
+		InsaneStats:Log("Removes a map from the map record list. If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. Note that a map restart is required for the map number to be updated.")
+	else
+		InsaneStats:Log("Could not find map "..argStr..".")
+	end
+end, nil, "Removes a map from the map record list. If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. Note that a map restart is required for the map number to be updated.")
 
 local ENT = FindMetaTable("Entity")
 
@@ -137,9 +158,14 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 	-- this function may be called multitudes of times, make sure it is only called once
 	if IsValid(victim) then
 		-- determine attacker and inflictor
-		if not (IsValid(attacker) and attacker ~= victim) and IsValid(victim.insaneStats_LastAttacker) then
-			attacker = victim.insaneStats_LastAttacker
-			inflictor = victim.insaneStats_LastAttacker
+		if IsValid(victim.insaneStats_LastAttacker) then
+			if (IsValid(attacker) and attacker:GetClass() == "entityflame") then
+				inflictor = attacker
+				attacker = victim.insaneStats_LastAttacker
+			elseif not (IsValid(attacker) and attacker ~= victim) then
+				attacker = victim.insaneStats_LastAttacker
+				inflictor = victim.insaneStats_LastAttacker
+			end
 		end
 		
 		if not IsValid(attacker) and IsValid(inflictor) then
@@ -231,19 +257,19 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 					--print(xp, tempExtraXP, tempDropMul)
 					--print(k, xp, xpToGive, v, victim.insaneStats_DropXP, tempExtraXP)
 					k:InsaneStats_AddXP(xp+tempExtraXP, xp*tempDropMul)
-					k.insaneStats_BatteryXP = (k.insaneStats_BatteryXP or 0) + xp
+					k:InsaneStats_AddBatteryXP(xp)
 					
 					local wep = k.GetActiveWeapon and k:GetActiveWeapon()
 					if IsValid(wep) and not data.receivers[wep] then
 						--print(wep, xp, xpToGive, victim.insaneStats_DropXP, tempExtraXP)
 						wep:InsaneStats_AddXP(xp+tempExtraXP, xp*tempDropMul)
-						wep.insaneStats_BatteryXP = (wep.insaneStats_BatteryXP or 0) + xp
+						wep:InsaneStats_AddBatteryXP(xp)
 					end
 					
 					local driver = k.GetDriver and k:GetDriver()
 					if IsValid(driver) and not data.receivers[driver] then
 						driver:InsaneStats_AddXP(xp+tempExtraXP, xp*tempDropMul)
-						driver.insaneStats_BatteryXP = (driver.insaneStats_BatteryXP or 0) + xp
+						driver:InsaneStats_AddBatteryXP(xp)
 					end
 				end
 				
@@ -479,19 +505,6 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsXP", function(ent)
 		end
 	end]]
 	
-	if ent.insaneStats_CurrentHealthAdd == math.huge and ent.insaneStats_CurrentHealthAddRoot8 then
-		ent.insaneStats_CurrentHealthAdd = ent.insaneStats_CurrentHealthAddRoot8 ^ 8
-	end
-	if ent.insaneStats_CurrentArmorAdd == math.huge and ent.insaneStats_CurrentArmorAddRoot8 then
-		ent.insaneStats_CurrentArmorAdd = ent.insaneStats_CurrentArmorAddRoot8 ^ 8
-	end
-	if ent.insaneStats_XP == math.huge and ent.insaneStats_XPRoot8 then
-		ent:InsaneStats_SetXP(ent.insaneStats_XPRoot8 ^ 8)
-	end
-	if ent.insaneStats_DropXP == math.huge and ent.insaneStats_DropXPRoot8 then
-		ent.insaneStats_DropXP = ent.insaneStats_DropXPRoot8 ^ 8
-	end
-	
 	if not ent.insaneStats_XP then
 		local shouldXP = InsaneStats:DetermineEntitySpawnedXP(ent:GetPos())
 		--print(ent, "should spawn with ", shouldXP, " xp")
@@ -510,10 +523,37 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsXP", function(ent)
 			end
 		elseif ent:GetClass()=="prop_vehicle_apc" then
 			ent:Fire("AddOutput", "OnDeath !activator:InsaneStats_OnNPCKilled")
-			if (IsValid(ent:GetDriver()) and (ent:GetDriver():GetName() or "") ~= "") then
-				ent:Fire("AddOutput", "OnDeath "..ent:GetDriver():GetName()..":SetHealth:0:0:-1")
+			if IsValid(ent:GetDriver()) then
+				ent:Fire("AddOutput","OnDeath "..ent:GetDriver():GetName()..":Kill")
 			end
 		end
+	end
+end)
+
+hook.Add("InsaneStatsTransitionCompat", "InsaneStatsXP", function(ent)
+	if ent.insaneStats_HealthRoot8 then
+		ent.insaneStats_Health = ent.insaneStats_HealthRoot8 ^ 8
+	end
+	if ent.insaneStats_MaxHealthRoot8 then
+		ent.insaneStats_MaxHealth = ent.insaneStats_MaxHealthRoot8 ^ 8
+	end
+	if ent.insaneStats_ArmorRoot8 then
+		ent.insaneStats_Armor = ent.insaneStats_ArmorRoot8 ^ 8
+	end
+	if ent.insaneStats_MaxArmorRoot8 then
+		ent.insaneStats_MaxArmor = ent.insaneStats_MaxArmorRoot8 ^ 8
+	end
+	if ent.insaneStats_CurrentHealthAddRoot8 then
+		ent.insaneStats_CurrentHealthAdd = ent.insaneStats_CurrentHealthAddRoot8 ^ 8
+	end
+	if ent.insaneStats_CurrentArmorAddRoot8 then
+		ent.insaneStats_CurrentArmorAdd = ent.insaneStats_CurrentArmorAddRoot8 ^ 8
+	end
+	if ent.insaneStats_XPRoot8 then
+		ent:InsaneStats_SetXP(ent.insaneStats_XPRoot8 ^ 8)
+	end
+	if ent.insaneStats_DropXPRoot8 then
+		ent.insaneStats_DropXP = ent.insaneStats_DropXPRoot8 ^ 8
 	end
 end)
 
@@ -597,7 +637,6 @@ hook.Add("AcceptInput", "InsaneStatsXP", function(ent, input, activator, caller,
 		elseif input == "insanestats_onnpckilled" then
 			--print("insanestats_onnpckilled", activator, "killed", caller)
 			ProcessKillEvent(caller, activator, activator)
-			return true
 		end
 	end
 	
@@ -717,8 +756,8 @@ hook.Add("EntityTakeDamage", "InsaneStatsXP", function(vic, dmginfo)
 	end
 	
 	if InsaneStats:GetConVarValue("xp_enabled") then
-		if dmginfo:GetAttacker() ~= vic then
-			vic.insaneStats_LastAttacker = dmginfo:GetAttacker()
+		if dmginfo:GetAttacker() ~= vic and attacker:GetClass() ~= "entityflame" then
+			vic.insaneStats_LastAttacker = attacker
 		end
 		
 		if not vic.insaneStats_Level then return true end
@@ -744,34 +783,13 @@ hook.Add("GravGunOnPickedUp", "InsaneStatsXP", function(ply, ent)
 end)
 
 hook.Add("PlayerSpawn", "InsaneStatsXP", function(ply, fromTransition)
+	if fromTransition then
+		hook.Run("InsaneStatsTransitionCompat", ply)
+	end
+	
 	ply.insaneStats_IsDead = false
 	
 	if fromTransition then
-		if ply.insaneStats_HealthRoot8 then
-			ply.insaneStats_Health = ply.insaneStats_HealthRoot8 ^ 8
-		end
-		if ply.insaneStats_MaxHealthRoot8 then
-			ply.insaneStats_MaxHealth = ply.insaneStats_MaxHealthRoot8 ^ 8
-		end
-		if ply.insaneStats_ArmorRoot8 then
-			ply.insaneStats_Armor = ply.insaneStats_ArmorRoot8 ^ 8
-		end
-		if ply.insaneStats_MaxArmorRoot8 then
-			ply.insaneStats_MaxArmor = ply.insaneStats_MaxArmorRoot8 ^ 8
-		end
-		if ply.insaneStats_CurrentHealthAddRoot8 then
-			ply.insaneStats_CurrentHealthAdd = ply.insaneStats_CurrentHealthAddRoot8 ^ 8
-		end
-		if ply.insaneStats_CurrentArmorAddRoot8 then
-			ply.insaneStats_CurrentArmorAdd = ply.insaneStats_CurrentArmorAddRoot8 ^ 8
-		end
-		--[[if ply.insaneStats_XPRoot8 then
-			ply:InsaneStats_SetXP(ply.insaneStats_XPRoot8 ^ 8)
-		end]]
-		if ply.insaneStats_DropXPRoot8 then
-			ply.insaneStats_DropXP = ply.insaneStats_DropXPRoot8 ^ 8
-		end
-		
 		ply.insaneStats_XPLoaded = nil
 	end
 	

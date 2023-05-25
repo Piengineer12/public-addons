@@ -27,10 +27,12 @@ function ENT:InsaneStats_ArmorSensible()
 end
 
 -- due to info_target_*crash entities, we can't apply non-standard knockback lest we break map logic
+-- there's also a few entities that behave very strangely to knockback
 local doNotKnockbackClasses = {
 	npc_combinegunship = true,
 	npc_helicopter = true,
-	prop_physics = true
+	prop_physics = true,
+	npc_sniper = true
 }
 function ENT:InsaneStats_ApplyKnockback(knockback, additionalVelocity)
 	if IsValid(self:GetPhysicsObject()) and not doNotKnockbackClasses[self:GetClass()] then
@@ -136,7 +138,7 @@ end)
 hook.Add("Think", "InsaneStatsUnlimitedHealth", function()
 	if InsaneStats:GetConVarValue("infhealth_enabled") then
 		for k,v in pairs(entities) do
-			if IsValid(v) then
+			if IsValid(v) and CurTime() > 5 then
 				if v.InsaneStats_GetRawHealth then
 					v.insaneStats_OldRawHealth = v.insaneStats_OldRawHealth or v:InsaneStats_GetRawHealth()
 					
@@ -247,6 +249,15 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 					-- single floating-point arithmetic is making this more difficult than it needs to be
 					dmginfo:InsaneStats_SetRawDamage(vic:InsaneStats_GetRawHealth() * 8388607 / 8388608 - 1)
 				end
+				
+				if vic:GetClass() == "npc_helicopter" and vic:InsaneStats_GetHealth() / vic:InsaneStats_GetMaxHealth() > 0.2 then
+					-- if damage exceeds health * 0.75, nerf damage received
+					-- we have to do this otherwise the helicopter might remain in a dead-not-dead state
+					local maxDamage = vic:InsaneStats_GetRawHealth() * 0.75
+					if dmginfo:InsaneStats_GetRawDamage() > maxDamage then
+						dmginfo:InsaneStats_SetRawDamage(maxDamage)
+					end
+				end
 			end
 		end
 	end
@@ -272,9 +283,12 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 		
 		--print(vic, dmginfo:GetDamageForce(), vic.insaneStats_OldVelocity, vic:GetVelocity())
 		
+		--print(reportedDamage)
 		if (notImmune or rawHealthDamage ~= 0) and vic:GetClass() ~= "npc_turret_floor" and InsaneStats:GetConVarValue("infhealth_enabled") then
 			local healthDamage = dmginfo:GetDamage()
 			local armorDamage = InsaneStats:GetAbsorbedDamage()
+			
+			--print(armorDamage)
 			
 			--print(healthDamage, armorDamage)
 			if healthDamage == 0 then -- calculate damage from total HP
@@ -305,11 +319,15 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 			local newArmor = vic:InsaneStats_GetArmor() - armorDamage
 			
 			--print(healthDamage, armorDamage)
-			if (vic.InsaneStats_GetRawHealth and (newHealth > 0) ~= (vic:InsaneStats_GetRawHealth() > 0)) then -- something ain't holding up...
+			if (vic.InsaneStats_GetRawHealth and (newHealth > 0) ~= (vic:InsaneStats_GetRawHealth() > 0)) then
+				-- something ain't holding up...
 				if vic:InsaneStats_GetRawHealth() < 0 then -- they are already dead!
 					newHealth = 0
-				else -- scale down our damage to be x/(x+y)
-					newHealth = vic:InsaneStats_GetHealth() * (1 - healthDamage / (healthDamage + vic:InsaneStats_GetHealth()))
+				else -- scale down our damage to be x/(x+y) or health*0.75, whichever is higher
+					newHealth = vic:InsaneStats_GetHealth() * math.max(
+						1 - healthDamage / (healthDamage + vic:InsaneStats_GetHealth()),
+						0.25
+					)
 				end
 			end
 			
@@ -327,7 +345,7 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 			vic:SetArmor(newArmor)
 		end
 		
-		if not notImmune or rawHealthDamage == 0 then
+		if not notImmune and rawHealthDamage == 0 then
 			reportedDamage = 0
 		end
 		--print(vic, dmginfo:GetDamage(), vic:InsaneStats_GetRawHealth(), vic:InsaneStats_GetHealth())
@@ -344,7 +362,7 @@ end)
 
 hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 	if InsaneStats:GetConVarValue("infhealth_enabled") then
-		if ent:InsaneStats_GetHealth() == math.huge and ent.insaneStats_HealthRoot8 then
+		--[[if ent:InsaneStats_GetHealth() == math.huge and ent.insaneStats_HealthRoot8 then
 			ent.insaneStats_Health = ent.insaneStats_HealthRoot8 ^ 8
 		end
 		if ent:InsaneStats_GetMaxHealth() == math.huge and ent.insaneStats_MaxHealthRoot8 then
@@ -355,7 +373,7 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 		end
 		if ent:InsaneStats_GetMaxArmor() == math.huge and ent.insaneStats_MaxArmorRoot8 then
 			ent.insaneStats_MaxArmor = ent.insaneStats_MaxArmorRoot8 ^ 8
-		end
+		end]]
 		
 		if (ent:IsNPC() or ent:IsNextBot())
 		and math.random() * 100 < InsaneStats:GetConVarValue("infhealth_armor_chance")

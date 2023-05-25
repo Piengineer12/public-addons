@@ -4,11 +4,11 @@ InsaneStats:RegisterClientConVar("hud_wpass2_hold", "insanestats_hud_wpass2_hold
 	display = "Weapon Panel Hold Time", desc = "Amount of time to display weapon information.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
-InsaneStats:RegisterClientConVar("hud_wpass2_width", "insanestats_hud_wpass2_width", "0.29", {
+InsaneStats:RegisterClientConVar("hud_wpass2_width", "insanestats_hud_wpass2_width", "0.33", {
 	display = "Weapon Panel Width", desc = "Maximum width of weapon panels.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
-InsaneStats:RegisterClientConVar("hud_wpass2_height", "insanestats_hud_wpass2_height", "0.29", {
+InsaneStats:RegisterClientConVar("hud_wpass2_height", "insanestats_hud_wpass2_height", "0.19", {
 	display = "Weapon Panel Height", desc = "Maximum height of weapon panels.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
@@ -17,7 +17,7 @@ InsaneStats:RegisterClientConVar("hud_wpass2_lootbeams", "insanestats_hud_wpass2
 	type = InsaneStats.BOOL
 })
 
-InsaneStats:RegisterClientConVar("hud_wpass2_current_x", "insanestats_hud_wpass2_current_x", "0.7", {
+InsaneStats:RegisterClientConVar("hud_wpass2_current_x", "insanestats_hud_wpass2_current_x", "0.66", {
 	display = "Current Weapon Panel X", desc = "Horizontal position of current weapon panel.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
@@ -25,11 +25,11 @@ InsaneStats:RegisterClientConVar("hud_wpass2_current_y", "insanestats_hud_wpass2
 	display = "Current Weapon Panel Y", desc = "Vertical position of current weapon panel.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
-InsaneStats:RegisterClientConVar("hud_wpass2_hovered_x", "insanestats_hud_wpass2_hovered_x", "0.7", {
+InsaneStats:RegisterClientConVar("hud_wpass2_hovered_x", "insanestats_hud_wpass2_hovered_x", "0.66", {
 	display = "Hovered Weapon Panel X", desc = "Horizontal position of hovered weapon panel.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
-InsaneStats:RegisterClientConVar("hud_wpass2_hovered_y", "insanestats_hud_wpass2_hovered_y", "0.4", {
+InsaneStats:RegisterClientConVar("hud_wpass2_hovered_y", "insanestats_hud_wpass2_hovered_y", "0.5", {
 	display = "Hovered Weapon Panel Y", desc = "Vertical position of hovered weapon panel.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
@@ -151,7 +151,7 @@ local function CreateName(wep)
 	wep.insaneStats_Rarity = rarityTier
 	wep.insaneStats_WPASS2Name = name
 	wep.insaneStats_WPASS2NameLastRefresh = RealTime()
-	wep.insaneStats_BatteryLevel = math.floor(InsaneStats:GetLevelByXPRequired(wep.insaneStats_BatteryXP))
+	wep.insaneStats_BatteryLevel = math.floor(InsaneStats:GetLevelByXPRequired(wep:InsaneStats_GetBatteryXP()))
 end
 
 function InsaneStats:GetRarityColor(tier)
@@ -224,7 +224,7 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 		if levelDiff ~= 1 then
 			levelUpText = levelUpText .. " x" .. InsaneStats:FormatNumber(levelDiff)
 		end
-		draw.SimpleTextOutlined(levelUpText, "InsaneStats.Medium", panelX+maxW, panelY+outlineThickness, color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, outlineThickness, color_black)
+		draw.SimpleTextOutlined(levelUpText, "InsaneStats.Medium", panelX+maxW-outlineThickness, panelY+outlineThickness, color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, outlineThickness, color_black)
 	end
 	
 	panelY = panelY + textOffsetY
@@ -336,7 +336,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 		local scrH = ScrH()
 		
 		if trace.Hit then
-			local lookedAtWep = GetLookedAtWep(trace.HitPos)
+			local lookedAtWep = GetLookedAtWep(trace.HitPos)--ply:GetUseEntity()
 			if (IsValid(lookedAtWep) and lookedAtWep:InsaneStats_IsWPASS2Pickup()) then
 				if lastLookedAtWepEntIndex ~= lookedAtWep:EntIndex() then
 					mouseOverChangeTime = realTime

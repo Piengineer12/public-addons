@@ -110,7 +110,7 @@ net.Receive("insane_stats", function()
 				end
 				
 				if batteryXP then
-					ent.insaneStats_BatteryXP = batteryXP
+					ent:InsaneStats_SetBatteryXP(batteryXP)
 					ent.insaneStats_Tier = tier
 					
 					hook.Run("InsaneStatsModifiersChanging", ent, ent.insaneStats_Modifiers, modifiers, modifierChangeReason)
@@ -162,5 +162,10 @@ net.Receive("insane_stats", function()
 		local maxArmor = net.ReadDouble()
 		
 		hook.Run("InsaneStatsWPASS2EntityMarked", entIndex, pos, class, health, maxHealth, armor, maxArmor)
+	elseif func == 5 then
+		local text = net.ReadString()
+		local color = net.ReadColor()
+		
+		chat.AddText(color, text)
 	end
 end)

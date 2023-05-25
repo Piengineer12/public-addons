@@ -102,3 +102,24 @@ end
 function InsaneStats:GetConVarData(name)
 	return self.conVars[name]
 end
+
+-- MISC
+
+InsaneStats:SetDefaultConVarCategory("Miscellaneous")
+InsaneStats:RegisterConVar("gametext_tochat", "insanestats_gametext_tochat", "0", {
+	display = "game_text To Chat", desc = "Activated game_texts will also send their texts to chat.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterConVar("gametext_tochat_once", "insanestats_gametext_tochat_once", "0", {
+	display = "Chat Only Once", desc = "Activated game_texts will only send their texts to chat once.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterConVar("ammocrate_maxammo", "insanestats_ammocrate_maxammo", "0", {
+	display = "Ammo Crates Give 9999", desc = "Ammo crates always give 9999 ammo, limited only by the gmod_maxammo ConVar.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterConVar("transition_delay", "insanestats_transition_delay", "0", {
+	display = "Level Transitions Have Cooldowns", desc = "trigger_changelevels cannot be activated within the first 15 seconds of a map.\n\z
+	Useful for maps where both trigger_changelevels are at the same place.",
+	type = InsaneStats.BOOL
+})

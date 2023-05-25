@@ -66,7 +66,7 @@ function InsaneStats:TransitionUINumber(a, b)
 	end
 end
 
-local order = {"M", "B", "T", "Q", "Qt", "S", "Sp", "Oc", "N", "De", "U", "Du", "Te", "Qtd"--[[, "Qid", "Sd", "Spd", "Ocd", "Nd", "V"]]}
+local order = {"M", "B", "T", "Q", "Qt", "Se", "Sp", "Oc", "No", "De", "Un", --[["Du", "Te", "Qtd", "Qid", "Sed", "Spd", "Ocd", "Nod", "Vig"]]}
 function InsaneStats:FormatNumber(number, data)
 	data = data or {}
 	local plusStr = data.plus and number > 0 and "+" or ""
@@ -81,7 +81,7 @@ function InsaneStats:FormatNumber(number, data)
 		numberStr = plusStr..string.Comma(math.Round(number, decimalPlaces))
 	elseif absNumber < (data.maximumBeforeShortening or 1e6) then
 		numberStr = plusStr..string.Comma(math.floor(number))
-	elseif absNumber < 1e45 then
+	elseif absNumber < 1e36 then
 		local orderNeeded = math.floor(math.log10(absNumber)/3)-1
 		number = number / 1e3^(orderNeeded+1)
 		

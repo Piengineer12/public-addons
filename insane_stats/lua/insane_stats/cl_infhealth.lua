@@ -234,7 +234,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 						offsetX = offsetX + draw.SimpleText(chr, "InsaneStats.Medium", textStartX + offsetX, posY, drawColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM)
 					end
 					
-					local drawColor = HSVToColor(RealTime() * 180 % 360, 1, 1)
+					local drawColor = HSVToColor(RealTime() * 120 % 360, 1, 1)
 					draw.SimpleText(suffixText, "InsaneStats.Medium", textStartX + offsetX, posY, drawColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM)
 					
 					-- if crit, draw extra text

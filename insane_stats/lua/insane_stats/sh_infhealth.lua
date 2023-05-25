@@ -110,6 +110,10 @@ local function OverrideHealth()
 		end
 		
 		self:InsaneStats_MarkForUpdate(1)
+		--[[if SERVER and self:IsPlayer() then
+			print(newHealth)
+			debug.Trace()
+		end]]
 	end
 	
 	function ENT:GetMaxHealth()
