@@ -8,12 +8,12 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_REPAIR_VERSION = "1.8.5"
-LUA_REPAIR_VERSION_DATE = "2023-03-18"
+LUA_REPAIR_VERSION = "1.9.0"
+LUA_REPAIR_VERSION_DATE = "2023-05-26"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
-local conVarLogging = CreateConVar("lua_repair_logging", "1", FCVAR_ARCHIVED, "Enables Lua Repair logging.")
+local conVarLogging = CreateConVar("lua_repair_logging", "0", FCVAR_ARCHIVED, "Enables Lua Repair logging.")
 local lastError = 0
 
 local function Log(...)
@@ -46,6 +46,7 @@ local function FixAllErrors()
 	local PLAYER = FindMetaTable("Player")
 	local CLUAEMITTER = FindMetaTable("CLuaEmitter")
 	local NULL_META = getmetatable(NULL) or {}
+	local PHYSOBJ = FindMetaTable("PhysObj")
 	local CTAKEDAMAGEINFO = FindMetaTable("CTakeDamageInfo")
 	local newNilMeta = {
 		__add = function(a,b)
@@ -109,6 +110,7 @@ local function FixAllErrors()
 	for k,v in pairs(newNilMeta) do
 		NIL[k] = v
 	end
+	
 	NUMBER.__lt = function(a,b)
 		if isnumber(a) or isnumber(b) then
 			return (a or 0) < (b or 0)
@@ -129,6 +131,7 @@ local function FixAllErrors()
 			return tostring(a) <= tostring(b)
 		end
 	end
+	
 	STRING.__concat = function(a,b)
 		if not (isstring(a) and isstring(b)) then
 			LogError("Some code attempted to concatenate a string with something that isn't.")
@@ -144,6 +147,7 @@ local function FixAllErrors()
 		str = str or ""
 		return oldExplode(separator, str, withpattern)
 	end
+	
 	local oldadd,oldsub = VECTOR.__add,VECTOR.__sub
 	local oldmul,olddiv = VECTOR.__mul,VECTOR.__div
 	VECTOR.__add = function(a,b)
@@ -170,31 +174,41 @@ local function FixAllErrors()
 		end
 		return olddiv(a or 1,b or 1)
 	end
+	
 	local oldGC = NULL_META.GetClass
-	NULL_META.GetClass = function(ent,...)
+	NULL_META.GetClass = function(ent, ...)
 		if ent == NULL then
 			LogError("Some code attempted to get the class of a NULL entity.")
-			return ent.__tostring(ent,...)
-		else return oldGC(ent,...)
+			return ent.__tostring(ent, ...)
+		else return oldGC(ent, ...)
 		end
 	end
 	local oldPos = NULL_META.GetPos
-	NULL_META.GetPos = function(ent,...)
+	NULL_META.GetPos = function(ent, ...)
 		if ent == NULL then
 			LogError("Some code attempted to get the position of a NULL entity.")
 			return vector_origin
-		else return oldPos(ent,...)
+		else return oldPos(ent, ...)
 		end
 	end
+	local oldLookupAttachment = NULL_META.LookupAttachment
+	NULL_META.LookupAttachment = function(ent, ...)
+		if ent == NULL then
+			LogError("Some code attempted to lookup an attachment of a NULL entity.")
+			return -1
+		else return oldLookupAttachment(ent, ...)
+		end
+	end
+	
 	local oldGetBonePosition = ENTITY.GetBonePosition
-	ENTITY.GetBonePosition = function(ent,boneIndex,...)
+	ENTITY.GetBonePosition = function(ent, boneIndex, ...)
 		if not boneIndex then
 			LogError("Some code attempted to call Entity:GetBonePosition() without valid bone index.")
 		end
-		return oldGetBonePosition(ent,boneIndex or 0,...)
+		return oldGetBonePosition(ent, boneIndex or 0, ...)
 	end
 	local oldLookupBone = ENTITY.LookupBone
-	ENTITY.LookupBone = function(ent,name,...)
+	ENTITY.LookupBone = function(ent, name, ...)
 		local retValues = {oldLookupBone(ent,name,...)}
 		if retValues[1] then return unpack(retValues) end
 		
@@ -214,17 +228,29 @@ local function FixAllErrors()
 		else return oldindex(ent,key)
 		end
 	end]]
+	
 	local oldEntsFindInSphere = ents.FindInSphere
 	function ents.FindInSphere(origin, radius, ...)
 		origin = origin or vector_origin
 		radius = radius or 0
 		return oldEntsFindInSphere(origin, radius, ...)
 	end
+	
 	local oldGetCurrentCommand = PLAYER.GetCurrentCommand
 	PLAYER.GetCurrentCommand = function(ply, ...)
 		if ply == GetPredictionPlayer() then return oldGetCurrentCommand(ply, ...)
 		else LogError("Some code attempted to call Player:GetCurrentCommand() on a player with no commands currently being processed.") end
 	end
+	
+	local oldWake = PHYSOBJ.Wake
+	PHYSOBJ.Wake = function(physObj, ...)
+		if IsValid(physObj) then
+			return oldWake(physObj, ...)
+		else
+			LogError("Some code attempted to wake a NULL physics object.")
+		end
+	end
+	
 	if CLUAEMITTER then
 		local oldAdd = CLUAEMITTER.Add
 		CLUAEMITTER.Add = function(emitter,...)
@@ -241,6 +267,7 @@ local function FixAllErrors()
 			end
 		end
 	end
+	
 	if CTAKEDAMAGEINFO then
 		local oldSetAttacker = CTAKEDAMAGEINFO.SetAttacker
 		function CTAKEDAMAGEINFO.SetAttacker(dmginfo, attacker, ...)
@@ -249,6 +276,14 @@ local function FixAllErrors()
 				attacker = game.GetWorld()
 			end
 			oldSetAttacker(dmginfo, attacker, ...)
+		end
+	end
+	
+	if CLIENT then
+		local oldIsKeyDown = input.IsKeyDown
+		function input.IsKeyDown(key, ...)
+			if not key then return false end
+			return oldIsKeyDown(key, ...)
 		end
 	end
 	
@@ -316,7 +351,8 @@ local function FixAllErrors()
 		
 		local oldRunConsoleCommand = RunConsoleCommand
 		RunConsoleCommand = function(cmd, ...)
-			if IsConCommandBlocked(cmd) then
+			cmd = cmd or ""
+			if IsConCommandBlocked(cmd) or #cmd < 2 then
 				ReportBlockedCommand(cmd)
 			else
 				oldRunConsoleCommand(cmd, ...)
@@ -328,10 +364,12 @@ local function FixAllErrors()
 		end
 		local oldGameConsoleCommand = game.ConsoleCommand
 		game.ConsoleCommand = function(cmdStr, ...)
+			cmdStr = cmdStr or ""
 			local cmd = string.match(cmdStr, "^\"([^\"]+)\"")
 			if not cmd then
 				cmd = string.match(cmdStr, "^[^%s%c]+")
 			end
+			cmd = cmd or ""
 			if IsConCommandBlocked(cmd) then
 				ReportBlockedCommand(cmd)
 			else
@@ -346,10 +384,12 @@ local function FixAllErrors()
 		local oldConCommand = PLAYER.ConCommand
 		PLAYER.ConCommand = function(self, cmdStr, ...)
 			if IsValid(self) then
+				cmdStr = cmdStr or ""
 				local cmd = string.match(cmdStr, "^\"([^\"]+)\"")
 				if not cmd then
 					cmd = string.match(cmdStr, "^[^%s%c]+")
 				end
+				cmd = cmd or ""
 				if IsConCommandBlocked(cmd) then
 					ReportBlockedCommand(cmd)
 				else
