@@ -10,8 +10,9 @@ Links above are confirmed working as of 2022-04-16. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "5.5.2"
-ISAWC._VERSIONDATE = "2023-03-18"
+ISAWC._VERSION = "5.6.0"
+ISAWC._VERSIONNUMBER = 50600
+ISAWC._VERSIONDATE = "2023-05-27"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -223,6 +224,9 @@ AccessorFunc(ISAWC,"SuppressNoPickup","SuppressNoPickup",FORCE_BOOL)
 ISAWC.ConAltSave = CreateConVar("isawc_use_altsave","0",FCVAR_REPLICATED,
 "If set, entities that are put into containers are stored and retrieved somewhere safe rather than being deleted and recreated.\
 Enabling this option can fix many bugs relating to items not being stored properly, but it might cause other issues.")
+
+ISAWC.ConAltSaveWeapons = CreateConVar("isawc_use_altsave_weapons","1",FCVAR_REPLICATED,
+"If set, Alternate Saving is enabled for weapons. The Alternate Saving whitelist / blacklist still takes effect regardless of the value of this ConVar.")
 
 ISAWC.ConDropOnDeath = CreateConVar("isawc_dropondeath_enabled","1",FCVAR_REPLICATED,
 "If set, players drop a box containing their inventory on death.")
@@ -962,7 +966,18 @@ ISAWC:CreateListConCommand("isawc_desclist", {
 	end
 })
 
-ISAWC.AmmoItemStampList = ISAWC.AmmoItemStampList or {}
+local defaultAmmoItemStampList = {
+	["AR2"] = {1, 100, "item_ammo_ar2_large", "Pulse Ammo x 100"},
+	["AR2AltFire"] = {2, 1, "item_ammo_ar2_altfire", "Combine's Balls"},
+	["Pistol"] = {3, 100, "item_ammo_pistol_large", "Pistol Ammo x 100"},
+	["SMG1"] = {4, 225, "item_ammo_smg1_large", "SMG Ammo x 225"},
+	["_357"] = {5, 20, "item_ammo_357_large", "357 Ammo x 20"},
+	["XBowBolt"] = {6, 6, "item_ammo_crossbow", "Crossbow Bolts x 6"},
+	["Buckshot"] = {7, 20, "item_box_buckshot", "Shotgun Ammo x 20"},
+	["RPG_Round"] = {8, 1, "item_rpg_round", "RPG Round"},
+	["SMG1_Grenade"] = {9, 1, "item_ammo_smg1_grenade", "SMG Grenade"},
+}
+ISAWC.AmmoItemStampList = ISAWC.AmmoItemStampList or table.Copy(defaultAmmoItemStampList)
 ISAWC.AmmoItemStampListLastUpdate = {}
 -- format: [id] = {ammoID, amount, stamp, display}
 local entryDisplayFormat = {
@@ -1463,7 +1478,7 @@ if SERVER then
 				ISAWC.Remaplist = {}
 				ISAWC.StoreRemapList = table.Copy(defaultStoreRemapList)
 				ISAWC.DescList = {}
-				ISAWC.AmmoItemStampList = {}
+				ISAWC.AmmoItemStampList = table.Copy(defaultAmmoItemStampList)
 				ISAWC.LootTablesList = {}
 				ISAWC.MassMultiList = {}
 				ISAWC.VolumeMultiList = {}
@@ -1570,7 +1585,7 @@ if SERVER then
 				ISAWC:CreateItemStamp(name, ply.ISAWC_Inventory[invnum])
 				ISAWC:Log(string.format("Added / updated item stamp \"%s\".", name))
 			else
-				ISAWC:Log("Usage: isawc_stamps_add <slot: 1-65535> <name>")
+				ISAWC:Log("Usage: isawc_stamps_create <slot: 1-65535> <name>")
 			end
 		end,
 		help = "Creates an item stamp from an item in your inventory, allowing you to restore it infinitely until deleted.\n\z
@@ -2245,6 +2260,11 @@ ISAWC.ServerOptionsInfo = {
 			{
 				name = "Use Alternate Storage Method",
 				convar = ISAWC.ConAltSave,
+				type = "bool"
+			},
+			{
+				name = "Use Alternate Storage Method For Weapons",
+				convar = ISAWC.ConAltSaveWeapons,
 				type = "bool"
 			},
 			{
@@ -3410,7 +3430,7 @@ ISAWC.BuildListMenu = function(self, title, name, listType, data, func)
 		end
 		
 		local Help = vgui.Create("DLabel", Panel)
-		Help:SetText("TODO")
+		Help:SetText("This allows you to add loot tables for the Loot Attacher. You can set the name of the loot table on the left, then press the button to the right of it to view additional options.")
 		Help:SetWrap(true)
 		Help:SetAutoStretchVertical(true)
 		Help:DockMargin(4,4,4,0)
@@ -3564,7 +3584,8 @@ ISAWC.BuildListMenu = function(self, title, name, listType, data, func)
 		end
 		
 		local Help = vgui.Create("DLabel", Panel)
-		Help:SetText("TODO")
+		Help:SetText("The following list contains the item stamps / loot table names within this loot table. \z
+		Note that empty loot tables are allowed. Format: <item_stamp/loot_table> <name> <weight>")
 		Help:SetWrap(true)
 		Help:SetAutoStretchVertical(true)
 		Help:DockMargin(4,4,4,0)
@@ -3803,10 +3824,62 @@ ISAWC.BuildServerOptionsMenu = function(self, data)
 		draw.RoundedBox(8,0,0,w,24,color_black_doublesemiopaque)
 	end
 	self.OptionsWindow = Main
+	Main.Searchable = {}
+	function Main:AddSearchablePanel(search, panel)
+		self.Searchable[search:lower()] = panel
+	end
+	
+	local TextEntry = vgui.Create("DTextEntry", Main)
+	TextEntry:SetPaintBackground(false)
+	TextEntry:SetDrawBorder(false)
+	TextEntry:SetTextColor(color_white)
+	TextEntry:SetCursorColor(color_white)
+	TextEntry:SetHighlightColor(color_aqua)
+	TextEntry:DockMargin(0,0,0,5)
+	TextEntry:Dock(TOP)
+	function TextEntry:OnChange()
+		local valueLowered = self:GetValue():lower()
+		for k,v in pairs(Main.Searchable) do
+			if string.find(k, valueLowered) then
+				v:Show()
+				if IsValid(v.DescPanel) then
+					v.DescPanel:Show()
+				end
+			else
+				v:Hide()
+				if IsValid(v.DescPanel) then
+					v.DescPanel:Hide()
+				end
+			end
+		end
+		
+		for k,v in pairs(Main.Categories:GetCanvas():GetChildren()) do
+			if valueLowered ~= "" then
+				v:DoExpansion(true)
+			end
+			v:InvalidateLayout()
+		end
+	end
+	function TextEntry:OnGetFocus()
+		self.DrawEditOverlay = true
+		hook.Run("OnTextEntryGetFocus",self)
+	end
+	function TextEntry:OnLoseFocus()
+		self.DrawEditOverlay = nil
+		hook.Run("OnTextEntryLoseFocus",self)
+	end
+	function TextEntry:PaintOver(w,h)
+		if self.DrawEditOverlay then
+			draw.RoundedBox(8,0,0,w,h,color_white_semitransparent)
+		else
+			draw.RoundedBox(8,0,0,w,h,color_gray_semitransparent)
+		end
+	end
 	
 	local Categories = vgui.Create("DCategoryList", Main)
 	Categories:Dock(FILL)
 	Categories.Paint = nil
+	Main.Categories = Categories
 	
 	local currentZ = 0
 	for i,v in ipairs(self.ServerOptionsInfo) do
@@ -3827,6 +3900,7 @@ ISAWC.BuildServerOptionsMenu = function(self, data)
 			currentZ = currentZ + 1
 			local typ = v2.type
 			local optionPanel
+			local searchTerm = v2.name
 			
 			if typ == "bool" then
 				local CheckBoxPanel = vgui.Create("DCheckBoxLabel", Category)
@@ -3993,9 +4067,14 @@ ISAWC.BuildServerOptionsMenu = function(self, data)
 				DescText:SetWrap(true)
 				DescText:SetAutoStretchVertical(true)
 				DescText:Dock(TOP)
+				optionPanel.DescPanel = DescText
+				
+				searchTerm = searchTerm.." - "..v2.convar:GetHelpText()
 			else
 				optionPanel:DockMargin(4,0,4,16)
 			end
+			
+			Main:AddSearchablePanel(searchTerm, optionPanel)
 		end
 		
 		Category:DoExpansion(false)
@@ -5412,7 +5491,7 @@ ISAWC.WriteModelFromDupeTable = function(self,dupe)
 	net.WriteString(class)
 	net.WriteString(ent.EntityMods and ent.EntityMods.WireName and ent.EntityMods.WireName.name~="" and ent.EntityMods.WireName.name
 	or ent.Name~="" and ent.Name or ent.name~="" and ent.name or ent.PrintName~="" and ent.PrintName~="Scripted Weapon" and ent.PrintName
-	or class)
+	or ent.__ClassName or class)
 	net.WriteString(self:StringMatchParams(class, self.DescList) or self:StringMatchParams(model, self.DescList) or "")
 	net.WriteInt(customImage and -1 or ent.Skin or 0, 16)
 	net.WriteString(bodyGroups)
@@ -5787,7 +5866,7 @@ ISAWC.SaveData = function(self)
 	data.MassMultiList = self.MassMultiList or {}
 	data.VolumeMultiList = self.VolumeMultiList or {}
 	data.CountMultiList = self.CountMultiList or {}
-	data.Version = self._VERSION
+	data.VersionNumber = self._VERSIONNUMBER
 	
 	data.BWLists = {}
 	for k,v in pairs(self.BWLists) do
@@ -5987,11 +6066,188 @@ ISAWC.DropAll = function(self,container,ply)
 	end
 end
 
+local defaultItemStampNames = {
+	"item_ammo_357_large", "item_ammo_ar2_large", "item_ammo_ar2_altfire",
+	"item_ammo_crossbow", "item_ammo_pistol_large", "item_rpg_round",
+	"item_box_buckshot", "item_ammo_smg1_large", "item_ammo_smg1_grenade"
+}
+local defaultItemStampData = {
+	{
+		Constraints = {},
+		Entities = {
+			{
+				Angle = angle_zero,
+				Class = "item_ammo_357_large",
+				Maxs = vector_origin,
+				Mins = vector_origin,
+				Model = "models/items/357ammobox.mdl",
+				Pos = vector_origin,
+			},
+		},
+		Maxs = vector_origin,
+		Mins = vector_origin,
+		TotalCount = 1,
+		TotalMass = 5,
+		TotalVolume = 323.67044067383,
+	},
+	{
+		Constraints = {},
+		Entities = {
+			{
+				Angle = angle_zero,
+				Class = "item_ammo_ar2_large",
+				Maxs = vector_origin,
+				Mins = vector_origin,
+				Model = "models/items/combine_rifle_cartridge01.mdl",
+				Pos = vector_origin,
+			},
+		},
+		Maxs = vector_origin,
+		Mins = vector_origin,
+		TotalCount = 1,
+		TotalMass = 30,
+		TotalVolume = 157.48365783691,
+	},
+	{
+		Constraints = {},
+		Entities = {
+			{
+				Angle = angle_zero,
+				Class = "item_ammo_ar2_altfire",
+				Maxs = vector_origin,
+				Mins = vector_origin,
+				Model = "models/items/combine_rifle_ammo01.mdl",
+				Pos = vector_origin,
+			},
+		},
+		Maxs = vector_origin,
+		Mins = vector_origin,
+		TotalCount = 1,
+		TotalMass = 15,
+		TotalVolume = 370.93927001953,
+	},
+	{
+		Constraints = {},
+		Entities = {
+			{
+				Angle = angle_zero,
+				Class = "item_ammo_crossbow",
+				Maxs = vector_origin,
+				Mins = vector_origin,
+				Model = "models/items/crossbowrounds.mdl",
+				Pos = vector_origin,
+			},
+		},
+		Maxs = vector_origin,
+		Mins = vector_origin,
+		TotalCount = 1,
+		TotalMass = 5,
+		TotalVolume = 94.064483642578,
+	},
+	{
+		Constraints = {},
+		Entities = {
+			{
+				Angle = angle_zero,
+				Class = "item_ammo_pistol_large",
+				Maxs = vector_origin,
+				Mins = vector_origin,
+				Model = "models/items/boxsrounds.mdl",
+				Pos = vector_origin,
+			},
+		},
+		Maxs = vector_origin,
+		Mins = vector_origin,
+		TotalCount = 1,
+		TotalMass = 5,
+		TotalVolume = 1097.1177978516,
+	},
+	{
+		Constraints = {},
+		Entities = {
+			{
+				Angle = angle_zero,
+				Class = "item_rpg_round",
+				Maxs = vector_origin,
+				Mins = vector_origin,
+				Model = "models/weapons/w_missile_closed.mdl",
+				Pos = vector_origin,
+			},
+		},
+		Maxs = vector_origin,
+		Mins = vector_origin,
+		TotalCount = 1,
+		TotalMass = 1.3892699480057,
+		TotalVolume = 242.61026000977,
+	},
+	{
+		Constraints = {},
+		Entities = {
+			{
+				Angle = angle_zero,
+				Class = "item_box_buckshot",
+				Maxs = vector_origin,
+				Mins = vector_origin,
+				Model = "models/items/boxbuckshot.mdl",
+				Pos = vector_origin,
+			},
+		},
+		Maxs = vector_origin,
+		Mins = vector_origin,
+		TotalCount = 1,
+		TotalMass = 5,
+		TotalVolume = 516.48077392578,
+	},
+	{
+		Constraints = {},
+		Entities = {
+			{
+				Angle = angle_zero,
+				Class = "item_ammo_smg1_large",
+				Maxs = vector_origin,
+				Mins = vector_origin,
+				Model = "models/items/boxmrounds.mdl",
+				Pos = vector_origin,
+			},
+		},
+		Maxs = vector_origin,
+		Mins = vector_origin,
+		TotalCount = 1,
+		TotalMass = 5,
+		TotalVolume = 2880.7651367188,
+	},
+	{
+		Constraints = {},
+		Entities = {
+			{
+				Angle = angle_zero,
+				Class = "item_ammo_smg1_grenade",
+				Maxs = vector_origin,
+				Mins = vector_origin,
+				Model = "models/items/ar2_grenade.mdl",
+				Pos = vector_origin,
+			},
+		},
+		Maxs = vector_origin,
+		Mins = vector_origin,
+		TotalCount = 1,
+		TotalMass = 5,
+		TotalVolume = 19.837471008301,
+	},
+}
+
 ISAWC.PerformCompatibilityLoad = function(self, data)
 	-- version < 5.0.4
-	if not data.Version and data.DescList then
+	if not data.VersionNumber and data.DescList then
 		for k,v in pairs(data.DescList) do
 			data.DescList[k] = string.gsub(v, "\\n", "\n")
+		end
+	end
+	
+	-- version < 5.6.0
+	if not data.VersionNumber then
+		for k,v in pairs(defaultItemStampNames) do
+			self:CreateItemStamp(v, defaultItemStampData[k])
 		end
 	end
 end
@@ -6053,10 +6309,18 @@ ISAWC.Initialize = function()
 			ISAWC:Log("ConVar file loaded, 1 ConVar value updated.")
 		end
 		
-		ISAWC:SQL([[CREATE TABLE IF NOT EXISTS "isawc_item_stamps" (
-			"name" TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
-			"data" TEXT NOT NULL
-		);]])
+		if not sql.TableExists("isawc_item_stamps") then
+			ISAWC:SQL([[CREATE TABLE "isawc_item_stamps" (
+				"name" TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
+				"data" TEXT NOT NULL
+			);]])
+			
+			ISAWC:SQL("BEGIN;")
+			for k,v in pairs(defaultItemStampNames) do
+				self:CreateItemStamp(v, defaultItemStampData[k])
+			end
+			ISAWC:SQL("COMMIT;")
+		end
 	end
 end
 
@@ -6274,10 +6538,13 @@ ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 	local trace = util.QuickTrace(ply:EyePos(),isSpawn and ply:GetAimVector()*self.ConDistance:GetFloat() or vector_origin,ply)
 	local spawnpos = trace.HitPos - Vector(0,0,dupe.Mins.z) + trace.HitNormal * self.ConDistBefore:GetFloat()
 	local altSaveSpawnable = true
+	local hasWeapons = false
 	for k,v in pairs(dupe.Entities) do
 		local ent = Entity(k)
 		if sSpawn and not (IsValid(ent) and self.StoredInAltSaveProps[ent]) then
 			altSaveSpawnable = false break
+		elseif ent:IsWeapon() then
+			hasWeapons = true
 		end
 	end
 	for k,v in pairs(dupe.Entities) do
@@ -6299,7 +6566,7 @@ ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 		end
 	end
 	if sSpawn then
-		if self.ConAltSave:GetBool() and altSaveSpawnable then
+		if (hasWeapons and self.ConAltSaveWeapons:GetBool() or self.ConAltSave:GetBool()) and altSaveSpawnable then
 			for k,v in pairs(dupe.Entities) do
 				local ent = Entity(k)
 				if self.ConSaveTable:GetBool() then
@@ -6315,7 +6582,14 @@ ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 				ent:SetPos((ent.ISAWC_OldPos or vector_origin)+spawnpos)
 				ent:PhysWake()
 				if not isSpawn then
-					ent:Use(ply)
+					if ent.Base == "ent_jack_gmod_ezarmor" then
+						JMod.EZ_Equip_Armor(ply, ent)
+					else
+						ent:Use(ply)
+						if ent:IsWeapon() and ent.PickupWeapon then
+							ent:PickupWeapon(ply)
+						end
+					end
 				end
 			end
 		else
@@ -6352,7 +6626,14 @@ ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 				end
 				v.Entity = v
 				if not isSpawn then
-					v:Use(ply)
+					if v.Base == "ent_jack_gmod_ezarmor" then
+						JMod.EZ_Equip_Armor(ply, v)
+					else
+						v:Use(ply)
+						if v:IsWeapon() and v.PickupWeapon then
+							v:PickupWeapon(ply)
+						end
+					end
 				end
 				v.NextPickup2 = CurTime() + 0.5
 			end
@@ -6389,10 +6670,13 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 	local trace = util.QuickTrace(ply:EyePos(),isSpawn and ply:GetAimVector()*self.ConDistance:GetFloat() or vector_origin,ply)
 	local spawnpos = trace.HitPos - Vector(0,0,dupe.Mins.z) + trace.HitNormal * self.ConDistBefore:GetFloat()
 	local altSaveSpawnable = true
+	local hasWeapons = false
 	for k,v in pairs(dupe.Entities) do
 		local ent = Entity(k)
 		if sSpawn and not (IsValid(ent) and self.StoredInAltSaveProps[ent]) then
 			altSaveSpawnable = false break
+		elseif ent:IsWeapon() then
+			hasWeapons = true
 		end
 	end
 	for k,v in pairs(dupe.Entities) do
@@ -6414,7 +6698,7 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 		end
 	end
 	if sSpawn then
-		if self.ConAltSave:GetBool() and altSaveSpawnable then
+		if (hasWeapons and self.ConAltSaveWeapons:GetBool() or self.ConAltSave:GetBool()) and altSaveSpawnable then
 			for k,v in pairs(dupe.Entities) do
 				local ent = Entity(k)
 				if self.ConSaveTable:GetBool() then
@@ -6430,9 +6714,13 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 				ent:SetPos((ent.ISAWC_OldPos or vector_origin)+spawnpos)
 				ent:PhysWake()
 				if not isSpawn then
-					ent:Use(ply)
-					if ent:IsWeapon() and ent.PickupWeapon then
-						ent:PickupWeapon(ply)
+					if ent.Base == "ent_jack_gmod_ezarmor" then
+						JMod.EZ_Equip_Armor(ply, ent)
+					else
+						ent:Use(ply)
+						if ent:IsWeapon() and ent.PickupWeapon then
+							ent:PickupWeapon(ply)
+						end
 					end
 				end
 			end
@@ -6470,9 +6758,13 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 				end
 				v.Entity = v
 				if not isSpawn then
-					v:Use(ply)
-					if v:IsWeapon() and v.PickupWeapon then
-						v:PickupWeapon(ply)
+					if v.Base == "ent_jack_gmod_ezarmor" then
+						JMod.EZ_Equip_Armor(ply, v)
+					else
+						v:Use(ply)
+						if v:IsWeapon() and v.PickupWeapon then
+							v:PickupWeapon(ply)
+						end
 					end
 				end
 				v.NextPickup2 = CurTime() + 0.5
@@ -6507,10 +6799,13 @@ end
 
 ISAWC.SpawnDupeWeak = function(self,dupe,spawnpos,spawnangles,ply)
 	local altSaveSpawnable = true
+	local hasWeapons = false
 	for k,v in pairs(dupe.Entities) do
 		local ent = Entity(k)
 		if not (IsValid(ent) and self.StoredInAltSaveProps[ent]) then
 			altSaveSpawnable = false break
+		elseif ent:IsWeapon() then
+			hasWeapons = true
 		end
 	end
 	for k,v in pairs(dupe.Entities) do
@@ -6519,7 +6814,7 @@ ISAWC.SpawnDupeWeak = function(self,dupe,spawnpos,spawnangles,ply)
 			ent:Remove()
 		end
 	end
-	if self.ConAltSave:GetBool() and altSaveSpawnable then
+	if (hasWeapons and self.ConAltSaveWeapons:GetBool() or self.ConAltSave:GetBool()) and altSaveSpawnable then
 		for k,v in pairs(dupe.Entities) do
 			local ent = Entity(k)
 			if self.ConSaveTable:GetBool() then
@@ -7075,13 +7370,14 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			if IsValid(weapon) then
 				local class = weapon:GetClass()
 				if class=="weapon_isawc_maker" then
-					local localized = net.ReadBool()
+					local localized, backpack = net.ReadBool(), net.ReadBool()
 					local massMul, volumeMul, countMul, lockMul = net.ReadFloat(), net.ReadFloat(), net.ReadFloat(), net.ReadFloat()
 					local massConstant, volumeConstant = net.ReadFloat(), net.ReadFloat()
 					local openSounds, closeSounds = net.ReadString(), net.ReadString()
 					local additionalAccess = net.ReadString()
 					--print(massMul, volumeMul, massConstant, volumeConstant, openSounds, closeSounds)
 					weapon:SetIsPlayerLocalized(localized)
+					weapon:SetIsBackpack(backpack)
 					weapon:SetMassMul(massMul)
 					weapon:SetVolumeMul(volumeMul)
 					weapon:SetCountMul(countMul)
@@ -7092,7 +7388,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					weapon:SetCloseSounds(closeSounds)
 					weapon:SetAdditionalAccess(additionalAccess)
 					weapon:EmitSound("buttons/button17.wav")
-					ply:PrintMessage(HUD_PRINTTALK, "Properties set! They will take place the next time you transform a container.")
+					ply:PrintMessage(HUD_PRINTTALK, "Properties set! They will take place the next time you transform a container / backpack.")
 				elseif class=="weapon_isawc_loot" then
 					local lootTable = net.ReadString()
 					
@@ -7939,7 +8235,7 @@ ISAWC.PropPickup = function(self,ply,ent,container)
 	duplicator.SetLocalAng(angle_zero)
 	dupe.TotalMass, dupe.TotalVolume, dupe.TotalCount = self:CalculateEntitySpace(ent)
 	for k,v in pairs(constraint.GetAllConstrainedEntities(ent)) do
-		if ISAWC.ConAltSave:GetBool() and ISAWC:SatisfiesBWLists(v:GetClass(), "AltSave") then
+		if (ent:IsWeapon() and ISAWC.ConAltSaveWeapons:GetBool() or ISAWC.ConAltSave:GetBool()) and ISAWC:SatisfiesBWLists(v:GetClass(), "AltSave") then
 			v.ISAWC_OldPos,v.ISAWC_OldAngles,v.ISAWC_OldNoDraw,v.ISAWC_OldSolid,v.ISAWC_OldMoveType = v:GetPos()-tpos,v:GetAngles()-ply:GetAngles(),v:GetNoDraw(),v:IsSolid(),v:GetMoveType()
 			v:SetPos(Vector(15000,15000,15000))
 			v:SetNoDraw(true)
@@ -7947,7 +8243,7 @@ ISAWC.PropPickup = function(self,ply,ent,container)
 			v:SetMoveType(MOVETYPE_NONE)
 			self.StoredInAltSaveProps[v] = true
 		else
-			-- clear out inventories to prevent item duplication
+			-- clear out inventories before removal to prevent item duplication
 			if v.ISAWC_Inventory then
 				v.ISAWC_Inventory = {}
 			end

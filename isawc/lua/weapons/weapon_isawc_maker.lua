@@ -1,12 +1,12 @@
 AddCSLuaFile()
 
 --SWEP.Base = "weapon_base"
-SWEP.PrintName = "Container Maker"
+SWEP.PrintName = "Container / Backpack Maker"
 SWEP.Category = "ISAWC"
 SWEP.Author = "Piengineer12"
 SWEP.Contact = "http://steamcommunity.com/id/Piengineer12/"
-SWEP.Purpose = "Convert a Physics Prop into an ISAWC container!"
-SWEP.Instructions = "Primary Fire transforms a prop into a container. Secondary Fire does the opposite. Reload to view options."
+SWEP.Purpose = "Convert a Physics Prop into an ISAWC container! Can also be used to make custom backpacks."
+SWEP.Instructions = "Primary Fire transforms a prop into a container / backpack. Secondary Fire does the opposite. Reload to view options."
 SWEP.WorldModel = "models/weapons/w_pistol.mdl"
 SWEP.ViewModel = "models/weapons/v_pistol.mdl"
 --SWEP.ViewModelFOV = 62
@@ -53,6 +53,7 @@ SWEP.Secondary = {
 
 function SWEP:SetupDataTables()
 	self:NetworkVar("Bool",0,"IsPlayerLocalized")
+	self:NetworkVar("Bool",1,"IsBackpack")
 	self:NetworkVar("Float",0,"MassMul")
 	self:NetworkVar("Float",1,"VolumeMul")
 	self:NetworkVar("Float",2,"CountMul")
@@ -79,26 +80,52 @@ function SWEP:PrimaryAttack()
 	if SERVER and ply:IsPlayer() and IsFirstTimePredicted() then
 		local ent = ply:GetEyeTraceNoCursor().Entity
 		if (IsValid(ent) and ent:GetClass()=="prop_physics") then
-			local container = ents.Create("isawc_container_template")
-			container.ContainerModel = ent:GetModel()
-			container.ContainerMassMul = self:GetMassMul()
-			container.ContainerVolumeMul = self:GetVolumeMul()
-			container.ContainerConstants = {
+			if self:GetIsBackpack() then
+				local backpack = ents.Create("isawc_backpack_template")
+				backpack.BackpackModel = ent:GetModel()
+				backpack.BackpackMassMul = self:GetMassMul()
+				backpack.BackpackVolumeMul = self:GetVolumeMul()
+				backpack.BackpackConstants = {
+					Mass = self:GetMassConstant(),
+					Volume = self:GetVolumeConstant()
+				}
+				backpack:SetCountMul(self:GetCountMul())
+				backpack:SetPos(ent:GetPos())
+				backpack:SetAngles(ent:GetAngles())
+				backpack:Spawn()
+				ply:PrintMessage(HUD_PRINTTALK, "The physics prop has been turned into a transformed backpack!")
+			else
+				local container = ents.Create("isawc_container_template")
+				container.ContainerModel = ent:GetModel()
+				container.ContainerMassMul = self:GetMassMul()
+				container.ContainerVolumeMul = self:GetVolumeMul()
+				container.ContainerConstants = {
+					Mass = self:GetMassConstant(),
+					Volume = self:GetVolumeConstant()
+				}
+				container:SetCountMul(self:GetCountMul())
+				container:SetLockMul(self:GetLockMul())
+				container.OpenSounds = string.Split(self:GetOpenSounds(), '|')
+				container.CloseSounds = string.Split(self:GetCloseSounds(), '|')
+				container:SetPos(ent:GetPos())
+				container:SetAngles(ent:GetAngles())
+				container:Spawn()
+				container:InterpretAdditionalAccess(self:GetAdditionalAccess(), ply)
+				container:SetIsPlayerLocalized(self:GetIsPlayerLocalized())
+				ply:PrintMessage(HUD_PRINTTALK, "The physics prop has been turned into a transformed container!")
+			end
+			ent:Remove()
+			self:EmitSound("buttons/button17.wav")
+		elseif ent:GetClass()=="isawc_backpack_template" then
+			ent.BackpackMassMul = self:GetMassMul()
+			ent.BackpackVolumeMul = self:GetVolumeMul()
+			ent.BackpackConstants = {
 				Mass = self:GetMassConstant(),
 				Volume = self:GetVolumeConstant()
 			}
-			container:SetCountMul(self:GetCountMul())
-			container:SetLockMul(self:GetLockMul())
-			container.OpenSounds = string.Split(self:GetOpenSounds(), '|')
-			container.CloseSounds = string.Split(self:GetCloseSounds(), '|')
-			container:SetPos(ent:GetPos())
-			container:SetAngles(ent:GetAngles())
-			container:Spawn()
-			container:InterpretAdditionalAccess(self:GetAdditionalAccess(), ply)
-			container:SetIsPlayerLocalized(self:GetIsPlayerLocalized())
-			ent:Remove()
+			ent:SetCountMul(self:GetCountMul())
 			self:EmitSound("buttons/button17.wav")
-			ply:PrintMessage(HUD_PRINTTALK, "The physics prop has been turned into a transformed container!")
+			ply:PrintMessage(HUD_PRINTTALK, "The transformed backpack has been updated!")
 		elseif ent:GetClass()=="isawc_container_template" then
 			ent.ContainerMassMul = self:GetMassMul()
 			ent.ContainerVolumeMul = self:GetVolumeMul()
@@ -127,7 +154,9 @@ function SWEP:SecondaryAttack()
 	self.Weapon:SetNextSecondaryFire(CurTime()+0.2)
 	if SERVER and ply:IsPlayer() and IsFirstTimePredicted() then
 		local ent = ply:GetEyeTraceNoCursor().Entity
-		if (IsValid(ent) and ent:GetClass()=="isawc_container_template") then
+		if (IsValid(ent) and (
+			ent:GetClass()=="isawc_container_template" or ent:GetClass()=="isawc_backpack_template"
+		)) then
 			local prop = ents.Create("prop_physics")
 			prop:SetModel(ent:GetModel())
 			prop:SetPos(ent:GetPos())
@@ -135,10 +164,10 @@ function SWEP:SecondaryAttack()
 			prop:Spawn()
 			ent:Remove()
 			self:EmitSound("buttons/button17.wav")
-			ply:PrintMessage(HUD_PRINTTALK, "The transformed container has been turned into a physics prop!")
+			ply:PrintMessage(HUD_PRINTTALK, "The transformed container / backpack has been turned into a physics prop!")
 		else
 			self:EmitSound("items/medshotno1.wav")
-			ply:PrintMessage(HUD_PRINTTALK, "That is not a transformed container!")
+			ply:PrintMessage(HUD_PRINTTALK, "That is not a transformed container / backpack!")
 		end
 	end
 end
@@ -162,6 +191,7 @@ function SWEP:OpenMakerMenu()
 	local massConstant, volumeConstant = self:GetMassConstant(), self:GetVolumeConstant()
 	local openSounds, closeSounds = self:GetOpenSounds(), self:GetCloseSounds()
 	local additionalAccess = self:GetAdditionalAccess()
+	local backpack = self:GetIsBackpack()
 	--print(massMul, volumeMul, massConstant, volumeConstant, openSounds, closeSounds)
 	local weapon = self
 	
@@ -172,6 +202,14 @@ function SWEP:OpenMakerMenu()
 	
 	local ScrollPanel = Main:Add("DScrollPanel")
 	ScrollPanel:Dock(FILL)
+	
+	local BackpackCheckBox = ScrollPanel:Add("DCheckBoxLabel")
+	BackpackCheckBox:SetText("Create backpack instead of container")
+	BackpackCheckBox:SetValue(backpack)
+	BackpackCheckBox:Dock(TOP)
+	function BackpackCheckBox:OnChange(value)
+		backpack = value
+	end
 	
 	local Label = ScrollPanel:Add("DLabel")
 	Label:SetText("A multiplier of 0 means infinite.")
@@ -211,7 +249,7 @@ function SWEP:OpenMakerMenu()
 	end
 	
 	local LockSlider = ScrollPanel:Add("DNumSlider")
-	LockSlider:SetText("(DarkRP) Lock Multiplier")
+	LockSlider:SetText("(DarkRP + Containers Only) Lock Multiplier")
 	LockSlider:SetMinMax(0,10)
 	LockSlider:SetDecimals(3)
 	LockSlider:SetDefaultValue(1)
@@ -244,7 +282,7 @@ function SWEP:OpenMakerMenu()
 	end
 	
 	local LocalizedCheckBox = ScrollPanel:Add("DCheckBoxLabel")
-	LocalizedCheckBox:SetText("Serve different inventory for each player")
+	LocalizedCheckBox:SetText("(Containers Only) Serve different inventory for each player")
 	LocalizedCheckBox:SetValue(localized)
 	LocalizedCheckBox:Dock(TOP)
 	function LocalizedCheckBox:OnChange(value)
@@ -256,7 +294,7 @@ function SWEP:OpenMakerMenu()
 	Label:Dock(TOP)
 	
 	local Label = ScrollPanel:Add("DLabel")
-	Label:SetText("Open Sounds")
+	Label:SetText("(Containers Only) Open Sounds")
 	Label:Dock(TOP)
 	
 	local OpenSoundsBox = ScrollPanel:Add("DTextEntry")
@@ -267,7 +305,7 @@ function SWEP:OpenMakerMenu()
 	end
 	
 	local Label = ScrollPanel:Add("DLabel")
-	Label:SetText("Close Sounds")
+	Label:SetText("(Containers Only) Close Sounds")
 	Label:Dock(TOP)
 	
 	local CloseSoundsBox = ScrollPanel:Add("DTextEntry")
@@ -278,7 +316,7 @@ function SWEP:OpenMakerMenu()
 	end
 	
 	local Label = ScrollPanel:Add("DLabel")
-	Label:SetText("Additional Access\n\z
+	Label:SetText("(Containers Only) Additional Access\n\z
 	Format: option=value|option=value|...\n\n\z
 	
 	If option is \"player\" (without quotes), the value should be the player username.\n\z
@@ -311,6 +349,7 @@ function SWEP:OpenMakerMenu()
 		elseif weapon.cooldown <= RealTime() then
 			ISAWC:StartNetMessage("send_weapon_data")
 			net.WriteBool(localized)
+			net.WriteBool(backpack)
 			net.WriteFloat(massMul)
 			net.WriteFloat(volumeMul)
 			net.WriteFloat(countMul)

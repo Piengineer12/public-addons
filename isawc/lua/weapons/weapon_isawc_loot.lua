@@ -155,6 +155,7 @@ function SWEP:OpenMakerMenu()
 			Main:Close()
 			ISAWC:NoPickup("The weapon is missing!",LocalPlayer())
 		elseif weapon.cooldown <= RealTime() then
+			Main:Close()
 			ISAWC:StartNetMessage("send_weapon_data")
 			net.WriteString(lootTable)
 			net.SendToServer()
