@@ -63,6 +63,8 @@ function GM:PlayerSay(ply, message, forTeam)
 	elseif loweredMessage == "!teams" or loweredMessage == "!rtg_teams" then
 		ply:ConCommand("gm_showteam")
 		return ""
+	--[[elseif loweredMessage == "!help" or loweredMessage == "!rtg_help" then
+		return ""]]
 	end
 	return message
 end

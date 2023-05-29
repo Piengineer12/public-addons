@@ -1430,10 +1430,18 @@ local function CreateVoterStatementPanel(parent, voteInfo)
 	local replacementFragments = {IsValid(voteInfo.initiator) and voteInfo.initiator:Nick() or ROTGB_LocalizeString("rotgb_tg.voting.missing_player")}
 	
 	local voteType = voteInfo.typ
-	if voteType == RTG_VOTE_KICK or voteType == RTG_VOTE_HOGALLXP then
+	if voteType == RTG_VOTE_KICK then
+		local targetID, targetEscalation = string.match(voteInfo.target, "^(.*),(.*)$")
+		local targetPlayer = Player(tonumber(targetID) or -1)
+		local targetNick = IsValid(targetPlayer) and targetPlayer:Nick() or ROTGB_LocalizeString("rotgb_tg.voting.missing_player")
+		local initiatedText = "rotgb_tg.voting.initiated.kick."..targetEscalation
+		
+		table.insert(colorFragments, color_red)
+		table.insert(replacementFragments, (ROTGB_LocalizeString(initiatedText, targetNick)))
+	elseif voteType == RTG_VOTE_HOGALLXP then
 		local targetPlayer = Player(tonumber(voteInfo.target) or -1)
 		local targetNick = IsValid(targetPlayer) and targetPlayer:Nick() or ROTGB_LocalizeString("rotgb_tg.voting.missing_player")
-		local initiatedText = voteType == RTG_VOTE_KICK and "rotgb_tg.voting.initiated.kick" or "rotgb_tg.voting.initiated.hog_all_xp"
+		local initiatedText = "rotgb_tg.voting.initiated.hog_all_xp"
 		
 		table.insert(colorFragments, IsValid(targetPlayer) and team.GetColor(targetPlayer:Team()) or color_white)
 		table.insert(replacementFragments, (ROTGB_LocalizeString(initiatedText, targetNick)))
@@ -1626,11 +1634,12 @@ local function CreateVoterResultStatementPanel(parent, voteInfo, result)
 	elseif result == RTG_VOTERESULT_AGREED then
 		local typ = voteInfo.typ
 		if typ == RTG_VOTE_KICK then
-			local target = Player(voteInfo.target)
+			local targetID, targetEscalation = string.match(voteInfo.target, "^(.*),(.*)$")
+			local target = Player(targetID)
 			local userName = IsValid(target) and target:Nick() or ROTGB_LocalizeString("rotgb_tg.voting.passed.kick.player_not_found")
 			local appendColor = IsValid(target) and team.GetColor(target:Team()) or color_gray
 			table.Add(multiColoredText, ROTGB_LocalizeMulticoloredString(
-				"rotgb_tg.voting.passed.kick",
+				"rotgb_tg.voting.passed.kick."..targetEscalation,
 				{userName},
 				color_white,
 				{appendColor}

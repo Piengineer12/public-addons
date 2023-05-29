@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		6.6.5
-Version Date:	2023-01-24
+Version:		6.6.6
+Version Date:	2023-05-29
 ]]
 
 local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","spawning","towers","music"}
@@ -389,8 +389,8 @@ RegisterConVar("rotgb_resist_effect_delay","1",R_FLOAT,
 [[Sets the delay between "Resist!" text effects shown by the gBalloons.
  - A value of -1 disables the effect altogether.]])
 
-RegisterConVar("rotgb_tower_maxcount","-1",R_INT,
-[[Sets the maximum number of towers allowed.
+RegisterConVar("rotgb_tower_maxcount","16",R_INT,
+[[Sets the maximum number of towers allowed per player.
  - A value of -1 disables this restriction.]])
 
 RegisterConVar("rotgb_bloodtype","-1",R_INT,
@@ -639,7 +639,9 @@ function ROTGB_RemoveCash(num,ply)
 	num = tonumber(num) or 0
 	if ROTGB_GetConVarValue("rotgb_individualcash") then
 		if IsValid(ply) then
-			ROTGB_SetCash(ROTGB_GetCash(ply)-num,ply)
+			if ROTGB_GetCash(ply) < math.huge then
+				ROTGB_SetCash(ROTGB_GetCash(ply)-num,ply)
+			end
 		else
 			local plys = {}
 			for k,v in pairs(player.GetAll()) do
@@ -650,10 +652,12 @@ function ROTGB_RemoveCash(num,ply)
 			
 			local count = #plys
 			for k,v in pairs(plys) do
-				ROTGB_SetCash(ROTGB_GetCash(v)-num/count,v)
+				if ROTGB_GetCash(v) < math.huge then
+					ROTGB_SetCash(ROTGB_GetCash(v)-num/count,v)
+				end
 			end
 		end
-	else
+	elseif ROTGB_GetCash() < math.huge then
 		ROTGB_SetCash(ROTGB_GetCash()-num)
 	end
 end
@@ -1421,7 +1425,7 @@ if CLIENT then
 	local color_magenta = Color(255,0,255)
 	local color_black_semiopaque = Color(0,0,0,191)
 	hook.Add("HUDPaint","RotgB",function()
-		if ROTGB_GetConVarValue("rotgb_hud_enabled") then
+		if ROTGB_GetConVarValue("rotgb_hud_enabled") and (engine.ActiveGamemode() == "sandbox" or GAMEMODE.ROTGB_ShowHUD) then
 			local scrW = ScrW()
 			local scrH = ScrH()
 			

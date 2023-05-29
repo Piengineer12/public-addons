@@ -1,3 +1,7 @@
+local kickEscalations = {}
+-- 5 minutes, 1 hour, 12 hours, 1 week
+local banDurations = {0, 5, 60, 720, 10080}
+
 function GM:StartVote(ply, typ, target, reason)
 	if typ == RTG_VOTE_CHANGEDIFFICULTY and not hook.Run("IsDifficultyUnlocked", target) then
 		hook.Run("SendVoteResult", ply, RTG_VOTERESULT_NOTARGET)
@@ -8,6 +12,15 @@ function GM:StartVote(ply, typ, target, reason)
 	if (currentVote and currentVote.nextVoteAvailability > RealTime()) then
 		hook.Run("SendVoteResult", ply, RTG_VOTERESULT_COOLDOWN)
 	else
+		if typ == RTG_VOTE_KICK then
+			local plyTargeted = Player(tonumber(target) or -1)
+			local escalationLevel = 1
+			if IsValid(plyTargeted) then
+				escalationLevel = kickEscalations[plyTargeted:SteamID()] or 1
+			end
+			target = string.format("%s,%u", target, escalationLevel)
+		end
+		
 		hook.Run("SetCurrentVote", {
 			typ=typ,
 			initiator=ply,
@@ -77,7 +90,8 @@ function GM:CurrentVoteThink()
 		if currentVote.expiry<RealTime() or currentVote.agrees >= requiredPlayerCount or currentVote.disagrees >= requiredPlayerCount then
 			hook.Run("ResolveCurrentVote")
 		elseif currentVote.typ==RTG_VOTE_KICK then
-			local ply = Player(tonumber(currentVote.target) or -1)
+			local targetID, targetEscalation = string.match(currentVote.target, "^(.*),(.*)$")
+			local ply = Player(tonumber(targetID) or -1)
 			if IsValid(ply) then
 				if not currentVote.metadata.userName then
 					currentVote.metadata.userName = ply:Nick()
@@ -108,10 +122,21 @@ function GM:ResolveCurrentVote()
 		local target = currentVote.target
 		local typ = currentVote.typ
 		if typ == RTG_VOTE_KICK then
-			target = Player(tonumber(target) or -1)
+			local targetID, targetEscalation = string.match(target, "^(.*),(.*)$")
+			target = Player(tonumber(targetID) or -1)
 			if IsValid(target) then
+				local steamID = target:SteamID()
+				local banDuration = banDurations[tonumber(targetEscalation)]
+				kickEscalations[steamID] = math.min((kickEscalations[steamID] or 1) + 1, 5)
+				
 				timer.Simple(0.5,function()
-					target:Kick("Voted out of the server")
+					if IsValid(target) then
+						if banDuration > 0 then
+							target:Ban(banDuration, true)
+						else
+							target:Kick("#rotgb_tg.voting.passed.kick.recipient")
+						end
+					end
 				end)
 			else
 				return hook.Run("ClearAndSendVoteResult", RTG_VOTERESULT_NOTARGET)

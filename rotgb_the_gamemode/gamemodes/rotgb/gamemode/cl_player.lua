@@ -75,44 +75,49 @@ end
 
 function GM:SaveClient()
 	local ply = LocalPlayer()
-	local plySkills = ply:RTG_GetSkills()
-	local data = {}
-	data.xp = ply:RTG_GetExperience()
-	data.skills = {}
-	for k,v in pairs(hook.Run("GetSkillNames")) do
-		if ply:RTG_HasSkill(v) then
-			data.skills[k] = plySkills[v]
+	local xp = ply:RTG_GetExperience()
+	-- if we have 0 experience, DON'T save
+	if xp ~= 0 then
+		local plySkills = ply:RTG_GetSkills()
+		local data = {}
+		data.xp = xp
+		data.skills = {}
+		for k,v in pairs(hook.Run("GetSkillNames")) do
+			if ply:RTG_HasSkill(v) then
+				data.skills[k] = plySkills[v]
+			end
 		end
+		data.completedDifficulties = hook.Run("GetCompletedDifficulties")
+		data.statsitics = hook.Run("GetStatisticsSaveTable")
+		data.savefileVersion = 2
+		
+		local jsonData = util.TableToJSON(data)
+		file.Write("rotgb_tg_data.dat", jsonData)
+		timer.Simple(5, function()
+			file.Write("rotgb_tg_data.bak.dat", jsonData)
+		end)
 	end
-	data.completedDifficulties = hook.Run("GetCompletedDifficulties")
-	data.statsitics = hook.Run("GetStatisticsSaveTable")
-	data.savefileVersion = 2
-	
-	local jsonData = util.TableToJSON(data)
-	file.Write("rotgb_tg_data.dat", jsonData)
-	timer.Simple(5, function()
-		file.Write("rotgb_tg_data.bak.dat", jsonData)
-	end)
 end
 
 local color_aqua = Color(0, 255, 255)
 function GM:OnPlayerChat(ply, message, bTeam, bDead)
-    if ply ~= LocalPlayer() then return end
 	local loweredMessage = message:lower()
 	if loweredMessage == "!help" or loweredMessage == "!rtg_help" then
-		chat.AddText(color_white, ROTGB_LocalizeString("rotgb_tg.help"))
-		for i=1, 8 do
-			local arguments = {
-				ROTGB_LocalizeString(string.format("rotgb_tg.help.entry.%i.%i", i, 1)),
-				ROTGB_LocalizeString(string.format("rotgb_tg.help.entry.%i.%i", i, 2)),
-				ROTGB_LocalizeString(string.format("rotgb_tg.help.entry.%i.%i", i, 3))
-			}
-			chat.AddText(unpack(ROTGB_LocalizeMulticoloredString(
-				"rotgb_tg.help.entry",
-				arguments,
-				color_white,
-				{color_aqua, color_aqua, color_white}
-			)))
+		if ply == LocalPlayer() then
+			chat.AddText(color_white, ROTGB_LocalizeString("rotgb_tg.help"))
+			for i=1, 8 do
+				local arguments = {
+					ROTGB_LocalizeString(string.format("rotgb_tg.help.entry.%i.%i", i, 1)),
+					ROTGB_LocalizeString(string.format("rotgb_tg.help.entry.%i.%i", i, 2)),
+					ROTGB_LocalizeString(string.format("rotgb_tg.help.entry.%i.%i", i, 3))
+				}
+				chat.AddText(unpack(ROTGB_LocalizeMulticoloredString(
+					"rotgb_tg.help.entry",
+					arguments,
+					color_white,
+					{color_aqua, color_aqua, color_white}
+				)))
+			end
 		end
 		return true
 	end

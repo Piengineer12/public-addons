@@ -347,17 +347,19 @@ function ENT:Think()
 					ROTGB_CauseNotification(ROTGB_NOTIFY_TOWERCASH, ROTGB_NOTIFYTYPE_ERROR, towerOwner, {"f", towerCost-ROTGB_GetCash(towerOwner)})
 				end
 				ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(towerOwner).." due to insufficient cash.", "towers")
+				self.SellAmount = 0
 				return SafeRemoveEntity(self)
 			elseif maxCount>=0 then
 				local count = 0
 				for k,v in pairs(ents.GetAll()) do
-					if v.Base=="gballoon_tower_base" then
+					if (v.Base=="gballoon_tower_base" and v:GetTowerOwner() == towerOwner) then
 						count = count + 1
 					end
 				end
 				if count > maxCount then
 					ROTGB_CauseNotification(ROTGB_NOTIFY_TOWERMAX, ROTGB_NOTIFYTYPE_ERROR, towerOwner)
 					ROTGB_Log("Removed tower "..tostring(self).." placed by "..tostring(towerOwner).." due to excess towers.", "towers")
+					self.SellAmount = 0
 					return SafeRemoveEntity(self)
 				end
 			end

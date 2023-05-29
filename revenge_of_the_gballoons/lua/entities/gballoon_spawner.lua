@@ -3148,7 +3148,7 @@ end
 
 function ENT:MusicThink()
 	local currentMusic = self.CurrentMusicString or ""
-	local newMusic = self:GetWave() == 667 and "phyrnna_hexennacht.mp3" or self:GetWave() ~= 666 and self:GetSingleMusicData(self.NewMusic).file or ""
+	local newMusic = self:GetWave() == 667 and "barzoom_halloween_panic.mp3" or self:GetWave() ~= 666 and self:GetSingleMusicData(self.NewMusic).file or ""
 	local volume = ROTGB_GetConVarValue("rotgb_music_volume")
 	local streamPlaying = IsValid(self.MusicStream) and self.MusicStream:GetState()==GMOD_CHANNEL_PLAYING
 	if self.NewMusic ~= self.CurrentMusic or currentMusic ~= newMusic or not streamPlaying and currentMusic ~= "" then
@@ -3190,9 +3190,9 @@ function ENT:MusicThink()
 			
 			local texts = self:GetWave() == 667 and {
 				"Now Playing:",
-				"Phyrnna - Hexennacht",
+				"Barzoom - Halloween Panic",
 				"from the Newgrounds Audio Portal",
-				"http://www.newgrounds.com/audio/listen/710256"
+				"http://www.newgrounds.com/audio/listen/649375"
 			} or self:GetWave() ~= 666 and data.texts or {}
 			if next(texts) then
 				local textsToDisplay = {}

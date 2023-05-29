@@ -272,7 +272,7 @@ function GM:RotgBTowerPlaced(tower)
 	end
 end
 function GM:GetMaxRotgBTowerCount(tower)
-	if hook.Run("GetSkillAmount", "towerFiveOnly")>0 then return 5 end
+	--if hook.Run("GetSkillAmount", "towerFiveOnly")>0 then return 5 end
 	return ROTGB_GetConVarValue("rotgb_tower_maxcount")
 end
 

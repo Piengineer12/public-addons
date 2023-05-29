@@ -24,7 +24,7 @@ ENT.InfiniteRange2 = true
 ENT.rotgb_Buff = 0
 ENT.UpgradeReference = {
 	{
-		Prices = {500,3000,12000,45000,150000,500000},
+		Prices = {0,1e3,10e3,100e3,1e6,10e6},
 		Funcs = {
 			function(self)
 				self.rotgb_NoRegen = true
@@ -82,7 +82,7 @@ ENT.UpgradeReference = {
 		}
 	},
 	{
-		Prices = {400,5000,40000,100000,100e6},
+		Prices = {5000,20e3,75e3,300e3,100e6},
 		Funcs = {
 			function(self)
 				self.rotgb_Buff = 1
@@ -153,18 +153,18 @@ function ENT:FireFunction(gBalloons)
 				v:TakeDamageInfo(dmginfo)
 			end
 		elseif v.Base=="gballoon_tower_base" then
-			if self.rotgb_Buff > 0 then
-				v:ApplyBuff(self, "ROTGB_TOWER_06_PASSIVE", 1, function(tower)
-					tower.FireRate = tower.FireRate * 1.2
-				end, function(tower)
-					tower.FireRate = tower.FireRate / 1.2
-				end)
-			end
-			if self.rotgb_Buff > 2 then
+			if self.rotgb_Buff > 1 then
 				v:ApplyBuff(self, "ROTGB_TOWER_06_PASSIVE_2", 1, function(tower)
 					tower.AttackDamage = (tower.AttackDamage or 0) + 10
 				end, function(tower)
 					tower.AttackDamage = (tower.AttackDamage or 0) - 10
+				end)
+			end
+			if self.rotgb_Buff > 2 then
+				v:ApplyBuff(self, "ROTGB_TOWER_06_PASSIVE", 1, function(tower)
+					tower.FireRate = tower.FireRate * 1.2
+				end, function(tower)
+					tower.FireRate = tower.FireRate / 1.2
 				end)
 			end
 			if self.rotgb_Buff > 3 and v ~= self then
@@ -190,9 +190,9 @@ function ENT:TriggerAbility()
 	for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
 		if v.Base=="gballoon_tower_base" then
 			v:ApplyBuff(self, "ROTGB_TOWER_06_TM", self.AbilityDuration, function(tower)
-				tower.AttackDamage = (tower.AttackDamage or 0) + 400
+				tower.AttackDamage = (tower.AttackDamage or 0) + 7000
 			end, function(tower)
-				tower.AttackDamage = (tower.AttackDamage or 0) - 400
+				tower.AttackDamage = (tower.AttackDamage or 0) - 7000
 			end)
 		end
 	end
@@ -203,7 +203,7 @@ hook.Add("EntityTakeDamage","ROTGB_TOWER_06",function(ent,dmginfo)
 	if (IsValid(caller) and caller:GetClass()=="gballoon_base") then
 		local insure = {}
 		for k,v in pairs(ents.FindByClass("gballoon_tower_06")) do
-			if v.rotgb_Buff > 1 then table.insert(insure, v) end
+			if v.rotgb_Buff > 0 then table.insert(insure, v) end
 		end
 		if #insure > 0 then
 			local cash = dmginfo:GetDamage()*1000*player.GetCount()

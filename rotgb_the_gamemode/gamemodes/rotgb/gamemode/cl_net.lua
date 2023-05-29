@@ -46,6 +46,7 @@ local color_yellow = Color(255,255,0)
 local color_light_orange = Color(255,191,127)
 local color_light_green = Color(127,255,127)
 local color_light_blue = Color(127,127,255)
+local color_aqua = Color(0,255,255)
 net.Receive("rotgb_gamemode", function()
 	local operation = net.ReadUInt(4)
 	if operation == RTG_OPERATION_GAMEOVER then
@@ -149,6 +150,22 @@ net.Receive("rotgb_gamemode", function()
 					{ply:Nick(), hook.Run("GetTeamName", oldTeam), hook.Run("GetTeamName", newTeam)},
 					color_white,
 					{team.GetColor(oldTeam), team.GetColor(oldTeam), team.GetColor(newTeam)}
+				)))
+			end
+			
+			-- if *we* were the one who changed teams out of spectator / unassigned, display the chat help message
+			if (oldTeam == TEAM_UNASSIGNED or oldTeam == TEAM_SPECTATOR) and ply == LocalPlayer() then
+				chat.AddText(unpack(ROTGB_LocalizeMulticoloredString(
+					"rotgb_tg.help.hint.1",
+					{"!help", "!rtg_help"},
+					color_white,
+					{color_aqua, color_aqua}
+				)))
+				chat.AddText(unpack(ROTGB_LocalizeMulticoloredString(
+					"rotgb_tg.help.hint.2",
+					{"rotgb_tg_*"},
+					color_white,
+					{color_aqua}
 				)))
 			end
 		end

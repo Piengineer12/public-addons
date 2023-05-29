@@ -1,7 +1,7 @@
 GM.Name							= "RotgB: The Gamemode!"
 GM.Author						= "Piengineer12"
-GM.Version						= "2.0.3"
-GM.VersionDate					= "2023-04-08"
+GM.Version						= "2.0.4"
+GM.VersionDate					= "2023-05-29"
 GM.Email						= "[REDACTED]"
 GM.Website						= "https://steamcommunity.com/id/Piengineer12"
 GM.TeamBased					= false
@@ -12,6 +12,7 @@ GM.DatabaseFormatVersion		= 1
 GM.DatabaseSaveInterval			= 30
 GM.VoteTime						= 15
 GM.DebugMode					= false
+GM.ROTGB_ShowHUD				= true
 
 RTG_STAT_POPS = 1
 RTG_STAT_INIT = 2
