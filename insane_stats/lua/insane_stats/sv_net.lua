@@ -83,7 +83,7 @@ local function BroadcastEntityUpdates()
 			net.WriteDouble(k:InsaneStats_GetBatteryXP())
 			net.WriteBool(k.insaneStats_ModifierChangeReason == 1)
 			net.WriteUInt(k.insaneStats_Tier, 16)
-			local modifiers = k.insaneStats_Modifiers
+			local modifiers = k.insaneStats_Modifiers or {}
 			net.WriteUInt(table.Count(modifiers), 16)
 			for k2,v2 in pairs(modifiers) do
 				net.WriteString(k2)

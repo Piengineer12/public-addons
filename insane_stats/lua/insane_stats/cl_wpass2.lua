@@ -343,7 +343,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 					panelDisplayChangeTime = realTime
 				end
 				mouseOverDieTime = realTime + 1.1
-				panelDisplayDieTime = realTime + 1.1
+				panelDisplayDieTime = realTime + InsaneStats:GetConVarValue("hud_wpass2_hold")
 				lastLookedAtWep2 = lookedAtWep
 				
 				local lookClass = lookedAtWep:GetClass()

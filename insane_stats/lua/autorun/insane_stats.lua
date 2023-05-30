@@ -1,5 +1,5 @@
 --[[
-Workshop:		TBD
+Workshop:		https://steamcommunity.com/sharedfiles/filedetails/?id=2980423627
 Profile Page:	https://steamcommunity.com/id/Piengineer12
 GitHub Page:	https://github.com/Piengineer12/public-addons/tree/master/insane_stats
 Donate:			https://ko-fi.com/piengineer12
@@ -7,11 +7,16 @@ Donate:			https://ko-fi.com/piengineer12
 TODO:
 add support for font scaling
 fix bug where modified armor batteries can be briefly copied after swapping
+
+limit entityflame damage to attacker damage /?
+fix issue where max armor is sometimes reset to 0
+modifier for ammo % to increase damage
+modifier for excessive crouching to increase time speed
 ]]
 
 InsaneStats = {
-	VERSION = "1.0.0",
-	VERSION_DATE = "2023-05-25"
+	VERSION = "1.0.2",
+	VERSION_DATE = "2023-05-30"
 }
 
 function InsaneStats:Log(msg)

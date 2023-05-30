@@ -414,9 +414,10 @@ function InsaneStats:DetermineDamageMul(vic, dmginfo)
 		local inflictor = dmginfo:GetInflictor()
 		local damageBonus = 1
 		
-		--[[if IsValid(inflictor) and inflictor:GetClass()=="entityflame" then
-			return 1
-		end]]
+		if not (IsValid(attacker) and attacker:GetClass()~="entityflame") and IsValid(vic.insaneStats_LastAttacker) then
+			inflictor = attacker
+			attacker = vic.insaneStats_LastAttacker
+		end
 		
 		if not IsValid(attacker) and IsValid(inflictor) then
 			attacker = inflictor
@@ -594,7 +595,7 @@ local function RecordMapAndReloadXP()
 		mapNumber = table.insert(mapOrder, currentMap)
 	end
 	
-	savedPlayerXP = fileContent.playerXP
+	savedPlayerXP = fileContent.playerXP or {}
 end
 
 RecordMapAndReloadXP()
