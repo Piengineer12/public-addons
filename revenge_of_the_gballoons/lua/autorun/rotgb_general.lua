@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		6.6.6
-Version Date:	2023-05-29
+Version:		6.6.7
+Version Date:	2023-06-03
 ]]
 
 local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","spawning","towers","music"}
@@ -77,6 +77,20 @@ function ROTGB_StringExplodeIncludeSeperators(seperator, toExplode, withpattern)
 	return ret
 end
 
+function ROTGB_GetActivePlayerCount()
+	local activePlayerCount = player.GetCount()
+	if team.Valid(TEAM_CONNECTING) then
+		activePlayerCount = activePlayerCount - team.NumPlayers(TEAM_CONNECTING)
+	end
+	if team.Valid(TEAM_UNASSIGNED) and engine.ActiveGamemode() ~= "sandbox" then
+		activePlayerCount = activePlayerCount - team.NumPlayers(TEAM_UNASSIGNED)
+	end
+	if team.Valid(TEAM_SPECTATOR) then
+		activePlayerCount = activePlayerCount - team.NumPlayers(TEAM_SPECTATOR)
+	end
+	return activePlayerCount
+end
+
 ROTGB_OPERATION_BLACKLIST = 1
 ROTGB_OPERATION_WAVE_TRANSFER = 2
 ROTGB_OPERATION_TRANSFER = 3
@@ -92,6 +106,7 @@ ROTGB_OPERATION_SYNCENTITY = 11
 ROTGB_TOWER_MENU = 0
 ROTGB_TOWER_UPGRADE = 1
 ROTGB_TOWER_PURCHASE = 2
+ROTGB_TOWER_STAT = 3
 
 ROTGB_HEALTH_SET = 1
 ROTGB_HEALTH_HEAL = 2
@@ -123,6 +138,7 @@ ROTGB_NOTIFY_TOWERMAX = 14
 ROTGB_NOTIFY_TOWERNOTOWNER = 15
 ROTGB_NOTIFY_WAVEEND = 16
 ROTGB_NOTIFY_TUTORIAL = 17
+ROTGB_NOTIFY_PLAYERREADY = 18
 
 -- deprecated:
 ROTGB_NOTIFYCHAT_NOMULTISTART = ROTGB_NOTIFY_NOMULTISTART
@@ -147,7 +163,7 @@ local function RegisterConVar(cvarName, default, retrieveType, description)
 		ROTGB_LogError("The ConVar "..cvarName.." was already registered! Expect side effects!","")
 	end
 	ROTGB_CVARS[cvarName] = {}
-	ROTGB_CVARS[cvarName][1] = CreateConVar(cvarName, default, bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX, FCVAR_REPLICATED), description)
+	ROTGB_CVARS[cvarName][1] = CreateConVar(cvarName, default, bit.bor(FCVAR_ARCHIVE, FCVAR_REPLICATED), description)
 	ROTGB_CVARS[cvarName][2] = retrieveType
 end
 
@@ -186,6 +202,27 @@ function ROTGB_GetConVarValue(cvar)
 	else
 		ROTGB_LogError("Tried to retrieve value of unregistered ConVar "..cvar.."!","")
 		return 0
+	end
+end
+
+function ROTGB_SetConVarValue(cvar, value)
+	if ROTGB_CVARS[cvar] then
+		local conVar = ROTGB_CVARS[cvar][1]
+		local retrieveType = ROTGB_CVARS[cvar][2]
+		
+		if value == true then
+			conVar:Revert()
+		elseif retrieveType == R_BOOL then
+			conVar:SetBool(tobool(value))
+		elseif retrieveType == R_INT then
+			conVar:SetInt(tonumber(value))
+		elseif retrieveType == R_FLOAT then
+			conVar:SetFloat(tonumber(value))
+		else
+			conVar:SetString(value)
+		end
+	else
+		ROTGB_LogError("Couldn't find ConVar "..cvar.."!", "")
 	end
 end
 
@@ -824,7 +861,7 @@ if SERVER then
 	ROTGB_WHITELIST = ROTGB_WHITELIST or {}
 
 	concommand.Add("rotgb_blacklist",function(ply,cmd,args,argStr)
-		if (IsValid(ply) and ply:IsAdmin()) and SERVER then
+		if (IsValid(ply) and ply:IsAdmin()) then
 			net.Start("rotgb_generic")
 			net.WriteUInt(ROTGB_OPERATION_BLACKLIST, 8)
 			net.WriteUInt(#ROTGB_BLACKLIST,32)
@@ -842,17 +879,58 @@ if SERVER then
 	end,nil,
 	[[Admin only command.
 	 - Opens the blacklist editor.]])
-
+	
 	concommand.Add("rotgb_waveeditor",function(ply,cmd,args,argStr)
-		if IsValid(ply) and SERVER then
+		if IsValid(ply) then
 			net.Start("rotgb_generic")
 			net.WriteUInt(ROTGB_OPERATION_WAVE_EDIT, 8)
 			net.Send(ply)
 		end
 	end,nil,
-	[[Admin only command.
-	 - Opens the wave editor.]])
+	[[Opens the wave editor.]])
 
+	concommand.Add("rotgb_load_difficulty", function(ply,cmd,args,argStr)
+		if (not IsValid(ply) or ply:IsAdmin()) then
+			local difficulty = args[1]
+			if difficulty then
+				local entTable = scripted_ents.GetStored("logic_rotgb_difficulty")
+				local difficulties = entTable.t.BaseDifficulties
+				
+				if difficulties[difficulty] then
+					-- gather all __common ConVars and set them
+					for k, v in pairs(difficulties.__common.convars) do
+						ROTGB_SetConVarValue(k, v)
+					end
+					for k, v in pairs(difficulties[difficulty].convars) do
+						ROTGB_SetConVarValue(k, v)
+					end
+					ROTGB_Log("Loaded difficulty \""..difficulty.."\".", "")
+				else
+					ROTGB_LogError("Couldn't load difficulty \""..difficulty.."\"!", "")
+				end
+			else
+				ROTGB_Log("Admin only command.\n - Sets all ConVars to their values for a specific difficulty in RotgB: The Gamemode.\n - A map restart may be required for changes to take effect.", "")
+			end
+		end
+	end, function(cmd,argStr)
+		local entTable = scripted_ents.GetStored("logic_rotgb_difficulty")
+		local difficulties = entTable.t.BaseDifficulties
+		local suggestions = {}
+		
+		argStr = argStr:Trim()
+		
+		for k, v in pairs(difficulties) do
+			if string.StartsWith(k, argStr) then
+				table.insert(suggestions, cmd..' '..k)
+			end
+		end
+		
+		return suggestions
+	end,
+	[[Admin only command.
+	 - Sets all ConVars to their values for a specific difficulty in RotgB: The Gamemode.
+	 - A map restart may be required for changes to take effect.]])
+	 
 	util.AddNetworkString("rotgb_generic")
 	net.Receive("rotgb_generic",function(length, ply)
 		local operation = net.ReadUInt(8)
@@ -1695,6 +1773,11 @@ if CLIENT then
 		DForm:Help(localizedText)
 	end
 	
+	local function AddDFormConCommandDescription(DForm, conCommand, ...)
+		local localizedText = ROTGB_LocalizeString("rotgb.convar.description.display", ROTGB_LocalizeString("rotgb.command."..conCommand..".description", ...))
+		DForm:Help(localizedText)
+	end
+	
 	local function PopulateClientDForm(DForm)
 		DForm:Help("") --whitespace
 		DForm:ControlHelp(ROTGB_LocalizeString("rotgb.spawnmenu.category.client.display"))
@@ -1894,6 +1977,24 @@ if CLIENT then
 			DForm:ControlHelp(ROTGB_LocalizeString("rotgb.command.rotgb_reset_convars.hint"))
 			local dangerbutton = DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_reset_convars.name"),"rotgb_reset_convars")
 			dangerbutton:SetTextColor(Color(255,0,0))
+			AddDFormConCommandDescription(DForm, "rotgb_reset_convars")
+			DForm:ControlHelp(ROTGB_LocalizeString("rotgb.command.rotgb_load_difficulty.hint"))
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_load_difficulty.easy_regular"),"rotgb_load_difficulty", "easy_regular")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_load_difficulty.easy_chessonly"),"rotgb_load_difficulty", "easy_chessonly")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_load_difficulty.easy_halfcash"),"rotgb_load_difficulty", "easy_halfcash")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_load_difficulty.medium_regular"),"rotgb_load_difficulty", "medium_regular")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_load_difficulty.medium_rainstorm"),"rotgb_load_difficulty", "medium_rainstorm")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_load_difficulty.medium_strategic"),"rotgb_load_difficulty", "medium_strategic")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_load_difficulty.hard_regular"),"rotgb_load_difficulty", "hard_regular")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_load_difficulty.hard_doublehpblimps"),"rotgb_load_difficulty", "hard_doublehpblimps")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_load_difficulty.hard_legacy"),"rotgb_load_difficulty", "hard_legacy")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_load_difficulty.insane_regular"),"rotgb_load_difficulty", "insane_regular")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_load_difficulty.insane_doublehp"),"rotgb_load_difficulty", "insane_doublehp")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_load_difficulty.insane_bosses"),"rotgb_load_difficulty", "insane_bosses")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_load_difficulty.impossible_regular"),"rotgb_load_difficulty", "impossible_regular")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_load_difficulty.impossible_speed"),"rotgb_load_difficulty", "impossible_speed")
+			DForm:Button(ROTGB_LocalizeString("rotgb.command.rotgb_load_difficulty.impossible_monsoon"),"rotgb_load_difficulty", "impossible_monsoon")
+			AddDFormConCommandDescription(DForm, "rotgb_load_difficulty")
 			local DTextEntry = DForm:TextEntry(ROTGB_LocalizeString("rotgb.convar.rotgb_debug.name"),"rotgb_debug")
 			function DTextEntry:GetAutoComplete(text)
 				local dbags = DebugArgs
@@ -2105,6 +2206,20 @@ if CLIENT then
 					local token = string.format("rotgb_tg.tutorial.%i", net.ReadUInt(8))
 					local localized = ROTGB_LocalizeString(token)
 					ROTGB_CauseNotification(localized, level, nil, additionalArguments)
+				elseif message == ROTGB_NOTIFY_PLAYERREADY then
+					local ply = net.ReadEntity()
+					local readyPlayers = net.ReadUInt(8)
+					local neededPlayers = math.ceil(ROTGB_GetActivePlayerCount()/2)
+					local plyName
+					if IsValid(ply) then
+						plyName = ply:Nick()
+					else
+						plyName = ROTGB_LocalizeString("rotgb.error")
+					end
+					ROTGB_CauseNotification(
+						ROTGB_LocalizeString("rotgb.gballoon_spawner.player_ready", plyName, readyPlayers, neededPlayers),
+						level, nil, additionalArguments
+					)
 				end
 			end
 		elseif operation == ROTGB_OPERATION_NOTIFYCHAT then

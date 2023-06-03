@@ -69,7 +69,8 @@ ENT.UpgradeReference = {
 				end
 				self.UseLOS = nil
 			end
-		}
+		},
+		FusionRequirements = {[8] = true}
 	}
 }
 ENT.UpgradeLimits = {99}
@@ -198,7 +199,7 @@ function ENT:ROTGB_Think()
 			for k2,v2 in pairs(ROTGB_GetBalloons()) do
 				if self:ValidTargetIgnoreRange(v2) and v2:WorldSpaceCenter():DistToSqr(k:GetPos()) <= 65536 then
 					balloonPops[v2] = balloonPops[v2] or {0, v}
-					balloonPops[v2][1] = balloonPops[v2][1] + self.AttackDamage*1000
+					balloonPops[v2][1] = balloonPops[v2][1] + self.AttackDamage*1000*(1+self.FusionPower/100)
 					balloonPops[v2][2] = v
 				end
 			end
@@ -253,7 +254,7 @@ abilityFunction = function(self)
 		local ent = self:ChooseSomething()
 		if IsValid(ent) then
 			if self.rotgb_Infinite then
-				self:AddCash(5e7, self:GetTowerOwner())
+				self:AddCash(5e7*(1+self.FusionPower/100), self:GetTowerOwner())
 			end
 			if ent.UseLOS then
 				sound.Play("ambient/explosions/explode_6.wav", ent:GetPos(), 100)

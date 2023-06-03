@@ -1,12 +1,20 @@
 local spacing_top = 32
 local color_dark_red = Color(127,0,0)
 local color_red = Color(255,0,0)
+local color_light_red = Color(255,127,127)
 local color_yellow = Color(255,255,0)
 local color_green = Color(0,255,0)
+local color_light_green = Color(127,255,127)
 local color_aqua = Color(0,255,255)
+local color_dark_blue = Color(0, 0, 127)
 local color_blue = Color(0,0,255)
+local color_light_blue = Color(127,127,255)
+--[[local color_dark_purple = Color(63, 0, 127)
+local color_purple = Color(127, 0, 255)
+local color_light_purple = Color(191, 127, 255)]]
 local color_gray = Color(127,127,127)
 local color_gray_translucent = Color(127,127,127,127)
+local color_black_doublesemiopaque = Color(0,0,0,223)
 local color_black_translucent = Color(0,0,0,127)
 
 local targetings = 8
@@ -1427,17 +1435,25 @@ function ROTGB_UpgradeMenu(ent)
 				return ROTGB_CauseNotification(towerMissingText)
 			end
 			self.Tier = self.Tier or bit.band(bit.rshift(ent:GetUpgradeStatus(),i*4),15)+1
+			self.CanPerformFusion = ent:CanPerformFusion(i+1, self.Tier)
 			
 			local text
 			if not reftab.Funcs[self.Tier] then
 				text = ROTGB_LocalizeString("rotgb.tower.upgrade.node.complete.description")
+			elseif not self.CanPerformFusion then
+				text = ROTGB_LocalizeString("rotgb.tower.upgrade.node.fusion.description")
 			elseif not self:IsEnabled() then
 				text = ROTGB_LocalizeString("rotgb.tower.upgrade.node.locked.description")
 			else
 				text = ROTGB_LocalizeString("rotgb.tower.upgrade.node.description", ent:GetUpgradeDescription(i+1, self.Tier))
 			end
 			self:SetText(text)
-			self:SetTextColor(not reftab.Funcs[self.Tier] and color_green or not self:IsEnabled() and color_red or color_white)
+			self:SetTextColor(
+				not reftab.Funcs[self.Tier] and color_green
+				or not self.CanPerformFusion and color_blue
+				or not self:IsEnabled() and color_red
+				or color_white
+			)
 			Main:Refresh(bool)
 			SellButton:SetText(ROTGB_LocalizeString("rotgb.tower.sell.amount", ROTGB_FormatCash(displayedSellAmount*0.8)))
 		end
@@ -1448,18 +1464,34 @@ function ROTGB_UpgradeMenu(ent)
 			end
 			self.price = ROTGB_ScaleBuyCost(reftab.Prices[self.Tier], ent, {type = ROTGB_TOWER_UPGRADE, path = i+1, tier = self.Tier})
 			curcash = ROTGB_GetCash(LocalPlayer())
-			draw.RoundedBox(8,0,0,w,h,self:IsHovered() and color_gray_translucent or color_black_translucent)
+			
+			if reftab.FusionRequirements and (reftab.FusionRequirements[self.Tier] or reftab.FusionRequirements[self.Tier-1] and ent.FusionPower > 0) then
+				local drawColor = HSVToColor(RealTime()*60%360, 1, self:IsHovered() and 1 or 0.5)
+				drawColor.a = 127
+				draw.RoundedBox(8,0,0,w,h,drawColor)
+			else
+				draw.RoundedBox(8,0,0,w,h,self:IsHovered() and color_gray_translucent or color_black_translucent)
+			end
 			
 			local text
-			if not reftab.Funcs[self.Tier] then
+			if reftab.FusionRequirements and reftab.FusionRequirements[self.Tier-1] and ent.FusionPower > 0 then
+				text = ROTGB_LocalizeString("rotgb.tower.fusion.power", string.format("%u", ent.FusionPower))
+			elseif not reftab.Funcs[self.Tier] then
 				text = ROTGB_LocalizeString("rotgb.tower.upgrade.node.complete.title")
+			elseif not self.CanPerformFusion then
+				text = ROTGB_LocalizeString("rotgb.tower.upgrade.node.fusion.title")
 			elseif not self:IsEnabled() then
 				text = ROTGB_LocalizeString("rotgb.tower.upgrade.node.locked.title")
 			else
 				text = ROTGB_LocalizeString("rotgb.tower.upgrade.node.title", ent:GetUpgradeName(i+1, self.Tier))
 			end
-			draw.SimpleText(text,"DermaLarge",0,0,not reftab.Funcs[self.Tier] and color_green or not self:IsEnabled() and color_red or color_white)
-			if reftab.Prices[self.Tier] and self:IsEnabled() then
+			draw.SimpleText(text,"DermaLarge",0,0,
+				not reftab.Funcs[self.Tier] and color_green
+				or not self.CanPerformFusion and color_blue
+				or not self:IsEnabled() and color_red
+				or color_white
+			)
+			if reftab.Prices[self.Tier] and (not self.CanPerformFusion or self:IsEnabled()) then
 				text = ROTGB_LocalizeString("rotgb.tower.upgrade.node.cost", ROTGB_FormatCash(self.price, true))
 				draw.SimpleText(text,"DermaLarge",w,0,self.price>curcash and color_red or color_green,TEXT_ALIGN_RIGHT)
 			end
@@ -1468,6 +1500,9 @@ function ROTGB_UpgradeMenu(ent)
 			if not IsValid(ent) then
 				Main:Close()
 				return ROTGB_CauseNotification(towerMissingText)
+			end
+			if not ent:CanPerformFusion(i+1, self.Tier) then
+				return ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.upgrade.node.fusors_not_found"))
 			end
 			if not reftab.Prices[self.Tier] then
 				return ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.upgrade.node.invalid"))
@@ -1482,15 +1517,35 @@ function ROTGB_UpgradeMenu(ent)
 			--[[if (reftab.Funcs and reftab.Funcs[self.Tier]) then
 				reftab.Funcs[self.Tier](ent)
 			end]]
-			net.Start("rotgb_openupgrademenu")
-			net.WriteEntity(ent)
-			net.WriteUInt(i,4)
-			net.WriteUInt(0,4)
-			net.SendToServer()
-			displayedSellAmount = displayedSellAmount + self.price
-			self.Tier = self.Tier + 1
-			self.price = ROTGB_ScaleBuyCost(reftab.Prices[self.Tier], ent, {type = ROTGB_TOWER_UPGRADE, path = i+1, tier = self.Tier})
-			self:Refresh(true)
+			if (reftab.FusionRequirements and reftab.FusionRequirements[self.Tier]) then
+				Derma_Query(
+					ROTGB_LocalizeString("rotgb.tower.fusion.confirmation"),
+					ROTGB_LocalizeString("rotgb.tower.fusion"),
+					ROTGB_LocalizeString("rotgb.general.yes"),
+					function()
+						if IsValid(ent) and IsValid(Main) then
+							Main:Close()
+							
+							net.Start("rotgb_openupgrademenu")
+							net.WriteEntity(ent)
+							net.WriteUInt(i,4)
+							net.WriteUInt(0,4)
+							net.SendToServer()
+						end
+					end,
+					ROTGB_LocalizeString("rotgb.general.no")
+				)
+			else
+				net.Start("rotgb_openupgrademenu")
+				net.WriteEntity(ent)
+				net.WriteUInt(i,4)
+				net.WriteUInt(0,4)
+				net.SendToServer()
+				displayedSellAmount = displayedSellAmount + self.price
+				self.Tier = self.Tier + 1
+				self.price = ROTGB_ScaleBuyCost(reftab.Prices[self.Tier], ent, {type = ROTGB_TOWER_UPGRADE, path = i+1, tier = self.Tier})
+				self:Refresh(true)
+			end
 		end
 		
 		local UpgradeIndicatorPanel = UpgradeStatement:Add("DPanel")
@@ -1506,7 +1561,8 @@ function ROTGB_UpgradeMenu(ent)
 			HoverButton:SetTooltip(ROTGB_LocalizeString("rotgb.tower.upgrade.node.tooltip", ent:GetUpgradeName(i+1, j), ROTGB_FormatCash(price, true), ent:GetUpgradeDescription(i+1, j)))
 			HoverButton:DockMargin(0,0,8,0)
 			HoverButton:Dock(LEFT)
-			HoverButton.RequiredAmount = 0
+			HoverButton.CanPerformFusion = ent:CanPerformFusion(i+1, j)
+			--HoverButton.RequiredAmount = 0
 			function HoverButton:Paint(w,h)
 				if not IsValid(ent) then
 					Main:Close()
@@ -1520,7 +1576,9 @@ function ROTGB_UpgradeMenu(ent)
 				local pulser = math.sin(CurTime()*math.pi*2)/2+0.5
 				local ignoreTier = ROTGB_GetConVarValue("rotgb_ignore_upgrade_limits") or ent:GetNWBool("rotgb_noupgradelimit")
 				if j==self.Tier then
-					if j>UpgradeStatement.MaxTier and not ignoreTier then
+					if not self.CanPerformFusion then
+						drawColor = color_blue
+					elseif j>UpgradeStatement.MaxTier and not ignoreTier then
 						drawColor = color_red
 					elseif canAfford then
 						drawColor = HSVToColor(60, 1-pulser, 1)
@@ -1528,12 +1586,14 @@ function ROTGB_UpgradeMenu(ent)
 						drawColor = color_yellow
 					end
 				else
-					if j>UpgradeStatement.MaxTier and not ignoreTier then
-						drawColor = color_dark_red
-					elseif j>self.Tier then
-						drawColor = canAfford and HSVToColor(0, 0, pulser/2+0.5) or color_gray
-					else
+					if j<=self.Tier then
 						drawColor = color_green
+					elseif not self.CanPerformFusion then
+						drawColor = color_dark_blue
+					elseif j>UpgradeStatement.MaxTier and not ignoreTier then
+						drawColor = color_dark_red
+					else
+						drawColor = canAfford and HSVToColor(0, 0, pulser/2+0.5) or color_gray
 					end
 				end
 				draw.RoundedBox(8,0,0,w,h,drawColor)
@@ -1553,21 +1613,53 @@ function ROTGB_UpgradeMenu(ent)
 					return ROTGB_CauseNotification(towerMissingText)
 				end
 				if not (UpgradeStatement.MaxTier >= j or ROTGB_GetConVarValue("rotgb_ignore_upgrade_limits") or ent:GetNWBool("rotgb_noupgradelimit")) then return end
+				
+				-- do fusion check
+				local requiresFusion = false
+				for k=self.Tier,j do
+					if not ent:CanPerformFusion(i+1, k) then return ROTGB_LocalizeString("rotgb.tower.upgrade.node.fusors_not_found") end
+					if (reftab.FusionRequirements and reftab.FusionRequirements[k]) then
+						requiresFusion = true
+					end
+				end
+				
+				-- do cash check
 				local moreCashNeeded = self:GetRequiredAmount() - curcash
 				if moreCashNeeded>0 then return ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.upgrade.node.cannot_afford", ROTGB_FormatCash(moreCashNeeded, true))) end
-				for k=self.Tier,j do
-					--[[if (reftab.Funcs and reftab.Funcs[k]) then
-						reftab.Funcs[k](ent)
-					end]]
-					UpgradeStatement.Tier = UpgradeStatement.Tier + 1
+				
+				if requiresFusion then
+					Derma_Query(
+						ROTGB_LocalizeString("rotgb.tower.fusion.confirmation"),
+						ROTGB_LocalizeString("rotgb.tower.fusion"),
+						ROTGB_LocalizeString("rotgb.general.yes"),
+						function()
+							if IsValid(ent) and IsValid(Main) then
+								Main:Close()
+								
+								net.Start("rotgb_openupgrademenu")
+								net.WriteEntity(ent)
+								net.WriteUInt(i,4)
+								net.WriteUInt(j-self.Tier,4)
+								net.SendToServer()
+							end
+						end,
+						ROTGB_LocalizeString("rotgb.general.no")
+					)
+				else
+					for k=self.Tier,j do
+						--[[if (reftab.Funcs and reftab.Funcs[k]) then
+							reftab.Funcs[k](ent)
+						end]]
+						UpgradeStatement.Tier = UpgradeStatement.Tier + 1
+					end
+					net.Start("rotgb_openupgrademenu")
+					net.WriteEntity(ent)
+					net.WriteUInt(i,4)
+					net.WriteUInt(j-self.Tier,4)
+					net.SendToServer()
+					displayedSellAmount = displayedSellAmount + self:GetRequiredAmount()
+					UpgradeStatement:Refresh(true)
 				end
-				net.Start("rotgb_openupgrademenu")
-				net.WriteEntity(ent)
-				net.WriteUInt(i,4)
-				net.WriteUInt(j-self.Tier,4)
-				net.SendToServer()
-				displayedSellAmount = displayedSellAmount + self:GetRequiredAmount()
-				UpgradeStatement:Refresh(true)
 			end
 		end
 		
@@ -1642,8 +1734,8 @@ function ROTGB_UpgradeMenu(ent)
 	TargetButton:UpdateText()
 	
 	local InfoButton = vgui.Create("DButton",Main)
-	InfoButton.CurrentPops = ent:GetPops()
-	InfoButton.CurrentCash = ent:GetCashGenerated()
+	InfoButton.CurrentPops = ent:GetPops() or 0
+	InfoButton.CurrentCash = ent:GetCashGenerated() or 0
 	if InfoButton.CurrentCash > 0 then
 		InfoButton:SetText(ROTGB_LocalizeString("rotgb.tower.total_damage_and_cash", ROTGB_Commatize(InfoButton.CurrentPops), ROTGB_FormatCash(InfoButton.CurrentCash)))
 	else
@@ -1655,16 +1747,90 @@ function ROTGB_UpgradeMenu(ent)
 	InfoButton:SetTall(32)
 	InfoButton:Dock(BOTTOM)
 	function InfoButton:Paint(w,h)
-		draw.RoundedBox(8,0,0,w,h,color_black_translucent)
+		draw.RoundedBox(8,0,0,w,h,self:IsHovered() and color_gray_translucent or color_black_translucent)
 		if (IsValid(ent) and (self.CurrentPops ~= ent:GetPops() or self.CurrentCash ~= ent:GetCashGenerated())) then
-			self.CurrentPops = ent:GetPops()
-			self.CurrentCash = ent:GetCashGenerated()
+			self.CurrentPops = ent:GetPops() or 0
+			self.CurrentCash = ent:GetCashGenerated() or 0
 			if self.CurrentCash > 0 then
 				self:SetText(ROTGB_LocalizeString("rotgb.tower.total_damage_and_cash", ROTGB_Commatize(self.CurrentPops), ROTGB_FormatCash(self.CurrentCash)))
 			else
 				self:SetText(ROTGB_LocalizeString("rotgb.tower.total_damage", ROTGB_Commatize(self.CurrentPops)))
 			end
 		end
+	end
+	function InfoButton:DoClick()
+		if not IsValid(ent) then
+			Main:Close()
+			return ROTGB_CauseNotification(towerMissingText)
+		end
+		local class = ent:GetClass()
+		
+		-- create another menu, displaying current stats
+		local StatsMain = vgui.Create("DFrame")
+		StatsMain:SetSize(math.max(ScrH()*0.375, 480), math.max(ScrH()*0.375, 360))
+		StatsMain:Center()
+		StatsMain:SetTitle(ROTGB_LocalizeString("rotgb.tower.info.title", ROTGB_LocalizeString("rotgb.tower."..class..".name")))
+		StatsMain:SetSizable(true)
+		StatsMain:MakePopup()
+		function StatsMain:Paint(w,h)
+			draw.RoundedBox(8,0,0,w,h,color_black_doublesemiopaque)
+			if self:HasFocus() then
+				draw.RoundedBox(8,0,0,w,24,color_black)
+			end
+			if gui.IsGameUIVisible() then self:Close() end
+		end
+	
+		local DescLabel = vgui.Create("DLabel", StatsMain)
+		DescLabel:Dock(TOP)
+		DescLabel:SetWrap(true)
+		DescLabel:SetAutoStretchVertical(true)
+		DescLabel:SetFont("RotgBUIBody")
+		DescLabel:SetText(ROTGB_LocalizeString("rotgb.tower."..class..".purpose"))
+		
+		local DamageLabel = vgui.Create("DLabel", StatsMain)
+		DamageLabel:Dock(TOP)
+		DamageLabel:SetFont("RotgBUIBody")
+		DamageLabel:SetText(
+			ROTGB_LocalizeString(
+				"rotgb.game_swep.tower.damage",
+				string.format(
+					"%u",
+					math.ceil(ent.AttackDamage/10)
+				)
+			)
+		)
+		DamageLabel:SetTextColor(color_light_red)
+		DamageLabel:SizeToContents()
+		
+		local FireRateLabel = vgui.Create("DLabel", StatsMain)
+		FireRateLabel:Dock(TOP)
+		FireRateLabel:SetFont("RotgBUIBody")
+		FireRateLabel:SetText(ROTGB_LocalizeString("rotgb.game_swep.tower.fire_rate", string.format("%.2f", ent.FireRate)))
+		FireRateLabel:SetTextColor(color_light_green)
+		FireRateLabel:SizeToContents()
+		
+		local RangePanel = vgui.Create("DLabel", StatsMain)
+		RangePanel:Dock(TOP)
+		RangePanel:SetFont("RotgBUIBody")
+		RangePanel:SetText(
+			ROTGB_LocalizeString(
+				"rotgb.game_swep.tower.range",
+				ent.InfiniteRange and ROTGB_LocalizeString("rotgb.number.inf") or string.format(
+					"%u", ent.DetectionRadius
+				)
+			)
+		)
+		RangePanel:SetTextColor(color_light_blue)
+		RangePanel:SizeToContents()
+		
+		--[[if (ent.FusionPower or 0) > 0 then
+			local FPLabel = vgui.Create("DLabel", StatsMain)
+			FPLabel:Dock(TOP)
+			FPLabel:SetFont("RotgBUIBody")
+			FPLabel:SetText(ROTGB_LocalizeString("rotgb.tower.fusion.power", string.format("%u", ent.FusionPower)))
+			FPLabel:SetTextColor(color_light_purple)
+			FPLabel:SizeToContents()
+		end]]
 	end
 	
 	Main:Refresh(true)

@@ -2843,6 +2843,7 @@ function ENT:Use(activator)
 		end
 		if self:TriggerWaveEnded() then return self:Remove() end
 		
+		self.rotgb_ReadyPlayers = {}
 		self:SetNWBool("HasShownUsage",true)
 		if not self:GetWaveTable()[cwave] then
 			self:GenerateNextWave(cwave)
@@ -2862,6 +2863,38 @@ function ENT:Use(activator)
 		self.EnableBalloonChecking = true
 		self:SetWave(cwave+1)
 	--end
+end
+
+function ENT:AddReadyPlayer(ply)
+	if self.EnableBalloonChecking then
+		-- we're in the middle of a wave...
+		if cwave == self:GetLastWave() + 1 then return
+		elseif not self:GetAllowMultiStart() then
+			return ROTGB_CauseNotification(ROTGB_NOTIFY_NOMULTISTART, ROTGB_NOTIFYTYPE_ERROR, ply)
+		end
+	end
+	
+	self.rotgb_ReadyPlayers = self.rotgb_ReadyPlayers or {}
+	self.rotgb_ReadyPlayers[ply] = true
+	
+	local readyCount = 0
+	for k, v in pairs(self.rotgb_ReadyPlayers) do
+		if not IsValid(k) then
+			self.rotgb_ReadyPlayers[k] = nil
+		else
+			readyCount = readyCount + 1
+		end
+	end
+	
+	if not self.NoMessages then
+		ROTGB_CauseNotification(ROTGB_NOTIFY_PLAYERREADY, ROTGB_NOTIFYTYPE_CHAT, nil, 
+			{"e", ply, "u8", readyCount, color = Color(0, 255, 0)}
+		)
+	end
+	
+	if readyCount*2 >= ROTGB_GetActivePlayerCount() then
+		self:Use(self,self,USE_ON,1)
+	end
 end
 
 function ENT:SpawnWave(cwave)

@@ -1,7 +1,6 @@
 local nextUpdate = 0
 local nextFullUpdate = 0
 
-AccessorFunc(GM, "GameIsOver", "GameIsOver", FORCE_BOOL)
 AccessorFunc(GM, "Defeated", "Defeated", FORCE_BOOL)
 AccessorFunc(GM, "StatRebroadcastRequired", "StatRebroadcastRequired", FORCE_BOOL)
 AccessorFunc(GM, "PreventPlayerPhysgun", "PreventPlayerPhysgun", FORCE_BOOL)
@@ -12,7 +11,6 @@ AccessorFunc(GM, "BLIMPSConditionsViolated", "BLIMPSConditionsViolated", FORCE_B
 AccessorFunc(GM, "XPHogger", "XPHogger")
 
 function GM:Initialize()
-	hook.Run("SetGameIsOver", false)
 	hook.Run("SetDefeated", false)
 	hook.Run("SetPlayerStatsRequireUpdates", {})
 	hook.Run("SetNightmareBeatenPlayers", {})
@@ -111,7 +109,6 @@ function GM:KeyPress(ply, ...)
 end
 
 function GM:PostCleanupMapServer()
-	hook.Run("SetGameIsOver", false)
 	hook.Run("SetDefeated", false)
 	hook.Run("SetBLIMPSConditionsViolated", false)
 	hook.Run("UpdateAppliedSkills")
@@ -239,6 +236,8 @@ function GM:TowerAddCash(tower, cash, ply)
 	if IsValid(ply) then
 		ply.rtg_CashGenerated = ply.rtg_CashGenerated + cash
 	end
+	hook.Run("SetStatRebroadcastRequired", true)
+	
 	return cash
 end
 
@@ -298,18 +297,24 @@ function GM:AllTargetsDestroyed()
 	game.SetTimeScale(0.5)
 	for k,v in pairs(player.GetAll()) do
 		v:ScreenFade(SCREENFADE.OUT, color_black, 0.9, 1)
+		
+		timer.Simple(1, function()
+			game.SetTimeScale(1)
+			v:ROTGB_StartSpectateRandomEntity()
+			v:StripWeapons()
+			v:ScreenFade(SCREENFADE.IN, color_black, 5, 0)
+		end)
 	end
 	for k,v in pairs(ents.FindByClass("gballoon_spawner")) do
 		v:SetAutoStart(false)
 		v:SetForceNextWave(false)
 	end
-	timer.Simple(1, function()
-		hook.Run("GameOver", false)
-	end)
+	hook.Run("GameOver", false)
 end
 
 function GM:AllBalloonsDestroyed()
-	timer.Simple(1.1, function()
+	game.SetTimeScale(1)
+	timer.Simple(0.1, function()
 		if not hook.Run("GetGameIsOver") then
 			hook.Run("GameOver", true)
 		end
@@ -317,11 +322,11 @@ function GM:AllBalloonsDestroyed()
 end
 
 function GM:GameOver(success)
-	game.SetTimeScale(1)
 	net.Start("rotgb_gamemode")
 	net.WriteUInt(RTG_OPERATION_GAMEOVER, 4)
 	net.WriteBool(success)
 	net.Broadcast()
+	
 	if success then
 		local plys = player.GetAll()
 		local flawless, zeroScore, zeroCashGenerated = true, true, true
@@ -390,9 +395,6 @@ function GM:GameOver(success)
 		
 		for k,v in pairs(plys) do
 			v:RTG_AddStat("fail", 1)
-			v:ROTGB_StartSpectateRandomEntity()
-			v:StripWeapons()
-			v:ScreenFade(SCREENFADE.IN, color_black, 5, 0)
 			if v.rtg_gBalloonPops > 0 then
 				zeroScore = false break
 			end

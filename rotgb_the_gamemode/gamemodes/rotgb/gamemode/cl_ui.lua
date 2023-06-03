@@ -954,7 +954,7 @@ local function CreateGameOverButtons(parent, canContinue)
 				net.Start("rotgb_gamemode")
 				net.WriteUInt(RTG_OPERATION_GAMEOVER, 4)
 				net.SendToServer()
-				parent:Close()
+				--parent:Close()
 			end,
 			ROTGB_LocalizeString("rotgb.general.no")
 		)
@@ -964,7 +964,7 @@ local function CreateGameOverButtons(parent, canContinue)
 	RestartButtonCenteringPanel:Dock(BOTTOM)
 	
 	local DifficultyButton = CreateButton(nil, ROTGB_LocalizeString("rotgb_tg.buttons.select_difficulty"), color_green, function()
-		parent:Close()
+		--parent:Close()
 		RunConsoleCommand("rotgb_tg_difficulty_menu")
 	end)
 	local DifficultyButtonCenteringPanel = CreateElementCenteringPanel(DifficultyButton, parent)
@@ -978,14 +978,14 @@ local function CreateGameOverButtons(parent, canContinue)
 	VoteButtonCenteringPanel:SetZPos(3)
 	VoteButtonCenteringPanel:Dock(BOTTOM)]]
 	
-	if canContinue then
+	--[[if canContinue then
 		local ContinueButton = CreateButton(nil, ROTGB_LocalizeString("rotgb_tg.buttons.close"), color_aqua, function()
 			parent:Close()
 		end)
 		local ContinueButtonCenteringPanel = CreateElementCenteringPanel(ContinueButton, parent)
 		ContinueButtonCenteringPanel:SetZPos(4)
 		ContinueButtonCenteringPanel:Dock(BOTTOM)
-	end
+	end]]
 end
 
 local function CreateDifficultyDescriptionPanel()
@@ -2923,6 +2923,83 @@ local function CreateWeaponPanel(parent, wep, zPos)
 	return panel
 end
 
+local function DrawStatisticsPanel(panel, w, h)
+	local drawY = 0
+	draw.SimpleText(
+		ROTGB_LocalizeString("rotgb_tg.result_screen.players"),
+		"rotgb_body",
+		0,
+		drawY,
+		color_white
+	)
+	draw.SimpleText(
+		string.format("%u", panel.plys),
+		"rotgb_body",
+		w,
+		drawY,
+		color_yellow,
+		TEXT_ALIGN_RIGHT
+	)
+	
+	drawY = drawY + FONT_BODY_HEIGHT
+	draw.SimpleText(
+		ROTGB_LocalizeString("rotgb_tg.result_screen.score"),
+		"rotgb_body",
+		0,
+		drawY,
+		color_white
+	)
+	draw.SimpleText(
+		ROTGB_Commatize(panel.score),
+		"rotgb_body",
+		w,
+		drawY,
+		color_yellow,
+		TEXT_ALIGN_RIGHT
+	)
+	
+	drawY = drawY + FONT_BODY_HEIGHT
+	draw.SimpleText(
+		ROTGB_LocalizeString("rotgb_tg.result_screen.cash"),
+		"rotgb_body",
+		0,
+		drawY,
+		color_white
+	)
+	draw.SimpleText(
+		ROTGB_FormatCash(panel.cash),
+		"rotgb_body",
+		w,
+		drawY,
+		color_yellow,
+		TEXT_ALIGN_RIGHT
+	)
+end
+
+local function CreateStatisticsPanel(parent)
+	local panel = vgui.Create("DPanel", parent)
+	panel:Dock(FILL)
+	
+	-- do the calculations
+	local score, cash = 0, 0
+	local plys = player.GetAll()
+	
+	for k,v in pairs(plys) do
+		score = score + (v.rtg_gBalloonPops or 0)
+		cash = cash + (v.rtg_CashGenerated or 0)
+	end
+	panel.score = score
+	panel.cash = cash
+	panel.plys = #plys
+	panel.Paint = DrawStatisticsPanel
+	
+	function panel:Think()
+		if not hook.Run("GetGameIsOver") then
+			parent:Close()
+		end
+	end
+end
+
 
 
 function GM:CreateStartupMenu()
@@ -3010,20 +3087,29 @@ function GM:CreateScoreboard()
 		CreateHeader(Menu, 1, ROTGB_LocalizeString("rotgb_tg.scoreboard.header.no_difficulty", ROTGB_LocalizeString("rotgb_tg.scoreboard.title")))
 	end
 	
-	function Menu:RecreateScoreboard()
+	--[[function Menu:RecreateScoreboard()
 		if IsValid(self.Scoreboard) then
 			self.Scoreboard:Remove()
 		end
 		self.Scoreboard = CreateScoreboardPanel(self)
 	end
-	Menu:RecreateScoreboard()
+	Menu:RecreateScoreboard()]]
+	CreateScoreboardPanel(Menu)
+	if hook.Run("GetGameIsOver") then
+		CreateGameOverButtons(Menu)
+	end
 	
 	return Menu
 end
 
 function GM:CreateSuccessMenu()
-	local Menu = CreateMenu()
-	Menu:SetKeyboardInputEnabled(false)
+	local SideMenu = CreateMenu()
+	SideMenu:SetSize(ScrW()/3, FONT_HEADER_HEIGHT + FONT_BODY_HEIGHT*5)
+	SideMenu:SetPos(ScrW()/3, ScrH() - FONT_HEADER_HEIGHT - FONT_BODY_HEIGHT*5 - FONT_LEVEL_HEIGHT*1.5)
+	SideMenu:DockPadding(FONT_BODY_HEIGHT/2, FONT_BODY_HEIGHT/2, FONT_BODY_HEIGHT/2, FONT_BODY_HEIGHT/2)
+	SideMenu:KillFocus()
+	SideMenu:SetKeyboardInputEnabled(false)
+	SideMenu:SetMouseInputEnabled(false)
 	
 	local flawless = true
 	for k,v in pairs(ents.FindByClass("gballoon_target")) do
@@ -3031,18 +3117,25 @@ function GM:CreateSuccessMenu()
 			flawless = false
 		end
 	end
-	local Header = CreateHeader(Menu, 1, flawless and ROTGB_LocalizeString("rotgb_tg.result_screen.flawless_victory") or ROTGB_LocalizeString("rotgb_tg.result_screen.victory"))
+	local Header = CreateHeader(SideMenu, 1, flawless and ROTGB_LocalizeString("rotgb_tg.result_screen.flawless_victory") or ROTGB_LocalizeString("rotgb_tg.result_screen.victory"))
 	Header:SetTextColor(color_light_green)
+	CreateText(SideMenu, 2, ROTGB_LocalizeString("rotgb_tg.result_screen.scoreboard"))
 	
-	CreateScoreboardPanel(Menu)
-	CreateGameOverButtons(Menu, true)
+	CreateStatisticsPanel(SideMenu)
+	--[[CreateScoreboardPanel(SideMenu)
+	CreateGameOverButtons(SideMenu, true)]]
 	
-	return Menu
+	return SideMenu
 end
 
 function GM:CreateFailureMenu()
-	local Menu = CreateMenu()
-	Menu:SetKeyboardInputEnabled(false)
+	local SideMenu = CreateMenu()
+	SideMenu:SetSize(ScrW()/3, FONT_HEADER_HEIGHT + FONT_BODY_HEIGHT*5)
+	SideMenu:SetPos(ScrW()/3, ScrH() - FONT_HEADER_HEIGHT - FONT_BODY_HEIGHT*5 - FONT_LEVEL_HEIGHT*1.5)
+	SideMenu:DockPadding(FONT_BODY_HEIGHT/2, FONT_BODY_HEIGHT/2, FONT_BODY_HEIGHT/2, FONT_BODY_HEIGHT/2)
+	SideMenu:KillFocus()
+	SideMenu:SetKeyboardInputEnabled(false)
+	SideMenu:SetMouseInputEnabled(false)
 	
 	local flawless = true
 	for k,v in pairs(player.GetAll()) do
@@ -3050,13 +3143,15 @@ function GM:CreateFailureMenu()
 			flawless = false
 		end
 	end
-	local Header = CreateHeader(Menu, 1, flawless and ROTGB_LocalizeString("rotgb_tg.result_screen.flawless_defeat") or ROTGB_LocalizeString("rotgb_tg.result_screen.defeat"))
+	local Header = CreateHeader(SideMenu, 1, flawless and ROTGB_LocalizeString("rotgb_tg.result_screen.flawless_defeat") or ROTGB_LocalizeString("rotgb_tg.result_screen.defeat"))
 	Header:SetTextColor(color_light_red)
+	CreateText(SideMenu, 2, ROTGB_LocalizeString("rotgb_tg.result_screen.scoreboard"))
 	
-	CreateScoreboardPanel(Menu)
-	CreateGameOverButtons(Menu)
+	CreateStatisticsPanel(SideMenu)
+	--[[CreateScoreboardPanel(SideMenu)
+	CreateGameOverButtons(SideMenu)]]
 	
-	return Menu
+	return SideMenu
 end
 
 function GM:CreateDifficultyMenu()

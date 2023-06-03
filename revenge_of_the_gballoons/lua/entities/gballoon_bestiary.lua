@@ -255,29 +255,33 @@ local function AddBalloon(Label,class)
 end
 
 local credits = {
+	-- TODO: SteamID64 should be used for all of these
 	{"Piengineer12", "76561198144438879"},
 	{"zorich_michael", "76561198196764081"},
-	{"Sergius", "76561198293518598"},
-	{"DreamySaeneryth", "76561198102225296"},
-	{"Bluu_Luna", "76561198348095161"},
-	{"Platless", "76561198822619008"},
-	{"Sir. Vapenation", "76561198143774099"},
-	{"liptard", "76561198337193083"},
-	{"Devro", "76561198363697889"},
-	{"itachi209", "76561198352896173"},
+	{"Duck(bro)", "76561198293518598"},
+	{"Sleepy, Silly, Submissive", "76561198102225296"},
+	{"Bluu_Luna", "76561198348095161"}, -- 5
+	{"TheGogus", "76561198822619008"},
+	{"Vapenation", "76561198143774099"},
+	{"shiptard", "76561198337193083"},
+	{"Bent", "76561198363697889"},
+	{"itachi209", "76561198352896173"}, -- 10
 	{"PDA Expert", "76561198024198604"},
 	{"Conga Dispenser", "76561198361428640"},
-	{"SkyanUltra", "76561198147466564"},
+	{"~ SkyanUltra ~", "76561198147466564"},
 	{"BFR2005", "76561198089249743"},
-	{"gormless minger", "76561198274942231"},
+	{"G306.2000.02", "76561198274942231"}, -- 15
 	{"fansided", "76561198117057248"},
 	{"PuggleLeDog", "76561198120548061"},
-	{"The Bender™", "76561198004803429"},
-	{"FallenVoid", "76561198178506377"},
+	{"Rem", "76561198004803429"},
+	{"The Dark Legend", "76561198178506377"},
+	{"funny Engineer", "76561199061261911"}, -- 20
 	{"berry", "76561198158864042"},
-	{"glamrock neon plushtrap", "76561198804430511"},
+	{"Neon", "76561198804430511"},
+	{"Mando37", "76561198165800582"},
 	{"King David™", "id/jesusofish"},
-	{"bucket of wet slop", "id/awfullyhammy"},
+	{"lord ham", "id/awfullyhammy"}, -- 25
+	{"IronYoumu", "id/IronYoumu"},
 	{"#rotgb.guide.contributors.person.various"}
 }
 

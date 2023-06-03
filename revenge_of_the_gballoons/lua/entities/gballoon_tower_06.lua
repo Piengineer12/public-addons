@@ -24,7 +24,7 @@ ENT.InfiniteRange2 = true
 ENT.rotgb_Buff = 0
 ENT.UpgradeReference = {
 	{
-		Prices = {0,1e3,10e3,100e3,1e6,10e6},
+		Prices = {0,10e3,100e3,1e6,10e6,100e6},
 		Funcs = {
 			function(self)
 				self.rotgb_NoRegen = true
@@ -79,10 +79,11 @@ ENT.UpgradeReference = {
 			function(self)
 				self.AttackDamage = self.AttackDamage + 10499990
 			end,
-		}
+		},
+		FusionRequirements = {[10] = true}
 	},
 	{
-		Prices = {5000,20e3,75e3,300e3,100e6},
+		Prices = {5000,20e3,75e3,300e3},
 		Funcs = {
 			function(self)
 				self.rotgb_Buff = 1
@@ -97,9 +98,9 @@ ENT.UpgradeReference = {
 			function(self)
 				self.rotgb_Buff = 4
 			end,
-			function(self)
+			--[[function(self)
 				self.rotgb_Buff = 5
-			end
+			end]]
 		}
 	}
 }
@@ -140,7 +141,7 @@ function ENT:FireFunction(gBalloons)
 			if self.rotgb_NoImmunities then
 				v:InflictRotgBStatusEffect("unimmune",999999)
 			end
-			if v:GetRgBE() <= self.AttackDamage/10 and self.AttackDamage > 0 then
+			if v:GetRgBE() <= self.AttackDamage/10*(1+self.FusionPower/100) and self.AttackDamage > 0 then
 				local pos, selfpos, dmginfo = v:GetPos(), self:GetShootPos(), DamageInfo()
 				dmginfo:SetDamage(2147483647)
 				dmginfo:SetBaseDamage(2147483647)
@@ -174,14 +175,13 @@ function ENT:FireFunction(gBalloons)
 					tower:SetNWBool("rotgb_tower_06_discount", false)
 				end)
 			end
-			if self.rotgb_Buff > 4 and v ~= self then
+			--[[if self.rotgb_Buff > 4 and v ~= self then
 				v:ApplyBuff(self, "ROTGB_TOWER_06_PASSIVE_4", 1, function(tower)
 					tower:SetNWBool("rotgb_noupgradelimit", true)
 				end, function(tower)
 					tower:SetNWBool("rotgb_noupgradelimit", false)
 				end)
-				
-			end
+			end]]
 		end
 	end
 end
@@ -189,10 +189,11 @@ end
 function ENT:TriggerAbility()
 	for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
 		if v.Base=="gballoon_tower_base" then
+			local fusionFactor = 1+self.FusionPower/100
 			v:ApplyBuff(self, "ROTGB_TOWER_06_TM", self.AbilityDuration, function(tower)
-				tower.AttackDamage = (tower.AttackDamage or 0) + 7000
+				tower.AttackDamage = (tower.AttackDamage or 0) + 100e3*fusionFactor
 			end, function(tower)
-				tower.AttackDamage = (tower.AttackDamage or 0) - 7000
+				tower.AttackDamage = (tower.AttackDamage or 0) - 100e3*fusionFactor
 			end)
 		end
 	end

@@ -13,6 +13,7 @@ ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/maxofs2d/hover_plate.mdl")
 ENT.FireRate = 10
+ENT.MaxFireRate = 200/3
 ENT.Cost = 750
 ENT.AbilityCooldown = 60
 ENT.LOSOffset = Vector(0,0,5)
@@ -118,7 +119,8 @@ ENT.UpgradeReference = {
 				self.rotgb_BankMax = math.huge
 				self.HasAbility = true
 			end
-		}
+		},
+		FusionRequirements = {[7] = true}
 	},
 	{
 		Names = {"A Little Extra", "Just Pocket It", "Fuzzy Income", "King of Hearts", "Microbot Research", "Nanomachines"},
@@ -159,13 +161,18 @@ function ENT:ROTGB_ApplyPerks()
 	self.FireRate = self.FireRate / (1+hook.Run("GetSkillAmount", "towerFireRate")/100)
 end
 
-function ENT:FireFunction(gBalloons)
+function ENT:FireFunction(gBalloons, firePowerExpectedMultiplier)
+	if self.rotgb_OldFusionPower ~= self.FusionPower then
+		self.FireRate = self.FireRate * (1+self.FusionPower/100) / (1+(self.rotgb_OldFusionPower or 0)/100)
+		self.rotgb_OldFusionPower = self.FusionPower
+	end
+	
 	if IsValid(self.rotgb_Spawner) then
-		local delayBetweenBalls = self.rotgb_HoverballDelay * 10 / self.FireRate
+		local delayBetweenBalls = self.rotgb_HoverballDelay * 10 / self.FireRate / firePowerExpectedMultiplier
 		if self:DetermineCharge(self.rotgb_Spawner) - self.rotgb_LastCharge >= delayBetweenBalls and self.rotgb_HoverballWorth > 0 --[[and not self.rotgb_NoHoverball]] then
 			self.rotgb_LastCharge = self.rotgb_LastCharge + delayBetweenBalls
 			local should10x = self.rotgb_10Chance and math.random() < 0.1
-			local hoverballAmount = self.rotgb_HoverballWorth * (should10x and 10 or 1)
+			local hoverballAmount = self.rotgb_HoverballWorth * (should10x and 10 or 1) * (1+self.FusionPower/100)
 			if engine.ActiveGamemode() == "rotgb" then
 				hoverballAmount = hoverballAmount * (1+hook.Run("GetSkillAmount", "valuableHoverballs")/100)
 			end
@@ -214,9 +221,9 @@ function ENT:FireFunction(gBalloons)
 		end
 	end
 	if self.rotgb_BankFactor > 0 --[[and not self.rotgb_NoHoverball]] and IsValid(gBalloons[1]) then
-		self.rotgb_BankCharge = (self.rotgb_BankCharge or 0) + 1
-		if self.rotgb_BankCharge >= 10 then 
-			self.rotgb_BankCharge = 0
+		self.rotgb_BankCharge = (self.rotgb_BankCharge or 0) + firePowerExpectedMultiplier
+		while self.rotgb_BankCharge >= 10 do 
+			self.rotgb_BankCharge = self.rotgb_BankCharge - 10
 			self:PerformBank()
 		end
 	end
@@ -231,6 +238,7 @@ end
 function ENT:PerformBank(lagless)
 	self.rotgb_CashToAdd = lagless and self.rotgb_CashToAdd or {}
 	local cashMultiplier = self.rotgb_BankFactor*(1+(hook.Run("GetSkillAmount", "valuableHoverballs") or 0)/100)
+	cashMultiplier = cashMultiplier * (1+self.FusionPower/100)
 	if self.rotgb_BankBonus then
 		if not lagless then
 			for k,v in pairs(ents.GetAll()) do
@@ -254,8 +262,18 @@ hook.Add("gBalloonSpawnerWaveStarted", "ROTGB_TOWER_16", function(spawner,wave)
 	for k,v in pairs(ents.FindByClass("gballoon_tower_16")) do
 		if v.rotgb_Spawner == spawner then
 			local buff = v.rotgb_Buff
-			v:AddCash(v.rotgb_HoverballWorth*(v.rotgb_10Chance and 1.9 or 1)/v.rotgb_HoverballDelay*v.FireRate/10*v.rotgb_HoverballPostCash
-			*(v.rotgb_Trading and math.random()*4 or 1)*(1+(hook.Run("GetSkillAmount", "valuableHoverballs") or 0)/100), v:GetTowerOwner())
+			v:AddCash(
+				v.rotgb_HoverballWorth
+				*(v.rotgb_10Chance and 1.9 or 1)
+				/v.rotgb_HoverballDelay
+				*(1+v.FusionPower/100)
+				*v.FireRate/10
+				*v.rotgb_HoverballPostCash
+				*(v.rotgb_Trading and math.random()*4 or 1)
+				*(1+(hook.Run("GetSkillAmount", "valuableHoverballs") or 0)/100),
+				
+				v:GetTowerOwner()
+			)
 			--[[if v.rotgb_BankFactor > 0 and v.rotgb_NoHoverball then
 				v:PerformBank()
 				for i=1,10 do
@@ -297,6 +315,12 @@ end)
 
 function ENT:TriggerAbility()
 	for k,v in pairs(player.GetAll()) do
-		self:AddCash(ROTGB_GetCash(v)*(1+(hook.Run("GetSkillAmount", "valuableHoverballs") or 0)/100),v)
+		self:AddCash(
+			ROTGB_GetCash(v)
+			*(1+(hook.Run("GetSkillAmount", "valuableHoverballs") or 0)/100)
+			*(1+self.FusionPower/100),
+			
+			v
+		)
 	end
 end

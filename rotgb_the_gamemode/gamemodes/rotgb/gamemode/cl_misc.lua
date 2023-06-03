@@ -88,9 +88,11 @@ end
 
 function GM:GameOver(success)
 	if success then
+		surface.PlaySound("rotgb_the_gamemode/victory.wav")
 		self.GameOverMenu = hook.Run("CreateSuccessMenu")
 		hook.Run("AddCompletedDifficulties", game.GetMap(), hook.Run("GetDifficulty"), 1)
 	else
+		surface.PlaySound("rotgb_the_gamemode/defeat.wav")
 		self.GameOverMenu = hook.Run("CreateFailureMenu")
 	end
 	hook.Run("SaveClient", LocalPlayer())

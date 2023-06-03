@@ -26,6 +26,7 @@ function GM:CanProperty(ply, property, ent)
 end
 
 function GM:PostCleanupMap()
+	hook.Run("SetGameIsOver", false)
 	for k,v in pairs(player.GetAll()) do
 		v.rotgb_allyPawnFirstFreeDone = nil
 	end
@@ -36,14 +37,16 @@ end
 
 -- non-base
 
+AccessorFunc(GM, "CurrentVote", "CurrentVote")
+AccessorFunc(GM, "GameIsOver", "GameIsOver", FORCE_BOOL)
+
 function GM:SharedInitialize()
+	hook.Run("SetGameIsOver", false)
 	hook.Run("RebuildSkills")
 	hook.Run("SetCachedSkillAmounts", {})
 	hook.Run("SetStatisticAmounts", {})
 	hook.Run("InitializeDifficulties")
 end
-
-AccessorFunc(GM, "CurrentVote", "CurrentVote")
 
 function GM:ShouldConVarOverride(cvar)
 	local currentDifficulty = hook.Run("GetDifficulty")

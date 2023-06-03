@@ -277,7 +277,7 @@ GM.BaseDifficulties = {
 		end,
 		convars = {
 			rotgb_difficulty = 5,
-			rotgb_default_last_wave = 100,
+			rotgb_default_last_wave = 120,
 			rotgb_target_natural_health = 1,
 			rotgb_default_wave_preset = "?RAMP",
 		}

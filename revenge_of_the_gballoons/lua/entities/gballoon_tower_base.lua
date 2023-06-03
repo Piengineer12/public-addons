@@ -16,6 +16,7 @@ ENT.UpgradeReference = {}
 ENT.UpgradeLimits = {}
 ENT.LOSOffset = vector_origin
 ENT.BonusFireRate = 1
+ENT.FusionPower = 0
 
 local targetings = 8
 
@@ -46,15 +47,18 @@ if SERVER then
 	AccessorFunc(ENT, "SpawnerActive", "SpawnerActive", FORCE_BOOL)
 end
 
+AccessorFunc(ENT, "Pops", "Pops", FORCE_NUMBER)
+AccessorFunc(ENT, "CashGenerated", "CashGenerated", FORCE_NUMBER)
+
 function ENT:SetupDataTables()
 	--self:NetworkVar("Bool",0,"SpawnerActive")
 	self:NetworkVar("Int",0,"UpgradeStatus")
 	-- Path1 + Path2 << 4 + Path3 << 8 + Path4 << 12 + ...
 	self:NetworkVar("Int",1,"Targeting")
-	self:NetworkVar("Int",2,"Pops")
+	--self:NetworkVar("Int",2,"Pops")
 	self:NetworkVar("Int",3,"OwnerUserID")
 	self:NetworkVar("Float",0,"AbilityCharge")
-	self:NetworkVar("Float",1,"CashGenerated")
+	--self:NetworkVar("Float",1,"CashGenerated")
 	self:NetworkVar("Float",2,"AbilityFraction")
 	self:NetworkVar("Entity",0,"TowerOwner")
 end
@@ -254,6 +258,107 @@ function ENT:IsStunned()
 	return self.StunUntil and self.StunUntil>CurTime() or self.StunUntil2 or false
 end
 
+function ENT:CanPerformFusion(path, tier)
+	local fusionRequirements = self.UpgradeReference[path].FusionRequirements
+	if not fusionRequirements then return true end
+	
+	fusionRequirements = fusionRequirements[tier]
+	if not fusionRequirements then return true end
+	
+	if fusionRequirements == true then
+		-- compute it ourselves
+		fusionRequirements = {}
+		for i,v in ipairs(self.UpgradeReference) do
+			if not v.FusionRequirements then
+				fusionRequirements[i] = #v.Prices
+			end
+		end
+	else
+		fusionRequirements = table.Copy(fusionRequirements)
+	end
+	
+	-- get all towers of the same type and owner
+	for i,v in ipairs(ents.FindByClass(self:GetClass())) do
+		if v:GetTowerOwner() == self:GetTowerOwner() then
+			local upgradeStatus = v:GetUpgradeStatus()
+			
+			-- look through the upgrade paths we need
+			for k,v2 in pairs(fusionRequirements) do
+				local tier = bit.band(bit.rshift(upgradeStatus, k*4-4), 15)
+				if tier >= v2 then
+					-- mark requirement as met
+					fusionRequirements[k] = nil
+				end
+			end
+			
+			if table.IsEmpty(fusionRequirements) then return true end
+		end
+	end
+	
+	return false
+end
+
+function ENT:DoTowerFusion()
+	if SERVER then
+		local newSellAmount = 0
+		-- get all towers of the same type and owner
+		for i,v in ipairs(ents.FindByClass(self:GetClass())) do
+			if v:GetTowerOwner() == self:GetTowerOwner() then
+				newSellAmount = newSellAmount + (v.SellAmount or 0)
+				if v ~= self then
+					v.SellAmount = 0
+					constraint.RemoveAll(v)
+					v:SetNotSolid(true)
+					v:SetMoveType(MOVETYPE_NONE)
+					v:SetNoDraw(true)
+					local effdata = EffectData()
+					effdata:SetEntity(v)
+					util.Effect("entity_remove",effdata,true,true)
+					if IsValid(ply) then
+						ply:SendLua("achievements.Remover()")
+					end
+					SafeRemoveEntityDelayed(v,1)
+				end
+			end
+		end
+		
+		-- get the total price needed for upgrading to max on each path (for OURSELVES)
+		local minimumCostRequired = 0
+		for i,v in ipairs(self.UpgradeReference) do
+			minimumCostRequired = minimumCostRequired + ROTGB_ScaleBuyCost(
+				self.Cost or 0,
+				self,
+				{type = ROTGB_TOWER_PURCHASE, ply = self:GetTowerOwner()}
+			)
+			
+			for j,v2 in ipairs(v.Prices) do
+				minimumCostRequired = minimumCostRequired + ROTGB_ScaleBuyCost(
+					v2,
+					self,
+					{type = ROTGB_TOWER_UPGRADE, path = i, tier = j}
+				)
+			end
+			
+			local mask = bit.lshift(15, i*4-4)
+			local newUpgradeValue = bit.lshift(#v.Prices, i*4-4)
+			self:SetUpgradeStatus(
+				bit.bor(
+					bit.band(
+						self:GetUpgradeStatus(),
+						bit.bnot(mask) -- remove the bits not specified in mask
+					),
+					newUpgradeValue -- add in the new bits
+				)
+			)
+		end
+		ROTGB_Log(string.format("Tower upgrade status is now %x!", self:GetUpgradeStatus()), "towers")
+		
+		self.FusionPower = math.ceil(math.Clamp(math.sqrt(newSellAmount / minimumCostRequired) * 200 - 199, 1, 999))
+		self.SellAmount = newSellAmount
+		self:EmitSound("mechweapons_huge_pulse_01.wav", 100)
+	end
+end
+
 ENT.ROTGB_Think = ENT.ROTGB_Initialize
 
 hook.Add("gBalloonSpawnerWaveStarted", "ROTGB_TOWER_BASE", function(spawner,cwave)
@@ -280,23 +385,29 @@ function ENT:Think()
 		self.SellAmount = ROTGB_ScaleBuyCost(self.Cost or 0, self, {type = ROTGB_TOWER_PURCHASE, ply = self:GetTowerOwner()})
 	end
 	if self.OldUpgradeStatus ~= self:GetUpgradeStatus() then
+		ROTGB_Log(string.format("Tower upgrade status changed on %s! Old: %x, New: %x", SERVER and "server" or "client", self.OldUpgradeStatus or 0, self:GetUpgradeStatus()), "towers")
 		self.OldUpgradeStatus = self.OldUpgradeStatus or 0
-		local addAmount = 0
+		local newUpgradeStatus = self:GetUpgradeStatus()
+		--local addAmount = 0
 		
 		for i,v in ipairs(self.UpgradeReference) do
 			local bitpos = (i-1)*4
 			local currentTier = bit.band(bit.rshift(self.OldUpgradeStatus,bitpos),15)
-			local newTier = bit.band(bit.rshift(self:GetUpgradeStatus(),bitpos),15)
+			local newTier = bit.band(bit.rshift(newUpgradeStatus,bitpos),15)
 			for j=currentTier+1,newTier do
 				if (v.Funcs and v.Funcs[j]) then
+					ROTGB_Log(string.format("Applied upgrade on %s on path %u tier %u!", SERVER and "server" or "client", i, j), "towers")
 					v.Funcs[j](self)
-					addAmount = addAmount + ROTGB_ScaleBuyCost(v.Prices[j], self, {type = ROTGB_TOWER_UPGRADE, path = i, tier = j})
+					if (v.FusionRequirements and v.FusionRequirements[j]) then
+						self:DoTowerFusion()
+					end
+					--addAmount = addAmount + ROTGB_ScaleBuyCost(v.Prices[j], self, {type = ROTGB_TOWER_UPGRADE, path = i, tier = j})
 				end
 			end
 		end
 		
-		self.OldUpgradeStatus = self:GetUpgradeStatus()
-		self.SellAmount = self.SellAmount + addAmount
+		self.OldUpgradeStatus = newUpgradeStatus
+		--self.SellAmount = self.SellAmount + addAmount
 	end
 	
 	if trackPlacementCost then
@@ -393,6 +504,7 @@ function ENT:Think()
 			end
 		end
 		self:BuffThink()
+		self:StatThink()
 		self:NextThink(curTime)
 		return true
 	end
@@ -669,14 +781,28 @@ function ENT:DoAbility()
 end
 
 function ENT:AddPops(pops)
-	self:SetPops(self:GetPops()+pops)
+	self:SetPops((self:GetPops() or 0) + pops)
 end
 
 function ENT:AddCash(cash, ply)
 	local incomeCash = cash * ROTGB_GetConVarValue("rotgb_tower_income_mul") * ROTGB_GetConVarValue("rotgb_cash_mul")
 	incomeCash = hook.Run("TowerAddCash", self, cash, ply) or incomeCash
 	ROTGB_AddCash(incomeCash, ply)
-	self:SetCashGenerated(self:GetCashGenerated()+incomeCash)
+	self:SetCashGenerated((self:GetCashGenerated() or 0) + incomeCash)
+end
+
+function ENT:StatThink()
+	if self.OldCashGenerated ~= self:GetCashGenerated() or self.OldPops ~= self:GetPops() then
+		self.OldPops = self:GetPops()
+		self.OldCashGenerated = self:GetCashGenerated()
+		
+		net.Start("rotgb_openupgrademenu", true)
+		net.WriteEntity(self)
+		net.WriteUInt(ROTGB_TOWER_STAT, 2)
+		net.WriteDouble(self.OldPops or 0)
+		net.WriteDouble(self.OldCashGenerated or 0)
+		net.Broadcast()
+	end
 end
 
 function ENT:GetUpgradeName(path, tier)
@@ -701,9 +827,11 @@ end
 net.Receive("rotgb_openupgrademenu",function(length,ply)
 	if CLIENT then
 		local ent = net.ReadEntity()
-		if IsValid(ent) then
+		if IsValid(ent) and ent.SellAmount then
 			local op = net.ReadUInt(2)
 			if op == ROTGB_TOWER_MENU then
+				ent.SellAmount = net.ReadDouble()
+				ent.FusionPower = net.ReadUInt(16)
 				ROTGB_UpgradeMenu(ent)
 			--[[elseif op == ROTGB_TOWER_UPGRADE then
 				-- get path number and upgrade amount
@@ -721,6 +849,9 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 					end
 					tier = tier + 1
 				end]]
+			elseif op == ROTGB_TOWER_STAT then
+				ent:SetPops(net.ReadDouble())
+				ent:SetCashGenerated(net.ReadDouble())
 			end
 		end
 	end
@@ -788,28 +919,35 @@ net.Receive("rotgb_openupgrademenu",function(length,ply)
 		local oldTiers = bit.band(bit.rshift(ent:GetUpgradeStatus(),path*4),15)+1
 		local tier = oldTiers
 		for i=1,upgradeAmount do
-			local price = ROTGB_ScaleBuyCost(reference.Prices[tier], ent, {type = ROTGB_TOWER_UPGRADE, path = path+1, tier = tier})
-			if ROTGB_GetCash(ply)>=price then
-				--[[ent.SellAmount = (ent.SellAmount or 0) + price
-				if (reference.Funcs and reference.Funcs[tier]) then
-					reference.Funcs[tier](ent)
-				end]]
-				ROTGB_RemoveCash(price,ply)
-				hook.Run("RotgBTowerUpgraded", ent, path+1, tier, price)
-				tier = tier + 1
+			if ent:CanPerformFusion(path+1, tier) then
+				local price = ROTGB_ScaleBuyCost(reference.Prices[tier], ent, {type = ROTGB_TOWER_UPGRADE, path = path+1, tier = tier})
+				if ROTGB_GetCash(ply)>=price then
+					ent.SellAmount = (ent.SellAmount or 0) + price
+					--[[if (reference.Funcs and reference.Funcs[tier]) then
+						reference.Funcs[tier](ent)
+					end]]
+					ROTGB_RemoveCash(price,ply)
+					hook.Run("RotgBTowerUpgraded", ent, path+1, tier, price)
+					tier = tier + 1
+				end
 			end
 		end
-		ent:SetUpgradeStatus(ent:GetUpgradeStatus()+bit.lshift(tier-oldTiers,path*4))
-		ent:EmitSound("interactions_pickup_retro_01.wav", 75, 100)
-		local effdata = EffectData()
-		effdata:SetEntity(ent)
-		util.Effect("entity_remove",effdata,true,true)
-		--[[net.Start("rotgb_openupgrademenu")
-		net.WriteEntity(ent)
-		net.WriteUInt(ROTGB_TOWER_UPGRADE, 2)
-		net.WriteUInt(path, 4)
-		net.WriteUInt(upgradeAmount-1, 4)
-		net.SendOmit(ply)]]
+		
+		local difference = tier-oldTiers
+		if difference ~= 0 then
+			ent:SetUpgradeStatus(ent:GetUpgradeStatus()+bit.lshift(tier-oldTiers,path*4))
+			ROTGB_Log(string.format("Tower upgrade status is now %x!", ent:GetUpgradeStatus()), "towers")
+			ent:EmitSound("interactions_pickup_retro_01.wav")
+			local effdata = EffectData()
+			effdata:SetEntity(ent)
+			util.Effect("entity_remove",effdata,true,true)
+			--[[net.Start("rotgb_openupgrademenu")
+			net.WriteEntity(ent)
+			net.WriteUInt(ROTGB_TOWER_UPGRADE, 2)
+			net.WriteUInt(path, 4)
+			net.WriteUInt(upgradeAmount-1, 4)
+			net.SendOmit(ply)]]
+		end
 	end
 end)
 
@@ -823,6 +961,8 @@ function ENT:Use(activator,caller,...)
 			net.Start("rotgb_openupgrademenu")
 			net.WriteEntity(self)
 			net.WriteUInt(ROTGB_TOWER_MENU, 2)
+			net.WriteDouble(self.SellAmount or 0)
+			net.WriteUInt(self.FusionPower or 0, 16)
 			net.Send(activator)
 		else
 			ROTGB_CauseNotification(ROTGB_NOTIFY_TOWERNOTOWNER, ROTGB_NOTIFYTYPE_ERROR, activator)

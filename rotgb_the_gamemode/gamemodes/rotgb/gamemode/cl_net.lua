@@ -50,6 +50,7 @@ local color_aqua = Color(0,255,255)
 net.Receive("rotgb_gamemode", function()
 	local operation = net.ReadUInt(4)
 	if operation == RTG_OPERATION_GAMEOVER then
+		hook.Run("SetGameIsOver", true)
 		hook.Run("GameOver", net.ReadBool())
 	elseif operation == RTG_OPERATION_DIFFICULTY then
 		hook.Run("SetDifficulty", net.ReadString())

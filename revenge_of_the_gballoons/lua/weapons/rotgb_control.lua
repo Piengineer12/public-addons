@@ -419,7 +419,7 @@ net.Receive("rotgb_controller", function(length, ply)
 							ROTGB_CauseNotification(ROTGB_NOTIFY_NOSPAWNERS, ROTGB_NOTIFYTYPE_ERROR, ply)
 						end
 						for k,v in pairs(spawners) do
-							v:Fire("Use",nil,nil,ply)
+							v:AddReadyPlayer(ply)
 						end
 						ply:EmitSound("buttons/button14.wav",60,100,1,CHAN_WEAPON)
 					end
@@ -654,14 +654,14 @@ function SWEP:CreateLeftTowerPanel(Main, data)
 	local LeftPanel = vgui.Create("DPanel")
 	LeftPanel.Paint = PaintBackground
 	LeftPanel:DockPadding(padding,padding,padding,padding)
-	Main:AddHeader(language.GetPhrase("rotgb.tower."..class..".name"), LeftPanel)
+	Main:AddHeader(ROTGB_LocalizeString("rotgb.tower."..class..".name"), LeftPanel)
 	
 	local DescLabel = vgui.Create("DLabel", LeftPanel)
 	DescLabel:Dock(TOP)
 	DescLabel:SetWrap(true)
 	DescLabel:SetAutoStretchVertical(true)
 	DescLabel:SetFont("RotgBUIBody")
-	DescLabel:SetText(language.GetPhrase("rotgb.tower."..class..".purpose"))
+	DescLabel:SetText(ROTGB_LocalizeString("rotgb.tower."..class..".purpose"))
 	
 	local DamageLabel = vgui.Create("DLabel", LeftPanel)
 	DamageLabel:Dock(TOP)
