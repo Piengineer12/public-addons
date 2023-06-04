@@ -323,6 +323,8 @@ net.Receive("insane_stats", function(length, ply)
 				InsaneStats:GetConVarData(conVarName).conVar:SetInt(net.ReadInt(32))
 			elseif typ == InsaneStats.FLOAT then
 				InsaneStats:GetConVarData(conVarName).conVar:SetFloat(net.ReadDouble())
+			else
+				InsaneStats:GetConVarData(conVarName).conVar:SetString(net.ReadString())
 			end
 		end
 	end

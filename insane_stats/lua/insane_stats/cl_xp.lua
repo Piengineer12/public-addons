@@ -274,10 +274,11 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 		
 		draw.SimpleTextOutlined("Level ".. InsaneStats:FormatNumber(level), "InsaneStats.Medium", barX, barY, fgColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
 		if levelDisplayExpiryDuration < 0 then
-			local previousLevelXP = InsaneStats:GetConVarValue("hud_xp_cumulative") and 0 or InsaneStats:GetXPRequiredToLevel(level)
+			local previousLevelXP = math.floor(InsaneStats:GetConVarValue("hud_xp_cumulative") and 0 or InsaneStats:GetXPRequiredToLevel(level))
 			local currentXP = xp - previousLevelXP
 			local nextXP = math.ceil(ply:InsaneStats_GetXPToNextLevel() - previousLevelXP)
-			if not (currentXP >= 0 and currentXP < nextXP) and not InsaneStats:GetConVarValue("hud_xp_cumulative") then
+			--print(currentXP, nextXP)
+			if (currentXP < 0 or currentXP >= nextXP) and not InsaneStats:GetConVarValue("hud_xp_cumulative") then
 				-- precision error
 				currentXP = 0
 				nextXP = 2^(math.floor(math.log(xp, 2)-52))

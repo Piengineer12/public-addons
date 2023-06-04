@@ -76,6 +76,24 @@ function InsaneStats:CreateAppropriateDFormPanel(DForm, data)
 		end
 		
 		left:SetDefaultValue(conVar:GetDefault())
+	else
+		if mustSendValueToServer then
+			local left = vgui.Create("DLabel", DForm)
+			left:SetText(displayName)
+			left:SetDark(true)
+
+			local right = vgui.Create("DTextEntry", DForm)
+			right:SetValue(conVarValue)
+			right:SetUpdateOnType(true)
+			right:Dock(TOP)
+			function right:OnValueChange(value)
+				DForm:UpdateConVarValue(conVarName, value)
+			end
+
+			DForm:AddItem(left, right)
+		else
+			DForm:TextEntry(displayName, conVar:GetName())
+		end
 	end
 	
 	DForm:Help(conVar:GetHelpText())
@@ -112,6 +130,8 @@ function InsaneStats:GetDFormGenerator(title, conVarsData)
 							net.WriteInt(v, 32)
 						elseif typ == InsaneStats.FLOAT then
 							net.WriteDouble(v)
+						else
+							net.WriteString(v)
 						end
 					end
 					

@@ -122,9 +122,9 @@ local function CalculateDamage(vic, attacker, dmginfo)
 		totalMul = totalMul * (1 + (attacker:InsaneStats_GetAttributeValue("lowhealth_victim_melee_damage") - 1) * victimHealthFraction)
 	end
 	
-	--[[if (IsValid(wep) and wep:Clip1() < 2) then
+	if (IsValid(wep) and wep:Clip1() < 2) then
 		totalMul = totalMul * attacker:InsaneStats_GetAttributeValue("lastammo_damage")
-	end]]
+	end
 	if attacker:WorldSpaceCenter():DistToSqr(vic:WorldSpaceCenter()) > 262144 then
 		totalMul = totalMul * attacker:InsaneStats_GetAttributeValue("longrange_damage")
 		totalMul = totalMul * vic:InsaneStats_GetAttributeValue("longrange_damagetaken")
@@ -1163,12 +1163,12 @@ end)
 
 local function AttemptDupeEntity(ply, item)
 	if InsaneStats:GetConVarValue("wpass2_enabled") then
-		local itemHasModifiers = item:InsaneStats_IsWPASS2Pickup() and item.insaneStats_Modifiers and next(item.insaneStats_Modifiers)
+		local itemHasNoModifiers = item:InsaneStats_IsWPASS2Pickup() and item.insaneStats_Tier == 0
 		local ignoreWPASS2Pickup = (item.insaneStats_DisableWPASS2Pickup or 0) > RealTime()
 		local itemPickupCooldownElapsed = (item.insaneStats_NextPickup or 0) < CurTime()
 		
 		if itemPickupCooldownElapsed then
-			if not item.insaneStats_Duplicated and not itemHasModifiers and ply:InsaneStats_GetAttributeValue("copying") ~= 1 then
+			if not item.insaneStats_Duplicated and itemHasNoModifiers and ply:InsaneStats_GetAttributeValue("copying") ~= 1 then
 				item.insaneStats_Duplicated = true
 				
 				local duplicates = ply:InsaneStats_GetAttributeValue("copying") - 1
@@ -1191,7 +1191,7 @@ local function AttemptDupeEntity(ply, item)
 				end
 			end
 			
-			if item:GetClass() == "item_battery" and (not itemHasModifiers or ignoreWPASS2Pickup) and ply:InsaneStats_GetAttributeValue("armor_fullpickup") ~= 1 then
+			if item:GetClass() == "item_battery" and (itemHasNoModifiers or ignoreWPASS2Pickup) and ply:InsaneStats_GetAttributeValue("armor_fullpickup") ~= 1 then
 				local expectedArmor = GetConVar("sk_battery"):GetFloat() * (ply.insaneStats_CurrentArmorAdd or 1)
 				
 				if ply:InsaneStats_GetArmor() + expectedArmor > ply:InsaneStats_GetMaxArmor() then

@@ -244,10 +244,16 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 			end
 			
 			if InsaneStats:GetConVarValue("infhealth_enabled") then
-				if dmginfo:IsDamageType(DMG_POISON) and dmginfo:InsaneStats_GetRawDamage() + 1 > vic:InsaneStats_GetRawHealth() and vic:InsaneStats_GetRawHealth() > 0 then
-					-- poison damage should ideally leave the user at 1 health, but the limitations of
+				if dmginfo:IsDamageType(DMG_POISON) and dmginfo:InsaneStats_GetRawDamage() >= vic:InsaneStats_GetRawHealth() and vic:InsaneStats_GetRawHealth() > 0 then
+					-- poison damage should leave the user at 1 health, but the limitations of
 					-- single floating-point arithmetic is making this more difficult than it needs to be
-					dmginfo:InsaneStats_SetRawDamage(vic:InsaneStats_GetRawHealth() * 8388607 / 8388608 - 1)
+					--print(vic, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth())
+					local cappedDamage = vic:InsaneStats_GetRawHealth() * 33554431 / 33554432 - 1
+					dmginfo:InsaneStats_SetRawDamage(cappedDamage)
+					dmginfo:SetMaxDamage(cappedDamage)
+					--print(cappedDamage)
+					--vic:InsaneStats_SetRawHealth(dmginfo:InsaneStats_GetRawDamage() + 1)
+					--print(vic, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth())
 				end
 				
 				if vic:GetClass() == "npc_helicopter" and vic:InsaneStats_GetHealth() / vic:InsaneStats_GetMaxHealth() > 0.2 then
@@ -266,11 +272,11 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 	vic.insaneStats_Health = vic:InsaneStats_GetHealth()
 	vic.insaneStats_Armor = vic:InsaneStats_GetArmor()
 	vic.insaneStats_OldVelocity = vic:GetVelocity()
-	--print("PreEntityTakeDamage", vic, dmginfo:GetAttacker(), dmginfo:GetDamageType(), dmginfo:GetDamage(), vic:InsaneStats_GetRawHealth())
+	--print("PreEntityTakeDamage", vic, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth())
 end)
 
 hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo, notImmune, ...)
-	--print("PostEntityTakeDamage", vic, dmginfo:GetAttacker(), dmginfo:GetDamageType(), dmginfo:GetDamage(), vic:InsaneStats_GetRawHealth())
+	--print("PostEntityTakeDamage", vic, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth())
 	vic.insaneStats_OldVelocity = vic.insaneStats_OldVelocity or vic:GetVelocity()
 	if not dmginfo:IsDamageType(DMG_FALL) then
 		vic:InsaneStats_ApplyKnockback(dmginfo:GetDamageForce(), vic.insaneStats_OldVelocity-vic:GetVelocity())
@@ -323,6 +329,8 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 				-- something ain't holding up...
 				if vic:InsaneStats_GetRawHealth() < 0 then -- they are already dead!
 					newHealth = 0
+				elseif dmginfo:IsDamageType(DMG_POISON) then -- set health to RawHealth
+					newHealth = vic:InsaneStats_GetRawHealth()
 				else -- scale down our damage to be x/(x+y) or health*0.75, whichever is higher
 					newHealth = vic:InsaneStats_GetHealth() * math.max(
 						1 - healthDamage / (healthDamage + vic:InsaneStats_GetHealth()),

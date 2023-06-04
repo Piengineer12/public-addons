@@ -171,7 +171,7 @@ local modifiers = {
 		},
 		weight = 0.5,
 		max = 12
-	},
+	},]]
 	hold = {
 		prefix = "Holding",
 		modifiers = {
@@ -181,7 +181,7 @@ local modifiers = {
 		max = 10,
 		weight = 0.5,
 		flags = InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY
-	},]]
+	},
 	murderous = {
 		prefix = "Murderous",
 		suffix = "Murder",
@@ -1830,12 +1830,12 @@ local attributes = {
 		display = "%s bullet spread",
 		invert = true
 	},
-	--[[clip = {
+	clip = {
 		display = "%s clip size",
 	},
 	lastammo_damage = {
 		display = "%s last clip shot damage dealt",
-	},]]
+	},
 	ammo_savechance = {
 		display = "%s chance to not consume ammo",
 		mode = 2
@@ -2465,6 +2465,44 @@ local statusEffects = {
 	},
 }
 
+	
+hook.Add("InsaneStatsWPASS2AttributesChanged", "InsaneStatsSharedWPASS2", function(ent)
+	if ent:IsWeapon() and ent:IsScripted() then
+		local oldClipMul = ent.insaneStats_WPASS2ClipMul or 1
+		local newClipMul = ent.insaneStats_Attributes.clip or 1
+		
+		local weaponTable = ent:GetTable()
+		local entNewMaxClip1 = weaponTable.Primary and weaponTable.Primary.ClipSize * newClipMul / oldClipMul or -1
+		local entNewMaxClip2 = weaponTable.Secondary and weaponTable.Secondary.ClipSize * newClipMul / oldClipMul or -1
+		local entNewClip1 = ent:Clip1() * newClipMul / oldClipMul
+		local entNewClip2 = ent:Clip2() * newClipMul / oldClipMul
+		
+		if entNewMaxClip1 > 0 then
+			weaponTable.Primary.ClipSize = math.ceil(entNewMaxClip1)
+			--print(entNewMaxClip1)
+		end
+		if entNewMaxClip2 > 0 then
+			weaponTable.Secondary.ClipSize = math.ceil(entNewMaxClip2)
+			--print(entNewMaxClip2)
+		end
+		if SERVER then
+			ent:SetClip1(entNewClip1)
+			ent:SetClip2(entNewClip2)
+		end
+	
+		ent.insaneStats_WPASS2ClipMul = newClipMul
+		
+		--[[if wepAttributes.clip and wep:IsScripted() then
+			if weaponTable.Primary then
+				weaponTable.Primary.ClipSize = math.ceil(weaponTable.Primary.ClipSize * wepAttributes.clip)
+			end
+			if weaponTable.Secondary then
+				weaponTable.Secondary.ClipSize = math.ceil(weaponTable.Secondary.ClipSize * wepAttributes.clip)
+			end
+		end]]
+	end
+end)
+
 hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 	local attacker = data.attacker
 	if IsValid(attacker) then
@@ -2575,9 +2613,8 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 			end
 		end
 		if ply:OnGround() then
-			ply.insaneStats_Jumps = ply:InsaneStats_GetAttributeValue("jumps")
-		end
-		if movedata:KeyPressed(IN_JUMP) then
+			ply.insaneStats_Jumps = ply:InsaneStats_GetAttributeValue("jumps") - 1
+		elseif movedata:KeyPressed(IN_JUMP) then
 			if ply.insaneStats_Jumps > 0 then
 				ply.insaneStats_Jumps = ply.insaneStats_Jumps - 1
 				local jumppower = ply:GetJumpPower() - ply:GetVelocity().z

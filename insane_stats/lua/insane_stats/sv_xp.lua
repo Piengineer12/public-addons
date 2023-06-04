@@ -1,34 +1,86 @@
 local mapOrder = {}
 local mapNumber = 0
 concommand.Add("insanestats_xp_other_level_maps_show", function(ply, cmd, args, argStr)
-	print("These are the recorded maps:")
-	PrintTable(mapOrder)
-	print("You are on map #"..mapNumber..".")
+	if (not IsValid(ply) or ply:IsAdmin()) then
+		print("These are the recorded maps:")
+		PrintTable(mapOrder)
+		print("You are on map #"..mapNumber..".")
+	end
 end, nil, "Shows recorded maps.")
 concommand.Add("insanestats_xp_other_level_maps_reset", function(ply, cmd, args, argStr)
-	mapOrder = {}
+	if (not IsValid(ply) or ply:IsAdmin()) then
+		mapOrder = {}
+	end
 end, nil, "Resets recorded maps.")
 concommand.Add("insanestats_xp_other_level_maps_remove", function(ply, cmd, args, argStr)
-	for k,v in pairs(mapOrder) do
-		if argStr == v then
-			table.remove(mapOrder, k)
-			InsaneStats:Log("Removed map "..v..".")
-			return
+	if (not IsValid(ply) or ply:IsAdmin()) then
+		for k,v in pairs(mapOrder) do
+			if argStr == v then
+				table.remove(mapOrder, k)
+				InsaneStats:Log("Removed map "..v..".")
+				return
+			end
+		end
+		
+		if tonumber(argStr) then
+			local toRemove = math.min(#mapOrder, tonumber(argStr) or 0)
+			for i=1, toRemove do
+				local value = table.remove(mapOrder)
+				InsaneStats:Log("Removed map "..value..".")
+			end
+		elseif argStr == "" then
+			InsaneStats:Log("Removes a map from the map record list. If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. Note that a map restart is required for the map number to be updated.")
+		else
+			InsaneStats:Log("Could not find map "..argStr..".")
+		end
+	end
+end, nil, "Removes a map from the map record list. If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. Note that a map restart is required for the map number to be updated.")
+
+concommand.Add("insanestats_xp_player_level_set", function(ply, cmd, args, argStr)
+	if (not IsValid(ply) or ply:IsAdmin()) then
+		if #args == 0 then
+			InsaneStats:Log("Sets a player's level. Usage: insanestats_xp_player_level_set [player] <level>")
+		else
+			local plyStr = table.concat(args, ' ', 1, #args-1)
+			local levelStr = args[#args]
+			
+			if plyStr ~= "" then
+				-- scan for player
+				local foundPlayer = false
+				for k,v in pairs(player.GetAll()) do
+					if v:Nick() == plyStr then
+						ply = v
+						foundPlayer = true
+						break
+					end
+				end
+				
+				if not foundPlayer then
+					InsaneStats:Log("Could not find player \""..plyStr.."\".")
+					return
+				end
+			end
+			
+			local level = tonumber(levelStr)
+			if level then
+				ply:InsaneStats_SetXP(InsaneStats:GetXPRequiredToLevel(level))
+			else
+				InsaneStats:Log("\""..levelStr.."\" is not a valid number.")
+			end
+		end
+	end
+end, function(cmd, argStr)
+	local suggestions = {}
+	argStr = argStr:Trim()
+	
+	for k,v in pairs(player.GetAll()) do
+		if string.StartsWith(v:Nick():Trim(), argStr) then
+			table.insert(suggestions, cmd.." \""..v:Nick().."\"")
 		end
 	end
 	
-	if tonumber(argStr) then
-		local toRemove = math.min(#mapOrder, tonumber(argStr) or 0)
-		for i=1, toRemove do
-			local value = table.remove(mapOrder)
-			InsaneStats:Log("Removed map "..value..".")
-		end
-	elseif argStr == "" then
-		InsaneStats:Log("Removes a map from the map record list. If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. Note that a map restart is required for the map number to be updated.")
-	else
-		InsaneStats:Log("Could not find map "..argStr..".")
-	end
-end, nil, "Removes a map from the map record list. If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. Note that a map restart is required for the map number to be updated.")
+	return suggestions
+end, "Sets a player's level. Usage: insanestats_xp_player_level_set [player] <level>")
 
 local ENT = FindMetaTable("Entity")
 
@@ -317,7 +369,7 @@ function InsaneStats:DetermineEntitySpawnedXP(pos)
 	-- get base level
 	local level = self:GetConVarValue("xp_other_level_start")
 	local allPlayers = player.GetAll()
-	local playerCount = #allPlayers
+	local playerCount = math.max(#allPlayers, 1)
 	local hasPlayer = false
 	
 	for k,v in pairs(allPlayers) do
@@ -325,7 +377,7 @@ function InsaneStats:DetermineEntitySpawnedXP(pos)
 			hasPlayer = true break
 		end
 	end
-	--print(pos, "has base level ", level)
+	--print(pos, "has base level", level)
 	
 	local typ = self:GetConVarValue("xp_other_level_factor")
 	if typ >= 1 and typ <= 4 then
@@ -380,7 +432,7 @@ function InsaneStats:DetermineEntitySpawnedXP(pos)
 		local current = self:ScaleValueToLevel(level, self:GetConVarValue("xp_other_level_maps")/100, mapNumber, "xp_other_level_maps_mode", true)
 		level = math.max(minimum, current)
 	end
-	--print(pos, "has factored level ", level)
+	--print(pos, "has modified level", level)
 	
 	local playerScalingMode = self:GetConVarValueDefaulted("xp_other_level_players_mode", "xp_mode") > 0
 	if playerScalingMode then
@@ -388,6 +440,7 @@ function InsaneStats:DetermineEntitySpawnedXP(pos)
 	else
 		level = level * (1+self:GetConVarValue("xp_other_level_players")/100 * (playerCount - 1))
 	end
+	--print(pos, "has player count scaled level", level)
 	
 	local drift = Lerp(math.random(), -self:GetConVarValue("xp_other_level_drift"), self:GetConVarValue("xp_other_level_drift"))
 	drift = drift * math.random() ^ self:GetConVarValue("xp_other_level_drift_harshness")
@@ -398,6 +451,7 @@ function InsaneStats:DetermineEntitySpawnedXP(pos)
 	else
 		level = level * (1+drift/100)
 	end
+	--print(pos, "has randomized level", level)
 	
 	level = math.max(level, 1)
 	

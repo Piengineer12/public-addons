@@ -1,7 +1,7 @@
 InsaneStats:SetDefaultConVarCategory("XP - General")
 
 InsaneStats:RegisterConVar("xp_enabled", "insanestats_xp_enabled", "1", {
-	display = "Enable Experience", desc = "Enables the experience system.",
+	display = "Enable Experience", desc = "Enables the experience system. You can use insanestats_xp_player_level_set to manually set a player's level.",
 	type = InsaneStats.BOOL
 })
 InsaneStats:RegisterConVar("xp_mode", "insanestats_xp_mode", "0", {
@@ -405,6 +405,10 @@ end
 
 function ENT:InsaneStats_SetXP(xp, dropValue)
 	assert(xp >= -math.huge, "Something tried to set XP on "..tostring(self).." to nan!")
+	--[[if SERVER and self:GetClass() == "prop_physics" then
+		print(self, xp)
+		debug.Trace()
+	end]]
 	
 	self.insaneStats_XP = xp
 	if xp > 0 then

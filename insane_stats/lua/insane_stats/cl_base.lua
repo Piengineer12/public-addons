@@ -116,23 +116,23 @@ function InsaneStats:RegisterClientConVar(name, internal, default, data)
 		data.max = 1
 	end
 	
-	if data.type == self.FLOAT then
+	if data.type == self.INT then
 		conVar = CreateClientConVar(
 			internal,
 			default,
 			true,
-			false,
-			data.desc
+			data.userinfo,
+			data.desc,
+			data.min,
+			data.max
 		)
 	else
 		conVar = CreateClientConVar(
 			internal,
 			default,
 			true,
-			false,
-			data.desc,
-			data.min,
-			data.max
+			data.userinfo,
+			data.desc
 		)
 	end
 	

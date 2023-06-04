@@ -39,11 +39,11 @@ function ENT:InsaneStats_GetMaxHealth()
 end
 	
 function ENT:InsaneStats_GetArmor()
-	return InsaneStats:GetConVarValue("infhealth_enabled") and self.insaneStats_Armor or self.Armor and self:Armor() or 0
+	return InsaneStats:GetConVarValue("infhealth_enabled") and tonumber(self.insaneStats_Armor) or self.Armor and tonumber(self:Armor()) or 0
 end
 	
 function ENT:InsaneStats_GetMaxArmor()
-	return InsaneStats:GetConVarValue("infhealth_enabled") and self.insaneStats_MaxArmor or self.GetMaxArmor and self:GetMaxArmor() or 0
+	return InsaneStats:GetConVarValue("infhealth_enabled") and tonumber(self.insaneStats_MaxArmor) or self.GetMaxArmor and tonumber(self:GetMaxArmor()) or 0
 end
 
 local function OverrideHealth()

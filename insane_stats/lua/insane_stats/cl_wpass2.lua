@@ -34,6 +34,16 @@ InsaneStats:RegisterClientConVar("hud_wpass2_hovered_y", "insanestats_hud_wpass2
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
 
+-- clients are allowed to choose the auto-pickup mode
+InsaneStats:RegisterClientConVar("wpass2_autopickup_override", "insanestats_wpass2_autopickup_override", "-1", {
+	display = "Auto Pickup Mode Override", desc = "If 0 or above, overrides insanestats_wpass2_autopickup for yourself.",
+	type = InsaneStats.INT, min = -1, max = 6, userinfo = true
+})
+InsaneStats:RegisterClientConVar("wpass2_autopickup_battery_override", "insanestats_wpass2_autopickup_battery_override", "-1", {
+	display = "Auto Battery Pickup Mode Override", desc = "If 0 or above, overrides insanestats_wpass2_autopickup_battery for yourself.",
+	type = InsaneStats.INT, min = -1, max = 6, userinfo = true
+})
+
 InsaneStats:RegisterClientConVar("hud_statuseffects_x", "insanestats_hud_statuseffects_x", "0.01", {
 	display = "Status Effects X", desc = "Horizontal position of status effects.",
 	type = InsaneStats.FLOAT, min = 0, max = 1

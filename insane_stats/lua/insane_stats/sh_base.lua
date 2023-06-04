@@ -1,6 +1,7 @@
 InsaneStats.BOOL = 1
 InsaneStats.INT = 2
 InsaneStats.FLOAT = 3
+InsaneStats.STRING = 4
 InsaneStats.NOP = function()end
 
 InsaneStats.numConVars = 0
@@ -27,14 +28,7 @@ function InsaneStats:RegisterConVar(name, internal, default, data)
 		data.max = 1
 	end
 	
-	if data.type == self.FLOAT then
-		conVar = CreateConVar(
-			internal,
-			default,
-			bit.bor(FCVAR_ARCHIVE, FCVAR_REPLICATED),
-			data.desc
-		)
-	else
+	if data.type == self.INT then
 		conVar = CreateConVar(
 			internal,
 			default,
@@ -42,6 +36,13 @@ function InsaneStats:RegisterConVar(name, internal, default, data)
 			data.desc,
 			data.min,
 			data.max
+		)
+	else
+		conVar = CreateConVar(
+			internal,
+			default,
+			bit.bor(FCVAR_ARCHIVE, FCVAR_REPLICATED),
+			data.desc
 		)
 	end
 	

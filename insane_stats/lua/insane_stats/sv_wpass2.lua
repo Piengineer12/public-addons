@@ -79,6 +79,11 @@ local function ApplyWPASS2StartTier(ent)
 	local canGetModifiers = ent:InsaneStats_IsMob() or ent:IsWeapon() or ent:GetClass() == "item_battery"
 	if InsaneStats:GetConVarValue("wpass2_chance_other_battery_sensible") and not ent:InsaneStats_ArmorSensible() then
 		canGetModifiers = false
+	else
+		local blacklist = ' '..InsaneStats:GetConVarValue("wpass2_tier_blacklist")..' '
+		if string.match(blacklist, "%s"..string.PatternSafe(ent:GetClass()).."%s") then
+			canGetModifiers = false
+		end
 	end
 	
 	if math.random()*100 < probability and canGetModifiers then
@@ -490,6 +495,40 @@ function PLAYER:InsaneStats_EquipBattery(item)
 	item:Remove()
 end
 
+function PLAYER:InsaneStats_AttemptEquipItem(ent)
+	if InsaneStats:GetConVarValue("wpass2_enabled") then
+		local nextPickup = self.insaneStats_NextPickup or 0
+		local curTime = CurTime()
+		
+		if nextPickup < curTime or nextPickup > curTime + 0.2 then
+			if ent:IsWeapon() and not ent:HasSpawnFlags(SF_WEAPON_NO_PLAYER_PICKUP) and self:HasWeapon(ent:GetClass()) and not IsValid(ent:GetOwner()) then
+				self.insaneStats_NextPickup = curTime + 0.2
+				
+				local oldEnt = self:GetWeapon(ent:GetClass())
+				oldEnt.insaneStats_NextPickup = curTime + 1
+				self:DropWeapon(oldEnt)
+				--[[timer.Simple(0.2, function()
+					if (IsValid(self) and IsValid(ent) and not self:HasWeapon(ent:GetClass())) then
+						-- somehow the player didn't pick up the weapon
+						InsaneStats:Log("Forcing weapon "..tostring(ent).." into "..tostring(self).."'s hands...")
+						self:PickupWeapon(ent)
+						SaveData(self)
+					end
+				end)]]
+			elseif ent:GetClass() == "item_battery" then
+				self.insaneStats_NextPickup = curTime + 0.2
+				
+				self:InsaneStats_EquipBattery(ent)
+				timer.Simple(1, function()
+					if IsValid(self) then
+						SaveData(self)
+					end
+				end)
+			end
+		end
+	end
+end
+
 hook.Add("InsaneStatsEntityCreated", "InsaneStatsWPASS", function(ent)
 	if InsaneStats:GetConVarValue("wpass2_enabled") then
 		timer.Simple(0, function() -- wait for xp to settle first
@@ -505,66 +544,75 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsWPASS", function(ent)
 end)
 
 hook.Add("InsaneStatsPlayerCanPickupItem", "InsaneStatsWPASS", function(ply, item)
-	if InsaneStats:GetConVarValue("wpass2_enabled") and item:GetClass() == "item_battery" then
-		-- if the player already has a modified armor battery
-		-- and the to-be-picked-up battery is also modified
-		-- don't auto pickup
-		local entModified = ply.insaneStats_Modifiers and next(ply.insaneStats_Modifiers)
-		local itemHasModifiers = item.insaneStats_Modifiers and next(item.insaneStats_Modifiers)
-		local ignoreWPASS2Pickup = (item.insaneStats_DisableWPASS2Pickup or 0) > RealTime()
-		if entModified and itemHasModifiers and not ignoreWPASS2Pickup then return false end
+	if InsaneStats:GetConVarValue("wpass2_enabled") and item:GetClass() == "item_battery"
+	and (item.insaneStats_DisableWPASS2Pickup or 0) <= RealTime() then
+		local autoPickup = ply:GetInfoNum("insanestats_wpass2_autopickup_battery_override", -1) or -1
+		if autoPickup < 0 then
+			autoPickup = InsaneStats:GetConVarValueDefaulted("wpass2_autopickup_battery", "wpass2_autopickup")
+		end
+		if autoPickup == 0 then return false end
+		
+		local newTier = item.insaneStats_Tier or 0
+		if newTier ~= 0 then
+			if autoPickup == 1 then return false end 
+			local currentTier = ply.insaneStats_Tier or 0
+			if newTier > currentTier then
+				if autoPickup == 3 or autoPickup == 5 then
+					ply:InsaneStats_AttemptEquipItem(item)
+				end
+				
+				if autoPickup < 6 then return false end
+			elseif newTier == currentTier and autoPickup < 4 then
+				return false
+			end
+		end
 	end
 	toSavePlayers[ply] = true
 end)
 
 hook.Add("PlayerCanPickupWeapon", "InsaneStatsWPASS", function(ply, wep)
-	if InsaneStats:GetConVarValue("wpass2_enabled") then
-		local wepHasModifiers = wep.insaneStats_Modifiers and next(wep.insaneStats_Modifiers)
-		local ignoreWPASS2Pickup = (wep.insaneStats_DisableWPASS2Pickup or 0) > RealTime()
-		--[[local pickupDelayed = (wep.insaneStats_NextPickup or 0) > CurTime()]]
-		if wepHasModifiers and ply:HasWeapon(wep:GetClass()) and not ignoreWPASS2Pickup --[[or pickupDelayed]] then return false end
+	if InsaneStats:GetConVarValue("wpass2_enabled") and ply:HasWeapon(wep:GetClass())
+	and (wep.insaneStats_DisableWPASS2Pickup or 0) <= RealTime() then
+		local autoPickup = ply:GetInfoNum("insanestats_wpass2_autopickup_override", -1) or -1
+		if autoPickup < 0 then
+			autoPickup = InsaneStats:GetConVarValue("wpass2_autopickup")
+		end
+		if autoPickup == 0 then return false end
+		
+		local newTier = wep.insaneStats_Tier or 0
+		if newTier ~= 0 then
+			if autoPickup == 1 then return false end 
+			
+			local ourWep = ply:GetWeapon(wep:GetClass())
+			local currentTier = ourWep.insaneStats_Tier or 0
+			
+			if newTier > currentTier then
+				if autoPickup == 3 or autoPickup == 5 then
+					ply:InsaneStats_AttemptEquipItem(wep)
+				end
+				
+				if autoPickup < 6 then return false end
+			elseif newTier == currentTier and autoPickup < 4 then
+				return false
+			end
+		end
 	end
+	
 	hook.Run("InsaneStatsPlayerCanPickupWeapon", ply, wep)
 	toSavePlayers[ply] = true
 end)
 
 hook.Add("PlayerUse", "InsaneStatsWPASS", function(ply, ent)
-	if (ply.insaneStats_NextPickup or 0) > CurTime() + 0.2 then
-		ply.insaneStats_NextPickup = nil
-	end
-	
-	if (ply.insaneStats_NextPickup or 0) < CurTime() and InsaneStats:GetConVarValue("wpass2_enabled") then
-		if ent:IsWeapon() and not ent:HasSpawnFlags(SF_WEAPON_NO_PLAYER_PICKUP) and ply:HasWeapon(ent:GetClass()) and not IsValid(ent:GetOwner()) then
-			ply.insaneStats_NextPickup = CurTime() + 0.2
-			
-			if ply:KeyDown(IN_SPEED) then
-				ent.insaneStats_DisableWPASS2Pickup = RealTime() + 1
-			else
-				local oldEnt = ply:GetWeapon(ent:GetClass())
-				oldEnt.insaneStats_NextPickup = CurTime() + 1
-				ply:DropWeapon(oldEnt)
-				timer.Simple(0.2, function()
-					if (IsValid(ply) and IsValid(ent) and not ply:HasWeapon(ent:GetClass())) then
-						-- somehow the player didn't pick up the weapon
-						InsaneStats:Log("Forcing weapon "..tostring(ent).." into "..tostring(ply).."'s hands...")
-						ply:PickupWeapon(ent)
-					end
-				end)
-			end
-		elseif ent:GetClass() == "item_battery" then
-			ply.insaneStats_NextPickup = CurTime() + 0.2
-			
-			if ply:KeyDown(IN_SPEED) then
-				ent.insaneStats_DisableWPASS2Pickup = RealTime() + 1
-			else
-				ply:InsaneStats_EquipBattery(ent)
-				timer.Simple(1, function()
-					if IsValid(ply) then
-						SaveData(ply)
-					end
-				end)
-			end
+	if (ent:IsWeapon() or ent:GetClass() == "item_battery") and ply:KeyDown(IN_SPEED) then
+		local nextPickup = ply.insaneStats_NextPickup or 0
+		local curTime = CurTime()
+		
+		if nextPickup < curTime or nextPickup > curTime + 0.2 then
+			ply.insaneStats_NextPickup = curTime + 0.2
+			ent.insaneStats_DisableWPASS2Pickup = RealTime() + 1
 		end
+	else
+		ply:InsaneStats_AttemptEquipItem(ent)
 	end
 end)
 

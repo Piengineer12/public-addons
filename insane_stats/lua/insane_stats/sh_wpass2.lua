@@ -14,6 +14,22 @@ InsaneStats:RegisterConVar("wpass2_enabled", "insanestats_wpass2_enabled", "1", 
 	display = "Enable WPASS2", desc = "Enables WPASS2, allowing weapons / armor batteries to gain prefixes and suffixes.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterConVar("wpass2_autopickup", "insanestats_wpass2_autopickup", "1", {
+	display = "Auto Pickup Mode", desc = "Determines whether weapons / armor batteries will be automatically picked up for ammo / armor.\n\z
+	0: Never auto pickup weapons and armor batteries.\n\z
+	1: Auto pickup weapons and armor batteries that are tier 0.\n\z
+	2: Auto pickup weapons and armor batteries that have lower tiers than current.\n\z
+	3: Auto pickup weapons and armor batteries that have lower tiers than current, and always swap for higher tiers.\n\z
+	4: Auto pickup weapons and armor batteries that have equal or lower tiers than current.\n\z
+	5: Auto pickup weapons and armor batteries that have equal or lower tiers than current, and always swap for higher tiers.\n\z
+	6: Always auto pickup weapons and armor batteries.",
+	type = InsaneStats.INT, min = 0, max = 6
+})
+InsaneStats:RegisterConVar("wpass2_autopickup_battery", "insanestats_wpass2_autopickup_battery", "-1", {
+	display = "Auto Battery Pickup Mode", desc = "If 0 or above, overrides insanestats_wpass2_autopickup for armor batteries.",
+	type = InsaneStats.INT, min = -1, max = 6
+})
+
 InsaneStats:RegisterConVar("wpass2_attributes_player_enabled", "insanestats_wpass2_attributes_player_enabled", "1", {
 	display = "Player Attribute Effects", desc = "If disabled, modified weapons / armor batteries will have no effect on players.",
 	type = InsaneStats.INT, min = 0, max = 1
@@ -113,6 +129,10 @@ InsaneStats:RegisterConVar("wpass2_tier_raritycost", "insanestats_wpass2_tier_ra
 InsaneStats:RegisterConVar("wpass2_tier_raritycost_battery", "insanestats_wpass2_tier_raritycost_battery", "-1", {
 	display = "Battery Tiers Per Rarity", desc = "If 0 or above, overrides insanestats_wpass2_tier_raritycost for armor batteries.",
 	type = InsaneStats.FLOAT, min = -1, max = 100
+})
+InsaneStats:RegisterConVar("wpass2_tier_blacklist", "insanestats_wpass2_tier_blacklist", "", {
+	display = "Weapon Blacklist", desc = "Weapon classes in this list will always remain at tier 0, preventing them from gaining modifiers.",
+	type = InsaneStats.STRING
 })
 
 InsaneStats:RegisterConVar("wpass2_tier_xp_enable", "insanestats_wpass2_tier_xp_enable", "1", {
@@ -418,16 +438,6 @@ function InsaneStats:ApplyWPASS2Attributes(wep)
 			end
 		end
 	end
-	
-	--[[if wepAttributes.clip and wep:IsScripted() then
-		local weaponTable = wep:GetTable()
-		if weaponTable.Primary then
-			weaponTable.Primary.ClipSize = math.ceil(weaponTable.Primary.ClipSize * wepAttributes.clip)
-		end
-		if weaponTable.Secondary then
-			weaponTable.Secondary.ClipSize = math.ceil(weaponTable.Secondary.ClipSize * wepAttributes.clip)
-		end
-	end]]
 	
 	for k,v in pairs(wepAttributes) do
 		if v == 1 then -- remove

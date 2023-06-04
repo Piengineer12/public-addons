@@ -15,8 +15,8 @@ modifier for excessive crouching to increase time speed
 ]]
 
 InsaneStats = {
-	VERSION = "1.0.2",
-	VERSION_DATE = "2023-05-30"
+	VERSION = "1.0.3",
+	VERSION_DATE = "2023-06-04"
 }
 
 function InsaneStats:Log(msg)
