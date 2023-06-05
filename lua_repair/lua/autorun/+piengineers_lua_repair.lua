@@ -8,8 +8,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_REPAIR_VERSION = "1.9.0"
-LUA_REPAIR_VERSION_DATE = "2023-05-26"
+LUA_REPAIR_VERSION = "1.9.1"
+LUA_REPAIR_VERSION_DATE = "2023-06-05"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
@@ -48,6 +48,7 @@ local function FixAllErrors()
 	local NULL_META = getmetatable(NULL) or {}
 	local PHYSOBJ = FindMetaTable("PhysObj")
 	local CTAKEDAMAGEINFO = FindMetaTable("CTakeDamageInfo")
+	local AUDIOCHANNEL = FindMetaTable("IGModAudioChannel")
 	local newNilMeta = {
 		__add = function(a,b)
 			LogError("Some code attempted to add with nil.")
@@ -276,6 +277,17 @@ local function FixAllErrors()
 				attacker = game.GetWorld()
 			end
 			oldSetAttacker(dmginfo, attacker, ...)
+		end
+	end
+	
+	if AUDIOCHANNEL then
+		local oldStop = AUDIOCHANNEL.Stop
+		function AUDIOCHANNEL.Stop(channel, ...)
+			if IsValid(channel) then
+				oldStop(channel, ...)
+			else
+				LogError("Some code attempted to call IGModAudioChannel:Stop() with NULL IGModAudioChannel.")
+			end
 		end
 	end
 	
