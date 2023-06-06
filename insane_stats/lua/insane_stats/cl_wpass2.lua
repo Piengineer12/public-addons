@@ -325,7 +325,7 @@ hook.Add("InsaneStatsModifiersChanging", "InsaneStatsWPASS", function(ent, oldMo
 			end
 			
 			if baseText then
-				local entityName = language.GetPhrase(ent:IsPlayer() and "item_battery" or ent:GetClass())
+				local entityName = language.GetPhrase(ent:IsPlayer() and "item_battery" or ent.PrintName or ent:GetClass())
 				local modifierName = modifiers[k] and (modifiers[k].suffix or modifiers[k].prefix) or k
 				--notification.AddLegacy(string.format(baseText, entityName, modifierName), NOTIFY_GENERIC, 5)
 				chat.AddText(string.format(baseText, entityName, modifierName))
