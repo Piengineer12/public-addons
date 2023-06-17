@@ -100,32 +100,29 @@ local function SnipeEntity()
 		local self,ent = coroutine.yield()
 		local startPos = self:GetShootPos()
 		if self.rotgb_Transformed ~= 2 then
-			local uDir = ent:LocalToWorld(ent:OBBCenter())-startPos
-			--uDir:Normalize()
-			local bullet = {
-				Attacker = self:GetTowerOwner(),
-				Callback = function(attacker,tracer,dmginfo)
-					dmginfo:SetDamageType(self.rotgb_CanPopGray and DMG_SNIPER or DMG_BULLET)
+			self:BulletAttack(ent, self.AttackDamage, {
+				damageType = self.rotgb_CanPopGray and DMG_SNIPER or DMG_BULLET,
+				callback = function(attacker, tracer, dmginfo)
 					if IsValid(ent) and self.rotgb_DoFire then
 						ent:RotgB_Ignite(20, self:GetTowerOwner(), self, self.rotgb_DoFireAura and 10 or 5)
 					end
-				end,
-				Damage = self.AttackDamage,
-				Distance = self.DetectionRadius*1.5,
-				HullSize = 1,
-				AmmoType = self.rotgb_CanPopGray and "SniperPenetratedRound" or "Pistol",
-				TracerName = "Tracer",
-				Dir = uDir,
-				Src = startPos
-			}
-			self:FireBullets(bullet)
+				end
+			})
 		else
-			local startEnt = ents.Create("info_target")
+			self:LaserAttack(ent, self.AttackDamage, 8, {
+				damageType = DMG_GENERIC,
+				scroll = 35,
+				rainbow = true,
+				decal = "decals/dark",
+				sparks = true
+			})
+			
+			--[[local startEnt = ents.Create("info_target")
 			local laser = ents.Create("env_beam")
 			local endEnt = ents.Create("info_target")
 			if IsValid(endEnt) then
 				endEnt:SetName("ROTGB07_"..endEnt:GetCreationID())
-				endEnt:SetPos(ent:GetPos()+ent.loco:GetVelocity()*0.1+ent:OBBCenter())
+				endEnt:SetPos(ent:WorldSpaceCenter()+ent.loco:GetVelocity()*0.1)
 			end
 			startEnt:SetName("ROTGB07_"..startEnt:GetCreationID())
 			startEnt:SetPos(startPos)
@@ -161,7 +158,7 @@ local function SnipeEntity()
 					endEnt:Remove()
 				end
 			end)
-			self:DeleteOnRemove(laser)
+			self:DeleteOnRemove(laser)]]
 		end
 	end
 end
@@ -198,11 +195,11 @@ function ENT:TriggerAbility()
 			success = true
 			for index,ent in pairs(entities) do
 				local effdata = EffectData()
-				effdata:SetOrigin(Vector(ent:GetPos()))
-				effdata:SetStart(Vector(ent:GetPos()))
+				effdata:SetOrigin(ent:GetPos())
+				effdata:SetStart(ent:GetPos())
 				effdata:SetEntity(ent)
 				util.Effect("Explosion",effdata,true,true)
-				ent:TakeDamage(8192,self:GetTowerOwner(),self)
+				self:DealDamage(ent, 8192)
 				--ent.FireSusceptibility = (ent.FireSusceptibility or 0) + 99
 				ent:RotgB_Ignite(self.rotgb_AbilityDamage, self:GetTowerOwner(), self, self.AbilityDuration)
 			end
@@ -211,11 +208,11 @@ function ENT:TriggerAbility()
 	if self.rotgb_Transformation then
 		for index,ent in pairs(ents.FindInSphere(self:GetShootPos(), self.DetectionRadius)) do
 			if ent:GetClass()=="gballoon_tower_07" then
-				ent:ApplyBuff(self, "ROTGB_TOWER_07_TRANSFORM", self.AbilityDuration, function(tower)
-					success = true
+				success = true
+				ent:AddDelayedActions(self, "ROTGB_TOWER_07_TRANSFORM", 0, function(tower)
 					local effdata = EffectData()
-					effdata:SetOrigin(Vector(tower:GetPos()))
-					effdata:SetStart(Vector(tower:GetPos()))
+					effdata:SetOrigin(tower:GetPos())
+					effdata:SetStart(tower:GetPos())
 					effdata:SetEntity(tower)
 					effdata:SetMagnitude(1)
 					effdata:SetScale(1)
@@ -234,7 +231,7 @@ function ENT:TriggerAbility()
 						tower.rotgb_Targets = tower.rotgb_Targets * 3
 						tower:SetMaterial("!gBalloonRainbow")
 					end
-				end, function(tower)
+				end, self.AbilityDuration, function(tower)
 					if tower.rotgb_Transformed == 1 then
 						tower.AttackDamage = tower.AttackDamage - 100
 					else

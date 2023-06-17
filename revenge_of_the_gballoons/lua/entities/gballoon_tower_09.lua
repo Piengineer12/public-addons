@@ -129,15 +129,22 @@ function ENT:ROTGB_ApplyPerks()
 	self.FireRate = self.FireRate * (1+hook.Run("GetSkillAmount", "bishopOfGlueFireRate")/100)
 end
 
+local vector_yellow = Vector(255, 255, 0)
+local vector_green = Vector(0, 255, 0)
 local function SnipeEntity()
 	while true do
 		local self,ent = coroutine.yield()
 		ent:Slowdown("ROTGB_GLUE_TOWER",1-self.rotgb_GlueSlowdown,self.rotgb_GlueDuration)
 		local effData = EffectData()
-		effData:SetEntity(ent)
+		--[[effData:SetEntity(ent)
 		effData:SetFlags(self.rotgb_GlueDamage > 0 and 1 or 0)
-		effData:SetHitBox(self.rotgb_GlueDuration*10)
-		util.Effect("gballoon_tower_9_glued", effData)
+		effData:SetHitBox(self.rotgb_GlueDuration*10)]]
+		effData:SetEntity(self)
+		effData:SetDamageType(ent:EntIndex())
+		effData:SetMagnitude(self.rotgb_GlueDuration)
+		effData:SetStart(self.rotgb_GlueDamage > 0 and vector_green or vector_yellow)
+		util.Effect("rotgb_sticky", effData)
+		
 		if self.rotgb_GlueSoak then
 			ent:InflictRotgBStatusEffect("glue_soak",self.rotgb_GlueDuration)
 		end
@@ -149,14 +156,7 @@ local function SnipeEntity()
 			ent.AcidicList[self] = {self.rotgb_GlueDamage,CurTime()+self.rotgb_GlueDuration}
 		end
 		if self.AttackDamage > 0 then
-			local dmginfo = DamageInfo()
-			dmginfo:SetAttacker(self:GetTowerOwner())
-			dmginfo:SetInflictor(self)
-			dmginfo:SetDamageType(DMG_CRUSH)
-			dmginfo:SetReportedPosition(self:GetShootPos())
-			dmginfo:SetDamage(self.AttackDamage)
-			dmginfo:SetDamagePosition(ent:LocalToWorld(ent:OBBCenter()))
-			ent:TakeDamageInfo(dmginfo)
+			self:DealDamage(ent, self.AttackDamage, DMG_CRUSH)
 		end
 	end
 end
@@ -169,7 +169,7 @@ function ENT:FireFunction(gBalloons)
 	if self.rotgb_GlueSplatter then
 		for i,v in ipairs(gBalloons) do
 			if not (v.rotgb_SpeedMods and v.rotgb_SpeedMods.ROTGB_GLUE_TOWER) then
-				for k,v2 in pairs(ents.FindInSphere(v:GetPos(),64)) do
+				for k,v2 in pairs(ents.FindInSphere(v:WorldSpaceCenter(),64)) do
 					if self:ValidTargetIgnoreRange(v2) and not (v2.rotgb_SpeedMods and v2.rotgb_SpeedMods.ROTGB_GLUE_TOWER) then
 						self:GlueBalloon(v2)
 					end
@@ -210,11 +210,7 @@ function ENT:ROTGB_Think()
 	self.ThinkC = self.ThinkC or CurTime()
 	if CurTime()>self.ThinkD and self.rotgb_GlueDamage>0 then
 		self.ThinkD = CurTime() + (self.rotgb_DoubleThink and 0.5 or 1)
-		local dmginfo = DamageInfo()
-		dmginfo:SetAttacker(self:GetTowerOwner())
-		dmginfo:SetInflictor(self)
-		dmginfo:SetDamageType(DMG_ACID)
-		dmginfo:SetReportedPosition(self:GetShootPos())
+		local dmginfo = self:CreateDamage(nil, DMG_ACID)
 		for k,v in pairs(ROTGB_GetBalloons()) do
 			v.AcidicList = v.AcidicList or {}
 			if v.AcidicList[self] then
@@ -222,8 +218,7 @@ function ENT:ROTGB_Think()
 					v.AcidicList[self] = nil
 				else
 					dmginfo:SetDamage(v.AcidicList[self][1])
-					dmginfo:SetDamagePosition(v:LocalToWorld(v:OBBCenter()))
-					v:TakeDamageInfo(dmginfo)
+					self:DealDamage(v, dmginfo)
 				end
 			end
 		end
@@ -244,12 +239,12 @@ function ENT:TriggerAbility()
 	end
 end
 
-if CLIENT then
+--[[if CLIENT then
 	local EFFECT = {}
 	function EFFECT:Init(data)
 		self.entity = data:GetEntity()
 		if IsValid(self.entity) then
-			self.emitter = ParticleEmitter(self.entity:GetPos(), false)
+			self.emitter = ParticleEmitter(self.entity:WorldSpaceCenter(), false)
 		end
 		self.expiryTime = CurTime() + data:GetHitBox()/10
 		self.alternateColor = data:GetFlags() == 1
@@ -261,14 +256,13 @@ if CLIENT then
 			end
 			return false
 		else
-			self.emitter:SetPos(self.entity:GetPos())
+			self.emitter:SetPos(self.entity:WorldSpaceCenter())
 			return true
 		end
 	end
 	function EFFECT:Render()
 		if IsValid(self.emitter) and IsValid(self.entity) and FrameTime() > 0 then
-			local startPos = VectorRand(self.entity:OBBMins(), self.entity:OBBMaxs())
-			startPos:Add(self.entity:GetPos())
+			local startPos = VectorRand(self.entity:WorldSpaceAABB())
 			local particle = self.emitter:Add("sprites/orangecore2_gmod", startPos)
 			if particle then
 				particle:SetColor(self.alternateColor and 63 or 255,255,0)
@@ -286,4 +280,4 @@ if CLIENT then
 		end
 	end
 	effects.Register(EFFECT,"gballoon_tower_9_glued")
-end
+end]]

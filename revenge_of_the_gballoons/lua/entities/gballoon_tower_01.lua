@@ -77,40 +77,23 @@ function ENT:ROTGB_ApplyPerks()
 	self.rotgb_Bounces = self.rotgb_Bounces + hook.Run("GetSkillAmount", "electrostaticBarrelBounces")
 end
 
-function ENT:AccumulategBalloons(tab1)
-	local success
-	local count = 1
-	for ki,vi in pairs(tab1) do
-		if IsValid(ki) then
-			for k,v in pairs(ents.FindInSphere(ki:GetPos(),self.rotgb_Radius)) do
-				if self:ValidTargetIgnoreRange(v) and (not tab1[v] or self.rotgb_Recursion) then
-					v.Recurse = (v.Recurse or 0) + 1
-					count = count + 1
-					tab1[v] = ki
-					success = true
-					if count >= self.rotgb_Bounces and not self.rotgb_Recursion then return end
-				end
-			end
-		end
-	end
-	return success
-end
-
 function ENT:AccumulategBalloons(first)
 	local accumulated = {[first]=1}
 	local count = 0
 	local worldSpaceCenters = {}
 	for k,v in pairs(ROTGB_GetBalloons()) do
 		if self:ValidTargetIgnoreRange(v) then
-			worldSpaceCenters[v] = v:LocalToWorld(v:WorldSpaceCenter())
+			worldSpaceCenters[v] = v:WorldSpaceCenter()
 		end
 	end
 	for i=1,self.rotgb_Bounces do
 		local accumulateAdd = {}
 		for k,v in pairs(accumulated) do
+			local currentChainPos = worldSpaceCenters[k]
+			
 			for k2,v2 in pairs(worldSpaceCenters) do
 				local currentChains = accumulateAdd[k2] or 0
-				if worldSpaceCenters[k]:DistToSqr(v2) <= self.rotgb_Radius * self.rotgb_Radius and (currentChains <= 0 and not accumulated[k2] or self.rotgb_Recursion) then
+				if currentChainPos:DistToSqr(v2) <= self.rotgb_Radius^2 and (currentChains <= 0 and not accumulated[k2] or self.rotgb_Recursion) then
 					accumulateAdd[k2] = currentChains + 1
 					count = count + 1
 					if count >= self.rotgb_Bounces and not self.rotgb_Recursion then break end
@@ -136,41 +119,23 @@ function ENT:FireFunction(gBalloons)
 			enttable[v] = 1
 		end
 	end
-	local dmginfo = DamageInfo()
-	--dmginfo:SetAmmoType(game.GetAmmoID("Battery"))
-	dmginfo:SetAttacker(self:GetTowerOwner())
-	dmginfo:SetInflictor(self)
-	dmginfo:SetDamageType(DMG_SHOCK)
-	dmginfo:SetReportedPosition(self:GetPos())
-	--[[local effdata = EffectData()
-	effdata:SetMagnitude(10)
-	effdata:SetScale(10)
-	effdata:SetRadius(self.DetectionRadius)
-	effdata:SetOrigin(Vector(self:GetPos()))]]
+	
+	local dmginfo = self:CreateDamage(nil, DMG_SHOCK)
 	for k,v in pairs(enttable) do
-		if IsValid(k) then--(IsValid(k) and (not k:GetBalloonProperty("BalloonPurple") or not self.UserTargeting or k:HasRotgBStatusEffect("unimmune"))) then
-			--[[effdata:SetStart(Vector(v:GetPos()))
-			effdata:SetEntity(k)
-			util.Effect("TeslaZap",effdata,true,true)]]
-			dmginfo:SetDamagePosition(k:GetPos())
+		if IsValid(k) then
 			if self.rotgb_StopRegen then
 				k.PrevBalloons = nil
 				k:Stun(0.25)
 			end
-			--[[if self.rotgb_Stun and k:GetBalloonProperty("BalloonType")~="gballoon_blimp_purple" and k:GetBalloonProperty("BalloonType")~="gballoon_blimp_rainbow" then
-				k:Stun(1)
-			end]]
+			
 			dmginfo:SetDamage(self.AttackDamage*v)
-			--dmginfo:SetMaxDamage(self.AttackDamage*(k.Recurse or 1)*(self.rotgb_Recursion or 1))
 			if k:GetBalloonProperty("BalloonPurple") and self.rotgb_HitPurple then
 				dmginfo:SetDamageType(DMG_GENERIC)
-				k:TakeDamageInfo(dmginfo)
+				self:DealDamage(k, dmginfo)
 				dmginfo:SetDamageType(DMG_SHOCK)
 			else
-				k:TakeDamageInfo(dmginfo)
+				self:DealDamage(k, dmginfo)
 			end
-		--elseif IsValid(k) then
-			--k:ShowResistEffect(3)
 		end
 	end
 end

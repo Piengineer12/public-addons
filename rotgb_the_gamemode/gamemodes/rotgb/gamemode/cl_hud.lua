@@ -47,7 +47,7 @@ function GM:HUDDrawXP()
 	surface.SetDrawColor(191,127,255)
 	surface.DrawRect(barX, barY, barWidth * ply:RTG_GetLevelFraction(), barHeight)
 	
-	local levelString = ROTGB_LocalizeString("rotgb_tg.level", string.format("%.0f", level))
+	local levelString = ROTGB_LocalizeString("rotgb_tg.level", ROTGB_Commatize(level))
 	draw.SimpleTextOutlined(levelString, "rotgb_level", barX, barY, color_light_purple, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
 	if levelDisplayExpiryTime < RealTime() then
 		local xp = ROTGB_Commatize(math.floor(ply:RTG_GetExperience()))

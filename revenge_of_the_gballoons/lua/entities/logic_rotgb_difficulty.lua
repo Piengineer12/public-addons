@@ -41,6 +41,7 @@ ENT.BaseDifficulties = {
 			rotgb_tower_force_charge = true,
 			rotgb_tower_charge_rate = true,
 			rotgb_tower_maxcount = true,
+			rotgb_spawner_max_to_exist = true,
 			
 			rotgb_difficulty = true,
 			rotgb_default_wave_preset = true,

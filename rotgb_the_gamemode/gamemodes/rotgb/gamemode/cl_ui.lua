@@ -507,7 +507,7 @@ local function CreateScoreboardOtherLevelCell(parent, ply)
 		surface.SetFont("rotgb_level_small")
 		surface.SetTextPos(0,0)
 		surface.SetTextColor(191,127,255)
-		surface.DrawText(string.format("%.0f", self.Level))
+		surface.DrawText(ROTGB_Commatize(self.Level))
 		
 		surface.SetDrawColor(95,63,127)
 		surface.DrawRect(0,h*.75,w,h*.25)

@@ -49,7 +49,7 @@ ENT.UpgradeReference = {
 			function(self)
 				self.FireRate = self.FireRate * 3
 				self.rotgb_UseLaser = 1
-				self.MaxFireRate = 10
+				self.MaxFireRate = 1/0.115
 			end,
 			function(self)
 				self.rotgb_LaserDamageMul = self.rotgb_LaserDamageMul / 2
@@ -104,6 +104,9 @@ function ENT:ROTGB_ApplyPerks()
 	self.rotgb_Spread = self.rotgb_Spread * (1+hook.Run("GetSkillAmount", "gatlingGunKnightSpread")/100)
 end
 
+local color_red = Color(255, 0, 0)
+local color_green = Color(0, 255, 0)
+local color_aqua = Color(0, 255, 255)
 local function SnipeEntity()
 	while true do
 		local self,ent,damageMultiplier = coroutine.yield()
@@ -111,16 +114,20 @@ local function SnipeEntity()
 			damageMultiplier = damageMultiplier * 2
 		end
 		local startPos = self:GetShootPos()
-		--uDir:Normalize()
 		if self.rotgb_UseLaser then
-			local laser = ents.Create(self.rotgb_UseLaser==1 and "env_laser" or "env_beam")
+			self:LaserAttack(ent,
+			self.AttackDamage*self.rotgb_LaserDamageMul*self.rotgb_Shots*damageMultiplier,
+			self.rotgb_UseLaser==1 and 2 or math.sqrt(self.rotgb_LaserDamageMul), {
+				damageType = self.rotgb_UseLaser==2 and DMG_GENERIC,
+				laser = self.rotgb_UseLaser==1,
+				color = self.rotgb_UseLaser==1 and color_aqua or self.rotgb_LaserDamageMul > 200 and color_green or color_red,
+				scroll = 35,
+				sparks = true
+			})
+			
+			--[=[local laser = ents.Create(self.rotgb_UseLaser==1 and "env_laser" or "env_beam")
 			local startEnt = self.rotgb_UseLaser==2 and ents.Create("info_target") or NULL
-			--local endEnt = ents.Create("info_target")
 			laser:SetPos(startPos)
-			--[[if IsValid(endEnt) then
-				endEnt:SetName("ROTGB04_"..endEnt:GetCreationID())
-				endEnt:SetPos(ent:GetPos()+ent.loco:GetVelocity()*0.1+ent:OBBCenter())
-			end]]
 			local oldEntName = ent:GetName()
 			local entityName = ent:GetName() ~= "" and ent:GetName() or "ROTGB04_2_"..self:GetCreationID()
 			ent:SetName(entityName)
@@ -161,26 +168,14 @@ local function SnipeEntity()
 				--[[if IsValid(endEnt) then
 					endEnt:Remove()
 				end]]
-			end)
+			end)]=]
 		else
-			local uDir = ent:LocalToWorld(ent:OBBCenter())-startPos
-			local bullet = {
-				Attacker = self:GetTowerOwner(),
-				Callback = function(attacker,tracer,dmginfo)
-					dmginfo:SetDamageType(self.rotgb_CanPopGray and DMG_SNIPER or DMG_BULLET)
-				end,
-				Damage = self.AttackDamage*damageMultiplier,
-				Distance = self.DetectionRadius*1.5,
-				HullSize = 1,
-				Num = self.rotgb_Shots,
-				Tracer = math.floor(2*math.sqrt(self.rotgb_Shots)),
-				AmmoType = "SniperRound",
-				TracerName = "Tracer",
-				Dir = uDir,
-				Spread = Vector(self.rotgb_Spread,self.rotgb_Spread,0),
-				Src = startPos
-			}
-			self:FireBullets(bullet)
+			self:BulletAttack(ent, self.AttackDamage * damageMultiplier, {
+				amount = self.rotgb_Shots,
+				spread = Vector(self.rotgb_Spread,self.rotgb_Spread,0),
+				tracerDiv = math.floor(2*math.sqrt(self.rotgb_Shots)),
+				damageType = self.rotgb_CanPopGray and DMG_SNIPER or DMG_BULLET
+			})
 		end
 	end
 end

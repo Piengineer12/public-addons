@@ -105,7 +105,7 @@ function SWEP:PrimaryAttack()
 		local ply = self:GetOwner()
 		local trace = self:BuildTraceData(ply)
 		local class = self:GetCurrentTower() ~= 0 and self.TowerTable[self:GetCurrentTower()].ClassName
-		if class and trace.Hit and not (IsValid(self.ServersideModel) and self.ServersideModel.rotgb_isDetected) then
+		if class and (IsValid(self.ServersideModel) and table.IsEmpty(self.ServersideModel.StunUntil2)) then
 			if not self.TowerTable then
 				self.TowerTable = ROTGB_GetAllTowers()
 			end
@@ -242,41 +242,46 @@ function SWEP:Think()
 			end]]
 		else
 			local tower = self.TowerTable[self:GetCurrentTower()]
-			if not IsValid(self.ClientsideModel) then
-				self.ClientsideModel = ClientsideModel(tower.Model, RENDERGROUP_BOTH)
-				self.ClientsideModel:SetMaterial("models/wireframe")
-				self.ClientsideModel:SetModel(tower.Model)
-				self.ClientsideModel:SetColor(color_aqua)
-				self.ClientsideModel.TowerType = self:GetCurrentTower()
-				self.ClientsideModel.RenderOverride = function(self)
-					self:DrawModel()
-					if tower.DetectionRadius < 16384 and ROTGB_GetConVarValue("rotgb_range_enable_indicators") then
-						local fadeout = ROTGB_GetConVarValue("rotgb_range_fade_time")
-						self.DrawFadeNext = RealTime()+fadeout+ROTGB_GetConVarValue("rotgb_range_hold_time")
-						if (self.DrawFadeNext or 0)>RealTime() then
-							local maxAlpha = ROTGB_GetConVarValue("rotgb_range_alpha")
-							local scol = self:GetColor() == color_aqua and tower.InfiniteRange and color_blue or self:GetColor()
-							local alpha = math.Clamp(math.Remap(self.DrawFadeNext-RealTime(),fadeout,0,maxAlpha,0),0,maxAlpha)
-							scol = Color(scol.r,scol.g,scol.b,alpha)
-							render.DrawWireframeSphere(self:LocalToWorld(tower.LOSOffset or vector_origin),-tower.DetectionRadius,32,17,scol,true)
-						end
-					end
-					--local mins, maxs = self:GetCollisionBounds()
-					--render.DrawWireframeBox(self:GetPos(), self:GetAngles(), mins, maxs, color_white, true)
-				end
-				--ROTGB_SetDrawNoBuilds(true)
-				--self.ClientsideModel:CallOnRemove("ROTGB_SetDrawNoBuilds", HideAllNoBuilds)
-			elseif self.ClientsideModel.TowerType ~= self:GetCurrentTower() then
-				self.ClientsideModel:Remove()
-			end
-			
 			local trace = self:BuildTraceData(LocalPlayer())
-			if trace.Hit then
+			
+			if trace.Hit and not trace.StartSolid then
+				if (IsValid(self.ClientsideModel) and self.ClientsideModel.TowerType ~= self:GetCurrentTower()) then
+					self.ClientsideModel:Remove()
+				end
+				
+				if not IsValid(self.ClientsideModel) then
+					self.ClientsideModel = ClientsideModel(tower.Model, RENDERGROUP_BOTH)
+					self.ClientsideModel:SetMaterial("models/wireframe")
+					self.ClientsideModel:SetModel(tower.Model)
+					self.ClientsideModel:SetColor(color_aqua)
+					self.ClientsideModel.TowerType = self:GetCurrentTower()
+					self.ClientsideModel.RenderOverride = function(self)
+						self:DrawModel()
+						if tower.DetectionRadius < 16384 and ROTGB_GetConVarValue("rotgb_range_enable_indicators") then
+							local fadeout = ROTGB_GetConVarValue("rotgb_range_fade_time")
+							self.DrawFadeNext = RealTime()+fadeout+ROTGB_GetConVarValue("rotgb_range_hold_time")
+							if (self.DrawFadeNext or 0)>RealTime() then
+								local maxAlpha = ROTGB_GetConVarValue("rotgb_range_alpha")
+								local scol = self:GetColor() == color_aqua and tower.InfiniteRange and color_blue or self:GetColor()
+								local alpha = math.Clamp(math.Remap(self.DrawFadeNext-RealTime(),fadeout,0,maxAlpha,0),0,maxAlpha)
+								scol = Color(scol.r,scol.g,scol.b,alpha)
+								render.DrawWireframeSphere(self:LocalToWorld(tower.LOSOffset or vector_origin),-tower.DetectionRadius,32,17,scol,true)
+							end
+						end
+						--local mins, maxs = self:GetCollisionBounds()
+						--render.DrawWireframeBox(self:GetPos(), self:GetAngles(), mins, maxs, color_white, true)
+					end
+					--ROTGB_SetDrawNoBuilds(true)
+					--self.ClientsideModel:CallOnRemove("ROTGB_SetDrawNoBuilds", HideAllNoBuilds)
+				end 
+				
 				self.ClientsideModel:SetPos(trace.HitPos)
 				local tempang = LocalPlayer():EyeAngles()
 				tempang.p = 0
 				tempang.r = 0
 				self.ClientsideModel:SetAngles(tempang)
+			elseif IsValid(self.ClientsideModel) then
+				self.ClientsideModel:Remove()
 			end
 		end
 	end
@@ -293,39 +298,63 @@ function SWEP:Think()
 		else
 			local tower = self.TowerTable[self:GetCurrentTower()]
 			local owner = self:GetOwner()
-			if not IsValid(self.ServersideModel) then
-				local detector = ents.Create("prop_physics")
-				detector:SetModel(tower.Model)
-				detector:Spawn()
-				detector:SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER)
-				detector:SetNoDraw(true)
-				detector.TowerType = self:GetCurrentTower()
-				detector.rotgb_isDetector = true
-				
-				local physObj = detector:GetPhysicsObject()
-				if IsValid(physObj) then
-					physObj:EnableGravity(false)
-				end
-				
-				function detector:NoBuildTriggered(state)
-					timer.Simple(detector:GetCreationTime()-CurTime()+0.1, function()
-						if owner:IsPlayer() then
-							net.Start("rotgb_controller", true)
-							net.WriteUInt(ROTGB_TOWERPLACEMENT, 8)
-							net.WriteBool(not state)
-							net.Send(owner)
-						end
-					end)
-				end
-				
-				self.ServersideModel = detector
-			elseif self.ServersideModel.TowerType ~= self:GetCurrentTower() then
-				self.ServersideModel:Remove()
-			end
+			local trace = self:BuildTraceData(owner)
 			
-			if owner:IsPlayer() or owner:IsNPC() then
-				local trace = self:BuildTraceData(owner)
-				if trace.Hit then
+			if trace.Hit and not trace.StartSolid then
+				if (IsValid(self.ServersideModel) and self.ServersideModel.TowerType ~= self:GetCurrentTower()) then
+					self.ServersideModel:Remove()
+				end
+				
+				if not IsValid(self.ServersideModel) then
+					local detector = ents.Create("prop_physics")
+					detector:SetModel(tower.Model)
+					detector:Spawn()
+					detector:SetCollisionGroup(COLLISION_GROUP_WORLD)
+					detector:SetNoDraw(true)
+					detector.TowerType = self:GetCurrentTower()
+					detector.rotgb_isDetector = true
+					detector.StunUntil2 = {}
+					
+					local physObj = detector:GetPhysicsObject()
+					if IsValid(physObj) then
+						physObj:EnableGravity(false)
+					end
+					
+					function detector:Stun2(reason)
+						if not self.StunUntil2[reason] then
+							if table.IsEmpty(self.StunUntil2) then
+								self:NoBuildTriggered(true)
+							end
+							
+							self.StunUntil2[reason] = true
+						end
+					end
+					
+					function detector:UnStun2(reason)
+						if self.StunUntil2[reason] then
+							self.StunUntil2[reason] = nil
+							
+							if table.IsEmpty(self.StunUntil2) then
+								self:NoBuildTriggered(false)
+							end
+						end
+					end
+					
+					function detector:NoBuildTriggered(state)
+						timer.Simple(detector:GetCreationTime()-CurTime()+0.1, function()
+							if owner:IsPlayer() then
+								net.Start("rotgb_controller", true)
+								net.WriteUInt(ROTGB_TOWERPLACEMENT, 8)
+								net.WriteBool(not state)
+								net.Send(owner)
+							end
+						end)
+					end
+					
+					self.ServersideModel = detector
+				end
+				
+				if owner:IsPlayer() or owner:IsNPC() then
 					self.ServersideModel:SetPos(trace.HitPos)
 					local tempang = owner:EyeAngles()
 					tempang.p = 0
@@ -336,7 +365,20 @@ function SWEP:Think()
 					if IsValid(physObj) then
 						physObj:Wake()
 					end
+					
+					if not self.BaseTowerTable then	
+						self.BaseTowerTable = scripted_ents.GetStored("gballoon_tower_base")
+					end
+					local waterCheck = self.BaseTowerTable.t.CheckForWater(self.ServersideModel, self.ServersideModel:LocalToWorld(tower.LOSOffset))
+					
+					if waterCheck == tobool(tower.IsWaterTower) then
+						self.ServersideModel:UnStun2(self)
+					else
+						self.ServersideModel:Stun2(self)
+					end
 				end
+			elseif IsValid(self.ServersideModel) then
+				self.ServersideModel:Remove()
 			end
 		end
 	end
@@ -456,9 +498,9 @@ function SWEP:BuildTraceData(ent)
 	self.TraceResult = self.TraceResult or {}
 	self.CommonTraceData.start = ent:GetShootPos()
 	self.CommonTraceData.endpos = ent:GetShootPos() + ent:GetAimVector() * 32767
-	self.CommonTraceData.filter = ent
+	self.CommonTraceData.filter = {ent, self.ServersideModel, self.ClientsideModel}
 	self.CommonTraceData.output = self.TraceResult
-	self.CommonTraceData.collisiongroup = COLLISION_GROUP_DEBRIS_TRIGGER
+	self.CommonTraceData.mask = bit.bor(MASK_SHOT, MASK_WATER) -- act like a bullet, but also hit water
 	util.TraceLine(self.CommonTraceData)
 	return self.TraceResult
 end

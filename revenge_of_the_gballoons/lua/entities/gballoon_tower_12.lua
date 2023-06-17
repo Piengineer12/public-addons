@@ -21,7 +21,7 @@ ENT.LOSOffset = Vector(0,0,20)
 ENT.UserTargeting = true
 ENT.rotgb_Count = math.huge
 ENT.rotgb_MaxPierce = 3
-ENT.rotgb_Size = 2
+ENT.ProjectileSize = 2
 ENT.rotgb_Torque = 80e3
 ENT.UpgradeReference = {
 	{
@@ -29,7 +29,7 @@ ENT.UpgradeReference = {
 		Prices = {400,750,1500,6000,17500,200000},
 		Funcs = {
 			function(self)
-				self.rotgb_Size = self.rotgb_Size * 1.5
+				self.ProjectileSize = self.ProjectileSize * 1.5
 				self.rotgb_MaxPierce = self.rotgb_MaxPierce * 2
 				self.rotgb_Torque = self.rotgb_Torque * 3
 			end,
@@ -43,7 +43,7 @@ ENT.UpgradeReference = {
 				self.rotgb_Explosive = true
 			end,
 			function(self)
-				self.rotgb_Size = self.rotgb_Size * 1.5
+				self.ProjectileSize = self.ProjectileSize * 1.5
 				self.AttackDamage = self.AttackDamage + 80
 				self.rotgb_Torque = self.rotgb_Torque * 3
 			end,
@@ -91,11 +91,8 @@ local rosqrt2 = 1/math.sqrt(2)
 local function ExpirySaw(ent,tower)
 	ent:EmitSound(string.format("physics/metal/sawblade_stick%u.wav",math.random(3)))
 	if tower.rotgb_Explosive then
-		local pos = ent:GetPos()
-		local dmginfo = DamageInfo()
-		dmginfo:SetAmmoType(game.GetAmmoID("Grenade"))
-		dmginfo:SetAttacker(tower:GetTowerOwner())
-		dmginfo:SetInflictor(tower)
+		local pos = ent:WorldSpaceCenter()
+		local dmginfo = tower:CreateDamage()
 		if tower.rotgb_GigaExplosive then
 			dmginfo:SetDamageType(DMG_GENERIC)
 			dmginfo:SetDamage(tower.AttackDamage * 3)
@@ -103,16 +100,13 @@ local function ExpirySaw(ent,tower)
 			dmginfo:SetDamageType(DMG_BLAST)
 			dmginfo:SetDamage(tower.AttackDamage / 2)
 		end
-		dmginfo:SetMaxDamage(dmginfo:GetDamage())
-		dmginfo:SetReportedPosition(pos)
 		local effdata = EffectData()
 		effdata:SetOrigin(pos)
 		util.Effect("HelicopterMegaBomb",effdata,true,true)
 		ent:EmitSound("phx/kaboom.wav")
-		for k,v in pairs(ents.FindInSphere(pos,256)) do
-			if (tower:ValidTargetIgnoreRange(v) and not v:GetBalloonProperty("BalloonBlack")) then
-				dmginfo:SetDamagePosition(v:GetPos())
-				v:TakeDamageInfo(dmginfo)
+		for k,v in pairs(ents.FindInSphere(pos, 256)) do
+			if (tower:ValidTargetIgnoreRange(v) and v:DamageTypeCanDamage(dmginfo:GetDamageType())) then
+				tower:DealDamage(v, dmginfo)
 				tower.rotgb_Hits = tower.rotgb_Hits + 1
 			end
 		end
@@ -143,29 +137,18 @@ function ENT:ROTGB_Think()
 	for k,v in pairs(self.rotgb_Sawblades) do
 		if IsValid(v) then
 			local atLeastOne = false
-			for k2,v2 in pairs(ents.FindInSphere(v:GetPos(),v:GetModelScale()*24)) do
+			for k2,v2 in pairs(ents.FindInSphere(v:WorldSpaceCenter(), v:GetModelScale()*24)) do
 				if self:ValidTargetIgnoreRange(v2) and not (v.IgnoredgBalloons and v.IgnoredgBalloons[v2:GetCreationID()]) then
 					if v.SkipPoppables and v.IgnoredgBalloons then
 						v.IgnoredgBalloons[v2:GetCreationID()] = true
 					else
 						atLeastOne = true
-						local dmginfo = DamageInfo()
-						dmginfo:SetAttacker(self:GetTowerOwner())
-						dmginfo:SetInflictor(self)
-						dmginfo:SetDamageType(DMG_SLASH)
-						dmginfo:SetDamage(self.AttackDamage)
-						dmginfo:SetMaxDamage(self.AttackDamage)
-						dmginfo:SetReportedPosition(v:GetPos())
-						dmginfo:SetDamagePosition(v2:GetPos())
-						v2:TakeDamageInfo(dmginfo)
-						dmginfo:SetDamage(self.AttackDamage)
+						self:DealDamage(v2, self.AttackDamage, DMG_SLASH)
+						
 						v.rotgb_MaxPierce = v.rotgb_MaxPierce - 1
 						self.rotgb_Hits = (self.rotgb_Hits or 0) + 1
 						if self.rotgb_Electric and v2:DamageTypeCanDamage(DMG_SHOCK) then
-							dmginfo:SetDamageType(DMG_SHOCK)
-							dmginfo:ScaleDamage(3)
-							v2:TakeDamageInfo(dmginfo)
-							dmginfo:ScaleDamage(1/3)
+							self:DealDamage(v2, self.AttackDamage * 3, DMG_SHOCK)
 						elseif not v2:DamageTypeCanDamage(DMG_SLASH) then
 							v.rotgb_MaxPierce = 0
 							self.rotgb_Hits = self.rotgb_Hits - 1
@@ -190,7 +173,7 @@ function ENT:FireFunction(tableOfBalloons)
 		saw:SetPos(self:GetShootPos())
 		saw:AddCallback("PhysicsCollide",OnCollision)
 		saw:SetModel("models/props_junk/sawblade001a.mdl")
-		saw:SetModelScale(self.rotgb_Size)
+		saw:SetModelScale(self.ProjectileSize)
 		saw:SetCollisionGroup(COLLISION_GROUP_WORLD)
 		saw:Spawn()
 		saw:Activate()
@@ -202,7 +185,7 @@ function ENT:FireFunction(tableOfBalloons)
 		if self.rotgb_Explosive then
 			local dbomb = ents.Create("prop_dynamic")
 			dbomb:SetModel("models/Combine_Helicopter/helicopter_bomb01.mdl")
-			dbomb:SetPos(saw:GetPos())
+			dbomb:SetPos(saw:WorldSpaceCenter())
 			dbomb:Spawn()
 			dbomb:SetParent(saw)
 			saw.cbomb = dbomb
@@ -217,7 +200,7 @@ function ENT:FireFunction(tableOfBalloons)
 		if IsValid(physobj) then
 			physobj:SetMaterial("gmod_ice")
 			physobj:ApplyTorqueCenter(Vector(0, 0, self.rotgb_Torque*(1+math.random())/2))
-			local ivel = tableOfBalloons[pind]:GetPos()-self:GetShootPos()
+			local ivel = tableOfBalloons[pind]:WorldSpaceCenter()-self:GetShootPos()
 			ivel.z = 0
 			ivel:Normalize()
 			ivel:Mul(1000+math.random()*100)

@@ -278,7 +278,7 @@ end
 
 local PLAYER = FindMetaTable("Player")
 
-local maxLevel = 999
+local maxLevel = math.huge
 local experienceNeeded = {
 	100, 250, 500, 1000
 }

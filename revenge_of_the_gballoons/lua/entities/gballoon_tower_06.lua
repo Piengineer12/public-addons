@@ -22,6 +22,7 @@ ENT.DetectionRadius = 512
 ENT.SeeCamo = true
 ENT.InfiniteRange2 = true
 ENT.rotgb_Buff = 0
+ENT.rotgb_AttackDamageMul = 1
 ENT.UpgradeReference = {
 	{
 		Prices = {0,10e3,100e3,1e6,10e6,100e6},
@@ -125,7 +126,7 @@ function ENT:FireFunction(gBalloons)
 	local anotherfired = 0
 	local radiusTowers = {}
 	for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
-		if self:ValidTargetIgnoreRange(v) and v:LocalToWorld(v:OBBCenter()):DistToSqr(self:GetShootPos()) <= self.DetectionRadius * self.DetectionRadius then
+		if self:ValidTargetIgnoreRange(v) and v:WorldSpaceCenter():DistToSqr(self:GetShootPos()) <= self.DetectionRadius * self.DetectionRadius then
 			if self.rotgb_NoRegen then
 				v:SetBalloonProperty("BalloonRegen", false)
 			end
@@ -141,44 +142,35 @@ function ENT:FireFunction(gBalloons)
 			if self.rotgb_NoImmunities then
 				v:InflictRotgBStatusEffect("unimmune",999999)
 			end
-			if v:GetRgBE() <= self.AttackDamage/10*(1+self.FusionPower/100) and self.AttackDamage > 0 then
-				local pos, selfpos, dmginfo = v:GetPos(), self:GetShootPos(), DamageInfo()
-				dmginfo:SetDamage(2147483647)
-				dmginfo:SetBaseDamage(2147483647)
-				dmginfo:SetAttacker(self:GetTowerOwner())
-				dmginfo:SetInflictor(self)
-				dmginfo:SetDamageForce(pos-selfpos)
-				dmginfo:SetDamagePosition(pos)
-				dmginfo:SetDamageType(DMG_DISSOLVE)
-				dmginfo:SetReportedPosition(selfpos)
-				v:TakeDamageInfo(dmginfo)
+			if v:GetRgBE() <= self.AttackDamage/10*(1+self.FusionPower/100)*self.rotgb_AttackDamageMul and self.AttackDamage > 0 then
+				self:DealDamage(v, 2147483647, DMG_DISSOLVE)
 			end
 		elseif v.Base=="gballoon_tower_base" then
 			if self.rotgb_Buff > 1 then
-				v:ApplyBuff(self, "ROTGB_TOWER_06_PASSIVE_2", 1, function(tower)
+				v:AddDelayedActions(self, "ROTGB_TOWER_06_PASSIVE_2", 0, function(tower)
 					tower.AttackDamage = (tower.AttackDamage or 0) + 10
-				end, function(tower)
+				end, 1, function(tower)
 					tower.AttackDamage = (tower.AttackDamage or 0) - 10
 				end)
 			end
 			if self.rotgb_Buff > 2 then
-				v:ApplyBuff(self, "ROTGB_TOWER_06_PASSIVE", 1, function(tower)
+				v:AddDelayedActions(self, "ROTGB_TOWER_06_PASSIVE", 0, function(tower)
 					tower.FireRate = tower.FireRate * 1.2
-				end, function(tower)
+				end, 1, function(tower)
 					tower.FireRate = tower.FireRate / 1.2
 				end)
 			end
 			if self.rotgb_Buff > 3 and v ~= self then
-				v:ApplyBuff(self, "ROTGB_TOWER_06_PASSIVE_3", 1, function(tower)
+				v:AddDelayedActions(self, "ROTGB_TOWER_06_PASSIVE_3", 0, function(tower)
 					tower:SetNWBool("rotgb_tower_06_discount", true)
-				end, function(tower)
+				end, 1, function(tower)
 					tower:SetNWBool("rotgb_tower_06_discount", false)
 				end)
 			end
 			--[[if self.rotgb_Buff > 4 and v ~= self then
-				v:ApplyBuff(self, "ROTGB_TOWER_06_PASSIVE_4", 1, function(tower)
+				v:AddDelayedActions(self, "ROTGB_TOWER_06_PASSIVE_4", 0, function(tower)
 					tower:SetNWBool("rotgb_noupgradelimit", true)
-				end, function(tower)
+				end, 1, function(tower)
 					tower:SetNWBool("rotgb_noupgradelimit", false)
 				end)
 			end]]
@@ -190,27 +182,24 @@ function ENT:TriggerAbility()
 	for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
 		if v.Base=="gballoon_tower_base" then
 			local fusionFactor = 1+self.FusionPower/100
-			v:ApplyBuff(self, "ROTGB_TOWER_06_TM", self.AbilityDuration, function(tower)
+			v:AddDelayedActions(self, "ROTGB_TOWER_06_TM", 0, function(tower)
 				tower.AttackDamage = (tower.AttackDamage or 0) + 100e3*fusionFactor
-			end, function(tower)
+			end, self.AbilityDuration, function(tower)
 				tower.AttackDamage = (tower.AttackDamage or 0) - 100e3*fusionFactor
 			end)
 		end
 	end
 end
 
-hook.Add("EntityTakeDamage","ROTGB_TOWER_06",function(ent,dmginfo)
-	local caller = dmginfo:GetInflictor()
-	if (IsValid(caller) and caller:GetClass()=="gballoon_base") then
-		local insure = {}
-		for k,v in pairs(ents.FindByClass("gballoon_tower_06")) do
-			if v.rotgb_Buff > 0 then table.insert(insure, v) end
-		end
-		if #insure > 0 then
-			local cash = dmginfo:GetDamage()*1000*player.GetCount()
-			for k,v in pairs(insure) do
-				v:AddCash(cash)
-			end
+hook.Add("RotgBBalloonDealDamage", "ROTGB_TOWER_06", function(data)
+	local insure = {}
+	for k,v in pairs(ents.FindByClass("gballoon_tower_06")) do
+		if v.rotgb_Buff > 0 then table.insert(insure, v) end
+	end
+	if #insure > 0 then
+		local cash = data.damage*1000*player.GetCount()
+		for k,v in pairs(insure) do
+			v:AddCash(cash)
 		end
 	end
 end)

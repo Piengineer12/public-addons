@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		6.6.7
-Version Date:	2023-06-03
+Version:		6.7.0
+Version Date:	2023-06-17
 ]]
 
 local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","spawning","towers","music"}
@@ -594,6 +594,9 @@ RegisterConVar("rotgb_tower_charge_rate","1",R_FLOAT,
 
 RegisterConVar("rotgb_spawner_spawn_rate","1",R_FLOAT,
 [[Multiplier for how fast gBalloons are spawned from gBalloon Spawners.]])
+
+RegisterConVar("rotgb_spawner_max_to_exist","64",R_INT,
+[[If the number of gBalloons on the map is this value or higher, gBalloon Spawners will cease spawning more gBalloons until the number of gBalloons is reduced.]])
 
 concommand.Add("rotgb_reset_convars",function(ply,cmd,args,argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
@@ -1956,6 +1959,8 @@ if CLIENT then
 			AddDFormConVarDescription(DForm, "rotgb_notrails")
 			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_max_to_exist.name"),"rotgb_max_to_exist",0,1024,0)
 			AddDFormConVarDescription(DForm, "rotgb_max_to_exist")
+			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_spawner_max_to_exist.name"),"rotgb_spawner_max_to_exist",0,1024,0)
+			AddDFormConVarDescription(DForm, "rotgb_spawner_max_to_exist")
 			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_max_effects_per_second.name"),"rotgb_max_effects_per_second",0,100,2)
 			AddDFormConVarDescription(DForm, "rotgb_max_effects_per_second")
 			DForm:NumSlider(ROTGB_LocalizeString("rotgb.convar.rotgb_max_fires_per_second.name"),"rotgb_max_fires_per_second",0,100,2)

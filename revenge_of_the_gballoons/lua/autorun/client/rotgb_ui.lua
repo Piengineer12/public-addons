@@ -1421,7 +1421,7 @@ function ROTGB_UpgradeMenu(ent)
 	for i=0,#reference-1 do -- make this zero-indexed
 		local curcash = ROTGB_GetCash(LocalPlayer())
 		local reftab = reference[i+1]
-		local upgradenum = #reftab.Prices
+		local upgradenum = #reftab.Funcs
 		local UpgradeStatement = ListOfUpgrades:Add("DButton")
 		UpgradeStatement:SetSize(128,128)
 		UpgradeStatement:DockMargin(0,0,0,5)
@@ -1462,7 +1462,7 @@ function ROTGB_UpgradeMenu(ent)
 				Main:Close()
 				return ROTGB_CauseNotification(towerMissingText)
 			end
-			self.price = ROTGB_ScaleBuyCost(reftab.Prices[self.Tier], ent, {type = ROTGB_TOWER_UPGRADE, path = i+1, tier = self.Tier})
+			self.price = ROTGB_ScaleBuyCost(reftab.Prices and reftab.Prices[self.Tier] or 0, ent, {type = ROTGB_TOWER_UPGRADE, path = i+1, tier = self.Tier})
 			curcash = ROTGB_GetCash(LocalPlayer())
 			
 			if reftab.FusionRequirements and (reftab.FusionRequirements[self.Tier] or reftab.FusionRequirements[self.Tier-1] and ent.FusionPower > 0) then
@@ -1491,7 +1491,7 @@ function ROTGB_UpgradeMenu(ent)
 				or not self:IsEnabled() and color_red
 				or color_white
 			)
-			if reftab.Prices[self.Tier] and (not self.CanPerformFusion or self:IsEnabled()) then
+			if reftab.Funcs[self.Tier] and (not self.CanPerformFusion or self:IsEnabled()) then
 				text = ROTGB_LocalizeString("rotgb.tower.upgrade.node.cost", ROTGB_FormatCash(self.price, true))
 				draw.SimpleText(text,"DermaLarge",w,0,self.price>curcash and color_red or color_green,TEXT_ALIGN_RIGHT)
 			end
@@ -1504,7 +1504,7 @@ function ROTGB_UpgradeMenu(ent)
 			if not ent:CanPerformFusion(i+1, self.Tier) then
 				return ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.upgrade.node.fusors_not_found"))
 			end
-			if not reftab.Prices[self.Tier] then
+			if not reftab.Funcs[self.Tier] then
 				return ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.upgrade.node.invalid"))
 			end
 			if curcash<self.price then
@@ -1543,7 +1543,7 @@ function ROTGB_UpgradeMenu(ent)
 				net.SendToServer()
 				displayedSellAmount = displayedSellAmount + self.price
 				self.Tier = self.Tier + 1
-				self.price = ROTGB_ScaleBuyCost(reftab.Prices[self.Tier], ent, {type = ROTGB_TOWER_UPGRADE, path = i+1, tier = self.Tier})
+				self.price = ROTGB_ScaleBuyCost(reftab.Prices and reftab.Prices[self.Tier] or 0, ent, {type = ROTGB_TOWER_UPGRADE, path = i+1, tier = self.Tier})
 				self:Refresh(true)
 			end
 		end
@@ -1554,7 +1554,7 @@ function ROTGB_UpgradeMenu(ent)
 		function UpgradeIndicatorPanel:Paint() end
 		
 		for j=1,upgradenum do
-			local price = ROTGB_ScaleBuyCost(reftab.Prices[j], ent, {type = ROTGB_TOWER_UPGRADE, path = i+1, tier = j})
+			local price = ROTGB_ScaleBuyCost(reftab.Prices and reftab.Prices[j] or 0, ent, {type = ROTGB_TOWER_UPGRADE, path = i+1, tier = j})
 			local HoverButton = UpgradeIndicatorPanel:Add("DButton")
 			HoverButton:SetWide(24)
 			HoverButton:SetText("")
@@ -1603,7 +1603,7 @@ function ROTGB_UpgradeMenu(ent)
 				if j < self.Tier then return 0 end
 				local cost = 0
 				for k=self.Tier,j do
-					cost = cost + ROTGB_ScaleBuyCost(reftab.Prices[k], ent, {type = ROTGB_TOWER_UPGRADE, path = i+1, tier = k})
+					cost = cost + ROTGB_ScaleBuyCost(reftab.Prices and reftab.Prices[k] or 0, ent, {type = ROTGB_TOWER_UPGRADE, path = i+1, tier = k})
 				end
 				return cost
 			end

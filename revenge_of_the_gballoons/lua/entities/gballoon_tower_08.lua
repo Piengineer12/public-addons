@@ -13,7 +13,7 @@ ENT.AdminOnly = false
 ENT.RenderGroup = RENDERGROUP_BOTH
 ENT.Model = Model("models/hunter/tubes/tube1x1x1.mdl")
 ENT.FireRate = 20
-ENT.MaxFireRate = 10
+ENT.MaxFireRate = 1/0.115
 ENT.Cost = 2500
 ENT.DetectionRadius = 512
 ENT.AbilityCooldown = 60
@@ -82,7 +82,15 @@ end
 local function SnipeEntity()
 	while true do
 		local self,ent,damagemul = coroutine.yield()
-		local startPos = self.rotgb_StartPos
+		self:LaserAttack(ent, self.AttackDamage*damagemul, self.rotgb_BeamWidth, {
+			damageType = self.rotgb_BeamNoChildren and DMG_DISSOLVE or self.rotgb_UseAltLaser and DMG_GENERIC,
+			scroll = 35,
+			rainbow = true,
+			decal = "decals/dark",
+			sparks = true
+		})
+		
+		--[=[local startPos = self.rotgb_StartPos
 		local laser = ents.Create("env_beam")
 		--[[local oldEntName = ent:GetName()
 		local entityName = ent:GetName() ~= "" and ent:GetName() or "ROTGB08_"..ent:GetCreationID()
@@ -92,7 +100,7 @@ local function SnipeEntity()
 		laser:SetPos(startPos:GetPos())
 		if IsValid(endEnt) then
 			endEnt:SetName("ROTGB08_"..endEnt:GetCreationID())
-			endEnt:SetPos(ent:GetPos()+ent.loco:GetVelocity()*0.1+ent:OBBCenter())
+			endEnt:SetPos(ent:WorldSpaceCenter()+ent.loco:GetVelocity()*0.1)
 		end
 		laser:SetKeyValue("renderamt","63")
 		laser:SetKeyValue("rendercolor","255 255 255")
@@ -151,7 +159,7 @@ local function SnipeEntity()
 				endEnt:Remove()
 			end
 		end)
-		self:DeleteOnRemove(laser)
+		self:DeleteOnRemove(laser)]=]
 	end
 end
 
@@ -209,7 +217,11 @@ function ENT:ROTGB_Think()
 	end
 	for k,v in pairs(balloonPops) do
 		hook.Run("gBalloonDamagedByLaser", k, self:GetTowerOwner(), self, v[2], v[1])
-		k:TakeDamage(v[1], self:GetTowerOwner(), self)
+		self:DealDamage(k, v[1])
+	end
+	
+	if IsValid(self.InternalLaser) then
+		self.InternalLaser:SetNoDraw(self:GetNoDraw())
 	end
 end
 
@@ -236,7 +248,7 @@ function ENT:FireFunction(gBalloons, damageMultiplier)
 			local perf,str = coroutine.resume(self.thread,self,gBalloons[1],self.rotgb_DamageMul*damageMultiplier)
 			if not perf then error(str) end
 		else
-			for k,v in pairs(gBalloons) do
+			for i,v in ipairs(gBalloons) do
 				local perf,str = coroutine.resume(self.thread,self,v,self.rotgb_DamageMul*damageMultiplier)
 				if not perf then error(str) end
 			end
@@ -273,7 +285,6 @@ abilityFunction = function(self)
 			startPos:Spawn()
 			local endPos = ents.Create("info_target")
 			ecp = ent:GetPos()
-			ecp.z = ecp.z + ent:OBBMins().z
 			endPos:SetPos(ecp)
 			endPos:SetName("ROTGB08_"..endPos:GetCreationID())
 			endPos:Spawn()
@@ -331,10 +342,10 @@ end
 
 function ENT:TriggerAbility()
 	if not ROTGB_BalloonsExist() then return true end
-	self:ApplyBuff(self, "ABILITY", self.AbilityDuration, function(tower)
+	self:AddDelayedActions(self, "ROTGB_TOWER_08_ABILITY", 0, function(tower)
 		tower:EmitSound(ShotSound,0)
 		tower:EmitSound(AlertSound,0)
-	end, function(tower)
+	end, self.AbilityDuration, function(tower)
 		abilityFunction(tower)
 	end)
 end

@@ -18,6 +18,7 @@ ENT.Cost = 750
 ENT.AbilityCooldown = 60
 ENT.LOSOffset = Vector(0,0,5)
 ENT.AttackDamage = 0
+ENT.ProjectileSize = 1
 ENT.DetectionRadius = 0
 ENT.InfiniteRange = true
 ENT.SeeCamo = true
@@ -30,7 +31,6 @@ ENT.rotgb_BankMax = 1000
 ENT.rotgb_HoverballPostCash = 0
 ENT.rotgb_Buff = 0
 ENT.rotgb_HoverballSkin = 0
-ENT.rotgb_HoverballSize = 1
 ENT.rotgb_HoverballRange = 64
 ENT.rotgb_HoverballModel = "models/maxofs2d/hover_classic.mdl"
 ENT.UpgradeReference = {
@@ -71,7 +71,7 @@ ENT.UpgradeReference = {
 				self.rotgb_HoverballDelay = self.rotgb_HoverballDelay * 3
 				self.rotgb_HoverballWorth = self.rotgb_HoverballWorth * 20
 				self.rotgb_HoverballSkin = 3
-				self.rotgb_HoverballSize = 3
+				self.ProjectileSize = self.ProjectileSize * 3
 			end,
 			function(self)
 				self.rotgb_HoverballDelay = self.rotgb_HoverballDelay * 5
@@ -190,7 +190,7 @@ function ENT:FireFunction(gBalloons, firePowerExpectedMultiplier)
 				end
 				hoverball:SetSkin(self.rotgb_HoverballSkin)
 				hoverball:Spawn()
-				hoverball:SetModelScale(self.rotgb_HoverballSize)
+				hoverball:SetModelScale(self.ProjectileSize)
 				hoverball:Activate()
 				hoverball:AddEffects(EF_ITEM_BLINK)
 				local physobj = hoverball:GetPhysicsObject()
@@ -201,7 +201,7 @@ function ENT:FireFunction(gBalloons, firePowerExpectedMultiplier)
 					physobj:Wake()
 					physobj:SetVelocity(dirvec)
 				end
-				hoverball.rotgb_Range = self.rotgb_HoverballRange*self.rotgb_HoverballSize
+				hoverball.rotgb_Range = self.rotgb_HoverballRange * self.ProjectileSize
 				hoverball.rotgb_Value = hoverballAmount
 				hoverball.rotgb_Tower = self
 				timer.Simple(self.rotgb_HoverballLife,function()
@@ -294,18 +294,20 @@ hook.Add("gBalloonSpawnerWaveStarted", "ROTGB_TOWER_16", function(spawner,wave)
 				end]]
 				local targets = ents.FindByClass("gballoon_target")
 				for k2,v2 in pairs(targets) do
-					v2:SetHealth(math.min(v2:Health()+v2:GetMaxHealth()*healthProvide, 999999999))
-					if buff > 1 then
-						local healing = math.floor(ROTGB_GetCash(v:GetTowerOwner())/2000)
-						if v2:Health()+healing > 999999999 then
-							healing = 999999999-v2:Health()
+					if v2:Health() < 999999999 then
+						v2:SetHealth(math.min(v2:Health()+v2:GetMaxHealth()*healthProvide, 999999999))
+						if buff > 1 then
+							local healing = math.floor(ROTGB_GetCash(v:GetTowerOwner())/2000)
+							if v2:Health()+healing > 999999999 then
+								healing = 999999999-v2:Health()
+							end
+							ROTGB_RemoveCash(healing*100, v:GetTowerOwner())
+							
+							if engine.ActiveGamemode() == "rotgb" then
+								healing = healing*(1+hook.Run("GetSkillAmount", "hoverballFactoryHealthAmplifier")/100)
+							end
+							v2:SetHealth(math.min(v2:Health()+healing, 999999999))
 						end
-						ROTGB_RemoveCash(healing*100, v:GetTowerOwner())
-						
-						if engine.ActiveGamemode() == "rotgb" then
-							healing = healing*(1+hook.Run("GetSkillAmount", "hoverballFactoryHealthAmplifier")/100)
-						end
-						v2:SetHealth(math.min(v2:Health()+healing, 999999999))
 					end
 				end
 			end

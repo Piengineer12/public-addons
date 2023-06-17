@@ -153,24 +153,6 @@ end
 local function SnipeEntity()
 	while true do
 		local self,ent,chargesSpent = coroutine.yield()
-		local startPos = self:GetShootPos()
-		local uDir = ent:LocalToWorld(ent:OBBCenter())-startPos
-		local bullet = {
-			Attacker = self:GetTowerOwner(),
-			Callback = function(attacker,tracer,dmginfo)
-				if (IsValid(self) and self.rotgb_NoC) then
-					dmginfo:SetDamageType(bit.bor(DMG_CLUB, DMG_DISSOLVE))
-				else
-					dmginfo:SetDamageType(DMG_CLUB)
-				end
-			end,
-			Damage = self.AttackDamage*chargesSpent,
-			Distance = self.DetectionRadius*1.5,
-			HullSize = 1,
-			TracerName = "ToolTracer",
-			Dir = uDir,
-			Src = startPos
-		}
 		if self.rotgb_HitCredit then
 			self:AddCash(5, self:GetTowerOwner())
 		end
@@ -180,7 +162,10 @@ local function SnipeEntity()
 		if self.rotgb_NoA then
 			ent:SetBalloonProperty("BalloonArmor", -15)
 		end
-		self:FireBullets(bullet)
+		self:BulletAttack(ent, self.AttackDamage*chargesSpent, {
+			damageType = bit.bor(DMG_CLUB, self.rotgb_NoC and DMG_DISSOLVE or 0),
+			tracer = "ToolTracer",
+		})
 		self:SetNWFloat("rotgb_Charges",self:GetNWFloat("rotgb_Charges")-chargesSpent)
 	end
 end
@@ -250,13 +235,9 @@ end
 
 function ENT:TriggerAbility()
 	local addDamage = self.rotgb_AbilityDamage
-	self:ApplyBuff(self, "ABILITY", self.AbilityDuration, function(tower)
-		--tower.FireRate = tower.FireRate * 2
+	self:AddDelayedActions(self, "ROTGB_TOWER_10_ABILITY", 0, function(tower)
 		tower.AttackDamage = tower.AttackDamage + addDamage
-		--tower.rotgb_PopAqua2 = true
-	end, function(tower)
-		--tower.FireRate = tower.FireRate / 2
+	end, self.AbilityDuration, function(tower)
 		tower.AttackDamage = tower.AttackDamage - addDamage
-		--tower.rotgb_PopAqua2 = nil
 	end)
 end

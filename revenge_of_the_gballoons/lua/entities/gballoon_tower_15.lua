@@ -70,7 +70,7 @@ ENT.UpgradeReference = {
 			end,
 			function(self)
 				self.rotgb_TurretLasers = true
-				self.MaxFireRate = 10
+				self.MaxFireRate = 1/0.115
 				self.FireRate = self.FireRate * 2
 			end,
 			function(self)
@@ -118,9 +118,9 @@ function ENT:TriggerAbility()
 	if next(navs) then
 		local point = navs[math.random(#navs)]:GetRandomPoint()
 		if self:GetShootPos():DistToSqr(point) > self.DetectionRadius * self.DetectionRadius then return true end
-		local ent = ents.Create("gballoon_tower_15_helper")
+		local ent = ents.Create("gballoon_tower_15_minion")
 		if IsValid(ent) then
-			ent:SetSpawnedTower(self)
+			ent:SetTower(self)
 			ent:SetPos(point)
 			ent:Spawn()
 		else return true
@@ -128,6 +128,7 @@ function ENT:TriggerAbility()
 	else
 		-- get a random point on a circle extending outwards from the tower
 		-- with range between 32 and detection radius
+		-- points closer to the tower are more likely to be chosen - this is intentional
 		local randomDistance = Lerp(math.random(), 32, self.DetectionRadius)
 		local randomAngle = math.random()*math.pi*2
 		local xoffset = math.cos(randomAngle)*randomDistance
@@ -145,9 +146,9 @@ function ENT:TriggerAbility()
 		}
 		local result = util.TraceLine(traceData)
 		if not result.StartSolid and result.Hit then
-			local ent = ents.Create("gballoon_tower_15_helper")
+			local ent = ents.Create("gballoon_tower_15_minion")
 			if IsValid(ent) then
-				ent:SetSpawnedTower(self)
+				ent:SetTower(self)
 				ent:SetPos(result.HitPos)
 				ent:Spawn()
 			else return true
@@ -155,7 +156,6 @@ function ENT:TriggerAbility()
 		else return true
 		end
 	end
-	
 end
 
 function ENT:ROTGB_Think()

@@ -73,33 +73,15 @@ end
 
 function ENT:Touch(ent)
 	if not self:GetDisabled() then
-		if ent.Base=="gballoon_tower_base" and not ent.StunUntil2 then
-			ent:SetNWBool("ROTGB_Stun2",true)
-			ent:Stun2()
-			ent:SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER)
-			
-			local owner = IsValid(ent:GetTowerOwner()) and ent:GetTowerOwner()
-			ROTGB_CauseNotification(ROTGB_NOTIFY_PLACEMENTILLEGAL, ROTGB_NOTIFYTYPE_INFO, owner, {"e", ent})
-		elseif ent.rotgb_isDetector and not ent.rotgb_isDetected then
-			--print("A", ent)
-			ent.rotgb_isDetected = true
-			ent:NoBuildTriggered(true)
+		if ent.Base=="gballoon_tower_base" or ent.rotgb_isDetector then
+			ent:Stun2(self)
 		end
 	end
 end
 
 function ENT:EndTouch(ent)
-	if ent.Base=="gballoon_tower_base" and ent:GetNWBool("ROTGB_Stun2") then
-		ent:SetNWBool("ROTGB_Stun2",false)
-		ent:UnStun2()
-		ent:SetCollisionGroup(COLLISION_GROUP_NONE)
-		
-		local owner = IsValid(ent:GetTowerOwner()) and ent:GetTowerOwner()
-		ROTGB_CauseNotification(ROTGB_NOTIFYCHAT_PLACEMENTILLEGALOFF, ROTGB_NOTIFYTYPE_INFO, owner, {"e", ent})
-	elseif ent.rotgb_isDetector and ent.rotgb_isDetected then
-		--print("B", ent)
-		ent.rotgb_isDetected = false
-		ent:NoBuildTriggered(false)
+	if ent.Base=="gballoon_tower_base" or ent.rotgb_isDetector then
+		ent:UnStun2(self)
 	end
 end
 

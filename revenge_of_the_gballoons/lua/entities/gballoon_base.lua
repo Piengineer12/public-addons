@@ -430,6 +430,7 @@ function ENT:Initialize()
 		if IsValid(physobj) then
 			physobj:AddGameFlag(FVPHYSICS_CONSTRAINT_STATIC)
 		end
+		self.BuffIdentifiers = {}
 		hook.Run("gBalloonPostInitialize", self)
 		--self.BeaconsReached = {}
 	end
@@ -444,7 +445,7 @@ end
 
 function ENT:PreEntityCopy()
 	self.rotgb_DuplicatorTimeOffset = CurTime()
-	-- The duplicator system will incorrectly assign self.loco on the new entity to *this* entity. This WILL cause a crash if we do not step in.
+	-- the duplicator system will incorrectly assign self.loco on the new entity to *this* entity
 	self.ourLoco = self.loco
 	self.loco = nil
 end
@@ -1200,6 +1201,7 @@ function ENT:MoveToTarget()
 			self:CheckForStatusBroadcasting()
 			self:CheckForSpeedMods()
 			self:CheckForBossEffects()
+			--self:CheckForBuffs()
 			self:PerformPops()
 			coroutine.yield()
 			nearestNavArea = navmesh.GetNearestNavArea(self:GetPos())
@@ -1276,6 +1278,7 @@ function ENT:MoveToTargetStraight(waitamt)
 		self:CheckForStatusBroadcasting()
 		self:CheckForSpeedMods()
 		self:CheckForBossEffects()
+		--self:CheckForBuffs()
 		self:PerformPops()
 		
 		local oldPos = self:GetPos()
@@ -1340,6 +1343,7 @@ function ENT:RunBehaviour()
 		self:CheckForRegenAndFire()
 		self:CheckForStatusBroadcasting()
 		self:CheckForBossEffects()
+		--self:CheckForBuffs()
 		self:PerformPops()
 		if GetConVar("ai_disabled"):GetBool() then
 			self:Log("ai_disabled is set, waiting...","pathfinding")
@@ -1448,6 +1452,11 @@ end
 function ENT:Stun(tim)
 	if not self:GetBalloonProperty("BalloonBoss") then
 		self.StunUntil = math.max(self:CurTime() + tim,self.StunUntil or 0)
+	
+		local effdata = EffectData()
+		effdata:SetEntity(self)
+		effdata:SetMagnitude(tim)
+		util.Effect("rotgb_stunned", effdata, true, true)
 	end
 end
 
@@ -1521,6 +1530,10 @@ function ENT:UnSlowdown(id)
 	self.rotgb_SpeedMods[id] = nil
 end
 
+function ENT:GetSlowdown(id)
+	return self.rotgb_SpeedMods[id]
+end
+
 function ENT:GetAndApplyValueMultipliers(value)
 	local total = value
 	local curTime = self:CurTime()
@@ -1529,7 +1542,7 @@ function ENT:GetAndApplyValueMultipliers(value)
 			local increment = v[2]*value
 			total = total + increment
 			if IsValid(v[3]) then
-				v[3]:SetCashGenerated(v[3]:GetCashGenerated()+increment)
+				v[3]:SetCashGenerated((v[3]:GetCashGenerated() or 0)+increment)
 			end
 		else
 			self.rotgb_ValueMultipliers[k] = nil
@@ -1561,6 +1574,8 @@ end
 local lastFireRender = 0
 
 function ENT:RotgB_Ignite(dmg, atk, inflictor, tim)
+	-- dmg is applied per second
+	
 	--self:Extinguish()
 	--self:Ignite(tim)
 	local curTime = self:CurTime()
@@ -1599,16 +1614,58 @@ function ENT:RotgB_Ignite(dmg, atk, inflictor, tim)
 end
 
 function ENT:InflictRotgBStatusEffect(typ,tim)
+	--ROTGB_EntityLogError(self, "DEPRECATION WARNING: ENT.InflictRotgBStatusEffect is now unused and will be deleted in the future. Use ENT.ApplyBuff instead.", "")
 	self["rotgb_SE_"..typ] = math.max(self["rotgb_SE_"..typ] or 0,self:CurTime() + tim)
 end
 
 function ENT:HasRotgBStatusEffect(typ)
+	--ROTGB_EntityLogError(self, "DEPRECATION WARNING: ENT.HasRotgBStatusEffect is now unused and will be deleted in the future. Use ENT.GetBuff instead.", "")
 	return (self["rotgb_SE_"..typ] or 0) >= self:CurTime()
 end
 
 function ENT:GetRotgBStatusEffectDuration(typ)
+	--ROTGB_EntityLogError(self, "DEPRECATION WARNING: ENT.GetRotgBStatusEffectDuration is now unused and will be deleted in the future. Use ENT.GetBuff instead.", "")
 	return (self["rotgb_SE_"..typ] or 0) - self:CurTime()
 end
+
+--[[function ENT:ApplyBuff(tower, identifier, duration, applyFunc, unapplyFunc)
+	identifier = identifier or #self.BuffIdentifiers+1
+	duration = duration or math.huge
+	
+	local buffInfo = self:GetBuff(identifier)
+	
+	if buffInfo then
+		buffInfo.expiry = math.max(buffInfo.expiry, self:CurTime() + duration)
+	else
+		self.BuffIdentifiers[identifier] = {tower = tower, expiry = self:CurTime() + duration, unapplyFunc = unapplyFunc}
+		if applyFunc then
+			applyFunc(self)
+		end
+	end
+end
+
+function ENT:CheckForBuffs()
+	for identifier, info in pairs(self.BuffIdentifiers) do
+		if not IsValid(info.tower) or info.expiry < self:CurTime() then
+			if info.unapplyFunc then
+				info.unapplyFunc(self)
+			end
+			self.BuffIdentifiers[identifier] = nil
+		end
+	end
+end
+
+function ENT:GetBuff(identifier)
+	local info = self.BuffIdentifiers[identifier]
+	if (info and (not IsValid(info.tower) or info.expiry < self:CurTime())) then
+		if info.unapplyFunc then
+			info.unapplyFunc(self)
+		end
+		self.BuffIdentifiers[identifier] = nil
+	end
+	
+	return self.BuffIdentifiers[identifier]
+end]]
 
 function ENT:GetRgBE()
 	return self.rotgb_rbetab[self:GetBalloonProperty("BalloonType")]*self:GetMaxHealth()/self:GetBalloonProperty("BalloonHealth")+math.max(self:Health(), 1)-self:GetMaxHealth()
@@ -1656,12 +1713,12 @@ end
 local function TestDamageResistances(properties,dmgbits,frozen)
 	if properties.BalloonGlass and dmgbits then return 8
 	elseif ROTGB_GetConVarValue("rotgb_ignore_damage_resistances") then return false
-	elseif frozen and ROTGB_HasAnyBits(dmgbits,DMG_BULLET+DMG_SLASH+DMG_BUCKSHOT) then return 6
+	elseif frozen and ROTGB_HasAnyBits(dmgbits,DMG_BULLET,DMG_SLASH,DMG_BUCKSHOT) then return 6
 	elseif properties.BalloonBlack and ROTGB_HasAnyBits(dmgbits,DMG_BLAST,DMG_BLAST_SURFACE) then return 2
 	elseif properties.BalloonWhite and ROTGB_HasAnyBits(dmgbits,DMG_VEHICLE,DMG_DROWN,DMG_DROWNRECOVER) then return 1
 	elseif properties.BalloonPurple and ROTGB_HasAnyBits(dmgbits,DMG_BURN,DMG_SHOCK,DMG_ENERGYBEAM,DMG_SLOWBURN,
 	DMG_REMOVENORAGDOLL,DMG_PLASMA,DMG_DIRECT) then return 3
-	elseif properties.BalloonGray and ROTGB_HasAnyBits(dmgbits,DMG_BULLET+DMG_SLASH+DMG_BUCKSHOT) then return 4 end
+	elseif properties.BalloonGray and ROTGB_HasAnyBits(dmgbits,DMG_BULLET,DMG_SLASH,DMG_BUCKSHOT) then return 4 end
 	--if properties.BalloonAqua and (ROTGB_HasAnyBits(dmgbits,DMG_CRUSH+DMG_FALL+DMG_CLUB+DMG_PHYSGUN)) then return 6 end
 end
 
@@ -1891,6 +1948,7 @@ end
 function ENT:Pop(damage,target,dmgbits)
 	damage = bit.band(dmgbits or 0,DMG_DISSOLVE)==0 and damage or -1
 	self:Log("Popping for "..damage.." damage...","damage")
+	hook.Run("gBalloonPrePop", self, damage, target, dmgbits)
 	-- self:SetNWBool("BalloonPurple",false)
 	local maxToExist = ROTGB_GetConVarValue("rotgb_max_to_exist")
 	local doAchievement = ROTGB_GetConVarValue("rotgb_use_achievement_handler")
@@ -1957,7 +2015,12 @@ function ENT:Pop(damage,target,dmgbits)
 		end
 	end
 	if IsValid(target) then
-		local damage = (pops+math.max(self:Health(), 1)-1)*ROTGB_GetConVarValue("rotgb_afflicted_damage_multiplier")
+		local data = {
+			attacker = self,
+			victim = target,
+			damage = (pops+math.max(self:Health(), 1)-1)*ROTGB_GetConVarValue("rotgb_afflicted_damage_multiplier")
+		}
+		local damage = data.damage
 		self:Log("Hurting "..tostring(target).." for "..damage.." damage...","damage")
 		
 		if target:GetClass() == "gballoon_target" and target:GetOSPs() > 0 and self:GetBalloonProperty("BalloonHealthSegments") > 1 then
@@ -1979,6 +2042,7 @@ function ENT:Pop(damage,target,dmgbits)
 		dmginfo:SetAttacker(self)
 		dmginfo:SetInflictor(self)
 		target:TakeDamageInfo(dmginfo)
+		hook.Run("RotgBBalloonPostDealDamage", data)
 	else
 		local baseMul = ROTGB_GetConVarValue("rotgb_cash_mul")
 		local newcash = self:GetAndApplyValueMultipliers(cash)
@@ -2216,7 +2280,7 @@ if CLIENT then
 		self:Draw()
 		if self:GetNWBool("RenderShield") then
 			render.SetColorMaterial()
-			render.DrawSphere(self:GetPos()+self:OBBCenter(),self:BoundingRadius()*self.VModelScale.x,8,5,shieldcolor)
+			render.DrawSphere(self:WorldSpaceCenter(),self:BoundingRadius()*self.VModelScale.x,8,5,shieldcolor)
 		end
 	end
 end

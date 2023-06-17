@@ -5,6 +5,7 @@ ENT.Type = "nextbot"
 
 function ENT:Initialize()
 	if SERVER then
+		ROTGB_EntityLog(self, "DEPRECATION WARNING: This entity will be removed in the future!")
 		self:SetModel("models/maxofs2d/motion_sensor.mdl")
 		self.NextFire = CurTime()
 		self.CreationTime = self:GetCreationTime()
@@ -30,7 +31,7 @@ function ENT:AttackDamage()
 end
 
 function ENT:GetShootPos()
-	return self:GetPos() + self:OBBCenter()
+	return self:WorldSpaceCenter()
 end
 
 function ENT:OnInjured(dmginfo)
@@ -60,9 +61,9 @@ function ENT:FindEnemy()
 			elseif mode==3 then
 				self.balloonTable[v] = -v:GetRgBE()
 			elseif mode==4 then
-				self.balloonTable[v] = v:BoundingRadius()^2/self:GetPos():DistToSqr(v:GetPos())
+				self.balloonTable[v] = v:BoundingRadius()^2/self:GetShootPos():DistToSqr(v:WorldSpaceCenter())
 			elseif mode==5 then
-				self.balloonTable[v] = -v:BoundingRadius()^2/self:GetPos():DistToSqr(v:GetPos())
+				self.balloonTable[v] = -v:BoundingRadius()^2/self:GetShootPos():DistToSqr(v:WorldSpaceCenter())
 			elseif mode==6 then
 				self.balloonTable[v] = v.loco:GetAcceleration()
 			elseif mode==7 then
@@ -72,12 +73,13 @@ function ENT:FindEnemy()
 	end
 	if next(self.balloonTable) then
 		self:SetEnemy(table.GetWinningKey(self.balloonTable))
-		--print(self:GetEnemy())
 		return true
 	else return false
 	end
 end
 
+local color_blue = Color(0, 0, 255)
+local color_magenta = Color(255, 0, 255)
 function ENT:FireAtEnemy()
 	if (self.NextFire or 0) < CurTime() then
 		local tower = self:GetSpawnedTower()
@@ -96,18 +98,18 @@ function ENT:FireAtEnemy()
 		end
 		
 		self.NextFire = CurTime() + fireDelay
-		local iscrit = math.random() < self:GetSpawnedTower().rotgb_CritChance
+		local iscrit = math.random() < tower.rotgb_CritChance
 		local damage = self:AttackDamage()*fireAmplification
 		if iscrit then
-			damage = damage * self:GetSpawnedTower().rotgb_CritMul
+			damage = damage * tower.rotgb_CritMul
 		end
 		if CurTime() > self.CreationTime+19 then
-			damage = damage * self:GetSpawnedTower().rotgb_PostMul
+			damage = damage * tower.rotgb_PostMul
 		end
-		if self:GetSpawnedTower().rotgb_TurretLasers then
+		if tower.rotgb_TurretLasers then
 			damage = damage*5
 			local targets = {self:GetEnemy()}
-			if self:GetSpawnedTower().rotgb_TurretMultihit then
+			if tower.rotgb_TurretMultihit then
 				self.gBTraceData = self.gBTraceData or {
 					filter = self,
 					mask = MASK_SHOT,
@@ -117,8 +119,8 @@ function ENT:FireAtEnemy()
 				local selfpos = self:GetShootPos()
 				self.gBTraceData.start = selfpos
 				for k,v in pairs(ents.FindInSphere(selfpos,self:DetectionRadius())) do
-					if (v:GetClass()=="gballoon_base" and (not v:GetBalloonProperty("BalloonHidden") or self:GetSpawnedTower().SeeCamo)) then
-						self.gBTraceData.endpos = v:GetPos()+v:OBBCenter()
+					if (v:GetClass()=="gballoon_base" and (not v:GetBalloonProperty("BalloonHidden") or tower.SeeCamo)) then
+						self.gBTraceData.endpos = v:WorldSpaceCenter()
 						util.TraceLine(self.gBTraceData)
 						if (IsValid(self.lastBalloonTrace.Entity) and self.lastBalloonTrace.Entity:GetClass() == "gballoon_base") then
 							table.insert(targets, v)
@@ -127,15 +129,24 @@ function ENT:FireAtEnemy()
 				end
 			end
 			for k,v in pairs(targets) do
-				if self:GetSpawnedTower().rotgb_TurretBucks then
-					self:GetSpawnedTower():AddCash(20, self:GetSpawnedTower():GetTowerOwner())
+				if tower.rotgb_TurretBucks then
+					tower:AddCash(20, tower:GetTowerOwner())
 				end
 				if iscrit then
 					--util.ScreenShake(self:GetShootPos(), 4, 20, 0.5, 1024)
 					v:ShowCritEffect()
 					--self:EmitSound("phx/epicmetal_hard"..math.random(7)..".wav",75,100,1,CHAN_WEAPON)
 				end
-				local laser = ents.Create("env_laser")
+				tower:LaserAttack(v, damage, 4, {
+					startEntity = self,
+					damageType = iscrit and DMG_GENERIC,
+					laser = true,
+					color = iscrit and color_magenta or color_blue,
+					sparks = true,
+					scroll = 35,
+				})
+				
+				--[=[local laser = ents.Create("env_laser")
 				laser:SetPos(self:GetShootPos())
 				local oldEntName = v:GetName()
 				local entityName = v:GetName() ~= "" and v:GetName() or "laser_target"..v:GetCreationID()
@@ -148,14 +159,14 @@ function ENT:FireAtEnemy()
 				laser:SetKeyValue("NoiseAmplitude","0")
 				laser:SetKeyValue("texture","sprites/laserbeam.spr")
 				laser:SetKeyValue("TextureScroll","35")
-				laser:SetKeyValue("damage",damage --[[* (v:GetBalloonProperty("BalloonBlimp") and self:GetSpawnedTower().rotgb_CritMulBlimp or 1)]] )
+				laser:SetKeyValue("damage",damage --[[* (v:GetBalloonProperty("BalloonBlimp") and tower.rotgb_CritMulBlimp or 1)]] )
 				laser:SetKeyValue("LightningEnd",entityName)
 				laser:SetKeyValue("HDRColorScale","1")
 				laser:SetKeyValue("spawnflags","33")
-				laser:SetKeyValue("life",1/self:GetSpawnedTower().FireRate)
+				laser:SetKeyValue("life",1/tower.FireRate)
 				laser:Spawn()
 				laser:Activate()
-				laser.rotgb_Owner = self:GetSpawnedTower()
+				laser.rotgb_Owner = tower
 				laser.rotgb_UseLaser = iscrit and 2 or 1
 				laser:Fire("TurnOn")
 				timer.Simple(1/9,function()
@@ -165,22 +176,21 @@ function ENT:FireAtEnemy()
 					if (IsValid(v) and entityName == v:GetName()) then
 						v:SetName(oldEntName)
 					end
-				end)
+				end)]=]
 			end
 		else
-			self.rotgb_Owner = self:GetSpawnedTower()
+			self.rotgb_Owner = tower
 			if self.rotgb_Owner.rotgb_TurretBucks then
 				self.rotgb_Owner:AddCash(20)
 			end
 			local enemy = self:GetEnemy()
-			local dir = enemy:GetPos()
+			local dir = enemy:WorldSpaceCenter()
 			self.loco:FaceTowards(dir)
-			dir:Add(enemy:OBBCenter())
 			dir:Sub(self:GetShootPos())
 			dir:Normalize()
 			if iscrit then
 				--[[if enemy:GetBalloonProperty("BalloonBlimp") then
-					damage = damage * self:GetSpawnedTower().rotgb_CritMulBlimp
+					damage = damage * tower.rotgb_CritMulBlimp
 				end]]
 				enemy:ShowCritEffect()
 			end
@@ -237,7 +247,6 @@ function ENT:Think()
 			end
 			
 			if self.StraightMovement and IsValid(self:GetEnemy()) then
-				local distance = self:GetPos():Distance(self:GetEnemy():GetPos())
 				self.loco:Approach(self:GetEnemy():GetPos(), 1)
 			end
 		else
@@ -258,14 +267,14 @@ function ENT:MoveToEnemy()
 		self.StraightMovement = true
 		while not IsValid(path) and self:HaveEnemy() do
 			if self:GetEnemy() ~= enemy then break end
-			if self:GetShootPos():DistToSqr(enemy:GetPos()) <= self:DetectionRadius()^2/4 then
+			if self:GetShootPos():DistToSqr(enemy:WorldSpaceCenter()) <= self:DetectionRadius()^2/4 then
 				self.gBTraceData = self.gBTraceData or {
 					filter = self,
 					mask = MASK_SHOT,
 					output = self.lastBalloonTrace
 				}
 				self.gBTraceData.start = self:GetShootPos()
-				self.gBTraceData.endpos = enemy:GetPos()+enemy:OBBCenter()
+				self.gBTraceData.endpos = enemy:WorldSpaceCenter()
 				util.TraceLine(self.gBTraceData)
 				
 				local ent = self.lastBalloonTrace.Entity
@@ -317,14 +326,14 @@ function ENT:MoveToEnemy()
 	
 	while IsValid(path) and self:HaveEnemy() do
 		if self:GetEnemy() ~= enemy then break end
-		if self:GetShootPos():DistToSqr(enemy:GetPos()) <= self:DetectionRadius()^2/4 then
+		if self:GetShootPos():DistToSqr(enemy:WorldSpaceCenter()) <= self:DetectionRadius()^2/4 then
 			self.gBTraceData = self.gBTraceData or {
 				filter = self,
 				mask = MASK_SHOT,
 				output = self.lastBalloonTrace
 			}
 			self.gBTraceData.start = self:GetShootPos()
-			self.gBTraceData.endpos = enemy:GetPos()+enemy:OBBCenter()
+			self.gBTraceData.endpos = enemy:WorldSpaceCenter()
 			util.TraceLine(self.gBTraceData)
 			
 			local ent = self.lastBalloonTrace.Entity
@@ -365,7 +374,7 @@ function ENT:RunBehaviour()
 			if not IsValid(self:GetSpawnedTower()) then
 				self:Remove()
 			elseif self:HaveEnemy() and not GetConVar("ai_disabled"):GetBool() then
-				while (self:HaveEnemy() and self:GetShootPos():DistToSqr(self:GetEnemy():GetPos()) <= self:DetectionRadius()^2) do
+				while (self:HaveEnemy() and self:GetShootPos():DistToSqr(self:GetEnemy():WorldSpaceCenter()) <= self:DetectionRadius()^2) do
 					self:FireAtEnemy()
 					coroutine.yield()
 				end

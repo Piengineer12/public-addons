@@ -106,21 +106,16 @@ end
 
 function ENT:ROTGB_Think()
 	if self.rotgb_Exploded then
-		local dmginfo = DamageInfo()
-		dmginfo:SetAmmoType(game.GetAmmoID("RPG_Round"))
-		dmginfo:SetAttacker(self:GetTowerOwner())
-		dmginfo:SetInflictor(self)
-		dmginfo:SetDamageType(self.rotgb_HitBlack and DMG_GENERIC or DMG_BLAST)
-		dmginfo:SetReportedPosition(self:GetShootPos())
+		local dmginfo = self:CreateDamage(nil, self.rotgb_HitBlack and DMG_GENERIC or DMG_BLAST)
 		
 		for k,v in pairs(ROTGB_GetBalloons()) do
 			if v.ROTGB_TOWER_02_Marks then
 				dmginfo:SetDamage(v.ROTGB_TOWER_02_Marks)
-				dmginfo:SetMaxDamage(v.ROTGB_TOWER_02_Marks)
-				v:TakeDamageInfo(dmginfo)
+				self:DealDamage(v, dmginfo)
 				v.ROTGB_TOWER_02_Marks = nil
 			end
 		end
+		
 		self.rotgb_Exploded = false
 	end
 end
@@ -188,16 +183,11 @@ function ENT:TriggerAbility()
 	if not next(entities) then return true end
 	for index,ent in pairs(entities) do
 		local effdata = EffectData()
-		effdata:SetOrigin(Vector(ent:GetPos()))
-		effdata:SetStart(Vector(ent:GetPos()))
+		effdata:SetOrigin(ent:GetPos())
+		effdata:SetStart(ent:GetPos())
 		effdata:SetEntity(ent)
 		util.Effect("HelicopterMegaBomb",effdata,true,true)
 		ent:EmitSound("phx/kaboom.wav", 75, math.random(80,120), 0.5)
-		--[[if ent:GetBalloonProperty("BalloonBlimp") then
-			ent:TakeDamage(ent:GetMaxHealth()/2,self,self)
-		else
-			ent:Pop(-1)
-		end]]
-		ent:TakeDamage(self.rotgb_AbilityDamage,self:GetTowerOwner(),self)
+		self:DealDamage(ent, self.rotgb_AbilityDamage)
 	end
 end

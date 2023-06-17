@@ -144,12 +144,13 @@ function ENT:FireFunction(gBalloons)
 	if self.rotgb_Freezer >= 1 and next(gBalloons) then
 		self.rotgb_Freezer = self.rotgb_Freezer - 1
 		self.FireWhenNoEnemies = true
-		local drrt = self.DetectionRadius*self.DetectionRadius
+		local detectionRadiusSquared = self.DetectionRadius^2
 		if self.AttackDamage > 0 then
-			for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
-				if self:ValidTargetIgnoreRange(v) and v:GetPos():DistToSqr(self:GetShootPos())<=drrt then
+			-- we call ents.FindInSphere here because this effect should be regardless of LOS
+			for k,v in pairs(ents.FindInSphere(self:GetShootPos(), self.DetectionRadius)) do
+				if self:ValidTargetIgnoreRange(v) then
 					if not v:GetBalloonProperty("BalloonBlimp") or self.rotgb_Intense and v:GetRgBE()<=v:GetRgBEByType("gballoon_blimp_blue") then
-						v:TakeDamage(self.AttackDamage,self:GetTowerOwner(),self)
+						self:DealDamage(v, self.AttackDamage)
 					else
 						v:ShowResistEffect(1)
 					end
@@ -164,22 +165,11 @@ function ENT:FireFunction(gBalloons)
 		self:SetNWFloat("LastFireTime",CurTime())
 	end
 	if self.UserTargeting and IsValid(gBalloons[1]) then
-		local startPos = self:GetShootPos()
-		local uDir = gBalloons[1]:LocalToWorld(gBalloons[1]:OBBCenter())-startPos
-		local bullet = {
-			Attacker = self:GetTowerOwner(),
-			Callback = function(attacker,tracer,dmginfo)
-				dmginfo:SetDamageType(DMG_SNIPER)
-			end,
-			Damage = self.rotgb_ShardDamage,
-			Distance = self.DetectionRadius*1.5,
-			HullSize = 1,
-			AmmoType = "",
-			TracerName = "GlassImpact",
-			Dir = uDir,
-			Src = startPos
-		}
-		self:FireBullets(bullet)
+		self:BulletAttack(gBalloons[1], self.rotgb_ShardDamage, {
+			damageType = DMG_SNIPER,
+			tracer = "GlassImpact",
+		})
+		
 		if self.rotgb_DamageBoost then
 			self.rotgb_ShardDamage = self.rotgb_ShardDamage + 1
 			self.rotgb_ExtraDamage = (self.rotgb_ExtraDamage or 0) + 1
@@ -201,15 +191,6 @@ function ENT:FireFunction(gBalloons)
 end
 
 function ENT:ROTGB_Think()
-	--[[if self.rotgb_Viral then
-		for k,v in pairs(ents.FindInSphere(self:GetShootPos(),self.DetectionRadius)) do
-			if self:ValidTargetIgnoreRange(v) and ((v.FreezeUntil or 0)>CurTime() or (v.FreezeUntil2 or 0)>CurTime()) then
-				for k2,v2 in pairs(ents.FindInSphere(v:GetPos(),self:BoundingRadius()*2)) do
-					self:DoFreeze(v2)
-				end
-			end
-		end
-	end]]
 	if (self.NextLocalThink or 0) < CurTime() then
 		self.NextLocalThink = CurTime() + 0.1
 		if self.rotgb_SpeedSlowdown then

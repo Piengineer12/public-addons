@@ -2801,6 +2801,7 @@ end
 
 function ENT:AddTimePhase(timeToAdd)
 	self:SetNextWaveTime(self:GetNextWaveTime()+timeToAdd)
+	self.LastTimePushed = (self.LastTimePushed or 0) + timeToAdd
 	for k,v in pairs(self.rotgb_ToSpawn) do
 		v.startTime = v.startTime + timeToAdd
 		v.endTime = v.endTime + timeToAdd
@@ -3084,6 +3085,17 @@ function ENT:Think()
 				self.EnableBalloonChecking = nil
 				self:SpawnNextWave()
 			elseif next(self.rotgb_ToSpawn) then
+				self.LastTimePushed = self.LastTimePushed or 0
+				
+				if self.LastTimePushed > CurTime() + 1 then
+					self.LastTimePushed = 0
+				end
+				
+				if ROTGB_GetBalloonCount() >= ROTGB_GetConVarValue("rotgb_spawner_max_to_exist") and self.LastTimePushed < CurTime() then
+					self:AddTimePhase(1)
+					self.LastTimePushed = CurTime() + 1
+				end
+				
 				local filterRequired = false
 				for i,v in ipairs(self.rotgb_ToSpawn) do
 					if v.current == v.amount then
@@ -3260,6 +3272,35 @@ function ENT:MusicThink()
 	end
 end
 
+function ENT:DetermineNextTarget(bln)
+	local nextTargs = {}
+	if bln:GetBalloonProperty("BalloonBlimp") then
+		self.rotgb_TimesBlimpSpawned = (self.rotgb_TimesBlimpSpawned or 0) + 1
+		for i=1,16 do
+			local gTarg = self["GetNextBlimpTarget"..i](self)
+			if IsValid(gTarg) then
+				table.insert(nextTargs,gTarg)
+			end
+		end
+	else
+		self.rotgb_TimesSpawned = (self.rotgb_TimesSpawned or 0) + 1
+	end
+	if next(nextTargs) then
+		bln:SetTarget(bln:ChooseNextTargetWeighted(self.rotgb_TimesBlimpSpawned, nextTargs))
+	else
+		for i=1,16 do
+			local gTarg = self["GetNextTarget"..i](self)
+			if IsValid(gTarg) then
+				table.insert(nextTargs,gTarg)
+			end
+		end
+		if next(nextTargs) then
+			local times = bln:GetBalloonProperty("BalloonBlimp") and (self.rotgb_TimesSpawned or 0)+self.rotgb_TimesBlimpSpawned or self.rotgb_TimesSpawned
+			bln:SetTarget(bln:ChooseNextTargetWeighted(times, nextTargs))
+		end
+	end
+end
+
 function ENT:SpawnByTable(spawnTable)
 	local nextSpawnTime = math.Remap(spawnTable.current+1, 0, spawnTable.amount, spawnTable.startTime, spawnTable.endTime)
 	if nextSpawnTime <= CurTime() then
@@ -3281,32 +3322,7 @@ function ENT:SpawnByTable(spawnTable)
 				bln:Spawn()
 				hook.Run("gBalloonSpawnerPostSpawn", self, bln, keyValues)
 				bln:Activate()
-				local nextTargs = {}
-				if bln:GetBalloonProperty("BalloonBlimp") then
-					self.rotgb_TimesBlimpSpawned = (self.rotgb_TimesBlimpSpawned or 0) + 1
-					for i=1,16 do
-						local gTarg = self["GetNextBlimpTarget"..i](self)
-						if IsValid(gTarg) then
-							table.insert(nextTargs,gTarg)
-						end
-					end
-				else
-					self.rotgb_TimesSpawned = (self.rotgb_TimesSpawned or 0) + 1
-				end
-				if next(nextTargs) then
-					bln:SetTarget(bln:ChooseNextTargetWeighted(self.rotgb_TimesBlimpSpawned, nextTargs))
-				else
-					for i=1,16 do
-						local gTarg = self["GetNextTarget"..i](self)
-						if IsValid(gTarg) then
-							table.insert(nextTargs,gTarg)
-						end
-					end
-					if next(nextTargs) then
-						local times = bln:GetBalloonProperty("BalloonBlimp") and (self.rotgb_TimesSpawned or 0)+self.rotgb_TimesBlimpSpawned or self.rotgb_TimesSpawned
-						bln:SetTarget(bln:ChooseNextTargetWeighted(times, nextTargs))
-					end
-				end
+				self:DetermineNextTarget(bln)
 				local waveSpeedAmp = self:GetWave()-(self.WinWave or math.huge)-1
 				if waveSpeedAmp > 0 then
 					bln:Slowdown("Freeplay", 1.05^waveSpeedAmp, 9999)

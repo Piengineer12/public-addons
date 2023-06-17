@@ -174,7 +174,7 @@ function ENT:FireFunction(tableOfBalloons)
 	local poses = {}
 	for i=1,self.ShellAmt do
 		if IsValid(tableOfBalloons[i]) then
-			table.insert(poses,tableOfBalloons[i]:GetPos())
+			table.insert(poses, tableOfBalloons[i]:WorldSpaceCenter())
 		else break
 		end
 	end
@@ -188,13 +188,7 @@ function ENT:Bombshell(poses)
 			if self.rotgb_Fragments > 0 then
 				self:FireFragments(poses, shouldBlimpCrit)
 			end
-			local dmginfo = DamageInfo()
-			dmginfo:SetAmmoType(game.GetAmmoID("Grenade"))
-			dmginfo:SetAttacker(self:GetTowerOwner())
-			dmginfo:SetInflictor(self)
-			dmginfo:SetDamageType(self.rotgb_RespectPlayers and DMG_GENERIC or DMG_BLAST)
-			dmginfo:SetDamage(self.AttackDamage)
-			dmginfo:SetMaxDamage(self.AttackDamage)
+			local dmginfo = self:CreateDamage(self.AttackDamage, self.rotgb_RespectPlayers and DMG_GENERIC or DMG_BLAST)
 			local effdata = EffectData()
 			effdata:SetMagnitude(self.rotgb_ExploRadius/32)
 			effdata:SetScale(self.rotgb_ExploRadius/32)
@@ -210,7 +204,6 @@ function ENT:Bombshell(poses)
 				EmitSound("phx/kaboom.wav", pos, 0, CHAN_WEAPON, 0.5, 75, SND_SHOULDPAUSE, math.random(80,120))
 				for k,v in pairs(ents.FindInSphere(pos,self.rotgb_ExploRadius)) do
 					if self:ValidTargetIgnoreRange(v) then
-						dmginfo:SetDamagePosition(v:GetPos())
 						if self.rotgb_Stun > 0 and v:DamageTypeCanDamage(dmginfo:GetDamageType()) and (not v:GetBalloonProperty("BalloonBlimp") or v:GetRgBE() <= self.rotgb_StunMaxRgBE) then
 							v:Stun(self.rotgb_Stun)
 							if self.rotgb_StunVulnerability then
@@ -231,7 +224,7 @@ function ENT:Bombshell(poses)
 						elseif self.rotgb_GrayHeavy and v:GetBalloonProperty("BalloonGray") then
 							dmginfo:ScaleDamage(3)
 						end
-						v:TakeDamageInfo(dmginfo)
+						self:DealDamage(v, dmginfo)
 						if v:GetBalloonProperty("BalloonBlimp") then
 							dmginfo:ScaleDamage(1/self.rotgb_HeavyMultiplier)
 						elseif self.rotgb_GrayHeavy and v:GetBalloonProperty("BalloonGray") then
@@ -250,13 +243,7 @@ end
 function ENT:FireFragments(poses, shouldBlimpCrit)
 	timer.Simple(self.rotgb_TravelTime/4,function()
 		if IsValid(self) then
-			local dmginfo = DamageInfo()
-			dmginfo:SetAmmoType(game.GetAmmoID("Pistol"))
-			dmginfo:SetAttacker(self:GetTowerOwner())
-			dmginfo:SetInflictor(self)
-			dmginfo:SetDamageType(DMG_BULLET)
-			dmginfo:SetDamage(self.AttackDamage)
-			dmginfo:SetMaxDamage(self.AttackDamage)
+			local dmginfo = self:CreateDamage(self.AttackDamage, DMG_BULLET)
 			for _,pos in pairs(poses) do
 				local gBalloonsToHit = {}
 				dmginfo:SetReportedPosition(pos)
@@ -276,7 +263,6 @@ function ENT:FireFragments(poses, shouldBlimpCrit)
 					end
 				end
 				for balloon,_ in pairs(gBalloonsToHit) do
-					dmginfo:SetDamagePosition(balloon:GetPos())
 					if self.rotgb_FireDamage > 0 then
 						balloon:RotgB_Ignite(self.rotgb_FireDamage, self:GetTowerOwner(), self, self.rotgb_FireDuration)
 					end
@@ -288,7 +274,7 @@ function ENT:FireFragments(poses, shouldBlimpCrit)
 					elseif self.rotgb_GrayHeavy and balloon:GetBalloonProperty("BalloonGray") then
 						dmginfo:ScaleDamage(3)
 					end
-					balloon:TakeDamageInfo(dmginfo)
+					self:DealDamage(balloon, dmginfo)
 					if balloon:GetBalloonProperty("BalloonBlimp") then
 						dmginfo:ScaleDamage(1/self.rotgb_HeavyMultiplier)
 						if shouldBlimpCrit then
@@ -306,12 +292,12 @@ end
 function ENT:TriggerAbility()
 	local abilityType = self.rotgb_AbilityType
 	if bit.band(abilityType, 1)==1 then
-		self:ApplyBuff(self, "ROTGB_TOWER_11_AC", self.AbilityDuration, function(tower)
+		self:AddDelayedActions(self, "ROTGB_TOWER_11_AC", 0, function(tower)
 			tower.rotgb_Stun = tower.rotgb_Stun + 1
 			tower.rotgb_StunMaxRgBE = tower.rotgb_StunMaxRgBE + 2e9
 			tower.FireRate = tower.FireRate*5
 			tower.rotgb_TravelTime = tower.rotgb_TravelTime/5
-		end, function(tower)
+		end, self.AbilityDuration, function(tower)
 			tower.rotgb_Stun = tower.rotgb_Stun - 1
 			tower.rotgb_StunMaxRgBE = tower.rotgb_StunMaxRgBE - 2e9
 			tower.FireRate = tower.FireRate/5
@@ -319,20 +305,20 @@ function ENT:TriggerAbility()
 		end)
 	end
 	if bit.band(abilityType, 4)==4 then
-		self:ApplyBuff(self, "ROTGB_TOWER_11_GFC", self.AbilityDuration, function(tower)
+		self:AddDelayedActions(self, "ROTGB_TOWER_11_GFC", 0, function(tower)
 			tower.rotgb_FireDamage = tower.rotgb_FireDamage + 199880
 			tower.rotgb_HeavyCrits = true
-		end, function(tower)
+		end, self.AbilityDuration, function(tower)
 			tower.rotgb_FireDamage = tower.rotgb_FireDamage - 199880
 			tower.rotgb_HeavyCrits = nil
 		end)
 		for k,v in pairs(ents.FindByClass("gballoon_tower_11")) do
-			v:ApplyBuff(self, "ROTGB_TOWER_11_GFC_OTHER", self.AbilityDuration, function(tower)
+			v:AddDelayedActions(self, "ROTGB_TOWER_11_GFC_OTHER", 0, function(tower)
 				tower.rotgb_Stun = tower.rotgb_Stun + 2
 				tower.rotgb_StunMaxRgBE = tower.rotgb_StunMaxRgBE + 4668
 				tower.rotgb_FireDamage = tower.rotgb_FireDamage + 20
 				tower.rotgb_FireDuration = tower.rotgb_FireDuration + 10
-			end, function(tower)
+			end, self.AbilityDuration, function(tower)
 				tower.rotgb_Stun = tower.rotgb_Stun - 2
 				tower.rotgb_StunMaxRgBE = tower.rotgb_StunMaxRgBE - 4668
 				tower.rotgb_FireDamage = tower.rotgb_FireDamage - 20
@@ -346,7 +332,7 @@ function ENT:TriggerAbility()
 		self:EmitSound("weapons/crossbow/fire1.wav",125,125,1,CHAN_WEAPON)
 		local poses = {}
 		for k,v in pairs(ROTGB_GetBalloons()) do
-			table.insert(poses,v:GetPos())
+			table.insert(poses, v:WorldSpaceCenter())
 		end
 		self:Bombshell(poses)
 	end

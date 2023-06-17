@@ -86,22 +86,7 @@ end
 local function SnipeEntity()
 	while true do
 		local self,ent = coroutine.yield()
-		local startPos = self:GetShootPos()
-		local uDir = ent:LocalToWorld(ent:OBBCenter())-startPos
-		--uDir:Normalize()
-		local bullet = {
-			Attacker = self:GetTowerOwner(),
-			Callback = function(attacker,tracer,dmginfo)
-				dmginfo:SetDamageType(self.rotgb_CanPopGray and DMG_SNIPER or DMG_BULLET)
-			end,
-			Damage = self.AttackDamage + math.floor((ent.rotgb_AdditionslSniperDamage or 0) / 10)*10,
-			Distance = self.DetectionRadius*1.5,
-			HullSize = 1,
-			AmmoType = self.rotgb_CanPopGray and "SniperPenetratedRound" or "Pistol",
-			TracerName = "Tracer",
-			Dir = uDir,
-			Src = startPos
-		}
+		local damage = self.AttackDamage + math.floor((ent.rotgb_AdditionslSniperDamage or 0) / 10)*10
 		if self.rotgb_StunBlimp and ent:GetBalloonProperty("BalloonBlimp") and ent:GetRgBE()<ent:GetRgBEByType("gballoon_blimp_purple")-ent:GetMaxHealth() then
 			ent:Stun(1)
 		end
@@ -109,7 +94,7 @@ local function SnipeEntity()
 			ent.rotgb_AdditionslSniperDamage = (ent.rotgb_AdditionslSniperDamage or 0) + 1
 		end
 		if self.rotgb_ExtraToBlimp and ent:GetBalloonProperty("BalloonBlimp") then
-			bullet.Damage = bullet.Damage * 5
+			damage = damage * 5
 		end
 		if self.rotgb_NoImmune then
 			ent:SetBalloonProperty("BalloonFast", false)
@@ -118,7 +103,7 @@ local function SnipeEntity()
 			ent:SetBalloonProperty("BalloonShielded", false)
 			ent:InflictRotgBStatusEffect("unimmune",1)
 		end
-		self:FireBullets(bullet)
+		self:BulletAttack(ent, damage, {damageType = self.rotgb_CanPopGray and DMG_SNIPER or DMG_BULLET})
 	end
 end
 

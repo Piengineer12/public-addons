@@ -16,11 +16,11 @@ ENT.FireRate = 2
 ENT.Cost = 700
 ENT.DetectionRadius = 256
 ENT.AttackDamage = 10
+ENT.ProjectileSize = 15
 ENT.LOSOffset = Vector(0,0,32)
 ENT.UserTargeting = true
 ENT.AbilityCooldown = 45
 ENT.AbilityDuration = 15
-ENT.rotgb_MicrowaveAngle = 15
 ENT.rotgb_AbilityType = 0
 ENT.rotgb_Lighten = 0
 ENT.rotgb_Shatter = 0
@@ -64,10 +64,10 @@ ENT.UpgradeReference = {
 				self.SeeCamo = true
 			end,
 			function(self)
-				self.rotgb_MicrowaveAngle = self.rotgb_MicrowaveAngle * 3
+				self.ProjectileSize = self.ProjectileSize * 3
 			end,
 			function(self)
-				self.rotgb_MicrowaveAngle = self.rotgb_MicrowaveAngle * 4
+				self.ProjectileSize = self.ProjectileSize * 4
 			end,
 			function(self)
 				self.rotgb_Lighten = 0.2
@@ -86,19 +86,19 @@ ENT.UpgradeReference = {
 ENT.UpgradeLimits = {7,2}
 
 function ENT:ROTGB_ApplyPerks()
-	self.rotgb_MicrowaveAngle = self.rotgb_MicrowaveAngle * (1+hook.Run("GetSkillAmount", "microwaveGeneratorMicrowaveAngle")/100)
+	self.ProjectileSize = self.ProjectileSize * (1+hook.Run("GetSkillAmount", "microwaveGeneratorMicrowaveAngle")/100)
 end
 
 function ENT:FireFunction(gBalloons)
 	self:SetNWFloat("LastFireTime",CurTime())
 	local startpos = self:GetShootPos()
-	local fireDir = self:WorldToLocal(gBalloons[1]:LocalToWorld(gBalloons[1]:OBBCenter()))
+	local fireDir = self:WorldToLocal(gBalloons[1]:WorldSpaceCenter())
 	fireDir.z = 0
 	fireDir:Normalize()
 	self:SetNWVector("OurTurning",fireDir)
-	local anglecos = math.cos(math.min(math.rad(self.rotgb_MicrowaveAngle), math.pi))
+	local anglecos = math.cos(math.min(math.rad(self.ProjectileSize), math.pi))
 	for k,v in pairs(gBalloons) do
-		local bpos = self:WorldToLocal(v:LocalToWorld(v:OBBCenter()))
+		local bpos = self:WorldToLocal(v:WorldSpaceCenter())
 		bpos.z = 0
 		bpos:Normalize()
 		if bpos:Dot(fireDir) >= anglecos then
@@ -119,7 +119,7 @@ function ENT:FireFunction(gBalloons)
 			if self.rotgb_Shatter >= 1 then
 				v:SetBalloonProperty("BalloonHidden", false)
 			end
-			v:TakeDamage(self.AttackDamage,self:GetTowerOwner(),self)
+			self:DealDamage(v, self.AttackDamage)
 		end
 	end
 end
@@ -142,11 +142,11 @@ function ENT:ROTGB_Draw()
 	if not self:GetNWVector("OurTurning",vector_origin):IsZero() and delta > 0 then
 		local gdir = self:GetNWVector("OurTurning")+vector_origin
 		local abmul = abilitydelta > 0 and bit.band(self.rotgb_AbilityType, 1) == 1 and 3 or 1
-		gdir:Rotate(Angle(0,-self.rotgb_MicrowaveAngle*abmul,0))
+		gdir:Rotate(Angle(0,-self.ProjectileSize*abmul,0))
 		render.SetMaterial(laserMat)
 		for i=0,2,0.125 do
 			render.DrawBeam(self:GetShootPos(),self:LocalToWorld(gdir*(self.InfiniteRange and 32768 or self.DetectionRadius)+self.LOSOffset),4,0,1,Color(255,255,0,delta*255))
-			gdir:Rotate(Angle(0,self.rotgb_MicrowaveAngle*0.125*abmul,0))
+			gdir:Rotate(Angle(0,self.ProjectileSize*0.125*abmul,0))
 		end
 	end
 	render.SetColorMaterial()
@@ -169,12 +169,12 @@ end
 
 function ENT:TriggerAbility()
 	if bit.band(self.rotgb_AbilityType, 1) == 1 then
-		self:ApplyBuff(self, "ROTGB_TOWER_14_ABILITY", self.AbilityDuration, function(tower)
+		self:AddDelayedActions(self, "ROTGB_TOWER_14_ABILITY", 0, function(tower)
 			tower.FireRate = tower.FireRate * 5
-			tower.rotgb_MicrowaveAngle = tower.rotgb_MicrowaveAngle * 3
-		end, function(tower)
+			tower.ProjectileSize = tower.ProjectileSize * 3
+		end, self.AbilityDuration, function(tower)
 			tower.FireRate = tower.FireRate / 5
-			tower.rotgb_MicrowaveAngle = tower.rotgb_MicrowaveAngle / 3
+			tower.ProjectileSize = tower.ProjectileSize / 3
 		end)
 	end
 	if bit.band(self.rotgb_AbilityType, 2) == 2 then

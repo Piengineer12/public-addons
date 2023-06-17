@@ -19,7 +19,7 @@ ENT.LOSOffset = Vector(0,0,24)
 ENT.UserTargeting = true
 ENT.AbilityCooldown = 15
 ENT.AttackDamage = 0
-ENT.rotgb_SpreadAngle = 5
+ENT.ProjectileSize = 5
 ENT.rotgb_Flames = 1
 ENT.rotgb_FireDuration = 5
 ENT.rotgb_FireUptick = 10
@@ -39,11 +39,11 @@ ENT.UpgradeReference = {
 		Prices = {150,1250,1750,3500,6500,10000},
 		Funcs = {
 			function(self)
-				self.rotgb_SpreadAngle = self.rotgb_SpreadAngle * 2
+				self.ProjectileSize = self.ProjectileSize * 2
 				self.DetectionRadius = self.DetectionRadius / 1.5
 			end,
 			function(self)
-				self.rotgb_SpreadAngle = self.rotgb_SpreadAngle * 3
+				self.ProjectileSize = self.ProjectileSize * 3
 			end,
 			function(self)
 				self.rotgb_Flames = self.rotgb_Flames + 1
@@ -122,7 +122,7 @@ ENT.UpgradeReference = {
 		Funcs = {
 			function(self)
 				self.FireRate = self.FireRate * 2
-				self.rotgb_SpreadAngle = self.rotgb_SpreadAngle / 1.5
+				self.ProjectileSize = self.ProjectileSize / 1.5
 			end,
 			function(self)
 				self.rotgb_ShrapnelDamage = self.rotgb_ShrapnelDamage + 10
@@ -134,7 +134,7 @@ ENT.UpgradeReference = {
 			function(self)
 				self.FireRate = self.FireRate * 3
 				self.rotgb_ShrapnelDamage = self.rotgb_ShrapnelDamage + 20
-				self.rotgb_SpreadAngle = self.rotgb_SpreadAngle / 2
+				self.ProjectileSize = self.ProjectileSize / 2
 			end,
 			function(self)
 				self.FireRate = self.FireRate * 5
@@ -156,10 +156,10 @@ function ENT:ROTGB_ApplyPerks()
 	self.DetectionRadius = self.DetectionRadius * (1+hook.Run("GetSkillAmount", "fireCubeRange")/100)
 end
 
-hook.Add("EntityTakeDamage","RotgB_Tower13",function(vic,dmginfo)
+hook.Add("EntityTakeDamage", "RotgB_Tower13", function(vic,dmginfo)
 	if vic:GetClass()=="gballoon_base" then
-		if vic:HasRotgBStatusEffect("unimmune_fireonly") and bit.band(dmginfo:GetDamageType(),DMG_BURN)==DMG_BURN then
-			dmginfo:SetDamageType(DMG_GENERIC)
+		if vic:HasRotgBStatusEffect("unimmune_fireonly") then
+			dmginfo:SetDamageType(bit.band(dmginfo:GetDamageType(), bit.bnot(DMG_BURN)))
 		end
 	end
 end)
@@ -175,26 +175,7 @@ function ENT:FireFunction(gBalloons)
 	if self.rotgb_ShrapnelDamage > 0 then
 		if self.rotgb_MultiShot then
 			for k,v in pairs(gBalloons) do
-				--[[local uDir = v:LocalToWorld(v:OBBCenter())-startpos
-				local bullet = {
-					Attacker = self:GetTowerOwner(),
-					Damage = 0,
-					Distance = self.InfiniteRange and 32767 or self.DetectionRadius*1.5,
-					HullSize = 1,
-					Num = 1,
-					Tracer = 1,
-					AmmoType = "357",
-					TracerName = "Tracer",
-					Dir = uDir,
-					Src = startpos
-				}
-				self:FireBullets(bullet)]]
-				local dmginfo = DamageInfo()
-				dmginfo:SetAttacker(self:GetTowerOwner())
-				dmginfo:SetInflictor(self)
-				dmginfo:SetDamage(self.rotgb_ShrapnelDamage + self.AttackDamage)
-				dmginfo:SetDamageType(self.rotgb_CanPopGray and DMG_SNIPER or DMG_BULLET)
-				v:TakeDamageInfo(dmginfo)
+				self:DealDamage(v, self.rotgb_ShrapnelDamage + self.AttackDamage, self.rotgb_CanPopGray and DMG_SNIPER or DMG_BULLET)
 				if self.rotgb_FlamingShrapnel then
 					v:RotgB_Ignite(self.rotgb_FireUptick * (v:GetBalloonProperty("BalloonBlimp") and self.rotgb_HeavyFireUptick or 1), self:GetTowerOwner(), self, self.rotgb_FireDuration)
 					if self.rotgb_AltFire then
@@ -203,26 +184,7 @@ function ENT:FireFunction(gBalloons)
 				end
 			end
 		elseif IsValid(towerTarget) then
-			--[[local uDir = towerTarget:LocalToWorld(towerTarget:OBBCenter())-startpos
-			local bullet = {
-				Attacker = self:GetTowerOwner(),
-				Damage = 0,
-				Distance = self.InfiniteRange and 32767 or self.DetectionRadius*1.5,
-				HullSize = 1,
-				Num = 1,
-				Tracer = 1,
-				AmmoType = "357",
-				TracerName = "Tracer",
-				Dir = uDir,
-				Src = startpos
-			}
-			self:FireBullets(bullet)]]
-			local dmginfo = DamageInfo()
-			dmginfo:SetAttacker(self:GetTowerOwner())
-			dmginfo:SetInflictor(self)
-			dmginfo:SetDamage(self.rotgb_ShrapnelDamage + self.AttackDamage)
-			dmginfo:SetDamageType(self.rotgb_CanPopGray and DMG_SNIPER or DMG_BULLET)
-			towerTarget:TakeDamageInfo(dmginfo)
+			self:DealDamage(towerTarget, self.rotgb_ShrapnelDamage + self.AttackDamage, self.rotgb_CanPopGray and DMG_SNIPER or DMG_BULLET)
 		end
 	end
 	if self.rotgb_Flames >= 1 then
@@ -240,15 +202,15 @@ function ENT:FireFunction(gBalloons)
 				end
 				selection = selection + 1
 			end
-			fireDir = self:WorldToLocal(towerTarget:LocalToWorld(towerTarget:OBBCenter()))
+			fireDir = self:WorldToLocal(towerTarget:WorldSpaceCenter())
 		end
 		fireDir.z = 0
 		fireDir:Normalize()
 		self:SetNWVector("OurTurning",fireDir)
-		local anglecos = math.cos(math.rad(self.rotgb_SpreadAngle))
+		local anglecos = math.cos(math.rad(self.ProjectileSize))
 		for k,v in pairs(gBalloons) do
 			if self:ValidTarget(v) then
-				local bpos = self:WorldToLocal(v:LocalToWorld(v:OBBCenter()))
+				local bpos = self:WorldToLocal(v:WorldSpaceCenter())
 				bpos.z = 0
 				bpos:Normalize()
 				for i=1,self.rotgb_Flames do
@@ -258,12 +220,7 @@ function ENT:FireFunction(gBalloons)
 							v:InflictRotgBStatusEffect("unimmune_fireonly",self.rotgb_FireDuration)
 						end
 						if self.rotgb_FireDamage > 0 then
-							local dmginfo = DamageInfo()
-							dmginfo:SetAttacker(self:GetTowerOwner())
-							dmginfo:SetInflictor(self)
-							dmginfo:SetDamage(self.rotgb_FireDamage + self.AttackDamage)
-							dmginfo:SetDamageType(DMG_BURN)
-							v:TakeDamageInfo(dmginfo)
+							self:DealDamage(v, self.rotgb_FireDamage + self.AttackDamage, DMG_BURN)
 						end
 					end
 					bpos:Rotate(Angle(0,360/self.rotgb_Flames,0))
@@ -283,11 +240,11 @@ function ENT:ROTGB_Draw()
 	if not self:GetNWVector("OurTurning",vector_origin):IsZero() and delta > 0 then
 		for i=1,self.rotgb_Flames do
 			local gdir = self:GetNWVector("OurTurning")+vector_origin
-			gdir:Rotate(Angle(0,i*360/self.rotgb_Flames-self.rotgb_SpreadAngle,0))
+			gdir:Rotate(Angle(0,i*360/self.rotgb_Flames-self.ProjectileSize,0))
 			render.SetMaterial(laserMat)
 			for i=0,2,0.25 do
 				render.DrawBeam(self:GetShootPos(),self:LocalToWorld(gdir*(self.InfiniteRange and 32768 or self.DetectionRadius)+self.LOSOffset),4,0,1,Color(255,128,0,delta*255))
-				gdir:Rotate(Angle(0,self.rotgb_SpreadAngle*0.25,0))
+				gdir:Rotate(Angle(0,self.ProjectileSize*0.25,0))
 			end
 		end
 	end
@@ -296,28 +253,14 @@ function ENT:ROTGB_Draw()
 		local maxAlpha = ROTGB_GetConVarValue("rotgb_range_alpha")
 		local alpha = math.Clamp(math.Remap(self.DrawFadeNext-RealTime(),fadeout,0,maxAlpha,0),0,maxAlpha)
 		local scol = Color(255,127,0,alpha)
-		--local scol = Color(255,127,0)
-		--[[render.SetMaterial(laserMat)
-		local gdir = Vector(1,0,0)
-		for i=1,4 do
-			render.DrawBeam(self:GetShootPos(),self:LocalToWorld(gdir*self.DetectionRadius+self.LOSOffset),4,0,1,scol)
-			gdir:Rotate(Angle(0,90,0))
-		end]]
 		local selfang = self:GetAngles()
-		--local reqang = (self:GetPos()-LocalPlayer():GetShootPos()):Angle()
-		--reqang.p = reqang.p+90
-		--reqang.y = reqang.y-90
 		selfang.r = selfang.r+90
-		--for i=1,2 do
-			cam.Start3D2D(self:LocalToWorld(self.LOSOffset+Vector(0,0,ROTGB_GetConVarValue("rotgb_hoverover_distance")+16+self:OBBMaxs().z)),selfang,1)
-				surface.SetDrawColor(scol)
-				surface.SetMaterial(arrowMat)
-				surface.DrawTexturedRect(-16,-16,32,32)
-				surface.DrawTexturedRect(16,-16,-32,32)
-			cam.End3D2D()
-			--selfang.y = selfang.y + 90
-			--reqang.p = reqang.p + 90
-		--end
+		cam.Start3D2D(self:LocalToWorld(self.LOSOffset+Vector(0,0,ROTGB_GetConVarValue("rotgb_hoverover_distance")+16+self:OBBMaxs().z)),selfang,1)
+			surface.SetDrawColor(scol)
+			surface.SetMaterial(arrowMat)
+			surface.DrawTexturedRect(-16,-16,32,32)
+			surface.DrawTexturedRect(16,-16,-32,32)
+		cam.End3D2D()
 	end
 end
 
