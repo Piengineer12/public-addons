@@ -153,7 +153,7 @@ local function UpdateLookEntityInfo(ent, reset)
 			end
 		else
 			lookEntityInfo.teamColor = color_white
-			lookEntityInfo.name = language.GetPhrase(ent.insaneStats_Class)
+			lookEntityInfo.name = language.GetPhrase(ent.PrintName or ent.insaneStats_Class)
 			
 			if ent:IsNPC() then
 				local disposition = ent.insaneStats_Disposition

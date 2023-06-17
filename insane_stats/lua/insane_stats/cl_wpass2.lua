@@ -114,7 +114,7 @@ local function CreateName(wep)
 	end
 	
 	local isWep = wep:IsWeapon()
-	local name = language.GetPhrase(isWep and wep:GetClass() or "item_battery")
+	local name = language.GetPhrase(isWep and wep.PrintName or wep:GetClass() or "item_battery")
 	local lastSuffix = #modifiersAscending
 	if lastSuffix % 2 == 0 then lastSuffix = lastSuffix - 1 end
 	
@@ -193,7 +193,7 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 	extra = extra or {}
 	
 	surface.SetAlphaMultiplier(alphaMod)
-	local titleText = (extra.dropped and "Hovered " or "Current ")..language.GetPhrase(wep:IsWeapon() and wep:GetClass() or "item_battery")..":"
+	local titleText = (extra.dropped and "Hovered " or "Current ")..language.GetPhrase(wep:IsWeapon() and wep.PrintName or wep:GetClass() or "item_battery")..":"
 	textOffsetX, textOffsetY = draw.SimpleTextOutlined(titleText, "InsaneStats.Medium", panelX+outlineThickness, panelY+outlineThickness, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, outlineThickness, color_black)
 	panelY = panelY + textOffsetY
 	
@@ -325,7 +325,7 @@ hook.Add("InsaneStatsModifiersChanging", "InsaneStatsWPASS", function(ent, oldMo
 			end
 			
 			if baseText then
-				local entityName = language.GetPhrase(ent:IsPlayer() and "item_battery" or ent:GetClass())
+				local entityName = language.GetPhrase(ent:IsPlayer() and "item_battery" or ent.PrintName or ent:GetClass())
 				local modifierName = modifiers[k] and (modifiers[k].suffix or modifiers[k].prefix) or k
 				--notification.AddLegacy(string.format(baseText, entityName, modifierName), NOTIFY_GENERIC, 5)
 				chat.AddText(string.format(baseText, entityName, modifierName))
