@@ -114,7 +114,7 @@ local function CreateName(wep)
 	end
 	
 	local isWep = wep:IsWeapon()
-	local name = language.GetPhrase(isWep and wep.PrintName or wep:GetClass() or "item_battery")
+	local name = language.GetPhrase(wep.PrintName ~= "" and wep.PrintName or isWep and wep:GetClass() or "item_battery")
 	local lastSuffix = #modifiersAscending
 	if lastSuffix % 2 == 0 then lastSuffix = lastSuffix - 1 end
 	
@@ -193,7 +193,7 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 	extra = extra or {}
 	
 	surface.SetAlphaMultiplier(alphaMod)
-	local titleText = (extra.dropped and "Hovered " or "Current ")..language.GetPhrase(wep:IsWeapon() and wep.PrintName or wep:GetClass() or "item_battery")..":"
+	local titleText = (extra.dropped and "Hovered " or "Current ")..language.GetPhrase(wep.PrintName ~= "" and wep.PrintName or wep:IsWeapon() and wep:GetClass() or "item_battery")..":"
 	textOffsetX, textOffsetY = draw.SimpleTextOutlined(titleText, "InsaneStats.Medium", panelX+outlineThickness, panelY+outlineThickness, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, outlineThickness, color_black)
 	panelY = panelY + textOffsetY
 	
@@ -243,9 +243,9 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 	
 	local attribY1 = panelY + 2
 	local attribY2 = maxY
-	local excessY = math.max(#wep.insaneStats_AttributeOrder * InsaneStats.FONT_MEDIUM + attribY1 - attribY2 + outlineThickness*2, 0)
-	local holdTime = (attribY2 - attribY1) / InsaneStats.FONT_MEDIUM / 2
-	local pathDuration = holdTime + excessY / InsaneStats.FONT_MEDIUM
+	local excessY = math.max(#wep.insaneStats_AttributeOrder * InsaneStats.FONT_SMALL + attribY1 - attribY2 + outlineThickness*2, 0)
+	local holdTime = (attribY2 - attribY1) / InsaneStats.FONT_SMALL / 2
+	local pathDuration = holdTime + excessY / InsaneStats.FONT_SMALL
 	local animDuration = pathDuration * 2
 	local animCurrent = changeDuration % animDuration
 	
@@ -263,9 +263,9 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 	render.SetScissorRect(panelX, panelY+outlineThickness, panelX+maxW, maxY, true)
 	
 	for i,v in ipairs(wep.insaneStats_AttributeOrder) do
-		local textY = panelY + (i-1) * InsaneStats.FONT_MEDIUM + offsetY
+		local textY = panelY + (i-1) * InsaneStats.FONT_SMALL + offsetY
 		-- don't bother if out of range
-		if textY > attribY1-InsaneStats.FONT_MEDIUM-4 and textY < attribY2+outlineThickness then
+		if textY > attribY1-InsaneStats.FONT_SMALL-4 and textY < attribY2+outlineThickness then
 			local attribValue = wep.insaneStats_Attributes[v]
 			if not attribValue then
 				PrintTable(wep.insaneStats_Attributes)
@@ -274,14 +274,14 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 			
 			local displayColor = (attribValue < 1 == tobool(attributes[v].invert)) and color_light_blue or color_light_red
 			
-			local numberDisplay = InsaneStats:FormatNumber((attribValue-1)*(attributes[v].nopercent and 1 or 100), {plus = true})
+			local numberDisplay = InsaneStats:FormatNumber((attribValue-1)*(attributes[v].nopercent and 1 or 100), {plus = true, decimals = 1})
 				..(attributes[v].nopercent and "" or "%")
 			--[[if attribValue >= 10001 then
 				numberDisplay = InsaneStats:FormatNumber((attribValue-1)*100) .. " %"
 			end]]
 			local attribDisplay = string.format(attributes[v].display, numberDisplay)
 			
-			textOffsetX, textOffsetY = draw.SimpleTextOutlined(attribDisplay, "InsaneStats.Medium", panelX+outlineThickness, textY+outlineThickness, displayColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, outlineThickness, color_black)
+			textOffsetX, textOffsetY = draw.SimpleTextOutlined(attribDisplay, "InsaneStats.Small", panelX+outlineThickness, textY+outlineThickness, displayColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, outlineThickness, color_black)
 		end
 	end
 	
@@ -325,7 +325,7 @@ hook.Add("InsaneStatsModifiersChanging", "InsaneStatsWPASS", function(ent, oldMo
 			end
 			
 			if baseText then
-				local entityName = language.GetPhrase(ent:IsPlayer() and "item_battery" or ent.PrintName or ent:GetClass())
+				local entityName = language.GetPhrase(ent.PrintName ~= "" and ent.PrintName or ent:IsPlayer() and "item_battery" or ent:GetClass())
 				local modifierName = modifiers[k] and (modifiers[k].suffix or modifiers[k].prefix) or k
 				--notification.AddLegacy(string.format(baseText, entityName, modifierName), NOTIFY_GENERIC, 5)
 				chat.AddText(string.format(baseText, entityName, modifierName))

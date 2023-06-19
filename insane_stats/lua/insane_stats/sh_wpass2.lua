@@ -14,6 +14,30 @@ InsaneStats:RegisterConVar("wpass2_enabled", "insanestats_wpass2_enabled", "1", 
 	display = "Enable WPASS2", desc = "Enables WPASS2, allowing weapons / armor batteries to gain prefixes and suffixes.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterConVar("wpass2_modifiers_player_save", "insanestats_wpass2_modifiers_player_save", "0", {
+	display = "Save Player Modifiers Across Maps", desc = "If 1, modifiers on player weapons / armor batteries will be saved across maps. \z
+	Consequently, all weapons and ammo are also perserved across maps. \z
+	Health, armor and suit status are perserved if armor batteries are perserved.\n\z
+	In addition, disconnected players will also have their loadouts perserved even if the map has changed.\n\z
+	If 2, only WPASS2 modifiers are perserved, to avoid interference with other addons that already save the player's loadout.\n\z
+	Note that Half-Life 2 level transitions already carry these across the transitioned levels, even when this ConVar is off.",
+	type = InsaneStats.INT, min = 0, max = 2
+})
+InsaneStats:RegisterConVar("wpass2_modifiers_player_save_battery", "insanestats_wpass2_modifiers_player_save_battery", "-1", {
+	display = "Save Player Battery Modifiers Across Maps", desc = "If 0 or above, overrides insanestats_wpass2_modifiers_player_save for armor batteries.",
+	type = InsaneStats.INT, min = -1, max = 2
+})
+InsaneStats:RegisterConVar("wpass2_modifiers_player_save_death", "insanestats_wpass2_modifiers_player_save_death", "0", {
+	display = "Save Player Modifiers Across Deaths", desc = "If 1, modifiers on player weapons / armor batteries will be saved across deaths. \z
+	Consequently, all weapons and ammo are also perserved across deaths.\n\z
+	In addition, disconnected players will also have their loadouts perserved as long as they rejoin in the same session.\n\z
+	If 2, only WPASS2 modifiers are perserved, to avoid interference with other addons that already save the player's loadout.",
+	type = InsaneStats.INT, min = 0, max = 2
+})
+InsaneStats:RegisterConVar("wpass2_modifiers_player_save_death_battery", "insanestats_wpass2_modifiers_player_save_death_battery", "-1", {
+	display = "Save Player Battery Modifiers Across Deaths", desc = "If 0 or above, overrides insanestats_wpass2_modifiers_player_save_death for armor batteries.",
+	type = InsaneStats.INT, min = -1, max = 2
+})
 InsaneStats:RegisterConVar("wpass2_autopickup", "insanestats_wpass2_autopickup", "1", {
 	display = "Auto Pickup Mode", desc = "Determines whether weapons / armor batteries will be automatically picked up for ammo / armor.\n\z
 	0: Never auto pickup weapons and armor batteries.\n\z
@@ -61,31 +85,6 @@ InsaneStats:RegisterConVar("wpass2_attributes_enemy_enabled", "insanestats_wpass
 InsaneStats:RegisterConVar("wpass2_attributes_enemy_enabled_battery", "insanestats_wpass2_attributes_enemy_enabled_battery", "-1", {
 	display = "Enemy Battery Attribute Effects", desc = "If 0 or above, overrides insanestats_wpass2_attributes_enemy_enabled for armor batteries.",
 	type = InsaneStats.INT, min = -1, max = 1
-})
-
-InsaneStats:RegisterConVar("wpass2_modifiers_player_save", "insanestats_wpass2_modifiers_player_save", "0", {
-	display = "Save Player Modifiers Across Maps", desc = "If 1, modifiers on player weapons / armor batteries will be saved across maps. \z
-	Consequently, all weapons and ammo are also perserved across maps. \z
-	Health, armor and suit status are perserved if armor batteries are perserved.\n\z
-	In addition, disconnected players will also have their loadouts perserved even if the map has changed.\n\z
-	If 2, only WPASS2 modifiers are perserved, to avoid interference with other addons that already save the player's loadout.\n\z
-	Note that Half-Life 2 level transitions already carry these across the transitioned levels, even when this ConVar is off.",
-	type = InsaneStats.INT, min = 0, max = 2
-})
-InsaneStats:RegisterConVar("wpass2_modifiers_player_save_battery", "insanestats_wpass2_modifiers_player_save_battery", "-1", {
-	display = "Save Player Battery Modifiers Across Maps", desc = "If 0 or above, overrides insanestats_wpass2_modifiers_player_save for armor batteries.",
-	type = InsaneStats.INT, min = -1, max = 2
-})
-InsaneStats:RegisterConVar("wpass2_modifiers_player_save_death", "insanestats_wpass2_modifiers_player_save_death", "0", {
-	display = "Save Player Modifiers Across Deaths", desc = "If 1, modifiers on player weapons / armor batteries will be saved across deaths. \z
-	Consequently, all weapons and ammo are also perserved across deaths.\n\z
-	In addition, disconnected players will also have their loadouts perserved as long as they rejoin in the same session.\n\z
-	If 2, only WPASS2 modifiers are perserved, to avoid interference with other addons that already save the player's loadout.",
-	type = InsaneStats.INT, min = 0, max = 2
-})
-InsaneStats:RegisterConVar("wpass2_modifiers_player_save_death_battery", "insanestats_wpass2_modifiers_player_save_death_battery", "-1", {
-	display = "Save Player Battery Modifiers Across Deaths", desc = "If 0 or above, overrides insanestats_wpass2_modifiers_player_save_death for armor batteries.",
-	type = InsaneStats.INT, min = -1, max = 2
 })
 
 InsaneStats:SetDefaultConVarCategory("WPASS2 - Tier Calculation")
@@ -226,7 +225,6 @@ InsaneStats:RegisterConVar("wpass2_chance_other_drop_battery", "insanestats_wpas
 })
 
 local doWeaponOverride = false
-local entities = {}
 timer.Create("InsaneStatsSharedWPASS", 0.5, 0, function()
 	-- the reason we don't alter for DLib is to prevent functions from returning true, which would break our bullets
 	local hookTable = hook.GetTable()
@@ -250,13 +248,6 @@ timer.Create("InsaneStatsSharedWPASS", 0.5, 0, function()
 				hook.Add("EntityFireBullets", k, v)
 				hook.Remove("NonInsaneStatsEntityFireBullets", k)
 			end
-		end
-	end
-	
-	entities = {}
-	for k,v in pairs(ents.GetAll()) do
-		if v:InsaneStats_GetHealth() > 0 then
-			table.insert(entities, v)
 		end
 	end
 end)
@@ -369,6 +360,7 @@ local registeredEffects, modifiers, attributes = {}, {}, {}
 local effectNamesToIDs = {}
 local effectIDsToNames = {}
 local expiryEffects = {}
+local entitiesByStatusEffect = {} -- used for optimization purposes
 local function MapStatusEffectNamesToIDs()
 	effectNamesToIDs = {}
 	effectIDsToNames = {}
@@ -376,6 +368,13 @@ local function MapStatusEffectNamesToIDs()
 	for k,v in SortedPairs(registeredEffects) do
 		effectNamesToIDs[k] = table.insert(effectIDsToNames, k)
 		expiryEffects[k] = v.expiry
+	end
+	
+	for i,v in ipairs(ents.GetAll()) do
+		for k,v2 in pairs(v.insaneStats_StatusEffects or {}) do
+			entitiesByStatusEffect[k] = entitiesByStatusEffect[k] or {}
+			entitiesByStatusEffect[k][v] = v2
+		end
 	end
 	
 	--print("Client: ", CLIENT)
@@ -449,6 +448,21 @@ function InsaneStats:ApplyWPASS2Attributes(wep)
 	hook.Run("InsaneStatsWPASS2AttributesChanged", wep)
 end
 
+function InsaneStats:GetEntitiesByStatusEffect(id)
+	entitiesByStatusEffect[id] = entitiesByStatusEffect[id] or {}
+	local entities = {}
+	
+	for k,v in pairs(entitiesByStatusEffect[id]) do
+		if v.expiry >= CurTime() and IsValid(k) then
+			table.insert(entities, k)
+		else
+			entitiesByStatusEffect[id][k] = nil
+		end
+	end
+	
+	return entities
+end
+
 local ENTITY = FindMetaTable("Entity")
 
 function ENTITY:InsaneStats_SetBatteryXP(xp)
@@ -509,6 +523,7 @@ local function EntityInitStatusEffects(ent)
 end
 
 local function DoExpiryEffect(ent, statName)
+	entitiesByStatusEffect[statName][ent] = nil
 	local statusData = ent.insaneStats_StatusEffects and ent.insaneStats_StatusEffects[statName]
 	if expiryEffects[statName] and statusData then
 		expiryEffects[statName](ent, statusData.level or 0, statusData.attacker)
@@ -520,6 +535,8 @@ function ENTITY:InsaneStats_ApplyStatusEffect(id, level, duration, data)
 	local effectTable = self.insaneStats_StatusEffects[id]
 	local changeOccured = false
 	local curTime = CurTime()
+	
+	entitiesByStatusEffect[id] = entitiesByStatusEffect[id] or {}
 	
 	data = data or {}
 	if (effectTable and effectTable.expiry > curTime) then
@@ -554,6 +571,7 @@ function ENTITY:InsaneStats_ApplyStatusEffect(id, level, duration, data)
 			level = level,
 			attacker = data.attacker
 		}
+		entitiesByStatusEffect[id][self] = self.insaneStats_StatusEffects[id]
 		changeOccured = true
 	end
 	
@@ -666,14 +684,11 @@ end
 hook.Add("Think", "InsaneStatsSharedWPASS", function()
 	CheckOverrideWeapons()
 	
-	for k,v in pairs(entities) do
-		if v.insaneStats_StatusEffects then
-			for k2,v2 in pairs(expiryEffects) do
-				--print(v, k2, v.insaneStats_StatusEffects[k2])
-				if (v.insaneStats_StatusEffects[k2] and (v.insaneStats_StatusEffects[k2].expiry or 0) < CurTime()) then
-					DoExpiryEffect(v, k2)
-					v.insaneStats_StatusEffects[k2] = nil
-				end
+	for stat, expiryFunc in pairs(expiryEffects) do
+		for k,v in pairs(entitiesByStatusEffect[stat] or {}) do
+			if IsValid(k) and v.expiry <= CurTime() then
+				DoExpiryEffect(k, stat)
+				k.insaneStats_StatusEffects[stat] = nil
 			end
 		end
 	end

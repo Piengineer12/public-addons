@@ -849,7 +849,7 @@ hook.Add("PlayerSpawn", "InsaneStatsXP", function(ply, fromTransition)
 	end
 	
 	if not ply.insaneStats_XPLoaded then
-		local xp = savedPlayerXP[ply:SteamID()]
+		local xp = InsaneStats:GetConVarValue("xp_player_save") and savedPlayerXP[ply:SteamID()]
 		
 		if xp then
 			ply:InsaneStats_SetXP(xp)
@@ -873,7 +873,7 @@ hook.Add("PlayerSpawn", "InsaneStatsXP", function(ply, fromTransition)
 end)
 
 local function SaveData()
-	if InsaneStats:GetConVarValue("xp_enabled") then
+	if InsaneStats:GetConVarValue("xp_enabled") and InsaneStats:GetConVarValue("xp_player_save") then
 		local data = util.JSONToTable(file.Read("insane_stats.txt") or "") or {}
 		data.maps = mapOrder
 		
@@ -891,7 +891,7 @@ end
 
 local saveThinkCooldown = 0
 hook.Add("Think", "InsaneStatsXP", function()
-	if saveThinkCooldown < RealTime() and InsaneStats:GetConVarValue("xp_enabled") then
+	if saveThinkCooldown < RealTime() then
 		SaveData()
 		
 		saveThinkCooldown = RealTime() + 30

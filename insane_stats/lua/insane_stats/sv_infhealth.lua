@@ -48,12 +48,16 @@ function ENT:InsaneStats_ApplyKnockback(knockback, additionalVelocity)
 end
 
 local dLibbed = false
-local entities = {}
+local entities = ents.GetAll()
 timer.Create("InsaneStatsUnlimitedHealth", 0.5, 0, function()
-	entities = {}
-	for k,v in pairs(ents.GetAll()) do
-		if v:InsaneStats_GetHealth() > 0 then
-			table.insert(entities, v)
+	local i = 1
+	while entities[i] do
+		local ent = entities[i]
+		
+		if (IsValid(ent) and ent:InsaneStats_GetHealth() > 0) then
+			i = i + 1
+		else
+			table.remove(entities, i)
 		end
 	end
 	
@@ -136,9 +140,9 @@ timer.Create("InsaneStatsUnlimitedHealth", 0.5, 0, function()
 end)
 
 hook.Add("Think", "InsaneStatsUnlimitedHealth", function()
-	if InsaneStats:GetConVarValue("infhealth_enabled") then
+	if InsaneStats:GetConVarValue("infhealth_enabled") and CurTime() > 5 then
 		for k,v in pairs(entities) do
-			if IsValid(v) and CurTime() > 5 then
+			if IsValid(v) then
 				if v.InsaneStats_GetRawHealth then
 					v.insaneStats_OldRawHealth = v.insaneStats_OldRawHealth or v:InsaneStats_GetRawHealth()
 					
@@ -369,6 +373,8 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 end)
 
 hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
+	table.insert(entities, ent)
+	
 	if InsaneStats:GetConVarValue("infhealth_enabled") then
 		--[[if ent:InsaneStats_GetHealth() == math.huge and ent.insaneStats_HealthRoot8 then
 			ent.insaneStats_Health = ent.insaneStats_HealthRoot8 ^ 8

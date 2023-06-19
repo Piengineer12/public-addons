@@ -153,7 +153,7 @@ local function UpdateLookEntityInfo(ent, reset)
 			end
 		else
 			lookEntityInfo.teamColor = color_white
-			lookEntityInfo.name = language.GetPhrase(ent.PrintName or ent.insaneStats_Class)
+			lookEntityInfo.name = language.GetPhrase(ent.PrintName ~= "" and ent.PrintName or ent.insaneStats_Class)
 			
 			if ent:IsNPC() then
 				local disposition = ent.insaneStats_Disposition
@@ -272,7 +272,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 		surface.SetDrawColor(barFGColor.r, barFGColor.g, barFGColor.b)
 		surface.DrawRect(barX, barY, barWidth * ply:InsaneStats_GetLevelFraction(), barHeight)
 		
-		draw.SimpleTextOutlined("Level ".. InsaneStats:FormatNumber(level), "InsaneStats.Medium", barX, barY, fgColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
+		draw.SimpleTextOutlined("Level ".. InsaneStats:FormatNumber(level), "InsaneStats.Medium", barX, barY-2, fgColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
 		if levelDisplayExpiryDuration < 0 then
 			local previousLevelXP = math.floor(InsaneStats:GetConVarValue("hud_xp_cumulative") and 0 or InsaneStats:GetXPRequiredToLevel(level))
 			local currentXP = xp - previousLevelXP
@@ -291,7 +291,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 			local xpString = InsaneStats:FormatNumber(currentXP)
 			local requiredXp = InsaneStats:FormatNumber(nextXP)
 			local experienceText = xpString .. " / " .. requiredXp
-			draw.SimpleTextOutlined(experienceText, "InsaneStats.Medium", barX+barWidth, barY, fgColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
+			draw.SimpleTextOutlined(experienceText, "InsaneStats.Medium", barX+barWidth, barY-2, fgColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
 			olderLevel = -1
 		else
 			local color = HSVToColor(levelHue, (math.cos(levelDisplayExpiryDuration*math.pi)+1)/2*maxSaturation, 1)
@@ -307,7 +307,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 			if levelDiff ~= 1 then
 				levelUpText = levelUpText .. " x" .. InsaneStats:FormatNumber(levelDiff)
 			end
-			draw.SimpleTextOutlined(levelUpText, "InsaneStats.Medium", barX+barWidth, barY, color, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
+			draw.SimpleTextOutlined(levelUpText, "InsaneStats.Medium", barX+barWidth, barY-2, color, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
 		end
 		
 		if xpDisplayExpiryDuration > 0 then

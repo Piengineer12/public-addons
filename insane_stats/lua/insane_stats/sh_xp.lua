@@ -17,6 +17,10 @@ InsaneStats:RegisterConVar("xp_damagemode", "insanestats_xp_damagemode", "1", {
 		Note that the inflictor will always receive the same XP as the attacker regardless of circumstance.",
 	type = InsaneStats.INT, min = 0, max = 3
 })
+InsaneStats:RegisterConVar("xp_player_save", "insanestats_xp_player_save", "1", {
+	display = "Save Player XP Across Maps", desc = "If enabled, player XP will be saved across maps.",
+	type = InsaneStats.BOOL
+})
 
 InsaneStats:SetDefaultConVarCategory("XP - XP Calculations")
 

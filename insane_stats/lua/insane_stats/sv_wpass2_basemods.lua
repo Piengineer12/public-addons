@@ -1,6 +1,13 @@
 local damageTiers = {0}
 -- 0: normal, 1: explosive, 2: arcing, 3: status effect
-local entities = {}
+local entities = ents.GetAll()
+local rapidThinkEntities = {}
+
+for k,v in pairs(entities) do
+	if v:InsaneStats_IsMob() then
+		table.insert(rapidThinkEntities, v)
+	end
+end
 
 local blastDamageTypes = bit.bor(DMG_BLAST, DMG_BLAST_SURFACE)
 local fireDamageTypse = bit.bor(DMG_BURN, DMG_SLOWBURN)
@@ -834,7 +841,7 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 								output = traceResult
 							}
 							
-							for k,v in pairs(ents.GetAll()) do
+							for k,v in pairs(ents.FindInPVS(attacker)) do
 								if attacker:InsaneStats_IsValidEnemy(v) then
 									local damagePos = v:HeadTarget(attacker:WorldSpaceCenter()) or v:WorldSpaceCenter()
 									damagePos = damagePos:IsZero() and v:WorldSpaceCenter() or damagePos
@@ -906,7 +913,7 @@ hook.Add("EntityFireBullets", "InsaneStatsWPASS2", function(attacker, data)
 			}
 			
 			-- get every NPC who hates us / entities we hate on the map
-			for k,v in pairs(entities) do
+			for i,v in ipairs(entities) do
 				if attacker:InsaneStats_IsValidEnemy(v) then
 					local bulletDir = data.Dir
 					if bulletDir:LengthSqr() ~= 1 and not bulletDir:IsZero() then
@@ -1260,129 +1267,245 @@ hook.Add("InsaneStatsArmorBatteryChanged", "InsaneStatsWPASS2", function(ent, it
 end)
 
 local function CauseStatusEffectDamage(data)
-	local victim = data.victim
 	local stat = data.stat
-	
-	local statLevel = victim:InsaneStats_GetStatusEffectLevel(stat)
-	if statLevel ~= 0 and victim:InsaneStats_GetHealth() > 0 then
-		--print(stat, statLevel)
-		table.insert(damageTiers, 3)
-		--PrintTable(data)
-		local attacker = victim:InsaneStats_GetStatusEffectAttacker(stat)
-		if not IsValid(attacker) then
-			attacker = victim
+	for i, victim in ipairs(InsaneStats:GetEntitiesByStatusEffect(stat)) do
+		local statLevel = victim:InsaneStats_GetStatusEffectLevel(stat)
+		if victim:InsaneStats_GetHealth() > 0 then
+			--print(stat, statLevel)
+			table.insert(damageTiers, 3)
+			--PrintTable(data)
+			local attacker = victim:InsaneStats_GetStatusEffectAttacker(stat)
+			if not IsValid(attacker) then
+				attacker = victim
+			end
+			local damage = statLevel / 5
+			
+			local dmginfo = DamageInfo()
+			dmginfo:SetAmmoType(data.ammoType or -1)
+			dmginfo:SetAttacker(attacker)
+			dmginfo:SetBaseDamage(damage)
+			dmginfo:SetDamage(damage)
+			dmginfo:SetDamageForce(vector_origin)
+			dmginfo:SetDamagePosition(victim:WorldSpaceCenter())
+			dmginfo:SetDamageType(bit.bor(data.damageType, DMG_PREVENT_PHYSICS_FORCE))
+			dmginfo:SetInflictor(attacker)
+			dmginfo:SetMaxDamage(damage)
+			dmginfo:SetReportedPosition(attacker:WorldSpaceCenter())
+			victim:TakeDamageInfo(dmginfo)
+			
+			table.remove(damageTiers)
 		end
-		local damage = statLevel / 5
-		
-		local dmginfo = DamageInfo()
-		dmginfo:SetAmmoType(data.ammoType or -1)
-		dmginfo:SetAttacker(attacker)
-		dmginfo:SetBaseDamage(damage)
-		dmginfo:SetDamage(damage)
-		dmginfo:SetDamageForce(vector_origin)
-		dmginfo:SetDamagePosition(victim:WorldSpaceCenter())
-		dmginfo:SetDamageType(bit.bor(data.damageType, DMG_PREVENT_PHYSICS_FORCE))
-		dmginfo:SetInflictor(attacker)
-		dmginfo:SetMaxDamage(damage)
-		dmginfo:SetReportedPosition(attacker:WorldSpaceCenter())
-		victim:TakeDamageInfo(dmginfo)
-		
-		table.remove(damageTiers)
 	end
 end
 
 local tickIndex = 0
-local rapidThinkEntities = {}
 local timerResolution = 0.2
 local decayRate = 0.99^timerResolution
 timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 	if InsaneStats:GetConVarValue("wpass2_enabled") then
 		local startTime = SysTime()
 		local timeIndex = {0, 0, 0, 0}
+		local tempTimeStart
 		
 		tickIndex = (tickIndex + 1) % 5
-		
-		local tempTimeStart = SysTime()
-		
-		entities = {}
-		rapidThinkEntities = {}
-		-- rapidThinkEntities only contains entities that absolutely have to be ticked every tick
-		
-		for k,v in pairs(ents.GetAll()) do
-			if v:InsaneStats_IsMob() then
-				table.insert(rapidThinkEntities, v)
-				table.insert(entities, v)
-			elseif v:InsaneStats_GetHealth() > 0 and (v:GetModel() or "") ~= "" then
-				table.insert(entities, v)
-			end
-		end
-		
-		timeIndex[4] = SysTime() - tempTimeStart
 		tempTimeStart = SysTime()
 		
 		-- for marking modifier
 		local entitiesNeedMarkingEntities = {}
-		for k,v in pairs(rapidThinkEntities) do
-			if v:InsaneStats_GetAttributeValue("mark") > 1 then
+		for i,v in ipairs(rapidThinkEntities) do
+			if (IsValid(v) and v:InsaneStats_GetAttributeValue("mark") > 1) then
 				v.insaneStats_MarkedEntity = nil
 				table.insert(entitiesNeedMarkingEntities, v)
 			end
 		end
 		
 		timeIndex[2] = SysTime() - tempTimeStart
+		tempTimeStart = SysTime()
 		
-		for k,v in pairs(entities) do
+		-- get all entities with regen
+		local regenAmounts = {}
+		for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("regen")) do
+			regenAmounts[v] = v:InsaneStats_GetStatusEffectLevel("regen")
+		end
+		for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("hittaken_regen")) do
+			regenAmounts[v] = (regenAmounts[v] or 0) + v:InsaneStats_GetStatusEffectLevel("hittaken_regen")
+		end
+		for k,v in pairs(regenAmounts) do
+			local healthRestored = v * (k.insaneStats_CurrentHealthAdd or 1) * timerResolution
+			
+			if k:InsaneStats_GetStatusEffectLevel("bleed") > 0
+			or k:InsaneStats_GetStatusEffectLevel("hemotoxin") > 0
+			or k:InsaneStats_GetStatusEffectLevel("cosmicurse") > 0 then
+				healthRestored = healthRestored / 2
+			end
+			
+			k:InsaneStats_AddHealthCapped(healthRestored)
+		end
+		
+		-- get all entities with armor regen
+		regenAmounts = {}
+		for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("armor_regen")) do
+			regenAmounts[v] = v:InsaneStats_GetStatusEffectLevel("armor_regen")
+		end
+		for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("hittaken_armorregen")) do
+			regenAmounts[v] = (regenAmounts[v] or 0) + v:InsaneStats_GetStatusEffectLevel("hittaken_armorregen")
+		end
+		for k,v in pairs(regenAmounts) do
+			local armorRestored = v * (k.insaneStats_CurrentArmorAdd or 1) * timerResolution
+			
+			if k:InsaneStats_GetStatusEffectLevel("shock") > 0
+			or k:InsaneStats_GetStatusEffectLevel("electroblast") > 0
+			or k:InsaneStats_GetStatusEffectLevel("cosmicurse") > 0 then
+				armorRestored = armorRestored / 2
+			end
+			
+			k:InsaneStats_AddArmorNerfed(armorRestored)
+		end
+		
+		for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("stack_damage_up")) do
+			v:InsaneStats_SetStatusEffectLevel("stack_damage_up", v:InsaneStats_GetStatusEffectLevel("stack_damage_up") * decayRate)
+		end
+		for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("stack_defence_up")) do
+			v:InsaneStats_SetStatusEffectLevel("stack_defence_up", v:InsaneStats_GetStatusEffectLevel("stack_defence_up") * decayRate)
+		end
+		for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("stack_xp_up")) do
+			v:InsaneStats_SetStatusEffectLevel("stack_xp_up", v:InsaneStats_GetStatusEffectLevel("stack_xp_up") * decayRate)
+		end
+		for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("stack_firerate_up")) do
+			v:InsaneStats_SetStatusEffectLevel("stack_firerate_up", v:InsaneStats_GetStatusEffectLevel("stack_firerate_up") * decayRate)
+		end
+		for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("stunned")) do
+			if v:InsaneStats_GetHealth() <= 0 then
+				v:InsaneStats_ClearStatusEffect("stunned")
+			end
+		end
+		
+		if tickIndex == 0 then
+			CauseStatusEffectDamage({
+				stat = "poison",
+				damageType = DMG_NERVEGAS
+			})
+			CauseStatusEffectDamage({
+				stat = "hemotoxin",
+				damageType = bit.bor(DMG_NERVEGAS, DMG_SLASH)
+			})
+			CauseStatusEffectDamage({
+				stat = "cosmicurse",
+				ammoType = 8,
+				damageType = bit.bor(DMG_SLASH, DMG_SLOWBURN, DMG_BLAST, DMG_NERVEGAS, DMG_AIRBOAT, DMG_VEHICLE, DMG_SHOCK, DMG_ENERGYBEAM)
+			})
+		
+			tempTimeStart = SysTime()
+			
+			local entIndex = 1
+			while entities[entIndex] do
+				local ent = entities[entIndex]
+				
+				if (IsValid(ent) and ent:InsaneStats_GetHealth() >= 0 and (ent:GetModel() or "") ~= "") then
+					entIndex = entIndex + 1
+				else
+					table.remove(entities, entIndex)
+				end
+			end
+			
+			entIndex = 1
+			while rapidThinkEntities[entIndex] do
+				local ent = rapidThinkEntities[entIndex]
+				
+				if IsValid(ent) then
+					entIndex = entIndex + 1
+				else
+					table.remove(rapidThinkEntities, entIndex)
+				end
+			end
+			
+			timeIndex[4] = SysTime() - tempTimeStart
+		elseif tickIndex == 1 then
+			CauseStatusEffectDamage({
+				stat = "bleed",
+				damageType = DMG_SLASH
+			})
+			
+			for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("damage_aura")) do
+				local damage = v:InsaneStats_GetStatusEffectLevel("damage_aura")
+				local dmginfo = DamageInfo()
+				dmginfo:SetAttacker(v)
+				dmginfo:SetInflictor(v)
+				dmginfo:SetBaseDamage(damage)
+				dmginfo:SetDamage(damage)
+				dmginfo:SetMaxDamage(damage)
+				dmginfo:SetDamageForce(vector_origin)
+				dmginfo:SetDamageType(bit.bor(DMG_ENERGYBEAM, DMG_PREVENT_PHYSICS_FORCE))
+				dmginfo:SetReportedPosition(v:WorldSpaceCenter())
+				
+				local traceResult = {}
+				local trace = {
+					start = v:WorldSpaceCenter(),
+					filter = {v, v.GetVehicle and v:GetVehicle()},
+					mask = MASK_SHOT,
+					output = traceResult
+				}
+				
+				for k2,v2 in pairs(ents.FindInSphere(v:WorldSpaceCenter(), 512)) do
+					if v:InsaneStats_IsValidEnemy(v2) then
+						local damagePos = v2:HeadTarget(v:WorldSpaceCenter()) or v2:WorldSpaceCenter()
+						damagePos = damagePos:IsZero() and v2:WorldSpaceCenter() or damagePos
+						trace.endpos = damagePos
+						util.TraceLine(trace)
+						if not traceResult.Hit or traceResult.Entity == v2 then
+							dmginfo:SetDamagePosition(damagePos)
+							v2:TakeDamageInfo(dmginfo)
+						end
+					end
+				end
+			end
+		elseif tickIndex == 2 then
+			CauseStatusEffectDamage({
+				stat = "fire",
+				ammoType = 8,
+				damageType = DMG_SLOWBURN
+			})
+			CauseStatusEffectDamage({
+				stat = "frostfire",
+				damageType = bit.bor(DMG_SLOWBURN, DMG_VEHICLE)
+			})
+		elseif tickIndex == 3 then
+			CauseStatusEffectDamage({
+				stat = "freeze",
+				damageType = DMG_VEHICLE
+			})
+		elseif tickIndex == 4 then
+			CauseStatusEffectDamage({
+				stat = "shock",
+				ammoType = 17,
+				damageType = DMG_SHOCK
+			})
+			CauseStatusEffectDamage({
+				stat = "electroblast",
+				ammoType = 8,
+				damageType = bit.bor(DMG_SHOCK, DMG_BLAST)
+			})
+		end
+		
+		timeIndex[1] = SysTime() - tempTimeStart
+		--[[tempTimeStart = SysTime()
+		
+		-- get all arcane entities
+		local arcaneEntities = {}
+		for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("arcane_defence_up")) do
+			arcaneEntities[v] = true
+		end
+		for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("arcane_damage_up")) do
+			arcaneEntities[v] = true
+		end
+		
+		timeIndex[3] = timeIndex[3] + SysTime() - tempTimeStart]]
+		
+		for i,v in ipairs(rapidThinkEntities) do
 			if IsValid(v) then
 				tempTimeStart = SysTime()
 				
-				--if (v:InsaneStats_GetAttributeValue("combat5s_regen") ~= 1 or v:InsaneStats_GetStatusEffectLevel("regen") ~= 0)
-				local healthRestored = v:InsaneStats_GetStatusEffectLevel("regen")
-				healthRestored = healthRestored + v:InsaneStats_GetStatusEffectLevel("hittaken_regen")
-				if healthRestored ~= 0 then
-					--local combatFraction = math.Clamp(v:InsaneStats_GetCombatTime()/5, 0, 1)
-					--healthRestored = healthRestored + (v:InsaneStats_GetAttributeValue("combat5s_regen") - 1) * combatFraction
-					healthRestored = healthRestored * (v.insaneStats_CurrentHealthAdd or 1) * timerResolution
-					
-					if v:InsaneStats_GetStatusEffectLevel("bleed") > 0
-					or v:InsaneStats_GetStatusEffectLevel("hemotoxin") > 0
-					or v:InsaneStats_GetStatusEffectLevel("cosmicurse") > 0 then
-						healthRestored = healthRestored / 2
-					end
-					
-					v:InsaneStats_AddHealthCapped(healthRestored)
-				end
-				
-				--if v:InsaneStats_GetAttributeValue("combat5s_armorregen") ~= 1 or v:InsaneStats_GetStatusEffectLevel("armor_regen") ~= 0 then
-				local armorRestored = v:InsaneStats_GetStatusEffectLevel("armor_regen")
-				armorRestored = armorRestored + v:InsaneStats_GetStatusEffectLevel("hittaken_armorregen")
-				if armorRestored ~= 0 then
-					--local combatFraction = math.Clamp(v:InsaneStats_GetCombatTime()/5, 0, 1)
-					--armorRestored = armorRestored + (v:InsaneStats_GetAttributeValue("combat5s_armorregen") - 1) * combatFraction
-					armorRestored = armorRestored * (v.insaneStats_CurrentArmorAdd or 1) * timerResolution
-				
-					if v:InsaneStats_GetStatusEffectLevel("shock") > 0
-					or v:InsaneStats_GetStatusEffectLevel("electroblast") > 0
-					or v:InsaneStats_GetStatusEffectLevel("cosmicurse") > 0 then
-						armorRestored = armorRestored / 2
-					end
-					
-					v:InsaneStats_AddArmorNerfed(armorRestored)
-				end
-				
-				v:InsaneStats_SetStatusEffectLevel("stack_damage_up", v:InsaneStats_GetStatusEffectLevel("stack_damage_up") * decayRate)
-				v:InsaneStats_SetStatusEffectLevel("stack_defence_up", v:InsaneStats_GetStatusEffectLevel("stack_defence_up") * decayRate)
-				--v:InsaneStats_SetStatusEffectLevel("stack_speed_up", v:InsaneStats_GetStatusEffectLevel("stack_speed_up") * decayRate)
-				v:InsaneStats_SetStatusEffectLevel("stack_xp_up", v:InsaneStats_GetStatusEffectLevel("stack_xp_up") * decayRate)
-				v:InsaneStats_SetStatusEffectLevel("stack_firerate_up", v:InsaneStats_GetStatusEffectLevel("stack_firerate_up") * decayRate)
-				
-				if v:InsaneStats_GetStatusEffectLevel("stunned") > 0 and v:InsaneStats_GetHealth() <= 0 then
-					v:InsaneStats_ClearStatusEffect("stunned")
-				end
-				
-				timeIndex[1] = timeIndex[1] + SysTime() - tempTimeStart
-				tempTimeStart = SysTime()
-				
-				if v:InsaneStats_IsMob() then
+				--if v:InsaneStats_IsMob() then
 					for k2,v2 in pairs(entitiesNeedMarkingEntities) do
 						if v2:InsaneStats_IsValidEnemy(v) then
 							local thisEnemyDistance = v:WorldSpaceCenter():DistToSqr(v2:WorldSpaceCenter())
@@ -1393,106 +1516,16 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 							end
 						end
 					end
-				end
+				--end
 				
 				timeIndex[2] = timeIndex[2] + SysTime() - tempTimeStart
 				tempTimeStart = SysTime()
-				
-				if tickIndex == 0 then
-					CauseStatusEffectDamage({
-						victim = v,
-						stat = "poison",
-						damageType = DMG_NERVEGAS
-					})
-					CauseStatusEffectDamage({
-						victim = v,
-						stat = "hemotoxin",
-						damageType = bit.bor(DMG_NERVEGAS, DMG_SLASH)
-					})
-					CauseStatusEffectDamage({
-						victim = v,
-						stat = "cosmicurse",
-						ammoType = 8,
-						damageType = bit.bor(DMG_SLASH, DMG_SLOWBURN, DMG_BLAST, DMG_NERVEGAS, DMG_AIRBOAT, DMG_VEHICLE, DMG_SHOCK, DMG_ENERGYBEAM)
-					})
-					
-					if v:InsaneStats_GetAttributeValue("toggle_damage") ~= 1
-					and v:InsaneStats_GetStatusEffectLevel("arcane_defence_up") == 0
-					and v:InsaneStats_GetStatusEffectLevel("arcane_damage_up") == 0 then
-						local stacks = (v:InsaneStats_GetAttributeValue("toggle_damage")-1)*100
-						v:InsaneStats_ApplyStatusEffect(math.random() < 0.5 and "arcane_defence_up" or "arcane_damage_up", stacks, 5)
-					end
-				elseif tickIndex == 1 then
-					CauseStatusEffectDamage({
-						victim = v,
-						stat = "bleed",
-						damageType = DMG_SLASH
-					})
-					
-					if v:InsaneStats_GetStatusEffectLevel("damage_aura") ~= 0 then
-						local damage = v:InsaneStats_GetStatusEffectLevel("damage_aura")
-						local dmginfo = DamageInfo()
-						dmginfo:SetAttacker(v)
-						dmginfo:SetInflictor(v)
-						dmginfo:SetBaseDamage(damage)
-						dmginfo:SetDamage(damage)
-						dmginfo:SetMaxDamage(damage)
-						dmginfo:SetDamageForce(vector_origin)
-						dmginfo:SetDamageType(bit.bor(DMG_ENERGYBEAM, DMG_PREVENT_PHYSICS_FORCE))
-						dmginfo:SetReportedPosition(v:WorldSpaceCenter())
-						
-						local traceResult = {}
-						local trace = {
-							start = v:WorldSpaceCenter(),
-							filter = {v, v.GetVehicle and v:GetVehicle()},
-							mask = MASK_SHOT,
-							output = traceResult
-						}
-						
-						for k2,v2 in pairs(ents.FindInSphere(v:WorldSpaceCenter(), 512)) do
-							if v:InsaneStats_IsValidEnemy(v2) then
-								local damagePos = v2:HeadTarget(v:WorldSpaceCenter()) or v2:WorldSpaceCenter()
-								damagePos = damagePos:IsZero() and v2:WorldSpaceCenter() or damagePos
-								trace.endpos = damagePos
-								util.TraceLine(trace)
-								if not traceResult.Hit or traceResult.Entity == v2 then
-									dmginfo:SetDamagePosition(damagePos)
-									v2:TakeDamageInfo(dmginfo)
-								end
-							end
-						end
-					end
-				elseif tickIndex == 2 then
-					CauseStatusEffectDamage({
-						victim = v,
-						stat = "fire",
-						ammoType = 8,
-						damageType = DMG_SLOWBURN
-					})
-					CauseStatusEffectDamage({
-						victim = v,
-						stat = "frostfire",
-						damageType = bit.bor(DMG_SLOWBURN, DMG_VEHICLE)
-					})
-				elseif tickIndex == 3 then
-					CauseStatusEffectDamage({
-						victim = v,
-						stat = "freeze",
-						damageType = DMG_VEHICLE
-					})
-				elseif tickIndex == 4 then
-					CauseStatusEffectDamage({
-						victim = v,
-						stat = "shock",
-						ammoType = 17,
-						damageType = DMG_SHOCK
-					})
-					CauseStatusEffectDamage({
-						victim = v,
-						stat = "electroblast",
-						ammoType = 8,
-						damageType = bit.bor(DMG_SHOCK, DMG_BLAST)
-					})
+			
+				if v:InsaneStats_GetAttributeValue("toggle_damage") ~= 1
+				and v:InsaneStats_GetStatusEffectLevel("arcane_defence_up") > 0
+				and v:InsaneStats_GetStatusEffectLevel("arcane_damage_up") > 0 then
+					local stacks = (v:InsaneStats_GetAttributeValue("toggle_damage")-1)*100
+					v:InsaneStats_ApplyStatusEffect(math.random() < 0.5 and "arcane_defence_up" or "arcane_damage_up", stacks, 5)
 				end
 				
 				timeIndex[3] = timeIndex[3] + SysTime() - tempTimeStart
@@ -1526,15 +1559,15 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 		
 		timeIndex[2] = timeIndex[2] + SysTime() - tempTimeStart
 		
-		--[[local delay = SysTime() - startTime - 0.05
-		if delay > 0 then
-			InsaneStats:Log("WARNING: WPASS2 attribute timer at tick index "..tickIndex.." is taking "..(delay*1000).."ms more than expected!")
+		local delay = SysTime() - startTime
+		--if delay > 0 then
+			--[[InsaneStats:Log("WARNING: WPASS2 attribute timer at tick index "..tickIndex.." is taking "..(delay*1000).."ms more than expected!")
 			InsaneStats:Log("Time breakdown:")
 			InsaneStats:Log("1: "..(timeIndex[1]*1000).."ms")
 			InsaneStats:Log("2: "..(timeIndex[2]*1000).."ms")
 			InsaneStats:Log("3: "..(timeIndex[3]*1000).."ms")
-			InsaneStats:Log("4: "..(timeIndex[4]*1000).."ms")
-		end]]
+			InsaneStats:Log("4: "..(timeIndex[4]*1000).."ms")]]
+		--end
 	end
 end)
 
@@ -1562,6 +1595,11 @@ hook.Add("InsaneStatsWPASS2AttributesChanged", "InsaneStatsWPASS2", function(ent
 end)
 
 hook.Add("InsaneStatsEntityCreated", "InsaneStatsWPASS2", function(ent)
+	table.insert(entities, ent)
+	if ent:InsaneStats_IsMob() then
+		table.insert(rapidThinkEntities, ent)
+	end
+	
 	if InsaneStats:GetConVarValue("wpass2_enabled") then
 		ent:InsaneStats_ClearAllStatusEffects()
 	end
@@ -1652,7 +1690,7 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 		game.SetTimeScale(game.GetTimeScale() * (InsaneStats.totalTimeDilation or 1))
 		InsaneStats.totalTimeDilation = 1
 		
-		for k,v in pairs(rapidThinkEntities) do
+		for i,v in ipairs(rapidThinkEntities) do
 			if IsValid(v) then
 				--v.insaneStats_MasterfulStacks = 0
 				local wep = v.GetActiveWeapon and v:GetActiveWeapon()

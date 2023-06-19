@@ -102,6 +102,15 @@ local modifiers = {
 		},
 		max = 10
 	},
+	hold = {
+		prefix = "Holding",
+		modifiers = {
+			clip = 1.21,
+			lastammo_damage = 1.1
+		},
+		max = 10,
+		flags = InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY
+	},
 	
 	-- damage, half weight
 	ranged = {
@@ -172,16 +181,6 @@ local modifiers = {
 		weight = 0.5,
 		max = 12
 	},]]
-	hold = {
-		prefix = "Holding",
-		modifiers = {
-			clip = 1.21,
-			lastammo_damage = 1.1
-		},
-		max = 10,
-		weight = 0.5,
-		flags = InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY
-	},
 	murderous = {
 		prefix = "Murderous",
 		suffix = "Murder",
@@ -1529,7 +1528,7 @@ local attributes = {
 		mul = 2
 	},
 	ally_damage = {
-		display = "%s damage dealt vs. allies unless Alt held",
+		display = "%s damage dealt vs. allies unless slow walking",
 		invert = true
 	},
 	random_damage = {
@@ -2013,7 +2012,7 @@ local attributes = {
 		display = "%s time dilation, scaled by speed"
 	},]]
 	dilation = {
-		display = "%s time dilation on WASD"
+		display = "%s time dilation on movement"
 	},
 	toggle_damage = {
 		display = "%s damage dealt or defence, switched every 5s"
@@ -2085,16 +2084,16 @@ local attributes = {
 		display = "%s XP gain from other's kills",
 	},
 	alt_invisible = {
-		display = "%ss invisibility after Alt double tap, 60s cooldown",
+		display = "%ss invisibility after slow walk double tap, 60s cooldown",
 		mul = 60,
 		nopercent = true
 	},
 	alt_damage = {
-		display = "%s damage dealt after Alt double tap, 60s cooldown",
+		display = "%s damage dealt after slow walk double tap, 60s cooldown",
 		mul = 8
 	},
 	alt_firerate = {
-		display = "%s fire rate after Alt double tap, 60s cooldown",
+		display = "%s fire rate after slow walk double tap, 60s cooldown",
 		mul = 8
 	},
 	--[[alt_speed = {
@@ -2465,7 +2464,7 @@ local statusEffects = {
 	},
 }
 
-	
+
 hook.Add("InsaneStatsWPASS2AttributesChanged", "InsaneStatsSharedWPASS2", function(ent)
 	if ent:IsWeapon() and ent:IsScripted() then
 		local oldClipMul = ent.insaneStats_WPASS2ClipMul or 1
@@ -2489,8 +2488,9 @@ hook.Add("InsaneStatsWPASS2AttributesChanged", "InsaneStatsSharedWPASS2", functi
 			ent:SetClip1(entNewClip1)
 			ent:SetClip2(entNewClip2)
 		end
-	
+		
 		ent.insaneStats_WPASS2ClipMul = newClipMul
+		ent.insaneStats_WPASS2SpreadMul = ent.insaneStats_Attributes.spread
 		
 		--[[if wepAttributes.clip and wep:IsScripted() then
 			if weaponTable.Primary then
@@ -2500,6 +2500,36 @@ hook.Add("InsaneStatsWPASS2AttributesChanged", "InsaneStatsSharedWPASS2", functi
 				weaponTable.Secondary.ClipSize = math.ceil(weaponTable.Secondary.ClipSize * wepAttributes.clip)
 			end
 		end]]
+	end
+end)
+
+-- ArcCW compatibility.
+-- FIXME: We're hogging this hook all for ourselves... wouldn't there exist other addons that use this hook too?
+hook.Add("Hook_GetCapacity", "InsaneStatsSharedWPASS2", function(wep, clip)
+	if wep.insaneStats_WPASS2ClipMul then
+		return math.ceil(clip * wep.insaneStats_WPASS2ClipMul)
+	end
+end)
+
+--[[hook.Add("AccuracyMOA", "InsaneStatsSharedWPASS2", function(wep, value)
+	if wep.insaneStats_WPASS2SpreadMul then
+		return value * wep.insaneStats_WPASS2SpreadMul
+	end
+end)]]
+
+hook.Add("Hook_ModDispersion", "InsaneStatsSharedWPASS2", function(wep, value)
+	if wep.insaneStats_WPASS2SpreadMul then
+		return value * wep.insaneStats_WPASS2SpreadMul
+	end
+end)
+
+-- TFA compatibility. They said it couldn't be done!
+-- FIXME: ditto
+hook.Add("TFA_GetStat", "InsaneStatsSharedWPASS2", function(wep, stat, value)
+	if wep.insaneStats_WPASS2ClipMul and (stat == "Primary.ClipSize" or stat == "Secondary.ClipSize") then
+		return math.ceil(value * wep.insaneStats_WPASS2ClipMul)
+	elseif wep.insaneStats_WPASS2SpreadMul and value and (stat == "Primary.Spread" or stat == "Secondary.Spread" or stat == "Primary.Accuracy" or stat == "Secondary.Accuracy") then
+		return value * wep.insaneStats_WPASS2SpreadMul
 	end
 end)
 
@@ -2568,7 +2598,7 @@ end)
 hook.Add("StartCommand", "InsaneStatsSharedWPASS2", function(ply, usercmd)
 	if usercmd:KeyDown(IN_RELOAD) and IsValid(ply:GetActiveWeapon()) then
 		local wep = ply:GetActiveWeapon()
-		if wep:Clip1() > wep:GetMaxClip1() and wep:GetMaxClip1() > 0 then
+		if not wep:IsScripted() and wep:Clip1() > wep:GetMaxClip1() and wep:GetMaxClip1() > 0 then
 			usercmd:RemoveKey(IN_RELOAD)
 		end
 	end

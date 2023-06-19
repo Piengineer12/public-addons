@@ -208,26 +208,39 @@ local function BroadcastDamageUpdates()
 	net.Broadcast()
 end
 
+local npcs = {}
 timer.Create("InsaneStatsNet", 0.5, 0, function()
 	players = player.GetAll()
 	
-	for k,v in pairs(ents.GetAll()) do
-		if v:IsNPC() then
+	local i = 1
+	while npcs[i] do
+		local ent = npcs[i]
+		
+		if IsValid(ent) then
 			local isAlly, isEnemy = false, false
 			
-			for k2,v2 in pairs(players) do
-				if v:Disposition(v2) == D_LI then
+			for i,v in ipairs(players) do
+				if ent:Disposition(v) == D_LI then
 					isAlly = true
-				elseif v:Disposition(v2) == D_HT then
+				elseif ent:Disposition(v) == D_HT then
 					isEnemy = true
 				end
 			end
 			
-			v.insaneStats_IsAlly = isAlly
-			v.insaneStats_IsEnemy = isEnemy
+			ent.insaneStats_IsAlly = isAlly
+			ent.insaneStats_IsEnemy = isEnemy
+			--print("ent.insaneStats_IsAlly, ent.insaneStats_IsEnemy", isAlly, isEnemy)
 			
-			--print("v.insaneStats_IsAlly, v.insaneStats_IsEnemy", isAlly, isEnemy)
+			i = i + 1
+		else
+			table.remove(npcs, i)
 		end
+	end
+end)
+
+hook.Add("InsaneStatsEntityCreated", "InsaneStatsNet", function(ent)
+	if ent:IsNPC() then
+		table.insert(npcs, ent)
 	end
 end)
 

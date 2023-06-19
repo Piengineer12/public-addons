@@ -6,7 +6,6 @@ Donate:			https://ko-fi.com/piengineer12
 
 TODO:
 add support for font scaling
-fix bug where modified armor batteries can be briefly copied after swapping
 
 limit entityflame damage to attacker damage /?
 fix issue where max armor is sometimes reset to 0
@@ -15,8 +14,8 @@ modifier for excessive crouching to increase time speed
 ]]
 
 InsaneStats = {
-	VERSION = "1.0.3",
-	VERSION_DATE = "2023-06-04"
+	VERSION = "1.0.4",
+	VERSION_DATE = "2023-06-19"
 }
 
 function InsaneStats:Log(msg)

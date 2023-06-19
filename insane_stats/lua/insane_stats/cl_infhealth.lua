@@ -342,7 +342,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 			draw.SimpleTextOutlined("Shield", "InsaneStats.Medium", baseX + 2, baseY - barH, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
 			draw.SimpleTextOutlined(text, "InsaneStats.Medium", baseX + barW - 2, baseY - barH, barColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
 			if slowArmor > maxArmor then
-				draw.SimpleTextOutlined("x"..InsaneStats:FormatNumber(bars), "InsaneStats.Medium", baseX + barW, baseY - 2, barColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
+				draw.SimpleTextOutlined("x"..InsaneStats:FormatNumber(bars), "InsaneStats.Medium", baseX + barW, baseY, barColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
 			end
 			baseY = baseY - barH * 2
 		else
@@ -373,7 +373,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 		draw.SimpleTextOutlined("Health", "InsaneStats.Medium", baseX + 2, baseY - barH, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
 		draw.SimpleTextOutlined(text, "InsaneStats.Medium", baseX + barW - 2, baseY - barH, barColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
 		if slowHealth > maxHealth then
-			draw.SimpleTextOutlined("x"..InsaneStats:FormatNumber(bars), "InsaneStats.Medium", baseX + barW, baseY - 2, barColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
+			draw.SimpleTextOutlined("x"..InsaneStats:FormatNumber(bars), "InsaneStats.Medium", baseX + barW, baseY, barColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
 		end
 	end
 end)
