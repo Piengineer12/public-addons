@@ -8,8 +8,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_REPAIR_VERSION = "1.9.1"
-LUA_REPAIR_VERSION_DATE = "2023-06-05"
+LUA_REPAIR_VERSION = "2.0.1"
+LUA_REPAIR_VERSION_DATE = "2023-07-03"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
@@ -24,7 +24,7 @@ end
 
 local function LogError(...)
 	if conVarLogging:GetBool() and lastError < RealTime() and not string.find(debug.traceback(), "'pcall'") then
-		lastError = RealTime() + 10
+		lastError = RealTime() + 1
 		local message = {color_aqua, "[Lua Repair ", SERVER and "Server] " or "Client] ", color_white, ...}
 		table.insert(message, '\n')
 		MsgC(unpack(message))
@@ -43,6 +43,7 @@ local function FixAllErrors()
 	local STRING = getmetatable("") or {}
 	local VECTOR = FindMetaTable("Vector")
 	local ENTITY = FindMetaTable("Entity")
+	local NPC = FindMetaTable("NPC")
 	local PLAYER = FindMetaTable("Player")
 	local CLUAEMITTER = FindMetaTable("CLuaEmitter")
 	local NULL_META = getmetatable(NULL) or {}
@@ -176,31 +177,31 @@ local function FixAllErrors()
 		return olddiv(a or 1,b or 1)
 	end
 	
-	local oldGC = NULL_META.GetClass
-	NULL_META.GetClass = function(ent, ...)
-		if ent == NULL then
+	local oldGC = ENTITY.GetClass
+	ENTITY.GetClass = function(ent, ...)
+		if not IsValid(ent) then
 			LogError("Some code attempted to get the class of a NULL entity.")
 			return ent.__tostring(ent, ...)
 		else return oldGC(ent, ...)
 		end
 	end
-	local oldPos = NULL_META.GetPos
-	NULL_META.GetPos = function(ent, ...)
-		if ent == NULL then
+	local oldPos = ENTITY.GetPos
+	ENTITY.GetPos = function(ent, ...)
+		if not IsValid(ent) then
 			LogError("Some code attempted to get the position of a NULL entity.")
 			return vector_origin
 		else return oldPos(ent, ...)
 		end
 	end
-	local oldLookupAttachment = NULL_META.LookupAttachment
-	NULL_META.LookupAttachment = function(ent, ...)
-		if ent == NULL then
+	
+	local oldLookupAttachment = ENTITY.LookupAttachment
+	ENTITY.LookupAttachment = function(ent, ...)
+		if not IsValid(ent) then
 			LogError("Some code attempted to lookup an attachment of a NULL entity.")
 			return -1
 		else return oldLookupAttachment(ent, ...)
 		end
 	end
-	
 	local oldGetBonePosition = ENTITY.GetBonePosition
 	ENTITY.GetBonePosition = function(ent, boneIndex, ...)
 		if not boneIndex then
@@ -229,6 +230,26 @@ local function FixAllErrors()
 		else return oldindex(ent,key)
 		end
 	end]]
+	local oldPhysicsAttacker = ENTITY.SetPhysicsAttacker
+	ENTITY.SetPhysicsAttacker = function(ent, attacker, ...)
+		if attacker:IsPlayer() then
+			if oldPhysicsAttacker then
+				return oldPhysicsAttacker(ent, attacker, ...)
+			end
+		else
+			LogError("Some code attempted to set the physics attacker of an entity to a non-player.")
+		end
+	end
+	local oldEnemy = NPC.GetEnemy
+	NPC.GetEnemy = function(ent, ...)
+		if not IsValid(ent) then
+			LogError("Some code attempted to get the enemy of a NULL entity.")
+			return nil
+		end
+		if oldEnemy then
+			return oldEnemy(ent, ...)
+		end
+	end
 	
 	local oldEntsFindInSphere = ents.FindInSphere
 	function ents.FindInSphere(origin, radius, ...)
@@ -277,6 +298,14 @@ local function FixAllErrors()
 				attacker = game.GetWorld()
 			end
 			oldSetAttacker(dmginfo, attacker, ...)
+		end
+		local oldSetInflictor = CTAKEDAMAGEINFO.SetInflictor
+		function CTAKEDAMAGEINFO.SetInflictor(dmginfo, inflictor, ...)
+			if not IsValid(inflictor) then
+				LogError("Some code attempted to call CTakeDamageInfo:SetInflictor() with NULL inflictor.")
+				inflictor = game.GetWorld()
+			end
+			oldSetInflictor(dmginfo, inflictor, ...)
 		end
 	end
 	
