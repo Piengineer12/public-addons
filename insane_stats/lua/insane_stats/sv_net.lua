@@ -208,7 +208,7 @@ local function BroadcastDamageUpdates()
 	net.Broadcast()
 end
 
-local npcs = {}
+local npcs = ents.GetAll()
 timer.Create("InsaneStatsNet", 0.5, 0, function()
 	players = player.GetAll()
 	
@@ -216,7 +216,7 @@ timer.Create("InsaneStatsNet", 0.5, 0, function()
 	while npcs[i] do
 		local ent = npcs[i]
 		
-		if IsValid(ent) then
+		if (IsValid(ent) and ent:IsNPC()) then
 			local isAlly, isEnemy = false, false
 			
 			for i,v in ipairs(players) do

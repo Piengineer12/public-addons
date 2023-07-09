@@ -108,6 +108,7 @@ local modifiers = {
 			clip = 1.21,
 			lastammo_damage = 1.1
 		},
+		weight = 1,
 		max = 10,
 		flags = InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY
 	},
@@ -2473,8 +2474,6 @@ hook.Add("InsaneStatsWPASS2AttributesChanged", "InsaneStatsSharedWPASS2", functi
 		local weaponTable = ent:GetTable()
 		local entNewMaxClip1 = weaponTable.Primary and weaponTable.Primary.ClipSize * newClipMul / oldClipMul or -1
 		local entNewMaxClip2 = weaponTable.Secondary and weaponTable.Secondary.ClipSize * newClipMul / oldClipMul or -1
-		local entNewClip1 = ent:Clip1() * newClipMul / oldClipMul
-		local entNewClip2 = ent:Clip2() * newClipMul / oldClipMul
 		
 		if entNewMaxClip1 > 0 then
 			weaponTable.Primary.ClipSize = math.ceil(entNewMaxClip1)
@@ -2484,10 +2483,14 @@ hook.Add("InsaneStatsWPASS2AttributesChanged", "InsaneStatsSharedWPASS2", functi
 			weaponTable.Secondary.ClipSize = math.ceil(entNewMaxClip2)
 			--print(entNewMaxClip2)
 		end
-		if SERVER then
+
+		-- disabled, as addons that override weapon giving break this functionality
+		--[[if SERVER then
+			local entNewClip1 = ent:Clip1() * newClipMul / oldClipMul
+			local entNewClip2 = ent:Clip2() * newClipMul / oldClipMul
 			ent:SetClip1(entNewClip1)
 			ent:SetClip2(entNewClip2)
-		end
+		end]]
 		
 		ent.insaneStats_WPASS2ClipMul = newClipMul
 		ent.insaneStats_WPASS2SpreadMul = ent.insaneStats_Attributes.spread
@@ -2505,21 +2508,37 @@ end)
 
 -- ArcCW compatibility.
 -- FIXME: We're hogging this hook all for ourselves... wouldn't there exist other addons that use this hook too?
-hook.Add("Hook_GetCapacity", "InsaneStatsSharedWPASS2", function(wep, clip)
+hook.Add("Hook_GetCapacity", "InsaneStatsSharedWPASS2", function(wep, value)
 	if wep.insaneStats_WPASS2ClipMul then
-		return math.ceil(clip * wep.insaneStats_WPASS2ClipMul)
+		return math.ceil(value * wep.insaneStats_WPASS2ClipMul)
 	end
 end)
-
 --[[hook.Add("AccuracyMOA", "InsaneStatsSharedWPASS2", function(wep, value)
 	if wep.insaneStats_WPASS2SpreadMul then
 		return value * wep.insaneStats_WPASS2SpreadMul
 	end
 end)]]
-
 hook.Add("Hook_ModDispersion", "InsaneStatsSharedWPASS2", function(wep, value)
 	if wep.insaneStats_WPASS2SpreadMul then
 		return value * wep.insaneStats_WPASS2SpreadMul
+	end
+end)
+
+-- ARC9 compatibility.
+-- FIXME: ditto
+hook.Add("ARC9_SpreadHook", "InsaneStatsSharedWPASS2", function(wep, value)
+	if wep.insaneStats_WPASS2SpreadMul then
+		return value * wep.insaneStats_WPASS2SpreadMul
+	end
+end)
+hook.Add("ARC9_ClipSizeHook", "InsaneStatsSharedWPASS2", function(wep, value)
+	if wep.insaneStats_WPASS2ClipMul then
+		return math.ceil(value * wep.insaneStats_WPASS2ClipMul)
+	end
+end)
+hook.Add("ARC9_UBGLClipSizeHook", "InsaneStatsSharedWPASS2", function(wep, value)
+	if wep.insaneStats_WPASS2ClipMul then
+		return math.ceil(value * wep.insaneStats_WPASS2ClipMul)
 	end
 end)
 

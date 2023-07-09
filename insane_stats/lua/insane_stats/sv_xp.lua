@@ -98,20 +98,20 @@ function ENT:InsaneStats_ApplyLevel(level)
 		if isPlayer then
 			newHealth = math.floor(InsaneStats:ScaleValueToLevelQuadratic(
 				startingHealth,
-				level,
 				InsaneStats:GetConVarValue("xp_player_health")/100,
+				level,
 				"xp_player_health_mode",
-				InsaneStats:GetConVarValue("xp_player_health_add")/100,
-				"xp_player_health_add_mode"
+				false,
+				InsaneStats:GetConVarValue("xp_player_health_add")/100
 			))
 		else
 			newHealth = math.floor(InsaneStats:ScaleValueToLevelQuadratic(
 				startingHealth,
-				level,
 				InsaneStats:GetConVarValue("xp_other_health")/100,
+				level,
 				"xp_other_health_mode",
-				InsaneStats:GetConVarValue("xp_other_health_add")/100,
-				"xp_other_health_add_mode"
+				false,
+				InsaneStats:GetConVarValue("xp_other_health_add")/100
 			))
 		end
 		if newHealth == math.huge then
@@ -136,20 +136,20 @@ function ENT:InsaneStats_ApplyLevel(level)
 			if isPlayer then
 				newArmor = math.floor(InsaneStats:ScaleValueToLevelQuadratic(
 					startingArmor,
-					level,
 					InsaneStats:GetConVarValue("xp_player_armor")/100,
+					level,
 					"xp_player_armor_mode",
-					InsaneStats:GetConVarValue("xp_player_armor_add")/100,
-					"xp_player_armor_add_mode"
+					false,
+					InsaneStats:GetConVarValue("xp_player_armor_add")/100
 				))
 			else
 				newArmor = math.floor(InsaneStats:ScaleValueToLevelQuadratic(
 					startingArmor,
-					level,
 					InsaneStats:GetConVarValue("xp_other_armor")/100,
+					level,
 					"xp_other_armor_mode",
-					InsaneStats:GetConVarValue("xp_other_armor_add")/100,
-					"xp_other_armor_add_mode"
+					false,
+					InsaneStats:GetConVarValue("xp_other_armor_add")/100
 				))
 			end
 			if newArmor == math.huge then
@@ -178,11 +178,11 @@ local savedPlayerXP = {}
 hook.Add("InsaneStatsScaleXP", "InsaneStatsXP", function(data)
 	data.xp = InsaneStats:ScaleValueToLevelQuadratic(
 		data.xp,
-		data.victim:InsaneStats_GetLevel(),
 		InsaneStats:GetConVarValue("xp_drop_add")/100,
+		data.victim:InsaneStats_GetLevel(),
 		"xp_drop_add_mode",
-		InsaneStats:GetConVarValue("xp_drop_add_add")/100,
-		"xp_drop_add_add_mode"
+		false,
+		InsaneStats:GetConVarValue("xp_drop_add_add")/100
 	) + (data.victim.insaneStats_DropXP or 0)
 	
 end)
@@ -268,11 +268,11 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 						local level = victim:InsaneStats_GetLevel()
 						local currentXP = InsaneStats:GetXPRequiredToLevel(level)
 						if currentXP ~= math.huge then
-							local levelsBack = InsaneStats:ScaleValueToLevel(
+							local levelsBack = InsaneStats:ScaleValueToLevelPure(
 								1,
 								InsaneStats:GetConVarValue("xp_drop_add_add")/100,
 								level,
-								"xp_drop_add_add_mode"
+								false
 							)
 							local previousXP = InsaneStats:GetXPRequiredToLevel(level-levelsBack)
 							extraXP = (currentXP - previousXP) * InsaneStats:GetConVarValue("xp_other_mul")/100
@@ -362,6 +362,12 @@ hook.Add("break_prop", "InsaneStatsXP", function(data)
 end]]
 
 hook.Add("OnNPCKilled", "InsaneStatsXP", function(victim, attacker, inflictor)
+	ProcessKillEvent(victim, attacker, inflictor)
+end)
+
+hook.Add("LambdaOnKilled", "InsaneStatsXP", function(victim, dmginfo)
+	local attacker = dmginfo:GetAttacker()
+	local inflictor = dmginfo:GetInflictor()
 	ProcessKillEvent(victim, attacker, inflictor)
 end)
 
@@ -492,20 +498,20 @@ function InsaneStats:DetermineDamageMul(vic, dmginfo)
 		if attacker:IsPlayer() then
 			damageBonus = self:ScaleValueToLevelQuadratic(
 				damageBonus,
-				level,
 				self:GetConVarValue("xp_player_damage")/100,
+				level,
 				"xp_player_damage_mode",
-				self:GetConVarValue("xp_player_damage_add")/100,
-				"xp_player_damage_add_mode"
+				false,
+				self:GetConVarValue("xp_player_damage_add")/100
 			)
 		else
 			damageBonus = self:ScaleValueToLevelQuadratic(
 				damageBonus,
-				level,
 				self:GetConVarValue("xp_other_damage")/100,
+				level,
 				"xp_other_damage_mode",
-				self:GetConVarValue("xp_other_damage_add")/100,
-				"xp_other_damage_add_mode"
+				false,
+				self:GetConVarValue("xp_other_damage_add")/100
 			)
 		end
 	
@@ -513,20 +519,20 @@ function InsaneStats:DetermineDamageMul(vic, dmginfo)
 		if vic:IsPlayer() then
 			damageBonus = damageBonus / self:ScaleValueToLevelQuadratic(
 				1,
-				level,
 				self:GetConVarValue("xp_player_resistance")/100,
+				level,
 				"xp_player_resistance_mode",
-				self:GetConVarValue("xp_player_resistance_add")/100,
-				"xp_player_resistance_add_mode"
+				false,
+				self:GetConVarValue("xp_player_resistance_add")/100
 			)
 		else
 			damageBonus = damageBonus / self:ScaleValueToLevelQuadratic(
 				1,
-				level,
 				self:GetConVarValue("xp_other_resistance")/100,
+				level,
 				"xp_other_resistance_mode",
-				self:GetConVarValue("xp_other_resistance_add")/100,
-				"xp_other_resistance_add_mode"
+				false,
+				self:GetConVarValue("xp_other_resistance_add")/100
 			)
 		end
 		
@@ -908,8 +914,12 @@ hook.Add("PostCleanupMap", "InsaneStatsXP", function()
 end)
 
 hook.Add("PlayerCanPickupItem", "InsaneStatsXP", function(ply, item)
+	-- this hook has the possibility to be run multiple times on accident
+	if item:IsEFlagSet(EFL_CHECK_UNTOUCH) then return false end
+
 	local ret = hook.Run("InsaneStatsPlayerCanPickupItem", ply, item)
 	if ret == false then return false end
+
 	if InsaneStats:GetConVarValue("xp_enabled") then
 		local class = item:GetClass()
 		if class == "item_healthvial" then

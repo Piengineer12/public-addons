@@ -28,6 +28,7 @@ end
 
 -- due to info_target_*crash entities, we can't apply non-standard knockback lest we break map logic
 -- there's also a few entities that behave very strangely to knockback
+-- we won't apply this knockback for scripted entities, those are up to the addon developers
 local doNotKnockbackClasses = {
 	npc_combinegunship = true,
 	npc_helicopter = true,
@@ -35,15 +36,23 @@ local doNotKnockbackClasses = {
 	npc_sniper = true
 }
 function ENT:InsaneStats_ApplyKnockback(knockback, additionalVelocity)
-	if IsValid(self:GetPhysicsObject()) and not doNotKnockbackClasses[self:GetClass()] then
+	if IsValid(self:GetPhysicsObject()) and not doNotKnockbackClasses[self:GetClass()] and not self:IsScripted() then
 		local reductionFactor = self:GetPhysicsObject():GetMass()
-	
+		local originalKnockback = knockback
+		knockback = knockback / reductionFactor
+
 		local originalVelocity = self:IsPlayer() and vector_origin or self:GetVelocity()
 		if additionalVelocity then
 			originalVelocity = originalVelocity + additionalVelocity
 		end
+
+		-- if we already have a very high amount of velocity in the direction of the knockback, reduce the knockback taken
+		reductionFactor = 1 + (originalVelocity:Dot(knockback) / knockback:LengthSqr())
+		knockback:Div(reductionFactor)
+
+		local newVelocity = originalVelocity + knockback
 		
-		self:SetVelocity(originalVelocity + knockback / reductionFactor)
+		self:SetVelocity(newVelocity)
 	end
 end
 
@@ -54,7 +63,7 @@ timer.Create("InsaneStatsUnlimitedHealth", 0.5, 0, function()
 	while entities[i] do
 		local ent = entities[i]
 		
-		if (IsValid(ent) and ent:InsaneStats_GetHealth() > 0) then
+		if (IsValid(ent) and ent:InsaneStats_GetHealth() > 0) or ent:IsPlayer() then
 			i = i + 1
 		else
 			table.remove(entities, i)
@@ -64,9 +73,9 @@ timer.Create("InsaneStatsUnlimitedHealth", 0.5, 0, function()
 	if not DLib then
 		local hookTable = hook.GetTable()
 		local etdHooks = hookTable.EntityTakeDamage
-		local nisetdHooks = hookTable.NonInsaneStatsEntityTakeDamage or {}
+		local nisetdHooks = hookTable.NonInsaneStatsEntityTakeDamage
 		local petdHooks = hookTable.PostEntityTakeDamage
-		local nispetdHooks = hookTable.NonInsaneStatsPostEntityTakeDamage or {}
+		local nispetdHooks = hookTable.NonInsaneStatsPostEntityTakeDamage
 		local doHealthOverride = InsaneStats:GetConVarValue("infhealth_enabled")
 		
 		if etdHooks and doHealthOverride then

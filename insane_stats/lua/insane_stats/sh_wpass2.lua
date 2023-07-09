@@ -227,6 +227,74 @@ InsaneStats:RegisterConVar("wpass2_chance_other_drop_battery", "insanestats_wpas
 local doWeaponOverride = false
 timer.Create("InsaneStatsSharedWPASS", 0.5, 0, function()
 	-- the reason we don't alter for DLib is to prevent functions from returning true, which would break our bullets
+	-- some addons also mistakenly return true on PlayerCanPickup* hooks as well
+	local hookTable = hook.GetTable()
+	local efbHooks = hookTable.EntityFireBullets
+	local nisefbHooks = hookTable.NonInsaneStatsEntityFireBullets
+	local pcpwHooks = hookTable.PlayerCanPickupWeapon
+	local nispcpwHooks = hookTable.NonInsaneStatsPlayerCanPickupWeapon
+	local pcpiHooks = hookTable.PlayerCanPickupItem
+	local nispcpiHooks = hookTable.NonInsaneStatsPlayerCanPickupItem
+	
+	if doWeaponOverride then
+		local nopString = tostring(InsaneStats.NOP)
+		if efbHooks then
+			for k,v in pairs(efbHooks) do
+				if nopString ~= tostring(v) and k ~= "InsaneStats" then
+					hook.Add("NonInsaneStatsEntityFireBullets", k, v)
+					hook.Add("EntityFireBullets", k, InsaneStats.NOP)
+				end
+			end
+		end
+		if pcpwHooks then
+			for k,v in pairs(pcpwHooks) do
+				if nopString ~= tostring(v) and k ~= "InsaneStats" then
+					hook.Add("NonInsaneStatsPlayerCanPickupWeapon", k, v)
+					hook.Add("PlayerCanPickupWeapon", k, InsaneStats.NOP)
+				end
+			end
+		end
+		if pcpiHooks then
+			for k,v in pairs(pcpiHooks) do
+				if nopString ~= tostring(v) and k ~= "InsaneStats" then
+					hook.Add("NonInsaneStatsPlayerCanPickupItem", k, v)
+					hook.Add("PlayerCanPickupItem", k, InsaneStats.NOP)
+				end
+			end
+		end
+	end
+	
+	if nisefbHooks then
+		for k,v in pairs(nisefbHooks) do
+			if not efbHooks[k] then -- it's gone!
+				hook.Remove("NonInsaneStatsEntityFireBullets", k)
+			elseif not doWeaponOverride then -- put it back!
+				hook.Add("EntityFireBullets", k, v)
+				hook.Remove("NonInsaneStatsEntityFireBullets", k)
+			end
+		end
+	end
+	if nispcpwHooks then
+		for k,v in pairs(nispcpwHooks) do
+			if not pcpwHooks[k] then -- it's gone!
+				hook.Remove("NonInsaneStatsPlayerCanPickupWeapon", k)
+			elseif not doWeaponOverride then -- put it back!
+				hook.Add("PlayerCanPickupWeapon", k, v)
+				hook.Remove("NonInsaneStatsPlayerCanPickupWeapon", k)
+			end
+		end
+	end
+	if nispcpiHooks then
+		for k,v in pairs(nispcpiHooks) do
+			if not pcpiHooks[k] then -- it's gone!
+				hook.Remove("NonInsaneStatsPlayerCanPickupItem", k)
+			elseif not doWeaponOverride then -- put it back!
+				hook.Add("PlayerCanPickupItem", k, v)
+				hook.Remove("NonInsaneStatsPlayerCanPickupItem", k)
+			end
+		end
+	end
+	
 	local hookTable = hook.GetTable()
 	local entityFireBulletsHooks = hookTable.EntityFireBullets
 	local nonInsaneStatsHooks = hookTable.NonInsaneStatsEntityFireBullets or {}
@@ -340,19 +408,41 @@ local function CheckOverrideWeapons()
 	end
 end
 
-hook.Add("EntityFireBullets", "InsaneStats", function(attacker, data, ...)
+hook.Add("EntityFireBullets", "InsaneStats", function(...)
 	if InsaneStats:GetConVarValue("wpass2_enabled") then
 		-- run the others first, but in a more roundabout way
 		local nonInsaneStatsHooks = hook.GetTable().NonInsaneStatsEntityFireBullets or {}
 		local shouldAlter = false
 		for k,v in pairs(nonInsaneStatsHooks) do
-			local ret = v(attacker, data, ...)
+			local ret = v(...)
 			if ret then
 				shouldAlter = true
 			elseif ret == false then return false end
 		end
 		
 		if shouldAlter then return true end
+	end
+end)
+hook.Add("PlayerCanPickupWeapon", "InsaneStats", function(...)
+	if InsaneStats:GetConVarValue("wpass2_enabled") then
+		-- run the others first, but in a more roundabout way
+		local nonInsaneStatsHooks = hook.GetTable().NonInsaneStatsPlayerCanPickupWeapon or {}
+		local shouldAlter = false
+		for k,v in pairs(nonInsaneStatsHooks) do
+			local ret = v(...)
+			if ret == false then return false end
+		end
+	end
+end)
+hook.Add("PlayerCanPickupItem", "InsaneStats", function(...)
+	if InsaneStats:GetConVarValue("wpass2_enabled") then
+		-- run the others first, but in a more roundabout way
+		local nonInsaneStatsHooks = hook.GetTable().NonInsaneStatsPlayerCanPickupItem or {}
+		local shouldAlter = false
+		for k,v in pairs(nonInsaneStatsHooks) do
+			local ret = v(...)
+			if ret == false then return false end
+		end
 	end
 end)
 

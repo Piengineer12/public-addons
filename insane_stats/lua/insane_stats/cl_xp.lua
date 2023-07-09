@@ -361,11 +361,11 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 				-- health bar + name widths
 				local ourAttack = InsaneStats:GetConVarValue("xp_enabled") and InsaneStats:ScaleValueToLevelQuadratic(
 					384,
-					level,
 					InsaneStats:GetConVarValue("xp_player_damage")/100,
+					level,
 					"xp_player_damage_mode",
-					InsaneStats:GetConVarValue("xp_player_damage_add")/100,
-					"xp_player_damage_add_mode"
+					false,
+					InsaneStats:GetConVarValue("xp_player_damage_add")/100
 				) or 384
 				local barH = InsaneStats.FONT_BIG - InsaneStats.FONT_MEDIUM
 				local healthBarWidthPercent = math.min(lookEntityInfo.maxHealth / ourAttack, 1)
@@ -380,19 +380,19 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 					-- calculate strength of entity based on its level compared to us
 					local theirStrength = InsaneStats:ScaleValueToLevelQuadratic(
 						1,
-						theirLevel,
 						InsaneStats:GetConVarValue("xp_drop_add")/100,
+						theirLevel,
 						"xp_drop_add_mode",
-						InsaneStats:GetConVarValue("xp_drop_add_add")/100,
-						"xp_drop_add_add_mode"
+						false,
+						InsaneStats:GetConVarValue("xp_drop_add_add")/100
 					)
 					local ourStrength = InsaneStats:ScaleValueToLevelQuadratic(
 						1,
-						level,
 						InsaneStats:GetConVarValue("xp_drop_add")/100,
+						level,
 						"xp_drop_add_mode",
-						InsaneStats:GetConVarValue("xp_drop_add_add")/100,
-						"xp_drop_add_add_mode"
+						false,
+						InsaneStats:GetConVarValue("xp_drop_add_add")/100
 					)
 					local strengthMul = theirStrength / ourStrength
 					if theirStrength == ourStrength then -- to deal with inf

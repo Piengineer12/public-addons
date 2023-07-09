@@ -492,6 +492,8 @@ function PLAYER:InsaneStats_EquipBattery(item)
 		self.insaneStats_ModifierChangeReason = 2
 		self:InsaneStats_MarkForUpdate(8)
 	end
+	-- this is needed as this hook might be called multiple times for the same item on accident
+	item.insaneStats_NextPickup = CurTime() + 1
 	item:Remove()
 end
 
@@ -825,7 +827,9 @@ hook.Add("PlayerSpawn", "InsaneStatsWPASS", function(ply, fromTransition)
 							
 							ply.insaneStats_Modifiers = plyWPASS2Data.modifiers.battery.modifiers or ply.insaneStats_Modifiers
 							ply.insaneStats_StartTier = plyWPASS2Data.modifiers.battery.startTier or ply.insaneStats_StartTier
-							ply:InsaneStats_SetBatteryXP(plyWPASS2Data.modifiers.battery.xp or ply:InsaneStats_GetBatteryXP())
+							local batteryXP = plyWPASS2Data.modifiers.battery.xp
+							if batteryXP == "inf" then batteryXP = math.huge end
+							ply:InsaneStats_SetBatteryXP(batteryXP or ply:InsaneStats_GetBatteryXP())
 							
 							if ply:InsaneStats_GetBatteryXP() == "inf" then
 								ply:InsaneStats_SetBatteryXP(math.huge)
@@ -911,13 +915,15 @@ hook.Add("InsaneStatsEntityKilled", "InsaneStatsWPASS", function(victim, attacke
 end)
 
 hook.Add("InsaneStatsApplyLevel", "InsaneStatsWPASS", function(ent, level)
-	timer.Simple(0, function()
-		if IsValid(ent) then
-			local oldTier = ent.insaneStats_Tier
-			ApplyWPASS2Tier(ent)
-			if ent.insaneStats_Tier ~= oldTier then
-				InsaneStats:ApplyWPASS2Modifiers(ent)
+	if InsaneStats:GetConVarValue("wpass2_enabled") then
+		timer.Simple(0, function()
+			if IsValid(ent) then
+				local oldTier = ent.insaneStats_Tier
+				ApplyWPASS2Tier(ent)
+				if ent.insaneStats_Tier ~= oldTier then
+					InsaneStats:ApplyWPASS2Modifiers(ent)
+				end
 			end
-		end
-	end)
+		end)
+	end
 end)
