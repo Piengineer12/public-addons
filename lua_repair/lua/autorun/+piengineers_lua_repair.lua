@@ -8,8 +8,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_REPAIR_VERSION = "2.0.1"
-LUA_REPAIR_VERSION_DATE = "2023-07-03"
+LUA_REPAIR_VERSION = "2.0.2"
+LUA_REPAIR_VERSION_DATE = "2023-07-21"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
@@ -318,6 +318,11 @@ local function FixAllErrors()
 				LogError("Some code attempted to call IGModAudioChannel:Stop() with NULL IGModAudioChannel.")
 			end
 		end
+	end
+
+	local oldNetWriteString = net.WriteString
+	function net.WriteString(str, ...)
+		oldNetWriteString(str or '', ...)
 	end
 	
 	if CLIENT then

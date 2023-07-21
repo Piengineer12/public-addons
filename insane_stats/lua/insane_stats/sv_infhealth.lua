@@ -63,7 +63,7 @@ timer.Create("InsaneStatsUnlimitedHealth", 0.5, 0, function()
 	while entities[i] do
 		local ent = entities[i]
 		
-		if (IsValid(ent) and ent:InsaneStats_GetHealth() > 0) or ent:IsPlayer() then
+		if ent:IsPlayer() or (IsValid(ent) and ent:InsaneStats_GetHealth() > 0) then
 			i = i + 1
 		else
 			table.remove(entities, i)
@@ -280,6 +280,10 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 			end
 		end
 	end
+
+	if dmginfo:GetDamage() > vic:InsaneStats_GetHealth() then
+		hook.Run("InsaneStatsPreDeath", vic, dmginfo)
+	end
 	
 	-- important for next part
 	vic.insaneStats_Health = vic:InsaneStats_GetHealth()
@@ -303,14 +307,15 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 		--print(vic, dmginfo:GetDamageForce(), vic.insaneStats_OldVelocity, vic:GetVelocity())
 		
 		--print(reportedDamage)
-		if (notImmune or rawHealthDamage ~= 0) and vic:GetClass() ~= "npc_turret_floor" and InsaneStats:GetConVarValue("infhealth_enabled") then
+		-- notImmune is set to false when damage == 0, even if vic.insaneStats_ArmorBlocksAll is present
+		if (notImmune or rawHealthDamage ~= 0 or vic.insaneStats_ArmorBlocksAll) and vic:GetClass() ~= "npc_turret_floor" and InsaneStats:GetConVarValue("infhealth_enabled") then
 			local healthDamage = dmginfo:GetDamage()
 			local armorDamage = InsaneStats:GetAbsorbedDamage()
 			
 			--print(armorDamage)
 			
 			--print(healthDamage, armorDamage)
-			if healthDamage == 0 then -- calculate damage from total HP
+			if healthDamage == 0 and armorDamage == 0 then -- calculate damage from total HP
 				healthDamage = rawHealthDamage
 				
 				-- reverse damage nerf, noting that the raw health may be 0
@@ -360,13 +365,13 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 				newArmor = -math.huge
 			end
 			
-			--print(healthDamage, antiNerf, newHealth)
+			--print(newHealth, newArmor)
 			--print(vic, dmginfo:GetDamage(), vic:InsaneStats_GetRawHealth(), vic:InsaneStats_GetHealth())
 			vic:SetHealth(newHealth)
 			vic:SetArmor(newArmor)
 		end
 		
-		if not notImmune and rawHealthDamage == 0 then
+		if not notImmune and rawHealthDamage == 0 and armorDamage == 0 then
 			reportedDamage = 0
 		end
 		--print(vic, dmginfo:GetDamage(), vic:InsaneStats_GetRawHealth(), vic:InsaneStats_GetHealth())
@@ -430,6 +435,10 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 			ent:Fire("AddOutput","OutRemainingCharge !activator:InsaneStatsHealthChargerPoint::0:-1")
 		end
 	end
+end)
+
+hook.Add("PlayerSpawn", "InsaneStatsUnlimitedHealth", function(ply, fromTransition)
+	table.insert(entities, ply)
 end)
 
 --[[ to fix transitions

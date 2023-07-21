@@ -119,8 +119,15 @@ InsaneStats:RegisterConVar("ammocrate_maxammo", "insanestats_ammocrate_maxammo",
 	display = "Ammo Crates Give 9999", desc = "Ammo crates always give 9999 ammo, limited only by the gmod_maxammo ConVar.",
 	type = InsaneStats.BOOL
 })
-InsaneStats:RegisterConVar("transition_delay", "insanestats_transition_delay", "0", {
+InsaneStats:RegisterConVar("transition_delay", "insanestats_transition_delay", "1", {
 	display = "Level Transitions Have Cooldowns", desc = "trigger_changelevels cannot be activated within the first 15 seconds of a map.\n\z
 	Useful for maps where both trigger_changelevels are at the same place.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterConVar("spawn_master", "insanestats_spawn_master", "0", {
+	display = "Spawn At First Spawn Position", desc = "Players will always spawn at the first spawn position within the map, \z
+	instead of a random spawn position. \z
+	Additionally, master info_player_starts will always take priority over other info_player_starts.\n\z
+	Useful for maps that have made the above assumptions, such as campaign maps.",
 	type = InsaneStats.BOOL
 })

@@ -492,8 +492,6 @@ function PLAYER:InsaneStats_EquipBattery(item)
 		self.insaneStats_ModifierChangeReason = 2
 		self:InsaneStats_MarkForUpdate(8)
 	end
-	-- this is needed as this hook might be called multiple times for the same item on accident
-	item.insaneStats_NextPickup = CurTime() + 1
 	item:Remove()
 end
 

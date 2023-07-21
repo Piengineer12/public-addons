@@ -988,6 +988,7 @@ hook.Add("PlayerCanPickupItem", "InsaneStatsXP", function(ply, item)
 			local ignoreWPASS2Pickup = (item.insaneStats_DisableWPASS2Pickup or 0) > RealTime()
 			
 			if ply:InsaneStats_GetArmor() < ply:InsaneStats_GetMaxArmor() and not ignoreWPASS2Pickup then
+				item.insaneStats_Modifiers = nil
 				ply:InsaneStats_EquipBattery(item)
 				return false
 			end

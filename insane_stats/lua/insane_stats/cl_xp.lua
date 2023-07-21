@@ -360,13 +360,13 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 				
 				-- health bar + name widths
 				local ourAttack = InsaneStats:GetConVarValue("xp_enabled") and InsaneStats:ScaleValueToLevelQuadratic(
-					384,
+					250,
 					InsaneStats:GetConVarValue("xp_player_damage")/100,
 					level,
 					"xp_player_damage_mode",
 					false,
 					InsaneStats:GetConVarValue("xp_player_damage_add")/100
-				) or 384
+				) or 250
 				local barH = InsaneStats.FONT_BIG - InsaneStats.FONT_MEDIUM
 				local healthBarWidthPercent = math.min(lookEntityInfo.maxHealth / ourAttack, 1)
 				if lookEntityInfo.maxHealth == ourAttack then

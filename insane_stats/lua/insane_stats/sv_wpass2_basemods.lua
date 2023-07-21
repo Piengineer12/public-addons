@@ -55,7 +55,7 @@ local armoredClasses = { -- these entities are counted as armored for armored_vi
 
 local function CalculateDamage(vic, attacker, dmginfo)
 	local wep = attacker.GetActiveWeapon and attacker:GetActiveWeapon()
-	if math.random() < attacker:InsaneStats_GetAttributeValue("misschance") - 1 then return true end
+	--if math.random() < attacker:InsaneStats_GetAttributeValue("misschance") - 1 then return true end
 	if math.random() < vic:InsaneStats_GetAttributeValue("dodge") - 1 then return true end
 	if attacker:InsaneStats_GetStatusEffectLevel("stunned") > 0 then return true end
 	
@@ -64,11 +64,6 @@ local function CalculateDamage(vic, attacker, dmginfo)
 	
 	totalMul = totalMul * vic:InsaneStats_GetAttributeValue("damagetaken")
 	knockbackMul = knockbackMul * vic:InsaneStats_GetAttributeValue("knockbacktaken")
-	
-	if math.random() < attacker:InsaneStats_GetAttributeValue("crit_chance") - 1 and vic.insaneStats_LastHitGroup ~= HITGROUP_HEAD then
-		vic.insaneStats_LastHitGroup = HITGROUP_HEAD
-		dmginfo:ScaleDamage(2)
-	end
 	
 	if vic.insaneStats_LastHitGroup == HITGROUP_HEAD then
 		totalMul = totalMul * attacker:InsaneStats_GetAttributeValue("crit_damage")
@@ -96,7 +91,7 @@ local function CalculateDamage(vic, attacker, dmginfo)
 	
 	if isNotBulletDamage then
 		totalMul = totalMul * attacker:InsaneStats_GetAttributeValue("nonbullet_damage")
-		if math.random() < attacker:InsaneStats_GetAttributeValue("nonbullet_misschance") - 1 then return true end
+		--if math.random() < attacker:InsaneStats_GetAttributeValue("nonbullet_misschance") - 1 then return true end
 	else
 		totalMul = totalMul * vic:InsaneStats_GetAttributeValue("bullet_damagetaken")
 	end
@@ -264,8 +259,8 @@ local function CalculateDamage(vic, attacker, dmginfo)
 		if attacker:InsaneStats_IsValidAlly(vic) and not (attacker:IsPlayer() and attacker:KeyDown(IN_WALK)) then
 			totalMul = totalMul * attacker:InsaneStats_GetAttributeValue("ally_damage")
 		end
-	else
-		totalMul = totalMul * attacker:InsaneStats_GetAttributeValue("nonliving_damage")
+	--[[else
+		totalMul = totalMul * attacker:InsaneStats_GetAttributeValue("nonliving_damage")]]
 	end
 	
 	local levelDifference = vic:InsaneStats_GetLevel() - attacker:InsaneStats_GetLevel()
@@ -300,6 +295,8 @@ local function CalculateDamage(vic, attacker, dmginfo)
 	
 	if armoredClasses[vic:GetClass()] or vic:InsaneStats_GetArmor() > 0 then
 		totalMul = totalMul * attacker:InsaneStats_GetAttributeValue("armored_victim_damage")
+	else
+		totalMul = totalMul * attacker:InsaneStats_GetAttributeValue("unarmored_victim_damage")
 	end
 	
 	local attackerPositionVector = attacker:WorldSpaceCenter() - vic:WorldSpaceCenter()
@@ -471,7 +468,7 @@ end
 
 local totalDamageTicks = 0
 hook.Add("EntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo)
-	if InsaneStats:GetConVarValue("wpass2_enabled") then
+	if InsaneStats:GetConVarValue("wpass2_enabled") and IsValid(vic) then
 		totalDamageTicks = (totalDamageTicks or 0) + 1
 		if totalDamageTicks > 1000 then
 			print("Something caused an infinite loop!")
@@ -530,7 +527,7 @@ end)
 hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, notImmune)
 	if InsaneStats:GetConVarValue("wpass2_enabled") then
 		local attacker = dmginfo:GetAttacker()
-		if IsValid(attacker) then
+		if IsValid(attacker) and IsValid(vic) then
 			local vicIsMob = vic:InsaneStats_IsMob()
 			if vicIsMob and attacker:InsaneStats_IsMob() then
 				vic:InsaneStats_UpdateCombatTime()
@@ -785,14 +782,6 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 					end
 				end
 				
-				if vic:InsaneStats_GetStatusEffectLevel("stunned") > 0 and vic:InsaneStats_GetHealth() <= 0 then
-					vic:InsaneStats_ClearStatusEffect("stunned")
-					
-					table.insert(damageTiers, 4)
-					vic:TakeDamageInfo(dmginfo)
-					table.remove(damageTiers)
-				end
-				
 				if vicIsMob and notImmune and vic:GetClass() ~= "npc_turret_floor" then
 					if vic.insaneStats_LastHitGroup == HITGROUP_HEAD then
 						local lifeSteal = (attacker:InsaneStats_GetAttributeValue("crit_lifesteal") - 1)*(attacker.insaneStats_CurrentHealthAdd or 1)
@@ -884,6 +873,28 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 				end
 			end
 		end
+	end
+end)
+
+hook.Add("InsaneStatsPreDeath", "InsaneStatsWPASS2", function(vic, dmginfo)
+	if vic:InsaneStats_GetStatusEffectLevel("stunned") > 0 and vic:InsaneStats_GetHealth() <= 0 then
+		vic:InsaneStats_ClearStatusEffect("stunned")
+	end
+end)
+
+hook.Add("InsaneStatsPreScaleNPCDamage", "InsaneStatsWPASS2", function(data)
+	local attacker = data[3]:GetAttacker()
+	if math.random() < attacker:InsaneStats_GetAttributeValue("crit_chance") - 1 and data[2] ~= HITGROUP_HEAD then
+		data[2] = HITGROUP_HEAD
+		data[3]:ScaleDamage(2)
+	end
+end)
+
+hook.Add("InsaneStatsPreScalePlayerDamage", "InsaneStatsWPASS2", function(data)
+	local attacker = data[3]:GetAttacker()
+	if math.random() < attacker:InsaneStats_GetAttributeValue("crit_chance") - 1 and data[2] ~= HITGROUP_HEAD then
+		data[2] = HITGROUP_HEAD
+		data[3]:ScaleDamage(2)
 	end
 end)
 
@@ -1374,11 +1385,11 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 		for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("stack_firerate_up")) do
 			v:InsaneStats_SetStatusEffectLevel("stack_firerate_up", v:InsaneStats_GetStatusEffectLevel("stack_firerate_up") * decayRate)
 		end
-		for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("stunned")) do
+		--[[for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("stunned")) do
 			if v:InsaneStats_GetHealth() <= 0 then
 				v:InsaneStats_ClearStatusEffect("stunned")
 			end
-		end
+		end]]
 		
 		if tickIndex == 0 then
 			CauseStatusEffectDamage({
@@ -1606,6 +1617,8 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsWPASS2", function(ent)
 end)
 
 hook.Add("PlayerSpawn", "InsaneStatsWPASS2", function(ply, fromTransition)
+	table.insert(entities, ply)
+	table.insert(rapidThinkEntities, ply)
 	if InsaneStats:GetConVarValue("wpass2_enabled") then
 		if fromTransition then
 			ply:InsaneStats_ClearAllStatusEffects()

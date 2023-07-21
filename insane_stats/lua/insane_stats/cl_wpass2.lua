@@ -85,8 +85,18 @@ local rarityNames = {
 	"Ultimate Galactic",
 	"Ultimate Monstrous",
 	"Ultimate Aetheric",
-	"Ultimate Mythical",
-	"Rainbow",
+	"Ultimate Mythical Common",
+	"Ultimate Mythical Uncommon",
+	"Ultimate Mythical Rare",
+	"Ultimate Mythical Epic",
+	"Ultimate Mythical Superior",
+	"Ultimate Mythical Legendary",
+	"Ultimate Mythical Insane",
+	"Ultimate Mythical Galactic",
+	"Ultimate Mythical Monstrous",
+	"Ultimate Mythical Aetheric",
+	"False Rainbow",
+	"True Rainbow",
 }
 
 local equippedWep
@@ -167,17 +177,24 @@ end
 function InsaneStats:GetRarityColor(tier)
 	if tier < 0 then return color_gray
 	elseif tier == 0 then return color_white
-	elseif tier > 30 then return HSVToColor(RealTime() * 120 % 360, 1, 1)
+	elseif tier > 40 then return HSVToColor(RealTime() * 120 % 360, 1, 1)
 	else
 		local hue = baseHues[ (tier-1)%10+1 ]
-		local lum = 0.75
+		local sat = 0.5
+		local val = 1
 		if tier > 20 then
-			lum = math.abs( RealTime()%2-1 )
+			if tier > 30 then
+				sat = math.abs(Lerp((RealTime())%1, -1, 1))
+				--val = 
+			else
+				sat = 1
+			end
+			hue = (hue + math.abs(Lerp(RealTime()%2/2, -120, 120)) - 60) % 360
 		elseif tier > 10 then
-			lum = math.abs( RealTime()%1-0.5 ) + 0.5
+			sat = math.abs(Lerp(RealTime()%1, -1, 1))
 		end
 		
-		return HSLToColor(hue, 1, lum)
+		return HSVToColor(hue, sat, val)
 	end
 end
 

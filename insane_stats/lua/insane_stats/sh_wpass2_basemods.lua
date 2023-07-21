@@ -341,8 +341,16 @@ local modifiers = {
 		prefix = "Violent",
 		suffix = "Violence",
 		modifiers = {
-			armored_victim_damage = 1.1,
-			nonliving_damage = 1.1
+			armored_victim_damage = 1.21,
+			--nonliving_damage = 1.21
+		},
+		weight = 0.5
+	},
+	shoddy = {
+		prefix = "Shoddy",
+		suffix = "Shoddiness",
+		modifiers = {
+			unarmored_victim_damage = 1.21
 		},
 		weight = 0.5
 	},
@@ -438,22 +446,12 @@ local modifiers = {
 		suffix = "Curses",
 		modifiers = {
 			bullets = 1/1.1,
-			nonbullet_misschance = 1/1.1,
+			nonbullet_damage = 1/1.1,
+			--nonbullet_misschance = 1/1.1,
 			damage = 1.331
 		},
 		weight = 0.5,
-		max = 3,
-		cost = 2
-	},
-	shoddy = {
-		prefix = "Shoddy",
-		suffix = "Shoddiness",
-		modifiers = {
-			misschance = 1/1.1,
-			damage = 1.331
-		},
-		weight = 0.5,
-		max = 3,
+		max = 5,
 		cost = 2
 	},
 	power = {
@@ -1159,7 +1157,7 @@ local modifiers = {
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
-		max = 3
+		max = 5
 	},
 	dampening = {
 		prefix = "Dampening",
@@ -1221,14 +1219,14 @@ local modifiers = {
 	glutton = {
 		prefix = "Gluttony",
 		modifiers = {
-			armor_fullpickup = 0.15,
-			charger_fullpickup = 0.15,
+			armor_fullpickup = 1.1,
+			charger_fullpickup = 1.1,
 			armor_full = 1.1,
 			armor_full2 = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
-		max = 6
+		max = 7
 	},
 	ward = {
 		prefix = "Warding",
@@ -1491,13 +1489,15 @@ local attributes = {
 		mul = 2
 	},
 	armored_victim_damage = {
-		display = "%s damage dealt vs. armored",
-		mul = 2
+		display = "%s damage dealt vs. armored"
 	},
-	nonliving_damage = {
+	unarmored_victim_damage = {
+		display = "%s damage dealt vs. unarmored"
+	},
+	--[[nonliving_damage = {
 		display = "%s damage dealt vs. non-living entities",
 		mul = 2
-	},
+	},]]
 	back_damage = {
 		display = "%s damage dealt from behind",
 		mul = 2.5
@@ -1721,37 +1721,37 @@ local attributes = {
 	},
 	kill1s_xp = {
 		display = "%s XP gain for 1s after kill, scaled by duration",
-		mul = 100
+		mul = 10
 	},
 	kill1s_xp2 = {
 		display = "%s XP gain for 1s from props, scaled by duration",
-		mul = 100
+		mul = 10
 	},
 	killstack_damage = {
-		display = "%s decaying damage dealt per kill",
+		display = "%s damage dealt per kill, decays over time",
 		mul = 0.1
 	},
 	killstack_firerate = {
-		display = "%s decaying fire rate per kill",
+		display = "%s fire rate per kill, decays over time",
 		mul = 0.1
 	},
 	killstack_defence = {
-		display = "%s decaying defence per kill",
+		display = "%s defence per kill, decays over time",
 		mul = 0.1
 	},
 	--[[killstack_speed = {
 		display = "%s decaying movement speed per kill",
 	},]]
 	killstack_xp = {
-		display = "%s decaying XP gain per kill",
+		display = "%s XP gain per kill, decays over time",
 		mul = 0.1
 	},
 	killstackmarked_damage = {
-		display = "%s decaying damage dealt per marked kill",
+		display = "%s damage dealt per marked kill, decays over time",
 		mul = 0.2
 	},
 	killstackmarked_defence = {
-		display = "%s decaying defence per marked kill",
+		display = "%s defence per marked kill, decays over time",
 		mul = 0.2
 	},
 	hit1s_damage = {
@@ -1778,11 +1778,11 @@ local attributes = {
 		invert = true
 	},
 	hitstack_damage = {
-		display = "%s decaying damage dealt per hit",
+		display = "%s damage dealt per hit, decays over time",
 		mul = 0.01
 	},
 	hitstack_firerate = {
-		display = "%s decaying fire rate per hit",
+		display = "%s fire rate per hit, decays over time",
 		mul = 0.01
 	},
 	hittaken_damage = {
@@ -1810,7 +1810,7 @@ local attributes = {
 		nopercent = true
 	},
 	hittakenstack_defence = {
-		display = "%s decaying defence per hit taken",
+		display = "%s defence per hit taken, decays over time",
 		mul = 0.1
 	},
 	
@@ -1945,7 +1945,7 @@ local attributes = {
 		invert = true,
 		mul = 1.5
 	},
-	nonbullet_misschance = {
+	--[[nonbullet_misschance = {
 		display = "%s non-bullet miss chance",
 		mode = 2,
 		invert = true
@@ -1954,7 +1954,7 @@ local attributes = {
 		display = "%s miss chance",
 		mode = 2,
 		invert = true
-	},
+	},]]
 	prop_xp = {
 		display = "%s XP gain from props",
 		mul = 0.5
@@ -2071,15 +2071,13 @@ local attributes = {
 	},
 	armor_fullpickup = {
 		display = "Armor batteries overcharge at %s efficiency",
-		start = 0,
 		invert = true,
-		mode = 3
+		mode = 4
 	},
 	charger_fullpickup = {
 		display = "Suit chargers overcharge at %s efficiency",
-		start = 0,
 		invert = true,
-		mode = 3
+		mode = 4
 	},
 	else_xp = {
 		display = "%s XP gain from other's kills",
@@ -2373,9 +2371,9 @@ local statusEffects = {
 		img = Material("insane_stats/status_effects/broken-heart-zone.png", "mips smooth")
 	},
 	masterful_xp = {
-		name = "Masterful XP Up",
+		name = "XP Power",
 		typ = 1,
-		img = Material("insane_stats/status_effects/brain.png", "mips smooth")
+		img = Material("insane_stats/status_effects/brainstorm.png", "mips smooth")
 	},
 	
 	invincible = {

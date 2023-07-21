@@ -89,16 +89,36 @@ hook.Add("PlayerUse", "InsaneStats", function(ply, ent)
 end)
 
 hook.Add("InitPostEntity", "InsaneStats", function()
-	for k,v in pairs(ents.FindByClass("trigger_changelevel")) do
-		local oldSolidFlags = v:GetSolidFlags()
-		if bit.band(oldSolidFlags, FSOLID_TRIGGER) ~= 0 and InsaneStats:GetConVarValue("transition_delay") then
-			local newSolidFlags = bit.bxor(oldSolidFlags, FSOLID_TRIGGER)
-			v:SetSolidFlags(newSolidFlags)
-			timer.Simple(15, function()
-				if IsValid(v) then
-					v:SetSolidFlags(oldSolidFlags)
+	if InsaneStats:GetConVarValue("transition_delay") then
+		for k,v in pairs(ents.FindByClass("trigger_changelevel")) do
+			local oldSolidFlags = v:GetSolidFlags()
+			if bit.band(oldSolidFlags, FSOLID_TRIGGER) ~= 0 and InsaneStats:GetConVarValue("transition_delay") then
+				local newSolidFlags = bit.bxor(oldSolidFlags, FSOLID_TRIGGER)
+				v:SetSolidFlags(newSolidFlags)
+				timer.Simple(15, function()
+					if IsValid(v) then
+						v:SetSolidFlags(oldSolidFlags)
+					end
+				end)
+			end
+		end
+	end
+end)
+
+hook.Add("PlayerSelectSpawn", "InsaneStats", function(ply, transition)
+	if InsaneStats:GetConVarValue("spawn_master") and not transition then
+		local spawnPoints = ents.FindByClass("info_player_start")
+		for i, v in ipairs(spawnPoints) do
+			if v:HasSpawnFlags(1) and hook.Run("IsSpawnpointSuitable", ply, v, true) then
+				return v
+			end
+		end
+		for i, v in ipairs(spawnPoints) do
+			if v:IsInWorld() then
+				if hook.Run("IsSpawnpointSuitable", ply, v, true) then
+					return v
 				end
-			end)
+			end
 		end
 	end
 end)
