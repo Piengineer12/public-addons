@@ -176,7 +176,7 @@ function ENT:FireFunction(gBalloons, firePowerExpectedMultiplier)
 			if engine.ActiveGamemode() == "rotgb" then
 				hoverballAmount = hoverballAmount * (1+hook.Run("GetSkillAmount", "valuableHoverballs")/100)
 			end
-			if self.rotgb_AutoHoverball then
+			if self.rotgb_AutoHoverball or #ents.FindByClass("gballoon_tower_16_hoverball") > 64 then
 				self:AddCash(hoverballAmount, self:GetTowerOwner())
 				local effdata = EffectData()
 				effdata:SetEntity(self)

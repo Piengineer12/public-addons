@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		6.7.0
-Version Date:	2023-06-17
+Version:		6.7.1
+Version Date:	2023-07-22
 ]]
 
 local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","spawning","towers","music"}

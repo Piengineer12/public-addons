@@ -282,6 +282,7 @@ local credits = {
 	{"King David™", "id/jesusofish"},
 	{"lord ham", "id/awfullyhammy"}, -- 25
 	{"IronYoumu", "id/IronYoumu"},
+	{"the Noise", "76561199001550507"},
 	{"#rotgb.guide.contributors.person.various"}
 }
 

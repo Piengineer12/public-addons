@@ -776,7 +776,7 @@ function SWEP:CreateRightPanel(Main)
 		for i,v in ipairs(wep.TowerTable) do
 			if not (blacklisted[v.ClassName] or chessOnly > 0 and not v.IsChessPiece or chessOnly < 0 and v.IsChessPiece) then
 				local TowerPanel = vgui.Create("DImageButton", TowersPanel)
-				TowerPanel:SetMaterial("vgui/entities/"..v.ClassName)
+				TowerPanel:SetImage("entities/"..v.ClassName..".png")
 				TowerPanel:SetSize(towerPanelSize, towerPanelSize)
 				TowerPanel:SetColor(color_gray)
 				TowerPanel.affordable = false
@@ -993,7 +993,7 @@ function SWEP:CreateUpperPanel(Main)
 				
 				local TowerPanel = vgui.Create("DImageButton", TowersPanel)
 				TowerPanel.Tower = v
-				TowerPanel:SetMaterial("vgui/entities/"..v:GetClass())
+				TowerPanel:SetImage("entities/"..v.ClassName..".png")
 				TowerPanel:SetSize(towerPanelSize, towerPanelSize)
 				TowerPanel:SetColor(color_gray)
 				TowerPanel.activatable = false

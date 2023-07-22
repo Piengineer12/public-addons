@@ -1315,9 +1315,10 @@ function ENT:ChooseNextTargetWeighted(current, targets)
 	local totalWeights = 0
 	
 	for i,v in ipairs(targets) do
-		if v:GetWeight() > 0 then
+		local weight = v:GetClass() == "gballoon_target" and v:GetWeight() or 1
+		if weight > 0 then
 			table.insert(targetWeightSelectionZones, {totalWeights, v})
-			totalWeights = totalWeights + v:GetWeight()
+			totalWeights = totalWeights + weight
 		end
 	end
 	
