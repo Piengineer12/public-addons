@@ -178,6 +178,7 @@ function ENT:PostEntityPaste(ply,ent,entities)
 	self.ISAWC_PermittedPlayersObject = ISAWC:CreatePermissionsObject(self.ISAWC_PermittedPlayersObject)
 	self.ISAWC_LastUpdateTime = nil
 	self.ISAWC_LastOpenedTime = {}
+	self.NextRegenThink = CurTime()
 	
 	if WireLib then
 		local baseClass = scripted_ents.Get("base_wire_entity")
@@ -352,6 +353,25 @@ function ENT:Think()
 					self:SetHealth(self:Health()+1)
 				elseif ISAWC.ConContainerRegen:GetFloat() < 0 then
 					self:TakeDamage(1,self,self)
+				end
+			end
+		end
+		if ISAWC.ConLootRestock:GetFloat() >= 0 then
+			local frameTime = FrameTime() * 50 / 3
+			if self.LootRegenElapsed then
+				self.LootRegenElapsed = self.LootRegenElapsed + frameTime
+				if self.LootRegenElapsed >= ISAWC.ConLootRestock:GetFloat() then
+					self.LootRegenElapsed = nil
+				end
+			end
+			if self.ISAWC_LootTableLocalizedPlayers then
+				for k, v in pairs(self.ISAWC_LootTableLocalizedPlayers) do
+					local newElapsed = v + frameTime
+					if newElapsed < ISAWC.ConLootRestock:GetFloat() then
+						self.ISAWC_LootTableLocalizedPlayers[k] = newElapsed
+					else
+						self.ISAWC_LootTableLocalizedPlayers[k] = nil
+					end
 				end
 			end
 		end
@@ -542,12 +562,12 @@ function ENT:PopulateLoot(ply)
 			
 			local steamID = ply:SteamID()
 			if not self.ISAWC_LootTableLocalizedPlayers[steamID] then
-				self.ISAWC_LootTableLocalizedPlayers[steamID] = true
+				self.ISAWC_LootTableLocalizedPlayers[steamID] = 0
 				ISAWC:AddLootIntoInventory(inv, lootTable)
 			end
-		else
+		elseif not self.LootRegenElapsed then
+			self.LootRegenElapsed = 0
 			ISAWC:AddLootIntoInventory(inv, lootTable)
-			self:SetLootTable("")
 		end
 	end
 end

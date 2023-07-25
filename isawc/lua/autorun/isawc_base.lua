@@ -10,9 +10,9 @@ Links above are confirmed working as of 2022-04-16. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "5.6.0"
-ISAWC._VERSIONNUMBER = 50600
-ISAWC._VERSIONDATE = "2023-05-27"
+ISAWC._VERSION = "5.6.1"
+ISAWC._VERSIONNUMBER = 50601
+ISAWC._VERSIONDATE = "2023-07-25"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -1313,6 +1313,10 @@ ISAWC.ConForceCustomImage = CreateConVar("isawc_imagelist_force", "0", FCVAR_REP
 "Stops 3D rendering of items. This causes those items to be displayed either with their custom image, entity content image, or as a broken model.\
 This can be useful with addons that hamper automatic model image generation.")
 
+ISAWC.ConLootRestock = CreateConVar("isawc_container_lootrestocktime", "-1", FCVAR_REPLICATED,
+"Amount of time it takes for containers to restock their loot.\
+A negative value means that containers will never restock their loot.")
+
 --[[ISAWC.ConPickupViewModel = CreateConVar("isawc_pickup_weapon_viewmodel", "models/weapons/v_pistol.mdl", FCVAR_REPLICATED,
 "View model used by the Pickup SWEP.\
 A server restart is required for this to take effect.")
@@ -2287,6 +2291,13 @@ ISAWC.ServerOptionsInfo = {
 				name = "Item Stamps As Ammo",
 				type = "xlist",
 				pointer = "AmmoItemStampList"
+			},
+			{
+				name = "Loot Restock Time",
+				convar = ISAWC.ConLootRestock,
+				type = "number",
+				min = -1,
+				max = 1000
 			},
 			{
 				name = "Loot Tables",
@@ -3832,6 +3843,7 @@ ISAWC.BuildServerOptionsMenu = function(self, data)
 	local TextEntry = vgui.Create("DTextEntry", Main)
 	TextEntry:SetPaintBackground(false)
 	TextEntry:SetDrawBorder(false)
+	TextEntry:SetPlaceholderText("Search...")
 	TextEntry:SetTextColor(color_white)
 	TextEntry:SetCursorColor(color_white)
 	TextEntry:SetHighlightColor(color_aqua)
@@ -6292,8 +6304,16 @@ ISAWC.Initialize = function()
 		ISAWC.VolumeMultiList = data.VolumeMultiList or ISAWC.VolumeMultiList
 		ISAWC.CountMultiList = data.CountMultiList or ISAWC.CountMultiList
 		for k,v in pairs(data.BWLists or {}) do
-			ISAWC.BWLists[k].Blacklist = v.Blacklist
-			ISAWC.BWLists[k].Whitelist = v.Whitelist
+			local repairedBlacklist = {}
+			for k2, v2 in pairs(v.Blacklist) do
+				repairedBlacklist[tostring(k2)] = v2
+			end
+			local repairedWhitelist = {}
+			for k2, v2 in pairs(v.Whitelist) do
+				repairedWhitelist[tostring(k2)] = v2
+			end
+			ISAWC.BWLists[k].Blacklist = repairedBlacklist
+			ISAWC.BWLists[k].Whitelist = repairedWhitelist
 		end
 		
 		local replacements = 0

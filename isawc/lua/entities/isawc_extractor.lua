@@ -393,11 +393,30 @@ function ENT:SpawnProp(forcedSpawn)
 	local validContainer = false
 	if not IsValid(self:GetCreator()) then
 		local owner = player.GetByAccountID(self:GetOwnerAccountID())
-		if owner then
+		if IsValid(owner) then
 			self:SetCreator(owner)
 		end
 	end
+	
 	local spawnPlayer = self:GetCreator()
+	if not IsValid(spawnPlayer) then
+		if IsValid(self:GetOwner()) then
+			spawnPlayer = self:GetOwner()
+		else
+			local plys, ourPos = player.GetAll(), self:GetPos()
+			local bestDistance, bestPlayer = math.huge
+			for i, ply in ipairs(plys) do
+				local distance = ply:GetPos():DistToSqr(ourPos)
+				if distance < bestDistance then
+					bestPlayer = ply
+					bestDistance = distance
+				end
+			end
+			if IsValid(bestPlayer) then
+				spawnPlayer = bestPlayer
+			end
+		end
+	end
 	if IsValid(spawnPlayer) then
 		for i=1,32 do
 			local container = self:GetContainer(i)
