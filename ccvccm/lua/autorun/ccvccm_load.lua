@@ -3,10 +3,7 @@ what still needs to be done:
 
 element copy + paste
 element eyedropper
-option for ConVars to include a button confirming the change
 custom API for addons to add root tabs with elements
-make client.lua fit within 64 KB or split the file into smaller files
-	GMod refuses to download Lua files over 64 KB in size
 ]]
 
 --[[
@@ -14,6 +11,12 @@ make client.lua fit within 64 KB or split the file into smaller files
 require 'moonloader'
 moonloader.PreCacheDir 'ccvccm'
 ]]
+
+CCVCCM = {
+	_VERSION = '0.1.1',
+	_VERSIONDATE = '2023-07-30',
+	_VERSIONNUMBER = 101
+}
 
 if SERVER then
 	AddCSLuaFile 'ccvccm/shared.lua'

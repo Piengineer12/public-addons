@@ -1,4 +1,3 @@
-CCVCCM = { }
 CCVCCM.AddPayloadToNetMessage = function(self, sendData)
   local currentType
   for i, sendUnit in ipairs(sendData) do

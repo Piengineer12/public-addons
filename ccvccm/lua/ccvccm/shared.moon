@@ -1,7 +1,4 @@
 -- there must be a better way than polluting the global table...
-export CCVCCM
-CCVCCM = {}
-
 CCVCCM.AddPayloadToNetMessage = (sendData) =>
 	local currentType
 	for i, sendUnit in ipairs sendData

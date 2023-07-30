@@ -41,6 +41,11 @@ end)
 do
   local _class_0
   local _base_0 = {
+    Log = function(self, ...)
+      if GetConVar('developer'):GetInt() > 0 then
+        return MsgC(self.__class.COLORS.AQUA, '[CCVCCM] ', string.format('%#.2f', RealTime()), color_white, ...)
+      end
+    end,
     SetPanel = function(self, panel)
       self.panel = panel
     end,
@@ -115,7 +120,6 @@ do
     MakeDraggable = function(self, panel)
       local dragSystemName = string.format('ccvccm_%u', BasePanel.accumulator)
       panel:MakeDroppable(dragSystemName)
-      print(dragSystemName)
       BasePanel.accumulator = BasePanel.accumulator + 1
     end,
     PromptDelete = function(self)
@@ -144,6 +148,10 @@ do
   _base_0.__class = _class_0
   local self = _class_0
   self.accumulator = 0
+  self.COLORS = {
+    GREEN = Color(0, 255, 0),
+    AQUA = Color(0, 255, 255)
+  }
   self.panelClasses = { }
   BasePanel = _class_0
 end
@@ -182,13 +190,11 @@ do
           self.logarithmic = logarithmic
           self.negative = panel:GetMin() < 0
           panel:SetMin(self:UntranslateValue(panel:GetMin()))
-          panel:SetMax(self:UntranslateValue(panel:GetMax()))
-          return print(panel:GetMin(), panel:GetMax())
+          return panel:SetMax(self:UntranslateValue(panel:GetMax()))
         else
           panel:SetMin(self:TranslateValue(panel:GetMin()))
           panel:SetMax(self:TranslateValue(panel:GetMax()))
           self.logarithmic = logarithmic
-          return print(panel:GetMin(), panel:GetMax())
         end
       end
     end,
@@ -627,7 +633,7 @@ do
       end
       self:WrapFunc(panel, 'PerformLayout', false, function(self, w, h)
         self:SizeToChildren(false, true)
-        return print(RealTime(), self)
+        return BasePanel:Log('PerformLayout', self)
       end)
       do
         local _with_0 = self:CreateButton(self.controlPanel, 'Add Element', 1, 'add')
@@ -799,7 +805,7 @@ do
       self:SetPanel(panel)
       self:WrapFunc(panel, 'PerformLayout', false, function(self, w, h)
         self:SizeToChildren(false, true)
-        return print(RealTime(), self)
+        return BasePanel:Log('PerformLayout', self)
       end)
       self:RegisterAsSavable()
       do
@@ -903,7 +909,7 @@ do
       self:SetPanel(panel)
       self:WrapFunc(panel, 'PerformLayout', false, function(self, w, h)
         self:SizeToChildren(false, true)
-        return print(RealTime(), self)
+        return BasePanel:Log('PerformLayout', self)
       end)
       self:RegisterAsSavable()
       do
@@ -1042,7 +1048,7 @@ do
       self:SetPanel(panel)
       self:WrapFunc(panel, 'PerformLayout', false, function(self, w, h)
         self:SizeToChildren(false, true)
-        return print(RealTime(), self)
+        return BasePanel:Log('PerformLayout', self)
       end)
       self:RegisterAsSavable()
       do
@@ -1076,7 +1082,7 @@ do
         local padding = self:GetPadding()
         panel = self:GetActiveTab():GetPanel()
         self:SetTall(panel:GetTall() + 20 + padding * 2)
-        return print(RealTime(), self)
+        return BasePanel:Log('PerformLayout', self)
       end)
       if data.tabs then
         local _list_0 = data.tabs
@@ -1122,23 +1128,22 @@ do
     arguments = '',
     SetArgs = function(self, arguments)
       self.arguments = arguments
-      local ETYPES = AddElementUI.ELEMENT_TYPES
-      local _exp_0 = self.data.elementType
-      if ETYPES.SERVER_CVAR == _exp_0 or ETYPES.SERVER_CCMD == _exp_0 then
-        local consoleRunStr = self.data.internalName .. ' ' .. self.arguments
-        return CCVCCM:Send({
-          's',
-          consoleRunStr
-        })
-      end
+    end,
+    SendToServer = function(self)
+      return CCVCCM:Send({
+        's',
+        self.data.internalName .. ' ' .. self.arguments
+      })
     end,
     PopulatePanel = function(self)
       local data = self.data
       local panel = self:GetPanel()
-      local displayName, dataType, elementType, internalName
-      displayName, dataType, elementType, internalName = data.displayName, data.dataType, data.elementType, data.internalName
+      local displayName, dataType, elementType, internalName, manual
+      displayName, dataType, elementType, internalName, manual = data.displayName, data.dataType, data.elementType, data.internalName, data.manual
       local DTYPES = AddElementUI.DATA_TYPES
       local ETYPES = AddElementUI.ELEMENT_TYPES
+      local isClient = elementType == ETYPES.CLIENT_CCMD or elementType == ETYPES.CLIENT_CVAR
+      local isConVar = elementType == ETYPES.CLIENT_CVAR or elementType == ETYPES.SERVER_CVAR
       do
         local controlPanel = vgui.Create('DPanel', panel)
         controlPanel:SetTall(22)
@@ -1162,7 +1167,7 @@ do
         end
         self.window:AddControlPanel(controlPanel)
       end
-      if elementType == ETYPES.CLIENT_CCMD or elementType == ETYPES.SERVER_CCMD then
+      if not isConVar then
         local buttonText
         if dataType == DTYPES.NONE then
           buttonText = displayName
@@ -1173,7 +1178,23 @@ do
           local _with_0 = self:CreateButton(panel, buttonText, 3)
           _with_0:Dock(TOP)
           _with_0.DoClick = function()
-            return LocalPlayer():ConCommand(internalName .. ' ' .. self.arguments)
+            if isClient then
+              return LocalPlayer():ConCommand(internalName .. ' ' .. self.arguments)
+            else
+              return self:SendToServer()
+            end
+          end
+        end
+      elseif manual then
+        do
+          local _with_0 = self:CreateButton(panel, 'Apply Changes', 3)
+          _with_0:Dock(TOP)
+          _with_0.DoClick = function()
+            if isClient then
+              return LocalPlayer():ConCommand(internalName .. ' ' .. self.arguments)
+            else
+              return self:SendToServer()
+            end
           end
         end
       end
@@ -1190,20 +1211,18 @@ do
         end
         do
           local _with_0 = vgui.Create('DCheckBoxLabel', hostPanel)
+          _with_0:SetValue(self.arguments)
           _with_0:SetZPos(2)
           _with_0:Dock(TOP)
           _with_0:SetText(displayName)
           _with_0:SetDark(true)
           _with_0.OnChange = function(panel, checked)
-            return self:SetArgs((function()
-              if checked then
-                return '1'
-              else
-                return '0'
-              end
-            end)())
+            self:SetArgs(checked and '1' or '0')
+            if not (isClient or manual) then
+              return self:SendToServer()
+            end
           end
-          if elementType == ETYPES.CLIENT_CVAR then
+          if elementType == ETYPES.CLIENT_CVAR and not manual then
             _with_0:SetConVar(internalName)
           end
           return _with_0
@@ -1237,17 +1256,23 @@ do
         local comboBox
         do
           local _with_0 = vgui.Create('DComboBox', hostPanel)
-          _with_0:SetConVar(internalName)
           _with_0.OnSelect = function(panel, index, value, selectedData)
             self:SetArgs(tostring(selectedData or value))
-            if elementType == ETYPES.CLIENT_CVAR and panel.m_strConVar then
+            if panel.m_strConVar then
               return LocalPlayer():ConCommand(panel.m_strConVar .. ' ' .. tostring(selectedData or value))
+            elseif not (isClient or manual) then
+              return self:SendToServer()
             end
+          end
+          if elementType == ETYPES.CLIENT_CVAR and not manual then
+            _with_0:SetConVar(internalName)
           end
           comboBox = _with_0
         end
         for i, choicesInfo in ipairs(data.choices) do
-          comboBox:AddChoice(choicesInfo[1], choicesInfo[2])
+          local k, v
+          k, v = choicesInfo[1], choicesInfo[2]
+          comboBox:AddChoice(k, v, self.arguments == v)
         end
       elseif DTYPES.NUMBER == _exp_0 then
         do
@@ -1260,16 +1285,20 @@ do
           _with_0:SetLogarithmic(data.logarithmic)
           do
             local _with_1 = _with_0:GetPanel()
+            _with_1:SetValue(self.arguments)
             _with_1:SetDark(true)
             _with_1.Label:SetTextInset(4, 0)
             _with_1:SetZPos(2)
             _with_1:Dock(TOP)
-            if elementType == ETYPES.CLIENT_CVAR then
+            if elementType == ETYPES.CLIENT_CVAR and not manual then
               _with_1:SetConVar(internalName)
             end
           end
           _with_0:SetCallback(function(classData, value)
-            return self:SetArgs(classData:GetTextValue())
+            self:SetArgs(classData:GetTextValue())
+            if not (isClient or manual) then
+              return self:SendToServer()
+            end
           end)
           return _with_0
         end
@@ -1301,6 +1330,7 @@ do
         end
         do
           local _with_0 = vgui.Create('DTextEntry', hostPanel)
+          _with_0:SetValue(self.arguments)
           _with_0.GetAutoComplete = function(self, value)
             local possibilities = concommand.AutoComplete(internalName, value)
             if possibilities then
@@ -1316,10 +1346,13 @@ do
             end
           end
           _with_0.OnChange = function(textEntry)
-            return self:SetArgs(textEntry:GetValue())
+            self:SetArgs(textEntry:GetValue())
+            if not (isClient or manual) then
+              return self:SendToServer()
+            end
           end
           _with_0.OnValueChange = _with_0.OnChange
-          if elementType == ETYPES.CLIENT_CVAR then
+          if elementType == ETYPES.CLIENT_CVAR and not manual then
             _with_0:SetConVar(internalName)
           end
           return _with_0
@@ -1355,7 +1388,7 @@ do
           local _with_0 = self:CreateButton(hostPanel, 'Edit List', 2)
           _with_0.DoClick = function()
             local conVarValue = self.arguments
-            if elementType == ETYPES.CLIENT_CVAR then
+            if elementType == ETYPES.CLIENT_CVAR and not manual then
               local conVar = GetConVar(internalName)
               if conVar then
                 conVarValue = conVar:GetString()
@@ -1397,8 +1430,10 @@ do
               end
               local strValue = table.concat(flattenedValues, listSeparator)
               self:SetArgs(strValue)
-              if elementType == ETYPES.CLIENT_CVAR then
+              if elementType == ETYPES.CLIENT_CVAR and not manual then
                 return LocalPlayer():ConCommand(internalName .. ' ' .. strValue)
+              elseif not (isClient or manual) then
+                return self:SendToServer()
               end
             end)
           end
@@ -1427,7 +1462,8 @@ do
       local saveTable = {
         internalName = data.internalName,
         displayName = data.displayName,
-        arguments = self.arguments
+        arguments = self.arguments,
+        manual = data.manual
       }
       local elementTypeStr
       local ETYPES = AddElementUI.ELEMENT_TYPES
@@ -1475,6 +1511,9 @@ do
     __init = function(self, parent, data, window)
       _class_0.__parent.__init(self)
       self.data = data
+      if data.arguments then
+        self.arguments = data.arguments
+      end
       self.window = window
       local panel
       do
@@ -1488,7 +1527,7 @@ do
       self:RegisterAsSavable()
       self:WrapFunc(panel, 'PerformLayout', false, function(self, w, h)
         self:SizeToChildren(false, true)
-        return print(RealTime(), self)
+        return BasePanel:Log('PerformLayout', self)
       end)
       return self:PopulatePanel()
     end,
@@ -1594,6 +1633,9 @@ do
     GetControlPanelVisibility = function(self)
       return self.controlPanelVisibility
     end,
+    GetShowDebugMessages = function(self)
+      return self.developerConVar:GetInt() > 0
+    end,
     AddMenuOption = function(self, menuBar, menuName, menuOptions)
       local menu = menuBar:AddMenu(menuName)
       for _index_0 = 1, #menuOptions do
@@ -1646,7 +1688,7 @@ do
         local padding = self:GetPadding()
         local panel = self:GetActiveTab():GetPanel()
         self:SetTall(panel:GetTall() + 20 + padding * 2)
-        return print(RealTime(), self)
+        return BasePanel:Log('PerformLayout', self)
       end)
     end,
     PromptClear = function(self)
@@ -1801,10 +1843,64 @@ do
         local window = self:GetPanel()
         window:SetTitle('Console ConVar and ConCommand Manager')
         do
+          local _with_0 = window.btnClose
+          _with_0.DoClick = function()
+            return Derma_Query('Are you sure you want to delete this window? Consider using the Minimize button instead.', 'Close', 'Yes', (function()
+              return window:Close()
+            end), 'No')
+          end
+        end
+        do
           local _with_0 = window.btnMinim
           _with_0:SetDisabled(false)
           _with_0.DoClick = function()
             return window:Hide()
+          end
+        end
+        do
+          local _with_0 = window.btnMaxim
+          _with_0:SetDisabled(false)
+          _with_0.DoClick = function()
+            if window:GetSizable() then
+              self.oldBounds = {
+                window:GetBounds()
+              }
+              window:SetPos(0, 0)
+              window:SetSize(ScrW(), ScrH())
+              window:SetSizable(false)
+              return window:SetDraggable(false)
+            else
+              local x, y
+              do
+                local _obj_0 = self.oldBounds
+                x, y, w, h = _obj_0[1], _obj_0[2], _obj_0[3], _obj_0[4]
+              end
+              window:SetPos(x, y)
+              window:SetSize(w, h)
+              window:SetSizable(true)
+              return window:SetDraggable(true)
+            end
+          end
+          _with_0.Paint = function(panel, w, h)
+            if window:GetSizable() then
+              return derma.SkinHook('Paint', 'WindowMaximizeButton', panel, w, h)
+            else
+              local skinData = panel:GetSkin()
+              if skinData.PaintWindowRestoreButton then
+                return derma.SkinHook('Paint', 'WindowRestoreButton', panel, w, h)
+              elseif panel.m_bBackground then
+                if panel:GetDisabled() then
+                  return skinData.tex.Window.Restore(0, 0, w, h, Color(255, 255, 255, 50))
+                end
+                if panel.Depressed or panel:IsSelected() then
+                  return skinData.tex.Window.Restore_Down(0, 0, w, h)
+                end
+                if panel.Hovered then
+                  return skinData.tex.Window.Restore_Hover(0, 0, w, h)
+                end
+                return skinData.tex.Window.Restore(0, 0, w, h)
+              end
+            end
           end
         end
         self.__class.managerWindow = window
@@ -1871,6 +1967,7 @@ do
           self.scrollPanel = _with_0
         end
         self.controlPanels = { }
+        self.developerConVar = GetConVar('developer')
       end
     end,
     __base = _base_0,
@@ -2111,13 +2208,26 @@ do
           panel:SetValue(self.data.logarithmic)
         end
         panel:SetText('Logarithmic')
-        panel:SetZPos(15)
+        panel:SetZPos(17)
         panel:Dock(TOP)
         panel.OnChange = function(panel, value)
           self.data.logarithmic = value
         end
         self.elementPanelDisplayFlags[panel] = commDisplayFlags
         self.dataPanelDisplayFlags[panel] = GetBitflagFromIndices(DTYPES.NUMBER)
+      end
+      do
+        local panel = vgui.Create('DCheckBoxLabel', scrollPanel)
+        if self.data.manual then
+          panel:SetValue(self.data.manual)
+        end
+        panel:SetText('Update ConVar Manually')
+        panel:SetZPos(18)
+        panel:Dock(TOP)
+        panel.OnChange = function(panel, value)
+          self.data.manual = value
+        end
+        self.elementPanelDisplayFlags[panel] = cvarDisplayFlags
         return panel
       end
     end,
