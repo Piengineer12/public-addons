@@ -70,32 +70,24 @@ class BasePanel
 		GREEN: Color(0, 255, 0)
 		AQUA: Color(0, 255, 255)
 	}
-	-- this will hold all panel -> class associations
-	-- we have to do this because panels can be dragged between ContentPanels
-	@panelClasses: {}
 
 	Log: (...) =>
 		if GetConVar('developer')\GetInt! > 0
+			texts = {...}
+			table.insert texts, '\n'
 			MsgC @@COLORS.AQUA, '[CCVCCM] ',
-				string.format('%#.2f', RealTime!),
-				color_white, ...
+				string.format('%#.2f ', RealTime!),
+				color_white, unpack texts
 	
 	SetPanel: (panel) => @panel = panel
 	GetPanel: => @panel
-
-	RegisterAsSavable: => BasePanel.panelClasses[@panel] = @
-	UnregisterAsSavable: => BasePanel.panelClasses[@panel] = nil
-	RemoveClassAndPanel: =>
-		@UnregisterAsSavable!
-		@panel\Remove!
-	GetSavableClassFromPanel: (panel) => BasePanel.panelClasses[panel]
 
 	SortPanelsByPosition: (panels) =>
 		table.sort panels, (a, b) ->
 			ax, ay = a\LocalToScreen 0, 0
 			bx, by = b\LocalToScreen 0, 0
 
-			if ay ~= by then ay < by else ax < bx
+			if ay != by then ay < by else ax < bx
 
 	CreateButton: (parent, name, zPos, icon) =>
 		with vgui.Create 'DButton', parent
@@ -128,7 +120,6 @@ class BasePanel
 		dragSystemName = string.format 'ccvccm_%u', BasePanel.accumulator
 		panel\MakeDroppable dragSystemName
 		BasePanel.accumulator += 1
-	PromptDelete: => Derma_Query 'Are you sure?', 'Delete', 'Yes', @\RemoveClassAndPanel, 'No'
 
 class CustomNumSlider extends BasePanel
 	clamp: false
@@ -324,7 +315,30 @@ class CustomPanelContainer extends BasePanel
 		@stretchRatio = ratio
 		@GetPanel!\InvalidateLayout!
 
-class ContentPanel extends BasePanel
+class SavablePanel extends BasePanel
+	-- this will hold all panel -> class associations
+	-- we have to do this because panels can be dragged between ContentPanels
+	@panelClasses: {}
+	@lastCopied: ''
+
+	RegisterAsSavable: => SavablePanel.panelClasses[@GetPanel!] = @
+	UnregisterAsSavable: => SavablePanel.panelClasses[@GetPanel!] = nil
+	UpdateSavables: =>
+		for panel, cls in pairs SavablePanel.panelClasses
+			unless IsValid panel then SavablePanel.panelClasses[panel] = nil
+	RemoveClassAndPanel: =>
+		@UnregisterAsSavable!
+		@GetPanel!\Remove!
+	GetSavableClassFromPanel: (panel = @GetPanel!) => SavablePanel.panelClasses[panel]
+	PromptDelete: => Derma_Query 'Are you sure?', 'Delete', 'Yes', @\RemoveClassAndPanel, 'No'
+	-- all instances of this class MUST implement @SaveToTable themselves
+	SaveToClipboard: =>
+		SavablePanel.lastCopied = util.TableToJSON @SaveToTable!
+		SetClipboardText SavablePanel.lastCopied
+		Derma_Message 'Element copied!', 'Copy', 'OK'
+	GetLastCopiedPanel: => SavablePanel.lastCopied
+
+class ContentPanel extends SavablePanel
 	new: (contentType, window) =>
 		super!
 		@window = window
@@ -374,25 +388,20 @@ class ContentPanel extends BasePanel
 							
 							tab\InvalidateLayout!
 							container\InvalidateChildren!
-		elseif contentType == 'category'
-			with @CreateButton @controlPanel, 'Rename Category', 2, 'pencil'
-				\Dock LEFT
-				.DoClick = @\PromptRenameCategory
 		
-		-- with @CreateButton @controlPanel, 'Copy Contents', 4, 'page_copy'
-		-- 	\Dock LEFT
-		
-		-- with @CreateButton @controlPanel, 'Paste Contents', 5, 'paste_plain'
-		-- 	\Dock LEFT
+		with @CreateButton @controlPanel, 'Paste Contents', 4, 'page_white_paste'
+			\Dock LEFT
+			.DoClick = ->
+				pasteText = @GetLastCopiedPanel!
+				if pasteText == ''
+					Derma_StringRequest 'Paste', 'Enter panel data:', '', (pasteText) -> @LoadFromClipboard pasteText
+				else
+					@LoadFromClipboard pasteText
 		
 		if contentType == 'tab'
-			with @CreateButton @controlPanel, 'Delete Tab', 6, 'delete'
+			with @CreateButton @controlPanel, 'Delete Tab', 5, 'delete'
 				\Dock LEFT
 				.DoClick = @\PromptDeleteTab
-		elseif contentType == 'category'
-			with @CreateButton @controlPanel, 'Delete Category', 6, 'delete'
-				\Dock LEFT
-				.DoClick = @\PromptDeleteCategory
 		
 		@items = with vgui.Create 'DIconLayout', panel
 			\Dock TOP
@@ -439,25 +448,14 @@ class ContentPanel extends BasePanel
 		@addUI = with AddElementUI 0.5, 0.5
 			\SetCallback (classData, ...) ->
 				@AddElement ...
-	
-	-- PromptRenameDisplay: (displayNamePanel) =>
-	-- 	Derma_StringRequest 'Rename', 'Enter new display name:', displayNamePanel\GetText!, (newName) ->
-	-- 		displayNamePanel\SetText newName
+
 	PromptRenameTab: =>
 		tab, container = @GetTabAndParent!
 		Derma_StringRequest 'Rename', 'Enter new tab name:', tab\GetText!, (newName) ->
 			tab\SetText newName
 			container\InvalidateChildren!
-	PromptRenameCategory: =>
-		categoryHeader = @GetPanel!\GetParent!.Header
-		Derma_StringRequest 'Rename', 'Enter new category name:', categoryHeader\GetText!, (newName) ->
-			categoryHeader\SetText newName
 
 	PromptDeleteTab: => Derma_Query 'Are you sure?', 'Delete', 'Yes', @\DeleteTab, 'No'
-	PromptDeleteCategory: => Derma_Query 'Are you sure?', 'Delete', 'Yes', (->
-		@UnregisterAsSavable!
-		@GetPanel!\GetParent!\Remove!
-	), 'No'
 	
 	DeleteTab: =>
 		@UnregisterAsSavable!
@@ -470,6 +468,8 @@ class ContentPanel extends BasePanel
 			container\Remove!
 		else
 			container\CloseTab tab, true
+		
+		@UpdateSavables!
 
 	SaveToTable: =>
 		children = @items\GetChildren!
@@ -482,49 +482,60 @@ class ContentPanel extends BasePanel
 			coroutine.yield!
 		saveTable
 	
-	LoadFromTable: (contentsData = {}) =>
+	ReformatData: (data) =>
 		ETYPES = AddElementUI.ELEMENT_TYPES
 		DTYPES = AddElementUI.DATA_TYPES
 
+		switch data.elementType
+			when 'text'
+				data.elementType = ETYPES.TEXT
+			when 'category'
+				data.elementType = ETYPES.CATEGORY
+			when 'tabs'
+				data.elementType = ETYPES.TABS
+			when 'clientConVar'
+				data.elementType = ETYPES.CLIENT_CVAR
+			when 'clientConCommand'
+				data.elementType = ETYPES.CLIENT_CCMD
+			when 'serverConVar'
+				data.elementType = ETYPES.SERVER_CVAR
+			when 'serverConCommand'
+				data.elementType = ETYPES.SERVER_CCMD
+		
+		switch data.dataType
+			when 'none'
+				data.dataType = DTYPES.NONE
+			when 'bool'
+				data.dataType = DTYPES.BOOL
+			when 'choices'
+				data.dataType = DTYPES.CHOICE
+			when 'number'
+				data.dataType = DTYPES.NUMBER
+			when 'string'
+				data.dataType = DTYPES.STRING
+			when 'stringList'
+				data.dataType = DTYPES.STRING_LIST
+
+		data
+	
+	LoadFromTable: (contentsData = {}) =>
 		for rawData in *contentsData
 			-- I need to reparse some of the save data into the format returned by AddElementUI
 			-- Most of it is the same, thankfully
 			data = table.Copy rawData
-
-			switch data.elementType
-				when 'text'
-					data.elementType = ETYPES.TEXT
-				when 'category'
-					data.elementType = ETYPES.CATEGORY
-				when 'tabs'
-					data.elementType = ETYPES.TABS
-				when 'clientConVar'
-					data.elementType = ETYPES.CLIENT_CVAR
-				when 'clientConCommand'
-					data.elementType = ETYPES.CLIENT_CCMD
-				when 'serverConVar'
-					data.elementType = ETYPES.SERVER_CVAR
-				when 'serverConCommand'
-					data.elementType = ETYPES.SERVER_CCMD
-			
-			switch data.dataType
-				when 'none'
-					data.dataType = DTYPES.NONE
-				when 'bool'
-					data.dataType = DTYPES.BOOL
-				when 'choices'
-					data.dataType = DTYPES.CHOICE
-				when 'number'
-					data.dataType = DTYPES.NUMBER
-				when 'string'
-					data.dataType = DTYPES.STRING
-				when 'stringList'
-					data.dataType = DTYPES.STRING_LIST
-			
+			@ReformatData data
 			@AddElement data
 			coroutine.yield!
 
-class TextPanel extends BasePanel
+	LoadFromClipboard: (text) =>
+		data = util.JSONToTable text
+		if data
+			@ReformatData data
+			@AddElement data
+		else
+			Derma_Message 'Couldn\'t parse decoded element!', 'Paste Error', 'OK'
+
+class TextPanel extends SavablePanel
 	new: (parent, data, window) =>
 		super!
 		@window = window
@@ -551,7 +562,11 @@ class TextPanel extends BasePanel
 				\Dock LEFT
 				.DoClick = -> @PromptRenameDisplay!
 			
-			with @CreateButton controlPanel, 'Delete', 2, 'delete'
+			with @CreateButton controlPanel, 'Copy Element', 2, 'page_white_copy'
+				\Dock LEFT
+				.DoClick = -> @SaveToClipboard!
+			
+			with @CreateButton controlPanel, 'Delete', 3, 'delete'
 				\Dock LEFT
 				.DoClick = -> @PromptDelete!
 			
@@ -581,7 +596,7 @@ class TextPanel extends BasePanel
         displayName: @label\GetText!
 	}
 
-class CategoryPanel extends BasePanel
+class CategoryPanel extends SavablePanel
 	new: (parent, data, window) =>
 		super!
 		@window = window
@@ -599,9 +614,22 @@ class CategoryPanel extends BasePanel
 		with controlPanel = vgui.Create 'DPanel', panel
 			\SetTall 22
 			\SetZPos 1
+			\DockMargin 0, 22, 0, 0
 			\Dock TOP
-			\SetMouseInputEnabled false
 			.Paint = nil --(w, h) => draw.RoundedBox 8, 0, 0, w, h, Color(191, 0, 0, 127)
+			
+			with @CreateButton controlPanel, 'Rename', 1, 'pencil'
+				\Dock LEFT
+				.DoClick = -> @PromptRenameDisplay!
+			
+			with @CreateButton controlPanel, 'Copy Element', 2, 'page_white_copy'
+				\Dock LEFT
+				.DoClick = -> @SaveToClipboard!
+			
+			with @CreateButton controlPanel, 'Delete', 3, 'delete'
+				\Dock LEFT
+				.DoClick = -> @PromptDelete!
+			
 			window\AddControlPanel controlPanel
 		
 		hostPanel = with vgui.Create 'DSizeToContents', panel
@@ -617,12 +645,16 @@ class CategoryPanel extends BasePanel
 			\SetContents @contentPanel\GetPanel!
 			\SetList parent
 			\Dock TOP
-			.Header.DoDoubleClick = -> if window\GetControlPanelVisibility! then @contentPanel\PromptRenameCategory!
-		@WrapFunc @category, 'OnRemove', false, ->
-			@RemoveClassAndPanel!
+			.Header.DoDoubleClick = -> if window\GetControlPanelVisibility! then @PromptRenameDisplay!
+		@WrapFunc @category, 'OnRemove', false, -> @UpdateSavables!
 		@contentPanel\LoadFromTable data.content
 		
 		window\AddControlPanel @contentPanel\GetControlPanel!
+	
+	PromptRenameDisplay: =>
+		categoryHeader = @category.Header
+		Derma_StringRequest 'Rename', 'Enter new category name:', categoryHeader\GetText!, (newName) ->
+			categoryHeader\SetText newName
 	
 	SaveToTable: => {
 		elementType: "category"
@@ -630,7 +662,7 @@ class CategoryPanel extends BasePanel
         content: @contentPanel\SaveToTable!
 	}
 
-class TabPanel extends BasePanel
+class TabPanel extends SavablePanel
 	new: (parent, data, window) =>
 		super!
 		@window = window
@@ -655,9 +687,13 @@ class TabPanel extends BasePanel
 			\Dock TOP
 			.Paint = nil --(w, h) => draw.RoundedBox 8, 0, 0, w, h, Color(191, 0, 0, 127)
 			
-			with @CreateButton controlPanel, 'Add Tab', nil, 'add'
+			with @CreateButton controlPanel, 'Add Tab', 1, 'add'
 				\Dock LEFT
 				.DoClick = -> @AddTab!
+			
+			with @CreateButton controlPanel, 'Copy Element', 2, 'page_white_copy'
+				\Dock LEFT
+				.DoClick = -> @SaveToClipboard!
 			
 			window\AddControlPanel controlPanel
 		
@@ -667,8 +703,7 @@ class TabPanel extends BasePanel
 			.tabScroller\SetUseLiveDrag true
 			-- I don't want tabs to be moved to an entirely different tab panel, as that breaks so many things!
 			@MakeDraggable .tabScroller
-		@WrapFunc @sheet, 'OnRemove', false, ->
-			@RemoveClassAndPanel!
+		@WrapFunc @sheet, 'OnRemove', false, -> @RemoveClassAndPanel!
 		@WrapFunc @sheet, 'PerformLayout', true, (w, h) =>
 			padding = @GetPadding!
 			panel = @GetActiveTab!\GetPanel!
@@ -715,7 +750,7 @@ class TabPanel extends BasePanel
 		generalSaveTable.tabs = saveTable
 		generalSaveTable
 
-class CCVCCPanel extends BasePanel
+class CCVCCPanel extends SavablePanel
 	arguments: ''
 
 	new: (parent, data, window) =>
@@ -760,9 +795,13 @@ class CCVCCPanel extends BasePanel
 				\Dock LEFT
 				.DoClick = -> @PromptEditPanel!
 			
-			with @CreateButton controlPanel, 'Delete', 2, 'delete'
+			with @CreateButton controlPanel, 'Copy Element', 2, 'page_white_copy'
 				\Dock LEFT
-				.DoClick = -> @PromptDelete panel
+				.DoClick = -> @SaveToClipboard!
+			
+			with @CreateButton controlPanel, 'Delete', 3, 'delete'
+				\Dock LEFT
+				.DoClick = -> @PromptDelete!
 			
 			@window\AddControlPanel controlPanel
 		
@@ -994,6 +1033,7 @@ class BaseUI extends BasePanel
 
 class ManagerUI extends BaseUI
 	@saveName: ''
+	@conVarAutoload: CreateClientConVar 'ccvccm_autoload', '', true, false, 'Save file to automatically load when the CCVCCM is opened.'
 	controlPanelVisibility: true
 	
 	new: (w, h) =>
@@ -1055,7 +1095,9 @@ class ManagerUI extends BaseUI
 			@AddMenuOption menuBar, 'File', {
 				{name: 'New', icon: 'page_add', func: @\PromptClear},
 				{name: 'Open', icon: 'folder_page', func: @\PromptLoad},
-				{name: 'Save', icon: 'disk', func: @\PromptSave}
+				{name: 'Save', icon: 'disk', func: @\PromptSave},
+				{name: 'Save As', icon: 'page_save', func: @\PromptSaveAs},
+				{name: 'Set As Autoloaded File', icon: 'page_link', func: @\PromptAutoLoad}
 			}
 			@AddMenuOption menuBar, 'Edit', {
 				{name: 'Toggle Layout Editing Mode', toggle: true, value: @controlPanelVisibility, func: @\SetControlPanelVisibility},
@@ -1066,7 +1108,8 @@ class ManagerUI extends BaseUI
 				\Dock FILL
 			@controlPanels = {}
 
-			@developerConVar = GetConVar 'developer'
+			saveFile = @@conVarAutoload\GetString!
+			if saveFile != '' then @LoadFromFile saveFile
 	
 	AddControlPanel: (panel) =>
 		table.insert @controlPanels, panel
@@ -1085,9 +1128,7 @@ class ManagerUI extends BaseUI
 				panel\GetParent!\GetParent!\InvalidateLayout!
 	
 	GetControlPanelVisibility: => @controlPanelVisibility
-	
-	GetShowDebugMessages: => @developerConVar\GetInt! > 0
-	
+
 	AddMenuOption: (menuBar, menuName, menuOptions) =>
 		menu = menuBar\AddMenu menuName
 		
@@ -1132,21 +1173,31 @@ class ManagerUI extends BaseUI
 			if IsValid @sheet then @sheet\Remove!
 		), 'No'
 	
-	PromptSave: =>
+	PromptSave: => if @@saveName != '' then @SaveToFile @@saveName else @PromptSaveAs!
+	
+	PromptSaveAs: =>
 		Derma_StringRequest 'Save', 'Enter file name:', @@saveName, (saveName) ->
 			if file.Exists "ccvccm/#{saveName}.json", 'DATA'
 				Derma_Query 'Overwrite existing file?', 'Overwrite', 'Yes', (-> @SaveToFile saveName), 'No'
 			else
 				@SaveToFile saveName
 	
+	PromptAutoLoad: =>
+		if @@saveName == ''
+			Derma_Message 'Save your current layout first!', 'Load Error', 'OK'
+		else
+			Derma_Query "This will set the current save file (ccvccm/#{@@saveName}.json) to be automatically loaded when the CCVCCM is opened. Are you sure?",
+				'Set As Autoloaded File', 'Yes', (-> @@conVarAutoload\SetString @@saveName), 'No'
+	
 	SaveToFile: (saveName) =>
 		@@saveName = saveName
 		fileName = "ccvccm/#{saveName}.json"
 		routine = coroutine.create @\SaveToFileRoutine
 		coroutine.resume routine, fileName
+		SavablePanel\UpdateSavables!
 		ProgressUI 0.25, 0.25, {
 			:routine
-			expectedRuns: table.Count(BasePanel.panelClasses),
+			expectedRuns: table.Count(SavablePanel.panelClasses),
 			headerText: 'Your data is being saved, please wait!'
 		}
 	
@@ -1169,7 +1220,7 @@ class ManagerUI extends BaseUI
 			@SortPanelsByPosition tabs
 
 			-- now assemble [tab] = class
-			tabContentClasses = {tab, @GetSavableClassFromPanel(panel) for {Tab: tab, Panel: panel} in *@sheet\GetItems!}
+			tabContentClasses = {tab, SavablePanel.panelClasses[panel] for {Tab: tab, Panel: panel} in *@sheet\GetItems!}
 			
 			-- finally,
 			saveTable = {}
@@ -1192,16 +1243,19 @@ class ManagerUI extends BaseUI
 	LoadFromFile: (saveName) =>
 		@@saveName = saveName
 		fileName = "ccvccm/#{saveName}.json"
-		routine = coroutine.create @\LoadFromFileRoutine
-		ok, data = coroutine.resume routine, fileName
-		if ok
-			ProgressUI 0.25, 0.25, {
-				:routine
-				expectedRuns: if data then CCVCCM\CountTablesRecursive data else 1
-				headerText: 'Your data is being loaded, please wait!'
-			}
-		else
-			error data
+		-- I have to check for existence here due to auto-load
+		if file.Exists fileName, 'DATA'
+			routine = coroutine.create @\LoadFromFileRoutine
+			ok, data = coroutine.resume routine, fileName
+			if ok
+				ProgressUI 0.25, 0.25, {
+					:routine
+					expectedRuns: if data then CCVCCM\CountTablesRecursive data else 1
+					headerText: 'Your data is being loaded, please wait!'
+				}
+			else
+				error data
+		else Derma_Message "Couldn't load file \"data/#{fileName}\"!", 'Load Error', 'OK'
 	
 	LoadFromFileRoutine: (fileName) =>
 		fileText = file.Read fileName, 'DATA'

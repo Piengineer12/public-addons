@@ -1,9 +1,10 @@
 --[[
 what still needs to be done:
 
-element copy + paste
-element eyedropper
+accomodate for ConVar / ConCommand flags
+hook for modifying save data
 custom API for addons to add root tabs with elements
+element eyedropper
 ]]
 
 --[[
@@ -13,9 +14,9 @@ moonloader.PreCacheDir 'ccvccm'
 ]]
 
 CCVCCM = {
-	_VERSION = '0.1.1',
-	_VERSIONDATE = '2023-07-30',
-	_VERSIONNUMBER = 101
+	_VERSION = '0.1.2',
+	_VERSIONDATE = '2023-08-03',
+	_VERSIONNUMBER = 102
 }
 
 if SERVER then

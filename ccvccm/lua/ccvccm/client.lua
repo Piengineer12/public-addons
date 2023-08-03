@@ -23,7 +23,7 @@ CCVCCM.CountTablesRecursive = function(self, items, acc, fillAccOnly)
     return table.Count(acc)
   end
 end
-local GetBitflagFromIndices, BasePanel, CustomNumSlider, CustomPanelContainer, ContentPanel, TextPanel, CategoryPanel, TabPanel, CCVCCPanel, BaseUI, ManagerUI, AddElementUI, EditIconUI, ListInputUI, ProgressUI, LoadUI
+local GetBitflagFromIndices, BasePanel, CustomNumSlider, CustomPanelContainer, SavablePanel, ContentPanel, TextPanel, CategoryPanel, TabPanel, CCVCCPanel, BaseUI, ManagerUI, AddElementUI, EditIconUI, ListInputUI, ProgressUI, LoadUI
 GetBitflagFromIndices = function(...)
   local result = 0
   local _list_0 = {
@@ -43,7 +43,11 @@ do
   local _base_0 = {
     Log = function(self, ...)
       if GetConVar('developer'):GetInt() > 0 then
-        return MsgC(self.__class.COLORS.AQUA, '[CCVCCM] ', string.format('%#.2f', RealTime()), color_white, ...)
+        local texts = {
+          ...
+        }
+        table.insert(texts, '\n')
+        return MsgC(self.__class.COLORS.AQUA, '[CCVCCM] ', string.format('%#.2f ', RealTime()), color_white, unpack(texts))
       end
     end,
     SetPanel = function(self, panel)
@@ -51,19 +55,6 @@ do
     end,
     GetPanel = function(self)
       return self.panel
-    end,
-    RegisterAsSavable = function(self)
-      BasePanel.panelClasses[self.panel] = self
-    end,
-    UnregisterAsSavable = function(self)
-      BasePanel.panelClasses[self.panel] = nil
-    end,
-    RemoveClassAndPanel = function(self)
-      self:UnregisterAsSavable()
-      return self.panel:Remove()
-    end,
-    GetSavableClassFromPanel = function(self, panel)
-      return BasePanel.panelClasses[panel]
     end,
     SortPanelsByPosition = function(self, panels)
       return table.sort(panels, function(a, b)
@@ -121,15 +112,6 @@ do
       local dragSystemName = string.format('ccvccm_%u', BasePanel.accumulator)
       panel:MakeDroppable(dragSystemName)
       BasePanel.accumulator = BasePanel.accumulator + 1
-    end,
-    PromptDelete = function(self)
-      return Derma_Query('Are you sure?', 'Delete', 'Yes', (function()
-        local _base_1 = self
-        local _fn_0 = _base_1.RemoveClassAndPanel
-        return function(...)
-          return _fn_0(_base_1, ...)
-        end
-      end)(), 'No')
     end
   }
   _base_0.__index = _base_0
@@ -152,7 +134,6 @@ do
     GREEN = Color(0, 255, 0),
     AQUA = Color(0, 255, 255)
   }
-  self.panelClasses = { }
   BasePanel = _class_0
 end
 do
@@ -463,6 +444,87 @@ do
   local _class_0
   local _parent_0 = BasePanel
   local _base_0 = {
+    RegisterAsSavable = function(self)
+      SavablePanel.panelClasses[self:GetPanel()] = self
+    end,
+    UnregisterAsSavable = function(self)
+      SavablePanel.panelClasses[self:GetPanel()] = nil
+    end,
+    UpdateSavables = function(self)
+      for panel, cls in pairs(SavablePanel.panelClasses) do
+        if not (IsValid(panel)) then
+          SavablePanel.panelClasses[panel] = nil
+        end
+      end
+    end,
+    RemoveClassAndPanel = function(self)
+      self:UnregisterAsSavable()
+      return self:GetPanel():Remove()
+    end,
+    GetSavableClassFromPanel = function(self, panel)
+      if panel == nil then
+        panel = self:GetPanel()
+      end
+      return SavablePanel.panelClasses[panel]
+    end,
+    PromptDelete = function(self)
+      return Derma_Query('Are you sure?', 'Delete', 'Yes', (function()
+        local _base_1 = self
+        local _fn_0 = _base_1.RemoveClassAndPanel
+        return function(...)
+          return _fn_0(_base_1, ...)
+        end
+      end)(), 'No')
+    end,
+    SaveToClipboard = function(self)
+      SavablePanel.lastCopied = util.TableToJSON(self:SaveToTable())
+      SetClipboardText(SavablePanel.lastCopied)
+      return Derma_Message('Element copied!', 'Copy', 'OK')
+    end,
+    GetLastCopiedPanel = function(self)
+      return SavablePanel.lastCopied
+    end
+  }
+  _base_0.__index = _base_0
+  setmetatable(_base_0, _parent_0.__base)
+  _class_0 = setmetatable({
+    __init = function(self, ...)
+      return _class_0.__parent.__init(self, ...)
+    end,
+    __base = _base_0,
+    __name = "SavablePanel",
+    __parent = _parent_0
+  }, {
+    __index = function(cls, name)
+      local val = rawget(_base_0, name)
+      if val == nil then
+        local parent = rawget(cls, "__parent")
+        if parent then
+          return parent[name]
+        end
+      else
+        return val
+      end
+    end,
+    __call = function(cls, ...)
+      local _self_0 = setmetatable({}, _base_0)
+      cls.__init(_self_0, ...)
+      return _self_0
+    end
+  })
+  _base_0.__class = _class_0
+  local self = _class_0
+  self.panelClasses = { }
+  self.lastCopied = ''
+  if _parent_0.__inherited then
+    _parent_0.__inherited(_parent_0, _class_0)
+  end
+  SavablePanel = _class_0
+end
+do
+  local _class_0
+  local _parent_0 = SavablePanel
+  local _base_0 = {
     GetControlPanel = function(self)
       return self.controlPanel
     end,
@@ -523,12 +585,6 @@ do
         return container:InvalidateChildren()
       end)
     end,
-    PromptRenameCategory = function(self)
-      local categoryHeader = self:GetPanel():GetParent().Header
-      return Derma_StringRequest('Rename', 'Enter new category name:', categoryHeader:GetText(), function(newName)
-        return categoryHeader:SetText(newName)
-      end)
-    end,
     PromptDeleteTab = function(self)
       return Derma_Query('Are you sure?', 'Delete', 'Yes', (function()
         local _base_1 = self
@@ -538,21 +594,16 @@ do
         end
       end)(), 'No')
     end,
-    PromptDeleteCategory = function(self)
-      return Derma_Query('Are you sure?', 'Delete', 'Yes', (function()
-        self:UnregisterAsSavable()
-        return self:GetPanel():GetParent():Remove()
-      end), 'No')
-    end,
     DeleteTab = function(self)
       self:UnregisterAsSavable()
       local tab, container = self:GetTabAndParent()
       local items = container:GetItems()
       if #items == 1 then
-        return container:Remove()
+        container:Remove()
       else
-        return container:CloseTab(tab, true)
+        container:CloseTab(tab, true)
       end
+      return self:UpdateSavables()
     end,
     SaveToTable = function(self)
       local children = self.items:GetChildren()
@@ -566,47 +617,60 @@ do
       end
       return saveTable
     end,
+    ReformatData = function(self, data)
+      local ETYPES = AddElementUI.ELEMENT_TYPES
+      local DTYPES = AddElementUI.DATA_TYPES
+      local _exp_0 = data.elementType
+      if 'text' == _exp_0 then
+        data.elementType = ETYPES.TEXT
+      elseif 'category' == _exp_0 then
+        data.elementType = ETYPES.CATEGORY
+      elseif 'tabs' == _exp_0 then
+        data.elementType = ETYPES.TABS
+      elseif 'clientConVar' == _exp_0 then
+        data.elementType = ETYPES.CLIENT_CVAR
+      elseif 'clientConCommand' == _exp_0 then
+        data.elementType = ETYPES.CLIENT_CCMD
+      elseif 'serverConVar' == _exp_0 then
+        data.elementType = ETYPES.SERVER_CVAR
+      elseif 'serverConCommand' == _exp_0 then
+        data.elementType = ETYPES.SERVER_CCMD
+      end
+      local _exp_1 = data.dataType
+      if 'none' == _exp_1 then
+        data.dataType = DTYPES.NONE
+      elseif 'bool' == _exp_1 then
+        data.dataType = DTYPES.BOOL
+      elseif 'choices' == _exp_1 then
+        data.dataType = DTYPES.CHOICE
+      elseif 'number' == _exp_1 then
+        data.dataType = DTYPES.NUMBER
+      elseif 'string' == _exp_1 then
+        data.dataType = DTYPES.STRING
+      elseif 'stringList' == _exp_1 then
+        data.dataType = DTYPES.STRING_LIST
+      end
+      return data
+    end,
     LoadFromTable = function(self, contentsData)
       if contentsData == nil then
         contentsData = { }
       end
-      local ETYPES = AddElementUI.ELEMENT_TYPES
-      local DTYPES = AddElementUI.DATA_TYPES
       for _index_0 = 1, #contentsData do
         local rawData = contentsData[_index_0]
         local data = table.Copy(rawData)
-        local _exp_0 = data.elementType
-        if 'text' == _exp_0 then
-          data.elementType = ETYPES.TEXT
-        elseif 'category' == _exp_0 then
-          data.elementType = ETYPES.CATEGORY
-        elseif 'tabs' == _exp_0 then
-          data.elementType = ETYPES.TABS
-        elseif 'clientConVar' == _exp_0 then
-          data.elementType = ETYPES.CLIENT_CVAR
-        elseif 'clientConCommand' == _exp_0 then
-          data.elementType = ETYPES.CLIENT_CCMD
-        elseif 'serverConVar' == _exp_0 then
-          data.elementType = ETYPES.SERVER_CVAR
-        elseif 'serverConCommand' == _exp_0 then
-          data.elementType = ETYPES.SERVER_CCMD
-        end
-        local _exp_1 = data.dataType
-        if 'none' == _exp_1 then
-          data.dataType = DTYPES.NONE
-        elseif 'bool' == _exp_1 then
-          data.dataType = DTYPES.BOOL
-        elseif 'choices' == _exp_1 then
-          data.dataType = DTYPES.CHOICE
-        elseif 'number' == _exp_1 then
-          data.dataType = DTYPES.NUMBER
-        elseif 'string' == _exp_1 then
-          data.dataType = DTYPES.STRING
-        elseif 'stringList' == _exp_1 then
-          data.dataType = DTYPES.STRING_LIST
-        end
+        self:ReformatData(data)
         self:AddElement(data)
         coroutine.yield()
+      end
+    end,
+    LoadFromClipboard = function(self, text)
+      local data = util.JSONToTable(text)
+      if data then
+        self:ReformatData(data)
+        return self:AddElement(data)
+      else
+        return Derma_Message('Couldn\'t parse decoded element!', 'Paste Error', 'OK')
       end
     end
   }
@@ -698,38 +762,28 @@ do
             end
           end
         end
-      elseif contentType == 'category' then
-        do
-          local _with_0 = self:CreateButton(self.controlPanel, 'Rename Category', 2, 'pencil')
-          _with_0:Dock(LEFT)
-          do
-            local _base_1 = self
-            local _fn_0 = _base_1.PromptRenameCategory
-            _with_0.DoClick = function(...)
-              return _fn_0(_base_1, ...)
-            end
+      end
+      do
+        local _with_0 = self:CreateButton(self.controlPanel, 'Paste Contents', 4, 'page_white_paste')
+        _with_0:Dock(LEFT)
+        _with_0.DoClick = function()
+          local pasteText = self:GetLastCopiedPanel()
+          if pasteText == '' then
+            return Derma_StringRequest('Paste', 'Enter panel data:', '', function(pasteText)
+              return self:LoadFromClipboard(pasteText)
+            end)
+          else
+            return self:LoadFromClipboard(pasteText)
           end
         end
       end
       if contentType == 'tab' then
         do
-          local _with_0 = self:CreateButton(self.controlPanel, 'Delete Tab', 6, 'delete')
+          local _with_0 = self:CreateButton(self.controlPanel, 'Delete Tab', 5, 'delete')
           _with_0:Dock(LEFT)
           do
             local _base_1 = self
             local _fn_0 = _base_1.PromptDeleteTab
-            _with_0.DoClick = function(...)
-              return _fn_0(_base_1, ...)
-            end
-          end
-        end
-      elseif contentType == 'category' then
-        do
-          local _with_0 = self:CreateButton(self.controlPanel, 'Delete Category', 6, 'delete')
-          _with_0:Dock(LEFT)
-          do
-            local _base_1 = self
-            local _fn_0 = _base_1.PromptDeleteCategory
             _with_0.DoClick = function(...)
               return _fn_0(_base_1, ...)
             end
@@ -774,7 +828,7 @@ do
 end
 do
   local _class_0
-  local _parent_0 = BasePanel
+  local _parent_0 = SavablePanel
   local _base_0 = {
     PromptRenameDisplay = function(self)
       return Derma_StringRequest('Rename', 'Enter new display name:', self.label:GetText(), function(newName)
@@ -823,7 +877,14 @@ do
           end
         end
         do
-          local _with_0 = self:CreateButton(controlPanel, 'Delete', 2, 'delete')
+          local _with_0 = self:CreateButton(controlPanel, 'Copy Element', 2, 'page_white_copy')
+          _with_0:Dock(LEFT)
+          _with_0.DoClick = function()
+            return self:SaveToClipboard()
+          end
+        end
+        do
+          local _with_0 = self:CreateButton(controlPanel, 'Delete', 3, 'delete')
           _with_0:Dock(LEFT)
           _with_0.DoClick = function()
             return self:PromptDelete()
@@ -882,8 +943,14 @@ do
 end
 do
   local _class_0
-  local _parent_0 = BasePanel
+  local _parent_0 = SavablePanel
   local _base_0 = {
+    PromptRenameDisplay = function(self)
+      local categoryHeader = self.category.Header
+      return Derma_StringRequest('Rename', 'Enter new category name:', categoryHeader:GetText(), function(newName)
+        return categoryHeader:SetText(newName)
+      end)
+    end,
     SaveToTable = function(self)
       return {
         elementType = "category",
@@ -916,9 +983,30 @@ do
         local controlPanel = vgui.Create('DPanel', panel)
         controlPanel:SetTall(22)
         controlPanel:SetZPos(1)
+        controlPanel:DockMargin(0, 22, 0, 0)
         controlPanel:Dock(TOP)
-        controlPanel:SetMouseInputEnabled(false)
         controlPanel.Paint = nil
+        do
+          local _with_0 = self:CreateButton(controlPanel, 'Rename', 1, 'pencil')
+          _with_0:Dock(LEFT)
+          _with_0.DoClick = function()
+            return self:PromptRenameDisplay()
+          end
+        end
+        do
+          local _with_0 = self:CreateButton(controlPanel, 'Copy Element', 2, 'page_white_copy')
+          _with_0:Dock(LEFT)
+          _with_0.DoClick = function()
+            return self:SaveToClipboard()
+          end
+        end
+        do
+          local _with_0 = self:CreateButton(controlPanel, 'Delete', 3, 'delete')
+          _with_0:Dock(LEFT)
+          _with_0.DoClick = function()
+            return self:PromptDelete()
+          end
+        end
         window:AddControlPanel(controlPanel)
       end
       local hostPanel
@@ -940,13 +1028,13 @@ do
         _with_0:Dock(TOP)
         _with_0.Header.DoDoubleClick = function()
           if window:GetControlPanelVisibility() then
-            return self.contentPanel:PromptRenameCategory()
+            return self:PromptRenameDisplay()
           end
         end
         self.category = _with_0
       end
       self:WrapFunc(self.category, 'OnRemove', false, function()
-        return self:RemoveClassAndPanel()
+        return self:UpdateSavables()
       end)
       self.contentPanel:LoadFromTable(data.content)
       return window:AddControlPanel(self.contentPanel:GetControlPanel())
@@ -980,7 +1068,7 @@ do
 end
 do
   local _class_0
-  local _parent_0 = BasePanel
+  local _parent_0 = SavablePanel
   local _base_0 = {
     AddTab = function(self, displayName, icon, content)
       if displayName == nil then
@@ -1059,10 +1147,17 @@ do
         controlPanel:Dock(TOP)
         controlPanel.Paint = nil
         do
-          local _with_0 = self:CreateButton(controlPanel, 'Add Tab', nil, 'add')
+          local _with_0 = self:CreateButton(controlPanel, 'Add Tab', 1, 'add')
           _with_0:Dock(LEFT)
           _with_0.DoClick = function()
             return self:AddTab()
+          end
+        end
+        do
+          local _with_0 = self:CreateButton(controlPanel, 'Copy Element', 2, 'page_white_copy')
+          _with_0:Dock(LEFT)
+          _with_0.DoClick = function()
+            return self:SaveToClipboard()
           end
         end
         window:AddControlPanel(controlPanel)
@@ -1123,7 +1218,7 @@ do
 end
 do
   local _class_0
-  local _parent_0 = BasePanel
+  local _parent_0 = SavablePanel
   local _base_0 = {
     arguments = '',
     SetArgs = function(self, arguments)
@@ -1159,10 +1254,17 @@ do
           end
         end
         do
-          local _with_0 = self:CreateButton(controlPanel, 'Delete', 2, 'delete')
+          local _with_0 = self:CreateButton(controlPanel, 'Copy Element', 2, 'page_white_copy')
           _with_0:Dock(LEFT)
           _with_0.DoClick = function()
-            return self:PromptDelete(panel)
+            return self:SaveToClipboard()
+          end
+        end
+        do
+          local _with_0 = self:CreateButton(controlPanel, 'Delete', 3, 'delete')
+          _with_0:Dock(LEFT)
+          _with_0.DoClick = function()
+            return self:PromptDelete()
           end
         end
         self.window:AddControlPanel(controlPanel)
@@ -1633,9 +1735,6 @@ do
     GetControlPanelVisibility = function(self)
       return self.controlPanelVisibility
     end,
-    GetShowDebugMessages = function(self)
-      return self.developerConVar:GetInt() > 0
-    end,
     AddMenuOption = function(self, menuBar, menuName, menuOptions)
       local menu = menuBar:AddMenu(menuName)
       for _index_0 = 1, #menuOptions do
@@ -1700,6 +1799,13 @@ do
       end), 'No')
     end,
     PromptSave = function(self)
+      if self.__class.saveName ~= '' then
+        return self:SaveToFile(self.__class.saveName)
+      else
+        return self:PromptSaveAs()
+      end
+    end,
+    PromptSaveAs = function(self)
       return Derma_StringRequest('Save', 'Enter file name:', self.__class.saveName, function(saveName)
         if file.Exists("ccvccm/" .. tostring(saveName) .. ".json", 'DATA') then
           return Derma_Query('Overwrite existing file?', 'Overwrite', 'Yes', (function()
@@ -1709,6 +1815,15 @@ do
           return self:SaveToFile(saveName)
         end
       end)
+    end,
+    PromptAutoLoad = function(self)
+      if self.__class.saveName == '' then
+        return Derma_Message('Save your current layout first!', 'Load Error', 'OK')
+      else
+        return Derma_Query("This will set the current save file (ccvccm/" .. tostring(self.__class.saveName) .. ".json) to be automatically loaded when the CCVCCM is opened. Are you sure?", 'Set As Autoloaded File', 'Yes', (function()
+          return self.__class.conVarAutoload:SetString(self.__class.saveName)
+        end), 'No')
+      end
     end,
     SaveToFile = function(self, saveName)
       self.__class.saveName = saveName
@@ -1721,9 +1836,10 @@ do
         end
       end)())
       coroutine.resume(routine, fileName)
+      SavablePanel:UpdateSavables()
       return ProgressUI(0.25, 0.25, {
         routine = routine,
-        expectedRuns = table.Count(BasePanel.panelClasses),
+        expectedRuns = table.Count(SavablePanel.panelClasses),
         headerText = 'Your data is being saved, please wait!'
       })
     end,
@@ -1748,7 +1864,7 @@ do
             local _des_0 = _list_0[_index_0]
             local tab, panel
             tab, panel = _des_0.Tab, _des_0.Panel
-            _tbl_0[tab] = self:GetSavableClassFromPanel(panel)
+            _tbl_0[tab] = SavablePanel.panelClasses[panel]
           end
           tabContentClasses = _tbl_0
         end
@@ -1781,28 +1897,32 @@ do
     LoadFromFile = function(self, saveName)
       self.__class.saveName = saveName
       local fileName = "ccvccm/" .. tostring(saveName) .. ".json"
-      local routine = coroutine.create((function()
-        local _base_1 = self
-        local _fn_0 = _base_1.LoadFromFileRoutine
-        return function(...)
-          return _fn_0(_base_1, ...)
+      if file.Exists(fileName, 'DATA') then
+        local routine = coroutine.create((function()
+          local _base_1 = self
+          local _fn_0 = _base_1.LoadFromFileRoutine
+          return function(...)
+            return _fn_0(_base_1, ...)
+          end
+        end)())
+        local ok, data = coroutine.resume(routine, fileName)
+        if ok then
+          return ProgressUI(0.25, 0.25, {
+            routine = routine,
+            expectedRuns = (function()
+              if data then
+                return CCVCCM:CountTablesRecursive(data)
+              else
+                return 1
+              end
+            end)(),
+            headerText = 'Your data is being loaded, please wait!'
+          })
+        else
+          return error(data)
         end
-      end)())
-      local ok, data = coroutine.resume(routine, fileName)
-      if ok then
-        return ProgressUI(0.25, 0.25, {
-          routine = routine,
-          expectedRuns = (function()
-            if data then
-              return CCVCCM:CountTablesRecursive(data)
-            else
-              return 1
-            end
-          end)(),
-          headerText = 'Your data is being loaded, please wait!'
-        })
       else
-        return error(data)
+        return Derma_Message("Couldn't load file \"data/" .. tostring(fileName) .. "\"!", 'Load Error', 'OK')
       end
     end,
     LoadFromFileRoutine = function(self, fileName)
@@ -1938,6 +2058,28 @@ do
                 return _fn_0(_base_1, ...)
               end
             end)()
+          },
+          {
+            name = 'Save As',
+            icon = 'page_save',
+            func = (function()
+              local _base_1 = self
+              local _fn_0 = _base_1.PromptSaveAs
+              return function(...)
+                return _fn_0(_base_1, ...)
+              end
+            end)()
+          },
+          {
+            name = 'Set As Autoloaded File',
+            icon = 'page_link',
+            func = (function()
+              local _base_1 = self
+              local _fn_0 = _base_1.PromptAutoLoad
+              return function(...)
+                return _fn_0(_base_1, ...)
+              end
+            end)()
           }
         })
         self:AddMenuOption(menuBar, 'Edit', {
@@ -1967,7 +2109,10 @@ do
           self.scrollPanel = _with_0
         end
         self.controlPanels = { }
-        self.developerConVar = GetConVar('developer')
+        local saveFile = self.__class.conVarAutoload:GetString()
+        if saveFile ~= '' then
+          return self:LoadFromFile(saveFile)
+        end
       end
     end,
     __base = _base_0,
@@ -1994,6 +2139,7 @@ do
   _base_0.__class = _class_0
   local self = _class_0
   self.saveName = ''
+  self.conVarAutoload = CreateClientConVar('ccvccm_autoload', '', true, false, 'Save file to automatically load when the CCVCCM is opened.')
   if _parent_0.__inherited then
     _parent_0.__inherited(_parent_0, _class_0)
   end
