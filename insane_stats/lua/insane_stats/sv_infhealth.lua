@@ -117,7 +117,7 @@ timer.Create("InsaneStatsUnlimitedHealth", 0.5, 0, function()
 				end
 			end
 		end
-	elseif not dLibbed then
+	elseif not dLibbed and hook.GetTable().EntityTakeDamage.InsaneStatsUnlimitedHealth then
 		-- turn the hook overrides off and just use DLib's integrated stuff
 		dLibbed = true
 		local hookTable = hook.GetTable()

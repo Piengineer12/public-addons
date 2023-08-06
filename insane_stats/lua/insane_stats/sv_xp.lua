@@ -909,7 +909,10 @@ hook.Add("ShutDown", "InsaneStatsWPASS", SaveData)
 
 hook.Add("PostCleanupMap", "InsaneStatsXP", function()
 	if InsaneStats:GetConVarValue("xp_enabled") then
-		game.GetWorld():InsaneStats_SetXP(InsaneStats:DetermineEntitySpawnedXP(game.GetWorld()))
+		local xp = InsaneStats:DetermineEntitySpawnedXP(game.GetWorld())
+		if xp then
+			game.GetWorld():InsaneStats_SetXP(xp)
+		end
 	end
 end)
 

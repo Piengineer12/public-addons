@@ -826,7 +826,6 @@ hook.Add("PlayerSpawn", "InsaneStatsWPASS", function(ply, fromTransition)
 							ply.insaneStats_Modifiers = plyWPASS2Data.modifiers.battery.modifiers or ply.insaneStats_Modifiers
 							ply.insaneStats_StartTier = plyWPASS2Data.modifiers.battery.startTier or ply.insaneStats_StartTier
 							local batteryXP = plyWPASS2Data.modifiers.battery.xp
-							if batteryXP == "inf" then batteryXP = math.huge end
 							ply:InsaneStats_SetBatteryXP(batteryXP or ply:InsaneStats_GetBatteryXP())
 							
 							if ply:InsaneStats_GetBatteryXP() == "inf" then
@@ -889,7 +888,7 @@ hook.Add("InsaneStatsEntityKilled", "InsaneStatsWPASS", function(victim, attacke
 							-- set our modifiers to the null one if we dropped the battery
 							victim.insaneStats_Tier = 0
 							victim.insaneStats_Modifiers = {}
-							victim:InsaneStats_SetBatteryXP(0)
+							victim.insaneStats_BatteryXP = nil
 							InsaneStats:ApplyWPASS2Attributes(victim)
 							victim.insaneStats_ModifierChangeReason = 2
 							victim:InsaneStats_MarkForUpdate(8)

@@ -803,6 +803,11 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 						end
 						
 						attacker:InsaneStats_AddArmorNerfed(armorSteal)
+						
+						local stacks = (attacker:InsaneStats_GetAttributeValue("critstack_damage") - 1) * 100
+						attacker:InsaneStats_ApplyStatusEffect("stack_damage_up", stacks, math.huge, {amplify = true})
+						stacks = (attacker:InsaneStats_GetAttributeValue("critstack_firerate") - 1) * 100
+						attacker:InsaneStats_ApplyStatusEffect("stack_firerate_up", stacks, math.huge, {amplify = true})
 					end
 					
 					if attacker:InsaneStats_GetAttributeValue("hit100_damagepulse") ~= 1 then
@@ -858,11 +863,6 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 							dmginfo:ScaleDamage(1/scaleFactor)
 						end
 					end
-					
-					local stacks = (attacker:InsaneStats_GetAttributeValue("hitstack_damage") - 1) * 100
-					attacker:InsaneStats_ApplyStatusEffect("stack_damage_up", stacks, math.huge, {amplify = true})
-					stacks = (attacker:InsaneStats_GetAttributeValue("hitstack_firerate") - 1) * 100
-					attacker:InsaneStats_ApplyStatusEffect("stack_firerate_up", stacks, math.huge, {amplify = true})
 				
 					if attacker:InsaneStats_GetAttributeValue("hit1s_damage") ~= 1 and attacker:InsaneStats_GetStatusEffectLevel("hit1s_damage_cooldown") <= 0 then
 						attacker:InsaneStats_ApplyStatusEffect("hit1s_damage_cooldown", 1, 1)
@@ -1246,35 +1246,7 @@ hook.Add("InsaneStatsPlayerCanPickupItem", "InsaneStatsWPASS2", AttemptDupeEntit
 hook.Add("InsaneStatsPlayerCanPickupWeapon", "InsaneStatsWPASS2", AttemptDupeEntity)
 
 hook.Add("InsaneStatsArmorBatteryChanged", "InsaneStatsWPASS2", function(ent, item)
-	--[[local entHealthMod = ent.insaneStats_Attributes and ent.insaneStats_Attributes.health or 1
-	local entArmorMod = ent.insaneStats_Attributes and ent.insaneStats_Attributes.armor or 1
-	local itemHealthMod = item.insaneStats_Attributes and item.insaneStats_Attributes.health or 1
-	local itemArmorMod = item.insaneStats_Attributes and item.insaneStats_Attributes.armor or 1
-	
-	local entNewMaxHealth = math.floor(ent:InsaneStats_GetMaxHealth()) * itemHealthMod / entHealthMod
-	local entNewHealth = entNewMaxHealth * ent:InsaneStats_GetHealth() / ent:InsaneStats_GetMaxHealth()
-	local entNewMaxArmor = ent.GetMaxArmor and math.floor(ent:InsaneStats_GetMaxArmor()) * itemArmorMod / entArmorMod
-	local entNewArmor = entNewMaxArmor and entNewMaxArmor * ent:InsaneStats_GetArmor() / ent:InsaneStats_GetMaxArmor()
-	
-	if ent:InsaneStats_GetHealth() == math.huge then
-		entNewHealth = math.huge
-	end
-	if ent:InsaneStats_GetArmor() == math.huge then
-		entNewArmor = math.huge
-	end
-	
-	ent:SetMaxHealth(entNewMaxHealth)
-	ent:SetHealth(entNewHealth)
-	if entNewMaxArmor then
-		ent:SetMaxArmor(entNewMaxArmor)
-		ent:SetArmor(entNewArmor)
-	end]]
-	
 	item.insaneStats_Duplicated = true
-	
-	--print(ent, item)
-	--print(itemHealthMod, entHealthMod, itemArmorMod, entArmorMod)
-	--print(entNewHealth, entNewMaxHealth, entNewArmor, entNewMaxArmor)
 end)
 
 local function CauseStatusEffectDamage(data)
@@ -1560,7 +1532,7 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 					net.WriteDouble(ent:InsaneStats_GetArmor())
 					net.WriteDouble(ent:InsaneStats_GetMaxArmor())
 					net.Send(v)
-				elseif (v:IsNPC() and table.HasValue(v:GetKnownEnemies(), ent) and v:HasEnemyEluded(ent)) then
+				elseif (v:IsNPC() and v:Disposition(ent) == D_HT and v:HasEnemyEluded(ent)) then
 					-- update the NPC's memory about the current entity's location
 					--print("NPC:UpdateEnemyMemory", ent, ent:WorldSpaceCenter())
 					v:UpdateEnemyMemory(ent, ent:WorldSpaceCenter())
@@ -1572,12 +1544,12 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 		
 		local delay = SysTime() - startTime
 		--if delay > 0 then
-			--[[InsaneStats:Log("WARNING: WPASS2 attribute timer at tick index "..tickIndex.." is taking "..(delay*1000).."ms more than expected!")
-			InsaneStats:Log("Time breakdown:")
-			InsaneStats:Log("1: "..(timeIndex[1]*1000).."ms")
-			InsaneStats:Log("2: "..(timeIndex[2]*1000).."ms")
-			InsaneStats:Log("3: "..(timeIndex[3]*1000).."ms")
-			InsaneStats:Log("4: "..(timeIndex[4]*1000).."ms")]]
+			--[[InsaneStats:Log("WARNING: WPASS2 attribute timer at tick index "..tickIndex.." is taking "..(delay*1000).."ms more than expected!")]]
+			-- InsaneStats:Log("Time breakdown:")
+			-- InsaneStats:Log("1: "..(timeIndex[1]*1000).."ms")
+			-- InsaneStats:Log("2: "..(timeIndex[2]*1000).."ms")
+			-- InsaneStats:Log("3: "..(timeIndex[3]*1000).."ms")
+			-- InsaneStats:Log("4: "..(timeIndex[4]*1000).."ms")
 		--end
 	end
 end)
@@ -1634,32 +1606,6 @@ hook.Add("PlayerSpawn", "InsaneStatsWPASS2", function(ply, fromTransition)
 		ply.insaneStats_OldMoveMul = 1
 		ply.insaneStats_OldSprintMoveMul = 1
 		ply.insaneStats_OldCrouchedMoveMul = 1
-			
-		--[[timer.Simple(InsaneStats:GetConVarValue("infhealth_enabled") and 0.1 or 0.3, function()
-			if not fromTransition then
-				local entHealthMod = ply.insaneStats_Attributes and ply.insaneStats_Attributes.health or 1
-				local entArmorMod = ply.insaneStats_Attributes and ply.insaneStats_Attributes.armor or 1
-				
-				local entNewMaxHealth = math.floor(ply:InsaneStats_GetMaxHealth()) * entHealthMod
-				local entNewHealth = entNewMaxHealth * ply:InsaneStats_GetHealth() / ply:InsaneStats_GetMaxHealth()
-				local entNewMaxArmor = math.floor(ply:InsaneStats_GetMaxArmor()) * entArmorMod
-				local entNewArmor = entNewMaxArmor * ply:InsaneStats_GetArmor() / ply:InsaneStats_GetMaxArmor()
-				
-				if ply:InsaneStats_GetHealth() == math.huge then
-					entNewHealth = math.huge
-				end
-				if ply:InsaneStats_GetArmor() == math.huge then
-					entNewArmor = math.huge
-				end
-				
-				ply:SetMaxHealth(entNewMaxHealth)
-				ply:SetHealth(entNewHealth)
-				ply:SetMaxArmor(entNewMaxArmor)
-				ply:SetArmor(entNewArmor)
-			end
-			
-			--print(entNewHealth, entNewMaxHealth, entNewArmor, entNewMaxArmor)
-		end)]]
 		
 		if ply:InsaneStats_GetStatusEffectLevel("invisibility") > 0 then
 			ply:AddFlags(FL_NOTARGET)
@@ -1725,12 +1671,30 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 						local sprintApplyMul = applyMul * newSprintSpeed / v.insaneStats_OldSprintMoveMul
 						local crouchedApplyMul = newCrouchedSpeed / v.insaneStats_OldCrouchedMoveMul
 						if v:IsPlayer() then
-							v:SetLadderClimbSpeed(v:GetLadderClimbSpeed()*applyMul)
-							v:SetMaxSpeed(v:GetMaxSpeed()*applyMul)
-							v:SetRunSpeed(v:GetRunSpeed()*sprintApplyMul)
-							v:SetWalkSpeed(v:GetWalkSpeed()*applyMul)
-							v:SetSlowWalkSpeed(v:GetSlowWalkSpeed()*math.sqrt(applyMul))
-							v:SetCrouchedWalkSpeed(v:GetCrouchedWalkSpeed()*crouchedApplyMul)
+							if InsaneStats:GetConVarValue("wpass2_attributes_player_constant_speed") then
+								local runSpeed = 400*newMoveSpeed*newSprintSpeed
+								local walkSpeed = 200*newMoveSpeed
+								local slowWalkSpeed = 100*math.sqrt(newMoveSpeed)
+								local crouchSpeed = 0.3*newCrouchedSpeed
+
+								v:SetLadderClimbSpeed(walkSpeed)
+								v:SetMaxSpeed(walkSpeed)
+								v:SetRunSpeed(runSpeed)
+								v:SetWalkSpeed(walkSpeed)
+								v:SetSlowWalkSpeed(slowWalkSpeed)
+								v:SetCrouchedWalkSpeed(crouchSpeed)
+								v:SetDuckSpeed(crouchSpeed)
+								v:SetUnDuckSpeed(crouchSpeed)
+							else
+								v:SetLadderClimbSpeed(v:GetLadderClimbSpeed()*applyMul)
+								v:SetMaxSpeed(v:GetMaxSpeed()*applyMul)
+								v:SetRunSpeed(v:GetRunSpeed()*sprintApplyMul)
+								v:SetWalkSpeed(v:GetWalkSpeed()*applyMul)
+								v:SetSlowWalkSpeed(v:GetSlowWalkSpeed()*math.sqrt(applyMul))
+								v:SetCrouchedWalkSpeed(v:GetCrouchedWalkSpeed()*crouchedApplyMul)
+								v:SetDuckSpeed(v:GetDuckSpeed()*crouchedApplyMul)
+								v:SetUnDuckSpeed(v:GetUnDuckSpeed()*crouchedApplyMul)
+							end
 						elseif SERVER and v:IsNextBot() then
 							v.loco:SetDesiredSpeed(v.loco:GetDesiredSpeed()*applyMul)
 						end
@@ -1825,22 +1789,26 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 				end
 				
 				if (v:IsPlayer() and not v:InVehicle()) then
-					--[[local speedFactor = v:GetVelocity():Length() / 400
-					if v:InsaneStats_GetAttributeValue("speed_timedilation") ~= 1 then
+					local plyVel = v:GetVelocity()
+					local speedFactor = (plyVel.x^2 + plyVel.y^2)^0.25 / 20
+					--print(speedFactor)
+					if v:InsaneStats_GetAttributeValue("speed_dilation") ~= 1 then
 						InsaneStats.totalTimeDilation = InsaneStats.totalTimeDilation
-						* (1 + (v:InsaneStats_GetAttributeValue("speed_timedilation") - 1) * speedFactor)
-					end]]
+						* (1 + (v:InsaneStats_GetAttributeValue("speed_dilation") - 1) * speedFactor)
+						--print(1 + (v:InsaneStats_GetAttributeValue("speed_dilation") - 1) * speedFactor)
+					end
 					
-					if v:InsaneStats_GetAttributeValue("dilation") ~= 1 then
+					--[[if v:InsaneStats_GetAttributeValue("dilation") ~= 1 then
 						if v:KeyDown(IN_FORWARD) or v:KeyDown(IN_BACK) or v:KeyDown(IN_LEFT) or v:KeyDown(IN_RIGHT) then
 							InsaneStats.totalTimeDilation = InsaneStats.totalTimeDilation * v:InsaneStats_GetAttributeValue("dilation")
 						end
-					end
+					end]]
 				end
 			end
 		end
 		
 		game.SetTimeScale(game.GetTimeScale() / InsaneStats.totalTimeDilation)
+		--print(game.GetTimeScale())
 	end
 end)
 

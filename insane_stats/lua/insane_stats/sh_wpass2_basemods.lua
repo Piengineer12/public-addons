@@ -266,7 +266,7 @@ local modifiers = {
 	gatling = {
 		prefix = "Gatling",
 		modifiers = {
-			hitstack_firerate = 1.1,
+			critstack_firerate = 1.1,
 		},
 		weight = 0.5,
 		max = 10
@@ -325,7 +325,7 @@ local modifiers = {
 		prefix = "Intense",
 		suffix = "Intensity",
 		modifiers = {
-			hitstack_damage = 1.1
+			critstack_damage = 1.1
 		},
 		weight = 0.5
 	},
@@ -929,10 +929,10 @@ local modifiers = {
 		prefix = "Brisk",
 		suffix = "Brisking",
 		modifiers = {
-			dilation = 1.1
+			speed_dilation = 1.1
 		},
 		weight = 0.5,
-		max = 15,
+		max = 5,
 		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SP_ONLY),
 	},
 	rash = {
@@ -1754,6 +1754,14 @@ local attributes = {
 		display = "%s defence per marked kill, decays over time",
 		mul = 0.2
 	},
+	critstack_damage = {
+		display = "%s damage dealt per crit, decays over time",
+		mul = 0.1
+	},
+	critstack_firerate = {
+		display = "%s fire rate per crit, decays over time",
+		mul = 0.1
+	},
 	hit1s_damage = {
 		display = "%s damage dealt, 1s cooldown",
 		mul = 2
@@ -1776,14 +1784,6 @@ local attributes = {
 		display = "%s damage dealt to self every 100th hit",
 		mul = 100,
 		invert = true
-	},
-	hitstack_damage = {
-		display = "%s damage dealt per hit, decays over time",
-		mul = 0.01
-	},
-	hitstack_firerate = {
-		display = "%s fire rate per hit, decays over time",
-		mul = 0.01
 	},
 	hittaken_damage = {
 		display = "%s damage dealt for 10s on hit taken, 60s cooldown",
@@ -2009,12 +2009,12 @@ local attributes = {
 		--mul = 0.5
 	},
 	
-	--[[speed_timedilation = {
-		display = "%s time dilation, scaled by speed"
-	},]]
-	dilation = {
-		display = "%s time dilation on movement"
+	speed_dilation = {
+		display = "%s time dilation, scaled by square root of speed"
 	},
+	--[[dilation = {
+		display = "%s time dilation on movement"
+	},]]
 	toggle_damage = {
 		display = "%s damage dealt or defence, switched every 5s"
 	},

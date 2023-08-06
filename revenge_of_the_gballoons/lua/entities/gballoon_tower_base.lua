@@ -123,7 +123,7 @@ function ENT:Initialize()
 			physobj:EnableMotion(false)
 		end
 		self:SetUseType(SIMPLE_USE)
-		self:SetCollisionGroup(COLLISION_GROUP_NONE)
+		self:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
 		--[[if maxCount>=0 then
 			local count = 0
 			for k,v in pairs(ents.GetAll()) do
@@ -305,7 +305,7 @@ function ENT:UnStun2(reason)
 		self.StunUntil2[reason] = nil
 		if table.IsEmpty(self.StunUntil2) then
 			self:SetNWBool("ROTGB_Stun2", false)
-			self:SetCollisionGroup(COLLISION_GROUP_NONE)
+			self:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
 		
 			local owner = IsValid(self:GetTowerOwner()) and self:GetTowerOwner()
 			ROTGB_CauseNotification(ROTGB_NOTIFYCHAT_PLACEMENTILLEGALOFF, ROTGB_NOTIFYTYPE_INFO, owner, {"e", self})
@@ -1316,7 +1316,7 @@ function ENT:Use(activator,caller,...)
 			net.WriteUInt(self.FusionPower or 0, 16)
 			net.Send(activator)
 		else
-			ROTGB_CauseNotification(ROTGB_NOTIFY_TOWERNOTOWNER, ROTGB_NOTIFYTYPE_ERROR, activator)
+			ROTGB_CauseNotification(ROTGB_NOTIFY_TOWERNOTOWNER, ROTGB_NOTIFYTYPE_ERROR, activator, {"s", self:GetTowerOwner():Nick()})
 		end
 	end
 end

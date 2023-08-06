@@ -54,6 +54,11 @@ InsaneStats:RegisterConVar("wpass2_autopickup_battery", "insanestats_wpass2_auto
 	type = InsaneStats.INT, min = -1, max = 6
 })
 
+InsaneStats:RegisterConVar("wpass2_attributes_player_constant_speed", "insanestats_wpass2_attributes_player_constant_speed", "0", {
+	display = "Use Precalculated Player Speeds", desc = "Whenever player speeds are changed by WPASS2, non-WPASS2 speed modifiers are removed. \z
+	This fixes the issue of weapons with speed attributes that also set the player's speed causing players to infinitely stack speed multipliers.",
+	type = InsaneStats.BOOL
+})
 InsaneStats:RegisterConVar("wpass2_attributes_player_enabled", "insanestats_wpass2_attributes_player_enabled", "1", {
 	display = "Player Attribute Effects", desc = "If disabled, modified weapons / armor batteries will have no effect on players.",
 	type = InsaneStats.INT, min = 0, max = 1
@@ -444,27 +449,36 @@ local function MapStatusEffectNamesToIDs()
 		expiryEffects[k] = v.expiry
 	end
 	
+	--print("Client: ", CLIENT)
+	--PrintTable(effectNamesToIDs)
+end
+
+hook.Add("Initialize", "InsaneStatsSharedWPASS", function()
+	modifiers, attributes, registeredEffects = {}, {}, {}
+	hook.Run("InsaneStatsLoadWPASS", modifiers, attributes, registeredEffects)
+	MapStatusEffectNamesToIDs()
+	hook.Run("InsaneStatsPostLoadWPASS", modifiers, attributes, registeredEffects)
+end)
+
+hook.Add("InitPostEntity", "InsaneStatsSharedWPASS", function()
 	for i,v in ipairs(ents.GetAll()) do
 		for k,v2 in pairs(v.insaneStats_StatusEffects or {}) do
 			entitiesByStatusEffect[k] = entitiesByStatusEffect[k] or {}
 			entitiesByStatusEffect[k][v] = v2
 		end
 	end
-	
-	--print("Client: ", CLIENT)
-	--PrintTable(effectNamesToIDs)
-end
-
-hook.Add("Initialize", "InsaneStatsSharedWPASS", function()
-	modifiers, attributes = {}, {}
-	hook.Run("InsaneStatsLoadWPASS", modifiers, attributes, registeredEffects)
-	MapStatusEffectNamesToIDs()
-	hook.Run("InsaneStatsPostLoadWPASS", modifiers, attributes, registeredEffects)
 end)
 
 hook.Run("InsaneStatsLoadWPASS", modifiers, attributes, registeredEffects)
 MapStatusEffectNamesToIDs()
 hook.Run("InsaneStatsPostLoadWPASS", modifiers, attributes, registeredEffects)
+	
+for i,v in ipairs(ents.GetAll()) do
+	for k,v2 in pairs(v.insaneStats_StatusEffects or {}) do
+		entitiesByStatusEffect[k] = entitiesByStatusEffect[k] or {}
+		entitiesByStatusEffect[k][v] = v2
+	end
+end
 
 function InsaneStats:GetAllModifiers()
 	return modifiers or {}
