@@ -1,5 +1,8 @@
 {
 	"title": "[RotgB] Aquatic",
 	"type": "map",
-	"tags": []
+	"tags": [],
+	"ignore": [
+		"misc/*"
+	]
 }

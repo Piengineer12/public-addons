@@ -1,0 +1,11 @@
+{
+	"title": "[RotgB] Selection",
+	"type": "map",
+	"tags": [
+		"fun",
+		"water"
+	],
+	"ignore": [
+		"misc/*"
+	]
+}

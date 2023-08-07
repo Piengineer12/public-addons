@@ -3,5 +3,8 @@
 	"type": "map",
 	"tags": [
 		"fun"
+	],
+	"ignore": [
+		"misc/*"
 	]
 }

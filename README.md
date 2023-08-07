@@ -15,4 +15,5 @@ These addons have been abandoned and no more support will be given:
 - hud_sway
 - minecraft_firework
 - pointshop_trail_modifier
+- rotgb_selection
 - simple_achievement_hud_display
