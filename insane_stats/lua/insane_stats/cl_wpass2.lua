@@ -53,6 +53,13 @@ InsaneStats:RegisterClientConVar("hud_statuseffects_y", "insanestats_hud_statuse
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
 
+concommand.Add("insanestats_wpass2_swap", function()
+	net.Start("insane_stats")
+	net.WriteUInt(3, 8)
+	net.SendToServer()
+end, nil,
+"Swaps your current weapon / armor battery with whatever you're hovering over.")
+
 local rarityNames = {
 	"Junk",
 	"Common",
@@ -95,8 +102,28 @@ local rarityNames = {
 	"Ultimate Mythical Galactic",
 	"Ultimate Mythical Monstrous",
 	"Ultimate Mythical Aetheric",
-	"False Rainbow",
-	"True Rainbow",
+	"Final Common",
+	"Final Uncommon",
+	"Final Rare",
+	"Final Epic",
+	"Final Superior",
+	"Final Legendary",
+	"Final Insane",
+	"Final Galactic",
+	"Final Monstrous",
+	"Final Aetheric",
+	"Final Mythical Common",
+	"Final Mythical Uncommon",
+	"Final Mythical Rare",
+	"Final Mythical Epic",
+	"Final Mythical Superior",
+	"Final Mythical Legendary",
+	"Final Mythical Insane",
+	"Final Mythical Galactic",
+	"Final Mythical Monstrous",
+	"Final Mythical Aetheric",
+	"Final Ultimate",
+	"Rainbow"
 }
 
 local equippedWep
@@ -175,23 +202,29 @@ local function CreateName(wep)
 end
 
 function InsaneStats:GetRarityColor(tier)
+	realTime = RealTime()
 	if tier < 0 then return color_gray
 	elseif tier == 0 then return color_white
-	elseif tier > 40 then return HSVToColor(RealTime() * 120 % 360, 1, 1)
+	elseif tier > 60 then return HSVToColor(realTime * 120 % 360, 1, 1)
 	else
 		local hue = baseHues[ (tier-1)%10+1 ]
 		local sat = 0.5
 		local val = 1
-		if tier > 20 then
+		if tier > 40 then
+			if tier > 50 then
+				sat = math.abs(Lerp(realTime%1, -1, 1))
+			end
+			hue = (hue + math.ease.InOutCirc(realTime%3/3, 0.5, 0.5) * 360) % 360
+		elseif tier > 20 then
 			if tier > 30 then
-				sat = math.abs(Lerp((RealTime())%1, -1, 1))
+				sat = math.abs(Lerp(realTime%1, -1, 1))
 				--val = 
 			else
 				sat = 1
 			end
-			hue = (hue + math.abs(Lerp(RealTime()%2/2, -120, 120)) - 60) % 360
+			hue = (hue + math.abs(Lerp(realTime%2/2, -120, 120)) - 60) % 360
 		elseif tier > 10 then
-			sat = math.abs(Lerp(RealTime()%1, -1, 1))
+			sat = math.abs(Lerp(realTime%1, -1, 1))
 		end
 		
 		return HSVToColor(hue, sat, val)
@@ -356,7 +389,7 @@ local lastLookedAtWepEntIndex
 hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 	if InsaneStats:GetConVarValue("wpass2_enabled") then
 		local ply = LocalPlayer()
-		local wep = ply:GetActiveWeapon()
+		local wep = ply:KeyDown(IN_WALK) and ply or ply:GetActiveWeapon()
 		local realTime = RealTime()
 		local trace = ply:GetEyeTrace()
 		local scrW = ScrW()

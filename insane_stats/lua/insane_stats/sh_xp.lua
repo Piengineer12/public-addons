@@ -194,7 +194,7 @@ InsaneStats:RegisterConVar("xp_player_resistance_mode", "insanestats_xp_player_r
 		-1 causes this ConVar to use the value of insanestats_xp_mode.",
 	type = InsaneStats.INT, min = -1, max = 1
 })
-InsaneStats:RegisterConVar("xp_player_resistance_add", "insanestats_xp_player_resistance_add_add", "0", {
+InsaneStats:RegisterConVar("xp_player_resistance_add", "insanestats_xp_player_resistance_add_add", "10", {
 	display = "Player Resistance Growth", desc = "Additional % of player % resistance gained per level. \z
 	This is only applied if \"insanestats_xp_player_resistance_add_mode\" is 0.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
@@ -254,7 +254,7 @@ InsaneStats:RegisterConVar("xp_other_resistance_mode", "insanestats_xp_other_res
 		-1 causes this ConVar to use the value of insanestats_xp_mode.",
 	type = InsaneStats.INT, min = -1, max = 1
 })
-InsaneStats:RegisterConVar("xp_other_resistance_add", "insanestats_xp_other_resistance_add_add", "0", {
+InsaneStats:RegisterConVar("xp_other_resistance_add", "insanestats_xp_other_resistance_add_add", "10", {
 	display = "Non-player Resistance Growth", desc = "Additional % of non-player % damage resistance gained per level. \z
 	This is only applied if \"insanestats_xp_other_resistance_add_mode\" is 0.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000

@@ -340,5 +340,7 @@ net.Receive("insane_stats", function(length, ply)
 				InsaneStats:GetConVarData(conVarName).conVar:SetString(net.ReadString())
 			end
 		end
+	elseif func == 3 then
+		ply:InsaneStats_AttemptEquipItem(ply:GetUseEntity())
 	end
 end)
