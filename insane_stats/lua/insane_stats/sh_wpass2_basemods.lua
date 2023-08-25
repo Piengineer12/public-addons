@@ -266,7 +266,7 @@ local modifiers = {
 	gatling = {
 		prefix = "Gatling",
 		modifiers = {
-			hitstack_firerate = 1.1,
+			critstack_firerate = 1.1,
 		},
 		weight = 0.5,
 		max = 10
@@ -325,7 +325,7 @@ local modifiers = {
 		prefix = "Intense",
 		suffix = "Intensity",
 		modifiers = {
-			hitstack_damage = 1.1
+			critstack_damage = 1.1
 		},
 		weight = 0.5
 	},
@@ -780,6 +780,24 @@ local modifiers = {
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR
 	},
+	brisk = {
+		prefix = "Brisk",
+		suffix = "Brisking",
+		modifiers = {
+			speed_dilation = 1.1
+		},
+		max = 10,
+		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SP_ONLY),
+	},
+	auxiliary = {
+		prefix = "Auxiliary",
+		suffix = "Capacity",
+		modifiers = {
+			aux_drain = 1/1.1
+		},
+		max = 7,
+		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SUIT_POWER),
+	},
 	
 	-- utility, half weight
 	--[[brisk = {
@@ -924,16 +942,6 @@ local modifiers = {
 		},
 		weight = 0.5,
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR
-	},
-	brisk = {
-		prefix = "Brisk",
-		suffix = "Brisking",
-		modifiers = {
-			dilation = 1.1
-		},
-		weight = 0.5,
-		max = 15,
-		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SP_ONLY),
 	},
 	rash = {
 		prefix = "Rash",
@@ -1153,7 +1161,8 @@ local modifiers = {
 		prefix = "Dodgy",
 		suffix = "Dodging",
 		modifiers = {
-			dodge = 1/1.1
+			dodge = 1/1.1,
+			dissolvewarning = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
@@ -1261,7 +1270,8 @@ local modifiers = {
 		suffix = "Sharpness",
 		modifiers = {
 			hittaken_invincible = 1.1,
-			hittaken_invincible_meleebreak = 1.1
+			hittaken_invincible_meleebreak = 1.1,
+			dissolvewarning = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
@@ -1284,7 +1294,7 @@ local modifiers = {
 			highlevel_damagetaken = 1/1.331,
 			lowlevel_damage = 1/1.1
 		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP),
 		weight = 0.5,
 		max = 2
 	},
@@ -1310,7 +1320,9 @@ local modifiers = {
 	sap = {
 		prefix = "Sapping",
 		modifiers = {
-			crit_armorsteal = 1.21
+			crit_armorsteal = 1.21,
+			armor_full = 1.1,
+			armor_full2 = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5
@@ -1754,6 +1766,14 @@ local attributes = {
 		display = "%s defence per marked kill, decays over time",
 		mul = 0.2
 	},
+	critstack_damage = {
+		display = "%s damage dealt per crit, decays over time",
+		mul = 0.1
+	},
+	critstack_firerate = {
+		display = "%s fire rate per crit, decays over time",
+		mul = 0.1
+	},
 	hit1s_damage = {
 		display = "%s damage dealt, 1s cooldown",
 		mul = 2
@@ -1776,14 +1796,6 @@ local attributes = {
 		display = "%s damage dealt to self every 100th hit",
 		mul = 100,
 		invert = true
-	},
-	hitstack_damage = {
-		display = "%s damage dealt per hit, decays over time",
-		mul = 0.01
-	},
-	hitstack_firerate = {
-		display = "%s fire rate per hit, decays over time",
-		mul = 0.01
 	},
 	hittaken_damage = {
 		display = "%s damage dealt for 10s on hit taken, 60s cooldown",
@@ -1812,6 +1824,11 @@ local attributes = {
 	hittakenstack_defence = {
 		display = "%s defence per hit taken, decays over time",
 		mul = 0.1
+	},
+	dissolvewarning = {
+		display = "Dissolving damage ignores invincibility and cannot miss",
+		mul = 60,
+		invert = true
 	},
 	
 	crit_chance = {
@@ -2009,12 +2026,12 @@ local attributes = {
 		--mul = 0.5
 	},
 	
-	--[[speed_timedilation = {
-		display = "%s time dilation, scaled by speed"
-	},]]
-	dilation = {
-		display = "%s time dilation on movement"
+	speed_dilation = {
+		display = "%s time dilation, scaled by square root of speed"
 	},
+	--[[dilation = {
+		display = "%s time dilation on movement"
+	},]]
 	toggle_damage = {
 		display = "%s damage dealt or defence, switched every 5s"
 	},
@@ -2111,6 +2128,11 @@ local attributes = {
 	mark = {
 		display = "Closest enemy is marked on HUD"
 	},
+	aux_drain = {
+		display = "%s aux power drain rate",
+		invert = true,
+		mul = 2
+	}
 }
 
 local statusEffects = {
@@ -2664,21 +2686,31 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 		elseif movedata:KeyPressed(IN_JUMP) then
 			if ply.insaneStats_Jumps > 0 then
 				ply.insaneStats_Jumps = ply.insaneStats_Jumps - 1
-				local jumppower = ply:GetJumpPower() - ply:GetVelocity().z
+
+				-- vertical
+				local currentVel = movedata:GetVelocity()
+				local jumppower = ply:GetJumpPower() -- - currentVel.z
 				local desiredVector = vector_up * jumppower
 				
+				-- horizontal
+				local horizontalVector = Vector(currentVel.x, currentVel.y, 0)
 				local buttons = usercmd:GetButtons()
-				local shuntStrength = (bit.band(buttons,IN_SPEED)~=0 and ply:GetRunSpeed()/2 or ply:GetWalkSpeed()/2)
+				local shuntStrength = (bit.band(buttons,IN_SPEED)~=0 and ply:GetRunSpeed() or ply:GetWalkSpeed())
 				local Forward = (bit.band(buttons,IN_FORWARD)~=0 and 1 or 0) + (bit.band(buttons,IN_BACK)~=0 and -1 or 0)
 				if Forward~=0 then
-					desiredVector:Add(ply:GetForward() * shuntStrength)
+					horizontalVector:Add(ply:GetForward() * shuntStrength)
 				end
 				local Right = (bit.band(buttons,IN_RIGHT)~=0 and 1 or 0) + (bit.band(buttons,IN_LEFT)~=0 and -1 or 0)
 				if Right~=0 then
-					desiredVector:Add(ply:GetRight() * shuntStrength)
+					horizontalVector:Add(ply:GetRight() * shuntStrength)
 				end
-				desiredVector:Add(movedata:GetVelocity())
-				
+				local maxSpeed = movedata:GetMaxSpeed() * 1.5
+				if horizontalVector:LengthSqr() > maxSpeed^2 then
+					horizontalVector:Normalize()
+					horizontalVector:Mul(maxSpeed)
+				end
+
+				desiredVector:Add(horizontalVector)
 				movedata:SetVelocity(desiredVector)
 			end
 		end

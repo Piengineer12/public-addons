@@ -57,16 +57,15 @@ function ENT:InsaneStats_ApplyKnockback(knockback, additionalVelocity)
 end
 
 local dLibbed = false
-local entities = ents.GetAll()
+local entities = {}
+for k,v in pairs(ents.GetAll()) do
+	entities[v] = true
+end
 timer.Create("InsaneStatsUnlimitedHealth", 0.5, 0, function()
 	local i = 1
-	while entities[i] do
-		local ent = entities[i]
-		
-		if ent:IsPlayer() or (IsValid(ent) and ent:InsaneStats_GetHealth() > 0) then
-			i = i + 1
-		else
-			table.remove(entities, i)
+	for k,v in pairs(entities) do
+		if not (IsValid(k) and k:InsaneStats_GetHealth() > 0 and (k:GetModel() or "") ~= "") then
+			entities[k] = nil
 		end
 	end
 	
@@ -117,7 +116,7 @@ timer.Create("InsaneStatsUnlimitedHealth", 0.5, 0, function()
 				end
 			end
 		end
-	elseif not dLibbed then
+	elseif not dLibbed and hook.GetTable().EntityTakeDamage.InsaneStatsUnlimitedHealth then
 		-- turn the hook overrides off and just use DLib's integrated stuff
 		dLibbed = true
 		local hookTable = hook.GetTable()
@@ -151,38 +150,38 @@ end)
 hook.Add("Think", "InsaneStatsUnlimitedHealth", function()
 	if InsaneStats:GetConVarValue("infhealth_enabled") and CurTime() > 5 then
 		for k,v in pairs(entities) do
-			if IsValid(v) then
-				if v.InsaneStats_GetRawHealth then
-					v.insaneStats_OldRawHealth = v.insaneStats_OldRawHealth or v:InsaneStats_GetRawHealth()
+			if IsValid(k) then
+				if k.InsaneStats_GetRawHealth then
+					k.insaneStats_OldRawHealth = k.insaneStats_OldRawHealth or k:InsaneStats_GetRawHealth()
 					
-					if v.insaneStats_OldRawHealth ~= v:InsaneStats_GetRawHealth() then
-						local difference = v:InsaneStats_GetRawHealth() - v.insaneStats_OldRawHealth
+					if k.insaneStats_OldRawHealth ~= k:InsaneStats_GetRawHealth() then
+						local difference = k:InsaneStats_GetRawHealth() - k.insaneStats_OldRawHealth
 						--print(difference)
-						if difference < 0 and v:IsOnFire() then -- getting set on fire resets the entity's health. Valve, pls fix.
+						if difference < 0 and k:IsOnFire() then -- getting set on fire resets the entity's health. Valve, pls fix.
 							difference = 0
 						end
 						
-						difference = difference * (v.insaneStats_CurrentHealthAdd or 1)
+						difference = difference * (k.insaneStats_CurrentHealthAdd or 1)
 						
-						v:SetHealth(v:InsaneStats_GetHealth() + difference)
+						k:SetHealth(k:InsaneStats_GetHealth() + difference)
 					end
 					
-					if v:GetMaxArmor() > 0
-					and v:InsaneStats_GetArmor() < v:GetMaxArmor()
-					and not v:IsPlayer()
-					and (v.insaneStats_LastDamageTaken or 0) + InsaneStats:GetConVarValue("infhealth_armor_regen_delay") <= CurTime() then
-						local armorToAdd = v:GetMaxArmor() * InsaneStats:GetConVarValue("infhealth_armor_regen") / 100 * FrameTime()
-						--print(v:InsaneStats_GetArmor(), armorToAdd, v:InsaneStats_GetArmor() + armorToAdd)
-						v:SetArmor(math.min(v:InsaneStats_GetArmor() + armorToAdd, v:GetMaxArmor()))
+					if k:GetMaxArmor() > 0
+					and k:InsaneStats_GetArmor() < k:GetMaxArmor()
+					and not k:IsPlayer()
+					and (k.insaneStats_LastDamageTaken or 0) + InsaneStats:GetConVarValue("infhealth_armor_regen_delay") <= CurTime() then
+						local armorToAdd = k:GetMaxArmor() * InsaneStats:GetConVarValue("infhealth_armor_regen") / 100 * FrameTime()
+						--print(k:InsaneStats_GetArmor(), armorToAdd, k:InsaneStats_GetArmor() + armorToAdd)
+						k:SetArmor(math.min(k:InsaneStats_GetArmor() + armorToAdd, k:GetMaxArmor()))
 					end
 				end
 				
-				if v.InsaneStats_GetRawArmor then
-					v.insaneStats_OldRawArmor = v.insaneStats_OldRawArmor or v:InsaneStats_GetRawArmor()
-					if v.insaneStats_OldRawArmor ~= v:InsaneStats_GetRawArmor() then
-						local difference = v:InsaneStats_GetRawArmor() - v.insaneStats_OldRawArmor
-						difference = difference * (v.insaneStats_CurrentArmorAdd or 1)
-						v:SetArmor(v:InsaneStats_GetArmor() + difference)
+				if k.InsaneStats_GetRawArmor then
+					k.insaneStats_OldRawArmor = k.insaneStats_OldRawArmor or k:InsaneStats_GetRawArmor()
+					if k.insaneStats_OldRawArmor ~= k:InsaneStats_GetRawArmor() then
+						local difference = k:InsaneStats_GetRawArmor() - k.insaneStats_OldRawArmor
+						difference = difference * (k.insaneStats_CurrentArmorAdd or 1)
+						k:SetArmor(k:InsaneStats_GetArmor() + difference)
 					end
 				end
 			end
@@ -269,12 +268,19 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 					--print(vic, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth())
 				end
 				
-				if vic:GetClass() == "npc_helicopter" and vic:InsaneStats_GetHealth() / vic:InsaneStats_GetMaxHealth() > 0.2 then
+				local healthRatio = vic:InsaneStats_GetHealth() / vic:InsaneStats_GetMaxHealth()
+				if (vic:GetClass() == "npc_helicopter"
+				or vic.insaneStats_PreventLethalDamage)
+				and healthRatio > 0.2 then
 					-- if damage exceeds health * 0.75, nerf damage received
 					-- we have to do this otherwise the helicopter might remain in a dead-not-dead state
 					local maxDamage = vic:InsaneStats_GetRawHealth() * 0.75
 					if dmginfo:InsaneStats_GetRawDamage() > maxDamage then
 						dmginfo:InsaneStats_SetRawDamage(maxDamage)
+					end
+					if healthRatio <= 0.5 and vic.insaneStats_PreventLethalDamage then
+						vic:InsaneStats_ApplyStatusEffect("invincible", 1, 10)
+						vic.insaneStats_PreventLethalDamage = nil
 					end
 				end
 			end
@@ -295,7 +301,7 @@ end)
 hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo, notImmune, ...)
 	--print("PostEntityTakeDamage", vic, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth())
 	vic.insaneStats_OldVelocity = vic.insaneStats_OldVelocity or vic:GetVelocity()
-	if not dmginfo:IsDamageType(DMG_FALL) then
+	if not dmginfo:IsDamageType(armorBypassingDamage) then
 		vic:InsaneStats_ApplyKnockback(dmginfo:GetDamageForce(), vic.insaneStats_OldVelocity-vic:GetVelocity())
 	end
 	
@@ -387,7 +393,7 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 end)
 
 hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
-	table.insert(entities, ent)
+	entities[ent] = true
 	
 	if InsaneStats:GetConVarValue("infhealth_enabled") then
 		--[[if ent:InsaneStats_GetHealth() == math.huge and ent.insaneStats_HealthRoot8 then
@@ -438,7 +444,13 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 end)
 
 hook.Add("PlayerSpawn", "InsaneStatsUnlimitedHealth", function(ply, fromTransition)
-	table.insert(entities, ply)
+	entities[ply] = true
+end)
+
+hook.Add("EntityKeyValue", "InsaneStatsUnlimitedHealth", function(ent, key, value)
+	if key == "OnHalfHealth" then
+		ent.insaneStats_PreventLethalDamage = true
+	end
 end)
 
 --[[ to fix transitions

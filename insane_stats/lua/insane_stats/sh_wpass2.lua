@@ -2,7 +2,8 @@ InsaneStats.WPASS2_FLAGS = {
 	ARMOR = 1,
 	XP = 2,
 	SCRIPTED_ONLY = 4,
-	SP_ONLY = 8
+	SP_ONLY = 8,
+	SUIT_POWER = 16
 	
 	-- non-obvious combinations:
 	-- 5: NEVER
@@ -54,6 +55,16 @@ InsaneStats:RegisterConVar("wpass2_autopickup_battery", "insanestats_wpass2_auto
 	type = InsaneStats.INT, min = -1, max = 6
 })
 
+InsaneStats:RegisterConVar("wpass2_attributes_player_constant_speed", "insanestats_wpass2_attributes_player_constant_speed", "0", {
+	display = "Use Precalculated Player Speeds", desc = "Whenever player speeds are changed by WPASS2, non-WPASS2 speed modifiers are removed. \z
+	This fixes the issue of weapons with speed attributes that also set the player's speed causing players to infinitely stack speed multipliers.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterConVar("wpass2_attributes_player_constant_timescale", "insanestats_wpass2_attributes_player_constant_timescale", "0", {
+	display = "Use Precalculated Time Scale", desc = "Whenever the time scale is changed by WPASS2, non-WPASS2 time scale modifiers are removed. \z
+	This fixes the issue of time scale modifiers being stacked infinitely due to other addons.",
+	type = InsaneStats.BOOL
+})
 InsaneStats:RegisterConVar("wpass2_attributes_player_enabled", "insanestats_wpass2_attributes_player_enabled", "1", {
 	display = "Player Attribute Effects", desc = "If disabled, modified weapons / armor batteries will have no effect on players.",
 	type = InsaneStats.INT, min = 0, max = 1
@@ -267,9 +278,9 @@ timer.Create("InsaneStatsSharedWPASS", 0.5, 0, function()
 	PerformHookOverrides("PlayerCanPickupWeapon")
 	PerformHookOverrides("PlayerCanPickupItem")
 
-	-- these ones too, since we want to change the argument value
-	PerformHookOverrides("ScaleNPCDamage")
-	PerformHookOverrides("ScalePlayerDamage")
+	-- -- these ones too, since we want to change the argument value
+	-- PerformHookOverrides("ScaleNPCDamage")
+	-- PerformHookOverrides("ScalePlayerDamage")
 end)
 
 local WEAPON = FindMetaTable("Weapon")
@@ -397,7 +408,7 @@ hook.Add("PlayerCanPickupItem", "InsaneStats", function(...)
 		end
 	end
 end)
-hook.Add("ScaleNPCDamage", "InsaneStats", function(...)
+--[[hook.Add("ScaleNPCDamage", "InsaneStats", function(...)
 	if doWeaponOverride then
 		local hookTable = hook.GetTable()
 		local nonInsaneStatsHooks = hookTable.NonInsaneStatsScaleNPCDamage or {}
@@ -428,7 +439,7 @@ hook.Add("ScalePlayerDamage", "InsaneStats", function(...)
 			if ret then return ret end
 		end
 	end
-end)
+end)]]
 
 local registeredEffects, modifiers, attributes = {}, {}, {}
 local effectNamesToIDs = {}
@@ -444,27 +455,36 @@ local function MapStatusEffectNamesToIDs()
 		expiryEffects[k] = v.expiry
 	end
 	
+	--print("Client: ", CLIENT)
+	--PrintTable(effectNamesToIDs)
+end
+
+hook.Add("Initialize", "InsaneStatsSharedWPASS", function()
+	modifiers, attributes, registeredEffects = {}, {}, {}
+	hook.Run("InsaneStatsLoadWPASS", modifiers, attributes, registeredEffects)
+	MapStatusEffectNamesToIDs()
+	hook.Run("InsaneStatsPostLoadWPASS", modifiers, attributes, registeredEffects)
+end)
+
+hook.Add("InitPostEntity", "InsaneStatsSharedWPASS", function()
 	for i,v in ipairs(ents.GetAll()) do
 		for k,v2 in pairs(v.insaneStats_StatusEffects or {}) do
 			entitiesByStatusEffect[k] = entitiesByStatusEffect[k] or {}
 			entitiesByStatusEffect[k][v] = v2
 		end
 	end
-	
-	--print("Client: ", CLIENT)
-	--PrintTable(effectNamesToIDs)
-end
-
-hook.Add("Initialize", "InsaneStatsSharedWPASS", function()
-	modifiers, attributes = {}, {}
-	hook.Run("InsaneStatsLoadWPASS", modifiers, attributes, registeredEffects)
-	MapStatusEffectNamesToIDs()
-	hook.Run("InsaneStatsPostLoadWPASS", modifiers, attributes, registeredEffects)
 end)
 
 hook.Run("InsaneStatsLoadWPASS", modifiers, attributes, registeredEffects)
 MapStatusEffectNamesToIDs()
 hook.Run("InsaneStatsPostLoadWPASS", modifiers, attributes, registeredEffects)
+	
+for i,v in ipairs(ents.GetAll()) do
+	for k,v2 in pairs(v.insaneStats_StatusEffects or {}) do
+		entitiesByStatusEffect[k] = entitiesByStatusEffect[k] or {}
+		entitiesByStatusEffect[k][v] = v2
+	end
+end
 
 function InsaneStats:GetAllModifiers()
 	return modifiers or {}
@@ -600,7 +620,9 @@ local function EntityInitStatusEffects(ent)
 end
 
 local function DoExpiryEffect(ent, statName)
-	entitiesByStatusEffect[statName][ent] = nil
+	if entitiesByStatusEffect[statName] then
+		entitiesByStatusEffect[statName][ent] = nil
+	end
 	local statusData = ent.insaneStats_StatusEffects and ent.insaneStats_StatusEffects[statName]
 	if expiryEffects[statName] and statusData then
 		expiryEffects[statName](ent, statusData.level or 0, statusData.attacker)

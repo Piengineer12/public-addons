@@ -404,16 +404,13 @@ function ENT:SpawnProp(forcedSpawn)
 			spawnPlayer = self:GetOwner()
 		else
 			local plys, ourPos = player.GetAll(), self:GetPos()
-			local bestDistance, bestPlayer = math.huge
+			local bestDistance = math.huge
 			for i, ply in ipairs(plys) do
 				local distance = ply:GetPos():DistToSqr(ourPos)
 				if distance < bestDistance then
-					bestPlayer = ply
+					spawnPlayer = ply
 					bestDistance = distance
 				end
-			end
-			if IsValid(bestPlayer) then
-				spawnPlayer = bestPlayer
 			end
 		end
 	end

@@ -5,5 +5,7 @@
 		"fun",
 		"scenic"
 	],
-	"ignore": ["*.cmd","rotgb_heatwave.jpg"]
+	"ignore": [
+		"misc/*"
+	]
 }

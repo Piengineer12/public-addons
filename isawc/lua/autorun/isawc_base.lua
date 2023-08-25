@@ -10,9 +10,9 @@ Links above are confirmed working as of 2022-04-16. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "5.6.1"
-ISAWC._VERSIONNUMBER = 50601
-ISAWC._VERSIONDATE = "2023-07-25"
+ISAWC._VERSION = "5.6.2"
+ISAWC._VERSIONNUMBER = 50602
+ISAWC._VERSIONDATE = "2023-08-06"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -6273,6 +6273,7 @@ end
 ISAWC.Initialize = function()
 	if SERVER then
 		local data = util.JSONToTable(file.Read("isawc_data.dat") or "") or {}
+		local devEnabled = GetConVar("developer"):GetInt() > 0
 		if table.IsEmpty(data) then
 			data = util.JSONToTable(util.Decompress(file.Read("isawc_data.dat") or "") or "") or {}
 		end
@@ -6287,6 +6288,10 @@ ISAWC.Initialize = function()
 			ISAWC:Log("Save data loaded successfully!")
 		else
 			ISAWC:Log("Backup save data failed to load!")
+		end
+		if devEnabled then
+			ISAWC:Log("Loaded data:")
+			PrintTable(data)
 		end
 		ISAWC:PerformCompatibilityLoad(data)
 		
@@ -6321,12 +6326,23 @@ ISAWC.Initialize = function()
 			if (TypeID(v) == TYPE_CONVAR and data[k] ~= v:GetString()) and data[k] then
 				v:SetString(data[k])
 				replacements = replacements + 1
+				if devEnabled then
+					ISAWC:Log(
+						string.format(
+							"ConVar \"%s\" updated to value \"%s\".",
+							v:GetName(),
+							data[k]
+						)
+					)
+				end
 			end
 		end
 		if replacements > 1 then
 			ISAWC:Log(string.format("ConVar file loaded, %u ConVar values updated.", replacements))
 		elseif replacements > 0 then
 			ISAWC:Log("ConVar file loaded, 1 ConVar value updated.")
+		else
+			ISAWC:Log("ConVar file loaded, no ConVar values updated.")
 		end
 		
 		if not sql.TableExists("isawc_item_stamps") then

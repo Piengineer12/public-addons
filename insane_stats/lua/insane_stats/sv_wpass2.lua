@@ -111,6 +111,9 @@ local function ApplyWPASS2Tier(ent)
 	local tier = ent.insaneStats_StartTier or ApplyWPASS2StartTier(ent)
 	local isNotWep = not ent:IsWeapon()
 	
+	--[[if ent:IsPlayer() then
+		print(ent, tier)
+	end]]
 	if InsaneStats:GetConVarValue("xp_enabled") and InsaneStats:GetConVarValue("wpass2_tier_xp_enable") and tier ~= 0 then
 		local effectiveLevel = ent:InsaneStats_GetLevel()
 		if not ent:InsaneStats_IsWPASS2Pickup() then
@@ -147,6 +150,9 @@ local function ApplyWPASS2Tier(ent)
 			)
 		)
 	)
+	-- if ent:IsPlayer() then
+	-- 	print(ent, ent.insaneStats_Tier)
+	-- end
 	
 	return true
 end
@@ -172,6 +178,9 @@ function InsaneStats:ApplyWPASS2Modifiers(wep)
 	end
 	if game.SinglePlayer() then
 		inclusiveFlags = bit.bor(inclusiveFlags, self.WPASS2_FLAGS.SP_ONLY)
+	end
+	if GetConVar("gmod_suit"):GetBool() then
+		inclusiveFlags = bit.bor(inclusiveFlags, self.WPASS2_FLAGS.SUIT_POWER)
 	end
 	
 	local modifierProbabilities = {}
@@ -496,7 +505,7 @@ function PLAYER:InsaneStats_EquipBattery(item)
 end
 
 function PLAYER:InsaneStats_AttemptEquipItem(ent)
-	if InsaneStats:GetConVarValue("wpass2_enabled") then
+	if InsaneStats:GetConVarValue("wpass2_enabled") and IsValid(ent) then
 		local nextPickup = self.insaneStats_NextPickup or 0
 		local curTime = CurTime()
 		
@@ -826,7 +835,6 @@ hook.Add("PlayerSpawn", "InsaneStatsWPASS", function(ply, fromTransition)
 							ply.insaneStats_Modifiers = plyWPASS2Data.modifiers.battery.modifiers or ply.insaneStats_Modifiers
 							ply.insaneStats_StartTier = plyWPASS2Data.modifiers.battery.startTier or ply.insaneStats_StartTier
 							local batteryXP = plyWPASS2Data.modifiers.battery.xp
-							if batteryXP == "inf" then batteryXP = math.huge end
 							ply:InsaneStats_SetBatteryXP(batteryXP or ply:InsaneStats_GetBatteryXP())
 							
 							if ply:InsaneStats_GetBatteryXP() == "inf" then
@@ -888,8 +896,9 @@ hook.Add("InsaneStatsEntityKilled", "InsaneStatsWPASS", function(victim, attacke
 						if IsValid(victim) then
 							-- set our modifiers to the null one if we dropped the battery
 							victim.insaneStats_Tier = 0
+							victim.insaneStats_StartTier = nil
 							victim.insaneStats_Modifiers = {}
-							victim:InsaneStats_SetBatteryXP(0)
+							victim.insaneStats_BatteryXP = nil
 							InsaneStats:ApplyWPASS2Attributes(victim)
 							victim.insaneStats_ModifierChangeReason = 2
 							victim:InsaneStats_MarkForUpdate(8)
@@ -900,8 +909,9 @@ hook.Add("InsaneStatsEntityKilled", "InsaneStatsWPASS", function(victim, attacke
 						-- set our modifiers to the null one
 						-- we do this because NPCs such as npc_turret_floor for example can be revived
 						victim.insaneStats_Tier = 0
+						victim.insaneStats_StartTier = nil
 						victim.insaneStats_Modifiers = {}
-						victim:InsaneStats_SetBatteryXP(0)
+						victim.insaneStats_BatteryXP = nil
 						InsaneStats:ApplyWPASS2Attributes(victim)
 						victim.insaneStats_ModifierChangeReason = 2
 						victim:InsaneStats_MarkForUpdate(8)

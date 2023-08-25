@@ -14,13 +14,22 @@ concommand.Add("insanestats_xp_other_level_maps_reset", function(ply, cmd, args,
 end, nil, "Resets recorded maps.")
 concommand.Add("insanestats_xp_other_level_maps_remove", function(ply, cmd, args, argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
-		for k,v in pairs(mapOrder) do
-			if argStr == v then
-				table.remove(mapOrder, k)
+		-- use a search pattern
+		local success = false
+		local searchStr = argStr:PatternSafe():Replace('%*', '.*')
+		local i = 1
+		local v = mapOrder[i]
+		while v do
+			if string.match(v, '^'..searchStr..'$') then
+				table.remove(mapOrder, i)
 				InsaneStats:Log("Removed map "..v..".")
-				return
+				success = true
+			else
+				i = i + 1
 			end
+			v = mapOrder[i]
 		end
+		if success then return success end
 		
 		if tonumber(argStr) then
 			local toRemove = math.min(#mapOrder, tonumber(argStr) or 0)
@@ -29,7 +38,7 @@ concommand.Add("insanestats_xp_other_level_maps_remove", function(ply, cmd, args
 				InsaneStats:Log("Removed map "..value..".")
 			end
 		elseif argStr == "" then
-			InsaneStats:Log("Removes a map from the map record list. If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. Note that a map restart is required for the map number to be updated.")
+			InsaneStats:Log("Removes a map from the map record list. If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. * wildcards are allowed. Note that a map restart is required for the map number to be updated.")
 		else
 			InsaneStats:Log("Could not find map "..argStr..".")
 		end
@@ -909,7 +918,10 @@ hook.Add("ShutDown", "InsaneStatsWPASS", SaveData)
 
 hook.Add("PostCleanupMap", "InsaneStatsXP", function()
 	if InsaneStats:GetConVarValue("xp_enabled") then
-		game.GetWorld():InsaneStats_SetXP(InsaneStats:DetermineEntitySpawnedXP(game.GetWorld()))
+		local xp = InsaneStats:DetermineEntitySpawnedXP(game.GetWorld())
+		if xp then
+			game.GetWorld():InsaneStats_SetXP(xp)
+		end
 	end
 end)
 

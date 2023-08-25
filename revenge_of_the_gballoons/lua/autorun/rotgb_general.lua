@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format.
 
-Version:		6.7.1
-Version Date:	2023-07-22
+Version:		6.7.2
+Version Date:	2023-08-06
 ]]
 
 local DebugArgs = {"fire","damage","func_nav_detection","pathfinding","popping","regeneration","targeting","spawning","towers","music"}
@@ -2200,7 +2200,7 @@ if CLIENT then
 				elseif message == ROTGB_NOTIFY_TOWERMAX then
 					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.no_place.no_more"), level, nil, additionalArguments)
 				elseif message == ROTGB_NOTIFY_TOWERNOTOWNER then
-					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.upgrade.not_owner"), level, nil, additionalArguments)
+					ROTGB_CauseNotification(ROTGB_LocalizeString("rotgb.tower.upgrade.not_owner", net.ReadString()), level, nil, additionalArguments)
 				elseif message == ROTGB_NOTIFY_WAVEEND and not ROTGB_GetConVarValue("rotgb_no_wave_hints") then
 					local token = string.format("rotgb.wave_hints.%i", net.ReadInt(32))
 					local localized = ROTGB_LocalizeString(token)

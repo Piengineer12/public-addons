@@ -8,8 +8,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_REPAIR_VERSION = "2.0.2"
-LUA_REPAIR_VERSION_DATE = "2023-07-21"
+LUA_REPAIR_VERSION = "2.0.3"
+LUA_REPAIR_VERSION_DATE = "2023-08-06"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
@@ -113,6 +113,15 @@ local function FixAllErrors()
 		NIL[k] = v
 	end
 	
+	local oldPairs = pairs
+	pairs = function(tab, ...)
+		if not tab then
+			LogError("Some code attempted to iterate over an empty table.")
+		end
+		tab = tab or {}
+		return oldPairs(tab, ...)
+	end
+
 	NUMBER.__lt = function(a,b)
 		if isnumber(a) or isnumber(b) then
 			return (a or 0) < (b or 0)
@@ -240,13 +249,26 @@ local function FixAllErrors()
 			LogError("Some code attempted to set the physics attacker of an entity to a non-player.")
 		end
 	end
+	local oldSetColor = ENTITY.SetColor
+	ENTITY.SetColor = function(ent, ...)
+		if not IsValid(ent) then
+			LogError("Some code attempted to set the color of a NULL entity.")
+		else return oldSetColor(ent, ...)
+		end
+	end
+	local oldSetColor4Part = ENTITY.SetColor4Part
+	ENTITY.SetColor4Part = function(ent, ...)
+		if not IsValid(ent) then
+			LogError("Some code attempted to set the color of a NULL entity.")
+		else return oldSetColor4Part(ent, ...)
+		end
+	end
 	local oldEnemy = NPC.GetEnemy
 	NPC.GetEnemy = function(ent, ...)
 		if not IsValid(ent) then
 			LogError("Some code attempted to get the enemy of a NULL entity.")
 			return nil
-		end
-		if oldEnemy then
+		else
 			return oldEnemy(ent, ...)
 		end
 	end
