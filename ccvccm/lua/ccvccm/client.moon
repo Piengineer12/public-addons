@@ -34,10 +34,42 @@
 		-- adds a new category, with controls for deleting / renaming the category inside at the top of the category
 	-- elements must be draggable
 
-CCVCCM.Send = (sendTable) =>
-	net.Start 'ccvccm'
-	CCVCCM\AddPayloadToNetMessage sendTable
-	net.SendToServer!
+net.Receive 'ccvccm', (length) ->
+	data = CCVCCM\ExtractSingleFromNetMessage 'u8'
+	switch data
+		when CCVCCM.ENUMS.NET.REP
+			{addon, categoryPath, name} = CCVCCM\ExtractPayloadFromNetMessage {'s', 'ts', 's'}
+			registeredData = CCVCCM\_GetRegisteredData name, addon, categoryPath
+			if registeredData
+				local unitType
+				switch registeredData.typeInfo.type
+					when 'bool' then unitType = 'b'
+					when 'keybind' then unitType = 'i16'
+					when 'number' then unitType = 'd'
+					when 'string' then unitType = 's'
+					else unitType = 't'
+				value = CCVCCM\ExtractSingleFromNetMessage unitType
+				@_SetAddonVar name, value, addon, categoryPath
+		when CCVCCM.ENUMS.NET.QUERY
+			window = ManagerUI\GetWindow!
+			if IsValid window
+				for i=1, CCVCCM\ExtractSingleFromNetMessage 'u8'
+					isLua = CCVCCM\ExtractSingleFromNetMessage 'b'
+					if isLua
+						{addon, categoryPath, name} = CCVCCM\ExtractPayloadFromNetMessage {'s', 'ts', 's'}
+						registeredData = CCVCCM\_GetRegisteredData name, addon, categoryPath
+						local unitType
+						switch registeredData.typeInfo.type
+							when 'bool' then unitType = 'b'
+							when 'keybind' then unitType = 'i16'
+							when 'number' then unitType = 'd'
+							when 'string' then unitType = 's'
+							else unitType = 't'
+						value = CCVCCM\ExtractSingleFromNetMessage unitType
+						window\ReceiveServerVarQueryResult {addon, categoryPath, name}, value
+					else
+						{name, value} = CCVCCM\ExtractPayloadFromNetMessage {'s', 's'}
+						window\ReceiveServerVarQueryResult name, value
 
 CCVCCM.CountTablesRecursive = (items, acc = {}, fillAccOnly = false) =>
 	-- returns the number of tables within tab
@@ -48,7 +80,7 @@ CCVCCM.CountTablesRecursive = (items, acc = {}, fillAccOnly = false) =>
 		if istable(v) and not acc[v]
 			@CountTablesRecursive v, acc, true
 	
-	unless fillAccOnly then table.Count acc
+	table.Count acc unless fillAccOnly
 
 local ^
 
@@ -97,7 +129,7 @@ class BasePanel
 				\SizeToContentsX 44
 			else
 				\SizeToContentsX 22
-			if zPos then \SetZPos zPos
+			\SetZPos zPos if zPos
 	
 	CreateLabel: (parent, label, zPos) =>
 		with Label label, parent
@@ -110,12 +142,12 @@ class BasePanel
 		oldFunc = tbl[funcname]
 		if oldFunc
 			tbl[funcname] = (...) ->
-				unless post then callback ...
+				callback ... unless post
 				oldFunc ...
-				if post then callback ...
+				callback ... if post
 		else
 			tbl[funcname] = callback
-	
+
 	MakeDraggable: (panel) =>
 		dragSystemName = string.format 'ccvccm_%u', BasePanel.accumulator
 		panel\MakeDroppable dragSystemName
@@ -152,16 +184,12 @@ class CustomNumSlider extends BasePanel
 			.SetValue = (numSlider, value) ->
 				-- SetText calls this with a translated value
 				value = tonumber value
-				if value
-					--debug.Trace!
-					-- if @clamp
-					-- 	value = math.Clamp value, numSlider\GetMin!, numSlider\GetMax!
-
-					if numSlider\GetValue! != value
-						numSlider.Scratch\SetValue value
+				if value and numSlider\GetValue! != value
+					numSlider.Scratch\SetValue value
 
 					-- wouldn't numSlider.Scratch\SetValue already call numSlider\ValueChanged? what spaghetti monster were they avoiding?
 					-- numSlider\ValueChanged numSlider\GetValue!
+			.GetValue = (numSlider) -> @TranslateValue numSlider.Scratch\GetFloatValue!
 			.ValueChanged = (numSlider, value) ->
 				value = tonumber value
 				--debug.Trace!
@@ -173,7 +201,7 @@ class CustomNumSlider extends BasePanel
 					numSlider.Slider\SetSlideX numSlider.Scratch\GetFraction value
 					numSlider\OnValueChanged @TranslateValue value
 			.OnValueChanged = (numSlider, value) ->
-				if @callback then @callback value
+				@callback value if @callback
 			@SetPanel panel
 
 	GetTextValue: => @GetPanel!.Scratch\GetTextValue!
@@ -183,7 +211,7 @@ class CustomNumSlider extends BasePanel
 		panel = @GetPanel!
 		if text
 			panel\SetText text
-		panel\SetVisible text != nil
+		panel.Label\SetVisible text != nil
 	
 	SetMinMax: (...) =>
 		@GetPanel!\SetMinMax ...
@@ -325,11 +353,24 @@ class SavablePanel extends BasePanel
 	UnregisterAsSavable: => SavablePanel.panelClasses[@GetPanel!] = nil
 	UpdateSavables: =>
 		for panel, cls in pairs SavablePanel.panelClasses
-			unless IsValid panel then SavablePanel.panelClasses[panel] = nil
+			SavablePanel.panelClasses[panel] = nil unless IsValid panel
 	RemoveClassAndPanel: =>
 		@UnregisterAsSavable!
 		@GetPanel!\Remove!
 	GetSavableClassFromPanel: (panel = @GetPanel!) => SavablePanel.panelClasses[panel]
+	InitializeElementPanel: (parent, static) =>
+		-- DSizeToContents can't be dragged!
+		panel = with vgui.Create 'DPanel', parent
+			\SetCursor 'sizeall' unless static
+			\Dock TOP
+			.Paint = nil
+		@SetPanel panel
+		@WrapFunc panel, 'PerformLayout', false, (w, h) =>
+			@SizeToChildren false, true
+			BasePanel\Log 'PerformLayout', @
+		@RegisterAsSavable!
+		panel
+
 	PromptDelete: => Derma_Query 'Are you sure?', 'Delete', 'Yes', @\RemoveClassAndPanel, 'No'
 	-- all instances of this class MUST implement @SaveToTable themselves
 	SaveToClipboard: =>
@@ -339,7 +380,7 @@ class SavablePanel extends BasePanel
 	GetLastCopiedPanel: => SavablePanel.lastCopied
 
 class ContentPanel extends SavablePanel
-	new: (contentType, window) =>
+	new: (contentType, window, static = false) =>
 		super!
 		@window = window
 		panel = with vgui.Create 'DPanel'
@@ -347,34 +388,60 @@ class ContentPanel extends SavablePanel
 			.CenterVertical = -> -- make it do nothing, it doesn't align to how I want it
 		@SetPanel panel
 		@RegisterAsSavable!
-		
-		@controlPanel = with vgui.Create 'DPanel', panel
-			\SetTall 22
-			\Dock TOP
-			.Paint = nil
+		@static = static
 		
 		@WrapFunc panel, 'PerformLayout', false, (w, h) =>
 			@SizeToChildren false, true
 			BasePanel\Log 'PerformLayout', @
+
+		with vgui.Create 'DTextEntry', panel
+			\SetZPos 2
+			\Dock TOP
+			\SetPlaceholderText 'Search...'
+			.OnChange = (textEntry) -> @FilterElements string.lower textEntry\GetValue!
+			.OnValueChange = .OnChange
 		
-		with @CreateButton @controlPanel, 'Add Element', 1, 'add'
-			\Dock LEFT
-			.DoClick = @\PromptAddElement
+		@items = with vgui.Create 'DIconLayout', panel
+			\SetZPos 3
+			\Dock TOP
+			unless static
+				\SetDropPos '28'
+				\SetUseLiveDrag true
+				\MakeDroppable 'ccvccm_content', true
 		
-		if contentType == 'tab'
-			with @CreateButton @controlPanel, 'Rename Tab', 2, 'pencil'
+		unless static
+			@controlPanel = with vgui.Create 'DPanel', panel
+				\SetTall 22
+				\SetZPos 1
+				\Dock TOP
+				.Paint = nil
+
+			with @CreateButton @controlPanel, 'Add Element', 1, 'add'
 				\Dock LEFT
-				.DoClick = @\PromptRenameTab
+				.DoClick = @\PromptAddElement
 			
-			with @CreateButton @controlPanel, 'Edit Icon', 3, 'image_edit'
+			with @CreateButton @controlPanel, 'Paste Contents', 4, 'page_white_paste'
 				\Dock LEFT
 				.DoClick = ->
-					if IsValid @addUI then @addUI\Close!
-					tab, container = @GetTabAndParent!
-					icon = if tab.Image then tab.Image\GetImage! else ''
+					pasteText = @GetLastCopiedPanel!
+					if pasteText == ''
+						Derma_StringRequest 'Paste', 'Enter panel data:', '', (pasteText) -> @LoadFromClipboard pasteText
+					else
+						@LoadFromClipboard pasteText
 
-					@addUI = with EditIconUI 0.5, 0.5, icon
-						\SetCallback (classData, newImage = '') ->
+			if contentType == 'tab'
+				with @CreateButton @controlPanel, 'Rename Tab', 2, 'pencil'
+					\Dock LEFT
+					.DoClick = @\PromptRenameTab
+					
+				with @CreateButton @controlPanel, 'Edit Icon', 3, 'image_edit'
+					\Dock LEFT
+					.DoClick = ->
+						@addUI\Close! if IsValid @addUI
+						tab, container = @GetTabAndParent!
+						icon = if tab.Image then tab.Image\GetImage! else ''
+
+						@addUI = EditIconUI 0.5, 0.5, icon, (newImage = '') ->
 							if newImage != ''
 								unless IsValid tab.Image
 									tab.Image = vgui.Create 'DImage', tab
@@ -388,28 +455,13 @@ class ContentPanel extends SavablePanel
 							
 							tab\InvalidateLayout!
 							container\InvalidateChildren!
-		
-		with @CreateButton @controlPanel, 'Paste Contents', 4, 'page_white_paste'
-			\Dock LEFT
-			.DoClick = ->
-				pasteText = @GetLastCopiedPanel!
-				if pasteText == ''
-					Derma_StringRequest 'Paste', 'Enter panel data:', '', (pasteText) -> @LoadFromClipboard pasteText
-				else
-					@LoadFromClipboard pasteText
-		
-		if contentType == 'tab'
-			with @CreateButton @controlPanel, 'Delete Tab', 5, 'delete'
-				\Dock LEFT
-				.DoClick = @\PromptDeleteTab
-		
-		@items = with vgui.Create 'DIconLayout', panel
-			\Dock TOP
-			\SetDropPos '28'
-			\SetUseLiveDrag true
-			\MakeDroppable 'ccvccm_content', true
+
+				with @CreateButton @controlPanel, 'Delete Tab', 5, 'delete'
+					\Dock LEFT
+					.DoClick = @\PromptDeleteTab
 	
 	GetControlPanel: => @controlPanel
+	GetStatic: => @static
 	
 	AddElement: (data = {}) =>
 		ETYPES = AddElementUI.ELEMENT_TYPES
@@ -417,19 +469,19 @@ class ContentPanel extends SavablePanel
 		local createdPanel
 		switch data.elementType
 			when ETYPES.TEXT
-				classPanel = TextPanel @items, data, @window
+				classPanel = TextPanel @items, data, @window, @static
 				createdPanel = classPanel\GetPanel!
 
 			when ETYPES.CATEGORY
-				classPanel = CategoryPanel @items, data, @window
+				classPanel = CategoryPanel @items, data, @window, @static
 				createdPanel = classPanel\GetPanel!
 
 			when ETYPES.TABS
-				classPanel = TabPanel @items, data, @window
+				classPanel = TabPanel @items, data, @window, @static
 				createdPanel = classPanel\GetPanel!
 
 			when ETYPES.CLIENT_CCMD, ETYPES.CLIENT_CVAR, ETYPES.SERVER_CCMD, ETYPES.SERVER_CVAR
-				classPanel = CCVCCPanel @items, data, @window
+				classPanel = CCVCCPanel @items, data, @window, @static
 				createdPanel = classPanel\GetPanel!
 				
 		createdPanel
@@ -440,10 +492,10 @@ class ContentPanel extends SavablePanel
 		panel = @GetPanel!
 		parent = panel\GetParent!
 		for {:Tab, :Panel} in *parent\GetItems!
-			if Panel == panel then return Tab, parent
+			return Tab, parent if Panel == panel
 	
 	PromptAddElement: =>
-		if IsValid @addUI then @addUI\Close!
+		@addUI\Close! if IsValid @addUI
 		
 		@addUI = with AddElementUI 0.5, 0.5
 			\SetCallback (classData, ...) ->
@@ -456,6 +508,12 @@ class ContentPanel extends SavablePanel
 			container\InvalidateChildren!
 
 	PromptDeleteTab: => Derma_Query 'Are you sure?', 'Delete', 'Yes', @\DeleteTab, 'No'
+	FilterElements: (text) =>
+		children = @items\GetChildren!
+
+		for child in *children
+			cls = @GetSavableClassFromPanel(child)
+			cls\FilterElements text
 	
 	DeleteTab: =>
 		@UnregisterAsSavable!
@@ -509,10 +567,16 @@ class ContentPanel extends SavablePanel
 				data.dataType = DTYPES.BOOL
 			when 'choices'
 				data.dataType = DTYPES.CHOICE
+			when 'keybind'
+				data.dataType = DTYPES.KEYBIND
 			when 'number'
 				data.dataType = DTYPES.NUMBER
 			when 'string'
 				data.dataType = DTYPES.STRING
+			when 'choiceList'
+				data.dataType = DTYPES.CHOICE_LIST
+			when 'numberList'
+				data.dataType = DTYPES.NUMBER_LIST
 			when 'stringList'
 				data.dataType = DTYPES.STRING_LIST
 
@@ -536,20 +600,10 @@ class ContentPanel extends SavablePanel
 			Derma_Message 'Couldn\'t parse decoded element!', 'Paste Error', 'OK'
 
 class TextPanel extends SavablePanel
-	new: (parent, data, window) =>
+	new: (parent, data, window, static) =>
 		super!
 		@window = window
-
-		-- DSizeToContents can't be dragged!
-		panel = with vgui.Create 'DPanel', parent
-			\SetCursor 'sizeall'
-			\Dock TOP
-			.Paint = nil
-		@SetPanel panel
-		@WrapFunc panel, 'PerformLayout', false, (w, h) =>
-			@SizeToChildren false, true
-			BasePanel\Log 'PerformLayout', @
-		@RegisterAsSavable!
+		panel = @InitializeElementPanel parent, static
 		
 		with controlPanel = vgui.Create 'DPanel', panel
 			\SetTall 22
@@ -558,17 +612,18 @@ class TextPanel extends SavablePanel
 			\Dock TOP
 			.Paint = nil --(w, h) => draw.RoundedBox 8, 0, 0, w, h, Color(191, 0, 0, 127)
 			
-			with @CreateButton controlPanel, 'Edit', 1, 'pencil'
-				\Dock LEFT
-				.DoClick = -> @PromptRenameDisplay!
-			
 			with @CreateButton controlPanel, 'Copy Element', 2, 'page_white_copy'
 				\Dock LEFT
 				.DoClick = -> @SaveToClipboard!
-			
-			with @CreateButton controlPanel, 'Delete', 3, 'delete'
-				\Dock LEFT
-				.DoClick = -> @PromptDelete!
+		
+			unless static
+				with @CreateButton controlPanel, 'Edit', 1, 'pencil'
+					\Dock LEFT
+					.DoClick = -> @PromptRenameDisplay!
+				
+				with @CreateButton controlPanel, 'Delete', 3, 'delete'
+					\Dock LEFT
+					.DoClick = -> @PromptDelete!
 			
 			window\AddControlPanel controlPanel
 		
@@ -584,12 +639,18 @@ class TextPanel extends SavablePanel
 			\Dock TOP
 			\SetDark true
 			\SetMouseInputEnabled true
-			.DoDoubleClick = ->
-				if @window\GetControlPanelVisibility! then @PromptRenameDisplay!
+			unless static
+				.DoDoubleClick = -> @PromptRenameDisplay! if @window\GetControlPanelVisibility!
 	
 	PromptRenameDisplay: =>
-		Derma_StringRequest 'Rename', 'Enter new display name:', @label\GetText!, (newName) ->
+		MultilineTextUI 0.5, 0.5, @label\GetText!, (newName) ->
 			@label\SetText newName
+	
+	FilterElements: (text) =>
+		with @GetPanel!
+			\SetVisible tobool string.find string.lower(@label\GetText!), text, 1, true
+			\GetParent!\InvalidateLayout!
+			\GetParent!\GetParent!\InvalidateLayout!
 	
 	SaveToTable: => {
 		elementType: "text"
@@ -597,19 +658,10 @@ class TextPanel extends SavablePanel
 	}
 
 class CategoryPanel extends SavablePanel
-	new: (parent, data, window) =>
+	new: (parent, data, window, static) =>
 		super!
 		@window = window
-
-		panel = with vgui.Create 'DPanel', parent
-			\SetCursor 'sizeall'
-			\Dock TOP
-			.Paint = nil
-		@SetPanel panel
-		@WrapFunc panel, 'PerformLayout', false, (w, h) =>
-			@SizeToChildren false, true
-			BasePanel\Log 'PerformLayout', @
-		@RegisterAsSavable!
+		panel = @InitializeElementPanel parent, static
 		
 		with controlPanel = vgui.Create 'DPanel', panel
 			\SetTall 22
@@ -618,17 +670,18 @@ class CategoryPanel extends SavablePanel
 			\Dock TOP
 			.Paint = nil --(w, h) => draw.RoundedBox 8, 0, 0, w, h, Color(191, 0, 0, 127)
 			
-			with @CreateButton controlPanel, 'Rename', 1, 'pencil'
-				\Dock LEFT
-				.DoClick = -> @PromptRenameDisplay!
-			
 			with @CreateButton controlPanel, 'Copy Element', 2, 'page_white_copy'
 				\Dock LEFT
 				.DoClick = -> @SaveToClipboard!
-			
-			with @CreateButton controlPanel, 'Delete', 3, 'delete'
-				\Dock LEFT
-				.DoClick = -> @PromptDelete!
+		
+			unless static
+				with @CreateButton controlPanel, 'Rename', 1, 'pencil'
+					\Dock LEFT
+					.DoClick = -> @PromptRenameDisplay!
+				
+				with @CreateButton controlPanel, 'Delete', 3, 'delete'
+					\Dock LEFT
+					.DoClick = -> @PromptDelete!
 			
 			window\AddControlPanel controlPanel
 		
@@ -638,14 +691,15 @@ class CategoryPanel extends SavablePanel
 			\DockPadding 4, 0, 4, 0
 			\Dock TOP
 		
-		@contentPanel = ContentPanel 'category', window
+		@contentPanel = ContentPanel 'category', window, static
 		@category = with vgui.Create 'DCollapsibleCategory', hostPanel
 			\SetCursor 'sizeall'
 			\SetLabel data.displayName or 'New Category'
 			\SetContents @contentPanel\GetPanel!
 			\SetList parent
 			\Dock TOP
-			.Header.DoDoubleClick = -> if window\GetControlPanelVisibility! then @PromptRenameDisplay!
+			unless static
+				.Header.DoDoubleClick = -> @PromptRenameDisplay! if window\GetControlPanelVisibility!
 		@WrapFunc @category, 'OnRemove', false, -> @UpdateSavables!
 		@contentPanel\LoadFromTable data.content
 		
@@ -656,6 +710,8 @@ class CategoryPanel extends SavablePanel
 		Derma_StringRequest 'Rename', 'Enter new category name:', categoryHeader\GetText!, (newName) ->
 			categoryHeader\SetText newName
 	
+	FilterElements: (text) => @contentPanel\FilterElements text
+	
 	SaveToTable: => {
 		elementType: "category"
 		displayName: @category.Header\GetText!
@@ -663,22 +719,11 @@ class CategoryPanel extends SavablePanel
 	}
 
 class TabPanel extends SavablePanel
-	new: (parent, data, window) =>
+	new: (parent, data, window, static) =>
 		super!
 		@window = window
-
-		-- create a movable proxy DPanel - I need this so that the Add Tab button
-		-- follows the DPropertySheet to wherever it is dragged to
-		panel = with vgui.Create 'DPanel', parent
-			\SetCursor 'sizeall'
-			\Dock TOP
-			.Paint = nil
-			--\Droppable 'CCVCCM.ElementDrag'
-		@SetPanel panel
-		@WrapFunc panel, 'PerformLayout', false, (w, h) =>
-			@SizeToChildren false, true
-			BasePanel\Log 'PerformLayout', @
-		@RegisterAsSavable!
+		panel = @InitializeElementPanel parent, static
+		@static = static
 
 		with controlPanel = vgui.Create 'DPanel', panel
 			\SetTall 22
@@ -687,13 +732,14 @@ class TabPanel extends SavablePanel
 			\Dock TOP
 			.Paint = nil --(w, h) => draw.RoundedBox 8, 0, 0, w, h, Color(191, 0, 0, 127)
 			
-			with @CreateButton controlPanel, 'Add Tab', 1, 'add'
-				\Dock LEFT
-				.DoClick = -> @AddTab!
-			
 			with @CreateButton controlPanel, 'Copy Element', 2, 'page_white_copy'
 				\Dock LEFT
 				.DoClick = -> @SaveToClipboard!
+			
+			unless static
+				with @CreateButton controlPanel, 'Add Tab', 1, 'add'
+					\Dock LEFT
+					.DoClick = -> @AddTab!
 			
 			window\AddControlPanel controlPanel
 		
@@ -718,12 +764,17 @@ class TabPanel extends SavablePanel
 			@AddTab!
 	
 	AddTab: (displayName = 'New Tab', icon, content) =>
-		contentPanel = ContentPanel 'tab', @window
+		contentPanel = ContentPanel 'tab', @window, @static
 
 		{Tab: tab} = @sheet\AddSheet displayName, contentPanel\GetPanel!, icon, false, true
-		tab.DoDoubleClick = -> if @window\GetControlPanelVisibility! then contentPanel\PromptRenameTab!
+		unless @static
+			tab.DoDoubleClick = -> contentPanel\PromptRenameTab! if @window\GetControlPanelVisibility!
 		@window\AddControlPanel contentPanel\GetControlPanel!
 		contentPanel\LoadFromTable content
+	
+	FilterElements: (text) =>
+		for {Panel: panel} in *@sheet\GetItems!
+			@GetSavableClassFromPanel(panel)\FilterElements text
 	
 	SaveToTable: =>
 		generalSaveTable = {elementType: 'tabs'}
@@ -742,7 +793,7 @@ class TabPanel extends SavablePanel
 				displayName: tab\GetText!
 				content: tabContentClasses[tab]\SaveToTable!
 			}
-			if tab.Image then tabSaveTable.icon = tab.Image\GetImage!
+			tabSaveTable.icon = tab.Image\GetImage! if tab.Image
 
 			saveTable[i] = tabSaveTable
 			coroutine.yield!
@@ -750,39 +801,41 @@ class TabPanel extends SavablePanel
 		generalSaveTable.tabs = saveTable
 		generalSaveTable
 
-class CCVCCPanel extends SavablePanel
-	arguments: ''
-
+class CAVACPanel extends SavablePanel
+	-- this element must be savable as this element can be copied and pasted into custom tabs
+	-- it just can't be edited
 	new: (parent, data, window) =>
 		super!
 		@data = data
-		if data.arguments
-			@arguments = data.arguments
 		@window = window
-		panel = with vgui.Create 'DPanel', parent
-			\SetCursor 'sizeall'
-			\Dock TOP
-			.Paint = nil
-		@SetPanel panel
-		@RegisterAsSavable!
-
-		@WrapFunc panel, 'PerformLayout', false, (w, h) =>
-			@SizeToChildren false, true
-			BasePanel\Log 'PerformLayout', @
-		
-		@PopulatePanel!
-	
-	SetArgs: (arguments) => @arguments = arguments
-	SendToServer: => CCVCCM\Send {'s', @data.internalName..' '..@arguments}
-
-	PopulatePanel: =>
-		data = @data
+		@InitializeElementPanel parent, true
 		panel = @GetPanel!
-		{:displayName, :dataType, :elementType, :internalName, :manual} = data
+
+		-- unlike CCVCCPanels, the variables displayName, dataType, elementType and even manual
+		-- is derived from data returned by CCVCCM\_GetRegisteredData
+		{:arguments, :internalName} = data
+		{addon, categoryPath, name} = internalName
+		{
+			type: apiType,
+			data: {
+				:realm,
+				name: displayName,
+				:default,
+				:manual,
+				:typeInfo
+			}
+		} = CCVCCM\_GetRegisteredData name, addon, categoryPath
+		@arguments = if data.arguments ~= nil then data.arguments else default
+
+		-- ListInputUI requires data to be in terms of DTYPES
 		DTYPES = AddElementUI.DATA_TYPES
-		ETYPES = AddElementUI.ELEMENT_TYPES
-		isClient = elementType == ETYPES.CLIENT_CCMD or elementType == ETYPES.CLIENT_CVAR
-		isConVar = elementType == ETYPES.CLIENT_CVAR or elementType == ETYPES.SERVER_CVAR
+		dataType = @TranslateTypeInfo typeInfo
+		
+		-- this isn't applicable
+		-- ETYPES = AddElementUI.ELEMENT_TYPES
+
+		isClient = realm == 'client'
+		isVar = apiType == 'addonvar'
 
 		with controlPanel = vgui.Create 'DPanel', panel
 			\SetTall 22
@@ -791,37 +844,275 @@ class CCVCCPanel extends SavablePanel
 			\Dock TOP
 			.Paint = nil --(w, h) => draw.RoundedBox 8, 0, 0, w, h, Color(191, 0, 0, 127)
 			
-			with @CreateButton controlPanel, 'Edit', 1, 'pencil'
+			with @CreateButton controlPanel, 'Copy Element', nil, 'page_white_copy'
 				\Dock LEFT
-				.DoClick = -> @PromptEditPanel!
+				.DoClick = -> @SaveToClipboard!
+			
+			@window\AddControlPanel controlPanel
+
+		if not isVar or manual
+			local buttonText
+			if isVar
+				buttonText = 'Apply Changes'
+			elseif dataType.type == DTYPES.NONE
+				buttonText = displayName
+			else
+				buttonText = 'Run ConCommand'
+			with @CreateButton panel, buttonText, 3
+				\Dock TOP
+				.DoClick = @\UpdateAddonVar
+
+		switch dataType.type
+			when DTYPES.BOOL
+				hostPanel = with vgui.Create 'DSizeToContents', panel
+					\SetSizeX false
+					\SetZPos 2
+					\DockPadding 4, 0, 0, 0
+					\Dock TOP
+
+				@rawPanel = with vgui.Create 'DCheckBoxLabel', hostPanel
+					\SetValue @arguments
+					\Dock TOP
+					\SetText displayName
+					\SetDark true
+					.OnChange = (panel, checked) ->
+						@SetArgs checked
+						@UpdateAddonVar! unless manual
+
+			when DTYPES.CHOICE
+				hostPanelClass = with CustomPanelContainer panel
+					\SetStretch true, true
+					\SetStretchRatio {1, 1.4}
+				hostPanel = with hostPanelClass\GetPanel!
+					\SetTall 22
+					\SetZPos 2
+					\Dock TOP
+					.Paint = nil
+				
+				with @CreateLabel hostPanel, displayName
+					\SetTextInset 4, 0
+					\SetContentAlignment 4
+					\SetDark true
+
+				@rawPanel = with vgui.Create 'DComboBox', hostPanel
+					.OnSelect = (panel, index, value, selectedData) ->
+						returnVal = if selectedData ~= nil then selectedData else value
+						@SetArgs returnVal
+						@UpdateAddonVar! unless manual
+				
+				for i, choicesInfo in ipairs dataType.choices
+					{k, v} = choicesInfo
+					@rawPanel\AddChoice k, v, @arguments == v
+
+			when DTYPES.KEYBIND
+				hostPanelClass = with CustomPanelContainer panel
+					\SetStretch true, true
+					\SetStretchRatio {1, 1.4}
+				hostPanel = with hostPanelClass\GetPanel!
+					\SetTall 22
+					\SetZPos 2
+					\Dock TOP
+					.Paint = nil
+				
+				with @CreateLabel hostPanel, displayName
+					\SetTextInset 4, 0
+					\SetContentAlignment 4
+					\SetDark true
+
+				@rawPanel = with vgui.Create 'DBinder', hostPanel
+					\SetSelectedNumber input.GetKeyCode (@arguments or '')
+					.OnChange = (panel, value) ->
+						@SetArgs input.GetKeyName value
+						@UpdateAddonVar! unless manual
+			
+			when DTYPES.NUMBER
+				with CustomNumSlider panel
+					\SetText displayName
+					\SetMinMax tonumber(dataType.min), tonumber(dataType.max)
+					\SetInterval tonumber dataType.interval if dataType.interval
+					\SetLogarithmic dataType.logarithmic
+					\SetCallback (classData, value) ->
+						@SetArgs value
+						@UpdateAddonVar! unless manual
+						
+					@rawPanel = \GetPanel!
+					with @rawPanel
+						\SetValue @arguments
+						\SetDark true
+						.Label\SetTextInset 4, 0
+						\SetZPos 2
+						\Dock TOP
+			
+			when DTYPES.STRING
+				hostPanelClass = with CustomPanelContainer panel
+					\SetStretch true, true
+					\SetStretchRatio {1, 1.4}
+				hostPanel = with hostPanelClass\GetPanel!
+					\SetTall 22
+					\SetZPos 2
+					\Dock TOP
+					.Paint = nil
+				
+				with @CreateLabel hostPanel, displayName
+					\SetTextInset 4, 0
+					\SetContentAlignment 4
+					\SetDark true
+
+				@rawPanel = with vgui.Create 'DTextEntry', hostPanel
+					\SetValue @arguments
+					.OnChange = (textEntry) ->
+						@SetArgs textEntry\GetValue!
+						@UpdateAddonVar! unless manual
+					.OnValueChange = .OnChange
+			
+			when DTYPES.COMPLEX_LIST
+				hostPanelClass = with CustomPanelContainer panel
+					\SetStretch true, true
+					\SetStretchRatio {1, 1.4}
+				hostPanel = with hostPanelClass\GetPanel!
+					\SetTall 22
+					\SetZPos 2
+					\Dock TOP
+					.Paint = nil
+				
+				with @CreateLabel hostPanel, displayName
+					\SetTextInset 4, 0
+					\SetContentAlignment 4
+					\SetDark true
+				
+				with @CreateButton hostPanel, dataType.name, 2
+					.DoClick = ->
+						listInputUI = ListInputUI 0.5, 0.5, dataType.type, @arguments
+						listInputUI\SetCallback (classData, values) ->
+							@SetArgs values
+							@UpdateAddonVar! unless manual
+		
+		if realm == 'server'
+			-- ask ManagerUI to poll the server
+			@window\AddServerVarQueryRequest internalName, @
+
+	UpdateAddonVar: =>
+		{:elementType, :internalName} = @data
+		{addon, categoryPath, name} = internalName
+		registeredData = CCVCCM\_GetRegisteredData name, addon, categoryPath
+		if registeredData
+			{type: apiType, data: {:realm, :flags, :func}} = registeredData
+			if flags.cheat and not CCVCCM\_GetCheatsEnabled!
+				Derma_Message 'sv_cheats must be enabled!', 'Runtime Error', 'OK'
+			elseif flags.sp and not game.SinglePlayer!
+				Derma_Message 'Game must be singleplayer!', 'Runtime Error', 'OK'
+			elseif realm == 'client'
+				if apiType == 'addonvar'
+					CCVCCM\_SetAddonVar name, @arguments, addon, categoryPath
+				else
+					func LocalPlayer!, internalName, @arguments
+			else @SendToServer!
+	
+	TranslateTypeInfo: (component, parentTable) =>
+		DTYPES = AddElementUI.DATA_TYPES
+		{:name, :help, type: dataType, :choices, :min, :max, :interval, :logarithmic} = typeInfo
+
+		table.insert parentTable.names, name if parentTable
+		dataType = {
+			header: help
+			:choices
+			:min
+			:max
+			:interval
+			:logarithmic
+		}
+
+		switch component.type
+			when 'bool'
+				dataType.dataType = DTYPES.BOOL
+			when 'keybind'
+				dataType.dataType = DTYPES.KEYBIND
+			when 'number'
+				dataType.dataType = DTYPES.NUMBER
+			when 'string'
+				dataType.dataType = DTYPES.STRING
+			else
+				dataType.dataType = DTYPES.COMPLEX_LIST
+				dataType.types = [@TranslateTypeInfo(v, dataType) for v in *component]
+
+		dataType
+	
+	SaveToTable: =>
+		{
+			internalName: @data.internalName
+			elementType: 'complex'
+			arguments: @arguments
+		}
+	
+	SetValue: (value) =>
+		@arguments = value
+		@rawPanel\SetValue value if IsValid @rawPanel
+
+class CCVCCPanel extends SavablePanel
+	arguments: ''
+
+	new: (parent, data, window, static) =>
+		super!
+		@data = data
+		if data.arguments
+			@arguments = data.arguments
+		@window = window
+		@InitializeElementPanel parent, static
+		@static = static
+		
+		@PopulatePanel!
+	
+	SetArgs: (arguments) => @arguments = arguments
+	SendToServer: => CCVCCM\Send {'u8', CCVCCM.ENUMS.NET.EXEC, 's', @data.internalName..' '..@arguments}
+
+	PopulatePanel: =>
+		data = @data
+		panel = @GetPanel!
+		{:displayName, :dataType, :elementType, :internalName, :manual} = data
+		DTYPES = AddElementUI.DATA_TYPES
+		ETYPES = AddElementUI.ELEMENT_TYPES
+
+		isClient = elementType == ETYPES.CLIENT_CCMD or elementType == ETYPES.CLIENT_CVAR
+		isVar = elementType == ETYPES.CLIENT_CVAR or elementType == ETYPES.SERVER_CVAR
+
+		with controlPanel = vgui.Create 'DPanel', panel
+			\SetTall 22
+			\SetZPos 1
+			\DockMargin 0, 22, 0, 0
+			\Dock TOP
+			.Paint = nil --(w, h) => draw.RoundedBox 8, 0, 0, w, h, Color(191, 0, 0, 127)
 			
 			with @CreateButton controlPanel, 'Copy Element', 2, 'page_white_copy'
 				\Dock LEFT
 				.DoClick = -> @SaveToClipboard!
-			
-			with @CreateButton controlPanel, 'Delete', 3, 'delete'
-				\Dock LEFT
-				.DoClick = -> @PromptDelete!
+
+			unless @static
+				with @CreateButton controlPanel, 'Edit', 1, 'pencil'
+					\Dock LEFT
+					.DoClick = -> @PromptEditPanel!
+				
+				with @CreateButton controlPanel, 'Delete', 3, 'delete'
+					\Dock LEFT
+					.DoClick = -> @PromptDelete!
 			
 			@window\AddControlPanel controlPanel
 		
-		if not isConVar
-			buttonText = if dataType == DTYPES.NONE then displayName else 'Run ConCommand'
+		clickFunc = ->
+			if isClient
+				LocalPlayer!\ConCommand internalName..' '..@arguments
+			else @SendToServer!
+
+		if not isVar or manual
+			local buttonText
+			if isVar
+				buttonText = 'Apply Changes'
+			elseif dataType == DTYPES.NONE
+				buttonText = displayName
+			else
+				buttonText = 'Run ConCommand'
 			with @CreateButton panel, buttonText, 3
 				\Dock TOP
-				.DoClick = ->
-					if isClient
-						LocalPlayer!\ConCommand internalName..' '..@arguments
-					else
-						@SendToServer!
-		elseif manual
-			with @CreateButton panel, 'Apply Changes', 3
-				\Dock TOP
-				.DoClick = ->
-					if isClient
-						LocalPlayer!\ConCommand internalName..' '..@arguments
-					else
-						@SendToServer!
+				.DoClick = clickFunc
 		
 		switch dataType
 			when DTYPES.BOOL
@@ -831,15 +1122,14 @@ class CCVCCPanel extends SavablePanel
 					\DockPadding 4, 0, 0, 0
 					\Dock TOP
 
-				with vgui.Create 'DCheckBoxLabel', hostPanel
+				@rawPanel = with vgui.Create 'DCheckBoxLabel', hostPanel
 					\SetValue @arguments
-					\SetZPos 2
 					\Dock TOP
 					\SetText displayName
 					\SetDark true
 					.OnChange = (panel, checked) ->
 						@SetArgs checked and '1' or '0'
-						unless isClient or manual then @SendToServer!
+						@SendToServer! unless isClient or manual
 					if elementType == ETYPES.CLIENT_CVAR and not manual
 						\SetConVar internalName
 
@@ -858,27 +1148,55 @@ class CCVCCPanel extends SavablePanel
 					\SetContentAlignment 4
 					\SetDark true
 
-				comboBox = with vgui.Create 'DComboBox', hostPanel
+				@rawPanel = with vgui.Create 'DComboBox', hostPanel
 					.OnSelect = (panel, index, value, selectedData) ->
-						@SetArgs tostring selectedData or value
+						returnVal = tostring(if selectedData ~= nil then selectedData else value)
+						@SetArgs returnVal
 						if panel.m_strConVar
-							LocalPlayer!\ConCommand panel.m_strConVar..' '..tostring(selectedData or value)
+							LocalPlayer!\ConCommand panel.m_strConVar..' '..returnVal
 						elseif not (isClient or manual) then @SendToServer!
 					if elementType == ETYPES.CLIENT_CVAR and not manual
 						\SetConVar internalName
 				
 				for i, choicesInfo in ipairs data.choices
 					{k, v} = choicesInfo
-					comboBox\AddChoice k, v, @arguments == v
+					@rawPanel\AddChoice k, v, @arguments == v
+			
+			when DTYPES.KEYBIND
+				hostPanelClass = with CustomPanelContainer panel
+					\SetStretch true, true
+					\SetStretchRatio {1, 1.4}
+				hostPanel = with hostPanelClass\GetPanel!
+					\SetTall 22
+					\SetZPos 2
+					\Dock TOP
+					.Paint = nil
+				
+				with @CreateLabel hostPanel, displayName
+					\SetTextInset 4, 0
+					\SetContentAlignment 4
+					\SetDark true
+
+				@rawPanel = with vgui.Create 'DBinder', hostPanel
+					\SetSelectedNumber input.GetKeyCode @arguments
+					.OnChange = (panel, value) ->
+						@SetArgs input.GetKeyName value
+						@SendToServer! unless isClient or manual
+					if elementType == ETYPES.CLIENT_CVAR and not manual
+						\SetConVar internalName
 
 			when DTYPES.NUMBER
 				with CustomNumSlider panel
 					\SetText displayName
-					\SetMinMax tonumber(data.minimum), tonumber(data.maximum)
-					if data.interval
-						\SetInterval tonumber data.interval
+					\SetMinMax tonumber(data.min), tonumber(data.max)
+					\SetInterval tonumber data.interval if data.interval
 					\SetLogarithmic data.logarithmic
-					with \GetPanel!
+					\SetCallback (classData, value) ->
+						@SetArgs classData\GetTextValue!
+						@SendToServer! unless isClient or manual
+						
+					@rawPanel = \GetPanel!
+					with @rawPanel
 						\SetValue @arguments
 						\SetDark true
 						.Label\SetTextInset 4, 0
@@ -886,9 +1204,6 @@ class CCVCCPanel extends SavablePanel
 						\Dock TOP
 						if elementType == ETYPES.CLIENT_CVAR and not manual
 							\SetConVar internalName
-					\SetCallback (classData, value) ->
-						@SetArgs classData\GetTextValue!
-						unless isClient or manual then @SendToServer!
 					
 			when DTYPES.STRING
 				hostPanelClass = with CustomPanelContainer panel
@@ -905,7 +1220,7 @@ class CCVCCPanel extends SavablePanel
 					\SetContentAlignment 4
 					\SetDark true
 
-				with vgui.Create 'DTextEntry', hostPanel
+				@rawPanel = with vgui.Create 'DTextEntry', hostPanel
 					\SetValue @arguments
 					.GetAutoComplete = (value) =>
 						possibilities = concommand.AutoComplete internalName, value
@@ -914,12 +1229,12 @@ class CCVCCPanel extends SavablePanel
 							[string.sub item, startPos for item in *possibilities]
 					.OnChange = (textEntry) ->
 						@SetArgs textEntry\GetValue!
-						unless isClient or manual then @SendToServer!
+						@SendToServer! unless isClient or manual
 					.OnValueChange = .OnChange
 					if elementType == ETYPES.CLIENT_CVAR and not manual
 						\SetConVar internalName
 			
-			when DTYPES.STRING_LIST
+			when DTYPES.CHOICE_LIST, DTYPES.NUMBER_LIST, DTYPES.STRING_LIST
 				hostPanelClass = with CustomPanelContainer panel
 					\SetStretch true, true
 					\SetStretchRatio {1, 1.4}
@@ -940,27 +1255,45 @@ class CCVCCPanel extends SavablePanel
 						conVarValue = @arguments
 						if elementType == ETYPES.CLIENT_CVAR and not manual
 							conVar = GetConVar internalName
-							if conVar then conVarValue = conVar\GetString!
+							conVarValue = conVar\GetString! if conVar
 						
 						listValues = [{str} for str in *string.Explode(listSeparator, conVarValue)]
+
+						local individualDataType
+						switch dataType
+							when DTYPES.CHOICE_LIST
+								individualDataType = DTYPES.CHOICE
+							when DTYPES.NUMBER_LIST
+								individualDataType = DTYPES.NUMBER
+							when DTYPES.STRING_LIST
+								individualDataType = DTYPES.STRING
 						
 						listInputUI = ListInputUI 0.5, 0.5, {
-							header: 'Enter texts:'
+							header: 'Enter values:'
 							types: {
 								{
-									dataType: DTYPES.STRING
+									dataType: individualDataType
+									choices: data.choices
+									min: data.min
+									max: data.max
+									interval: data.interval
+									logarithmic: data.logarithmic
 								}
 							}
 						}, listValues
 						
 						listInputUI\SetCallback (classData, values) ->
-							flattenedValues = [value[1] for value in *values]
+							flattenedValues = [tostring value[1] for value in *values]
 							strValue = table.concat(flattenedValues, listSeparator)
 							@SetArgs strValue
 							
 							if elementType == ETYPES.CLIENT_CVAR and not manual
 								LocalPlayer!\ConCommand internalName..' '..strValue
 							elseif not (isClient or manual) then @SendToServer!
+		
+		if elementType == ETYPES.SERVER_CVAR and not GetConVar internalName
+			-- ask ManagerUI to poll the server
+			@window\AddServerVarQueryRequest internalName, @
 	
 	PromptEditPanel: =>
 		with AddElementUI 0.5, 0.5, @data
@@ -970,6 +1303,13 @@ class CCVCCPanel extends SavablePanel
 				for panel in *@GetPanel!\GetChildren! do panel\Remove!
 				@arguments = ''
 				@PopulatePanel!
+	
+	FilterElements: (text) =>
+		haystack = string.lower @data.internalName..'\n'..@data.displayName
+		with @GetPanel!
+			\SetVisible tobool string.find haystack, text, 1, true
+			\GetParent!\InvalidateLayout!
+			\GetParent!\GetParent!\InvalidateLayout!
 	
 	SaveToTable: =>
 		data = @data
@@ -1003,19 +1343,29 @@ class CCVCCPanel extends SavablePanel
 			when DTYPES.CHOICE
 				dataTypeStr = 'choice'
 				saveTable.choices = data.choices
+			when DTYPES.KEYBIND
+				dataTypeStr = 'keybind'
 			when DTYPES.NUMBER
 				dataTypeStr = 'number'
 				with saveTable
-					.minimum = data.minimum
-					.maximum = data.maximum
+					.min = data.min
+					.max = data.max
 					.interval = data.interval
 					.logarithmic = data.logarithmic
 			when DTYPES.STRING
 				dataTypeStr = 'string'
+			when DTYPES.CHOICE_LIST
+				data.dataType = 'choiceList'
+			when DTYPES.NUMBER_LIST
+				data.dataType = 'numberList'
 			when DTYPES.STRING_LIST
 				dataTypeStr = 'stringList'
 		saveTable.dataType = dataTypeStr
 		saveTable
+	
+	SetValue: (value) =>
+		@arguments = value
+		@rawPanel\SetValue value if IsValid @rawPanel
 
 class BaseUI extends BasePanel
 	new: (w,h) =>
@@ -1033,7 +1383,6 @@ class BaseUI extends BasePanel
 
 class ManagerUI extends BaseUI
 	@saveName: ''
-	@conVarAutoload: CreateClientConVar 'ccvccm_autoload', '', true, false, 'Save file to automatically load when the CCVCCM is opened.'
 	controlPanelVisibility: true
 	
 	new: (w, h) =>
@@ -1044,6 +1393,10 @@ class ManagerUI extends BaseUI
 			
 			window = @GetPanel!
 			window\SetTitle 'Console ConVar and ConCommand Manager'
+			@WrapFunc window, 'Think', false, ->
+				if (@nextQueryTime or 0) < RealTime!
+					@nextQueryTime = RealTime! + 0.25
+					@FulfillServerVarQueryRequests!
 			with window.btnClose
 				.DoClick = ->
 					Derma_Query 'Are you sure you want to delete this window? Consider using the Minimize button instead.',
@@ -1107,9 +1460,14 @@ class ManagerUI extends BaseUI
 			@scrollPanel = with vgui.Create 'DScrollPanel', window
 				\Dock FILL
 			@controlPanels = {}
+			@serverAddonVarClass = {}
+			@serverConVarClass = {}
+			@serverVarQueryRequests = {}
 
-			saveFile = @@conVarAutoload\GetString!
-			if saveFile != '' then @LoadFromFile saveFile
+			saveFile = CCVCCM\GetVarValue 'ccvccm', {}, 'autoload'
+			@LoadFromFile saveFile if saveFile != ''
+	
+	GetWindow: => @@managerWindow
 	
 	AddControlPanel: (panel) =>
 		table.insert @controlPanels, panel
@@ -1128,13 +1486,55 @@ class ManagerUI extends BaseUI
 				panel\GetParent!\GetParent!\InvalidateLayout!
 	
 	GetControlPanelVisibility: => @controlPanelVisibility
+	AddServerVarQueryRequest: (var, cls) =>
+		if istable var
+			{addon, categoryPath, name} = var
+			@serverAddonVarClass[addon] or= {}
+			currentTable = @serverAddonVarClass[addon]
+			for category in *categoryPath
+				currentTable[category] or= {}
+				currentTable = currentTable[category]
+			currentTable[name] or= {}
+			table.insert currentTable[name], cls
+		else
+			@serverConVarClass[var] or= {}
+			table.insert @serverConVarClass[var], cls
+		@serverVarQueryRequests[var] = true
+	FulfillServerVarQueryRequests: =>
+		if next @serverVarQueryRequests
+			varSendTable = {}
+			for k,v in pairs @serverVarQueryRequests
+				if istable k
+					table.insert varSendTable, {'b', true, 's', k[1], 'ts', k[2], 's', k[3]}
+				else
+					table.insert varSendTable, {'b', false, 's', k}
+				@serverVarQueryRequests[k] = nil
+				break if #varSendTable >= 127
+			CCVCCM\StartNetMessage!
+			CCVCCM\AddPayloadToNetMessage {'u8', CCVCCM.ENUMS.NET.QUERY, 'u8', #varSendTable}
+			for payload in *varSendTable do CCVCCM\AddPayloadToNetMessage payload
+			CCVCCM\SendNetMessage!
+	
+	ReceiveServerVarQueryResult: (var, val) =>
+		if istable var
+			{addon, categoryPath, name} = var
+			@serverAddonVarClass[addon] or= {}
+			currentTable = @serverAddonVarClass[addon]
+			for category in *categoryPath
+				currentTable[category] or= {}
+				currentTable = currentTable[category]
+			currentTable[name] or= {}
+			for cls in *currentTable[name] do cls\SetValue val
+		else
+			@serverConVarClass[var] or= {}
+			for cls in *@serverConVarClass[var] do cls\SetValue val
 
 	AddMenuOption: (menuBar, menuName, menuOptions) =>
 		menu = menuBar\AddMenu menuName
 		
 		for {:name, :func, :icon, :value, :toggle} in *menuOptions
 			with menu\AddOption name
-				if icon then \SetIcon "icon16/#{icon}.png"
+				\SetIcon "icon16/#{icon}.png" if icon
 				if toggle
 					\SetIsCheckable toggle 
 					\SetChecked(value or false)
@@ -1144,14 +1544,15 @@ class ManagerUI extends BaseUI
 		
 		menu
 	
-	AddRootTab: (displayName = 'New Tab', icon, content) =>
-		unless IsValid @sheet then @CreateSheet!
+	AddRootTab: (displayName = 'New Tab', icon, content, static) =>
+		@CreateSheet! unless IsValid @sheet
 		
 		-- I'm passing @ here because content panels sometimes need to receive / give info to the main window
-		contentPanel = ContentPanel 'tab', @
+		contentPanel = ContentPanel 'tab', @, static
 		
 		{Tab: tab} = @sheet\AddSheet displayName, contentPanel\GetPanel!, icon, false, true
-		tab.DoDoubleClick = -> if @controlPanelVisibility then contentPanel\PromptRenameTab!
+		unless static
+			tab.DoDoubleClick = -> contentPanel\PromptRenameTab! if @controlPanelVisibility
 		@AddControlPanel contentPanel\GetControlPanel!
 		contentPanel\LoadFromTable content
 	
@@ -1170,7 +1571,7 @@ class ManagerUI extends BaseUI
 	PromptClear: =>
 		Derma_Query 'Are you sure?', 'New File', 'Yes', (->
 			@@saveName = ''
-			if IsValid @sheet then @sheet\Remove!
+			@sheet\Remove! if IsValid @sheet
 		), 'No'
 	
 	PromptSave: => if @@saveName != '' then @SaveToFile @@saveName else @PromptSaveAs!
@@ -1187,7 +1588,7 @@ class ManagerUI extends BaseUI
 			Derma_Message 'Save your current layout first!', 'Load Error', 'OK'
 		else
 			Derma_Query "This will set the current save file (ccvccm/#{@@saveName}.json) to be automatically loaded when the CCVCCM is opened. Are you sure?",
-				'Set As Autoloaded File', 'Yes', (-> @@conVarAutoload\SetString @@saveName), 'No'
+				'Set As Autoloaded File', 'Yes', (-> CCVCCM\SetVarValue 'ccvccm', {}, 'autoload', @@saveName), 'No'
 	
 	SaveToFile: (saveName) =>
 		@@saveName = saveName
@@ -1213,7 +1614,6 @@ class ManagerUI extends BaseUI
 
 	SaveToTable: =>
 		-- this and its related functions are probably by far the hardest methods I've had to write for this
-		-- first, get all the tabs and sort by position
 		if IsValid @sheet
 			-- first, get all the tabs and sort by position
 			tabs = @sheet.tabScroller\GetCanvas!\GetChildren!
@@ -1225,13 +1625,14 @@ class ManagerUI extends BaseUI
 			-- finally,
 			saveTable = {}
 			for i, tab in ipairs tabs
-				tabSaveTable = {
-					displayName: tab\GetText!
-					content: tabContentClasses[tab]\SaveToTable!
-				}
-				if tab.Image then tabSaveTable.icon = tab.Image\GetImage!
+				unless tabContentClasses[tab]\GetStatic!
+					tabSaveTable = {
+						displayName: tab\GetText!
+						content: tabContentClasses[tab]\SaveToTable!
+					}
+					tabSaveTable.icon = tab.Image\GetImage! if tab.Image
 
-				saveTable[i] = tabSaveTable
+					table.insert saveTable, tabSaveTable
 				coroutine.yield!
 			saveTable
 		else
@@ -1259,18 +1660,19 @@ class ManagerUI extends BaseUI
 	
 	LoadFromFileRoutine: (fileName) =>
 		fileText = file.Read fileName, 'DATA'
-		data = if fileText then util.JSONToTable fileText
+		data = util.JSONToTable fileText if fileText
+		hook.Run 'CCVCCMDataLoad', data
 		coroutine.yield data
 		if data
-			if IsValid @sheet then @sheet\Remove!
+			@sheet\Remove! if IsValid @sheet
 			@LoadFromTable data
 			"Successfully loaded from \"data/#{fileName}\"!"
 		else
 			"\"data/#{fileName}\" is corrupted!"
 	
 	LoadFromTable: (data) =>
-		for {:displayName, :icon, :content} in *data
-			@AddRootTab displayName, icon, content
+		for {:displayName, :icon, :content, :static} in *data
+			@AddRootTab displayName, icon, content, static
 			coroutine.yield!
 
 class AddElementUI extends BaseUI
@@ -1282,15 +1684,22 @@ class AddElementUI extends BaseUI
 		CLIENT_CCMD: 4
 		SERVER_CVAR: 5
 		SERVER_CCMD: 6
+		CLIENT_AVAR: 7
+		CLIENT_ACMD: 8
+		SERVER_AVAR: 9
+		SERVER_ACMD: 10
 	
 	@DATA_TYPES:
 		NONE: 0 -- only for ConCommands
 		BOOL: 1
 		CHOICE: 2
-		NUMBER: 3
-		STRING: 4
-		STRING_LIST: 5
-		COMPLEX_LIST: 6 -- only for addons / ListInputUI
+		KEYBIND: 3
+		NUMBER: 4
+		STRING: 5
+		CHOICE_LIST: 6
+		NUMBER_LIST: 7
+		STRING_LIST: 8
+		COMPLEX_LIST: 9 -- only for addons / ListInputUI
 
 	new: (w, h, defaultData) =>
 		super w, h
@@ -1305,7 +1714,7 @@ class AddElementUI extends BaseUI
 				dataValid, invalidReason = @CheckDataValidity!
 				if dataValid
 					window\Close!
-					if @callback then @callback @data
+					@callback @data if @callback
 				else
 					Derma_Message invalidReason, 'Invalid Arguments', 'OK'
 		
@@ -1360,7 +1769,7 @@ class AddElementUI extends BaseUI
 			@elementPanelDisplayFlags[panel] = bit.bor commDisplayFlags, textDisplayFlags
 		
 		with panel = vgui.Create 'DTextEntry', scrollPanel
-			if @data.displayName then \SetText @data.displayName
+			\SetText @data.displayName if @data.displayName
 			\SetZPos 4
 			\Dock TOP
 			.OnChange = -> @data.displayName = panel\GetValue!
@@ -1377,7 +1786,7 @@ class AddElementUI extends BaseUI
 			@elementPanelDisplayFlags[panel] = ccmdDisplayFlags
 		
 		with panel = vgui.Create 'DTextEntry', scrollPanel
-			if @data.internalName then \SetText @data.internalName
+			\SetText @data.internalName if @data.internalName
 			\SetZPos 6
 			\Dock TOP
 			.OnChange = -> @data.internalName = panel\GetValue!
@@ -1398,8 +1807,11 @@ class AddElementUI extends BaseUI
 			\AddChoice 'None (ConCommands only)', DTYPES.NONE, dataTypeSelected == DTYPES.NONE
 			\AddChoice 'Boolean', DTYPES.BOOL, dataTypeSelected == DTYPES.BOOL
 			\AddChoice 'Choices', DTYPES.CHOICE, dataTypeSelected == DTYPES.CHOICE
+			\AddChoice 'Keybind', DTYPES.KEYBIND, dataTypeSelected == DTYPES.KEYBIND
 			\AddChoice 'Numeric', DTYPES.NUMBER, dataTypeSelected == DTYPES.NUMBER
 			\AddChoice 'Text', DTYPES.STRING, dataTypeSelected == DTYPES.STRING
+			\AddChoice 'Choices List', DTYPES.CHOICE_LIST, dataTypeSelected == DTYPES.CHOICE_LIST
+			\AddChoice 'Numeric List', DTYPES.NUMBER_LIST, dataTypeSelected == DTYPES.NUMBER_LIST
 			\AddChoice 'Text List', DTYPES.STRING_LIST, dataTypeSelected == DTYPES.STRING_LIST
 			\SetZPos 8
 			\Dock TOP
@@ -1411,7 +1823,7 @@ class AddElementUI extends BaseUI
 		with panel = @CreateButton scrollPanel, 'Set Choices', 9
 			\Dock TOP
 			@elementPanelDisplayFlags[panel] = commDisplayFlags
-			@dataPanelDisplayFlags[panel] = GetBitflagFromIndices DTYPES.CHOICE
+			@dataPanelDisplayFlags[panel] = GetBitflagFromIndices DTYPES.CHOICE, DTYPES.CHOICE_LIST
 			.DoClick = ->
 				with ListInputUI 0.5, 0.5, {
 					names: {'Display Name', 'Value'}
@@ -1433,74 +1845,76 @@ class AddElementUI extends BaseUI
 		with panel = @CreateLabel scrollPanel, 'Minimum Value', 9
 			\Dock TOP
 			@elementPanelDisplayFlags[panel] = commDisplayFlags
-			@dataPanelDisplayFlags[panel] = GetBitflagFromIndices DTYPES.NUMBER
+			@dataPanelDisplayFlags[panel] = GetBitflagFromIndices DTYPES.NUMBER, DTYPES.NUMBER_LIST
 		
 		with panel = vgui.Create 'DTextEntry', scrollPanel
-			if @data.minimum then \SetText @data.minimum
+			\SetValue @data.min if @data.min
 			\SetZPos 10
 			\Dock TOP
-			.OnChange = -> @data.minimum = panel\GetValue!
+			.OnChange = -> @data.min = panel\GetValue!
 			@elementPanelDisplayFlags[panel] = commDisplayFlags
-			@dataPanelDisplayFlags[panel] = GetBitflagFromIndices DTYPES.NUMBER
+			@dataPanelDisplayFlags[panel] = GetBitflagFromIndices DTYPES.NUMBER, DTYPES.NUMBER_LIST
 		
 
 
 		with panel = @CreateLabel scrollPanel, 'Maximum Value', 11
 			\Dock TOP
 			@elementPanelDisplayFlags[panel] = commDisplayFlags
-			@dataPanelDisplayFlags[panel] = GetBitflagFromIndices DTYPES.NUMBER
+			@dataPanelDisplayFlags[panel] = GetBitflagFromIndices DTYPES.NUMBER, DTYPES.NUMBER_LIST
 		
 		with panel = vgui.Create 'DTextEntry', scrollPanel
-			if @data.maximum then \SetText @data.maximum
+			\SetValue @data.max if @data.max
 			\SetZPos 12
 			\Dock TOP
-			.OnChange = -> @data.maximum = panel\GetValue!
+			.OnChange = -> @data.max = panel\GetValue!
 			@elementPanelDisplayFlags[panel] = commDisplayFlags
-			@dataPanelDisplayFlags[panel] = GetBitflagFromIndices DTYPES.NUMBER
+			@dataPanelDisplayFlags[panel] = GetBitflagFromIndices DTYPES.NUMBER, DTYPES.NUMBER_LIST
 		
 
 
 		with panel = @CreateLabel scrollPanel, 'Interval Between Values (blank = 0.01)', 13
 			\Dock TOP
 			@elementPanelDisplayFlags[panel] = commDisplayFlags
-			@dataPanelDisplayFlags[panel] = GetBitflagFromIndices DTYPES.NUMBER
+			@dataPanelDisplayFlags[panel] = GetBitflagFromIndices DTYPES.NUMBER, DTYPES.NUMBER_LIST
 		
 		with panel = vgui.Create 'DTextEntry', scrollPanel
-			if @data.interval then \SetText @data.interval
+			\SetValue @data.interval if @data.interval
 			\SetZPos 14
 			\Dock TOP
 			.OnChange = -> @data.interval = panel\GetValue!
 			@elementPanelDisplayFlags[panel] = commDisplayFlags
-			@dataPanelDisplayFlags[panel] = GetBitflagFromIndices DTYPES.NUMBER
-		
-
-
-		with panel = @CreateLabel scrollPanel, 'List Separator', 15
-			\Dock TOP
-			@elementPanelDisplayFlags[panel] = commDisplayFlags
-			@dataPanelDisplayFlags[panel] = GetBitflagFromIndices DTYPES.STRING_LIST
-		
-		with panel = vgui.Create 'DTextEntry', scrollPanel
-			if @data.listSeparator then \SetText @data.listSeparator
-			\SetZPos 16
-			\Dock TOP
-			.OnChange = -> @data.listSeparator = panel\GetValue!
-			@elementPanelDisplayFlags[panel] = commDisplayFlags
-			@dataPanelDisplayFlags[panel] = GetBitflagFromIndices DTYPES.STRING_LIST
+			@dataPanelDisplayFlags[panel] = GetBitflagFromIndices DTYPES.NUMBER, DTYPES.NUMBER_LIST
 		
 
 
 		with panel = vgui.Create 'DCheckBoxLabel', scrollPanel
-			if @data.logarithmic then \SetValue @data.logarithmic
+			\SetValue @data.logarithmic if @data.logarithmic
 			\SetText 'Logarithmic'
-			\SetZPos 17
+			\SetZPos 15
 			\Dock TOP
 			.OnChange = (panel, value) -> @data.logarithmic = value
 			@elementPanelDisplayFlags[panel] = commDisplayFlags
-			@dataPanelDisplayFlags[panel] = GetBitflagFromIndices DTYPES.NUMBER
+			@dataPanelDisplayFlags[panel] = GetBitflagFromIndices DTYPES.NUMBER, DTYPES.NUMBER_LIST
+
+
+
+		with panel = @CreateLabel scrollPanel, 'List Separator', 16
+			\Dock TOP
+			@elementPanelDisplayFlags[panel] = commDisplayFlags
+			@dataPanelDisplayFlags[panel] = GetBitflagFromIndices DTYPES.CHOICE_LIST, DTYPES.NUMBER_LIST, DTYPES.STRING_LIST
 		
+		with panel = vgui.Create 'DTextEntry', scrollPanel
+			\SetValue @data.listSeparator if @data.listSeparator
+			\SetZPos 17
+			\Dock TOP
+			.OnChange = -> @data.listSeparator = panel\GetValue!
+			@elementPanelDisplayFlags[panel] = commDisplayFlags
+			@dataPanelDisplayFlags[panel] = GetBitflagFromIndices DTYPES.CHOICE_LIST, DTYPES.NUMBER_LIST, DTYPES.STRING_LIST
+
+
+
 		with panel = vgui.Create 'DCheckBoxLabel', scrollPanel
-			if @data.manual then \SetValue @data.manual
+			\SetValue @data.manual if @data.manual
 			\SetText 'Update ConVar Manually'
 			\SetZPos 18
 			\Dock TOP
@@ -1520,26 +1934,33 @@ class AddElementUI extends BaseUI
 		if isCVar or isCCmd
 			name = @data.internalName or ''
 
+			if elementType == ETYPES.CLIENT_CVAR 
+				-- get data about the CVar
+				conVar = GetConVar name
+				if (conVar and conVar\IsFlagSet FCVAR_REPLICATED)
+					dataValid = false
+					invalidReason = "\"#{name}\" is a replicated ConVar and must be added as a Server ConVar!"
+
 			if name == ''
 				dataValid = false
 				invalidReason = "\"#{name}\" is not a valid ConCommand / ConVar!"
 			elseif IsConCommandBlocked name
 				dataValid = false
 				invalidReason = "\"#{name}\" can't be altered / used by CCVCCM!"
-			else
+			elseif dataValid
 				switch @data.dataType
 					when DTYPES.NONE
 						if isCVar
 							dataValid = false
 							invalidReason = "None data type is only valid for ConCommands!"
 
-					when DTYPES.NUMBER
-						minValue = tonumber @data.minimum
+					when DTYPES.NUMBER, DTYPES.NUMBER_LIST
+						minValue = tonumber @data.min
 						unless minValue
 							dataValid = false
 							invalidReason = "Minimum value \"#{minValue}\" is not a number!"
 						
-						maxValue = tonumber @data.maximum
+						maxValue = tonumber @data.max
 						unless maxValue
 							dataValid = false
 							invalidReason = "Maximum value \"#{maxValue}\" is not a number!"
@@ -1561,7 +1982,7 @@ class AddElementUI extends BaseUI
 							dataValid = false
 							invalidReason = "Minimum value times maximum value must be positive in logarithmic mode!"
 					
-					when DTYPES.CHOICE
+					when DTYPES.CHOICE, DTYPES.CHOICE_LIST
 						choices = if @data.choices then #@data.choices else 0
 						unless choices > 0
 							dataValid = false
@@ -1595,7 +2016,7 @@ class AddElementUI extends BaseUI
 		@UpdatePanelVisibilities!
 
 class EditIconUI extends BaseUI
-	new: (w, h, selectedIcon = '') =>
+	new: (w, h, selectedIcon = '', callback = ->) =>
 		super w, h
 		window = @GetPanel!
 
@@ -1612,7 +2033,7 @@ class EditIconUI extends BaseUI
 				browser.m_pSelectedIcon = NULL
 
 		with vgui.Create 'DTextEntry', window
-			\SetPlaceholderText 'Filter...'
+			\SetPlaceholderText 'Search...'
 			\SetZPos 2
 			\Dock TOP
 			.OnChange = => browser\FilterByText @GetValue!
@@ -1621,9 +2042,26 @@ class EditIconUI extends BaseUI
 			\Dock BOTTOM
 			.DoClick = ->
 				window\Close!
-				if @callback then @callback browser\GetSelectedIcon!
-	
-	SetCallback: (func) => @callback = func
+				callback browser\GetSelectedIcon!
+
+class MultilineTextUI extends BaseUI
+	new: (w, h, text = '', callback = ->) =>
+		super w, h
+		window = @GetPanel!
+
+		with @CreateLabel window, 'You can enter multiple lines in this text box.'
+			\Dock TOP
+
+		textEntry = with vgui.Create 'DTextEntry', window
+			\Dock FILL
+			\SetMultiline true
+			\SetValue text
+		
+		with @CreateButton window, 'OK'
+			\Dock BOTTOM
+			.DoClick = ->
+				window\Close!
+				callback textEntry\GetValue!
 
 class ListInputUI extends BaseUI
 	new: (w, h, data = {}, values = {}) =>
@@ -1659,19 +2097,7 @@ class ListInputUI extends BaseUI
 			\Dock BOTTOM
 			.DoClick = ->
 				window\Close!
-				if @callback
-					-- get all children of panels added... in the correct order.
-					sortedRowPanels = [rowClass\GetPanel! for rowClass, _ in pairs @rowPanels]
-					@SortPanelsByPosition sortedRowPanels
-
-					values = {}
-					for i, rowPanel in ipairs sortedRowPanels
-						childrenPanels = rowPanel\GetChildren!
-						@SortPanelsByPosition childrenPanels
-
-						values[i] = [childPanel\GetValue! for childPanel in *childrenPanels]
-					
-					@callback values
+				@callback @GetValues! if @callback
 		
 		scrollPanel = with vgui.Create 'DScrollPanel', window
 			\Dock FILL
@@ -1738,25 +2164,53 @@ class ListInputUI extends BaseUI
 			switch dataTypeInfo.dataType
 				when DTYPES.BOOL
 					with vgui.Create 'DCheckBox', rowElementPanel
-						if currentValue then \SetValue currentValue
+						\SetValue currentValue if currentValue
 				when DTYPES.CHOICE
 					comboBox = vgui.Create 'DComboBox', rowElementPanel
-					for display, value in pairs dataTypeInfo.choices
+					for {display, value} in *dataTypeInfo.choices
 						comboBox\AddChoice display, value, currentValue == value
 				when DTYPES.NUMBER
 					{:min, :max, :interval, :logarithmic} = dataTypeInfo
-					slider = with CustomNumSlider rowElementPanel
+					with CustomNumSlider rowElementPanel
 						\SetText nil
 						\SetMinMax min, max
 						\SetInterval interval
 						\SetLogarithmic logarithmic
-						if currentValue then \GetPanel!\SetValue currentValue
+						\GetPanel!\SetValue currentValue if currentValue
 				when DTYPES.STRING
 					with vgui.Create 'DTextEntry', rowElementPanel
-						if currentValue then \SetValue currentValue
+						\SetValue currentValue if currentValue
 
 		@rowPanels[rowClass] = true
 		rowClass
+	
+	GetValues: =>
+		-- get all children of panels added... in the correct order.
+		sortedRowPanels = [rowClass\GetPanel! for rowClass, _ in pairs @rowPanels]
+		@SortPanelsByPosition sortedRowPanels
+
+		DTYPES = AddElementUI.DATA_TYPES
+		values = {}
+
+		for i, rowPanel in ipairs sortedRowPanels
+			childrenPanels = rowPanel\GetChildren!
+			@SortPanelsByPosition childrenPanels
+			
+			rowValues = {}
+
+			for j, dataTypeInfo in ipairs @dataTypes
+				switch dataTypeInfo.dataType
+					when DTYPES.BOOL
+						rowValues[j] = childrenPanels[j]\GetChecked!
+					when DTYPES.CHOICE
+						rowValues[j] = select 2, childrenPanels[j]\GetSelected!
+					when DTYPES.NUMBER
+						rowValues[j] = childrenPanels[j]\GetValue!
+					when DTYPES.STRING
+						rowValues[j] = childrenPanels[j]\GetText!
+
+			values[i] = rowValues
+		values
 
 class ProgressUI extends BaseUI
 	-- @ELEMENT_FPS: 10
@@ -1887,7 +2341,7 @@ class LoadUI extends BaseUI
 			switch action
 				when 1
 					@window\Close!
-					if @callback then @callback textEntryValue
+					@callback textEntryValue if @callback
 				when 2
 					Derma_StringRequest 'Rename', 'Enter new file name:', textEntryValue, (saveName) ->
 						newFileName = "ccvccm/#{saveName}.json"

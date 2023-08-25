@@ -1,5 +1,5 @@
 local damageTiers = {0}
--- 0: normal, 1: explosive, 2: arcing, 3: status effect
+-- 0: normal, 1: explosive recalculate, 2: explosive, 3: arcing, 4: status effect, 5: doom
 local entities = {}
 for i,v in ipairs(ents.GetAll()) do
 	entities[v] = true
@@ -21,7 +21,7 @@ local explosionCount = 0
 
 hook.Add("InsaneStatsWPASS2Doom", "InsaneStatsWPASS2", function(victim, level, attacker)
 	if level ~= 0 and victim:InsaneStats_GetHealth() > 0 then
-		table.insert(damageTiers, 4)
+		table.insert(damageTiers, 5)
 		
 		if not IsValid(attacker) then
 			attacker = victim
@@ -329,6 +329,7 @@ local function CauseDelayedDamage(data)
 	local attacker = data.attacker
 	local victim = data.victim
 	local damage = data.damage
+	local damageTier = data.damageTier
 	local shouldExplode = data.shouldExplode
 	local shouldShock = data.shouldShock
 	local shouldElectroblast = data.shouldElectroblast
@@ -352,7 +353,7 @@ local function CauseDelayedDamage(data)
 				--forceDir = victim:GetPos() - damagePos
 				--forceDir:Mul(128/forceDir:Length())
 				
-				if shouldShock or shouldElectroblast then
+				if (shouldShock or shouldElectroblast) and attacker ~= victim then
 					local effectDamage = damage
 					effectDamage = effectDamage * attacker:InsaneStats_GetAttributeValue("shock_damage")
 					effectDamage = effectDamage * victim:InsaneStats_GetAttributeValue("shock_damagetaken")
@@ -377,7 +378,7 @@ local function CauseDelayedDamage(data)
 			end
 			
 			if (shouldExplode or shouldElectroblast or shouldCosmicurse) and explosionCount < 10 then
-				table.insert(damageTiers, 1)
+				table.insert(damageTiers, damageTier)
 				explosionCount = explosionCount + 1
 				
 				if shouldElectroblast then
@@ -412,7 +413,7 @@ local function CauseDelayedDamage(data)
 				effdata:SetFlags(0)
 				util.Effect("Explosion", effdata)
 				
-				if shouldCosmicurse and IsValid(victim) then
+				if shouldCosmicurse and IsValid(victim) and attacker ~= victim then
 					local effectDamage = damage
 					effectDamage = effectDamage * attacker:InsaneStats_GetAttributeValue("poison_damage")
 					effectDamage = effectDamage * attacker:InsaneStats_GetAttributeValue("bleed_damage")
@@ -555,7 +556,7 @@ hook.Add("EntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo)
 				end
 				return true
 			end
-			if vic:InsaneStats_GetHealth() > 0 and damageTiers[#damageTiers] == 0 then
+			if vic:InsaneStats_GetHealth() > 0 and damageTiers[#damageTiers] < 2 then
 				--print(vic, attacker, dmginfo:GetDamage())
 				local shouldBreak = CalculateDamage(vic, attacker, dmginfo)
 				--print(vic, attacker, dmginfo:GetDamage())
@@ -575,7 +576,7 @@ end)
 hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, notImmune)
 	if InsaneStats:GetConVarValue("wpass2_enabled") then
 		local attacker = dmginfo:GetAttacker()
-		if IsValid(attacker) and IsValid(vic) then
+		if IsValid(attacker) and IsValid(vic) and attacker ~= vic then
 			local vicIsMob = vic:InsaneStats_IsMob()
 			if vicIsMob and attacker:InsaneStats_IsMob() then
 				vic:InsaneStats_UpdateCombatTime()
@@ -584,7 +585,7 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 			
 			local wep = attacker.GetActiveWeapon and attacker:GetActiveWeapon()
 			
-			if damageTiers[#damageTiers] < 3 and not dmginfo:IsDamageType(DMG_BURN) and not IsValid(vic:GetParent()) then
+			if damageTiers[#damageTiers] < 4 and not dmginfo:IsDamageType(DMG_BURN) and not IsValid(vic:GetParent()) then
 				-- non-damage based effects
 				local speedDownLevel = (1 - attacker:InsaneStats_GetAttributeValue("victim_speed")) * 100
 				vic:InsaneStats_ApplyStatusEffect("speed_down", speedDownLevel, 5)
@@ -597,8 +598,9 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 				
 				-- non-over time / delayed effects
 				local damage = dmginfo:GetDamage()
-				local explodeCondition = not dmginfo:IsBulletDamage() and damageTiers[#damageTiers] == 0 and vic:GetClass() ~= "gib"
+				local explodeCondition = not dmginfo:IsBulletDamage() and damageTiers[#damageTiers] < 1 and vic:GetCollisionGroup() ~= COLLISION_GROUP_DEBRIS
 				--print(damage)
+				--print(not dmginfo:IsBulletDamage(), damageTiers[#damageTiers] < 1, vic:GetCollisionGroup() ~= COLLISION_GROUP_DEBRIS)
 				
 				if math.random() < attacker:InsaneStats_GetAttributeValue("arc_chance") - 1 then
 					-- get a random nearby entity
@@ -624,13 +626,12 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 					end
 					
 					if IsValid(randomEntity) then
-						table.insert(damageTiers, 2)
+						table.insert(damageTiers, 3)
 						randomEntity:TakeDamageInfo(dmginfo)
 						table.remove(damageTiers)
 					end
 				end
 				
-				local debuffDamageMul = 1--vic:InsaneStats_GetAttributeValue("debuff_damagetaken") * attacker:InsaneStats_GetAttributeValue("debuff_damage")
 				local worldPos = dmginfo:GetDamagePosition()
 				worldPos = worldPos:IsZero() and vic:WorldSpaceCenter() or worldPos
 				
@@ -646,7 +647,8 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 						pos = worldPos,
 						attacker = attacker,
 						victim = vic,
-						damage = damage * debuffDamageMul,
+						damage = damage,
+						damageTier = 2,
 						shouldExplode = shouldExplode,
 						shouldShock = shouldShock,
 						shouldElectroblast = shouldElectroblast,
@@ -716,10 +718,10 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 					local effectDamage = 0
 					
 					if shouldPoison or shouldHemotoxin then
-						effectDamage = effectDamage + damage*2 * debuffDamageMul
+						effectDamage = effectDamage + damage*2
 					end
 					if shouldBleed or shouldHemotoxin then
-						effectDamage = effectDamage + damage * debuffDamageMul
+						effectDamage = effectDamage + damage
 					end
 					
 					if shouldPoison or shouldHemotoxin then
@@ -766,10 +768,10 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 					local effectDamage = 0
 					
 					if shouldFire or shouldFrostfire then
-						effectDamage = effectDamage + damage*2 * debuffDamageMul
+						effectDamage = effectDamage + damage*2
 					end
 					if shouldFreeze or shouldFrostfire then
-						effectDamage = effectDamage + damage * debuffDamageMul
+						effectDamage = effectDamage + damage
 					end
 					
 					if shouldFire or shouldFrostfire then
@@ -807,8 +809,8 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 					end
 				end
 				
-				if damageTiers[#damageTiers] < 4 then
-					local effectDamage = damage*(attacker:InsaneStats_GetAttributeValue("repeat1s_damage")-1)*debuffDamageMul
+				if damageTiers[#damageTiers] < 5 then
+					local effectDamage = damage*(attacker:InsaneStats_GetAttributeValue("repeat1s_damage")-1)
 					vic:InsaneStats_ApplyStatusEffect("doom", effectDamage, 1, {amplify = true, attacker = attacker})
 				end
 				
@@ -994,7 +996,7 @@ hook.Add("EntityFireBullets", "InsaneStatsWPASS2", function(attacker, data)
 			end
 		end
 		
-		local shouldExplode = damageTiers[#damageTiers] == 0 and (math.random() < attacker:InsaneStats_GetAttributeValue("explode") - 1
+		local shouldExplode = damageTiers[#damageTiers] < 1 and (math.random() < attacker:InsaneStats_GetAttributeValue("explode") - 1
 		or math.random() < attacker:InsaneStats_GetAttributeValue("electroblast") - 1
 		or attacker:InsaneStats_GetAttributeValue("cosmicurse") > 1)
 		
@@ -1011,6 +1013,7 @@ hook.Add("EntityFireBullets", "InsaneStatsWPASS2", function(attacker, data)
 						attacker = attacker,
 						victim = trace.Entity,
 						damage = dmginfo:GetDamage(),
+						damageTier = 1,
 						shouldExplode = shouldExplode
 					})
 				
@@ -1287,7 +1290,7 @@ local function CauseStatusEffectDamage(data)
 		local statLevel = victim:InsaneStats_GetStatusEffectLevel(stat)
 		if victim:InsaneStats_GetHealth() > 0 then
 			--print(stat, statLevel)
-			table.insert(damageTiers, 3)
+			table.insert(damageTiers, 4)
 			--PrintTable(data)
 			local attacker = victim:InsaneStats_GetStatusEffectAttacker(stat)
 			if not IsValid(attacker) then

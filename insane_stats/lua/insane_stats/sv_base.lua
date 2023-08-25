@@ -2,6 +2,24 @@ gameevent.Listen("entity_killed")
 gameevent.Listen("break_prop")
 gameevent.Listen("break_breakable")
 
+local currentSaveFile = InsaneStats:GetConVarValue("save_file") or "default"
+
+function InsaneStats:Save(data)
+	if not file.IsDir("insane_stats", "DATA") then
+		file.CreateDir("insane_stats")
+	end
+	local saveFileName = "insane_stats/"..currentSaveFile..".json"
+	file.Write(saveFileName, util.TableToJSON(data))
+end
+
+function InsaneStats:Load()
+	local saveFileName = "insane_stats/"..currentSaveFile..".json"
+	if file.Exists("insane_stats.txt", "DATA") then
+		file.Rename("insane_stats.txt", saveFileName)
+	end
+	return util.JSONToTable(file.Read(saveFileName) or "") or {}
+end
+
 hook.Add("OnEntityCreated", "InsaneStats", function(ent)
 	timer.Simple(0, function()
 		if (IsValid(ent) and not ent:IsPlayer()) then
@@ -86,6 +104,10 @@ hook.Add("PlayerUse", "InsaneStats", function(ply, ent)
 			end
 		end
 	end
+end)
+
+hook.Add("Initialize", "InsaneStats", function()
+	currentSaveFile = InsaneStats:GetConVarValue("save_file")
 end)
 
 hook.Add("InitPostEntity", "InsaneStats", function()

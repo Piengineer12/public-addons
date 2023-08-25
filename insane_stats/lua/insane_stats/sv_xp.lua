@@ -392,7 +392,6 @@ function InsaneStats:DetermineEntitySpawnedXP(pos)
 			hasPlayer = true break
 		end
 	end
-	--print(pos, "has base level", level)
 	
 	local typ = self:GetConVarValue("xp_other_level_factor")
 	if typ >= 1 and typ <= 4 then
@@ -447,7 +446,6 @@ function InsaneStats:DetermineEntitySpawnedXP(pos)
 		local current = self:ScaleValueToLevel(level, self:GetConVarValue("xp_other_level_maps")/100, mapNumber, "xp_other_level_maps_mode", true)
 		level = math.max(minimum, current)
 	end
-	--print(pos, "has modified level", level)
 	
 	local playerScalingMode = self:GetConVarValueDefaulted("xp_other_level_players_mode", "xp_mode") > 0
 	if playerScalingMode then
@@ -649,7 +647,7 @@ timer.Create("InsaneStatsXP", 0.5, 0, function()
 end)
 
 local function RecordMapAndReloadXP()
-	local fileContent = util.JSONToTable(file.Read("insane_stats.txt") or "") or {}
+	local fileContent = InsaneStats:Load()
 	local currentMap = game.GetMap()
 	
 	mapNumber = 0
@@ -889,7 +887,7 @@ end)
 
 local function SaveData()
 	if InsaneStats:GetConVarValue("xp_enabled") and InsaneStats:GetConVarValue("xp_player_save") then
-		local data = util.JSONToTable(file.Read("insane_stats.txt") or "") or {}
+		local data = InsaneStats:Load()
 		data.maps = mapOrder
 		
 		for k,v in pairs(player.GetAll()) do
@@ -899,8 +897,8 @@ local function SaveData()
 			end
 		end
 		data.playerXP = savedPlayerXP
-		
-		file.Write("insane_stats.txt", util.TableToJSON(data))
+
+		InsaneStats:Save(data)
 	end
 end
 

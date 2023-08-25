@@ -140,7 +140,7 @@ InsaneStats:RegisterConVar("wpass2_tier_raritycost_battery", "insanestats_wpass2
 	display = "Battery Tiers Per Rarity", desc = "If 0 or above, overrides insanestats_wpass2_tier_raritycost for armor batteries.",
 	type = InsaneStats.FLOAT, min = -1, max = 100
 })
-InsaneStats:RegisterConVar("wpass2_tier_blacklist", "insanestats_wpass2_tier_blacklist", "", {
+InsaneStats:RegisterConVar("wpass2_tier_blacklist", "insanestats_wpass2_tier_blacklist", "weapon_physgun gmod_tool gmod_camera", {
 	display = "Weapon Blacklist", desc = "Weapon classes in this list will always remain at tier 0, preventing them from gaining modifiers.",
 	type = InsaneStats.STRING
 })

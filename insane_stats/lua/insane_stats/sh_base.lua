@@ -76,7 +76,7 @@ function InsaneStats:GetConVarValue(name)
 		return conVar:GetInt()
 	elseif valueType == self.FLOAT then
 		return conVar:GetFloat()
-	else
+	elseif conVar then
 		return conVar:GetString()
 	end
 end
@@ -107,6 +107,12 @@ end
 -- MISC
 
 InsaneStats:SetDefaultConVarCategory("Miscellaneous")
+InsaneStats:RegisterConVar("save_file", "insanestats_save_file", "default", {
+	display = "Save File Name", desc = "Data from other modules such as XP and WPASS2 will be saved in \z
+	data/insane_stats/<name>.json.\n\z
+	Note that ConVar values are not saved this way, and changes to this ConVar only take effect after a map change.",
+	type = InsaneStats.STRING
+})
 InsaneStats:RegisterConVar("gametext_tochat", "insanestats_gametext_tochat", "0", {
 	display = "game_text To Chat", desc = "Activated game_texts will also send their texts to chat.",
 	type = InsaneStats.BOOL
