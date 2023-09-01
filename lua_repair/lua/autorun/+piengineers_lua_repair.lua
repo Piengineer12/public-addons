@@ -8,8 +8,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_REPAIR_VERSION = "2.0.3"
-LUA_REPAIR_VERSION_DATE = "2023-08-06"
+LUA_REPAIR_VERSION = "2.0.4"
+LUA_REPAIR_VERSION_DATE = "2023-09-01"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
@@ -263,6 +263,14 @@ local function FixAllErrors()
 		else return oldSetColor4Part(ent, ...)
 		end
 	end
+	local oldGetBoneCount = ENTITY.GetBoneCount
+	ENTITY.GetBoneCount = function(ent, ...)
+		if not IsValid(ent) then
+			LogError("Some code attempted to get the number of bones of a NULL entity.")
+			return 0
+		else return oldGetBoneCount(ent, ...)
+		end
+	end
 	local oldEnemy = NPC.GetEnemy
 	NPC.GetEnemy = function(ent, ...)
 		if not IsValid(ent) then
@@ -358,6 +366,19 @@ local function FixAllErrors()
 	debug.setmetatable(nil,NIL)
 	--debug.setmetatable("",STRING)
 	--debug.setmetatable(0,NUMBER)
+
+	local oldNetStart = net.Start
+	net.Start = function(...)
+		if net.BytesWritten() then
+			if SERVER then
+				net.Send({})
+			else
+				net.SendToServer()
+			end
+		end
+		oldNetStart(...)
+	end
+
 	Log("Primitives patched!")
 	
 	Log("Patching hooks...")
