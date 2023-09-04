@@ -124,6 +124,11 @@ local function BroadcastEntityUpdates()
 		
 		-- bitflag 32 is for disposition, but that works on a per player basis, so broadcasting isn't suitable
 		
+		if bit.band(v, 64) ~= 0 then
+			net.WriteDouble(k:InsaneStats_GetCoins())
+			net.WriteUInt(k:InsaneStats_GetLastCoinTier() + 1, 8)
+		end
+		
 		--print(k, v)
 		entitiesRequireUpdate[k] = nil
 		table.insert(sentEntities, k)

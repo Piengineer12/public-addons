@@ -29,6 +29,55 @@ hook.Add("OnEntityCreated", "InsaneStats", function(ent)
 	end)
 end)
 
+hook.Add("entity_killed", "InsaneStats", function(data)
+	local victim = Entity(data.entindex_killed or 0)
+	local attacker = Entity(data.entindex_attacker or 0)
+	local inflictor = Entity(data.entindex_inflictor or 0)
+	
+	hook.Run("InsaneStatsEntityKilled", victim, attacker, inflictor)
+end)
+
+hook.Add("OnNPCKilled", "InsaneStats", function(victim, attacker, inflictor)
+	hook.Run("InsaneStatsEntityKilled", victim, attacker, inflictor)
+end)
+
+hook.Add("LambdaOnKilled", "InsaneStats", function(victim, dmginfo)
+	local attacker = dmginfo:GetAttacker()
+	local inflictor = dmginfo:GetInflictor()
+	hook.Run("InsaneStatsEntityKilled", victim, attacker, inflictor)
+end)
+
+-- AcceptInput: see MISC section
+
+hook.Add("InsaneStatsEntityCreated", "InsaneStats", function(ent)
+	if ent:IsNPC() then
+		ent:Fire("AddOutput", "OnDeath !activator:InsaneStats_OnNPCKilled")
+		if ent:GetClass()=="npc_helicopter" then
+			ent:Fire("AddOutput", "OnShotDown !activator:InsaneStats_OnNPCKilled")
+		elseif ent:GetClass()=="npc_turret_floor" then
+			ent:Fire("AddOutput", "OnTipped !self:InsaneStats_OnNPCKilled")
+		end
+	elseif ent:GetClass()=="prop_vehicle_apc" then
+		ent:Fire("AddOutput", "OnDeath !activator:InsaneStats_OnNPCKilled")
+		if IsValid(ent:GetDriver()) then
+			ent:Fire("AddOutput","OnDeath "..ent:GetDriver():GetName()..":Kill")
+		end
+	end
+end)
+
+local needCorrectiveDeathClasses = {
+	npc_combine_camera=true,
+	npc_turret_ceiling=true,
+}
+
+hook.Add("PostEntityTakeDamage", "InsaneStats", function(victim, dmginfo, took)
+	if needCorrectiveDeathClasses[victim:GetClass()] and victim:InsaneStats_GetHealth() <= 0 then
+		local attacker = dmginfo:GetAttacker()
+		local inflictor = dmginfo:GetInflictor()
+		hook.Run("InsaneStatsEntityKilled", victim, attacker, inflictor)
+	end
+end)
+
 -- MISC
 
 -- For some reason "color" isn't included under game_text:GetKeyValues(). Why?
@@ -40,23 +89,41 @@ end)
 
 local pendingGameTexts = {}
 hook.Add("AcceptInput", "InsaneStats", function(ent, input, activator, caller, value)
-	if ent:GetClass() == "game_text" and input == "Display" and InsaneStats:GetConVarValue("gametext_tochat")
-	and not (InsaneStats:GetConVarValue("gametext_tochat_once") and ent.insaneStats_DisplayedInChat) then
-		local keyValues = ent:GetKeyValues()
-		local xPos = tonumber(keyValues.x)
-		local yPos = tonumber(keyValues.y)
-		
-		table.insert(pendingGameTexts, {
-			order = (xPos < 0 and 0.5 or xPos) + (yPos < 0 and 0.5 or yPos),
-			t = keyValues.message,
-			c = ent.insaneStats_TextColor,
-			target = not ent:HasSpawnFlags(1) and activator:IsPlayer() and activator
-		})
-		ent.insaneStats_DisplayedInChat = true
+	input = input:lower()
+	data = data or ""
+	if input == "insanestats_onnpckilled" then
+		hook.Run("InsaneStatsEntityKilled", caller, activator, activator)
+	elseif input == "display" then
+		if ent:GetClass() == "game_text" and InsaneStats:GetConVarValue("gametext_tochat")
+		and not (InsaneStats:GetConVarValue("gametext_tochat_once") and ent.insaneStats_DisplayedInChat) then
+			local keyValues = ent:GetKeyValues()
+			local xPos = tonumber(keyValues.x)
+			local yPos = tonumber(keyValues.y)
+			
+			table.insert(pendingGameTexts, {
+				order = (xPos < 0 and 0.5 or xPos) + (yPos < 0 and 0.5 or yPos),
+				t = keyValues.message,
+				c = ent.insaneStats_TextColor,
+				target = not ent:HasSpawnFlags(1) and activator:IsPlayer() and activator
+			})
+			ent.insaneStats_DisplayedInChat = true
+		end
 	end
 end)
 
+local function SaveData()
+	local data = InsaneStats:Load()
+	hook.Run("InsaneStatsSave", data)
+	InsaneStats:Save(data)
+end
+
+local saveThinkCooldown = 0
 hook.Add("Think", "InsaneStats", function()
+	if saveThinkCooldown < RealTime() then
+		SaveData()
+		saveThinkCooldown = RealTime() + 30
+	end
+
 	if next(pendingGameTexts) then
 		for k,v in SortedPairsByMemberValue(pendingGameTexts, "order") do
 			net.Start("insane_stats")
@@ -73,6 +140,9 @@ hook.Add("Think", "InsaneStats", function()
 		pendingGameTexts = {}
 	end
 end)
+
+hook.Add("PlayerDisconnected", "InsaneStatsWPASS", SaveData)
+hook.Add("ShutDown", "InsaneStatsWPASS", SaveData)
 
 local ammoCrateTypes = {
 	-- Valve can't count.

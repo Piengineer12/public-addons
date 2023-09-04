@@ -24,7 +24,8 @@ net.Receive("insane_stats", function()
 			local health, maxHealth, armor, maxArmor
 			local xp, class, name, disposition
 			local batteryXP, modifierChangeReason, tier
-			local modifiers, statusEffects
+			local modifiers, statusEffects, coins
+			local lastCoinTier
 			
 			if bit.band(flags, 1) ~= 0 then
 				health = net.ReadDouble()
@@ -84,6 +85,11 @@ net.Receive("insane_stats", function()
 			if bit.band(flags, 32) ~= 0 then
 				disposition = net.ReadInt(4)
 			end
+				
+			if bit.band(flags, 64) ~= 0 then
+				coins = net.ReadDouble()
+				lastCoinTier = net.ReadUInt(8)
+			end
 			
 			local ent = Entity(entIndex)
 			if IsValid(ent) and entIndex == ent:EntIndex() then
@@ -130,6 +136,11 @@ net.Receive("insane_stats", function()
 				
 				if disposition then
 					ent.insaneStats_Disposition = disposition
+				end
+				
+				if coins then
+					ent:InsaneStats_SetCoins(coins)
+					ent:InsaneStats_SetLastCoinTier(lastCoinTier - 1)
 				end
 				
 				hook.Run("InsaneStatsEntityUpdated", ent, flags)

@@ -196,27 +196,7 @@ hook.Add("InsaneStatsScaleXP", "InsaneStatsXP", function(data)
 	
 end)
 
-hook.Add("InsaneStatsEntityKilled", "InsaneStatsXP", function(victim, attacker, inflictor)
-	--print(victim, attacker, inflictor, victim.insaneStats_LastAttacker)
-	--print(IsValid(attacker), attacker ~= victim, IsValid(victim.insaneStats_LastAttacker))
-	if InsaneStats:GetConVarValue("xp_enabled") then
-		local wep = victim.GetActiveWeapon and victim:GetActiveWeapon()
-		if victim:IsNPC() and (IsValid(wep) and wep:GetClass() == "weapon_smg1") then
-			timer.Simple(0, function()
-				if IsValid(wep) then
-					if wep.InsaneStats_SetRawClip1 then
-						wep:InsaneStats_SetRawClip1(45)
-					else
-						wep:SetClip1(45)
-					end
-				end
-			end)
-		end
-	end
-end)
-
 local function ProcessKillEvent(victim, attacker, inflictor)
-	-- this function may be called multitudes of times, make sure it is only called once
 	if IsValid(victim) then
 		-- determine attacker and inflictor
 		if IsValid(victim.insaneStats_LastAttacker) then
@@ -236,10 +216,6 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 		end
 		
 		inflictor = IsValid(inflictor) and inflictor or attacker
-		
-		if not victim.insaneStats_IsDead then
-			hook.Run("InsaneStatsEntityKilled", victim, attacker, inflictor)
-		end
 		
 		-- we WANT this to be called multiple times, in case the victim gained XP after being revived
 		if InsaneStats:GetConVarValue("xp_enabled") then
@@ -342,42 +318,41 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 				local newXP = victim:InsaneStats_GetXP() * (1-InsaneStats:GetConVarValue("xp_player_lose")/100)
 				victim:InsaneStats_SetXP(newXP, 0)
 			end
-			
-			victim.insaneStats_IsDead = true
+
 			victim.insaneStats_DropXP = 0
+		end
+		
+		if not victim.insaneStats_IsDead then
+			hook.Run("InsaneStatsEntityKilledOnce", victim, attacker, inflictor)
+			victim.insaneStats_IsDead = true
 		end
 	end
 end
-
-hook.Add("entity_killed", "InsaneStatsXP", function(data)
-	local victim = Entity(data.entindex_killed or 0)
-	local attacker = Entity(data.entindex_attacker or 0)
-	local inflictor = Entity(data.entindex_inflictor or 0)
-	
-	ProcessKillEvent(victim, attacker, inflictor)
-end)
 
 local needCorrectiveDeathClasses = {
 	npc_combine_camera=true,
 	npc_turret_ceiling=true,
 }
 
---[[gameevent.Listen("break_prop")
-hook.Add("break_prop", "InsaneStatsXP", function(data)
+hook.Add("InsaneStatsEntityKilled", "InsaneStatsXP", function(victim, attacker, inflictor)
+	ProcessKillEvent(victim, attacker, inflictor)
+
+	--print(victim, attacker, inflictor, victim.insaneStats_LastAttacker)
+	--print(IsValid(attacker), attacker ~= victim, IsValid(victim.insaneStats_LastAttacker))
 	if InsaneStats:GetConVarValue("xp_enabled") then
-		local victim = Entity(data.entindex or 0)
-		local attacker = Player(data.userid or 0)
+		local wep = victim.GetActiveWeapon and victim:GetActiveWeapon()
+		if victim:IsNPC() and (IsValid(wep) and wep:GetClass() == "weapon_smg1") then
+			timer.Simple(0, function()
+				if IsValid(wep) then
+					if wep.InsaneStats_SetRawClip1 then
+						wep:InsaneStats_SetRawClip1(45)
+					else
+						wep:SetClip1(45)
+					end
+				end
+			end)
+		end
 	end
-end]]
-
-hook.Add("OnNPCKilled", "InsaneStatsXP", function(victim, attacker, inflictor)
-	ProcessKillEvent(victim, attacker, inflictor)
-end)
-
-hook.Add("LambdaOnKilled", "InsaneStatsXP", function(victim, dmginfo)
-	local attacker = dmginfo:GetAttacker()
-	local inflictor = dmginfo:GetInflictor()
-	ProcessKillEvent(victim, attacker, inflictor)
 end)
 
 function InsaneStats:DetermineEntitySpawnedXP(pos)
@@ -553,26 +528,6 @@ end
 local toUpdateLevelEntities = {}
 --local loadedData = {}
 hook.Add("InsaneStatsEntityCreated", "InsaneStatsXP", function(ent)
-	--[[if loadedData[ent] then
-		local hp = loadedData[ent][1]
-		local ar = loadedData[ent][2]
-		local xp = loadedData[ent][3]
-		local dropXP = loadedData[ent][4]
-		
-		if hp then
-			ent.insaneStats_CurrentHealthAdd = hp
-		end
-		if ar then
-			ent.insaneStats_CurrentArmorAdd = ar
-		end
-		if xp then
-			ent:InsaneStats_SetXP(xp)
-		end
-		if dropXP then
-			ent.insaneStats_DropXP = dropXP
-		end
-	end]]
-	
 	if not ent.insaneStats_XP then
 		local shouldXP = InsaneStats:DetermineEntitySpawnedXP(ent:GetPos())
 		--print(ent, "should spawn with ", shouldXP, " xp")
@@ -580,20 +535,6 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsXP", function(ent)
 			ent:InsaneStats_SetXP(shouldXP)
 		else
 			table.insert(toUpdateLevelEntities, ent)
-		end
-		
-		if ent:IsNPC() then
-			ent:Fire("AddOutput", "OnDeath !activator:InsaneStats_OnNPCKilled")
-			if ent:GetClass()=="npc_helicopter" then
-				ent:Fire("AddOutput", "OnShotDown !activator:InsaneStats_OnNPCKilled")
-			elseif ent:GetClass()=="npc_turret_floor" then
-				ent:Fire("AddOutput", "OnTipped !self:InsaneStats_OnNPCKilled")
-			end
-		elseif ent:GetClass()=="prop_vehicle_apc" then
-			ent:Fire("AddOutput", "OnDeath !activator:InsaneStats_OnNPCKilled")
-			if IsValid(ent:GetDriver()) then
-				ent:Fire("AddOutput","OnDeath "..ent:GetDriver():GetName()..":Kill")
-			end
 		end
 	end
 end)
@@ -702,9 +643,6 @@ hook.Add("AcceptInput", "InsaneStatsXP", function(ent, input, activator, caller,
 			end
 			
 			return true
-		elseif input == "insanestats_onnpckilled" then
-			--print("insanestats_onnpckilled", activator, "killed", caller)
-			ProcessKillEvent(caller, activator, activator)
 		end
 	end
 	
@@ -832,12 +770,6 @@ hook.Add("EntityTakeDamage", "InsaneStatsXP", function(vic, dmginfo)
 	end
 end)
 
-hook.Add("PostEntityTakeDamage", "InsaneStatsXP", function(victim, dmginfo, took)
-	if InsaneStats:GetConVarValue("xp_enabled") and needCorrectiveDeathClasses[victim:GetClass()] and victim:InsaneStats_GetHealth() <= 0 then
-		ProcessKillEvent(victim, dmginfo:GetAttacker(), dmginfo:GetInflictor())
-	end
-end)
-
 hook.Add("OnPlayerPhysicsPickup", "InsaneStatsXP", function(ply, ent)
 	ent.insaneStats_LastAttacker = ply
 end)
@@ -885,9 +817,8 @@ hook.Add("PlayerSpawn", "InsaneStatsXP", function(ply, fromTransition)
 	end
 end)
 
-local function SaveData()
+hook.Add("InsaneStatsSave", "InsaneStatsXP", function(data)
 	if InsaneStats:GetConVarValue("xp_enabled") and InsaneStats:GetConVarValue("xp_player_save") then
-		local data = InsaneStats:Load()
 		data.maps = mapOrder
 		
 		for k,v in pairs(player.GetAll()) do
@@ -897,22 +828,8 @@ local function SaveData()
 			end
 		end
 		data.playerXP = savedPlayerXP
-
-		InsaneStats:Save(data)
-	end
-end
-
-local saveThinkCooldown = 0
-hook.Add("Think", "InsaneStatsXP", function()
-	if saveThinkCooldown < RealTime() then
-		SaveData()
-		
-		saveThinkCooldown = RealTime() + 30
 	end
 end)
-
-hook.Add("PlayerDisconnected", "InsaneStatsWPASS", SaveData)
-hook.Add("ShutDown", "InsaneStatsWPASS", SaveData)
 
 hook.Add("PostCleanupMap", "InsaneStatsXP", function()
 	if InsaneStats:GetConVarValue("xp_enabled") then

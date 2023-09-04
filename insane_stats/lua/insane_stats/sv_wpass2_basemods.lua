@@ -926,12 +926,6 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 	end
 end)
 
-hook.Add("InsaneStatsPreDeath", "InsaneStatsWPASS2", function(vic, dmginfo)
-	if vic:InsaneStats_GetStatusEffectLevel("stunned") > 0 and vic:InsaneStats_GetHealth() <= 0 then
-		vic:InsaneStats_ClearStatusEffect("stunned")
-	end
-end)
-
 hook.Add("ScaleNPCDamage", "InsaneStatsWPASS2", function(vic, hitgroup, dmginfo)
 	vic.insaneStats_LastHitGroup = hitgroup
 	vic.insaneStats_LastHitGroupUpdate = engine.TickCount()
@@ -1057,18 +1051,49 @@ hook.Add("InsaneStatsScaleXP", "InsaneStatsWPASS2", function(data)
 			data.xp = data.xp * attacker:InsaneStats_GetAttributeValue("crit_xp")
 		end
 		
-		for k,v in pairs(entities) do
-			if (IsValid(k) and k:InsaneStats_GetAttributeValue("else_xp") ~= 1 and not data.receivers[k]) then
-				data.receivers[k] = k:InsaneStats_GetAttributeValue("else_xp") - 1
-			end
-		end
-		
 		--[[data.xp = data.xp * ((attacker:InsaneStats_GetAttributeValue("simul_xp") - 1) * (attacker.insaneStats_MasterfulStacks or 0) + 1)
 		attacker.insaneStats_MasterfulStacks = (attacker.insaneStats_MasterfulStacks or 0) + 1]]
 		
 		local masterfulXPFactor = attacker:InsaneStats_GetStatusEffectLevel("masterful_xp") * attacker:InsaneStats_GetStatusEffectDuration("masterful_xp")
 		masterfulXPFactor = math.max(masterfulXPFactor - (attacker:InsaneStats_GetAttributeValue("kill1s_xp") - 1) * 100, 0)
 		data.xp = data.xp * (1 + masterfulXPFactor / 100)
+		
+		for k,v in pairs(entities) do
+			if (IsValid(k) and k:InsaneStats_GetAttributeValue("else_xp") ~= 1 and not data.receivers[k]) then
+				data.receivers[k] = k:InsaneStats_GetAttributeValue("else_xp") - 1
+			end
+		end
+	end
+end)
+
+hook.Add("InsaneStatsScaleCoins", "InsaneStatsWPASS2", function(data)
+	if InsaneStats:GetConVarValue("wpass2_enabled") then
+		local attacker = data.attacker
+		if IsValid(attacker) then
+			local victim = data.victim
+			data.coins = data.coins * attacker:InsaneStats_GetAttributeValue("xp")
+			
+			if not victim:IsPlayer() then
+				if victim:InsaneStats_IsMob() then
+					if attacker:InsaneStats_IsValidAlly(victim) then
+						data.coins = data.coins * attacker:InsaneStats_GetAttributeValue("ally_xp")
+					end
+				else -- prop
+					data.coins = data.coins * attacker:InsaneStats_GetAttributeValue("prop_xp")
+				end
+			end
+			
+			data.coins = data.coins * (1 + attacker:InsaneStats_GetStatusEffectLevel("xp_up") / 100)
+			data.coins = data.coins * (1 + attacker:InsaneStats_GetStatusEffectLevel("stack_xp_up") / 100)
+			
+			if victim.insaneStats_LastHitGroup == HITGROUP_HEAD then
+				data.coins = data.coins * attacker:InsaneStats_GetAttributeValue("crit_xp")
+			end
+			
+			local masterfulXPFactor = attacker:InsaneStats_GetStatusEffectLevel("masterful_xp") * attacker:InsaneStats_GetStatusEffectDuration("masterful_xp")
+			masterfulXPFactor = math.max(masterfulXPFactor - (attacker:InsaneStats_GetAttributeValue("kill1s_xp") - 1) * 100, 0)
+			data.coins = data.coins * (1 + masterfulXPFactor / 100)
+		end
 	end
 end)
 
@@ -1099,7 +1124,7 @@ local function SpawnRandomItems(items, pos)
 	end
 end
 
-hook.Add("InsaneStatsEntityKilled", "InsaneStatsWPASS2", function(victim, attacker, inflictor)
+hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsWPASS2", function(victim, attacker, inflictor)
 	if InsaneStats:GetConVarValue("wpass2_enabled") and IsValid(attacker) then
 		if (attacker:IsVehicle() and attacker:IsValidVehicle() and IsValid(attacker:GetDriver())) then
 			attacker = attacker:GetDriver()
@@ -1856,10 +1881,7 @@ local function ProcessBreakEvent(victim, attacker)
 		attacker = attacker.insaneStats_LastAttacker
 	end]]
 	
-	if IsValid(attacker) and not victim.insaneStats_IsDead
-	and not (string.find(victim:GetModel() or "", "gib") or string.find(victim:GetModel() or "", "chunk")) then
-		victim.insaneStats_IsDead = true
-			
+	if IsValid(attacker) and victim:GetCollisionGroup() ~= COLLISION_GROUP_DEBRIS then
 		stacks = (attacker:InsaneStats_GetAttributeValue("kill1s_xp") - 1) * 100
 		attacker:InsaneStats_ApplyStatusEffect("masterful_xp", stacks, 1, {extend = true})
 		
