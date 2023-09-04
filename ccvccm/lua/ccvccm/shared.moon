@@ -7,9 +7,9 @@ CCVCCM.ENUMS = {
 	}
 }
 
-CCVCCM.StartNetMessage = =>
+CCVCCM.StartNet = =>
 	net.Start 'ccvccm'
-CCVCCM.SendNetMessage = (recipients) =>
+CCVCCM.FinishNet = (recipients) =>
 	if CLIENT then net.SendToServer!
 	if SERVER
 		if recipients then net.Send recipients else net.Broadcast!
@@ -25,15 +25,15 @@ CCVCCM.AddPayloadToNetMessage = (sendData) =>
 		if i % 2 == 0
 			switch currentType
 				when 'b'
-					net.WriteBool sendUnit
+					net.WriteBool tobool sendUnit
 				when 'u8'
-					net.WriteUInt sendUnit, 8
+					net.WriteUInt tonumber(sendUnit), 8
 				when 'i16'
-					net.WriteInt sendUnit, 16
+					net.WriteInt tonumber(sendUnit), 16
 				when 'd'
-					net.WriteDouble sendUnit
+					net.WriteDouble tonumber sendUnit
 				when 's'
-					net.WriteString sendUnit
+					net.WriteString tostring sendUnit
 				when 't'
 					net.WriteTable sendUnit
 				when 'ts'
@@ -64,6 +64,21 @@ CCVCCM.ExtractPayloadFromNetMessage = (dataTypes) =>
 	else
 		{@ExtractSingleFromNetMessage dataTypes}
 
+CCVCCM.GetNetSingleAddonType = (addon, categoryPath, name) =>
+	registeredData = CCVCCM\_GetRegisteredData name, addon, categoryPath
+	if registeredData
+		local unitType
+		switch registeredData.data.typeInfo.type
+			when 'bool'
+				'b'
+			-- when 'keybind'
+			-- 	'i16'
+			when 'number'
+				'd'
+			when 'keybind', 'string'
+				's'
+			else
+				't'
 -- API
 class CCVCCMPointer
 	new: (name, addon = CCVCCM.api.addon, categoryPath = CCVCCM.api.categoryPath) =>
@@ -113,6 +128,48 @@ hook.Add 'CCVCCMRun', 'CCVCCM', ->
 			{"Display Name 1", "value1"},
 			{"Display Name 2", "value2"}
 		}
+	}
+	CCVCCM\AddAddonVar 'addonvar', {
+		name: 'Display Name'
+		help: 'Description'
+		default: {}
+		typeInfo: {
+			name: 'Display Name 2',
+			help: 'Description 2',
+			{
+				name: 'Display Name 3-1'
+				type: 'bool'
+			},
+			{
+				name: 'Display Name 3-2',
+				help: 'Description 3-2',
+				{
+					name: 'Display Name 4-1'
+					type: 'string'
+					min: 1
+					max: 10
+					interval: 0.01
+					logarithmic: true
+				},
+				{
+					name: 'Display Name 4-2'
+					type: 'bool'
+					min: 1
+					max: 10
+					interval: 0.01
+					logarithmic: true
+				},
+				{
+					name: 'Display Name 4-3'
+					type: 'number'
+					min: 1
+					max: 10
+					interval: 0.01
+					logarithmic: true
+				}
+			}
+		}
+		notify: true
 	}
 
 -- internal portion
@@ -243,6 +300,7 @@ CCVCCM._GenerateConCommand = (internal, data) =>
 
 CCVCCM._SetAddonVar = (internal, value, addon = @api.addon, categoryPath = @api.categoryPath) =>
 	-- internal method for setting the addonvar and do nothing else
+	@api.addonVars[addon] or= {}
 	currentTable = @api.addonVars[addon]
 	for category in *categoryPath do
 		currentTable[category] or= {}
@@ -251,6 +309,7 @@ CCVCCM._SetAddonVar = (internal, value, addon = @api.addon, categoryPath = @api.
 
 CCVCCM._GetAddonVar = (internal, addon = @api.addon, categoryPath = @api.categoryPath) =>
 	-- internal method for getting the addonvar and do nothing else
+	@api.addonVars[addon] or= {}
 	currentTable = @api.addonVars[addon]
 	for category in *categoryPath do
 		currentTable[category] or= {}
@@ -330,6 +389,12 @@ CCVCCM._CreateCategoryData = (addon, categoryPath, categoryTable) =>
 					:max
 					:interval
 					:logarithmic
+				}
+			
+			when 'addonvar', 'addoncommand'
+				table.insert saveTable, {
+					elementType: 'addon',
+					internalName: {addon, categoryPath, registeredName}
 				}
 
 		if help
@@ -547,7 +612,7 @@ CCVCCM.SetVarValue = (addon, categoryPath, name, value) =>
 					if SERVER
 						if notify
 							varName = @_AssembleVarName name, addon, categoryPath
-							PrintMessage HUD_PRINTTALK, "Server addon var \"#{varName}\" changed value to \"#{tostring(value)}\""
+							PrintMessage HUD_PRINTTALK, "Server addon var '#{varName}' changed to '#{tostring(value)}'"
 						if realm == 'shared'
 							payload = {
 								'u8', @ENUMS.NET.REP,

@@ -34,42 +34,29 @@
 		-- adds a new category, with controls for deleting / renaming the category inside at the top of the category
 	-- elements must be draggable
 
+local ^
+
 net.Receive 'ccvccm', (length) ->
-	data = CCVCCM\ExtractSingleFromNetMessage 'u8'
-	switch data
+	operation = CCVCCM\ExtractSingleFromNetMessage 'u8'
+	switch operation
 		when CCVCCM.ENUMS.NET.REP
 			{addon, categoryPath, name} = CCVCCM\ExtractPayloadFromNetMessage {'s', 'ts', 's'}
-			registeredData = CCVCCM\_GetRegisteredData name, addon, categoryPath
-			if registeredData
-				local unitType
-				switch registeredData.typeInfo.type
-					when 'bool' then unitType = 'b'
-					when 'keybind' then unitType = 'i16'
-					when 'number' then unitType = 'd'
-					when 'string' then unitType = 's'
-					else unitType = 't'
-				value = CCVCCM\ExtractSingleFromNetMessage unitType
-				@_SetAddonVar name, value, addon, categoryPath
+			unitType = CCVCCM\GetNetSingleAddonType addon, categoryPath, name
+			value = CCVCCM\ExtractSingleFromNetMessage unitType
+			@_SetAddonVar name, value, addon, categoryPath
 		when CCVCCM.ENUMS.NET.QUERY
-			window = ManagerUI\GetWindow!
-			if IsValid window
+			cls = ManagerUI\GetInstance!
+			if cls
 				for i=1, CCVCCM\ExtractSingleFromNetMessage 'u8'
 					isLua = CCVCCM\ExtractSingleFromNetMessage 'b'
 					if isLua
 						{addon, categoryPath, name} = CCVCCM\ExtractPayloadFromNetMessage {'s', 'ts', 's'}
-						registeredData = CCVCCM\_GetRegisteredData name, addon, categoryPath
-						local unitType
-						switch registeredData.typeInfo.type
-							when 'bool' then unitType = 'b'
-							when 'keybind' then unitType = 'i16'
-							when 'number' then unitType = 'd'
-							when 'string' then unitType = 's'
-							else unitType = 't'
+						unitType = CCVCCM\GetNetSingleAddonType addon, categoryPath, name
 						value = CCVCCM\ExtractSingleFromNetMessage unitType
-						window\ReceiveServerVarQueryResult {addon, categoryPath, name}, value
+						cls\ReceiveServerVarQueryResult {addon, categoryPath, name}, value
 					else
 						{name, value} = CCVCCM\ExtractPayloadFromNetMessage {'s', 's'}
-						window\ReceiveServerVarQueryResult name, value
+						cls\ReceiveServerVarQueryResult name, value
 
 CCVCCM.CountTablesRecursive = (items, acc = {}, fillAccOnly = false) =>
 	-- returns the number of tables within tab
@@ -81,8 +68,6 @@ CCVCCM.CountTablesRecursive = (items, acc = {}, fillAccOnly = false) =>
 			@CountTablesRecursive v, acc, true
 	
 	table.Count acc unless fillAccOnly
-
-local ^
 
 GetBitflagFromIndices = (...) ->
 	result = 0
@@ -119,7 +104,7 @@ class BasePanel
 			ax, ay = a\LocalToScreen 0, 0
 			bx, by = b\LocalToScreen 0, 0
 
-			if ay != by then ay < by else ax < bx
+			ax + ay < bx + by
 
 	CreateButton: (parent, name, zPos, icon) =>
 		with vgui.Create 'DButton', parent
@@ -483,6 +468,10 @@ class ContentPanel extends SavablePanel
 			when ETYPES.CLIENT_CCMD, ETYPES.CLIENT_CVAR, ETYPES.SERVER_CCMD, ETYPES.SERVER_CVAR
 				classPanel = CCVCCPanel @items, data, @window, @static
 				createdPanel = classPanel\GetPanel!
+			
+			when ETYPES.ADDON
+				classPanel = CAVACPanel @items, data, @window, @static
+				createdPanel = classPanel\GetPanel!
 				
 		createdPanel
 
@@ -559,6 +548,8 @@ class ContentPanel extends SavablePanel
 				data.elementType = ETYPES.SERVER_CVAR
 			when 'serverConCommand'
 				data.elementType = ETYPES.SERVER_CCMD
+			when 'addon'
+				data.elementType = ETYPES.ADDON
 		
 		switch data.dataType
 			when 'none'
@@ -804,11 +795,11 @@ class TabPanel extends SavablePanel
 class CAVACPanel extends SavablePanel
 	-- this element must be savable as this element can be copied and pasted into custom tabs
 	-- it just can't be edited
-	new: (parent, data, window) =>
+	new: (parent, data, window, static) =>
 		super!
 		@data = data
 		@window = window
-		@InitializeElementPanel parent, true
+		@InitializeElementPanel parent, static
 		panel = @GetPanel!
 
 		-- unlike CCVCCPanels, the variables displayName, dataType, elementType and even manual
@@ -830,6 +821,8 @@ class CAVACPanel extends SavablePanel
 		-- ListInputUI requires data to be in terms of DTYPES
 		DTYPES = AddElementUI.DATA_TYPES
 		dataType = @TranslateTypeInfo typeInfo
+		BasePanel\Log 'TranslateTypeInfo', panel
+		PrintTable dataType if GetConVar('developer')\GetInt! > 0
 		
 		-- this isn't applicable
 		-- ETYPES = AddElementUI.ELEMENT_TYPES
@@ -847,6 +840,11 @@ class CAVACPanel extends SavablePanel
 			with @CreateButton controlPanel, 'Copy Element', nil, 'page_white_copy'
 				\Dock LEFT
 				.DoClick = -> @SaveToClipboard!
+
+			unless static
+				with @CreateButton controlPanel, 'Delete', 3, 'delete'
+					\Dock LEFT
+					.DoClick = -> @PromptDelete!
 			
 			@window\AddControlPanel controlPanel
 
@@ -854,7 +852,7 @@ class CAVACPanel extends SavablePanel
 			local buttonText
 			if isVar
 				buttonText = 'Apply Changes'
-			elseif dataType.type == DTYPES.NONE
+			elseif dataType.dataType == DTYPES.NONE
 				buttonText = displayName
 			else
 				buttonText = 'Run ConCommand'
@@ -862,7 +860,7 @@ class CAVACPanel extends SavablePanel
 				\Dock TOP
 				.DoClick = @\UpdateAddonVar
 
-		switch dataType.type
+		switch dataType.dataType
 			when DTYPES.BOOL
 				hostPanel = with vgui.Create 'DSizeToContents', panel
 					\SetSizeX false
@@ -982,26 +980,41 @@ class CAVACPanel extends SavablePanel
 				
 				with @CreateButton hostPanel, dataType.name, 2
 					.DoClick = ->
-						listInputUI = ListInputUI 0.5, 0.5, dataType.type, @arguments
+						listInputUI = ListInputUI 0.5, 0.5, dataType, @arguments
 						listInputUI\SetCallback (classData, values) ->
 							@SetArgs values
 							@UpdateAddonVar! unless manual
 		
-		if realm == 'server'
+		if (realm or 'server') == 'server'
 			-- ask ManagerUI to poll the server
 			@window\AddServerVarQueryRequest internalName, @
 
+	SetArgs: (arguments) => @arguments = arguments
+	SendToServer: =>
+		{internalName: {addon, categoryPath, name}} = @data
+		payload = {
+			'u8', CCVCCM.ENUMS.NET.EXEC,
+			'b', true,
+			's', addon,
+			'ts', categoryPath,
+			's', name
+		}
+		table.insert payload, CCVCCM\GetNetSingleAddonType addon, categoryPath, name
+		table.insert payload, @arguments
+		CCVCCM\Send payload
 	UpdateAddonVar: =>
 		{:elementType, :internalName} = @data
 		{addon, categoryPath, name} = internalName
 		registeredData = CCVCCM\_GetRegisteredData name, addon, categoryPath
 		if registeredData
 			{type: apiType, data: {:realm, :flags, :func}} = registeredData
-			if flags.cheat and not CCVCCM\_GetCheatsEnabled!
-				Derma_Message 'sv_cheats must be enabled!', 'Runtime Error', 'OK'
-			elseif flags.sp and not game.SinglePlayer!
-				Derma_Message 'Game must be singleplayer!', 'Runtime Error', 'OK'
-			elseif realm == 'client'
+			if flags
+				if flags.cheat and not CCVCCM\_GetCheatsEnabled!
+					return Derma_Message 'sv_cheats must be enabled!', 'Runtime Error', 'OK'
+				elseif flags.sp and not game.SinglePlayer!
+					return Derma_Message 'Game must be singleplayer!', 'Runtime Error', 'OK'
+			
+			if realm == 'client'
 				if apiType == 'addonvar'
 					CCVCCM\_SetAddonVar name, @arguments, addon, categoryPath
 				else
@@ -1010,10 +1023,14 @@ class CAVACPanel extends SavablePanel
 	
 	TranslateTypeInfo: (component, parentTable) =>
 		DTYPES = AddElementUI.DATA_TYPES
-		{:name, :help, type: dataType, :choices, :min, :max, :interval, :logarithmic} = typeInfo
+		{:name, :help, type: compType, :choices, :min, :max, :interval, :logarithmic} = component
 
-		table.insert parentTable.names, name if parentTable
+		if parentTable
+			parentTable.names or= {}
+			table.insert parentTable.names, name
+
 		dataType = {
+			name: name
 			header: help
 			:choices
 			:min
@@ -1022,31 +1039,44 @@ class CAVACPanel extends SavablePanel
 			:logarithmic
 		}
 
-		switch component.type
-			when 'bool'
-				dataType.dataType = DTYPES.BOOL
-			when 'keybind'
-				dataType.dataType = DTYPES.KEYBIND
-			when 'number'
-				dataType.dataType = DTYPES.NUMBER
-			when 'string'
-				dataType.dataType = DTYPES.STRING
-			else
-				dataType.dataType = DTYPES.COMPLEX_LIST
-				dataType.types = [@TranslateTypeInfo(v, dataType) for v in *component]
+		if choices
+			dataType.dataType = DTYPES.CHOICE
+		else
+			switch compType
+				when 'bool'
+					dataType.dataType = DTYPES.BOOL
+				when 'keybind'
+					dataType.dataType = DTYPES.KEYBIND
+				when 'number'
+					dataType.dataType = DTYPES.NUMBER
+				when 'string'
+					dataType.dataType = DTYPES.STRING
+				else
+					dataType.dataType = DTYPES.COMPLEX_LIST
+					dataType.types = [@TranslateTypeInfo(v, dataType) for v in *component]
 
 		dataType
 	
 	SaveToTable: =>
 		{
 			internalName: @data.internalName
-			elementType: 'complex'
+			elementType: 'addon'
 			arguments: @arguments
 		}
 	
 	SetValue: (value) =>
 		@arguments = value
-		@rawPanel\SetValue value if IsValid @rawPanel
+		if IsValid @rawPanel
+			if @rawPanel.SetSelectedNumber
+				@rawPanel\SetSelectedNumber input.GetKeyCode value
+			else
+				@rawPanel\SetValue value
+			if @rawPanel.Data
+				-- SetValue will not set the correct display name for DComboBox
+				for choiceIndex, data in pairs @rawPanel.Data
+					if data == value
+						@rawPanel\ChooseOptionID choiceIndex
+						break
 
 class CCVCCPanel extends SavablePanel
 	arguments: ''
@@ -1063,7 +1093,7 @@ class CCVCCPanel extends SavablePanel
 		@PopulatePanel!
 	
 	SetArgs: (arguments) => @arguments = arguments
-	SendToServer: => CCVCCM\Send {'u8', CCVCCM.ENUMS.NET.EXEC, 's', @data.internalName..' '..@arguments}
+	SendToServer: => CCVCCM\Send {'u8', CCVCCM.ENUMS.NET.EXEC, 'b', false, 's', @data.internalName..' '..@arguments}
 
 	PopulatePanel: =>
 		data = @data
@@ -1365,7 +1395,17 @@ class CCVCCPanel extends SavablePanel
 	
 	SetValue: (value) =>
 		@arguments = value
-		@rawPanel\SetValue value if IsValid @rawPanel
+		if IsValid @rawPanel
+			if @rawPanel.SetSelectedNumber
+				@rawPanel\SetSelectedNumber input.GetKeyCode value
+			else
+				@rawPanel\SetValue value
+			if @rawPanel.Data
+				-- SetValue will not set the correct display name for DComboBox
+				for choiceIndex, data in pairs @rawPanel.Data
+					if data == value
+						@rawPanel\ChooseOptionID choiceIndex
+						break
 
 class BaseUI extends BasePanel
 	new: (w,h) =>
@@ -1443,6 +1483,7 @@ class ManagerUI extends BaseUI
 
 							skinData.tex.Window.Restore 0, 0, w, h
 			@@managerWindow = window
+			@@managerClass = @
 
 			menuBar = vgui.Create 'DMenuBar', window
 			@AddMenuOption menuBar, 'File', {
@@ -1467,7 +1508,7 @@ class ManagerUI extends BaseUI
 			saveFile = CCVCCM\GetVarValue 'ccvccm', {}, 'autoload'
 			@LoadFromFile saveFile if saveFile != ''
 	
-	GetWindow: => @@managerWindow
+	GetInstance: => @@managerClass
 	
 	AddControlPanel: (panel) =>
 		table.insert @controlPanels, panel
@@ -1510,10 +1551,10 @@ class ManagerUI extends BaseUI
 					table.insert varSendTable, {'b', false, 's', k}
 				@serverVarQueryRequests[k] = nil
 				break if #varSendTable >= 127
-			CCVCCM\StartNetMessage!
+			CCVCCM\StartNet!
 			CCVCCM\AddPayloadToNetMessage {'u8', CCVCCM.ENUMS.NET.QUERY, 'u8', #varSendTable}
 			for payload in *varSendTable do CCVCCM\AddPayloadToNetMessage payload
-			CCVCCM\SendNetMessage!
+			CCVCCM\FinishNet!
 	
 	ReceiveServerVarQueryResult: (var, val) =>
 		if istable var
@@ -1684,10 +1725,7 @@ class AddElementUI extends BaseUI
 		CLIENT_CCMD: 4
 		SERVER_CVAR: 5
 		SERVER_CCMD: 6
-		CLIENT_AVAR: 7
-		CLIENT_ACMD: 8
-		SERVER_AVAR: 9
-		SERVER_ACMD: 10
+		ADDON: 7
 	
 	@DATA_TYPES:
 		NONE: 0 -- only for ConCommands
@@ -2163,7 +2201,9 @@ class ListInputUI extends BaseUI
 
 			switch dataTypeInfo.dataType
 				when DTYPES.BOOL
-					with vgui.Create 'DCheckBox', rowElementPanel
+					hostPanel = CustomPanelContainer rowElementPanel
+					with vgui.Create 'DCheckBox', hostPanel\GetPanel!
+						\SetPos 3, 3
 						\SetValue currentValue if currentValue
 				when DTYPES.CHOICE
 					comboBox = vgui.Create 'DComboBox', rowElementPanel
@@ -2180,6 +2220,13 @@ class ListInputUI extends BaseUI
 				when DTYPES.STRING
 					with vgui.Create 'DTextEntry', rowElementPanel
 						\SetValue currentValue if currentValue
+				when DTYPES.COMPLEX_LIST
+					button = @CreateButton rowElementPanel, dataTypeInfo.name or 'Edit List'
+					button.DoClick = ->
+						with ListInputUI 0.5, 0.5, dataTypeInfo, currentValue
+							\SetCallback (classData, values) ->
+								currentValue = values
+					button.GetValue = -> currentValue
 
 		@rowPanels[rowClass] = true
 		rowClass
@@ -2201,13 +2248,15 @@ class ListInputUI extends BaseUI
 			for j, dataTypeInfo in ipairs @dataTypes
 				switch dataTypeInfo.dataType
 					when DTYPES.BOOL
-						rowValues[j] = childrenPanels[j]\GetChecked!
+						rowValues[j] = childrenPanels[j]\GetChild(0)\GetChecked! or false
 					when DTYPES.CHOICE
 						rowValues[j] = select 2, childrenPanels[j]\GetSelected!
 					when DTYPES.NUMBER
 						rowValues[j] = childrenPanels[j]\GetValue!
 					when DTYPES.STRING
 						rowValues[j] = childrenPanels[j]\GetText!
+					when DTYPES.COMPLEX_LIST
+						rowValues[j] = childrenPanels[j]\GetValue!
 
 			values[i] = rowValues
 		values

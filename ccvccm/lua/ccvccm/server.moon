@@ -2,23 +2,24 @@ util.AddNetworkString 'ccvccm'
 import ENUMS from CCVCCM
 
 net.Receive 'ccvccm', (length, ply) ->
-	data = CCVCCM\ExtractSingleFromNetMessage 'u8'
-	switch dataTypes
+	operation = CCVCCM\ExtractSingleFromNetMessage 'u8'
+	switch operation
 		when ENUMS.NET.EXEC
 			if ply\IsAdmin!
-				data = CCVCCM\ExtractSingleFromNetMessage 's'
-				game.ConsoleCommand data..'\n'
+				isLua = CCVCCM\ExtractSingleFromNetMessage 'b'
+				if isLua
+					{addon, categoryPath, name} = CCVCCM\ExtractPayloadFromNetMessage {'s', 'ts', 's'}
+					unitType = CCVCCM\GetNetSingleAddonType addon, categoryPath, name
+					if unitType
+						value = CCVCCM\ExtractSingleFromNetMessage unitType
+						CCVCCM\SetVarValue addon, categoryPath, name, value
+				else
+					data = CCVCCM\ExtractSingleFromNetMessage 's'
+					game.ConsoleCommand data..'\n'
 		when ENUMS.NET.REP
 			{addon, categoryPath, name} = CCVCCM\ExtractPayloadFromNetMessage {'s', 'ts', 's'}
-			registeredData = CCVCCM\_GetRegisteredData name, addon, categoryPath
-			if registeredData
-				local unitType
-				switch registeredData.typeInfo.type
-					when 'bool' then unitType = 'b'
-					when 'keybind' then unitType = 'i16'
-					when 'number' then unitType = 'd'
-					when 'string' then unitType = 's'
-					else unitType = 't'
+			unitType = CCVCCM\GetNetSingleAddonType addon, categoryPath, name
+			if unitType
 				value = CCVCCM\ExtractSingleFromNetMessage unitType
 				
 				CCVCCM.api.clientInfoVars[addon] or= {}
@@ -38,22 +39,15 @@ net.Receive 'ccvccm', (length, ply) ->
 					{addon, categoryPath, name} = CCVCCM\ExtractPayloadFromNetMessage {'s', 'ts', 's'}
 					val = CCVCCM\_GetAddonVar name, addon, categoryPath
 					if val
-						registeredData = CCVCCM\_GetRegisteredData name, addon, categoryPath
-						local unitType
-						switch registeredData.typeInfo.type
-							when 'bool' then unitType = 'b'
-							when 'keybind' then unitType = 'i16'
-							when 'number' then unitType = 'd'
-							when 'string' then unitType = 's'
-							else unitType = 't'
-
-						table.insert varResults, {
-							'b', true,
-							's', addon,
-							'ts', categoryPath,
-							's', name,
-							unitType, val
-						}
+						unitType = CCVCCM\GetNetSingleAddonType addon, categoryPath, name
+						if unitType
+							table.insert varResults, {
+								'b', true,
+								's', addon,
+								'ts', categoryPath,
+								's', name,
+								unitType, val
+							}
 				else
 					varName = CCVCCM\ExtractSingleFromNetMessage 's'
 					conVar = GetConVar varName
@@ -63,7 +57,7 @@ net.Receive 'ccvccm', (length, ply) ->
 							's', varName,
 							's', conVar\GetString!
 						}
-			CCVCCM\StartNetMessage!
+			CCVCCM\StartNet!
 			CCVCCM\AddPayloadToNetMessage {'u8', ENUMS.NET.QUERY, 'u8', #varResults}
 			for varSend in *varResults do CCVCCM\AddPayloadToNetMessage varSend 
-			CCVCCM\SendNetMessage ply
+			CCVCCM\FinishNet ply

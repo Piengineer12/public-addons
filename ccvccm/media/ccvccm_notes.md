@@ -77,7 +77,7 @@ CCVCCM:AddConCommand("concommand_name", {
 
 -- adds a addon variable - this variable can't be modified in the console, but allows for very complex typing
 -- overwrites if the full name is already registered in CCVCCM
-CCVCCM:AddAddonVar("var_name", "default", {
+CCVCCM:AddAddonVar("var_name", {
     realm = "server", -- one of "client", "server" or "shared", default: server
     name = "Display Name",
     help = "Description",
@@ -93,6 +93,7 @@ CCVCCM:AddAddonVar("var_name", "default", {
         interval = 0.01, -- only when type == "number"
         logarithmic = true, -- only when type == "number"
         {} -- if nested typeInfo tables are supplied, this will be presented as a list of types
+        -- type = "keybind" is not implemented here
     },
     userInfo = true,
     notify = true,
