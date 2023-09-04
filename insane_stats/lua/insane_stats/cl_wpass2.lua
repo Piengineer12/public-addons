@@ -202,7 +202,7 @@ local function CreateName(wep)
 end
 
 function InsaneStats:GetRarityColor(tier)
-	realTime = RealTime()
+	local realTime = RealTime()
 	if tier < 0 then return color_gray
 	elseif tier == 0 then return color_white
 	elseif tier > 60 then return HSVToColor(realTime * 120 % 360, 1, 1)
@@ -214,11 +214,10 @@ function InsaneStats:GetRarityColor(tier)
 			if tier > 50 then
 				sat = math.abs(Lerp(realTime%1, -1, 1))
 			end
-			hue = (hue + math.ease.InOutCirc(realTime%3/3, 0.5, 0.5) * 360) % 360
+			hue = (hue + math.ease.InOutCubic(realTime%3/3) * 360) % 360
 		elseif tier > 20 then
 			if tier > 30 then
 				sat = math.abs(Lerp(realTime%1, -1, 1))
-				--val = 
 			else
 				sat = 1
 			end
@@ -523,7 +522,18 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 					)
 				end
 				
-				surface.SetMaterial(statusEffectInfo.img)
+				InsaneStats:DrawMaterialOutlined(
+					statusEffectInfo.img,
+					baseX,
+					baseY+(i-1)*iconSize,
+					iconSize,
+					iconSize,
+					statusEffectColor,
+					2,
+					Color(0, 0, 0, statusEffectColor.a)
+				)
+				
+				--[[surface.SetMaterial(statusEffectInfo.img)
 				-- draw the outline
 				surface.SetDrawColor(0,0,0,statusEffectColor.a)
 				for j=-2,2 do
@@ -535,7 +545,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 				end
 				
 				surface.SetDrawColor(statusEffectColor.r, statusEffectColor.g, statusEffectColor.b, statusEffectColor.a)
-				surface.DrawTexturedRect(baseX, baseY+(i-1)*iconSize, iconSize, iconSize)
+				surface.DrawTexturedRect(baseX, baseY+(i-1)*iconSize, iconSize, iconSize)]]
 				
 				local title = statusEffectInfo.name
 				if statusEffectData.level ~= 1 then

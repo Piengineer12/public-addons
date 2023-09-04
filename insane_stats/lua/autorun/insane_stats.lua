@@ -3,19 +3,11 @@ Workshop:		https://steamcommunity.com/sharedfiles/filedetails/?id=2980423627
 Profile Page:	https://steamcommunity.com/id/Piengineer12
 GitHub Page:	https://github.com/Piengineer12/public-addons/tree/master/insane_stats
 Donate:			https://ko-fi.com/piengineer12
-
-TODO:
-add support for font scaling
-
-limit entityflame damage to attacker damage /?
-fix issue where max armor is sometimes reset to 0
-modifier for ammo % to increase damage
-modifier for excessive crouching to increase time speed
 ]]
 
 InsaneStats = {
-	VERSION = "1.1.2",
-	VERSION_DATE = "2023-08-22"
+	VERSION = "1.2.0",
+	VERSION_DATE = "2023-09-03"
 }
 
 function InsaneStats:Log(msg)
@@ -32,6 +24,7 @@ InsaneStats:Log(string.format("Loading Insane Stats version %s (%s) by Pienginee
 
 local clientFiles = {
 	"cl_base",
+	"cl_coin",
 	"cl_infhealth",
 	"cl_net",
 	"cl_options",
@@ -42,6 +35,7 @@ local clientFiles = {
 
 local sharedFiles = {
 	"sh_base",
+	"sh_coin",
 	"sh_infhealth",
 	"sh_soundfixes",
 	"sh_wpass2",
@@ -51,6 +45,7 @@ local sharedFiles = {
 
 local serverFiles = {
 	"sv_base",
+	"sv_coin",
 	"sv_infhealth",
 	"sv_net",
 	"sv_wpass2",

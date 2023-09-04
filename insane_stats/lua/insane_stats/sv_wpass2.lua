@@ -630,10 +630,9 @@ SaveDataFile = function()
 	local shouldSaveBattery = InsaneStats:GetConVarValueDefaulted("wpass2_modifiers_player_save_battery", "wpass2_modifiers_player_save")
 	
 	if shouldSave > 0 or shouldSaveBattery > 0 then
-		local data = util.JSONToTable(file.Read("insane_stats.txt") or "") or {}
+		local data = InsaneStats:Load()
 		data.wpass2 = playerLoadoutData
-		
-		file.Write("insane_stats.txt", util.TableToJSON(data))
+		InsaneStats:Save(data)
 	end
 end
 
@@ -731,7 +730,7 @@ hook.Add("InitPostEntity", "InsaneStatsWPASS", function()
 	local shouldSave = InsaneStats:GetConVarValue("wpass2_modifiers_player_save")
 	local shouldSaveBattery = InsaneStats:GetConVarValueDefaulted("wpass2_modifiers_player_save_battery", "wpass2_modifiers_player_save")
 	
-	local data = util.JSONToTable(file.Read("insane_stats.txt") or "") or {}
+	local data = InsaneStats:Load()
 	if data.wpass2 then
 		for k,v in pairs(data.wpass2) do
 			local plyWPASS2Data = {}

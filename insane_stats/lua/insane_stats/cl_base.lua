@@ -155,6 +155,24 @@ function InsaneStats:RegisterClientConVar(name, internal, default, data)
 	return conVar
 end
 
+function InsaneStats:DrawMaterialOutlined(material, x, y, w, h, color, outlineThickness, outlineColor)
+	surface.SetMaterial(material)
+	-- draw the outline
+	surface.SetDrawColor(outlineColor.r, outlineColor.g, outlineColor.b, outlineColor.a)
+	
+	local steps = outlineThickness * 2 / 3
+	if steps < 1 then steps = 1 end
+
+	for dx = -outlineThickness, outlineThickness, steps do
+		for dy = -outlineThickness, outlineThickness, steps do
+			surface.DrawTexturedRect(x + dx, y + dy, w, h)
+		end
+	end
+	
+	surface.SetDrawColor(color.r, color.g, color.b, color.a)
+	return surface.DrawTexturedRect(x, y, w, h)
+end
+
 --[[InsaneStats:SetDefaultConVarCategory("HUD")
 
 InsaneStats:RegisterClientConVar("hud_outline", "insanestats_hud_outline", "1", {

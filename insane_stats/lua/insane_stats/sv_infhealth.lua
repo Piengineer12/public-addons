@@ -268,15 +268,20 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 					--print(vic, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth())
 				end
 				
+				local stunned = vic:InsaneStats_GetStatusEffectLevel("stunned") > 0
 				local healthRatio = vic:InsaneStats_GetHealth() / vic:InsaneStats_GetMaxHealth()
 				if (vic:GetClass() == "npc_helicopter"
 				or vic.insaneStats_PreventLethalDamage)
-				and healthRatio > 0.2 then
+				and healthRatio > 0.2 or stunned then
 					-- if damage exceeds health * 0.75, nerf damage received
 					-- we have to do this otherwise the helicopter might remain in a dead-not-dead state
 					local maxDamage = vic:InsaneStats_GetRawHealth() * 0.75
 					if dmginfo:InsaneStats_GetRawDamage() > maxDamage then
 						dmginfo:InsaneStats_SetRawDamage(maxDamage)
+						if stunned then
+							vic:InsaneStats_ClearStatusEffect("stunned")
+							vic:InsaneStats_ApplyStatusEffect("invincible", 1, 0.25)
+						end
 					end
 					if healthRatio <= 0.5 and vic.insaneStats_PreventLethalDamage then
 						vic:InsaneStats_ApplyStatusEffect("invincible", 1, 10)
@@ -396,19 +401,6 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 	entities[ent] = true
 	
 	if InsaneStats:GetConVarValue("infhealth_enabled") then
-		--[[if ent:InsaneStats_GetHealth() == math.huge and ent.insaneStats_HealthRoot8 then
-			ent.insaneStats_Health = ent.insaneStats_HealthRoot8 ^ 8
-		end
-		if ent:InsaneStats_GetMaxHealth() == math.huge and ent.insaneStats_MaxHealthRoot8 then
-			ent.insaneStats_MaxHealth = ent.insaneStats_MaxHealthRoot8 ^ 8
-		end
-		if ent:InsaneStats_GetArmor() == math.huge and ent.insaneStats_ArmorRoot8 then
-			ent.insaneStats_Armor = ent.insaneStats_ArmorRoot8 ^ 8
-		end
-		if ent:InsaneStats_GetMaxArmor() == math.huge and ent.insaneStats_MaxArmorRoot8 then
-			ent.insaneStats_MaxArmor = ent.insaneStats_MaxArmorRoot8 ^ 8
-		end]]
-		
 		if (ent:IsNPC() or ent:IsNextBot())
 		and math.random() * 100 < InsaneStats:GetConVarValue("infhealth_armor_chance")
 		and (ent:InsaneStats_GetMaxArmor() <= 0)

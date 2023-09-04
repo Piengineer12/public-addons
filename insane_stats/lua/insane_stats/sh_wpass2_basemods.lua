@@ -1713,7 +1713,7 @@ local attributes = {
 		mul = 2
 	},
 	kill5s_xp = {
-		display = "%s XP gain for 5s after kill",
+		display = "%s coins and XP gain for 5s after kill",
 		mul = 2
 	},
 	kill5s_regen = {
@@ -1732,11 +1732,11 @@ local attributes = {
 		mul = 10,
 	},
 	kill1s_xp = {
-		display = "%s XP gain for 1s after kill, scaled by duration",
+		display = "%s coins and XP gain for 1s after kill, scaled by duration",
 		mul = 10
 	},
 	kill1s_xp2 = {
-		display = "%s XP gain for 1s from props, scaled by duration",
+		display = "%s coins and XP gain for 1s from props, scaled by duration",
 		mul = 10
 	},
 	killstack_damage = {
@@ -1755,7 +1755,7 @@ local attributes = {
 		display = "%s decaying movement speed per kill",
 	},]]
 	killstack_xp = {
-		display = "%s XP gain per kill, decays over time",
+		display = "%s coins and XP gain per kill, decays over time",
 		mul = 0.1
 	},
 	killstackmarked_damage = {
@@ -1858,10 +1858,10 @@ local attributes = {
 		mode = 2
 	},
 	xp = {
-		display = "%s XP gain",
+		display = "%s coins and XP gain",
 	},
 	crit_xp = {
-		display = "%s XP gain on crit kills",
+		display = "%s coins and XP gain on crit kills",
 		mul = 2
 	},
 	--[[simul_xp = {
@@ -1973,11 +1973,11 @@ local attributes = {
 		invert = true
 	},]]
 	prop_xp = {
-		display = "%s XP gain from props",
+		display = "%s coins and XP gain from props",
 		mul = 0.5
 	},
 	ally_xp = {
-		display = "%s XP gain from allies",
+		display = "%s coins and XP gain from allies",
 		mode = 3
 	},
 	crit_lifesteal = {
@@ -2351,9 +2351,9 @@ local statusEffects = {
 		img = Material("insane_stats/status_effects/striking-arrows.png", "mips smooth")
 	},
 	xp_up = {
-		name = "XP Up",
+		name = "Loot Up",
 		typ = 1,
-		img = Material("insane_stats/status_effects/brain.png", "mips smooth")
+		img = Material("insane_stats/status_effects/cool-spices.png", "mips smooth")
 	},
 	arcane_damage_up = {
 		name = "Arcane Damage Up",
@@ -2393,9 +2393,9 @@ local statusEffects = {
 		img = Material("insane_stats/status_effects/broken-heart-zone.png", "mips smooth")
 	},
 	masterful_xp = {
-		name = "XP Power",
+		name = "Loot Power",
 		typ = 1,
-		img = Material("insane_stats/status_effects/brainstorm.png", "mips smooth")
+		img = Material("insane_stats/status_effects/crystal-shine.png", "mips smooth")
 	},
 	
 	invincible = {
@@ -2479,9 +2479,9 @@ local statusEffects = {
 		img = Material("insane_stats/status_effects/sprint.png", "mips smooth")
 	},]]
 	stack_xp_up = {
-		name = "Stacking XP Up",
+		name = "Stacking Loot Up",
 		typ = 2,
-		img = Material("insane_stats/status_effects/brain.png", "mips smooth")
+		img = Material("insane_stats/status_effects/cool-spices.png", "mips smooth")
 	},
 }
 

@@ -395,7 +395,9 @@ function ENT:InsaneStats_SetXP(xp, dropValue)
 	end
 	
 	self.insaneStats_Level = newLevel
-	self:InsaneStats_MarkForUpdate(2)
+    if SERVER then
+	    self:InsaneStats_MarkForUpdate(2)
+    end
 end
 
 function ENT:InsaneStats_AddXP(xp, addDropValue)
