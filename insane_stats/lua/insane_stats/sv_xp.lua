@@ -322,6 +322,7 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 			victim.insaneStats_DropXP = 0
 		end
 		
+		hook.Run("InsaneStatsEntityKilledPostXP", victim, attacker, inflictor)
 		if not victim.insaneStats_IsDead then
 			hook.Run("InsaneStatsEntityKilledOnce", victim, attacker, inflictor)
 			victim.insaneStats_IsDead = true
@@ -668,7 +669,9 @@ hook.Add("AcceptInput", "InsaneStatsXP", function(ent, input, activator, caller,
 				ent:SetMaxHealth(newHealth)
 			end
 			
-			return true
+			if ent:InsaneStats_GetRawHealth() > 1 then
+				return true
+			end
 		end
 	elseif input == "removehealth" then
 		local healthMul = ent.insaneStats_CurrentHealthAdd or 1
@@ -680,7 +683,9 @@ hook.Add("AcceptInput", "InsaneStatsXP", function(ent, input, activator, caller,
 				ent:SetMaxHealth(newHealth)
 			end
 			
-			return true
+			if ent:InsaneStats_GetRawHealth() > 1 then
+				return true
+			end
 		end
 	elseif input == "sethealthfraction" then
 		if (tonumber(data) and tonumber(data) > 0) then

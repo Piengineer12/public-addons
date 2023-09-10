@@ -108,7 +108,7 @@ function ENT:Initialize()
 	self:ISAWC_Initialize()
 	
 	if SERVER then
-		local creator = self:GetCreator()
+		local creator = self:GetCreator() or NULL
 		if creator:IsPlayer() and self:GetOwnerAccountID()==0 then
 			self:SetOwnerAccountID(creator:AccountID() or 0)
 		end

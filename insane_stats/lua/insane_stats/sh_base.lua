@@ -137,3 +137,7 @@ InsaneStats:RegisterConVar("spawn_master", "insanestats_spawn_master", "0", {
 	Useful for maps that have made the above assumptions, such as campaign maps.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterConVar("flashlight_disable_fix", "insanestats_flashlight_disable_fix", "0", {
+	display = "Fix DisableFlashlight", desc = "The DisableFlashlight map input will now actually disable the player's flashlight.",
+	type = InsaneStats.BOOL
+})

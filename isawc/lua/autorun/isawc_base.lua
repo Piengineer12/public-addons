@@ -10,9 +10,9 @@ Links above are confirmed working as of 2022-04-16. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "5.6.2"
-ISAWC._VERSIONNUMBER = 50602
-ISAWC._VERSIONDATE = "2023-08-06"
+ISAWC._VERSION = "5.6.3"
+ISAWC._VERSIONNUMBER = 50603
+ISAWC._VERSIONDATE = "2023-09-10"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -4418,6 +4418,15 @@ ISAWC.InstallSortFunctions = function(self,panel,InvPanel,messageSuffix,containe
 						end)
 					end)
 				end
+				ammoItemStampOptions:AddOption("< STORE ALL >", function()
+					ISAWC:StartNetMessage("ammo_item_stamp"..messageSuffix)
+					if IsValid(container) then
+						net.WriteEntity(container)
+					end
+					net.WriteString("\a")
+					net.WriteInt(-1, 16)
+					net.SendToServer()
+				end)
 			else
 				ammoItemStampOptions:AddOption("#addons.none")
 			end
@@ -5515,11 +5524,11 @@ end
 
 ISAWC.GetClientStats = function(self,ply,user)
 	local isPlayer = ply:IsPlayer()
-	local cw,cv,cc = 0,0,0
+	local cw,cv,cc,cb = 0,0,0,0
 	local mw,mv,mc = 0,0,isPlayer and self.ConCount:GetInt() or self.ConCount2:GetInt() * (ply.GetCountMul and ply:GetCountMul() or 1)
 	local inv = IsValid(user) and ply:GetInventory(user) or ply.ISAWC_Inventory or {}
 	for k,v in pairs(inv) do
-		local aw,av,ac = self:GetStatsFromDupeTable(v)
+		local aw,av,ac,ab = self:GetStatsFromDupeTable(v)
 		if aw > 0 then
 			cw = cw + aw
 		else
@@ -5535,6 +5544,7 @@ ISAWC.GetClientStats = function(self,ply,user)
 		else
 			mc = mc - ac
 		end
+		cb = cb + ab
 	end
 	if self.ConConstEnabled:GetBool() then
 		if isPlayer then
@@ -5578,11 +5588,11 @@ ISAWC.GetClientStats = function(self,ply,user)
 	if mw <= 0 or self.ConDisableMass:GetBool() then mw = math.huge end
 	if mv <= 0 or self.ConDisableVolume:GetBool() then mv = math.huge end
 	if mc <= 0 or self.ConDisableCount:GetBool() then mc = 65536 end
-	return {cw,mw,cv,mv,cc,mc}
+	return {cw,mw,cv,mv,cc,mc,cb}
 end
 
 ISAWC.GetStatsFromDupeTable = function(self,dupe)
-	return tonumber(dupe.TotalMass) or 0,tonumber(dupe.TotalVolume) or 0,tonumber(dupe.TotalCount) or 1
+	return tonumber(dupe.TotalMass) or 0,tonumber(dupe.TotalVolume) or 0,tonumber(dupe.TotalCount) or 1,tonumber(dupe.TotalBackpacks) or 0
 end
 
 ISAWC.WriteAmmoItemStamps = function(self,ply)
@@ -7003,6 +7013,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 							local dupe = ply.ISAWC_Inventory[invnum]
 							if not dupe then break end
 							local data = self:GetClientStats(container,ply)
+							if data[7]+(dupe.TotalBackpacks or 0)>1 then self:NoPickup("The container cannot hold more than one backpack!",ply) break end
 							if data[5]+dupe.TotalCount>data[6] then self:NoPickup("The container needs "..math.ceil(data[5]+dupe.TotalCount-data[6]).." more slot(s) before it can accept the item!",ply) break end
 							if data[3]+dupe.TotalVolume>data[4] then self:NoPickup("The container needs "..math.Round((data[3]+dupe.TotalVolume-data[4])*self.dm3perHu,2).." dm³ more before it can accept the item!",ply) break end
 							if data[1]+dupe.TotalMass>data[2] then self:NoPickup("The container needs "..math.Round(data[1]+dupe.TotalMass-data[2],2).." kg more before it can accept the item!",ply) break end
@@ -7013,6 +7024,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 						local dupe = ply.ISAWC_Inventory[invnum]
 						if not dupe then return end
 						local data = self:GetClientStats(container,ply)
+						if data[7]+(dupe.TotalBackpacks or 0)>1 then return self:NoPickup("The container cannot hold more than one backpack!",ply) end
 						if data[5]+dupe.TotalCount>data[6] then return self:NoPickup("The container needs "..math.ceil(data[5]+dupe.TotalCount-data[6]).." more slot(s) before it can accept the item!",ply) end
 						if data[3]+dupe.TotalVolume>data[4] then return self:NoPickup("The container needs "..math.Round((data[3]+dupe.TotalVolume-data[4])*self.dm3perHu,2).." dm³ more before it can accept the item!",ply) end
 						if data[1]+dupe.TotalMass>data[2] then return self:NoPickup("The container needs "..math.Round(data[1]+dupe.TotalMass-data[2],2).." kg more before it can accept the item!",ply) end
@@ -7032,6 +7044,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 						local dupe = container:GetInventory(ply)[invnum]
 						if not dupe then break end
 						local data = self:GetClientStats(ply)
+						if data[7]+(dupe.TotalBackpacks or 0)>1 then self:NoPickup("You cannot hold more than one backpack!",ply) break end
 						if data[5]+dupe.TotalCount>data[6] then self:NoPickup("You need "..math.ceil(data[5]+dupe.TotalCount-data[6]).." more slot(s) to take that item!",ply) break end
 						if data[3]+dupe.TotalVolume>data[4] then self:NoPickup("You need "..math.Round((data[3]+dupe.TotalVolume-data[4])*self.dm3perHu,2).." dm³ more to take that item!",ply) break end
 						if data[1]+dupe.TotalMass>data[2] then self:NoPickup("You need "..math.Round(data[1]+dupe.TotalMass-data[2],2).." kg more to take that item!",ply) break end
@@ -7042,6 +7055,7 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 					local dupe = container:GetInventory(ply)[invnum]
 					if not dupe then return end
 					local data = self:GetClientStats(ply)
+					if data[7]+(dupe.TotalBackpacks or 0)>1 then return self:NoPickup("You cannot hold more than one backpack!",ply) end
 					if data[5]+dupe.TotalCount>data[6] then return self:NoPickup("You need "..math.ceil(data[5]+dupe.TotalCount-data[6]).." more slot(s) to take that item!",ply) end
 					if data[3]+dupe.TotalVolume>data[4] then return self:NoPickup("You need "..math.Round((data[3]+dupe.TotalVolume-data[4])*self.dm3perHu,2).." dm³ more to take that item!",ply) end
 					if data[1]+dupe.TotalMass>data[2] then return self:NoPickup("You need "..math.Round(data[1]+dupe.TotalMass-data[2],2).." kg more to take that item!",ply) end
@@ -7453,70 +7467,123 @@ ISAWC.ReceiveMessage = function(self,length,ply,func)
 			end
 			local id = net.ReadString()
 			local maximum = net.ReadInt(16)
-			local ammoItemStamp = self.AmmoItemStampList[id]
-			if ammoItemStamp then
-				local stampAmount = math.floor(ply:GetAmmoCount(ammoItemStamp[1]) / ammoItemStamp[2])
-				if maximum >= 0 then
-					stampAmount = math.min(stampAmount, math.floor(maximum / ammoItemStamp[2]))
-				end
-				if stampAmount > 0 then
+			if id == "\a" then
+				local totalLostAmmo = 0
+				for id, ammoItemStamp in pairs(self.AmmoItemStampList) do
+					local stampAmount = math.floor(ply:GetAmmoCount(ammoItemStamp[1]) / ammoItemStamp[2])
 					local status, item = ISAWC:RestoreItemStamp(ammoItemStamp[3])
 					if status == 0 then
 						local isContainer = self:IsMessageType(func, "ammo_item_stamp_r")
 						local targetInventory = isContainer and container or ply
 						local data = self:GetClientStats(targetInventory)
-						
-						if data[5]+item.TotalCount>data[6] then
-							local required = math.ceil(data[5]+item.TotalCount-data[6])
-							if isContainer then
-								self:NoPickup(string.format("The container needs %u more slot(s) before it can accept the item!", required), ply)
-							else
-								self:NoPickup(string.format("You need %u more slot(s) to take that item!", required), ply)
-							end
-						elseif data[3]+item.TotalVolume>data[4] then
-							local required = (data[3]+item.TotalVolume-data[4])*self.dm3perHu
-							if isContainer then
-								self:NoPickup(string.format("The container needs %.2f dm³ more before it can accept the item!", required), ply)
-							else
-								self:NoPickup(string.format("You need %.2f dm³ more to take that item!", required), ply)
-							end
-						elseif data[1]+item.TotalMass>data[2] then
-							local required = data[1]+item.TotalMass-data[2]
-							if isContainer then
-								self:NoPickup(string.format("The container needs %.2f kg more before it can accept the item!", required), ply)
-							else
-								self:NoPickup(string.format("You need %.2f kg more to take that item!", required), ply)
-							end
-						else
-							if item.TotalMass > 0 then
-								stampAmount = math.min(stampAmount, (data[2]-data[1]) / item.TotalMass)
-							end
-							if item.TotalVolume > 0 then
-								stampAmount = math.min(stampAmount, (data[4]-data[3]) / item.TotalVolume)
-							end
-							if item.TotalCount > 0 then
-								stampAmount = math.min(stampAmount, (data[6]-data[5]) / item.TotalCount)
-							end
-							for i=1, stampAmount do
-								table.insert(targetInventory.ISAWC_Inventory, item)
-							end
-							local lostAmmo = stampAmount * ammoItemStamp[2]
-							ply:PrintMessage(HUD_PRINTTALK, string.format("%i ammunition stored.", lostAmmo))
-							ply:SetAmmo(ply:GetAmmoCount(ammoItemStamp[1]) - lostAmmo, ammoItemStamp[1])
+
+						if item.TotalMass > 0 then
+							stampAmount = math.min(stampAmount, (data[2]-data[1]) / item.TotalMass)
 						end
-						
-						if container then
-							self:SendInventory2(ply,container)
-						else
-							self:SendInventory(ply)
+						if item.TotalVolume > 0 then
+							stampAmount = math.min(stampAmount, (data[4]-data[3]) / item.TotalVolume)
 						end
+						if item.TotalCount > 0 then
+							stampAmount = math.min(stampAmount, (data[6]-data[5]) / item.TotalCount)
+						end
+						if (item.TotalBackpacks or 0) > 0 then
+							stampAmount = math.min(stampAmount, (1-data[7]) / item.TotalBackpacks)
+						end
+						for i=1, stampAmount do
+							table.insert(targetInventory.ISAWC_Inventory, item)
+						end
+						local lostAmmo = stampAmount * ammoItemStamp[2]
+						ply:SetAmmo(ply:GetAmmoCount(ammoItemStamp[1]) - lostAmmo, ammoItemStamp[1])
+						totalLostAmmo = totalLostAmmo + lostAmmo
 					elseif status == 1 then
-						self:NoPickup("The server is missing the stamp required to store that ammo!", ply)
+						self:NoPickup("The server is missing the stamp required for \""..id.."\"!", ply)
 					elseif status == 2 then
-						self:NoPickup("The server's stamp required to store that ammo is corrupted!", ply)
+						self:NoPickup("The server's stamp required for \""..id.."\" is corrupted!", ply)
 					end
-				elseif maximum ~= 0 then
-					self:NoPickup("You don't have enough ammo!", ply)
+				end
+				
+				ply:PrintMessage(HUD_PRINTTALK, string.format("%i ammunition stored.", totalLostAmmo))
+				
+				if container then
+					self:SendInventory2(ply,container)
+				else
+					self:SendInventory(ply)
+				end
+			else
+				local ammoItemStamp = self.AmmoItemStampList[id]
+				if ammoItemStamp then
+					local stampAmount = math.floor(ply:GetAmmoCount(ammoItemStamp[1]) / ammoItemStamp[2])
+					if maximum >= 0 then
+						stampAmount = math.min(stampAmount, math.floor(maximum / ammoItemStamp[2]))
+					end
+					if stampAmount > 0 then
+						local status, item = ISAWC:RestoreItemStamp(ammoItemStamp[3])
+						if status == 0 then
+							local isContainer = self:IsMessageType(func, "ammo_item_stamp_r")
+							local targetInventory = isContainer and container or ply
+							local data = self:GetClientStats(targetInventory)
+							
+							if data[7]+(item.TotalBackpacks or 0)>1 then
+								if isContainer then
+									self:NoPickup("The container cannot hold more than one backpack!", ply)
+								else
+									self:NoPickup("You cannot hold more than one backpack!", ply)
+								end
+							elseif data[5]+item.TotalCount>data[6] then
+								local required = math.ceil(data[5]+item.TotalCount-data[6])
+								if isContainer then
+									self:NoPickup(string.format("The container needs %u more slot(s) before it can accept the item!", required), ply)
+								else
+									self:NoPickup(string.format("You need %u more slot(s) to take that item!", required), ply)
+								end
+							elseif data[3]+item.TotalVolume>data[4] then
+								local required = (data[3]+item.TotalVolume-data[4])*self.dm3perHu
+								if isContainer then
+									self:NoPickup(string.format("The container needs %.2f dm³ more before it can accept the item!", required), ply)
+								else
+									self:NoPickup(string.format("You need %.2f dm³ more to take that item!", required), ply)
+								end
+							elseif data[1]+item.TotalMass>data[2] then
+								local required = data[1]+item.TotalMass-data[2]
+								if isContainer then
+									self:NoPickup(string.format("The container needs %.2f kg more before it can accept the item!", required), ply)
+								else
+									self:NoPickup(string.format("You need %.2f kg more to take that item!", required), ply)
+								end
+							else
+								if item.TotalMass > 0 then
+									stampAmount = math.min(stampAmount, (data[2]-data[1]) / item.TotalMass)
+								end
+								if item.TotalVolume > 0 then
+									stampAmount = math.min(stampAmount, (data[4]-data[3]) / item.TotalVolume)
+								end
+								if item.TotalCount > 0 then
+									stampAmount = math.min(stampAmount, (data[6]-data[5]) / item.TotalCount)
+								end
+								if (item.TotalBackpacks or 0) > 0 then
+									stampAmount = math.min(stampAmount, (1-data[7]) / item.TotalBackpacks)
+								end
+								for i=1, stampAmount do
+									table.insert(targetInventory.ISAWC_Inventory, item)
+								end
+								local lostAmmo = stampAmount * ammoItemStamp[2]
+								ply:PrintMessage(HUD_PRINTTALK, string.format("%i ammunition stored.", lostAmmo))
+								ply:SetAmmo(ply:GetAmmoCount(ammoItemStamp[1]) - lostAmmo, ammoItemStamp[1])
+							end
+							
+							if container then
+								self:SendInventory2(ply,container)
+							else
+								self:SendInventory(ply)
+							end
+						elseif status == 1 then
+							self:NoPickup("The server is missing the stamp required to store that ammo!", ply)
+						elseif status == 2 then
+							self:NoPickup("The server's stamp required to store that ammo is corrupted!", ply)
+						end
+					elseif maximum ~= 0 then
+						self:NoPickup("You don't have enough ammo!", ply)
+					end
 				end
 			end
 		elseif self:IsMessageType(func, "convar") then
@@ -7747,7 +7814,7 @@ net.Receive("isawc_general",function(length,ply)
 end)
 
 ISAWC.CalculateEntitySpace = function(self,ent)
-	local TotalMass,TotalVolume,TotalCount = 0,0,0
+	local TotalMass,TotalVolume,TotalCount,TotalBackpacks = 0,0,0,0
 	for k,v in pairs(constraint.GetAllConstrainedEntities(ent)) do
 		local model = (v:GetModel() or ""):lower()
 		local class = v:GetClass():lower()
@@ -7790,11 +7857,14 @@ ISAWC.CalculateEntitySpace = function(self,ent)
 				TotalCount = TotalCount + v2.TotalCount
 			end
 		end
+		if v.BackpackMassMul or v.BackpackVolumeMul or v.BackpackCountMul then
+			TotalBackpacks = TotalBackpacks + 1
+		end
 	end
 	TotalCount = TotalCount * ISAWC.ConCount3:GetFloat()
 	TotalMass = TotalMass * ISAWC.ConMassMul3:GetFloat()
 	TotalVolume = TotalVolume * ISAWC.ConVolMul3:GetFloat()
-	return TotalMass,TotalVolume,TotalCount
+	return TotalMass,TotalVolume,TotalCount,TotalBackpacks
 end
 
 ISAWC.CanProperty = function(self,ply,ent)
@@ -7817,6 +7887,7 @@ ISAWC.CanPickup = function(self,ply,ent,speculative)
 		ent.NextPickup2 = CurTime() + 0.5
 	end
 	if ply.NextPickup2 == ent.NextPickup2 and not speculative then self:NoPickup("You can't pick up a container with the same NP time!",ply) return false end
+	local class = ent:GetClass():lower()
 	if (ply:IsPlayer() and ply:IsAdmin()) and self.ConAdminOverride:GetBool() and SERVER then
 		local passeswlist = self:SatisfiesWhitelist(class, "General")
 		if ent:IsPlayer() and not passeswlist then self:NoPickup("You can't pick up players!",ply) return false end
@@ -7831,7 +7902,6 @@ ISAWC.CanPickup = function(self,ply,ent,speculative)
 		else
 			ply.NextPickup = CurTime() + self.ConDelay:GetFloat()
 		end
-		local class = ent:GetClass():lower()
 		local allowed = self:SatisfiesBWLists(class, "General")
 		local passeswlist = self:SatisfiesWhitelist(class, "General")
 		if not allowed then
@@ -7869,7 +7939,7 @@ ISAWC.CanPickup = function(self,ply,ent,speculative)
 			if not (ent:IsSolid() or ent:IsWeapon()) then self:NoPickup("You can't pick up non-solid entities!",ply) return false end
 			if ent:GetMoveType()~=MOVETYPE_VPHYSICS and not self.ConNonVPhysics:GetBool() and not ent:IsWeapon() then self:NoPickup("You can't pick up non-VPhysics entities!",ply) return false end
 			if constraint.HasConstraints(ent) and not self.ConAllowConstrained:GetBool() then self:NoPickup("You can't pick up constrained entities!",ply) return false end
-			local TotalMass, TotalVolume, TotalCount = self:CalculateEntitySpace(ent)
+			local TotalMass, TotalVolume, TotalCount, TotalBackpacks = self:CalculateEntitySpace(ent)
 			local data
 			if ply:IsPlayer() then
 				data = self:GetClientStats(ply)
@@ -7881,6 +7951,10 @@ ISAWC.CanPickup = function(self,ply,ent,speculative)
 					or player.GetByAccountID(ply:GetOwnerAccountID())
 				)
 				data = self:GetClientStats(ply,pickupPlayer)
+			end
+			if data[7]+TotalBackpacks>1 then
+				ply.ISAWC_ExportFullTimestamp = CurTime()
+				self:NoPickup("You cannot hold more than one backpack!",ply) return false
 			end
 			if data[5]+TotalCount>data[6] then
 				ply.ISAWC_ExportFullTimestamp = CurTime()
@@ -8269,7 +8343,7 @@ ISAWC.PropPickup = function(self,ply,ent,container)
 	local dupe = duplicator.Copy(ent)
 	duplicator.SetLocalPos(vector_origin)
 	duplicator.SetLocalAng(angle_zero)
-	dupe.TotalMass, dupe.TotalVolume, dupe.TotalCount = self:CalculateEntitySpace(ent)
+	dupe.TotalMass, dupe.TotalVolume, dupe.TotalCount, dupe.TotalBackpacks = self:CalculateEntitySpace(ent)
 	for k,v in pairs(constraint.GetAllConstrainedEntities(ent)) do
 		if (ent:IsWeapon() and ISAWC.ConAltSaveWeapons:GetBool() or ISAWC.ConAltSave:GetBool()) and ISAWC:SatisfiesBWLists(v:GetClass(), "AltSave") then
 			v.ISAWC_OldPos,v.ISAWC_OldAngles,v.ISAWC_OldNoDraw,v.ISAWC_OldSolid,v.ISAWC_OldMoveType = v:GetPos()-tpos,v:GetAngles()-ply:GetAngles(),v:GetNoDraw(),v:IsSolid(),v:GetMoveType()

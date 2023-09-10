@@ -31,21 +31,24 @@ local function SpawnCoins(victim, value)
 	end
 end
 
-hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsCoins", function(victim, attacker, inflictor)
+hook.Add("InsaneStatsEntityKilledPostXP", "InsaneStatsCoins", function(victim, attacker, inflictor)
 	if InsaneStats:GetConVarValue("coins_enabled") then
-		local mul = InsaneStats:GetConVarValue(victim:IsPlayer() and "coins_player_mul" or "coins_other_mul")
-		local currentHealthAdd = victim.insaneStats_CurrentHealthAdd or 1
-		local startingHealth = victim:InsaneStats_GetMaxHealth() / currentHealthAdd
-		local value = startingHealth * math.random() / 16 * mul
-		if InsaneStats:GetConVarValue("xp_enabled") then
-			value = InsaneStats:ScaleValueToLevelQuadratic(
-				value,
-				InsaneStats:GetConVarValue("coins_level_add")/100,
-				victim:InsaneStats_GetLevel(),
-				"coins_level_add_mode",
-				false,
-				InsaneStats:GetConVarValue("coins_level_add_add")/100
-			)
+		local value = 0
+		if not victim.insaneStats_IsDead then
+			local mul = InsaneStats:GetConVarValue(victim:IsPlayer() and "coins_player_mul" or "coins_other_mul")
+			local currentHealthAdd = victim.insaneStats_CurrentHealthAdd or 1
+			local startingHealth = victim:InsaneStats_GetMaxHealth() / currentHealthAdd
+			value = startingHealth * math.random() / 16 * mul
+			if InsaneStats:GetConVarValue("xp_enabled") then
+				value = InsaneStats:ScaleValueToLevelQuadratic(
+					value,
+					InsaneStats:GetConVarValue("coins_level_add")/100,
+					victim:InsaneStats_GetLevel(),
+					"coins_level_add_mode",
+					false,
+					InsaneStats:GetConVarValue("coins_level_add_add")/100
+				)
+			end
 		end
 		
 		local data = {victim = victim, attacker = attacker, inflictor = inflictor, coins = value}
@@ -77,7 +80,8 @@ local function ProcessBreakEvent(victim, attacker)
 		end
 	end
 
-	if IsValid(victim) and victim:GetCollisionGroup() ~= COLLISION_GROUP_DEBRIS then
+	if IsValid(victim) and victim:GetCollisionGroup() ~= COLLISION_GROUP_DEBRIS
+	and not victim.insaneStats_SuppressCoinDrops then
 		local inflictor = attacker.GetActiveWeapon and attacker:GetActiveWeapon() or attacker
 		local mul = InsaneStats:GetConVarValue("coins_breakable_mul")
 		local currentHealthAdd = victim.insaneStats_CurrentHealthAdd or 1
@@ -157,5 +161,11 @@ hook.Add("PlayerSpawn", "InsaneStatsCoins", function(ply, fromTransition)
 		end
 		
 		ply.insaneStats_CoinsLoaded = true
+	end
+end)
+
+hook.Add("AllowPlayerPickup", "InsaneStatsCoins", function(ply, ent)
+	if IsValid(ent) and ent:GetCollisionGroup() == COLLISION_GROUP_DEBRIS then
+		ent.insaneStats_SuppressCoinDrops = true
 	end
 end)
