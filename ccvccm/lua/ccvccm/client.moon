@@ -34,29 +34,79 @@
 		-- adds a new category, with controls for deleting / renaming the category inside at the top of the category
 	-- elements must be draggable
 
+import ENUMS from CCVCCM
 local ^
+
+CCVCCM.GetUserInfoValues = =>
+	results = {}
+	for fullName, registeredData in pairs @api.data
+		{:userInfo, :realm} = registeredData.data
+		if userInfo and realm == 'client'
+			table.insert results, {
+				:fullName
+				type: @GetNetSingleAddonType fullName
+				value: @_GetAddonVar fullName
+			}
+			coroutine.yield false, results
+	true, results
+
+local avuiProcess
+CCVCCM.StartAVUIProcess = =>
+	avuiProcess = coroutine.create @\GetUserInfoValues
+	timer.UnPause 'CCVCCM'
+
+timer.Create 'CCVCCM', 0.015, 0, ->
+	if avuiProcess
+		ok, status, results = coroutine.resume avuiProcess
+		-- if results has too many entries, send the data and empty the table
+		if not ok
+			error status, results
+		elseif #results > 64 or status
+			CCVCCM\StartNet!
+			CCVCCM\AddPayloadToNetMessage {'u8', ENUMS.NET.INIT_REP, 'b', status, 'u8', #results}
+			for i, result in ipairs results
+				CCVCCM\AddPayloadToNetMessage {'s', result.fullName}
+				CCVCCM\AddPayloadToNetMessage {result.type, result.value}
+				results[i] = nil
+			CCVCCM\FinishNet!
+
+			avuiProcess = nil if status
+	else
+		-- don't waste processing power
+		timer.Pause 'CCVCCM'
+
+hook.Add 'InitPostEntity', 'CCVCCM', ->
+	CCVCCM\StartAVUIProcess!
 
 net.Receive 'ccvccm', (length) ->
 	operation = CCVCCM\ExtractSingleFromNetMessage 'u8'
 	switch operation
 		when CCVCCM.ENUMS.NET.REP
-			{addon, categoryPath, name} = CCVCCM\ExtractPayloadFromNetMessage {'s', 'ts', 's'}
-			unitType = CCVCCM\GetNetSingleAddonType addon, categoryPath, name
+			fullName = CCVCCM\ExtractSingleFromNetMessage 's'
+			unitType = CCVCCM\GetNetSingleAddonType fullName
 			value = CCVCCM\ExtractSingleFromNetMessage unitType
-			@_SetAddonVar name, value, addon, categoryPath
+			CCVCCM\Log 'Recieved value of ', fullName, ':'
+			PrintTable value if CCVCCM\ShouldLog!
+			CCVCCM\_SetAddonVar fullName, value
 		when CCVCCM.ENUMS.NET.QUERY
 			cls = ManagerUI\GetInstance!
 			if cls
 				for i=1, CCVCCM\ExtractSingleFromNetMessage 'u8'
-					isLua = CCVCCM\ExtractSingleFromNetMessage 'b'
-					if isLua
-						{addon, categoryPath, name} = CCVCCM\ExtractPayloadFromNetMessage {'s', 'ts', 's'}
-						unitType = CCVCCM\GetNetSingleAddonType addon, categoryPath, name
+					fullName = CCVCCM\ExtractSingleFromNetMessage 's'
+					registeredData = CCVCCM\_GetRegisteredData fullName
+					if registeredData.type == 'addonvar' or registeredData.type == 'addoncommand'
+						unitType = CCVCCM\GetNetSingleAddonType fullName
 						value = CCVCCM\ExtractSingleFromNetMessage unitType
-						cls\ReceiveServerVarQueryResult {addon, categoryPath, name}, value
+						cls\ReceiveServerVarQueryResult fullName, value
 					else
-						{name, value} = CCVCCM\ExtractPayloadFromNetMessage {'s', 's'}
+						value = CCVCCM\ExtractSingleFromNetMessage 's'
 						cls\ReceiveServerVarQueryResult name, value
+		when CCVCCM.ENUMS.NET.INIT_REP
+			for i=1, CCVCCM\ExtractSingleFromNetMessage 'u8'
+				fullName = CCVCCM\ExtractSingleFromNetMessage 's'
+				unitType = CCVCCM\GetNetSingleAddonType fullName
+				value = CCVCCM\ExtractSingleFromNetMessage unitType
+				CCVCCM\_SetAddonVar fullName, value
 
 CCVCCM.CountTablesRecursive = (items, acc = {}, fillAccOnly = false) =>
 	-- returns the number of tables within tab
@@ -83,18 +133,8 @@ concommand.Add 'ccvccm_open', -> ManagerUI 0.5, 0.5
 -- that has happened too many times by this point
 class BasePanel
 	@accumulator: 0
-	@COLORS: {
-		GREEN: Color(0, 255, 0)
-		AQUA: Color(0, 255, 255)
-	}
 
-	Log: (...) =>
-		if GetConVar('developer')\GetInt! > 0
-			texts = {...}
-			table.insert texts, '\n'
-			MsgC @@COLORS.AQUA, '[CCVCCM] ',
-				string.format('%#.2f ', RealTime!),
-				color_white, unpack texts
+	Log: (...) => CCVCCM\Log @GetPanel!, ...
 	
 	SetPanel: (panel) => @panel = panel
 	GetPanel: => @panel
@@ -352,7 +392,7 @@ class SavablePanel extends BasePanel
 		@SetPanel panel
 		@WrapFunc panel, 'PerformLayout', false, (w, h) =>
 			@SizeToChildren false, true
-			BasePanel\Log 'PerformLayout', @
+			CCVCCM\Log @, 'PerformLayout'
 		@RegisterAsSavable!
 		panel
 
@@ -377,7 +417,7 @@ class ContentPanel extends SavablePanel
 		
 		@WrapFunc panel, 'PerformLayout', false, (w, h) =>
 			@SizeToChildren false, true
-			BasePanel\Log 'PerformLayout', @
+			CCVCCM\Log @, 'PerformLayout'
 
 		with vgui.Create 'DTextEntry', panel
 			\SetZPos 2
@@ -746,7 +786,7 @@ class TabPanel extends SavablePanel
 			panel = @GetActiveTab!\GetPanel!
 			
 			@SetTall panel\GetTall! + 20 + padding * 2
-			BasePanel\Log 'PerformLayout', @
+			CCVCCM\Log @, 'PerformLayout'
 		
 		if data.tabs
 			for tabData in *data.tabs
@@ -804,8 +844,7 @@ class CAVACPanel extends SavablePanel
 
 		-- unlike CCVCCPanels, the variables displayName, dataType, elementType and even manual
 		-- is derived from data returned by CCVCCM\_GetRegisteredData
-		{:arguments, :internalName} = data
-		{addon, categoryPath, name} = internalName
+		{:arguments, :fullName} = data
 		{
 			type: apiType,
 			data: {
@@ -815,20 +854,20 @@ class CAVACPanel extends SavablePanel
 				:manual,
 				:typeInfo
 			}
-		} = CCVCCM\_GetRegisteredData name, addon, categoryPath
-		@arguments = if data.arguments ~= nil then data.arguments else default
+		} = CCVCCM\_GetRegisteredData fullName
 
 		-- ListInputUI requires data to be in terms of DTYPES
 		DTYPES = AddElementUI.DATA_TYPES
 		dataType = @TranslateTypeInfo typeInfo
-		BasePanel\Log 'TranslateTypeInfo', panel
-		PrintTable dataType if GetConVar('developer')\GetInt! > 0
+		@Log 'TranslateTypeInfo'
+		PrintTable dataType if CCVCCM\ShouldLog!
 		
 		-- this isn't applicable
 		-- ETYPES = AddElementUI.ELEMENT_TYPES
 
 		isClient = realm == 'client'
 		isVar = apiType == 'addonvar'
+		@arguments = if not isVar and arguments ~= nil then arguments else CCVCCM\_GetAddonVar fullName
 
 		with controlPanel = vgui.Create 'DPanel', panel
 			\SetTall 22
@@ -978,7 +1017,7 @@ class CAVACPanel extends SavablePanel
 					\SetContentAlignment 4
 					\SetDark true
 				
-				with @CreateButton hostPanel, dataType.name, 2
+				with @CreateButton hostPanel, dataType.name or 'Edit List', 2
 					.DoClick = ->
 						listInputUI = ListInputUI 0.5, 0.5, dataType, @arguments
 						listInputUI\SetCallback (classData, values) ->
@@ -987,25 +1026,22 @@ class CAVACPanel extends SavablePanel
 		
 		if (realm or 'server') == 'server'
 			-- ask ManagerUI to poll the server
-			@window\AddServerVarQueryRequest internalName, @
+			@window\AddServerVarQueryRequest fullName, @
 
 	SetArgs: (arguments) => @arguments = arguments
 	SendToServer: =>
-		{internalName: {addon, categoryPath, name}} = @data
+		fullName = @data.fullName
 		payload = {
 			'u8', CCVCCM.ENUMS.NET.EXEC,
 			'b', true,
-			's', addon,
-			'ts', categoryPath,
-			's', name
+			's', fullName
 		}
-		table.insert payload, CCVCCM\GetNetSingleAddonType addon, categoryPath, name
+		table.insert payload, CCVCCM\GetNetSingleAddonType fullName
 		table.insert payload, @arguments
 		CCVCCM\Send payload
 	UpdateAddonVar: =>
-		{:elementType, :internalName} = @data
-		{addon, categoryPath, name} = internalName
-		registeredData = CCVCCM\_GetRegisteredData name, addon, categoryPath
+		{:elementType, :fullName} = @data
+		registeredData = CCVCCM\_GetRegisteredData fullName
 		if registeredData
 			{type: apiType, data: {:realm, :flags, :func}} = registeredData
 			if flags
@@ -1016,9 +1052,9 @@ class CAVACPanel extends SavablePanel
 			
 			if realm == 'client'
 				if apiType == 'addonvar'
-					CCVCCM\_SetAddonVar name, @arguments, addon, categoryPath
+					CCVCCM\SetVarValue fullName, @arguments
 				else
-					func LocalPlayer!, internalName, @arguments
+					CCVCCM\RunCommand fullName, LocalPlayer!, @arguments
 			else @SendToServer!
 	
 	TranslateTypeInfo: (component, parentTable) =>
@@ -1057,9 +1093,18 @@ class CAVACPanel extends SavablePanel
 
 		dataType
 	
+	FilterElements: (text) =>
+		{:fullName} = @data
+		{data: {name: displayName}} = CCVCCM\_GetRegisteredData fullName
+		haystack = string.lower fullName..'\n'..displayName
+		with @GetPanel!
+			\SetVisible tobool string.find haystack, text, 1, true
+			\GetParent!\InvalidateLayout!
+			\GetParent!\GetParent!\InvalidateLayout!
+	
 	SaveToTable: =>
 		{
-			internalName: @data.internalName
+			fullName: @data.fullName
 			elementType: 'addon'
 			arguments: @arguments
 		}
@@ -1501,11 +1546,10 @@ class ManagerUI extends BaseUI
 			@scrollPanel = with vgui.Create 'DScrollPanel', window
 				\Dock FILL
 			@controlPanels = {}
-			@serverAddonVarClass = {}
-			@serverConVarClass = {}
+			@serverVarClass = {}
 			@serverVarQueryRequests = {}
 
-			saveFile = CCVCCM\GetVarValue 'ccvccm', {}, 'autoload'
+			saveFile = CCVCCM\GetVarValue 'ccvccm_autoload'
 			@LoadFromFile saveFile if saveFile != ''
 	
 	GetInstance: => @@managerClass
@@ -1528,47 +1572,23 @@ class ManagerUI extends BaseUI
 	
 	GetControlPanelVisibility: => @controlPanelVisibility
 	AddServerVarQueryRequest: (var, cls) =>
-		if istable var
-			{addon, categoryPath, name} = var
-			@serverAddonVarClass[addon] or= {}
-			currentTable = @serverAddonVarClass[addon]
-			for category in *categoryPath
-				currentTable[category] or= {}
-				currentTable = currentTable[category]
-			currentTable[name] or= {}
-			table.insert currentTable[name], cls
-		else
-			@serverConVarClass[var] or= {}
-			table.insert @serverConVarClass[var], cls
+		@serverVarClass[var] or= {}
+		table.insert @serverVarClass[var], cls
 		@serverVarQueryRequests[var] = true
 	FulfillServerVarQueryRequests: =>
 		if next @serverVarQueryRequests
 			varSendTable = {}
 			for k,v in pairs @serverVarQueryRequests
-				if istable k
-					table.insert varSendTable, {'b', true, 's', k[1], 'ts', k[2], 's', k[3]}
-				else
-					table.insert varSendTable, {'b', false, 's', k}
+				table.insert varSendTable, 's'
+				table.insert varSendTable, k
 				@serverVarQueryRequests[k] = nil
 				break if #varSendTable >= 127
 			CCVCCM\StartNet!
-			CCVCCM\AddPayloadToNetMessage {'u8', CCVCCM.ENUMS.NET.QUERY, 'u8', #varSendTable}
-			for payload in *varSendTable do CCVCCM\AddPayloadToNetMessage payload
+			CCVCCM\AddPayloadToNetMessage {'u8', CCVCCM.ENUMS.NET.QUERY, 'u8', #varSendTable / 2}
+			CCVCCM\AddPayloadToNetMessage varSendTable
 			CCVCCM\FinishNet!
 	
-	ReceiveServerVarQueryResult: (var, val) =>
-		if istable var
-			{addon, categoryPath, name} = var
-			@serverAddonVarClass[addon] or= {}
-			currentTable = @serverAddonVarClass[addon]
-			for category in *categoryPath
-				currentTable[category] or= {}
-				currentTable = currentTable[category]
-			currentTable[name] or= {}
-			for cls in *currentTable[name] do cls\SetValue val
-		else
-			@serverConVarClass[var] or= {}
-			for cls in *@serverConVarClass[var] do cls\SetValue val
+	ReceiveServerVarQueryResult: (var, val) => for cls in *@serverVarClass[var] do cls\SetValue val
 
 	AddMenuOption: (menuBar, menuName, menuOptions) =>
 		menu = menuBar\AddMenu menuName
@@ -1607,7 +1627,7 @@ class ManagerUI extends BaseUI
 			panel = @GetActiveTab!\GetPanel!
 			
 			@SetTall panel\GetTall! + 20 + padding * 2
-			BasePanel\Log 'PerformLayout', @
+			CCVCCM\Log @, 'PerformLayout'
 	
 	PromptClear: =>
 		Derma_Query 'Are you sure?', 'New File', 'Yes', (->
@@ -1629,7 +1649,7 @@ class ManagerUI extends BaseUI
 			Derma_Message 'Save your current layout first!', 'Load Error', 'OK'
 		else
 			Derma_Query "This will set the current save file (ccvccm/#{@@saveName}.json) to be automatically loaded when the CCVCCM is opened. Are you sure?",
-				'Set As Autoloaded File', 'Yes', (-> CCVCCM\SetVarValue 'ccvccm', {}, 'autoload', @@saveName), 'No'
+				'Set As Autoloaded File', 'Yes', (-> CCVCCM\SetVarValue 'ccvccm_autoload', @@saveName), 'No'
 	
 	SaveToFile: (saveName) =>
 		@@saveName = saveName

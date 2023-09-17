@@ -4,8 +4,27 @@ CCVCCM.ENUMS = {
 		REP: 1
 		EXEC: 2
 		QUERY: 3
+		INIT_REP: 4
+	}
+	COLORS: {
+		GREEN: Color(0, 255, 0)
+		AQUA: Color(0, 255, 255)
 	}
 }
+
+CCVCCM.ShouldLog = => GetConVar('developer')\GetInt! > 0
+CCVCCM.Log = (...) =>
+	if @ShouldLog!
+		displayTable = {}
+		for i, element in ipairs {...}
+			if istable element
+				displayTable[i] = util.TableToJSON(element, true) or ''
+			else
+				displayTable[i] = tostring element
+		texts = table.concat displayTable, '\t'
+		MsgC @ENUMS.COLORS.AQUA, '[CCVCCM] ',
+			string.format('%#.2f ', RealTime!),
+			color_white, texts, '\n'
 
 CCVCCM.StartNet = =>
 	net.Start 'ccvccm'
@@ -36,10 +55,10 @@ CCVCCM.AddPayloadToNetMessage = (sendData) =>
 					net.WriteString tostring sendUnit
 				when 't'
 					net.WriteTable sendUnit
-				when 'ts'
-					-- sendUnit is a sequential table of strings
-					net.WriteUInt #sendUnit, 16
-					for str in *sendUnit do net.WriteString str
+				-- when 'ts'
+				-- 	-- sendUnit is a sequential table of strings
+				-- 	net.WriteUInt #sendUnit, 16
+				-- 	for str in *sendUnit do net.WriteString str
 		else
 			currentType = sendUnit
 
@@ -55,8 +74,8 @@ CCVCCM.ExtractSingleFromNetMessage = (dataType) =>
 			net.ReadString!
 		when 't'
 			net.ReadTable!
-		when 'ts'
-			[net.ReadString! for i=1, net.ReadUInt 16]
+		-- when 'ts'
+		-- 	[net.ReadString! for i=1, net.ReadUInt 16]
 
 CCVCCM.ExtractPayloadFromNetMessage = (dataTypes) =>
 	if istable dataTypes
@@ -64,10 +83,9 @@ CCVCCM.ExtractPayloadFromNetMessage = (dataTypes) =>
 	else
 		{@ExtractSingleFromNetMessage dataTypes}
 
-CCVCCM.GetNetSingleAddonType = (addon, categoryPath, name) =>
-	registeredData = CCVCCM\_GetRegisteredData name, addon, categoryPath
+CCVCCM.GetNetSingleAddonType = (fullName) =>
+	registeredData = CCVCCM\_GetRegisteredData fullName
 	if registeredData
-		local unitType
 		switch registeredData.data.typeInfo.type
 			when 'bool'
 				'b'
@@ -79,35 +97,67 @@ CCVCCM.GetNetSingleAddonType = (addon, categoryPath, name) =>
 				's'
 			else
 				't'
+
+CCVCCM.SQL = (query, params = {}) =>
+	params = [sql.SQLStr(param) for param in *params]
+	queryString = if next params then string.format query, unpack params else query
+	result = sql.Query queryString
+	if result == false
+		err = sql.LastError!
+		if err then error(err, 2)
+	
+	result
+
 -- API
 class CCVCCMPointer
-	new: (name, addon = CCVCCM.api.addon, categoryPath = CCVCCM.api.categoryPath) =>
-		@addon = addon
-		@categoryPath = categories
-		@name = name
+	new: (fullName, ply = NULL) =>
+		fullName = table.concat fullName, '_' if istable fullName
+		@name = fullName
 
-	Get: => CCVCCM\GetVarValue @addon, @categoryPath, @name
-	Set: (value) => CCVCCM\SetVarValue @addon, @categoryPath, @name, value
-	Revert: => CCVCCM\RevertVarValue @addon, @categoryPath, @name
-	Run: (value) => CCVCCM\RunCommand @addon, @categoryPath, @name, value
+	Get: (ply) => CCVCCM\GetVarValue @name, ply
+	Set: (value) => CCVCCM\SetVarValue @name, value
+	Revert: => CCVCCM\RevertVarValue @name
+	Run: (value, ply = NULL) => CCVCCM\RunCommand @name, ply, value
 
-CCVCCM.api = CCVCCM.api or {
-	data: {
+CCVCCM.api or= {
+	layout: {
 		['']: {
 			name: 'Other'
-			categories: {}
-			categoriesOrder: {}
-			categoriesUseTab: false
-			registered: {}
-			registeredOrder: {}
+			useTab: {}
+			layoutOrder: {}
+			layoutData: {}
 		}
 	}
-	-- cacheRegisteredData: {}
-	addonVars: {['']: {}}
+	data: {
+		-- [string]: registeredData
+	}
+	addonVars: {
+		-- [string]: value
+	}
 	addon: ''
 	categoryPath: {}
 }
-CCVCCM.api.clientInfoVars = {['']: {}} if SERVER
+
+-- saving: CCVCCM.api.addonVars is stored into *.db files
+-- 'ccvccm' table, one line of JSON per value
+-- this provides lower risk of corruption than text files
+CCVCCM\SQL 'CREATE TABLE IF NOT EXISTS "ccvccm" (
+	"var" TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
+	"value" TEXT NOT NULL
+)'
+
+loadedData = CCVCCM\SQL 'SELECT "value" FROM "ccvccm"'
+if loadedData
+	CCVCCM.api.addonVars = util.JSONToTable loadedData[1].value
+
+hook.Add 'ShutDown', 'CCVCCM', ->
+	CCVCCM\Log 'Saving data...'
+	data = {k,v for k,v in pairs CCVCCM.api.addonVars when CCVCCM.api.data[k]}
+	CCVCCM\SQL 'BEGIN'
+	CCVCCM\SQL 'INSERT INTO "ccvccm" ("var", "value") VALUES (%s, %s)', {'', util.TableToJSON data}
+	CCVCCM\SQL 'COMMIT'
+	CCVCCM\Log 'Saved!'
+
 hook.Add 'CCVCCMDataLoad', 'CCVCCM', (data) ->
 	table.Add data, CCVCCM\_CreateElementData!
 hook.Add 'Initialize', 'CCVCCM', -> hook.Run 'CCVCCMRun'
@@ -118,99 +168,96 @@ hook.Add 'CCVCCMRun', 'CCVCCM', ->
 		realm: 'client'
 		name: 'Autoloaded File'
 		help: 'Layout to automatically load when CCVCCM is opened.'
-	}
-	CCVCCM\AddConVar 'test', {
-		realm: 'client'
-		name: 'TESTING ONLY'
-		type: 'string'
-		sep: ' '
-		choices: {
-			{"Display Name 1", "value1"},
-			{"Display Name 2", "value2"}
-		}
+		generate: true
 	}
 	CCVCCM\AddAddonVar 'addonvar', {
-		name: 'Display Name'
-		help: 'Description'
+		realm: 'client'
+		name: 'Test AddonVar'
+		help: 'This is a test AddonVar to demonstrate the capabilities of CCVCCM\'s API.'
 		default: {}
 		typeInfo: {
-			name: 'Display Name 2',
-			help: 'Description 2',
+			help: 'You can insert any number of items in this list. Here, every list item also comes with their own list.',
 			{
-				name: 'Display Name 3-1'
+				name: 'Boolean Value'
 				type: 'bool'
 			},
 			{
-				name: 'Display Name 3-2',
-				help: 'Description 3-2',
+				name: 'Edit List',
+				help: 'This is a sub-list within a list item. Note that the numeric slider is logarithmic.',
 				{
-					name: 'Display Name 4-1'
+					name: 'Text Value'
 					type: 'string'
-					min: 1
-					max: 10
-					interval: 0.01
-					logarithmic: true
 				},
 				{
-					name: 'Display Name 4-2'
+					name: 'Boolean Value'
 					type: 'bool'
-					min: 1
-					max: 10
-					interval: 0.01
-					logarithmic: true
 				},
 				{
-					name: 'Display Name 4-3'
+					name: 'Numeric Value'
 					type: 'number'
 					min: 1
-					max: 10
-					interval: 0.01
+					max: 1e6
+					interval: 1
 					logarithmic: true
 				}
 			}
 		}
+		userInfo: true
 		notify: true
+		func: (value, fullName, ply) ->
+			print "#{fullName} on client:" if CLIENT
+			print "#{fullName} from #{ply} on server:" if SERVER
+			PrintTable value
 	}
 
 -- internal portion
-CCVCCM._ConstructCategory = =>
+-- CCVCCM._ValidConVarTypes = {
+-- 	bool: true,
+-- 	keybind: true,
+-- 	int: true,
+-- 	float: true,
+-- 	string: true
+-- }
+-- CCVCCM._ConVarTypeIsValid = (typ) => @_ValidConVarTypes[typ]
+
+CCVCCM._ConstructCategory = (displayName, icon) =>
 	{
-		categories: {}
-		categoriesOrder: {}
-		categoriesUseTab: false
-		registered: {}
-		registeredOrder: {}
+		name: displayName
+		icon: icon
+		useTab: {}
+		layoutOrder: {}
+		layoutData: {}
 	}
+
+CCVCCM._GenerateAndGetCategoryTable = (category, categoryName) =>
+	currentTable = @_GetCategoryTable!
+	newCategoryTable = currentTable.layoutData[category]
+
+	unless newCategoryTable
+		table.insert currentTable.layoutOrder, category
+		newCategoryTable = @_ConstructCategory categoryName
+		currentTable.layoutData[category] = newCategoryTable
+	
+	newCategoryTable
+
 CCVCCM._GetCategoryTable = (addon = @api.addon, categoryPath = @api.categoryPath) =>
-	currentTable = @api.data[addon]
+	currentTable = @api.layout[addon]
 	for category in *categoryPath
-		unless currentTable.categories[category]
-			table.insert currentTable.categoriesOrder, category
-			currentTable.categories[category] = @_ConstructCategory!
-		currentTable = currentTable.categories[category]
+		assert currentTable.layoutData[category], "failed to find #{table.concat categoryPath, '_'} under #{addon}!"
+		currentTable = currentTable.layoutData[category]
 	currentTable
 
-CCVCCM._GetRegisteredData = (name, addon = @api.addon, categoryPath = @api.categoryPath) =>
-	-- cacheKey = name
-	-- if next categoryPath then cacheKey = table.concat(categoryPath, '_')..'_'..cacheKey
-	-- if addon then cacheKey = addon..'_'..cacheKey
-
-	-- cacheRegisteredData = @api.cacheRegisteredData
-	-- unless cacheRegisteredData[cacheKey]
-	-- 	categoryTable = @_GetCategoryTable addon, categoryPath
-	-- 	cacheRegisteredData[cacheKey] = categoryTable.registered[name]
-	-- cacheRegisteredData[cacheKey]
-	categoryTable = @_GetCategoryTable addon, categoryPath
-	categoryTable.registered[name]
-
+CCVCCM._GetRegisteredData = (fullName) => @api.data[fullName]
 CCVCCM._GetCheatsEnabled = => GetConVar('sv_cheats')\GetBool!
 
-CCVCCM._RegisterIntoCategory = (internal, data, typ) =>
-	{:registered, :registeredOrder} = @_GetCategoryTable!
-	if not registered[internal] then table.insert registeredOrder, internal
-	if data.hide then data.hide = {str, true for str in *string.Explode('%s+', data.hide or '', true)}
-	if data.flags then data.flags = {str, true for str in *string.Explode('%s+', data.flags or '', true)}
-	registered[internal] = type: typ, :data
+CCVCCM._RegisterIntoCategory = (name, registeredData, registeredType) =>
+	category = @_GetCategoryTable!
+	fullName = @_AssembleVarName name
+	table.insert category.layoutOrder, name unless @_GetRegisteredData fullName
+	
+	registeredData.hide = {str, true for str in *string.Explode('%s+', registeredData.hide or '', true)}
+	registeredData.flags = {str, true for str in *string.Explode('%s+', registeredData.flags or '', true)}
+	@api.data[fullName] = type: registeredType, data: registeredData
 
 CCVCCM._AssembleVarName = (name, addon = @api.addon, categoryPath = @api.categoryPath) =>
 	nameFragments = {addon}
@@ -218,7 +265,7 @@ CCVCCM._AssembleVarName = (name, addon = @api.addon, categoryPath = @api.categor
 	table.insert nameFragments, name
 	table.concat nameFragments, '_'
 
-CCVCCM._GenerateConVar = (internal, data) =>
+CCVCCM._GenerateConVar = (name, data) =>
 	realm = data.realm or 'server'
 	if realm == 'shared' or realm == 'server' and SERVER or realm == 'client' and CLIENT
 		{:help, :default, :hide, :flags, :min, :max, :clamp} = data
@@ -265,9 +312,9 @@ CCVCCM._GenerateConVar = (internal, data) =>
 		unless clamp
 			min = nil
 			max = nil
-		CreateConVar @_AssembleVarName(internal), default, conFlags, help, min, max
+		CreateConVar @_AssembleVarName(name), default, conFlags, help, min, max
 
-CCVCCM._GenerateConCommand = (internal, data) =>
+CCVCCM._GenerateConCommand = (name, data) =>
 	realm = data.realm
 	if realm == 'shared' or realm == 'server' and SERVER or realm == 'client' and CLIENT
 		{:help, :func, :autoComplete, :choices, :hide, :flags} = data
@@ -296,152 +343,17 @@ CCVCCM._GenerateConCommand = (internal, data) =>
 			if flags.demo then error('demo and nodemo flags cannot be on the same ConVar!')
 			conFlags = bit.bor conFlags, FCVAR_DONTRECORD
 
-		concommand.Add @_AssembleVarName(internal), func, autoComplete, help, conFlags
+		concommand.Add @_AssembleVarName(name), func, autoComplete, help, conFlags
 
-CCVCCM._SetAddonVar = (internal, value, addon = @api.addon, categoryPath = @api.categoryPath) =>
+CCVCCM._SetAddonVar = (fullName, value) =>
 	-- internal method for setting the addonvar and do nothing else
-	@api.addonVars[addon] or= {}
-	currentTable = @api.addonVars[addon]
-	for category in *categoryPath do
-		currentTable[category] or= {}
-		currentTable = currentTable[category]
-	currentTable[internal] = value
+	@api.addonVars[fullName] = value
 
-CCVCCM._GetAddonVar = (internal, addon = @api.addon, categoryPath = @api.categoryPath) =>
+CCVCCM._GetAddonVar = (fullName) =>
 	-- internal method for getting the addonvar and do nothing else
-	@api.addonVars[addon] or= {}
-	currentTable = @api.addonVars[addon]
-	for category in *categoryPath do
-		currentTable[category] or= {}
-		currentTable = currentTable[category]
-	currentTable[internal]
+	@api.addonVars[fullName]
 
-CCVCCM._CreateCategoryData = (addon, categoryPath, categoryTable) =>
-	{:categoryName, :categories, :categoriesOrder, :categoriesUseTab, :registeredOrder, :registered} = categoryTable
-	saveTable = {}
-	for registeredName in *registeredOrder
-		elementData = registered[registeredName]
-		{
-			:name,
-			:help,
-			:realm,
-			:manual,
-			type: dataType,
-			:sep,
-			:choices,
-			:min,
-			:max,
-			:interval,
-			:logarithmic
-		} = elementData.data
-		switch elementData.type
-			-- insert two elements - a CCVCCPanel and help TextPanel
-			when 'convar'
-				newDataType = dataType or 'string'
-
-				if choices
-					newDataType = if sep then 'choiceList' else 'choice'
-				elseif dataType == 'int'
-					newDataType = if sep then 'numberList' else 'number'
-					interval = math.max math.Round(interval or 1), 1
-				elseif dataType == 'float'
-					newDataType = if sep then 'numberList' else 'number'
-				elseif newDataType == 'string' and sep
-					newDataType = 'stringList'
-
-				internalName = @_AssembleVarName registeredName, addon, categoryPath
-				table.insert saveTable, {
-					elementType: if realm == 'client' then 'clientConVar' else 'serverConVar'
-					:internalName
-					displayName: name or internalName
-					:manual
-					dataType: newDataType
-					listSeparator: sep
-					:choices
-					:min
-					:max
-					:interval
-					:logarithmic
-				}
-
-			when 'concommand'
-				newDataType = dataType or 'none'
-
-				if choices
-					newDataType = if sep then 'choiceList' else 'choice'
-				elseif dataType == 'int'
-					newDataType = if sep then 'numberList' else 'number'
-					interval = math.max math.Round(interval or 1), 1
-				elseif dataType == 'float'
-					newDataType = if sep then 'numberList' else 'number'
-				elseif dataType == 'string' and sep
-					newDataType = 'stringList'
-
-				internalName = @_AssembleVarName registeredName, addon, categoryPath
-				table.insert saveTable, {
-					elementType: if realm == 'client' then 'clientConCommand' else 'serverConCommand'
-					:internalName
-					displayName: name or internalName
-					dataType: newDataType
-					listSeparator: sep
-					:choices
-					:min
-					:max
-					:interval
-					:logarithmic
-				}
-			
-			when 'addonvar', 'addoncommand'
-				table.insert saveTable, {
-					elementType: 'addon',
-					internalName: {addon, categoryPath, registeredName}
-				}
-
-		if help
-			table.insert saveTable, {
-				elementType: 'text'
-				displayName: help
-			}
-
-	tabsTable = {}
-	for category in *categoriesOrder
-		table.insert categoryPath, category
-		tabData = categories[category]
-		tabTable = {
-			displayName: tabData.name or category
-			icon: tabData.icon
-			content: @_CreateCategoryData addon, categoryPath, tabData
-		}
-		table.remove categoryPath
-		table.insert tabsTable, tabTable
-	
-	if categoriesUseTab
-		table.insert saveTable, {
-			type: "tabs"
-			tabs: tabsTable
-		}
-	else
-		for tabTable in *tabsTable
-			table.insert saveTable, {
-				type: "category"
-				displayName: tabTable.displayName
-				content: tabTable.content
-			}
-	saveTable
-
-CCVCCM._CreateElementData = =>
-	saveTable = {}
-	for addon, addonTable in SortedPairs @api.data
-		if next addonTable.registered or next addonTable.categories
-			table.insert saveTable, {
-				displayName: addonTable.name or addon
-				icon: addonTable.icon
-				content: @_CreateCategoryData addon, {}, addonTable
-				static: true
-			}
-	saveTable
-
-CCVCCM._RevertDataByRegistered = (registeredData, addon, categoryPath, name) =>
+CCVCCM._RevertDataByRegistered = (registeredData, fullName) =>
 	{
 		type: registeredType,
 		data: {
@@ -450,31 +362,153 @@ CCVCCM._RevertDataByRegistered = (registeredData, addon, categoryPath, name) =>
 	} = registeredData
 	switch registeredType
 		when 'convar'
-			conVar = GetConVar @_AssembleVarName name, addon, categoryPath
-			if conVar then conVar\Revert!
+			conVar = GetConVar fullName
+			conVar\Revert! if conVar
 		when 'addonvar'
-			@SetVarValue addon, categoryPath, name, default
+			@SetVarValue fullName, default
+
+CCVCCM._CreateCategoryData = (addon, categoryPath, categoryTable) =>
+	{:useTab, :layoutOrder, :layoutData} = categoryTable
+	saveTable = {}
+	tabsTable = {}
+	for layoutKey in *layoutOrder
+		if layoutData[layoutKey]
+			table.insert categoryPath, layoutKey
+			tabData = layoutData[layoutKey]
+			tabTable = {
+				displayName: tabData.name or layoutKey
+				icon: tabData.icon
+				content: @_CreateCategoryData addon, categoryPath, tabData
+			}
+			table.remove categoryPath
+			table.insert tabsTable, tabTable
+		else
+			fullName = @_AssembleVarName layoutKey, addon, categoryPath
+			registeredData = @_GetRegisteredData fullName
+			{
+				:name,
+				:help,
+				:realm,
+				:manual,
+				type: dataType,
+				:sep,
+				:choices,
+				:min,
+				:max,
+				:interval,
+				:logarithmic
+			} = registeredData.data
+			switch registeredData.type
+				-- insert two elements - a CCVCCPanel and help TextPanel
+				when 'convar'
+					newDataType = dataType or 'string'
+
+					if choices
+						newDataType = if sep then 'choiceList' else 'choice'
+					elseif dataType == 'int'
+						newDataType = if sep then 'numberList' else 'number'
+						interval = math.max math.Round(interval or 1), 1
+					elseif dataType == 'float'
+						newDataType = if sep then 'numberList' else 'number'
+					elseif newDataType == 'string' and sep
+						newDataType = 'stringList'
+
+					table.insert saveTable, {
+						elementType: if realm == 'client' then 'clientConVar' else 'serverConVar'
+						internalName: fullName
+						displayName: name or fullName
+						:manual
+						dataType: newDataType
+						listSeparator: sep
+						:choices
+						:min
+						:max
+						:interval
+						:logarithmic
+					}
+
+				when 'concommand'
+					newDataType = dataType or 'none'
+
+					if choices
+						newDataType = if sep then 'choiceList' else 'choice'
+					elseif dataType == 'int'
+						newDataType = if sep then 'numberList' else 'number'
+						interval = math.max math.Round(interval or 1), 1
+					elseif dataType == 'float'
+						newDataType = if sep then 'numberList' else 'number'
+					elseif dataType == 'string' and sep
+						newDataType = 'stringList'
+
+					table.insert saveTable, {
+						elementType: if realm == 'client' then 'clientConCommand' else 'serverConCommand'
+						internalName: fullName
+						displayName: name or fullName
+						dataType: newDataType
+						listSeparator: sep
+						:choices
+						:min
+						:max
+						:interval
+						:logarithmic
+					}
+				
+				when 'addonvar', 'addoncommand'
+					table.insert saveTable, {
+						elementType: 'addon',
+						:fullName
+					}
+
+			if help
+				table.insert saveTable, {
+					elementType: 'text'
+					displayName: help..'\n'
+				}
+	
+	if next tabsTable
+		if useTab
+			table.insert saveTable, {
+				type: "tabs"
+				tabs: tabsTable
+			}
+		else
+			for tabTable in *tabsTable
+				table.insert saveTable, {
+					type: "category"
+					displayName: tabTable.displayName
+					content: tabTable.content
+				}
+	saveTable
+
+CCVCCM._CreateElementData = =>
+	saveTable = {}
+	@Log 'Layout stored by CCVCCM API:'
+	PrintTable @api.layout if @ShouldLog!
+	for addon, addonTable in SortedPairs @api.layout
+		if next addonTable.layoutOrder
+			table.insert saveTable, {
+				displayName: addonTable.name or addon
+				icon: addonTable.icon
+				content: @_CreateCategoryData addon, {}, addonTable
+				static: true
+			}
+	saveTable
 
 -- public portion
-CCVCCM.Pointer = (addon, categoryPath, name) => CCVCCMPointer name, addon, categoryPath
+CCVCCM.Pointer = (fullName, ply) => CCVCCMPointer fullName, ply
 CCVCCM.SetAddon = (addon = '', display, icon) =>
-	data = @api.data
-	data[addon] or= @_ConstructCategory!
 	@api.addon = addon
 	@api.categoryPath = {}
 
 	if addon != ''
-		data[addon].name or= display
-		data[addon].icon or= icon
+		layout = @api.layout
+		layout[addon] or= @_ConstructCategory display, icon
 
-CCVCCM.PushCategory = (internal, display, tabs, icon) =>
-	@_GetCategoryTable!.categoriesUseTab or= tabs
+CCVCCM.PushCategory = (name, display, tabs, icon) =>
+	@_GetCategoryTable!.useTab or= tabs
 
-	table.insert @api.categoryPath, internal
-	categoryTable = @_GetCategoryTable!
-
-	categoryTable.name or= display
-	categoryTable.icon or= display
+	table.insert @api.categoryPath, name
+	@_GenerateAndGetCategoryTable, display, icon
 
 CCVCCM.PopCategory = (num = 1) =>
 	categoryPath = @api.categoryPath
@@ -483,41 +517,48 @@ CCVCCM.PopCategory = (num = 1) =>
 	else
 		for i=1, num do table.remove categoryPath
 
-CCVCCM.NextCategory = (internal, display, tabs) =>
+CCVCCM.NextCategory = (name, display, tabs) =>
 	if next @api.categoryPath then @PopCategory!
-	@PushCategory internal, display, tabs
+	@PushCategory name, display, tabs
 
-CCVCCM.AddConVar = (internal, data) =>
-	unless data.realm == 'client' and data.userInfo and SERVER
-		@_RegisterIntoCategory internal, data, 'convar'
-		@_GenerateConVar internal, data unless data.uiOnly
-		CCVCCMPointer internal
+CCVCCM.AddConVar = (name, registeredData) =>
+	unless registeredData.realm == 'client' and not registeredData.userInfo and SERVER
+		@_RegisterIntoCategory name, registeredData, 'convar'
+		@_GenerateConVar name, registeredData if registeredData.generate
+		CCVCCMPointer @_AssembleVarName name
 
-CCVCCM.AddConCommand = (internal, data) =>
-	unless data.realm == 'client' and SERVER
-		@_RegisterIntoCategory internal, data, 'concommand'
-		@_GenerateConCommand internal, data unless data.uiOnly
-		CCVCCMPointer internal
+CCVCCM.AddConCommand = (name, registeredData) =>
+	unless registeredData.realm == 'client' and SERVER
+		@_RegisterIntoCategory name, registeredData, 'concommand'
+		@_GenerateConCommand name, registeredData if registeredData.generate
+		CCVCCMPointer @_AssembleVarName name
 
-CCVCCM.AddAddonVar = (internal, data) =>
-	unless data.realm == 'client' and SERVER
-		@_RegisterIntoCategory internal, data, 'addonvar'
-		@_SetAddonVar internal, data.default
-		CCVCCMPointer internal
+CCVCCM.AddAddonVar = (name, registeredData) =>
+	noValue = registeredData.userInfo and SERVER
+	unless registeredData.realm == 'client' and not registeredData.userInfo and SERVER
+		@_RegisterIntoCategory name, registeredData, 'addonvar'
 
-CCVCCM.AddAddonCommand = (internal, data) =>
-	unless data.realm == 'client' and SERVER
-		@_RegisterIntoCategory internal, data, 'addoncommand'
-		CCVCCMPointer internal
+		-- FIXME: this save-first-ask-later approach might cause issues!
+		unless noValue
+			fullName = @_AssembleVarName name
+			@_SetAddonVar fullName, registeredData.default if @_GetAddonVar(fullName) == nil or registeredData.flags.nosave
+			registeredData.func @_GetAddonVar(fullName), fullName
+		CCVCCMPointer fullName
 
-CCVCCM.GetVarValue = (addon, categoryPath, name) =>
+CCVCCM.AddAddonCommand = (name, registeredData) =>
+	unless registeredData.realm == 'client' and SERVER
+		@_RegisterIntoCategory name, registeredData, 'addoncommand'
+		CCVCCMPointer @_AssembleVarName name
+
+CCVCCM.GetVarValue = (fullName, ply) =>
 	-- figure out the variable type
-	registeredData = @_GetRegisteredData name, addon, categoryPath
+	fullName = table.concat fullName, '_' if istable fullName
+	registeredData = @_GetRegisteredData fullName
 	if registeredData
-		{type: registeredType, data: {type: dataType, :sep}} = registeredData
+		{type: registeredType, data: {type: dataType, :sep, :userInfo}} = registeredData
 		switch registeredType
 			when 'convar'
-				conVar = GetConVar @_AssembleVarName name, addon, categoryPath
+				conVar = GetConVar fullName
 				if conVar
 					if sep
 						values = string.Explode sep, conVar\GetString!
@@ -547,10 +588,14 @@ CCVCCM.GetVarValue = (addon, categoryPath, name) =>
 							else
 								conVar\GetString!
 			when 'addonvar'
-				CCVCCM\_GetAddonVar name, addon, categoryPath
+				if userInfo and SERVER
+					CCVCCM\_GetUserInfoVar fullName, ply
+				else
+					CCVCCM\_GetAddonVar fullName
 
-CCVCCM.SetVarValue = (addon, categoryPath, name, value) =>
-	registeredData = @_GetRegisteredData name, addon, categoryPath
+CCVCCM.SetVarValue = (fullName, value) =>
+	fullName = table.concat fullName, '_' if istable fullName
+	registeredData = @_GetRegisteredData fullName
 	if registeredData
 		{
 			type: registeredType,
@@ -558,12 +603,13 @@ CCVCCM.SetVarValue = (addon, categoryPath, name, value) =>
 				type: dataType,
 				:sep, :userInfo,
 				:typeInfo, :realm,
-				:notify, :flags
+				:notify, :flags,
+				:func
 			}
 		} = registeredData
 		switch registeredType
 			when 'convar'
-				conVar = GetConVar @_AssembleVarName name, addon, categoryPath
+				conVar = GetConVar fullName
 				if conVar
 					if sep
 						local processedValues
@@ -585,74 +631,60 @@ CCVCCM.SetVarValue = (addon, categoryPath, name, value) =>
 							else
 								conVar\SetString value
 			when 'addonvar'
-				oldValue = @_GetAddonVar name, addon, categoryPath
-				if oldValue ~= value
-					@_SetAddonVar name, value, addon, categoryPath
-					if CLIENT and userInfo
+				@_SetAddonVar fullName, value
+				func value, fullName if func
+				if CLIENT and userInfo
+					payload = {
+						'u8', @ENUMS.NET.REP,
+						's', fullName
+					}
+					switch typeInfo.type
+						when 'bool'
+							table.insert payload, 'b'
+							table.insert payload, value
+						when 'number'
+							table.insert payload, 'd'
+							table.insert payload, value
+						when 'string'
+							table.insert payload, 's'
+							table.insert payload, value
+						else
+							table.insert payload, 't'
+							table.insert payload, value
+					@Send payload
+				if SERVER
+					if notify
+						PrintMessage HUD_PRINTTALK, "Server addon var '#{fullName}' changed to '#{tostring(value)}'"
+					if realm == 'shared'
 						payload = {
 							'u8', @ENUMS.NET.REP,
-							's', addon,
-							't', categoryPath,
-							's', name
+							's', fullName
 						}
-						switch typeInfo.type
-							when 'bool'
-								table.insert payload, 'b'
-								table.insert payload, value
-							when 'number'
-								table.insert payload, 'd'
-								table.insert payload, value
-							when 'string'
-								table.insert payload, 's'
-								table.insert payload, value
-							else
-								table.insert payload, 't'
-								table.insert payload, value
+						table.insert payload, @GetNetSingleAddonType fullName
+						table.insert payload, value
 						@Send payload
-					if SERVER
-						if notify
-							varName = @_AssembleVarName name, addon, categoryPath
-							PrintMessage HUD_PRINTTALK, "Server addon var '#{varName}' changed to '#{tostring(value)}'"
-						if realm == 'shared'
-							payload = {
-								'u8', @ENUMS.NET.REP,
-								's', addon,
-								't', categoryPath,
-								's', name
-							}
-							switch typeInfo.type
-								when 'bool'
-									table.insert payload, 'b'
-									table.insert payload, value
-								when 'number'
-									table.insert payload, 'd'
-									table.insert payload, value
-								when 'string'
-									table.insert payload, 's'
-									table.insert payload, value
-								else
-									table.insert payload, 't'
-									table.insert payload, value
-							@Send payload
 
-CCVCCM.RevertVarValue = (addon, categoryPath = {}, name) =>
-	if name
-		registeredData = @_GetRegisteredData name, addon, categoryPath
-		if registeredData
-			@_RevertDataByRegistered registeredData, addon, categoryPath, name
-	else
-		-- purging time
-		categoryTable = @_GetCategoryTable addon, categoryPath
-		for name, registeredData in pairs categoryTable.registered
-			@_RevertDataByRegistered registeredData, addon, categoryPath, name
+CCVCCM.RevertVarValue = (fullName) =>
+	fullName = table.concat fullName, '_' if istable fullName
+	registeredData = @_GetRegisteredData fullName
+	if registeredData
+		@_RevertDataByRegistered registeredData, fullName
 
-		for category, subCategoryTable in pairs categoryTable.categories
-			table.insert categoryPath, category
-			@RevertVarValue addon, categoryPath
+CCVCCM.RevertByAddonAndCategory = (addon, ...) =>
+	categoryPath = {...}
+	categoryTable = @_GetCategoryTable addon, categoryPath
+	for layoutKey in *categoryTable.layoutOrder
+		if categoryTable.layoutData[layoutKey]
+			table.insert categoryPath, layoutKey
+			@RevertByAddonAndCategory addon, categoryPath
 			table.remove categoryPath
+		else
+			fullName = @_AssembleVarName layoutKey, addon, categoryPath
+			registeredData = @_GetRegisteredData fullName
+			@_RevertDataByRegistered registeredData, fullName
 
-CCVCCM.RunCommand = (addon, categoryPath, name, value) =>
-	registeredData = @_GetRegisteredData name, addon, categoryPath
+CCVCCM.RunCommand = (fullName, ply, value) =>
+	registeredData = @_GetRegisteredData fullName
 	if registeredData
 		{
 			type: registeredType,
@@ -663,21 +695,20 @@ CCVCCM.RunCommand = (addon, categoryPath, name, value) =>
 		} = registeredData
 		switch registeredType
 			when 'concommand'
-				varName = @_AssembleVarName name, addon, categoryPath
 				if sep
 					if dataType == 'bool'
 						value = [(if v then '1' or '0') for v in *value]
 					else
 						value = [tostring v for v in *value]
-					RunConsoleCommand varName, unpack value
+					RunConsoleCommand fullName, unpack value
 				else
 					if dataType == 'bool'
-						RunConsoleCommand varName, if value then '1' or '0'
+						RunConsoleCommand fullName, if value then '1' or '0'
 					else
-						RunConsoleCommand varName, tostring value
+						RunConsoleCommand fullName, tostring value
 				
 			when 'addoncommand'
-				func NULL, {addon, categoryPath, name}, value
+				func ply, value, fullName
 
 
 hook.Run 'CCVCCMRun'

@@ -2,9 +2,33 @@ CCVCCM.ENUMS = {
   NET = {
     REP = 1,
     EXEC = 2,
-    QUERY = 3
+    QUERY = 3,
+    INIT_REP = 4
+  },
+  COLORS = {
+    GREEN = Color(0, 255, 0),
+    AQUA = Color(0, 255, 255)
   }
 }
+CCVCCM.ShouldLog = function(self)
+  return GetConVar('developer'):GetInt() > 0
+end
+CCVCCM.Log = function(self, ...)
+  if self:ShouldLog() then
+    local displayTable = { }
+    for i, element in ipairs({
+      ...
+    }) do
+      if istable(element) then
+        displayTable[i] = util.TableToJSON(element, true) or ''
+      else
+        displayTable[i] = tostring(element)
+      end
+    end
+    local texts = table.concat(displayTable, '\t')
+    return MsgC(self.ENUMS.COLORS.AQUA, '[CCVCCM] ', string.format('%#.2f ', RealTime()), color_white, texts, '\n')
+  end
+end
 CCVCCM.StartNet = function(self)
   return net.Start('ccvccm')
 end
@@ -42,12 +66,6 @@ CCVCCM.AddPayloadToNetMessage = function(self, sendData)
         net.WriteString(tostring(sendUnit))
       elseif 't' == _exp_0 then
         net.WriteTable(sendUnit)
-      elseif 'ts' == _exp_0 then
-        net.WriteUInt(#sendUnit, 16)
-        for _index_0 = 1, #sendUnit do
-          local str = sendUnit[_index_0]
-          net.WriteString(str)
-        end
       end
     else
       currentType = sendUnit
@@ -66,14 +84,6 @@ CCVCCM.ExtractSingleFromNetMessage = function(self, dataType)
     return net.ReadString()
   elseif 't' == _exp_0 then
     return net.ReadTable()
-  elseif 'ts' == _exp_0 then
-    local _accum_0 = { }
-    local _len_0 = 1
-    for i = 1, net.ReadUInt(16) do
-      _accum_0[_len_0] = net.ReadString()
-      _len_0 = _len_0 + 1
-    end
-    return _accum_0
   end
 end
 CCVCCM.ExtractPayloadFromNetMessage = function(self, dataTypes)
@@ -92,10 +102,9 @@ CCVCCM.ExtractPayloadFromNetMessage = function(self, dataTypes)
     }
   end
 end
-CCVCCM.GetNetSingleAddonType = function(self, addon, categoryPath, name)
-  local registeredData = CCVCCM:_GetRegisteredData(name, addon, categoryPath)
+CCVCCM.GetNetSingleAddonType = function(self, fullName)
+  local registeredData = CCVCCM:_GetRegisteredData(fullName)
   if registeredData then
-    local unitType
     local _exp_0 = registeredData.data.typeInfo.type
     if 'bool' == _exp_0 then
       return 'b'
@@ -108,35 +117,65 @@ CCVCCM.GetNetSingleAddonType = function(self, addon, categoryPath, name)
     end
   end
 end
+CCVCCM.SQL = function(self, query, params)
+  if params == nil then
+    params = { }
+  end
+  do
+    local _accum_0 = { }
+    local _len_0 = 1
+    for _index_0 = 1, #params do
+      local param = params[_index_0]
+      _accum_0[_len_0] = sql.SQLStr(param)
+      _len_0 = _len_0 + 1
+    end
+    params = _accum_0
+  end
+  local queryString
+  if next(params) then
+    queryString = string.format(query, unpack(params))
+  else
+    queryString = query
+  end
+  local result = sql.Query(queryString)
+  if result == false then
+    local err = sql.LastError()
+    if err then
+      error(err, 2)
+    end
+  end
+  return result
+end
 local CCVCCMPointer
 do
   local _class_0
   local _base_0 = {
-    Get = function(self)
-      return CCVCCM:GetVarValue(self.addon, self.categoryPath, self.name)
+    Get = function(self, ply)
+      return CCVCCM:GetVarValue(self.name, ply)
     end,
     Set = function(self, value)
-      return CCVCCM:SetVarValue(self.addon, self.categoryPath, self.name, value)
+      return CCVCCM:SetVarValue(self.name, value)
     end,
     Revert = function(self)
-      return CCVCCM:RevertVarValue(self.addon, self.categoryPath, self.name)
+      return CCVCCM:RevertVarValue(self.name)
     end,
-    Run = function(self, value)
-      return CCVCCM:RunCommand(self.addon, self.categoryPath, self.name, value)
+    Run = function(self, value, ply)
+      if ply == nil then
+        ply = NULL
+      end
+      return CCVCCM:RunCommand(self.name, ply, value)
     end
   }
   _base_0.__index = _base_0
   _class_0 = setmetatable({
-    __init = function(self, name, addon, categoryPath)
-      if addon == nil then
-        addon = CCVCCM.api.addon
+    __init = function(self, fullName, ply)
+      if ply == nil then
+        ply = NULL
       end
-      if categoryPath == nil then
-        categoryPath = CCVCCM.api.categoryPath
+      if istable(fullName) then
+        fullName = table.concat(fullName, '_')
       end
-      self.addon = addon
-      self.categoryPath = categories
-      self.name = name
+      self.name = fullName
     end,
     __base = _base_0,
     __name = "CCVCCMPointer"
@@ -152,27 +191,44 @@ do
   CCVCCMPointer = _class_0
 end
 CCVCCM.api = CCVCCM.api or {
-  data = {
+  layout = {
     [''] = {
       name = 'Other',
-      categories = { },
-      categoriesOrder = { },
-      categoriesUseTab = false,
-      registered = { },
-      registeredOrder = { }
+      useTab = { },
+      layoutOrder = { },
+      layoutData = { }
     }
   },
-  addonVars = {
-    [''] = { }
-  },
+  data = { },
+  addonVars = { },
   addon = '',
   categoryPath = { }
 }
-if SERVER then
-  CCVCCM.api.clientInfoVars = {
-    [''] = { }
-  }
+CCVCCM:SQL('CREATE TABLE IF NOT EXISTS "ccvccm" (\r\n	"var" TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,\r\n	"value" TEXT NOT NULL\r\n)')
+local loadedData = CCVCCM:SQL('SELECT "value" FROM "ccvccm"')
+if loadedData then
+  CCVCCM.api.addonVars = util.JSONToTable(loadedData[1].value)
 end
+hook.Add('ShutDown', 'CCVCCM', function()
+  CCVCCM:Log('Saving data...')
+  local data
+  do
+    local _tbl_0 = { }
+    for k, v in pairs(CCVCCM.api.addonVars) do
+      if CCVCCM.api.data[k] then
+        _tbl_0[k] = v
+      end
+    end
+    data = _tbl_0
+  end
+  CCVCCM:SQL('BEGIN')
+  CCVCCM:SQL('INSERT INTO "ccvccm" ("var", "value") VALUES (%s, %s)', {
+    '',
+    util.TableToJSON(data)
+  })
+  CCVCCM:SQL('COMMIT')
+  return CCVCCM:Log('Saved!')
+end)
 hook.Add('CCVCCMDataLoad', 'CCVCCM', function(data)
   return table.Add(data, CCVCCM:_CreateElementData())
 end)
@@ -184,75 +240,72 @@ hook.Add('CCVCCMRun', 'CCVCCM', function()
   CCVCCM:AddConVar('autoload', {
     realm = 'client',
     name = 'Autoloaded File',
-    help = 'Layout to automatically load when CCVCCM is opened.'
-  })
-  CCVCCM:AddConVar('test', {
-    realm = 'client',
-    name = 'TESTING ONLY',
-    type = 'string',
-    sep = ' ',
-    choices = {
-      {
-        "Display Name 1",
-        "value1"
-      },
-      {
-        "Display Name 2",
-        "value2"
-      }
-    }
+    help = 'Layout to automatically load when CCVCCM is opened.',
+    generate = true
   })
   return CCVCCM:AddAddonVar('addonvar', {
-    name = 'Display Name',
-    help = 'Description',
+    realm = 'client',
+    name = 'Test AddonVar',
+    help = 'This is a test AddonVar to demonstrate the capabilities of CCVCCM\'s API.',
     default = { },
     typeInfo = {
-      name = 'Display Name 2',
-      help = 'Description 2',
+      help = 'You can insert any number of items in this list. Here, every list item also comes with their own list.',
       {
-        name = 'Display Name 3-1',
+        name = 'Boolean Value',
         type = 'bool'
       },
       {
-        name = 'Display Name 3-2',
-        help = 'Description 3-2',
+        name = 'Edit List',
+        help = 'This is a sub-list within a list item. Note that the numeric slider is logarithmic.',
         {
-          name = 'Display Name 4-1',
-          type = 'string',
-          min = 1,
-          max = 10,
-          interval = 0.01,
-          logarithmic = true
+          name = 'Text Value',
+          type = 'string'
         },
         {
-          name = 'Display Name 4-2',
-          type = 'bool',
-          min = 1,
-          max = 10,
-          interval = 0.01,
-          logarithmic = true
+          name = 'Boolean Value',
+          type = 'bool'
         },
         {
-          name = 'Display Name 4-3',
+          name = 'Numeric Value',
           type = 'number',
           min = 1,
-          max = 10,
-          interval = 0.01,
+          max = 1e6,
+          interval = 1,
           logarithmic = true
         }
       }
     },
-    notify = true
+    userInfo = true,
+    notify = true,
+    func = function(value, fullName, ply)
+      if CLIENT then
+        print(tostring(fullName) .. " on client:")
+      end
+      if SERVER then
+        print(tostring(fullName) .. " from " .. tostring(ply) .. " on server:")
+      end
+      return PrintTable(value)
+    end
   })
 end)
-CCVCCM._ConstructCategory = function(self)
+CCVCCM._ConstructCategory = function(self, displayName, icon)
   return {
-    categories = { },
-    categoriesOrder = { },
-    categoriesUseTab = false,
-    registered = { },
-    registeredOrder = { }
+    name = displayName,
+    icon = icon,
+    useTab = { },
+    layoutOrder = { },
+    layoutData = { }
   }
+end
+CCVCCM._GenerateAndGetCategoryTable = function(self, category, categoryName)
+  local currentTable = self:_GetCategoryTable()
+  local newCategoryTable = currentTable.layoutData[category]
+  if not (newCategoryTable) then
+    table.insert(currentTable.layoutOrder, category)
+    newCategoryTable = self:_ConstructCategory(categoryName)
+    currentTable.layoutData[category] = newCategoryTable
+  end
+  return newCategoryTable
 end
 CCVCCM._GetCategoryTable = function(self, addon, categoryPath)
   if addon == nil then
@@ -261,64 +314,47 @@ CCVCCM._GetCategoryTable = function(self, addon, categoryPath)
   if categoryPath == nil then
     categoryPath = self.api.categoryPath
   end
-  local currentTable = self.api.data[addon]
+  local currentTable = self.api.layout[addon]
   for _index_0 = 1, #categoryPath do
     local category = categoryPath[_index_0]
-    if not (currentTable.categories[category]) then
-      table.insert(currentTable.categoriesOrder, category)
-      currentTable.categories[category] = self:_ConstructCategory()
-    end
-    currentTable = currentTable.categories[category]
+    assert(currentTable.layoutData[category], "failed to find " .. tostring(table.concat(categoryPath, '_')) .. " under " .. tostring(addon) .. "!")
+    currentTable = currentTable.layoutData[category]
   end
   return currentTable
 end
-CCVCCM._GetRegisteredData = function(self, name, addon, categoryPath)
-  if addon == nil then
-    addon = self.api.addon
-  end
-  if categoryPath == nil then
-    categoryPath = self.api.categoryPath
-  end
-  local categoryTable = self:_GetCategoryTable(addon, categoryPath)
-  return categoryTable.registered[name]
+CCVCCM._GetRegisteredData = function(self, fullName)
+  return self.api.data[fullName]
 end
 CCVCCM._GetCheatsEnabled = function(self)
   return GetConVar('sv_cheats'):GetBool()
 end
-CCVCCM._RegisterIntoCategory = function(self, internal, data, typ)
-  local registered, registeredOrder
+CCVCCM._RegisterIntoCategory = function(self, name, registeredData, registeredType)
+  local category = self:_GetCategoryTable()
+  local fullName = self:_AssembleVarName(name)
+  if not (self:_GetRegisteredData(fullName)) then
+    table.insert(category.layoutOrder, name)
+  end
   do
-    local _obj_0 = self:_GetCategoryTable()
-    registered, registeredOrder = _obj_0.registered, _obj_0.registeredOrder
-  end
-  if not registered[internal] then
-    table.insert(registeredOrder, internal)
-  end
-  if data.hide then
-    do
-      local _tbl_0 = { }
-      local _list_0 = string.Explode('%s+', data.hide or '', true)
-      for _index_0 = 1, #_list_0 do
-        local str = _list_0[_index_0]
-        _tbl_0[str] = true
-      end
-      data.hide = _tbl_0
+    local _tbl_0 = { }
+    local _list_0 = string.Explode('%s+', registeredData.hide or '', true)
+    for _index_0 = 1, #_list_0 do
+      local str = _list_0[_index_0]
+      _tbl_0[str] = true
     end
+    registeredData.hide = _tbl_0
   end
-  if data.flags then
-    do
-      local _tbl_0 = { }
-      local _list_0 = string.Explode('%s+', data.flags or '', true)
-      for _index_0 = 1, #_list_0 do
-        local str = _list_0[_index_0]
-        _tbl_0[str] = true
-      end
-      data.flags = _tbl_0
+  do
+    local _tbl_0 = { }
+    local _list_0 = string.Explode('%s+', registeredData.flags or '', true)
+    for _index_0 = 1, #_list_0 do
+      local str = _list_0[_index_0]
+      _tbl_0[str] = true
     end
+    registeredData.flags = _tbl_0
   end
-  registered[internal] = {
-    type = typ,
-    data = data
+  self.api.data[fullName] = {
+    type = registeredType,
+    data = registeredData
   }
 end
 CCVCCM._AssembleVarName = function(self, name, addon, categoryPath)
@@ -338,7 +374,7 @@ CCVCCM._AssembleVarName = function(self, name, addon, categoryPath)
   table.insert(nameFragments, name)
   return table.concat(nameFragments, '_')
 end
-CCVCCM._GenerateConVar = function(self, internal, data)
+CCVCCM._GenerateConVar = function(self, name, data)
   local realm = data.realm or 'server'
   if realm == 'shared' or realm == 'server' and SERVER or realm == 'client' and CLIENT then
     local help, default, hide, flags, min, max, clamp
@@ -402,10 +438,10 @@ CCVCCM._GenerateConVar = function(self, internal, data)
       min = nil
       max = nil
     end
-    return CreateConVar(self:_AssembleVarName(internal), default, conFlags, help, min, max)
+    return CreateConVar(self:_AssembleVarName(name), default, conFlags, help, min, max)
   end
 end
-CCVCCM._GenerateConCommand = function(self, internal, data)
+CCVCCM._GenerateConCommand = function(self, name, data)
   local realm = data.realm
   if realm == 'shared' or realm == 'server' and SERVER or realm == 'client' and CLIENT then
     local help, func, autoComplete, choices, hide, flags
@@ -457,196 +493,180 @@ CCVCCM._GenerateConCommand = function(self, internal, data)
       end
       conFlags = bit.bor(conFlags, FCVAR_DONTRECORD)
     end
-    return concommand.Add(self:_AssembleVarName(internal), func, autoComplete, help, conFlags)
+    return concommand.Add(self:_AssembleVarName(name), func, autoComplete, help, conFlags)
   end
 end
-CCVCCM._SetAddonVar = function(self, internal, value, addon, categoryPath)
-  if addon == nil then
-    addon = self.api.addon
-  end
-  if categoryPath == nil then
-    categoryPath = self.api.categoryPath
-  end
-  local _update_0 = addon
-  self.api.addonVars[_update_0] = self.api.addonVars[_update_0] or { }
-  local currentTable = self.api.addonVars[addon]
-  for _index_0 = 1, #categoryPath do
-    local category = categoryPath[_index_0]
-    local _update_1 = category
-    currentTable[_update_1] = currentTable[_update_1] or { }
-    currentTable = currentTable[category]
-  end
-  currentTable[internal] = value
+CCVCCM._SetAddonVar = function(self, fullName, value)
+  self.api.addonVars[fullName] = value
 end
-CCVCCM._GetAddonVar = function(self, internal, addon, categoryPath)
-  if addon == nil then
-    addon = self.api.addon
+CCVCCM._GetAddonVar = function(self, fullName)
+  return self.api.addonVars[fullName]
+end
+CCVCCM._RevertDataByRegistered = function(self, registeredData, fullName)
+  local registeredType, dataType, default
+  registeredType, dataType, default = registeredData.type, registeredData.data.type, registeredData.data.default
+  local _exp_0 = registeredType
+  if 'convar' == _exp_0 then
+    local conVar = GetConVar(fullName)
+    if conVar then
+      return conVar:Revert()
+    end
+  elseif 'addonvar' == _exp_0 then
+    return self:SetVarValue(fullName, default)
   end
-  if categoryPath == nil then
-    categoryPath = self.api.categoryPath
-  end
-  local _update_0 = addon
-  self.api.addonVars[_update_0] = self.api.addonVars[_update_0] or { }
-  local currentTable = self.api.addonVars[addon]
-  for _index_0 = 1, #categoryPath do
-    local category = categoryPath[_index_0]
-    local _update_1 = category
-    currentTable[_update_1] = currentTable[_update_1] or { }
-    currentTable = currentTable[category]
-  end
-  return currentTable[internal]
 end
 CCVCCM._CreateCategoryData = function(self, addon, categoryPath, categoryTable)
-  local categoryName, categories, categoriesOrder, categoriesUseTab, registeredOrder, registered
-  categoryName, categories, categoriesOrder, categoriesUseTab, registeredOrder, registered = categoryTable.categoryName, categoryTable.categories, categoryTable.categoriesOrder, categoryTable.categoriesUseTab, categoryTable.registeredOrder, categoryTable.registered
+  local useTab, layoutOrder, layoutData
+  useTab, layoutOrder, layoutData = categoryTable.useTab, categoryTable.layoutOrder, categoryTable.layoutData
   local saveTable = { }
-  for _index_0 = 1, #registeredOrder do
-    local registeredName = registeredOrder[_index_0]
-    local elementData = registered[registeredName]
-    local name, help, realm, manual, dataType, sep, choices, min, max, interval, logarithmic
-    do
-      local _obj_0 = elementData.data
-      name, help, realm, manual, dataType, sep, choices, min, max, interval, logarithmic = _obj_0.name, _obj_0.help, _obj_0.realm, _obj_0.manual, _obj_0.type, _obj_0.sep, _obj_0.choices, _obj_0.min, _obj_0.max, _obj_0.interval, _obj_0.logarithmic
-    end
-    local _exp_0 = elementData.type
-    if 'convar' == _exp_0 then
-      local newDataType = dataType or 'string'
-      if choices then
-        if sep then
-          newDataType = 'choiceList'
-        else
-          newDataType = 'choice'
-        end
-      elseif dataType == 'int' then
-        if sep then
-          newDataType = 'numberList'
-        else
-          newDataType = 'number'
-        end
-        interval = math.max(math.Round(interval or 1), 1)
-      elseif dataType == 'float' then
-        if sep then
-          newDataType = 'numberList'
-        else
-          newDataType = 'number'
-        end
-      elseif newDataType == 'string' and sep then
-        newDataType = 'stringList'
-      end
-      local internalName = self:_AssembleVarName(registeredName, addon, categoryPath)
-      table.insert(saveTable, {
-        elementType = (function()
-          if realm == 'client' then
-            return 'clientConVar'
-          else
-            return 'serverConVar'
-          end
-        end)(),
-        internalName = internalName,
-        displayName = name or internalName,
-        manual = manual,
-        dataType = newDataType,
-        listSeparator = sep,
-        choices = choices,
-        min = min,
-        max = max,
-        interval = interval,
-        logarithmic = logarithmic
-      })
-    elseif 'concommand' == _exp_0 then
-      local newDataType = dataType or 'none'
-      if choices then
-        if sep then
-          newDataType = 'choiceList'
-        else
-          newDataType = 'choice'
-        end
-      elseif dataType == 'int' then
-        if sep then
-          newDataType = 'numberList'
-        else
-          newDataType = 'number'
-        end
-        interval = math.max(math.Round(interval or 1), 1)
-      elseif dataType == 'float' then
-        if sep then
-          newDataType = 'numberList'
-        else
-          newDataType = 'number'
-        end
-      elseif dataType == 'string' and sep then
-        newDataType = 'stringList'
-      end
-      local internalName = self:_AssembleVarName(registeredName, addon, categoryPath)
-      table.insert(saveTable, {
-        elementType = (function()
-          if realm == 'client' then
-            return 'clientConCommand'
-          else
-            return 'serverConCommand'
-          end
-        end)(),
-        internalName = internalName,
-        displayName = name or internalName,
-        dataType = newDataType,
-        listSeparator = sep,
-        choices = choices,
-        min = min,
-        max = max,
-        interval = interval,
-        logarithmic = logarithmic
-      })
-    elseif 'addonvar' == _exp_0 or 'addoncommand' == _exp_0 then
-      table.insert(saveTable, {
-        elementType = 'addon',
-        internalName = {
-          addon,
-          categoryPath,
-          registeredName
-        }
-      })
-    end
-    if help then
-      table.insert(saveTable, {
-        elementType = 'text',
-        displayName = help
-      })
-    end
-  end
   local tabsTable = { }
-  for _index_0 = 1, #categoriesOrder do
-    local category = categoriesOrder[_index_0]
-    table.insert(categoryPath, category)
-    local tabData = categories[category]
-    local tabTable = {
-      displayName = tabData.name or category,
-      icon = tabData.icon,
-      content = self:_CreateCategoryData(addon, categoryPath, tabData)
-    }
-    table.remove(categoryPath)
-    table.insert(tabsTable, tabTable)
+  for _index_0 = 1, #layoutOrder do
+    local layoutKey = layoutOrder[_index_0]
+    if layoutData[layoutKey] then
+      table.insert(categoryPath, layoutKey)
+      local tabData = layoutData[layoutKey]
+      local tabTable = {
+        displayName = tabData.name or layoutKey,
+        icon = tabData.icon,
+        content = self:_CreateCategoryData(addon, categoryPath, tabData)
+      }
+      table.remove(categoryPath)
+      table.insert(tabsTable, tabTable)
+    else
+      local fullName = self:_AssembleVarName(layoutKey, addon, categoryPath)
+      local registeredData = self:_GetRegisteredData(fullName)
+      local name, help, realm, manual, dataType, sep, choices, min, max, interval, logarithmic
+      do
+        local _obj_0 = registeredData.data
+        name, help, realm, manual, dataType, sep, choices, min, max, interval, logarithmic = _obj_0.name, _obj_0.help, _obj_0.realm, _obj_0.manual, _obj_0.type, _obj_0.sep, _obj_0.choices, _obj_0.min, _obj_0.max, _obj_0.interval, _obj_0.logarithmic
+      end
+      local _exp_0 = registeredData.type
+      if 'convar' == _exp_0 then
+        local newDataType = dataType or 'string'
+        if choices then
+          if sep then
+            newDataType = 'choiceList'
+          else
+            newDataType = 'choice'
+          end
+        elseif dataType == 'int' then
+          if sep then
+            newDataType = 'numberList'
+          else
+            newDataType = 'number'
+          end
+          interval = math.max(math.Round(interval or 1), 1)
+        elseif dataType == 'float' then
+          if sep then
+            newDataType = 'numberList'
+          else
+            newDataType = 'number'
+          end
+        elseif newDataType == 'string' and sep then
+          newDataType = 'stringList'
+        end
+        table.insert(saveTable, {
+          elementType = (function()
+            if realm == 'client' then
+              return 'clientConVar'
+            else
+              return 'serverConVar'
+            end
+          end)(),
+          internalName = fullName,
+          displayName = name or fullName,
+          manual = manual,
+          dataType = newDataType,
+          listSeparator = sep,
+          choices = choices,
+          min = min,
+          max = max,
+          interval = interval,
+          logarithmic = logarithmic
+        })
+      elseif 'concommand' == _exp_0 then
+        local newDataType = dataType or 'none'
+        if choices then
+          if sep then
+            newDataType = 'choiceList'
+          else
+            newDataType = 'choice'
+          end
+        elseif dataType == 'int' then
+          if sep then
+            newDataType = 'numberList'
+          else
+            newDataType = 'number'
+          end
+          interval = math.max(math.Round(interval or 1), 1)
+        elseif dataType == 'float' then
+          if sep then
+            newDataType = 'numberList'
+          else
+            newDataType = 'number'
+          end
+        elseif dataType == 'string' and sep then
+          newDataType = 'stringList'
+        end
+        table.insert(saveTable, {
+          elementType = (function()
+            if realm == 'client' then
+              return 'clientConCommand'
+            else
+              return 'serverConCommand'
+            end
+          end)(),
+          internalName = fullName,
+          displayName = name or fullName,
+          dataType = newDataType,
+          listSeparator = sep,
+          choices = choices,
+          min = min,
+          max = max,
+          interval = interval,
+          logarithmic = logarithmic
+        })
+      elseif 'addonvar' == _exp_0 or 'addoncommand' == _exp_0 then
+        table.insert(saveTable, {
+          elementType = 'addon',
+          fullName = fullName
+        })
+      end
+      if help then
+        table.insert(saveTable, {
+          elementType = 'text',
+          displayName = help .. '\n'
+        })
+      end
+    end
   end
-  if categoriesUseTab then
-    table.insert(saveTable, {
-      type = "tabs",
-      tabs = tabsTable
-    })
-  else
-    for _index_0 = 1, #tabsTable do
-      local tabTable = tabsTable[_index_0]
+  if next(tabsTable) then
+    if useTab then
       table.insert(saveTable, {
-        type = "category",
-        displayName = tabTable.displayName,
-        content = tabTable.content
+        type = "tabs",
+        tabs = tabsTable
       })
+    else
+      for _index_0 = 1, #tabsTable do
+        local tabTable = tabsTable[_index_0]
+        table.insert(saveTable, {
+          type = "category",
+          displayName = tabTable.displayName,
+          content = tabTable.content
+        })
+      end
     end
   end
   return saveTable
 end
 CCVCCM._CreateElementData = function(self)
   local saveTable = { }
-  for addon, addonTable in SortedPairs(self.api.data) do
-    if next(addonTable.registered or next(addonTable.categories)) then
+  self:Log('Layout stored by CCVCCM API:')
+  if self:ShouldLog() then
+    PrintTable(self.api.layout)
+  end
+  for addon, addonTable in SortedPairs(self.api.layout) do
+    if next(addonTable.layoutOrder) then
       table.insert(saveTable, {
         displayName = addonTable.name or addon,
         icon = addonTable.icon,
@@ -657,44 +677,25 @@ CCVCCM._CreateElementData = function(self)
   end
   return saveTable
 end
-CCVCCM._RevertDataByRegistered = function(self, registeredData, addon, categoryPath, name)
-  local registeredType, dataType, default
-  registeredType, dataType, default = registeredData.type, registeredData.data.type, registeredData.data.default
-  local _exp_0 = registeredType
-  if 'convar' == _exp_0 then
-    local conVar = GetConVar(self:_AssembleVarName(name, addon, categoryPath))
-    if conVar then
-      return conVar:Revert()
-    end
-  elseif 'addonvar' == _exp_0 then
-    return self:SetVarValue(addon, categoryPath, name, default)
-  end
-end
-CCVCCM.Pointer = function(self, addon, categoryPath, name)
-  return CCVCCMPointer(name, addon, categoryPath)
+CCVCCM.Pointer = function(self, fullName, ply)
+  return CCVCCMPointer(fullName, ply)
 end
 CCVCCM.SetAddon = function(self, addon, display, icon)
   if addon == nil then
     addon = ''
   end
-  local data = self.api.data
-  local _update_0 = addon
-  data[_update_0] = data[_update_0] or self:_ConstructCategory()
   self.api.addon = addon
   self.api.categoryPath = { }
   if addon ~= '' then
-    local _update_1 = addon
-    data[_update_1].name = data[_update_1].name or display
-    local _update_2 = addon
-    data[_update_2].icon = data[_update_2].icon or icon
+    local layout = self.api.layout
+    local _update_0 = addon
+    layout[_update_0] = layout[_update_0] or self:_ConstructCategory(display, icon)
   end
 end
-CCVCCM.PushCategory = function(self, internal, display, tabs, icon)
-  self:_GetCategoryTable().categoriesUseTab = self:_GetCategoryTable().categoriesUseTab or tabs
-  table.insert(self.api.categoryPath, internal)
-  local categoryTable = self:_GetCategoryTable()
-  categoryTable.name = categoryTable.name or display
-  categoryTable.icon = categoryTable.icon or display
+CCVCCM.PushCategory = function(self, name, display, tabs, icon)
+  self:_GetCategoryTable().useTab = self:_GetCategoryTable().useTab or tabs
+  table.insert(self.api.categoryPath, name)
+  return self._GenerateAndGetCategoryTable, display, icon
 end
 CCVCCM.PopCategory = function(self, num)
   if num == nil then
@@ -709,51 +710,61 @@ CCVCCM.PopCategory = function(self, num)
     end
   end
 end
-CCVCCM.NextCategory = function(self, internal, display, tabs)
+CCVCCM.NextCategory = function(self, name, display, tabs)
   if next(self.api.categoryPath) then
     self:PopCategory()
   end
-  return self:PushCategory(internal, display, tabs)
+  return self:PushCategory(name, display, tabs)
 end
-CCVCCM.AddConVar = function(self, internal, data)
-  if not (data.realm == 'client' and data.userInfo and SERVER) then
-    self:_RegisterIntoCategory(internal, data, 'convar')
-    if not (data.uiOnly) then
-      self:_GenerateConVar(internal, data)
+CCVCCM.AddConVar = function(self, name, registeredData)
+  if not (registeredData.realm == 'client' and not registeredData.userInfo and SERVER) then
+    self:_RegisterIntoCategory(name, registeredData, 'convar')
+    if registeredData.generate then
+      self:_GenerateConVar(name, registeredData)
     end
-    return CCVCCMPointer(internal)
+    return CCVCCMPointer(self:_AssembleVarName(name))
   end
 end
-CCVCCM.AddConCommand = function(self, internal, data)
-  if not (data.realm == 'client' and SERVER) then
-    self:_RegisterIntoCategory(internal, data, 'concommand')
-    if not (data.uiOnly) then
-      self:_GenerateConCommand(internal, data)
+CCVCCM.AddConCommand = function(self, name, registeredData)
+  if not (registeredData.realm == 'client' and SERVER) then
+    self:_RegisterIntoCategory(name, registeredData, 'concommand')
+    if registeredData.generate then
+      self:_GenerateConCommand(name, registeredData)
     end
-    return CCVCCMPointer(internal)
+    return CCVCCMPointer(self:_AssembleVarName(name))
   end
 end
-CCVCCM.AddAddonVar = function(self, internal, data)
-  if not (data.realm == 'client' and SERVER) then
-    self:_RegisterIntoCategory(internal, data, 'addonvar')
-    self:_SetAddonVar(internal, data.default)
-    return CCVCCMPointer(internal)
+CCVCCM.AddAddonVar = function(self, name, registeredData)
+  local noValue = registeredData.userInfo and SERVER
+  if not (registeredData.realm == 'client' and not registeredData.userInfo and SERVER) then
+    self:_RegisterIntoCategory(name, registeredData, 'addonvar')
+    if not (noValue) then
+      local fullName = self:_AssembleVarName(name)
+      if self:_GetAddonVar(fullName) == nil or registeredData.flags.nosave then
+        self:_SetAddonVar(fullName, registeredData.default)
+      end
+      registeredData.func(self:_GetAddonVar(fullName), fullName)
+    end
+    return CCVCCMPointer(fullName)
   end
 end
-CCVCCM.AddAddonCommand = function(self, internal, data)
-  if not (data.realm == 'client' and SERVER) then
-    self:_RegisterIntoCategory(internal, data, 'addoncommand')
-    return CCVCCMPointer(internal)
+CCVCCM.AddAddonCommand = function(self, name, registeredData)
+  if not (registeredData.realm == 'client' and SERVER) then
+    self:_RegisterIntoCategory(name, registeredData, 'addoncommand')
+    return CCVCCMPointer(self:_AssembleVarName(name))
   end
 end
-CCVCCM.GetVarValue = function(self, addon, categoryPath, name)
-  local registeredData = self:_GetRegisteredData(name, addon, categoryPath)
+CCVCCM.GetVarValue = function(self, fullName, ply)
+  if istable(fullName) then
+    fullName = table.concat(fullName, '_')
+  end
+  local registeredData = self:_GetRegisteredData(fullName)
   if registeredData then
-    local registeredType, dataType, sep
-    registeredType, dataType, sep = registeredData.type, registeredData.data.type, registeredData.data.sep
+    local registeredType, dataType, sep, userInfo
+    registeredType, dataType, sep, userInfo = registeredData.type, registeredData.data.type, registeredData.data.sep, registeredData.data.userInfo
     local _exp_0 = registeredType
     if 'convar' == _exp_0 then
-      local conVar = GetConVar(self:_AssembleVarName(name, addon, categoryPath))
+      local conVar = GetConVar(fullName)
       if conVar then
         if sep then
           local values = string.Explode(sep, conVar:GetString())
@@ -804,18 +815,25 @@ CCVCCM.GetVarValue = function(self, addon, categoryPath, name)
         end
       end
     elseif 'addonvar' == _exp_0 then
-      return CCVCCM:_GetAddonVar(name, addon, categoryPath)
+      if userInfo and SERVER then
+        return CCVCCM:_GetUserInfoVar(fullName, ply)
+      else
+        return CCVCCM:_GetAddonVar(fullName)
+      end
     end
   end
 end
-CCVCCM.SetVarValue = function(self, addon, categoryPath, name, value)
-  local registeredData = self:_GetRegisteredData(name, addon, categoryPath)
+CCVCCM.SetVarValue = function(self, fullName, value)
+  if istable(fullName) then
+    fullName = table.concat(fullName, '_')
+  end
+  local registeredData = self:_GetRegisteredData(fullName)
   if registeredData then
-    local registeredType, dataType, sep, userInfo, typeInfo, realm, notify, flags
-    registeredType, dataType, sep, userInfo, typeInfo, realm, notify, flags = registeredData.type, registeredData.data.type, registeredData.data.sep, registeredData.data.userInfo, registeredData.data.typeInfo, registeredData.data.realm, registeredData.data.notify, registeredData.data.flags
+    local registeredType, dataType, sep, userInfo, typeInfo, realm, notify, flags, func
+    registeredType, dataType, sep, userInfo, typeInfo, realm, notify, flags, func = registeredData.type, registeredData.data.type, registeredData.data.sep, registeredData.data.userInfo, registeredData.data.typeInfo, registeredData.data.realm, registeredData.data.notify, registeredData.data.flags, registeredData.data.func
     local _exp_0 = registeredType
     if 'convar' == _exp_0 then
-      local conVar = GetConVar(self:_AssembleVarName(name, addon, categoryPath))
+      local conVar = GetConVar(fullName)
       if conVar then
         if sep then
           local processedValues
@@ -863,102 +881,87 @@ CCVCCM.SetVarValue = function(self, addon, categoryPath, name, value)
         end
       end
     elseif 'addonvar' == _exp_0 then
-      local oldValue = self:_GetAddonVar(name, addon, categoryPath)
-      if oldValue ~= value then
-        self:_SetAddonVar(name, value, addon, categoryPath)
-        if CLIENT and userInfo then
+      self:_SetAddonVar(fullName, value)
+      if func then
+        func(value, fullName)
+      end
+      if CLIENT and userInfo then
+        local payload = {
+          'u8',
+          self.ENUMS.NET.REP,
+          's',
+          fullName
+        }
+        local _exp_1 = typeInfo.type
+        if 'bool' == _exp_1 then
+          table.insert(payload, 'b')
+          table.insert(payload, value)
+        elseif 'number' == _exp_1 then
+          table.insert(payload, 'd')
+          table.insert(payload, value)
+        elseif 'string' == _exp_1 then
+          table.insert(payload, 's')
+          table.insert(payload, value)
+        else
+          table.insert(payload, 't')
+          table.insert(payload, value)
+        end
+        self:Send(payload)
+      end
+      if SERVER then
+        if notify then
+          PrintMessage(HUD_PRINTTALK, "Server addon var '" .. tostring(fullName) .. "' changed to '" .. tostring(tostring(value)) .. "'")
+        end
+        if realm == 'shared' then
           local payload = {
             'u8',
             self.ENUMS.NET.REP,
             's',
-            addon,
-            't',
-            categoryPath,
-            's',
-            name
+            fullName
           }
-          local _exp_1 = typeInfo.type
-          if 'bool' == _exp_1 then
-            table.insert(payload, 'b')
-            table.insert(payload, value)
-          elseif 'number' == _exp_1 then
-            table.insert(payload, 'd')
-            table.insert(payload, value)
-          elseif 'string' == _exp_1 then
-            table.insert(payload, 's')
-            table.insert(payload, value)
-          else
-            table.insert(payload, 't')
-            table.insert(payload, value)
-          end
-          self:Send(payload)
-        end
-        if SERVER then
-          if notify then
-            local varName = self:_AssembleVarName(name, addon, categoryPath)
-            PrintMessage(HUD_PRINTTALK, "Server addon var '" .. tostring(varName) .. "' changed to '" .. tostring(tostring(value)) .. "'")
-          end
-          if realm == 'shared' then
-            local payload = {
-              'u8',
-              self.ENUMS.NET.REP,
-              's',
-              addon,
-              't',
-              categoryPath,
-              's',
-              name
-            }
-            local _exp_1 = typeInfo.type
-            if 'bool' == _exp_1 then
-              table.insert(payload, 'b')
-              table.insert(payload, value)
-            elseif 'number' == _exp_1 then
-              table.insert(payload, 'd')
-              table.insert(payload, value)
-            elseif 'string' == _exp_1 then
-              table.insert(payload, 's')
-              table.insert(payload, value)
-            else
-              table.insert(payload, 't')
-              table.insert(payload, value)
-            end
-            return self:Send(payload)
-          end
+          table.insert(payload, self:GetNetSingleAddonType(fullName))
+          table.insert(payload, value)
+          return self:Send(payload)
         end
       end
     end
   end
 end
-CCVCCM.RevertVarValue = function(self, addon, categoryPath, name)
-  if categoryPath == nil then
-    categoryPath = { }
+CCVCCM.RevertVarValue = function(self, fullName)
+  if istable(fullName) then
+    fullName = table.concat(fullName, '_')
   end
-  if name then
-    local registeredData = self:_GetRegisteredData(name, addon, categoryPath)
-    if registeredData then
-      return self:_RevertDataByRegistered(registeredData, addon, categoryPath, name)
-    end
-  else
-    local categoryTable = self:_GetCategoryTable(addon, categoryPath)
-    for name, registeredData in pairs(categoryTable.registered) do
-      self:_RevertDataByRegistered(registeredData, addon, categoryPath, name)
-    end
-    for category, subCategoryTable in pairs(categoryTable.categories) do
-      table.insert(categoryPath, category)
-      self:RevertVarValue(addon, categoryPath)
+  local registeredData = self:_GetRegisteredData(fullName)
+  if registeredData then
+    return self:_RevertDataByRegistered(registeredData, fullName)
+  end
+end
+CCVCCM.RevertByAddonAndCategory = function(self, addon, ...)
+  local categoryPath = {
+    ...
+  }
+  local categoryTable = self:_GetCategoryTable(addon, categoryPath)
+  local _list_0 = categoryTable.layoutOrder
+  for _index_0 = 1, #_list_0 do
+    local layoutKey = _list_0[_index_0]
+    if categoryTable.layoutData[layoutKey] then
+      table.insert(categoryPath, layoutKey)
+      self:RevertByAddonAndCategory(addon, categoryPath)
       table.remove(categoryPath)
+    else
+      local fullName = self:_AssembleVarName(layoutKey, addon, categoryPath)
+      local registeredData = self:_GetRegisteredData(fullName)
+      self:_RevertDataByRegistered(registeredData, fullName)
     end
   end
 end
-CCVCCM.RunCommand = function(self, addon, categoryPath, name, value)
-  local registeredData = self:_GetRegisteredData(name, addon, categoryPath)
+CCVCCM.RunCommand = function(self, fullName, ply, value)
+  local registeredData = self:_GetRegisteredData(fullName)
   if registeredData then
     local registeredType, dataType, sep, func
     registeredType, dataType, sep, func = registeredData.type, registeredData.data.type, registeredData.data.sep, registeredData.data.func
     local _exp_0 = registeredType
     if 'concommand' == _exp_0 then
-      local varName = self:_AssembleVarName(name, addon, categoryPath)
       if sep then
         if dataType == 'bool' then
           do
@@ -987,24 +990,20 @@ CCVCCM.RunCommand = function(self, addon, categoryPath, name, value)
             value = _accum_0
           end
         end
-        return RunConsoleCommand(varName, unpack(value))
+        return RunConsoleCommand(fullName, unpack(value))
       else
         if dataType == 'bool' then
-          return RunConsoleCommand(varName, (function()
+          return RunConsoleCommand(fullName, (function()
             if value then
               return '1' or '0'
             end
           end)())
         else
-          return RunConsoleCommand(varName, tostring(value))
+          return RunConsoleCommand(fullName, tostring(value))
         end
       end
     elseif 'addoncommand' == _exp_0 then
-      return func(NULL, {
-        addon,
-        categoryPath,
-        name
-      }, value)
+      return func(ply, value, fullName)
     end
   end
 end

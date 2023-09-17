@@ -1,54 +1,108 @@
+local ENUMS
+ENUMS = CCVCCM.ENUMS
 local GetBitflagFromIndices, BasePanel, CustomNumSlider, CustomPanelContainer, SavablePanel, ContentPanel, TextPanel, CategoryPanel, TabPanel, CAVACPanel, CCVCCPanel, BaseUI, ManagerUI, AddElementUI, EditIconUI, MultilineTextUI, ListInputUI, ProgressUI, LoadUI
+CCVCCM.GetUserInfoValues = function(self)
+  local results = { }
+  for fullName, registeredData in pairs(self.api.data) do
+    local userInfo, realm
+    do
+      local _obj_0 = registeredData.data
+      userInfo, realm = _obj_0.userInfo, _obj_0.realm
+    end
+    if userInfo and realm == 'client' then
+      table.insert(results, {
+        fullName = fullName,
+        type = self:GetNetSingleAddonType(fullName),
+        value = self:_GetAddonVar(fullName)
+      })
+      coroutine.yield(false, results)
+    end
+  end
+  return true, results
+end
+local avuiProcess
+CCVCCM.StartAVUIProcess = function(self)
+  avuiProcess = coroutine.create((function()
+    local _base_0 = self
+    local _fn_0 = _base_0.GetUserInfoValues
+    return function(...)
+      return _fn_0(_base_0, ...)
+    end
+  end)())
+  return timer.UnPause('CCVCCM')
+end
+timer.Create('CCVCCM', 0.015, 0, function()
+  if avuiProcess then
+    local ok, status, results = coroutine.resume(avuiProcess)
+    if not ok then
+      return error(status, results)
+    elseif #results > 64 or status then
+      CCVCCM:StartNet()
+      CCVCCM:AddPayloadToNetMessage({
+        'u8',
+        ENUMS.NET.INIT_REP,
+        'b',
+        status,
+        'u8',
+        #results
+      })
+      for i, result in ipairs(results) do
+        CCVCCM:AddPayloadToNetMessage({
+          's',
+          result.fullName
+        })
+        CCVCCM:AddPayloadToNetMessage({
+          result.type,
+          result.value
+        })
+        results[i] = nil
+      end
+      CCVCCM:FinishNet()
+      if status then
+        avuiProcess = nil
+      end
+    end
+  else
+    return timer.Pause('CCVCCM')
+  end
+end)
+hook.Add('InitPostEntity', 'CCVCCM', function()
+  return CCVCCM:StartAVUIProcess()
+end)
 net.Receive('ccvccm', function(length)
   local operation = CCVCCM:ExtractSingleFromNetMessage('u8')
   local _exp_0 = operation
   if CCVCCM.ENUMS.NET.REP == _exp_0 then
-    local addon, categoryPath, name
-    do
-      local _obj_0 = CCVCCM:ExtractPayloadFromNetMessage({
-        's',
-        'ts',
-        's'
-      })
-      addon, categoryPath, name = _obj_0[1], _obj_0[2], _obj_0[3]
-    end
-    local unitType = CCVCCM:GetNetSingleAddonType(addon, categoryPath, name)
+    local fullName = CCVCCM:ExtractSingleFromNetMessage('s')
+    local unitType = CCVCCM:GetNetSingleAddonType(fullName)
     local value = CCVCCM:ExtractSingleFromNetMessage(unitType)
-    return self:_SetAddonVar(name, value, addon, categoryPath)
+    CCVCCM:Log('Recieved value of ', fullName, ':')
+    if CCVCCM:ShouldLog() then
+      PrintTable(value)
+    end
+    return CCVCCM:_SetAddonVar(fullName, value)
   elseif CCVCCM.ENUMS.NET.QUERY == _exp_0 then
     local cls = ManagerUI:GetInstance()
     if cls then
       for i = 1, CCVCCM:ExtractSingleFromNetMessage('u8') do
-        local isLua = CCVCCM:ExtractSingleFromNetMessage('b')
-        if isLua then
-          local addon, categoryPath, name
-          do
-            local _obj_0 = CCVCCM:ExtractPayloadFromNetMessage({
-              's',
-              'ts',
-              's'
-            })
-            addon, categoryPath, name = _obj_0[1], _obj_0[2], _obj_0[3]
-          end
-          local unitType = CCVCCM:GetNetSingleAddonType(addon, categoryPath, name)
+        local fullName = CCVCCM:ExtractSingleFromNetMessage('s')
+        local registeredData = CCVCCM:_GetRegisteredData(fullName)
+        if registeredData.type == 'addonvar' or registeredData.type == 'addoncommand' then
+          local unitType = CCVCCM:GetNetSingleAddonType(fullName)
           local value = CCVCCM:ExtractSingleFromNetMessage(unitType)
-          cls:ReceiveServerVarQueryResult({
-            addon,
-            categoryPath,
-            name
-          }, value)
+          cls:ReceiveServerVarQueryResult(fullName, value)
         else
-          local name, value
-          do
-            local _obj_0 = CCVCCM:ExtractPayloadFromNetMessage({
-              's',
-              's'
-            })
-            name, value = _obj_0[1], _obj_0[2]
-          end
+          local value = CCVCCM:ExtractSingleFromNetMessage('s')
           cls:ReceiveServerVarQueryResult(name, value)
         end
       end
+    end
+  elseif CCVCCM.ENUMS.NET.INIT_REP == _exp_0 then
+    for i = 1, CCVCCM:ExtractSingleFromNetMessage('u8') do
+      local fullName = CCVCCM:ExtractSingleFromNetMessage('s')
+      local unitType = CCVCCM:GetNetSingleAddonType(fullName)
+      local value = CCVCCM:ExtractSingleFromNetMessage(unitType)
+      CCVCCM:_SetAddonVar(fullName, value)
     end
   end
 end)
@@ -90,13 +144,7 @@ do
   local _class_0
   local _base_0 = {
     Log = function(self, ...)
-      if GetConVar('developer'):GetInt() > 0 then
-        local texts = {
-          ...
-        }
-        table.insert(texts, '\n')
-        return MsgC(self.__class.COLORS.AQUA, '[CCVCCM] ', string.format('%#.2f ', RealTime()), color_white, unpack(texts))
-      end
+      return CCVCCM:Log(self:GetPanel(), ...)
     end,
     SetPanel = function(self, panel)
       self.panel = panel
@@ -174,10 +222,6 @@ do
   _base_0.__class = _class_0
   local self = _class_0
   self.accumulator = 0
-  self.COLORS = {
-    GREEN = Color(0, 255, 0),
-    AQUA = Color(0, 255, 255)
-  }
   BasePanel = _class_0
 end
 do
@@ -526,7 +570,7 @@ do
       self:SetPanel(panel)
       self:WrapFunc(panel, 'PerformLayout', false, function(self, w, h)
         self:SizeToChildren(false, true)
-        return BasePanel:Log('PerformLayout', self)
+        return CCVCCM:Log(self, 'PerformLayout')
       end)
       self:RegisterAsSavable()
       return panel
@@ -780,7 +824,7 @@ do
       self.static = static
       self:WrapFunc(panel, 'PerformLayout', false, function(self, w, h)
         self:SizeToChildren(false, true)
-        return BasePanel:Log('PerformLayout', self)
+        return CCVCCM:Log(self, 'PerformLayout')
       end)
       do
         local _with_0 = vgui.Create('DTextEntry', panel)
@@ -1273,7 +1317,7 @@ do
         local padding = self:GetPadding()
         panel = self:GetActiveTab():GetPanel()
         self:SetTall(panel:GetTall() + 20 + padding * 2)
-        return BasePanel:Log('PerformLayout', self)
+        return CCVCCM:Log(self, 'PerformLayout')
       end)
       if data.tabs then
         local _list_0 = data.tabs
@@ -1320,36 +1364,26 @@ do
       self.arguments = arguments
     end,
     SendToServer = function(self)
-      local addon, categoryPath, name
-      do
-        local _obj_0 = self.data
-        addon, categoryPath, name = _obj_0.internalName[1], _obj_0.internalName[2], _obj_0.internalName[3]
-      end
+      local fullName = self.data.fullName
       local payload = {
         'u8',
         CCVCCM.ENUMS.NET.EXEC,
         'b',
         true,
         's',
-        addon,
-        'ts',
-        categoryPath,
-        's',
-        name
+        fullName
       }
-      table.insert(payload, CCVCCM:GetNetSingleAddonType(addon, categoryPath, name))
+      table.insert(payload, CCVCCM:GetNetSingleAddonType(fullName))
       table.insert(payload, self.arguments)
       return CCVCCM:Send(payload)
     end,
     UpdateAddonVar = function(self)
-      local elementType, internalName
+      local elementType, fullName
       do
         local _obj_0 = self.data
-        elementType, internalName = _obj_0.elementType, _obj_0.internalName
+        elementType, fullName = _obj_0.elementType, _obj_0.fullName
       end
-      local addon, categoryPath, name
-      addon, categoryPath, name = internalName[1], internalName[2], internalName[3]
-      local registeredData = CCVCCM:_GetRegisteredData(name, addon, categoryPath)
+      local registeredData = CCVCCM:_GetRegisteredData(fullName)
       if registeredData then
         local apiType, realm, flags, func
         apiType, realm, flags, func = registeredData.type, registeredData.data.realm, registeredData.data.flags, registeredData.data.func
@@ -1362,9 +1396,9 @@ do
         end
         if realm == 'client' then
           if apiType == 'addonvar' then
-            return CCVCCM:_SetAddonVar(name, self.arguments, addon, categoryPath)
+            return CCVCCM:SetVarValue(fullName, self.arguments)
           else
-            return func(LocalPlayer(), internalName, self.arguments)
+            return CCVCCM:RunCommand(fullName, LocalPlayer(), self.arguments)
           end
         else
           return self:SendToServer()
@@ -1416,9 +1450,23 @@ do
       end
       return dataType
     end,
+    FilterElements = function(self, text)
+      local fullName
+      fullName = self.data.fullName
+      local displayName
+      displayName = CCVCCM:_GetRegisteredData(fullName).data.name
+      local haystack = string.lower(fullName .. '\n' .. displayName)
+      do
+        local _with_0 = self:GetPanel()
+        _with_0:SetVisible(tobool(string.find(haystack, text, 1, true)))
+        _with_0:GetParent():InvalidateLayout()
+        _with_0:GetParent():GetParent():InvalidateLayout()
+        return _with_0
+      end
+    end,
     SaveToTable = function(self)
       return {
-        internalName = self.data.internalName,
+        fullName = self.data.fullName,
         elementType = 'addon',
         arguments = self.arguments
       }
@@ -1451,28 +1499,26 @@ do
       self.window = window
       self:InitializeElementPanel(parent, static)
       local panel = self:GetPanel()
-      local arguments, internalName
-      arguments, internalName = data.arguments, data.internalName
-      local addon, categoryPath, name
-      addon, categoryPath, name = internalName[1], internalName[2], internalName[3]
+      local arguments, fullName
+      arguments, fullName = data.arguments, data.fullName
       local apiType, realm, displayName, default, manual, typeInfo
       do
-        local _obj_0 = CCVCCM:_GetRegisteredData(name, addon, categoryPath)
+        local _obj_0 = CCVCCM:_GetRegisteredData(fullName)
         apiType, realm, displayName, default, manual, typeInfo = _obj_0.type, _obj_0.data.realm, _obj_0.data.name, _obj_0.data.default, _obj_0.data.manual, _obj_0.data.typeInfo
-      end
-      if data.arguments ~= nil then
-        self.arguments = data.arguments
-      else
-        self.arguments = default
       end
       local DTYPES = AddElementUI.DATA_TYPES
       local dataType = self:TranslateTypeInfo(typeInfo)
-      BasePanel:Log('TranslateTypeInfo', panel)
-      if GetConVar('developer'):GetInt() > 0 then
+      self:Log('TranslateTypeInfo')
+      if CCVCCM:ShouldLog() then
         PrintTable(dataType)
       end
       local isClient = realm == 'client'
       local isVar = apiType == 'addonvar'
+      if not isVar and arguments ~= nil then
+        self.arguments = arguments
+      else
+        self.arguments = CCVCCM:_GetAddonVar(fullName)
+      end
       do
         local controlPanel = vgui.Create('DPanel', panel)
         controlPanel:SetTall(22)
@@ -1718,7 +1764,7 @@ do
           _with_0:SetDark(true)
         end
         do
-          local _with_0 = self:CreateButton(hostPanel, dataType.name, 2)
+          local _with_0 = self:CreateButton(hostPanel, dataType.name or 'Edit List', 2)
           _with_0.DoClick = function()
             local listInputUI = ListInputUI(0.5, 0.5, dataType, self.arguments)
             return listInputUI:SetCallback(function(classData, values)
@@ -1731,7 +1777,7 @@ do
         end
       end
       if (realm or 'server') == 'server' then
-        return self.window:AddServerVarQueryRequest(internalName, self)
+        return self.window:AddServerVarQueryRequest(fullName, self)
       end
     end,
     __base = _base_0,
@@ -2365,51 +2411,17 @@ do
       return self.controlPanelVisibility
     end,
     AddServerVarQueryRequest = function(self, var, cls)
-      if istable(var) then
-        local addon, categoryPath, name
-        addon, categoryPath, name = var[1], var[2], var[3]
-        local _update_0 = addon
-        self.serverAddonVarClass[_update_0] = self.serverAddonVarClass[_update_0] or { }
-        local currentTable = self.serverAddonVarClass[addon]
-        for _index_0 = 1, #categoryPath do
-          local category = categoryPath[_index_0]
-          local _update_1 = category
-          currentTable[_update_1] = currentTable[_update_1] or { }
-          currentTable = currentTable[category]
-        end
-        local _update_1 = name
-        currentTable[_update_1] = currentTable[_update_1] or { }
-        table.insert(currentTable[name], cls)
-      else
-        local _update_0 = var
-        self.serverConVarClass[_update_0] = self.serverConVarClass[_update_0] or { }
-        table.insert(self.serverConVarClass[var], cls)
-      end
+      local _update_0 = var
+      self.serverVarClass[_update_0] = self.serverVarClass[_update_0] or { }
+      table.insert(self.serverVarClass[var], cls)
       self.serverVarQueryRequests[var] = true
     end,
     FulfillServerVarQueryRequests = function(self)
       if next(self.serverVarQueryRequests) then
         local varSendTable = { }
         for k, v in pairs(self.serverVarQueryRequests) do
-          if istable(k) then
-            table.insert(varSendTable, {
-              'b',
-              true,
-              's',
-              k[1],
-              'ts',
-              k[2],
-              's',
-              k[3]
-            })
-          else
-            table.insert(varSendTable, {
-              'b',
-              false,
-              's',
-              k
-            })
-          end
+          table.insert(varSendTable, 's')
+          table.insert(varSendTable, k)
           self.serverVarQueryRequests[k] = nil
           if #varSendTable >= 127 then
             break
@@ -2420,43 +2432,17 @@ do
           'u8',
           CCVCCM.ENUMS.NET.QUERY,
           'u8',
-          #varSendTable
+          #varSendTable / 2
         })
-        for _index_0 = 1, #varSendTable do
-          local payload = varSendTable[_index_0]
-          CCVCCM:AddPayloadToNetMessage(payload)
-        end
+        CCVCCM:AddPayloadToNetMessage(varSendTable)
         return CCVCCM:FinishNet()
       end
     end,
     ReceiveServerVarQueryResult = function(self, var, val)
-      if istable(var) then
-        local addon, categoryPath, name
-        addon, categoryPath, name = var[1], var[2], var[3]
-        local _update_0 = addon
-        self.serverAddonVarClass[_update_0] = self.serverAddonVarClass[_update_0] or { }
-        local currentTable = self.serverAddonVarClass[addon]
-        for _index_0 = 1, #categoryPath do
-          local category = categoryPath[_index_0]
-          local _update_1 = category
-          currentTable[_update_1] = currentTable[_update_1] or { }
-          currentTable = currentTable[category]
-        end
-        local _update_1 = name
-        currentTable[_update_1] = currentTable[_update_1] or { }
-        local _list_0 = currentTable[name]
-        for _index_0 = 1, #_list_0 do
-          local cls = _list_0[_index_0]
-          cls:SetValue(val)
-        end
-      else
-        local _update_0 = var
-        self.serverConVarClass[_update_0] = self.serverConVarClass[_update_0] or { }
-        local _list_0 = self.serverConVarClass[var]
-        for _index_0 = 1, #_list_0 do
-          local cls = _list_0[_index_0]
-          cls:SetValue(val)
-        end
+      local _list_0 = self.serverVarClass[var]
+      for _index_0 = 1, #_list_0 do
+        local cls = _list_0[_index_0]
+        cls:SetValue(val)
       end
     end,
     AddMenuOption = function(self, menuBar, menuName, menuOptions)
@@ -2513,7 +2499,7 @@ do
         local padding = self:GetPadding()
         local panel = self:GetActiveTab():GetPanel()
         self:SetTall(panel:GetTall() + 20 + padding * 2)
-        return BasePanel:Log('PerformLayout', self)
+        return CCVCCM:Log(self, 'PerformLayout')
       end)
     end,
     PromptClear = function(self)
@@ -2547,7 +2533,7 @@ do
         return Derma_Message('Save your current layout first!', 'Load Error', 'OK')
       else
         return Derma_Query("This will set the current save file (ccvccm/" .. tostring(self.__class.saveName) .. ".json) to be automatically loaded when the CCVCCM is opened. Are you sure?", 'Set As Autoloaded File', 'Yes', (function()
-          return CCVCCM:SetVarValue('ccvccm', { }, 'autoload', self.__class.saveName)
+          return CCVCCM:SetVarValue('ccvccm_autoload', self.__class.saveName)
         end), 'No')
       end
     end,
@@ -2845,10 +2831,9 @@ do
           self.scrollPanel = _with_0
         end
         self.controlPanels = { }
-        self.serverAddonVarClass = { }
-        self.serverConVarClass = { }
+        self.serverVarClass = { }
         self.serverVarQueryRequests = { }
-        local saveFile = CCVCCM:GetVarValue('ccvccm', { }, 'autoload')
+        local saveFile = CCVCCM:GetVarValue('ccvccm_autoload')
         if saveFile ~= '' then
           return self:LoadFromFile(saveFile)
         end

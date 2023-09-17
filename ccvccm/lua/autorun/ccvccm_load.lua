@@ -1,13 +1,10 @@
 --[[
 what still needs to be done:
 
-autosaving of addon vars
-finish implementing CCVCCMPointer methods
-accomodate for ConVar / ConCommand flags on addon vars / commands
 foolproofing
+ability to retexture CCVCCM window
 
 ability to copy all elements in spawnmenu [tab['s category['s subcategory] ] ]
-
 super keybinds
 	1 2 -> press 1 then press 2
 	1+2 -> press 1 and 2
@@ -35,13 +32,13 @@ super keybinds
 	1+2,!(1+2) 1+3 or 1+2 -2+!(1+2) 1+3
 ]]
 
--- if you want to use Moonloader, make sure to also remove all .lua files in lua/ccvccm!
+-- -- if you want to use Moonloader, make sure to also remove all .lua files in lua/ccvccm!
 -- require 'moonloader'
 -- moonloader.PreCacheDir 'ccvccm'
 
 CCVCCM = {
-	_VERSION = '0.2.0',
-	_VERSIONDATE = '2023-09-04',
+	_VERSION = '0.3.0',
+	_VERSIONDATE = '2023-09-16',
 	_VERSIONNUMBER = 200
 }
 
