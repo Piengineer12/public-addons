@@ -752,6 +752,17 @@ local modifiers = {
 		cost = 2,
 		flags = InsaneStats.WPASS2_FLAGS.XP
 	},
+	starlight = {
+		prefix = "Starlit",
+		suffix = "Starlight",
+		modifiers = {
+			starlight = 1.1,
+			starlight_defence = 1.1,
+			starlight_glow = 1.1
+		},
+		cost = 2,
+		max = 5
+	},
 	
 	-- utility
 	quick = {
@@ -795,7 +806,7 @@ local modifiers = {
 		modifiers = {
 			aux_drain = 1/1.1
 		},
-		max = 7,
+		max = 8,
 		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SUIT_POWER),
 	},
 	
@@ -855,6 +866,16 @@ local modifiers = {
 			alt_firerate = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		weight = 0.5,
+		max = 10
+	},
+	adrenaline = {
+		prefix = "Adrenal",
+		suffix = "Adrenaline",
+		modifiers = {
+			alt_dilation = 1.1
+		},
+		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SP_ONLY),
 		weight = 0.5,
 		max = 10
 	},
@@ -1107,6 +1128,19 @@ local modifiers = {
 		weight = 0.5,
 		cost = 2,
 		max = 10
+	},
+	quirk = {
+		prefix = "Quirky",
+		suffix = "Quirkiness",
+		modifiers = {
+			ctrl_timeboost = 1.1,
+			ctrl_timeboost_damage = 1.1,
+			ctrl_timeboost_reset = 1.1
+		},
+		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SP_ONLY),
+		weight = 0.5,
+		cost = 2,
+		max = 5
 	},
 	
 	-- defensive
@@ -1691,6 +1725,20 @@ local attributes = {
 	},
 	
 	-- kills and hits
+	starlight = {
+		display = "%ss starlit from kills and props",
+		mul = 30,
+		nopercent = true
+	},
+	starlight_defence = {
+		display = "+1%% defence, scaled by starlit duration",
+		mul = 30
+	},
+	starlight_glow = {
+		display = "+2 glow radius, scaled by starlit duration",
+		mul = 30,
+		invert = true
+	},
 	kill5s_damage = {
 		display = "%s damage dealt for 5s after kill",
 		mul = 2
@@ -2112,6 +2160,11 @@ local attributes = {
 		display = "%s fire rate after slow walk double tap, 60s cooldown",
 		mul = 8
 	},
+	alt_dilation = {
+		display = "-50%% game speed for %ss after slow walk double tap, 60s cooldown",
+		mul = 30,
+		nopercent = true
+	},
 	--[[alt_speed = {
 		display = "%s movement speed after Alt double tap, 60s cooldown",
 		mul = 8
@@ -2132,7 +2185,20 @@ local attributes = {
 		display = "%s aux power drain rate",
 		invert = true,
 		mul = 2
-	}
+	},
+	ctrl_timeboost = {
+		display = "%s game speed per second while crouch key held",
+		mul = 0.2,
+		invert = true
+	},
+	ctrl_timeboost_damage = {
+		display = "+1%% damage dealt per stack of Game Speed Up",
+		mul = 0.2
+	},
+	ctrl_timeboost_reset = {
+		display = "Game Speed Up expires after releasing crouch key",
+		mul = 0.2
+	},
 }
 
 local statusEffects = {
@@ -2397,7 +2463,22 @@ local statusEffects = {
 		typ = 1,
 		img = Material("insane_stats/status_effects/crystal-shine.png", "mips smooth")
 	},
+	gamespeed_up = {
+		name = "Game Speed Up",
+		typ = -1,
+		img = Material("insane_stats/status_effects/clockwork.png", "mips smooth")
+	},
 	
+	starlight = {
+		name = "Starlit",
+		typ = 0,
+		img = Material("insane_stats/status_effects/sundial.png", "mips smooth"),
+		expiry = SERVER and function(ent, level, attacker)
+			if IsValid(ent.insaneStats_Starlight) then
+				ent.insaneStats_Starlight:Remove()
+			end
+		end
+	},
 	invincible = {
 		name = "Invincible",
 		typ = 1,
@@ -2444,6 +2525,19 @@ local statusEffects = {
 		name = "Haste Cooldown",
 		typ = -1,
 		img = Material("insane_stats/status_effects/hand.png", "mips smooth")
+	},
+	alt_gamespeed_down = {
+		name = "Adrenaline Game Speed Down",
+		typ = 2,
+		img = Material("insane_stats/status_effects/sands-of-time.png", "mips smooth"),
+		expiry = SERVER and function(ent, level, attacker)
+			ent:InsaneStats_ApplyStatusEffect("alt_gamespeed_cooldown", 1, 60)
+		end
+	},
+	alt_gamespeed_cooldown = {
+		name = "Adrenaline Cooldown",
+		typ = -1,
+		img = Material("insane_stats/status_effects/life-support.png", "mips smooth")
 	},
 	--[[alt_speed_up = {
 		name = "Agility Speed Up",
@@ -2492,8 +2586,12 @@ hook.Add("InsaneStatsWPASS2AttributesChanged", "InsaneStatsSharedWPASS2", functi
 		local newClipMul = ent.insaneStats_Attributes.clip or 1
 		
 		local weaponTable = ent:GetTable()
-		local entNewMaxClip1 = weaponTable.Primary and weaponTable.Primary.ClipSize * newClipMul / oldClipMul or -1
-		local entNewMaxClip2 = weaponTable.Secondary and weaponTable.Secondary.ClipSize * newClipMul / oldClipMul or -1
+		local entNewMaxClip1 = weaponTable.Primary
+			and tonumber(weaponTable.Primary.ClipSize)
+			and weaponTable.Primary.ClipSize * newClipMul / oldClipMul or -1
+		local entNewMaxClip2 = weaponTable.Secondary
+			and tonumber(weaponTable.Secondary.ClipSize)
+			and weaponTable.Secondary.ClipSize * newClipMul / oldClipMul or -1
 		
 		if entNewMaxClip1 > 0 then
 			weaponTable.Primary.ClipSize = math.ceil(entNewMaxClip1)
@@ -2649,12 +2747,12 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 			if (ply.insaneStats_LastAltPress or 0) + 1 > CurTime() then
 				ply.insaneStats_LastAltPress = 0
 				
-				local invisibilityDuration = ply:InsaneStats_GetAttributeValue("alt_invisible") - 1
-				if ply:InsaneStats_GetStatusEffectLevel("invisible_cooldown") <= 0 and invisibilityDuration ~= 0 and not ply:IsFlagSet(FL_NOTARGET) then
+				local duration = ply:InsaneStats_GetAttributeValue("alt_invisible") - 1
+				if ply:InsaneStats_GetStatusEffectLevel("invisible_cooldown") <= 0 and duration ~= 0 and not ply:IsFlagSet(FL_NOTARGET) then
 					ply:AddFlags(FL_NOTARGET)
 					ply:RemoveFlags(FL_AIMTARGET)
 					ply:AddEffects(bit.bor(EF_NOSHADOW, EF_NODRAW, EF_NORECEIVESHADOW))
-					ply:InsaneStats_ApplyStatusEffect("invisible", 1, invisibilityDuration)
+					ply:InsaneStats_ApplyStatusEffect("invisible", 1, duration)
 				end
 				
 				local stacks = (ply:InsaneStats_GetAttributeValue("alt_damage") - 1) * 100
@@ -2669,6 +2767,13 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 				and ply:InsaneStats_GetStatusEffectLevel("alt_firerate_up") <= 0
 				and stacks ~= 0 then
 					ply:InsaneStats_ApplyStatusEffect("alt_firerate_up", stacks, 10)
+				end
+				
+				duration = ply:InsaneStats_GetAttributeValue("alt_dilation") - 1
+				if ply:InsaneStats_GetStatusEffectLevel("alt_gamespeed_cooldown") <= 0
+				and ply:InsaneStats_GetStatusEffectLevel("alt_gamespeed_down") <= 0
+				and duration ~= 0 then
+					ply:InsaneStats_ApplyStatusEffect("alt_gamespeed_down", 50, duration)
 				end
 				
 				--[[stacks = (ply:InsaneStats_GetAttributeValue("alt_speed") - 1) * 100

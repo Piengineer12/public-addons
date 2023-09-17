@@ -19,7 +19,14 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 		-- if the entity is valid, update markedEntityInfo
 		local ent = Entity(markedEntityInfo.index)
 		if (IsValid(ent) and not ent:IsDormant()) then
-			markedEntityInfo.pos = ent:WorldSpaceCenter()
+			-- figure out where bone 0 is positioned
+			-- this won't ALWAYS be the head, but we can't use too much processing power here
+			local boneIndex = ent:GetHitBoxBone(0, 0)
+			local pos = ent:WorldSpaceCenter()
+			if boneIndex then
+				pos = ent:GetBonePosition(boneIndex)
+			end
+			markedEntityInfo.pos = pos
 			markedEntityInfo.class = ent:GetClass()
 			--[[markedEntityInfo.hp = ent:InsaneStats_GetHealth()
 			markedEntityInfo.mhp = ent:InsaneStats_GetMaxHealth()

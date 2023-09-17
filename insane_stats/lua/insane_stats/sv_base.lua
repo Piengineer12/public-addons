@@ -108,6 +108,16 @@ hook.Add("AcceptInput", "InsaneStats", function(ent, input, activator, caller, v
 			})
 			ent.insaneStats_DisplayedInChat = true
 		end
+	elseif InsaneStats:GetConVarValue("flashlight_disable_fix") then
+		if input == "disableflashlight" and ent:IsPlayer() then
+			ent.insaneStats_FlashlightDisabled = true
+		elseif input == "enableflashlight" and ent:IsPlayer() then
+			ent.insaneStats_FlashlightDisabled = nil
+		elseif input == "modifyspeed" and ent:GetClass() == "player_speedmod" then
+			for i,v in ipairs(player.GetAll()) do
+				v.insaneStats_FlashlightDisabled = true
+			end
+		end
 	end
 end)
 
@@ -176,6 +186,18 @@ hook.Add("PlayerUse", "InsaneStats", function(ply, ent)
 	end
 end)
 
+local color_light_red = Color(255, 127, 127)
+hook.Add("PlayerSwitchFlashlight", "InsaneStats", function(ply, newState)
+	if newState and ply.insaneStats_FlashlightDisabled then
+		net.Start("insane_stats")
+		net.WriteUInt(5, 8)
+		net.WriteString("Your flashlight won't turn on...")
+		net.WriteColor(color_light_red)
+		net.Send(ply)
+		return false
+	end
+end)
+
 hook.Add("Initialize", "InsaneStats", function()
 	currentSaveFile = InsaneStats:GetConVarValue("save_file")
 end)
@@ -213,4 +235,8 @@ hook.Add("PlayerSelectSpawn", "InsaneStats", function(ply, transition)
 			end
 		end
 	end
+end)
+
+hook.Add("PlayerSpawn", "InsaneStats", function(ply, transition)
+	if transition then ply.insaneStats_FlashlightDisabled = nil end
 end)

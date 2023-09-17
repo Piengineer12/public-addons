@@ -8,8 +8,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_REPAIR_VERSION = "2.0.4"
-LUA_REPAIR_VERSION_DATE = "2023-09-01"
+LUA_REPAIR_VERSION = "2.0.5"
+LUA_REPAIR_VERSION_DATE = "2023-09-09"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
@@ -159,6 +159,10 @@ local function FixAllErrors()
 		return oldExplode(separator, str, withpattern)
 	end
 	
+	debug.setmetatable(nil,NIL)
+	--debug.setmetatable("",STRING)
+	--debug.setmetatable(0,NUMBER)
+	
 	local oldadd,oldsub = VECTOR.__add,VECTOR.__sub
 	local oldmul,olddiv = VECTOR.__mul,VECTOR.__div
 	VECTOR.__add = function(a,b)
@@ -281,13 +285,6 @@ local function FixAllErrors()
 		end
 	end
 	
-	local oldEntsFindInSphere = ents.FindInSphere
-	function ents.FindInSphere(origin, radius, ...)
-		origin = origin or vector_origin
-		radius = radius or 0
-		return oldEntsFindInSphere(origin, radius, ...)
-	end
-	
 	local oldGetCurrentCommand = PLAYER.GetCurrentCommand
 	PLAYER.GetCurrentCommand = function(ply, ...)
 		if ply == GetPredictionPlayer() then return oldGetCurrentCommand(ply, ...)
@@ -350,22 +347,44 @@ local function FixAllErrors()
 		end
 	end
 
-	local oldNetWriteString = net.WriteString
-	function net.WriteString(str, ...)
-		oldNetWriteString(str or '', ...)
-	end
-	
-	if CLIENT then
-		local oldIsKeyDown = input.IsKeyDown
-		function input.IsKeyDown(key, ...)
-			if not key then return false end
-			return oldIsKeyDown(key, ...)
+	local oldCreateClientConVar = CreateClientConVar
+	function CreateClientConVar(name, default, shouldsave, userinfo, helptext, min, max, ...)
+		if min and not isnumber(min) then
+			LogError("Some code attempted to call CreateClientConVar with non-number min argument.")
+			min = nil
 		end
+		if max and not isnumber(max) then
+			LogError("Some code attempted to call CreateClientConVar with non-number max argument.")
+			max = nil
+		end
+		return oldCreateClientConVar(name, default, shouldsave, userinfo, helptext, min, max, ...)
+	end
+
+	local oldCreateConVar = CreateConVar
+	function CreateConVar(name, default, flags, helptext, min, max, ...)
+		if min and not isnumber(min) then
+			LogError("Some code attempted to call CreateConVar with non-number min argument.")
+			min = nil
+		end
+		if max and not isnumber(max) then
+			LogError("Some code attempted to call CreateConVar with non-number max argument.")
+			max = nil
+		end
+		return oldCreateConVar(name, default, flags, helptext, min, max, ...)
 	end
 	
-	debug.setmetatable(nil,NIL)
-	--debug.setmetatable("",STRING)
-	--debug.setmetatable(0,NUMBER)
+	local oldEntsFindInSphere = ents.FindInSphere
+	function ents.FindInSphere(origin, radius, ...)
+		if not origin then
+			LogError("Some code attempted to call ents.FindInSphere without a sphere center.")
+			origin = vector_origin
+		end
+		if not radius then
+			LogError("Some code attempted to call ents.FindInSphere without a radius.")
+			radius = 0
+		end
+		return oldEntsFindInSphere(origin, radius, ...)
+	end
 
 	local oldNetStart = net.Start
 	net.Start = function(...)
@@ -375,8 +394,47 @@ local function FixAllErrors()
 			else
 				net.SendToServer()
 			end
+			LogError("Some code attempted to call net.Start without finishing the previous net message.")
 		end
 		oldNetStart(...)
+	end
+
+	local oldNetWriteString = net.WriteString
+	function net.WriteString(str, ...)
+		if not str then
+			LogError("Some code attempted to call net.WriteString without providing a string.")
+			str = ''
+		end
+		return oldNetWriteString(str, ...)
+	end
+	
+	local oldUtilIsValidModel = util.IsValidModel
+	function util.IsValidModel(model, ...)
+		if not isstring(model) then
+			LogError("Some code attempted to call util.IsValidModel with an invalid argument.")
+			model = tostring(model)
+		end
+		return oldUtilIsValidModel(model, ...)
+	end
+	
+	if CLIENT then
+		local oldIsKeyDown = input.IsKeyDown
+		function input.IsKeyDown(key, ...)
+			if not key then
+				LogError("Some code attempted to call input.IsKeyDown without specifying a key.")
+				return false
+			end
+			return oldIsKeyDown(key, ...)
+		end
+
+		local oldLanguageAdd = language.Add
+		function language.Add(key, value, ...)
+			if not key then
+				LogError("Some code attempted to call language.Add without specifying a language key.")
+			elseif not value then
+				LogError("Some code attempted to call language.Add without specifying a language value.")
+			else return oldLanguageAdd(key, value, ...) end
+		end
 	end
 
 	Log("Primitives patched!")
@@ -411,7 +469,7 @@ local function FixAllErrors()
 		end
 	end
 	if DLib then
-		DLib.MessageWarning("An addon is trying to override DLib's hook system! This is stupid and will cause errors to occur!")
+		DLib.MessageWarning("DLib hook system is being overwritten by another addon - THIS IS STUPID AND WILL CAUSE ERRORS")
 		Log("DLib, shut up and hold still...")
 	end
 	Log("Hooks patched!")

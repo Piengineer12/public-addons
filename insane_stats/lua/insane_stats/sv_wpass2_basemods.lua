@@ -184,6 +184,13 @@ local function CalculateDamage(vic, attacker, dmginfo)
 	
 	totalMul = totalMul * (1 + vic:InsaneStats_GetStatusEffectLevel("perhit_defence_down")/100)
 	totalMul = totalMul * (1 - attacker:InsaneStats_GetStatusEffectLevel("menacing_damage_down")/100)
+
+	if vic:InsaneStats_GetAttributeValue("starlight_defence") ~= 1 then
+		totalMul = totalMul / (1 + vic:InsaneStats_GetStatusEffectDuration("starlight") / 100)
+	end
+	if attacker:InsaneStats_GetAttributeValue("ctrl_timeboost_damage") ~= 1 then
+		totalMul = totalMul * (1 + attacker:InsaneStats_GetStatusEffectLevel("gamespeed_up") / 100)
+	end
 	
 	--totalMul = totalMul * (1 + attacker:InsaneStats_GetStatusEffectLevel("hit10s_damage_up") / 100)
 	
@@ -525,6 +532,7 @@ hook.Add("EntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo)
 			if damageMultiplier > 0 then
 				damageMultiplier = scaleCVars.head:GetFloat() / damageMultiplier
 			end
+			dmginfo:ScaleDamage(damageMultiplier)
 			vic.insaneStats_LastHitGroup = HITGROUP_HEAD
 			vic.insaneStats_LastHitGroupUpdate = engine.TickCount()
 		end
@@ -550,7 +558,8 @@ hook.Add("EntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo)
 				return true
 			end
 			
-			if vic:InsaneStats_IsMob() and not attacker:InsaneStats_IsValidEnemy(vic) and damageTiers[#damageTiers] > 0 then
+			if vic:InsaneStats_IsMob() and damageTiers[#damageTiers] > 0
+			and (not attacker:InsaneStats_IsValidEnemy(vic) or vic:GetClass() == "prop_dropship_container") then
 				if dmginfo:IsExplosionDamage() then
 					vic:InsaneStats_ApplyKnockback(dmginfo:GetDamageForce())
 				end
@@ -874,7 +883,7 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 							dmginfo:SetDamage(damage)
 							dmginfo:SetMaxDamage(damage)
 							dmginfo:SetDamageForce(vector_origin)
-							dmginfo:SetDamageType(bit.bor(DMG_AIRBOAT, DMG_ENERGYBEAM))
+							dmginfo:SetDamageType(bit.bor(DMG_SONIC, DMG_ENERGYBEAM))
 							dmginfo:SetReportedPosition(attacker:WorldSpaceCenter())
 							
 							local traceResult = {}
@@ -1219,6 +1228,9 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsWPASS2", function(victim, at
 			stacks = attacker:InsaneStats_GetAttributeValue("kill5s_damageaura") - 1
 			attacker:InsaneStats_ApplyStatusEffect("damage_aura", stacks, 5, {extend = true})
 			
+			local duration = attacker:InsaneStats_GetAttributeValue("starlight") - 1
+			attacker:InsaneStats_ApplyStatusEffect("starlight", 1, duration, {extend = true})
+			
 			if attacker:InsaneStats_IsValidAlly(victim) then
 				stacks = (1 - attacker:InsaneStats_GetAttributeValue("kill5s_ally_damage")) * 100
 				attacker:InsaneStats_ApplyStatusEffect("damage_down", stacks, 5, {extend = true})
@@ -1417,6 +1429,22 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 		for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("stack_firerate_up")) do
 			v:InsaneStats_SetStatusEffectLevel("stack_firerate_up", v:InsaneStats_GetStatusEffectLevel("stack_firerate_up") * decayRate)
 		end
+		for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("starlight")) do
+			local radius = v:InsaneStats_GetStatusEffectDuration("starlight") * 2
+			local brightness = math.max(radius / 2048 - 1, 0)
+			radius = math.min(radius, 2048)
+			if not IsValid(v.insaneStats_Starlight) then
+				local light = ents.Create("light_dynamic")
+				light:SetPos(v:WorldSpaceCenter())
+				light:SetParent(v)
+				light:SetKeyValue("_light", "255 255 255")
+				light:SetKeyValue("style", "12")
+				light:Spawn()
+				v.insaneStats_Starlight = light
+			end
+			v.insaneStats_Starlight:Fire("brightness", brightness)
+			v.insaneStats_Starlight:Fire("distance", radius)
+		end
 		
 		if tickIndex == 0 then
 			CauseStatusEffectDamage({
@@ -1430,7 +1458,7 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 			CauseStatusEffectDamage({
 				stat = "cosmicurse",
 				ammoType = 8,
-				damageType = bit.bor(DMG_SLASH, DMG_SLOWBURN, DMG_BLAST, DMG_NERVEGAS, DMG_AIRBOAT, DMG_VEHICLE, DMG_SHOCK, DMG_ENERGYBEAM)
+				damageType = bit.bor(DMG_SLASH, DMG_SLOWBURN, DMG_BLAST, DMG_NERVEGAS, DMG_SONIC, DMG_VEHICLE, DMG_SHOCK, DMG_ENERGYBEAM)
 			})
 		
 			tempTimeStart = SysTime()
@@ -1541,6 +1569,16 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 					local stacks = (k:InsaneStats_GetAttributeValue("toggle_damage")-1)*100
 					k:InsaneStats_ApplyStatusEffect(math.random() < 0.5 and "arcane_defence_up" or "arcane_damage_up", stacks, 5)
 				end
+				if k:IsPlayer() then
+					if k:KeyDown(IN_DUCK) then
+						local stacks = (k:InsaneStats_GetAttributeValue("ctrl_timeboost") - 1) * 100 * timerResolution
+						if stacks ~= 0 then
+							k:InsaneStats_ApplyStatusEffect("gamespeed_up", stacks, math.huge, {amplify = true})
+						end
+					else
+						k:InsaneStats_ClearStatusEffect("gamespeed_up")
+					end
+				end
 				
 				timeIndex[3] = timeIndex[3] + SysTime() - tempTimeStart
 			end
@@ -1552,11 +1590,13 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 			if IsValid(k.insaneStats_MarkedEntity) then 
 				local ent = k.insaneStats_MarkedEntity
 				if k:IsPlayer() then
+					local pos = ent:HeadTarget(k:WorldSpaceCenter()) or ent:WorldSpaceCenter()
+					pos = pos:IsZero() and ent:WorldSpaceCenter() or pos
 					-- send a net message about the current entity
 					net.Start("insane_stats", true)
 					net.WriteUInt(4, 8)
 					net.WriteUInt(ent:EntIndex(), 16)
-					net.WriteVector(ent:WorldSpaceCenter())
+					net.WriteVector(pos)
 					net.WriteString(ent:GetClass())
 					net.WriteDouble(ent:InsaneStats_GetHealth())
 					net.WriteDouble(ent:InsaneStats_GetMaxHealth())
@@ -1624,12 +1664,18 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsWPASS2", function(ent)
 	if ent:InsaneStats_IsMob() then
 		rapidThinkEntities[ent] = true
 	end
+	if IsValid(ent.insaneStats_Starlight) then
+		ent.insaneStats_Starlight:Remove()
+	end
 	ent:InsaneStats_ClearAllStatusEffects()
 end)
 
 hook.Add("PlayerSpawn", "InsaneStatsWPASS2", function(ply, fromTransition)
 	entities[ply] = true
 	rapidThinkEntities[ply] = true
+	if IsValid(ply.insaneStats_Starlight) then
+		ply.insaneStats_Starlight:Remove()
+	end
 	if InsaneStats:GetConVarValue("wpass2_enabled") then
 		if fromTransition then
 			ply:InsaneStats_ClearAllStatusEffects()
@@ -1841,7 +1887,7 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 				if (k:IsPlayer() and not k:InVehicle()) then
 					--print(InsaneStats.totalTimeDilation)
 					local plyVel = k:GetVelocity()
-					local speedFactor = (plyVel.x^2 + plyVel.y^2)^0.25 / 20
+					local speedFactor = plyVel:Length2DSqr()^0.25 / 20
 					if k:InsaneStats_GetAttributeValue("speed_dilation") ~= 1 then
 						InsaneStats.totalTimeDilation = InsaneStats.totalTimeDilation
 						* (1 + (k:InsaneStats_GetAttributeValue("speed_dilation") - 1) * speedFactor)
@@ -1855,6 +1901,9 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 						end
 					end]]
 				end
+				
+				InsaneStats.totalTimeDilation = InsaneStats.totalTimeDilation / (1+k:InsaneStats_GetStatusEffectLevel("gamespeed_up")/100)
+				InsaneStats.totalTimeDilation = InsaneStats.totalTimeDilation / (1-k:InsaneStats_GetStatusEffectLevel("alt_gamespeed_down")/100)
 			end
 		end
 		
@@ -1881,9 +1930,12 @@ local function ProcessBreakEvent(victim, attacker)
 		attacker = attacker.insaneStats_LastAttacker
 	end]]
 	
-	if IsValid(attacker) and victim:GetCollisionGroup() ~= COLLISION_GROUP_DEBRIS then
-		stacks = (attacker:InsaneStats_GetAttributeValue("kill1s_xp") - 1) * 100
+	if IsValid(attacker) and victim:GetCollisionGroup() ~= COLLISION_GROUP_DEBRIS
+	and not victim.insaneStats_SuppressCoinDrops then
+		local stacks = (attacker:InsaneStats_GetAttributeValue("kill1s_xp2") - 1) * 100
 		attacker:InsaneStats_ApplyStatusEffect("masterful_xp", stacks, 1, {extend = true})
+		local duration = attacker:InsaneStats_GetAttributeValue("starlight") - 1
+		attacker:InsaneStats_ApplyStatusEffect("starlight", 1, duration, {extend = true})
 		
 		local inflictor = attacker.GetActiveWeapon and attacker:GetActiveWeapon() or attacker
 		local xpMul = InsaneStats:GetConVarValue("xp_other_mul")

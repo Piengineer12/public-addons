@@ -10,7 +10,7 @@ InsaneStats:RegisterConVar("coins_legacy", "insanestats_coins_legacy", "0", {
 	type = InsaneStats.BOOL
 })
 
-InsaneStats:RegisterConVar("coins_player_lose", "insanestats_coins_player_losepercent", "0", {
+InsaneStats:RegisterConVar("coins_player_lose", "insanestats_coins_player_losepercent", "10", {
 	display = "Player Coins % Lost On Death", desc = "Coins % lost when a player dies. Non-players will always lose 100% of their coins on death.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
