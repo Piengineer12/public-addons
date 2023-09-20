@@ -108,15 +108,14 @@ hook.Add("AcceptInput", "InsaneStats", function(ent, input, activator, caller, v
 			})
 			ent.insaneStats_DisplayedInChat = true
 		end
-	elseif InsaneStats:GetConVarValue("flashlight_disable_fix") then
-		if input == "disableflashlight" and ent:IsPlayer() then
-			ent.insaneStats_FlashlightDisabled = true
-		elseif input == "enableflashlight" and ent:IsPlayer() then
-			ent.insaneStats_FlashlightDisabled = nil
-		elseif input == "modifyspeed" and ent:GetClass() == "player_speedmod" then
-			for i,v in ipairs(player.GetAll()) do
-				v.insaneStats_FlashlightDisabled = true
-			end
+	elseif input == "disableflashlight" and ent:IsPlayer() then
+		ent.insaneStats_FlashlightDisabled = true
+	elseif input == "enableflashlight" and ent:IsPlayer() then
+		ent.insaneStats_FlashlightDisabled = nil
+	elseif input == "modifyspeed" and ent:GetClass() == "player_speedmod"
+	and InsaneStats:GetConVarValue("flashlight_disable_fix_modifyspeed") then
+		for i,v in ipairs(player.GetAll()) do
+			v.insaneStats_FlashlightDisabled = true
 		end
 	end
 end)
@@ -188,7 +187,7 @@ end)
 
 local color_light_red = Color(255, 127, 127)
 hook.Add("PlayerSwitchFlashlight", "InsaneStats", function(ply, newState)
-	if newState and ply.insaneStats_FlashlightDisabled then
+	if newState and ply.insaneStats_FlashlightDisabled and InsaneStats:GetConVarValue("flashlight_disable_fix") then
 		net.Start("insane_stats")
 		net.WriteUInt(5, 8)
 		net.WriteString("Your flashlight won't turn on...")

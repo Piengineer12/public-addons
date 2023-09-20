@@ -347,5 +347,7 @@ net.Receive("insane_stats", function(length, ply)
 		end
 	elseif func == 3 then
 		ply:InsaneStats_AttemptEquipItem(ply:GetUseEntity())
+	elseif func == 4 then
+		ply.insaneStats_HoldingCtrl = net.ReadBool()
 	end
 end)

@@ -29,7 +29,7 @@ InsaneStats:RegisterConVar("coins_drop_count", "insanestats_coins_drop_count", "
 })
 InsaneStats:RegisterConVar("coins_drop_max", "insanestats_coins_drop_max", "25", {
 	display = "Max Coins", desc = "Maximum number of coins allowed to be present in the world. \z
-	If this limit is reached, addtional coins dropped by entities will cause existing coins to randomly be given to random players.",
+	If this limit is reached, addtional coins dropped by entities will cause existing coins to be randomly given to random players.",
 	type = InsaneStats.INT, min = 0, max = 1000
 })
 
@@ -59,6 +59,17 @@ InsaneStats:RegisterConVar("coins_level_add_mode", "insanestats_coins_level_add_
 InsaneStats:RegisterConVar("coins_level_add_add", "insanestats_coins_level_add_add", "10", {
 	display = "Level Growth", desc = "Additional % of % additional coins dropped per level. \z
 	This is only applied if \"insanestats_coins_level_add_mode\" is 0.",
+	type = InsaneStats.FLOAT, min = 0, max = 1000
+})
+
+InsaneStats:SetDefaultConVarCategory("Coin Drops - Costs")
+
+InsaneStats:RegisterConVar("coins_reforge_cost", "insanestats_coins_reforge_cost", "100", {
+	display = "Reforge Cost", desc = "Base price of rerolling WPASS2 modifiers on a tier 1 weapon / armor battery.",
+	type = InsaneStats.FLOAT, min = 0, max = 1000
+})
+InsaneStats:RegisterConVar("coins_reforge_cost_add", "insanestats_coins_reforge_cost_add", "40", {
+	display = "Reforge Cost Scaling", desc = "% additional cost per tier. This is always applied multiplicatively.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
 

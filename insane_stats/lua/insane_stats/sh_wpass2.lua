@@ -39,6 +39,13 @@ InsaneStats:RegisterConVar("wpass2_modifiers_player_save_death_battery", "insane
 	display = "Save Player Battery Modifiers Across Deaths", desc = "If 0 or above, overrides insanestats_wpass2_modifiers_player_save_death for armor batteries.",
 	type = InsaneStats.INT, min = -1, max = 2
 })
+InsaneStats:RegisterConVar("wpass2_modifiers_other_create", "insanestats_wpass2_modifiers_other_create", "2", {
+	display = "Create Weapon for Non-players", desc = "If 1, NPCs and NextBots will still get weapon modifiers even while not carrying a weapon. \z
+	This works by creating an invisible and intangible weapon_base that is tied to the entity.\n\z
+	If 2, only humanoid and Combine entities are able to get weapon modifiers. \n\z
+	If 3, ALL entities will gain weapon modifiers in the same way. Setting this to 3 is NOT RECOMMENDED.",
+	type = InsaneStats.INT, min = 0, max = 3
+})
 InsaneStats:RegisterConVar("wpass2_autopickup", "insanestats_wpass2_autopickup", "1", {
 	display = "Auto Pickup Mode", desc = "Determines whether weapons / armor batteries will be automatically picked up for ammo / armor.\n\z
 	0: Never auto pickup weapons and armor batteries.\n\z
@@ -600,9 +607,36 @@ function ENTITY:InsaneStats_GetAttributeValue(attribute)
 		totalMul = totalMul * (self.insaneStats_Attributes and self.insaneStats_Attributes[attribute] or 1)
 	end
 	
-	local wep = weaponHasEffect > 0 and self.GetActiveWeapon and self:GetActiveWeapon()
-	if IsValid(wep) then
-		totalMul = totalMul * (wep.insaneStats_Attributes and wep.insaneStats_Attributes[attribute] or 1)
+	if weaponHasEffect > 0 then
+		local wep = self.GetActiveWeapon and self:GetActiveWeapon()
+
+		if not IsValid(wep) then
+			wep = self.insaneStats_ProxyWeapon
+		end
+
+		if IsValid(wep) then
+			totalMul = totalMul * (wep.insaneStats_Attributes and wep.insaneStats_Attributes[attribute] or 1)
+		elseif SERVER and self.insaneStats_ProxyWeaponLastTick ~= engine.TickCount() then
+			local shouldGive = InsaneStats:GetConVarValue("wpass2_modifiers_other_create")
+			if shouldGive < 1 then
+				shouldGive = false
+			elseif shouldGive < 3 and not self:InsaneStats_IsMob() then
+				shouldGive = false
+			elseif shouldGive > 1 and not self:InsaneStats_ArmorSensible() then
+				shouldGive = false
+			end
+
+			if shouldGive then
+				wep = ents.Create("weapon_base")
+				wep:SetKeyValue("spawnflags", 3)
+				wep:Spawn()
+				wep:SetNoDraw(true)
+				wep.insaneStats_IsProxyWeapon = true
+				wep.insaneStats_ProxyWeaponTo = self
+				self.insaneStats_ProxyWeapon = wep
+			end
+			self.insaneStats_ProxyWeaponLastTick = engine.TickCount()
+		end
 	end
 	
 	return totalMul

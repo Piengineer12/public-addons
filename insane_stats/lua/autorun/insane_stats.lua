@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 ]]
 
 InsaneStats = {
-	VERSION = "1.2.1",
-	VERSION_DATE = "2023-09-10"
+	VERSION = "1.2.2",
+	VERSION_DATE = "2023-09-20"
 }
 
 function InsaneStats:Log(msg)
@@ -20,7 +20,12 @@ function InsaneStats:Log(msg)
 	)
 end
 
-InsaneStats:Log(string.format("Loading Insane Stats version %s (%s) by Piengineer12", InsaneStats.VERSION, InsaneStats.VERSION_DATE))
+InsaneStats:Log(
+	string.format(
+		"Loading Insane Stats version %s (%s) by Piengineer12",
+		InsaneStats.VERSION, InsaneStats.VERSION_DATE
+	)
+)
 
 local clientFiles = {
 	"cl_base",

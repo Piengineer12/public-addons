@@ -141,3 +141,8 @@ InsaneStats:RegisterConVar("flashlight_disable_fix", "insanestats_flashlight_dis
 	display = "Fix DisableFlashlight", desc = "The DisableFlashlight map input will now actually disable the player's flashlight.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterConVar("flashlight_disable_fix_modifyspeed", "insanestats_flashlight_disable_fix_modifyspeed", "0", {
+	display = "ModifySpeed on player_speedmod Disables Flashlight", desc = "In HL2, the ModifySpeed input on a player_speedmod entity would disable the player's flashlight. \z
+	You can reenable this behaviour via this ConVar.",
+	type = InsaneStats.BOOL
+})

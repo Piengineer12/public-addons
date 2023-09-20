@@ -38,7 +38,7 @@ local color_orange = InsaneStats:GetColor("orange")
 local color_yellow = InsaneStats:GetColor("yellow")
 local color_lime = InsaneStats:GetColor("lime")
 local color_green = InsaneStats:GetColor("green")
-local color_marine = InsaneStats:GetColor("marine")
+local color_mint = InsaneStats:GetColor("mint")
 local color_aqua = InsaneStats:GetColor("aqua")
 local color_sky = InsaneStats:GetColor("sky")
 local color_purple = InsaneStats:GetColor("purple")
@@ -180,7 +180,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 						table.insert(numberColors, color_green)
 					end
 					if bit.band(types, bit.bor(DMG_SONIC, DMG_AIRBOAT, DMG_SNIPER, DMG_DISSOLVE)) ~= 0 then
-						table.insert(numberColors, color_marine)
+						table.insert(numberColors, color_mint)
 					end
 					if bit.band(types, bit.bor(DMG_DROWN, DMG_VEHICLE)) ~= 0 then
 						table.insert(numberColors, color_aqua)

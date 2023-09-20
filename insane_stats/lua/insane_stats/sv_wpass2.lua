@@ -39,6 +39,8 @@ local function ApplyWPASS2StartTier(ent)
 	local probability
 	local isNotWep = not ent:IsWeapon()
 	local owner = ent:GetOwner()
+
+	if not IsValid(owner) then owner = ent.insaneStats_ProxyWeaponTo or NULL end
 	
 	if ent:InsaneStats_IsWPASS2Pickup() and not IsValid(owner) then
 		probability = InsaneStats:GetConVarValueDefaulted(isNotWep and "wpass2_chance_unowned_battery", "wpass2_chance_unowned")
@@ -203,6 +205,7 @@ function InsaneStats:ApplyWPASS2Modifiers(wep)
 	
 	for k,v in pairs(applyModifiers) do
 		local modifierTable = modifiers[k]
+		assert(modifierTable, "Could not find modifier "..k.."!")
 		
 		modifiersLeft = modifiersLeft - 1
 		maxSpendablePoints = maxSpendablePoints + (modifierTable.max or 65536)
@@ -636,7 +639,7 @@ SaveDataFile = function()
 	end
 end
 
-local function GetPlayerWPASS2SaveData(ply, shouldSave, shouldSaveBattery)
+local function GetPlayerWPASS2SaveData(ply, shouldSave, shouldSaveBattery, oldData)
 	local steamID = ply:SteamID()
 	if steamID then
 		local plyWPASS2Data = {}
@@ -681,16 +684,37 @@ local function GetPlayerWPASS2SaveData(ply, shouldSave, shouldSaveBattery)
 			
 			if shouldSaveBattery == 1 then
 				-- save health, max health, armor, max armor and suit status
+				oldData = oldData or {}
+				oldData.healthArmorAndSuitStats = oldData.healthArmorAndSuitStats or {}
 				plyWPASS2Data.healthArmorAndSuitStats = {
-					health = ply:Alive() and ply:InsaneStats_GetHealth(),
-					maxHealth = ply:InsaneStats_GetMaxHealth(),
-					armor = ply:Alive() and ply:InsaneStats_GetArmor(),
-					maxArmor = ply:InsaneStats_GetMaxArmor(),
+					maxHealth = oldData.healthArmorAndSuitStats.maxHealth,
+					maxArmor = oldData.healthArmorAndSuitStats.maxArmor,
 					suit = ply:IsSuitEquipped()
 				}
+
+				local health, maxHealth = ply:InsaneStats_GetHealth(), ply:InsaneStats_GetMaxHealth()
+				local armor, maxArmor = ply:InsaneStats_GetArmor(), ply:InsaneStats_GetMaxArmor()
+				if ply:Alive() then
+					if health > 0 then
+						plyWPASS2Data.healthArmorAndSuitStats.health = health
+					end
+					if armor > 0 then
+						plyWPASS2Data.healthArmorAndSuitStats.armor = armor
+					end
+				end
+				if maxHealth > 0 then
+					plyWPASS2Data.healthArmorAndSuitStats.maxHealth = maxHealth
+				end
+				if maxArmor > 0 then
+					plyWPASS2Data.healthArmorAndSuitStats.maxArmor = maxArmor
+				end
 			end
 		end
 		
+		--[[if GetConVar("developer"):GetInt() > 0 then
+			InsaneStats:Log("Saved data for "..steamID)
+			PrintTable(plyWPASS2Data)
+		end]]
 		return plyWPASS2Data
 	end
 end
@@ -702,7 +726,7 @@ SaveData = function(ply, forced)
 		local shouldSaveBattery = InsaneStats:GetConVarValueDefaulted("wpass2_modifiers_player_save_death_battery", "wpass2_modifiers_player_save_death")
 		
 		if shouldSave > 0 or shouldSaveBattery > 0 then
-			playerLoadoutData[steamID] = GetPlayerWPASS2SaveData(ply, shouldSave, shouldSaveBattery)
+			playerLoadoutData[steamID] = GetPlayerWPASS2SaveData(ply, shouldSave, shouldSaveBattery, playerLoadoutData[steamID])
 		else
 			playerLoadoutData[steamID] = nil
 		end
@@ -784,6 +808,9 @@ hook.Add("InsaneStatsTransitionCompat", "InsaneStatsWPASS", function(ent)
 	if ent.insaneStats_BatteryXPRoot8 then
 		ent:InsaneStats_SetBatteryXP(ent.insaneStats_BatteryXPRoot8 ^ 8)
 	end
+	if ent.insaneStats_IsProxyWeapon and not IsValid(ent.insaneStats_ProxyWeaponTo) then
+		SafeRemoveEntityDelayed(ent, 0.015)
+	end
 end)
 
 hook.Add("PlayerSpawn", "InsaneStatsWPASS", function(ply, fromTransition)
@@ -810,8 +837,10 @@ hook.Add("PlayerSpawn", "InsaneStatsWPASS", function(ply, fromTransition)
 					local plyWPASS2Data = steamID and playerLoadoutData[steamID]
 					-- reject from transitions
 					if plyWPASS2Data and not fromTransition then
-						InsaneStats:Log("Loaded data for "..steamID)
-						PrintTable(plyWPASS2Data)
+						if GetConVar("developer"):GetInt() > 0 then
+							InsaneStats:Log("Loaded data for "..steamID)
+							PrintTable(plyWPASS2Data)
+						end
 						
 						if plyWPASS2Data.modifiers then
 							for k,v in pairs(plyWPASS2Data.modifiers.weapons) do
@@ -853,8 +882,12 @@ hook.Add("PlayerSpawn", "InsaneStatsWPASS", function(ply, fromTransition)
 							if plyWPASS2Data.healthArmorAndSuitStats.armor then
 								ply:SetArmor(plyWPASS2Data.healthArmorAndSuitStats.armor)
 							end
-							ply:SetMaxHealth(plyWPASS2Data.healthArmorAndSuitStats.maxHealth)
-							ply:SetMaxArmor(plyWPASS2Data.healthArmorAndSuitStats.maxArmor)
+							if plyWPASS2Data.healthArmorAndSuitStats.maxHealth > 0 then
+								ply:SetMaxHealth(plyWPASS2Data.healthArmorAndSuitStats.maxHealth)
+							end
+							if plyWPASS2Data.healthArmorAndSuitStats.maxArmor > 0 then
+								ply:SetMaxArmor(plyWPASS2Data.healthArmorAndSuitStats.maxArmor)
+							end
 							
 							if ply:IsSuitEquipped() ~= plyWPASS2Data.healthArmorAndSuitStats.suit then
 								if plyWPASS2Data.healthArmorAndSuitStats.suit then
@@ -933,4 +966,8 @@ hook.Add("InsaneStatsApplyLevel", "InsaneStatsWPASS", function(ent, level)
 			end
 		end)
 	end
+end)
+
+hook.Add("EntityRemoved", "InsaneStatsWPASS", function(ent)
+	SafeRemoveEntity(ent.insaneStats_ProxyWeapon)
 end)

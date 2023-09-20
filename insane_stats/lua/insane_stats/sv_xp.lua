@@ -370,7 +370,7 @@ function InsaneStats:DetermineEntitySpawnedXP(pos)
 	end
 	
 	local typ = self:GetConVarValue("xp_other_level_factor")
-	if typ >= 1 and typ <= 4 then
+	if typ > 0 then
 		if hasPlayer then
 			if typ == 1 then
 				-- get average level
@@ -417,11 +417,17 @@ function InsaneStats:DetermineEntitySpawnedXP(pos)
 			end
 		else return
 		end
-	elseif typ == 5 then
-		local minimum = level + self:GetConVarValue("xp_other_level_maps_minimum") * mapNumber
-		local current = self:ScaleValueToLevel(level, self:GetConVarValue("xp_other_level_maps")/100, mapNumber, "xp_other_level_maps_mode", true)
-		level = math.max(minimum, current)
 	end
+
+	local minimum = level + self:GetConVarValue("xp_other_level_maps_minimum") * mapNumber
+	local current = self:ScaleValueToLevel(level, self:GetConVarValue("xp_other_level_maps")/100, mapNumber, "xp_other_level_maps_mode", true)
+	level = math.max(minimum, current)
+
+	local curMinutes = CurTime() / 60
+	minimum = level + self:GetConVarValue("xp_other_level_time_minimum") * curMinutes
+	current = self:ScaleValueToLevel(level, self:GetConVarValue("xp_other_level_time")/100, curMinutes, "xp_other_level_time_mode", true)
+	level = math.max(minimum, current)
+	--print(pos, "has time scaled level", math.max(minimum, current))
 	
 	local playerScalingMode = self:GetConVarValueDefaulted("xp_other_level_players_mode", "xp_mode") > 0
 	if playerScalingMode then

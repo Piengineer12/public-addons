@@ -58,7 +58,7 @@ InsaneStats:RegisterConVar("xp_player_mul", "insanestats_xp_player_mul", "1", {
 	display = "Player Drop Multiplier", desc = "Multiplier for experience dropped by players. The amount of experience dropped is based on max starting health and level.",
 	type = InsaneStats.FLOAT, min = 0, max = 10
 })
-InsaneStats:RegisterConVar("xp_player_kill", "insanestats_xp_player_yieldmul", "3", {
+InsaneStats:RegisterConVar("xp_player_kill", "insanestats_xp_player_yieldmul", "0", {
 	display = "Player Yield Multiplier", desc = "Multiplier for added experience dropped when a non-player kills a player.",
 	type = InsaneStats.FLOAT, min = 0, max = 10
 })
@@ -93,15 +93,14 @@ InsaneStats:RegisterConVar("xp_other_level_start", "insanestats_xp_other_level_s
 	display = "Non-player Starting Level", desc = "Starting level for spawned non-players.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
-InsaneStats:RegisterConVar("xp_other_level_factor", "insanestats_xp_other_level_factor", "1", {
-	display = "Non-player Level Scaling", desc = "Determines factor for increasing the XP of spawned entities.\n\z
+InsaneStats:RegisterConVar("xp_other_level_factor", "insanestats_xp_other_level_factor", "0", {
+	display = "Non-player Level Scaling", desc = "Determines additional factor for increasing the XP of spawned entities.\n\z
 		0: No Scaling\n\z
 		1: Scale based on average level across players\n\z
 		2: Scale based on geometric average level across players\n\z
 		3: Scale based on highest level across players\n\z
-		4: Scale based on level of activator / nearest player\n\z
-		5: Scale based on maps played since insanestats_xp_other_level_maps_reset was called",
-	type = InsaneStats.INT, min = 0, max = 5
+		4: Scale based on level of activator / nearest player",
+	type = InsaneStats.INT, min = 0, max = 4
 })
 InsaneStats:RegisterConVar("xp_other_level_players", "insanestats_xp_other_level_players", "10", {
 	display = "Non-player Player Level Scaling", desc = "Level increase of spawned non-players per extra player in the server.",
@@ -112,17 +111,30 @@ InsaneStats:RegisterConVar("xp_other_level_players_mode", "insanestats_xp_other_
 		-1 causes this ConVar to use the value of insanestats_xp_mode.",
 	type = InsaneStats.INT, min = -1, max = 1
 })
-InsaneStats:RegisterConVar("xp_other_level_maps", "insanestats_xp_other_level_maps", "10", {
-	display = "Non-player Maps Level Scaling", desc = "% level increase of spawned entities per map. Only relevant when insanestats_xp_other_level_factor is 4.",
+InsaneStats:RegisterConVar("xp_other_level_maps", "insanestats_xp_other_level_maps", "0", {
+	display = "Non-player Maps Level Scaling", desc = "% level increase of spawned entities per map.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
 InsaneStats:RegisterConVar("xp_other_level_maps_mode", "insanestats_xp_other_level_maps_mode", "-1", {
-	display = "Non-player Maps Level Scaling Mode", desc = "If 1, insanestats_xp_other_levelmaps is applied additively rather than multiplicatively. \z
+	display = "Non-player Maps Level Scaling Mode", desc = "If 1, insanestats_xp_other_level_maps is applied additively rather than multiplicatively. \z
 		-1 causes this ConVar to use the value of insanestats_xp_mode.",
 	type = InsaneStats.INT, min = -1, max = 1
 })
-InsaneStats:RegisterConVar("xp_other_level_maps_minimum", "insanestats_xp_other_level_maps_minimum", "1", {
+InsaneStats:RegisterConVar("xp_other_level_maps_minimum", "insanestats_xp_other_level_maps_minimum", "0", {
 	display = "Non-player Maps Level Minimum", desc = "Minimum level increase of spawned entities per map.",
+	type = InsaneStats.FLOAT, min = 0, max = 1000
+})
+InsaneStats:RegisterConVar("xp_other_level_time", "insanestats_xp_other_level_time", "0", {
+	display = "Non-player Time Level Scaling", desc = "% level increase of spawned entities per minute.",
+	type = InsaneStats.FLOAT, min = 0, max = 1000
+})
+InsaneStats:RegisterConVar("xp_other_level_time_mode", "insanestats_xp_other_level_time_mode", "-1", {
+	display = "Non-player Time Level Scaling Mode", desc = "If 1, insanestats_xp_other_level_time is applied additively rather than multiplicatively. \z
+		-1 causes this ConVar to use the value of insanestats_xp_mode.",
+	type = InsaneStats.INT, min = -1, max = 1
+})
+InsaneStats:RegisterConVar("xp_other_level_time_minimum", "insanestats_xp_other_level_time_minimum", "0", {
+	display = "Non-player Time Level Minimum", desc = "Minimum level increase of spawned entities per minute.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
 InsaneStats:RegisterConVar("xp_other_level_drift", "insanestats_xp_other_level_drift", "10", {

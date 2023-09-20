@@ -16,6 +16,10 @@ InsaneStats:RegisterClientConVar("hud_wpass2_lootbeams", "insanestats_hud_wpass2
 	display = "Loot Beams", desc = "Shows loot beams for weapons and armor batteries that have modifiers.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterClientConVar("hud_wpass2_lootbeams_extra", "insanestats_hud_wpass2_lootbeams_extra", "1", {
+	display = "Extra Loot Beams", desc = "Shows loot beams for health kits, health vials and ammo.",
+	type = InsaneStats.BOOL
+})
 
 InsaneStats:RegisterClientConVar("hud_wpass2_current_x", "insanestats_hud_wpass2_current_x", "0.66", {
 	display = "Current Weapon Panel X", desc = "Horizontal position of current weapon panel.",
@@ -151,7 +155,7 @@ local function CreateName(wep)
 	end
 	
 	local isWep = wep:IsWeapon()
-	local name = language.GetPhrase(wep.PrintName ~= "" and wep.PrintName or isWep and wep:GetClass() or "item_battery")
+	local name = isWep and InsaneStats:GetWeaponName(wep) or language.GetPhrase("item_battery")
 	local lastSuffix = #modifiersAscending
 	if lastSuffix % 2 == 0 then lastSuffix = lastSuffix - 1 end
 	
@@ -242,7 +246,8 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 	extra = extra or {}
 	
 	surface.SetAlphaMultiplier(alphaMod)
-	local titleText = (extra.dropped and "Hovered " or "Current ")..language.GetPhrase(wep.PrintName ~= "" and wep.PrintName or wep:IsWeapon() and wep:GetClass() or "item_battery")..":"
+	local name = wep:IsWeapon() and InsaneStats:GetWeaponName(wep) or language.GetPhrase("item_battery")
+	local titleText = (extra.dropped and "Hovered " or "Current ")..name..":"
 	textOffsetX, textOffsetY = draw.SimpleTextOutlined(titleText, "InsaneStats.Medium", panelX+outlineThickness, panelY+outlineThickness, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, outlineThickness, color_black)
 	panelY = panelY + textOffsetY
 	
@@ -374,7 +379,7 @@ hook.Add("InsaneStatsModifiersChanging", "InsaneStatsWPASS", function(ent, oldMo
 			end
 			
 			if baseText then
-				local entityName = language.GetPhrase(ent.PrintName ~= "" and ent.PrintName or ent:IsPlayer() and "item_battery" or ent:GetClass())
+				local entityName = ent:IsWeapon() and InsaneStats:GetWeaponName(ent) or language.GetPhrase("item_battery")
 				local modifierName = modifiers[k] and (modifiers[k].suffix or modifiers[k].prefix) or k
 				--notification.AddLegacy(string.format(baseText, entityName, modifierName), NOTIFY_GENERIC, 5)
 				chat.AddText(string.format(baseText, entityName, modifierName))
@@ -560,6 +565,26 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 	end
 end)
 
+local healthClasses = {
+	item_healthkit = true,
+	item_healthvial = true,
+	item_grubnugget = true
+}
+local ammoClasses = {
+	item_ammo_357 = true,
+	item_ammo_357_large = true,
+	item_ammo_ar2 = true,
+	item_ammo_ar2_large = true,
+	item_ammo_ar2_altfire = true,
+	item_ammo_crossbow = true,
+	item_ammo_pistol = true,
+	item_ammo_pistol_large = true,
+	item_ammo_smg1 = true,
+	item_ammo_smg1_large = true,
+	item_ammo_smg1_grenade = true,
+	item_box_buckshot = true,
+	item_rpg_round = true,
+}
 timer.Create("InsaneStatsWPASS", 1, 0, function()
 	if InsaneStats:GetConVarValue("hud_wpass2_lootbeams") then
 		for k,v in pairs(ents.GetAll()) do
@@ -575,6 +600,10 @@ timer.Create("InsaneStatsWPASS", 1, 0, function()
 				else
 					v:InsaneStats_MarkForUpdate()
 				end
+			elseif healthClasses[v:GetClass()] or ammoClasses[v:GetClass()] then
+				local effData = EffectData()
+				effData:SetEntity(v)
+				util.Effect("insane_stats_tier", effData)
 			end
 		end
 	end
