@@ -8,7 +8,7 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_REPAIR_VERSION = "2.0.6"
+LUA_REPAIR_VERSION = "2.0.7"
 LUA_REPAIR_VERSION_DATE = "2023-09-28"
 
 local FIXED
@@ -302,9 +302,9 @@ local function FixAllErrors()
 		end
 	end
 	local oldEmitSound = ENTITY.EmitSound
-	ENTITY.EmitSound = function(soundName, ...)
+	ENTITY.EmitSound = function(ent, soundName, ...)
 		if isstring(soundName) then
-			return oldEmitSound(soundName, ...)
+			return oldEmitSound(ent, soundName, ...)
 		else
 			LogError("Some code attempted to call EmitSound on an entity with non-string sound name.")
 		end
