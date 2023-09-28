@@ -8,8 +8,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_REPAIR_VERSION = "2.0.5"
-LUA_REPAIR_VERSION_DATE = "2023-09-09"
+LUA_REPAIR_VERSION = "2.0.6"
+LUA_REPAIR_VERSION_DATE = "2023-09-28"
 
 local FIXED
 local color_aqua = Color(0, 255, 255)
@@ -123,22 +123,20 @@ local function FixAllErrors()
 	end
 
 	NUMBER.__lt = function(a,b)
-		if isnumber(a) or isnumber(b) then
+		if not a or not b then
+			LogError("Some code attempted to compare a number with nil.")
 			return (a or 0) < (b or 0)
 		else
-			if not (isstring(a) and isstring(b)) then
-				LogError("Some code attempted to see if a number is bigger or smaller than something else that isn't.")
-			end
+			LogError("Some code attempted to see if a number is bigger or smaller than something else that isn't.")
 			return tostring(a) < tostring(b)
 		end
 	end
 	NUMBER.__le = function(a,b)
-		if isnumber(a) or isnumber(b) then
+		if not a or not b then
+			LogError("Some code attempted to compare a number with nil.")
 			return (a or 0) <= (b or 0)
 		else
-			if not (isstring(a) and isstring(b)) then
-				LogError("Some code attempted to see if a number is bigger or smaller than something else that isn't.")
-			end
+			LogError("Some code attempted to see if a number is bigger or smaller than something else that isn't.")
 			return tostring(a) <= tostring(b)
 		end
 	end
@@ -148,6 +146,30 @@ local function FixAllErrors()
 			LogError("Some code attempted to concatenate a string with something that isn't.")
 		end
 		return tostring(a)..tostring(b)
+	end
+	STRING.__add = function(a,b)
+		if not tonumber(a) or not tonumber(b) then
+			LogError("Some code attempted to add with a non-number string.")
+			return (tonumber(a) or 0) + (tonumber(b) or 0)
+		end
+	end
+	STRING.__lt = function(a,b)
+		if not a or not b then
+			LogError("Some code attempted to compare a string with nil.")
+			return (a or 0) < (b or 0)
+		else
+			LogError("Some code attempted to see if a string is bigger or smaller than something else that isn't.")
+			return tostring(a) < tostring(b)
+		end
+	end
+	STRING.__le = function(a,b)
+		if not a or not b then
+			LogError("Some code attempted to compare a string with nil.")
+			return (a or 0) <= (b or 0)
+		else
+			LogError("Some code attempted to see if a string is bigger or smaller than something else that isn't.")
+			return tostring(a) <= tostring(b)
+		end
 	end
 	local oldExplode = string.Explode
 	string.Explode = function(separator, str, withpattern)
@@ -193,7 +215,7 @@ local function FixAllErrors()
 	local oldGC = ENTITY.GetClass
 	ENTITY.GetClass = function(ent, ...)
 		if not IsValid(ent) then
-			LogError("Some code attempted to get the class of a NULL entity.")
+			--LogError("Some code attempted to get the class of a NULL entity.")
 			return ent.__tostring(ent, ...)
 		else return oldGC(ent, ...)
 		end
@@ -224,6 +246,10 @@ local function FixAllErrors()
 	end
 	local oldLookupBone = ENTITY.LookupBone
 	ENTITY.LookupBone = function(ent, name, ...)
+		if not IsValid(ent) then
+			LogError("Some code attempted to lookup a bone of a NULL entity.")
+			return -1
+		end
 		local retValues = {oldLookupBone(ent,name,...)}
 		if retValues[1] then return unpack(retValues) end
 		
@@ -275,6 +301,15 @@ local function FixAllErrors()
 		else return oldGetBoneCount(ent, ...)
 		end
 	end
+	local oldEmitSound = ENTITY.EmitSound
+	ENTITY.EmitSound = function(soundName, ...)
+		if isstring(soundName) then
+			return oldEmitSound(soundName, ...)
+		else
+			LogError("Some code attempted to call EmitSound on an entity with non-string sound name.")
+		end
+	end
+
 	local oldEnemy = NPC.GetEnemy
 	NPC.GetEnemy = function(ent, ...)
 		if not IsValid(ent) then
@@ -297,6 +332,14 @@ local function FixAllErrors()
 			return oldWake(physObj, ...)
 		else
 			LogError("Some code attempted to wake a NULL physics object.")
+		end
+	end
+	local oldSetVelocity = PHYSOBJ.SetVelocity
+	PHYSOBJ.SetVelocity = function(physObj, ...)
+		if IsValid(physObj) then
+			return oldSetVelocity(physObj, ...)
+		else
+			LogError("Some code attempted to set the velocity of a NULL physics object.")
 		end
 	end
 	
@@ -372,6 +415,15 @@ local function FixAllErrors()
 		end
 		return oldCreateConVar(name, default, flags, helptext, min, max, ...)
 	end
+
+	local oldEmitSound = EmitSound
+	function EmitSound(soundName, ...)
+		if isstring(soundName) then
+			return oldEmitSound(soundName, ...)
+		else
+			LogError("Some code attempted to call EmitSound with non-string sound name.")
+		end
+	end
 	
 	local oldEntsFindInSphere = ents.FindInSphere
 	function ents.FindInSphere(origin, radius, ...)
@@ -396,7 +448,14 @@ local function FixAllErrors()
 			end
 			LogError("Some code attempted to call net.Start without finishing the previous net message.")
 		end
-		oldNetStart(...)
+
+		local retValues = {pcall(oldNetStart, ...)}
+		if retValues[1] then
+			return select(2, unpack(retValues))
+		else
+			LogError("Caught a net.Start error: "..retValues[2])
+			return oldNetStart("lua_repair")
+		end
 	end
 
 	local oldNetWriteString = net.WriteString
@@ -434,6 +493,17 @@ local function FixAllErrors()
 			elseif not value then
 				LogError("Some code attempted to call language.Add without specifying a language value.")
 			else return oldLanguageAdd(key, value, ...) end
+		end
+
+		local oldSurfaceSetFont = surface.SetFont
+		function surface.SetFont(font, ...)
+			local retValues = {pcall(oldSurfaceSetFont, font, ...)}
+			if retValues[1] then
+				return select(2, unpack(retValues))
+			else
+				LogError("Caught a surface.SetFont error: "..retValues[2])
+				return oldSurfaceSetFont("Default")
+			end
 		end
 	end
 
