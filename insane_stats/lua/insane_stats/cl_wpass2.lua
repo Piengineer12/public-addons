@@ -1,5 +1,15 @@
 InsaneStats:SetDefaultConVarCategory("Weapon Prefixes and Suffixes System 2")
 
+-- clients are allowed to choose the auto-pickup mode
+InsaneStats:RegisterClientConVar("wpass2_autopickup_override", "insanestats_wpass2_autopickup_override", "-1", {
+	display = "Auto Pickup Mode Override", desc = "If 0 or above, overrides insanestats_wpass2_autopickup for yourself.",
+	type = InsaneStats.INT, min = -1, max = 6, userinfo = true
+})
+InsaneStats:RegisterClientConVar("wpass2_autopickup_battery_override", "insanestats_wpass2_autopickup_battery_override", "-1", {
+	display = "Auto Battery Pickup Mode Override", desc = "If 0 or above, overrides insanestats_wpass2_autopickup_battery for yourself.",
+	type = InsaneStats.INT, min = -1, max = 6, userinfo = true
+})
+
 InsaneStats:RegisterClientConVar("hud_wpass2_hold", "insanestats_hud_wpass2_hold", "10", {
 	display = "Weapon Panel Hold Time", desc = "Amount of time to display weapon information.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
@@ -38,16 +48,6 @@ InsaneStats:RegisterClientConVar("hud_wpass2_hovered_y", "insanestats_hud_wpass2
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
 
--- clients are allowed to choose the auto-pickup mode
-InsaneStats:RegisterClientConVar("wpass2_autopickup_override", "insanestats_wpass2_autopickup_override", "-1", {
-	display = "Auto Pickup Mode Override", desc = "If 0 or above, overrides insanestats_wpass2_autopickup for yourself.",
-	type = InsaneStats.INT, min = -1, max = 6, userinfo = true
-})
-InsaneStats:RegisterClientConVar("wpass2_autopickup_battery_override", "insanestats_wpass2_autopickup_battery_override", "-1", {
-	display = "Auto Battery Pickup Mode Override", desc = "If 0 or above, overrides insanestats_wpass2_autopickup_battery for yourself.",
-	type = InsaneStats.INT, min = -1, max = 6, userinfo = true
-})
-
 InsaneStats:RegisterClientConVar("hud_statuseffects_x", "insanestats_hud_statuseffects_x", "0.01", {
 	display = "Status Effects X", desc = "Horizontal position of status effects.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
@@ -63,6 +63,27 @@ concommand.Add("insanestats_wpass2_swap", function()
 	net.SendToServer()
 end, nil,
 "Swaps your current weapon / armor battery with whatever you're hovering over.")
+
+--[[hook.Run("CCVCCMRun", "InsaneStatsWPASS", function()
+	CCVCCM:SetAddon("insane_stats", "Insane Stats")
+	CCVCCM:PushCategory("hud", "Client")
+	CCVCCM:PushCategory("wpass2", "WPASS2")
+	CCVCCM:AddConVar("autopickup_override", {
+		realm = "client",
+		name = "Auto Pickup Mode Override",
+		help = "If 0 or above, overrides insanestats_wpass2_autopickup for yourself.",
+		type = "int", default = -1,
+		min = -1, max = 6,
+		userInfo = true
+	})
+	CCVCCM:AddConVar("hold", {
+		realm = "client",
+		name = "Weapon Panel Hold Time",
+		help = "Amount of time to display weapon information.",
+		type = "float", default = 10,
+		min = 0, max = 100
+	})
+end)]]
 
 local rarityNames = {
 	"Junk",

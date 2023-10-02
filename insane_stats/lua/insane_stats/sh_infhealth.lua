@@ -4,6 +4,11 @@ InsaneStats:RegisterConVar("infhealth_enabled", "insanestats_infhealth_enabled",
 	display = "Infinite Health", desc = "Health and armor limits are removed. NPCs are also able to spawn with armor.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterConVar("infhealth_knockback", "insanestats_infhealth_knockback", "1", {
+	display = "Custom Knockback", desc = "Enables custom knockback handling, allowing damage to significantly push NPCs. \z
+	If disabled, WPASS2 modifiers that affect knockback will become unobtainable.",
+	type = InsaneStats.BOOL
+})
 InsaneStats:RegisterConVar("infhealth_armor_chance", "insanestats_infhealth_armor_chance", "100", {
 	display = "Armor Chance", desc = "Chance for NPCs to have armor.",
 	type = InsaneStats.FLOAT, min = 0, max = 100

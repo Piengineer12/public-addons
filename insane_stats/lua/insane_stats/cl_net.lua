@@ -178,5 +178,12 @@ net.Receive("insane_stats", function()
 		local color = net.ReadColor()
 		
 		chat.AddText(color, text)
+	elseif func == 6 then
+		local ent = net.ReadEntity()
+		local soldWeapons = {}
+		for i=1, net.ReadUInt(16) do
+			table.insert(soldWeapons, net.ReadUInt(16))
+		end
+		InsaneStats:CreateShopMenu(ent, soldWeapons)
 	end
 end)

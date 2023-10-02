@@ -28,7 +28,7 @@ function InsaneStats:RegisterConVar(name, internal, default, data)
 		data.max = 1
 	end
 	
-	if data.type == self.INT then
+	if data.type == self.INT or data.type == self.BOOL then
 		conVar = CreateConVar(
 			internal,
 			default,

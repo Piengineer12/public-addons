@@ -38,6 +38,7 @@ local modifiers = {
 		modifiers = {
 			explode = 1.1
 		},
+		weight = 1,
 		max = 7
 	},
 	earth = {
@@ -46,6 +47,7 @@ local modifiers = {
 		modifiers = {
 			poison = 1.1
 		},
+		weight = 1,
 		max = 7
 	},
 	fire = {
@@ -54,6 +56,7 @@ local modifiers = {
 		modifiers = {
 			fire = 1.1
 		},
+		weight = 1,
 		max = 7
 	},
 	water = {
@@ -62,6 +65,7 @@ local modifiers = {
 		modifiers = {
 			freeze = 1.1
 		},
+		weight = 1,
 		max = 7
 	},
 	air = {
@@ -70,6 +74,7 @@ local modifiers = {
 		modifiers = {
 			shock = 1.1
 		},
+		weight = 1,
 		max = 7
 	},
 	blood = {
@@ -78,6 +83,7 @@ local modifiers = {
 		modifiers = {
 			bleed = 1.1
 		},
+		weight = 1,
 		max = 7
 	},
 	arc = {
@@ -414,6 +420,7 @@ local modifiers = {
 			knockback = 1/1.4641,
 			damage = 1.331
 		},
+		flags = InsaneStats.WPASS2_FLAGS.KNOCKBACK,
 		weight = 0.5,
 		max = 5,
 		cost = 2
@@ -437,6 +444,7 @@ local modifiers = {
 			knockback = 1.4641,
 			firerate = 1.21
 		},
+		flags = InsaneStats.WPASS2_FLAGS.KNOCKBACK,
 		weight = 0.5,
 		max = 5,
 		cost = 2
@@ -604,6 +612,7 @@ local modifiers = {
 		modifiers = {
 			knockback = 1.4641
 		},
+		flags = InsaneStats.WPASS2_FLAGS.KNOCKBACK,
 		weight = 2,
 		max = 5
 	},
@@ -797,7 +806,7 @@ local modifiers = {
 		modifiers = {
 			speed_dilation = 1.1
 		},
-		max = 10,
+		max = 5,
 		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SP_ONLY),
 	},
 	auxiliary = {
@@ -987,11 +996,11 @@ local modifiers = {
 		prefix = "Detective",
 		suffix = "Detection",
 		modifiers = {
-			reveal = 2
+			reveal = 1.4641
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
-		max = 4
+		max = 5
 	},
 	
 	-- utility, half weight doubled cost
@@ -1176,7 +1185,7 @@ local modifiers = {
 			knockbacktaken = 1/1.4641,
 			self_knockbacktaken = 1.4641,
 		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.KNOCKBACK),
 		max = 5
 	},
 	bulk = {
@@ -1752,7 +1761,7 @@ local attributes = {
 		mul = 30
 	},
 	starlight_glow = {
-		display = "+2 glow radius, scaled by starlit duration",
+		display = "+1 glow power, scaled by starlit duration",
 		mul = 30,
 		invert = true
 	},
@@ -2211,56 +2220,229 @@ local attributes = {
 	},
 	reveal = {
 		display = "%s button, breakable and door reveal radius",
-		mul = 100,
+		mul = 250,
 		nopercent = true
 	},
 }
 
+local canPlayPoisonSound = true
+local canPlayFreezeSound = true
+local canPlayShockSound = true
+local canPlayBleedSound = true
 local statusEffects = {
 	poison = {
 		name = "Poisoned",
 		typ = -1,
-		img = Material("insane_stats/status_effects/poison-bottle.png", "mips smooth")
+		img = Material("insane_stats/status_effects/poison-bottle.png", "mips smooth"),
+		apply = SERVER and function(ent, level, duration, attacker)
+			if canPlayPoisonSound then
+				canPlayPoisonSound = false
+				ent:EmitSound(string.format("weapons/bugbait/bugbait_squeeze%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+			end
+			local effdata = EffectData()
+			effdata:SetOrigin(ent:GetPos())
+			effdata:SetEntity(ent)
+			effdata:SetScale(1)
+			effdata:SetMagnitude(1)
+			effdata:SetRadius(16)
+			effdata:SetNormal(vector_up)
+			util.Effect("StriderBlood", effdata)
+		end
 	},
 	fire = {
 		name = "On Fire",
 		typ = -1,
-		img = Material("insane_stats/status_effects/small-fire.png", "mips smooth")
+		img = Material("insane_stats/status_effects/small-fire.png", "mips smooth"),
+		apply = SERVER and function(ent, level, duration, attacker)
+			ent:Ignite(duration)
+		end
 	},
 	freeze = {
 		name = "Freezing",
 		typ = -1,
-		img = Material("insane_stats/status_effects/snowflake-2.png", "mips smooth")
+		img = Material("insane_stats/status_effects/snowflake-2.png", "mips smooth"),
+		apply = SERVER and function(ent, level, duration, attacker)
+			if canPlayFreezeSound then
+				canPlayFreezeSound = false
+				ent:EmitSound(string.format("physics/glass/glass_sheet_break%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+			end
+			local effdata = EffectData()
+			effdata:SetOrigin(ent:GetPos())
+			effdata:SetScale(1)
+			effdata:SetMagnitude(1)
+			util.Effect("GlassImpact", effdata)
+			
+			if ent:IsNPC()
+			and ent:InsaneStats_GetStatusEffectLevel("stun_immune") <= 0
+			and ent:InsaneStats_GetStatusEffectLevel("stunned") <= 0
+			and ent:InsaneStats_GetHealth() > 0 then
+				ent:InsaneStats_ApplyStatusEffect("stunned", 1, 2)
+				ent:SetSchedule(SCHED_NPC_FREEZE)
+			end
+		end
 	},
 	shock = {
 		name = "Shocked",
 		typ = -1,
-		img = Material("insane_stats/status_effects/lightning-frequency.png", "mips smooth")
+		img = Material("insane_stats/status_effects/lightning-frequency.png", "mips smooth"),
+		apply = SERVER and function(ent, level, duration, attacker)
+			if canPlayShockSound then
+				canPlayShockSound = false
+				ent:EmitSound("ambient/energy/weld1.wav", 75, 100, 1, CHAN_WEAPON)
+			end
+
+			local effdata = EffectData()
+			effdata:SetOrigin(ent:GetPos())
+			effdata:SetNormal(vector_up)
+			effdata:SetAngles(angle_zero)
+			util.Effect("ManhackSparks", effdata)
+		end
 	},
 	bleed = {
 		name = "Bleeding",
 		typ = -1,
-		img = Material("insane_stats/status_effects/droplets.png", "mips smooth")
+		img = Material("insane_stats/status_effects/droplets.png", "mips smooth"),
+		apply = SERVER and function(ent, level, duration, attacker)
+			if canPlayBleedSound then
+				canPlayBleedSound = false
+				ent:EmitSound(string.format("npc/manhack/grind_flesh%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+			end
+			local effdata = EffectData()
+			effdata:SetOrigin(ent:GetPos())
+			effdata:SetEntity(ent)
+			effdata:SetStart(attacker:GetPos())
+			effdata:SetHitBox(0)
+			effdata:SetFlags(3)
+			effdata:SetColor(0)
+			effdata:SetScale(10)
+			effdata:SetMagnitude(1)
+			util.Effect("bloodspray", effdata)
+		end
 	},
 	hemotoxin = {
 		name = "Hemotoxicated",
 		typ = -1,
-		img = Material("insane_stats/status_effects/spotted-wound.png", "mips smooth")
+		img = Material("insane_stats/status_effects/spotted-wound.png", "mips smooth"),
+		apply = SERVER and function(ent, level, duration, attacker)
+			if canPlayPoisonSound then
+				canPlayPoisonSound = false
+				ent:EmitSound(string.format("weapons/bugbait/bugbait_squeeze%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+			end
+			if canPlayBleedSound then
+				canPlayBleedSound = false
+				ent:EmitSound(string.format("npc/manhack/grind_flesh%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+			end
+			local effdata = EffectData()
+			effdata:SetOrigin(ent:GetPos())
+			effdata:SetEntity(ent)
+			effdata:SetScale(1)
+			effdata:SetMagnitude(1)
+			effdata:SetRadius(16)
+			effdata:SetNormal(vector_up)
+			util.Effect("StriderBlood", effdata)
+			
+			effdata:SetStart(attacker:GetPos())
+			effdata:SetHitBox(0)
+			effdata:SetFlags(3)
+			effdata:SetColor(0)
+			effdata:SetScale(10)
+			util.Effect("bloodspray", effdata)
+		end
 	},
 	frostfire = {
 		name = "Frostfire",
 		typ = -1,
-		img = Material("insane_stats/status_effects/frostfire.png", "mips smooth")
+		img = Material("insane_stats/status_effects/frostfire.png", "mips smooth"),
+		apply = SERVER and function(ent, level, duration, attacker)
+			ent:Ignite(duration)
+			if canPlayFreezeSound then
+				canPlayFreezeSound = false
+				ent:EmitSound(string.format("physics/glass/glass_sheet_break%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+			end
+			
+			local effdata = EffectData()
+			effdata:SetOrigin(ent:GetPos())
+			effdata:SetScale(1)
+			effdata:SetMagnitude(1)
+			util.Effect("GlassImpact", effdata)
+			
+			if ent:IsNPC()
+			and ent:InsaneStats_GetStatusEffectLevel("stun_immune") <= 0
+			and ent:InsaneStats_GetStatusEffectLevel("stunned") <= 0
+			and ent:InsaneStats_GetHealth() > 0 then
+				ent:InsaneStats_ApplyStatusEffect("stunned", 1, 2)
+				ent:SetSchedule(SCHED_NPC_FREEZE)
+			end
+		end
 	},
 	electroblast = {
 		name = "Electroblasted",
 		typ = -1,
-		img = Material("insane_stats/status_effects/sonic-lightning.png", "mips smooth")
+		img = Material("insane_stats/status_effects/sonic-lightning.png", "mips smooth"),
+		apply = SERVER and function(ent, level, duration, attacker)
+			if canPlayShockSound then
+				canPlayShockSound = false
+				ent:EmitSound("ambient/energy/weld1.wav", 75, 100, 1, CHAN_WEAPON)
+			end
+
+			local effdata = EffectData()
+			effdata:SetOrigin(ent:GetPos())
+			effdata:SetNormal(vector_up)
+			effdata:SetAngles(angle_zero)
+			util.Effect("ManhackSparks", effdata)
+		end
 	},
 	cosmicurse = {
 		name = "Cosmic Annihilation",
 		typ = -1,
-		img = Material("insane_stats/status_effects/black-hole-bolas.png", "mips smooth")
+		img = Material("insane_stats/status_effects/black-hole-bolas.png", "mips smooth"),
+		apply = SERVER and function(ent, level, duration, attacker)
+			ent:Ignite(duration)
+			if canPlayPoisonSound then
+				canPlayPoisonSound = false
+				ent:EmitSound(string.format("weapons/bugbait/bugbait_squeeze%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+			end
+			if canPlayFreezeSound then
+				canPlayFreezeSound = false
+				ent:EmitSound(string.format("physics/glass/glass_sheet_break%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+			end
+			if canPlayBleedSound then
+				canPlayBleedSound = false
+				ent:EmitSound(string.format("npc/manhack/grind_flesh%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+			end
+			if canPlayShockSound then
+				canPlayShockSound = false
+				ent:EmitSound("ambient/energy/weld1.wav", 75, 100, 1, CHAN_WEAPON)
+			end
+			
+			local effdata = EffectData()
+			effdata:SetOrigin(ent:GetPos())
+			effdata:SetAngles(angle_zero)
+			effdata:SetEntity(ent)
+			effdata:SetScale(1)
+			effdata:SetMagnitude(1)
+			effdata:SetRadius(16)
+			effdata:SetNormal(vector_up)
+			util.Effect("StriderBlood", effdata)
+			util.Effect("GlassImpact", effdata)
+			util.Effect("ManhackSparks", effdata)
+			
+			effdata:SetStart(attacker:GetPos())
+			effdata:SetHitBox(0)
+			effdata:SetFlags(3)
+			effdata:SetColor(0)
+			effdata:SetScale(10)
+			effdata:SetMagnitude(1)
+			util.Effect("bloodspray", effdata)
+			
+			if ent:IsNPC()
+			and ent:InsaneStats_GetStatusEffectLevel("stun_immune") <= 0
+			and ent:InsaneStats_GetStatusEffectLevel("stunned") <= 0
+			and ent:Health() > 0 then
+				ent:InsaneStats_ApplyStatusEffect("stunned", 1, 2)
+				ent:SetSchedule(SCHED_NPC_FREEZE)
+			end
+		end
 	},
 	doom = {
 		name = "Doomed",
@@ -2477,6 +2659,11 @@ local statusEffects = {
 		name = "Loot Power",
 		typ = 1,
 		img = Material("insane_stats/status_effects/crystal-shine.png", "mips smooth")
+	},
+	air_jumped = {
+		name = "Extra Jump Used",
+		typ = -1,
+		img = Material("insane_stats/status_effects/fluffy-trefoil.png", "mips smooth")
 	},
 	
 	starlight = {
@@ -2829,10 +3016,10 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 			end
 		end
 		if ply:OnGround() then
-			ply.insaneStats_Jumps = ply:InsaneStats_GetAttributeValue("jumps") - 1
+			ply:InsaneStats_ClearStatusEffect("air_jumped")
 		elseif movedata:KeyPressed(IN_JUMP) then
-			if ply.insaneStats_Jumps > 0 then
-				ply.insaneStats_Jumps = ply.insaneStats_Jumps - 1
+			if ply:InsaneStats_GetStatusEffectLevel("air_jumped") + 1 < ply:InsaneStats_GetAttributeValue("jumps") then
+				ply:InsaneStats_ApplyStatusEffect("air_jumped", 1, math.huge, {amplify = true})
 
 				-- vertical
 				local currentVel = movedata:GetVelocity()
@@ -2881,3 +3068,12 @@ hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data
 		return true
 	end
 end)
+
+if SERVER then
+	hook.Add("Think", "InsaneStatsSharedWPASS2", function()
+		canPlayPoisonSound = true
+		canPlayFreezeSound = true
+		canPlayBleedSound = true
+		canPlayShockSound = true
+	end)
+end

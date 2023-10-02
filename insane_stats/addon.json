@@ -6,6 +6,7 @@
 		"comic"
 	],
 	"ignore": [
-		"media/*"
+		"media/*",
+		"personal/*"
 	]
 }

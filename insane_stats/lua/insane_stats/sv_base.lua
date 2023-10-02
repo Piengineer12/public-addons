@@ -80,6 +80,19 @@ end)
 
 -- MISC
 
+concommand.Add("insanestats_revert_all_convars", function(ply, cmd, args, argStr)
+	if argStr:lower() == "yes" then
+		for name, data in pairs(InsaneStats.conVars) do
+			if data.conVar then
+				data.conVar:Revert()
+			end
+		end
+		InsaneStats:Log("All server-side Insane Stats ConVars have been reverted!")
+	else
+		InsaneStats:Log("Reverts all server-side Insane Stats ConVars. You must pass the argument \"yes\" for this command to work.")
+	end
+end, nil, "Reverts all server-side Insane Stats ConVars. You must pass the argument \"yes\" for this command to work.")
+
 -- For some reason "color" isn't included under game_text:GetKeyValues(). Why?
 hook.Add("EntityKeyValue", "InsaneStats", function(ent, key, value)
 	if ent:GetClass() == "game_text" and key == "color" then
@@ -115,7 +128,7 @@ hook.Add("AcceptInput", "InsaneStats", function(ent, input, activator, caller, v
 	elseif input == "modifyspeed" and ent:GetClass() == "player_speedmod"
 	and InsaneStats:GetConVarValue("flashlight_disable_fix_modifyspeed") then
 		for i,v in ipairs(player.GetAll()) do
-			v.insaneStats_FlashlightDisabled = true
+			v.insaneStats_FlashlightDisabled = tonumber(value) ~= 1 or nil
 		end
 	end
 end)

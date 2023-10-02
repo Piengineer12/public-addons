@@ -6,12 +6,12 @@ concommand.Add("insanestats_xp_other_level_maps_show", function(ply, cmd, args, 
 		PrintTable(mapOrder)
 		print("You are on map #"..mapNumber..".")
 	end
-end, nil, "Shows recorded maps.")
+end, nil, "Shows all maps that are currently factored into level scaling.")
 concommand.Add("insanestats_xp_other_level_maps_reset", function(ply, cmd, args, argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
 		mapOrder = {}
 	end
-end, nil, "Resets recorded maps.")
+end, nil, "Clears the recorded maps list.")
 concommand.Add("insanestats_xp_other_level_maps_remove", function(ply, cmd, args, argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
 		-- use a search pattern
@@ -43,7 +43,9 @@ concommand.Add("insanestats_xp_other_level_maps_remove", function(ply, cmd, args
 			InsaneStats:Log("Could not find map "..argStr..".")
 		end
 	end
-end, nil, "Removes a map from the map record list. If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. Note that a map restart is required for the map number to be updated.")
+end, nil, "Removes maps from the recorded maps list. * wildcards are allowed. \z
+If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. \z
+Note that a map restart is required for the map number to be updated.")
 
 concommand.Add("insanestats_xp_player_level_set", function(ply, cmd, args, argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
@@ -356,7 +358,10 @@ hook.Add("InsaneStatsEntityKilled", "InsaneStatsXP", function(victim, attacker, 
 	end
 end)
 
-function InsaneStats:DetermineEntitySpawnedXP(pos)
+function InsaneStats:DetermineEntitySpawnedXP(ent)
+	local owner = ent:GetOwner()
+	if IsValid(owner) and owner:InsaneStats_GetXP() >= 0 then return owner:InsaneStats_GetXP() end
+
 	-- get base level
 	local level = self:GetConVarValue("xp_other_level_start")
 	local allPlayers = player.GetAll()
@@ -536,7 +541,7 @@ local toUpdateLevelEntities = {}
 --local loadedData = {}
 hook.Add("InsaneStatsEntityCreated", "InsaneStatsXP", function(ent)
 	if not ent.insaneStats_XP then
-		local shouldXP = InsaneStats:DetermineEntitySpawnedXP(ent:GetPos())
+		local shouldXP = InsaneStats:DetermineEntitySpawnedXP(ent)
 		--print(ent, "should spawn with ", shouldXP, " xp")
 		if shouldXP then
 			ent:InsaneStats_SetXP(shouldXP)
@@ -580,7 +585,7 @@ timer.Create("InsaneStatsXP", 0.5, 0, function()
 				if v.insaneStats_XP then
 					toUpdateLevelEntities[k] = nil
 				else
-					local shouldXP = InsaneStats:DetermineEntitySpawnedXP(ent)
+					local shouldXP = InsaneStats:DetermineEntitySpawnedXP(v)
 					--print(shouldXP)
 					if shouldXP then
 						v:InsaneStats_SetXP(shouldXP)

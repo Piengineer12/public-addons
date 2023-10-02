@@ -3,7 +3,8 @@ InsaneStats.WPASS2_FLAGS = {
 	XP = 2,
 	SCRIPTED_ONLY = 4,
 	SP_ONLY = 8,
-	SUIT_POWER = 16
+	SUIT_POWER = 16,
+	KNOCKBACK = 32
 	
 	-- non-obvious combinations:
 	-- 5: NEVER
@@ -451,6 +452,7 @@ end)]]
 local registeredEffects, modifiers, attributes = {}, {}, {}
 local effectNamesToIDs = {}
 local effectIDsToNames = {}
+local applyEffects = {}
 local expiryEffects = {}
 local entitiesByStatusEffect = {} -- used for optimization purposes
 local function MapStatusEffectNamesToIDs()
@@ -459,6 +461,7 @@ local function MapStatusEffectNamesToIDs()
 	
 	for k,v in SortedPairs(registeredEffects) do
 		effectNamesToIDs[k] = table.insert(effectIDsToNames, k)
+		applyEffects[k] = v.apply
 		expiryEffects[k] = v.expiry
 	end
 	
@@ -630,6 +633,7 @@ function ENTITY:InsaneStats_GetAttributeValue(attribute)
 				wep = ents.Create("weapon_base")
 				wep:SetKeyValue("spawnflags", 3)
 				wep:Spawn()
+				wep:PhysicsDestroy()
 				wep:SetNoDraw(true)
 				wep.insaneStats_IsProxyWeapon = true
 				wep.insaneStats_ProxyWeaponTo = self
@@ -709,6 +713,9 @@ function ENTITY:InsaneStats_ApplyStatusEffect(id, level, duration, data)
 	end
 	
 	if SERVER and changeOccured then
+		if applyEffects[id] and effectTable then
+			applyEffects[id](self, effectTable.level or 0, effectTable.duration or 0, effectTable.attacker)
+		end
 		self.insaneStats_StatusEffectsToNetwork[id] = true
 		self:InsaneStats_MarkForUpdate(16)
 	end

@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 ]]
 
 InsaneStats = {
-	VERSION = "1.2.2",
-	VERSION_DATE = "2023-09-20"
+	VERSION = "1.3.0",
+	VERSION_DATE = "2023-10-02"
 }
 
 function InsaneStats:Log(msg)
@@ -42,6 +42,7 @@ local sharedFiles = {
 	"sh_base",
 	"sh_coin",
 	"sh_infhealth",
+	"sh_options",
 	"sh_soundfixes",
 	"sh_wpass2",
 	"sh_wpass2_basemods",

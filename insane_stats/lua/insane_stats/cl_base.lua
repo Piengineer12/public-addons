@@ -20,9 +20,9 @@ surface.CreateFont("InsaneStats.Big", {
 })
 
 local colors = {
-	black_translucent = Color(0, 0, 0, 127),
+	black_translucent = Color(0, 0, 0, 191),
 	gray = Color(127, 127, 127),
-	white_translucent = Color(255, 255, 255, 127),
+	white_translucent = Color(255, 255, 255, 191),
 	dark_red = Color(127, 0, 0),
 	red = Color(255, 0, 0),
 	semilight_red = Color(255, 63, 63),

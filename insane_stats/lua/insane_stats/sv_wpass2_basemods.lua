@@ -1,5 +1,11 @@
 local damageTiers = {0}
 -- 0: normal, 1: explosive recalculate, 2: explosive, 3: arcing, 4: status effect, 5: doom
+--[[
+shock, electroblast and cosmicurse status effects have complicated interactions
+only for tier 1 damage PostEntityTakeDamage should apply those status effects immediately
+this doesn't happen for any other tier damage
+]]
+
 local entities = {}
 for i,v in ipairs(ents.GetAll()) do
 	entities[v] = true
@@ -345,6 +351,14 @@ local function CauseDelayedDamage(data)
 	if IsValid(victim) then
 		localPos = victim:WorldToLocal(damagePos)
 	end
+					
+	if shouldExplode or shouldElectroblast or shouldCosmicurse then
+		local effdata = EffectData()
+		effdata:SetOrigin(damagePos)
+		effdata:SetScale(1)
+		effdata:SetMagnitude(1)
+		util.Effect("StunstickImpact", effdata)
+	end
 	
 	timer.Simple(0.5, function()
 		if IsValid(attacker) then
@@ -359,39 +373,18 @@ local function CauseDelayedDamage(data)
 				--forceDir = victim:GetPos() - damagePos
 				--forceDir:Mul(128/forceDir:Length())
 				
-				if (shouldShock or shouldElectroblast) and attacker ~= victim then
+				if shouldShock and attacker ~= victim then
 					local effectDamage = damage
 					effectDamage = effectDamage * attacker:InsaneStats_GetAttributeValue("shock_damage")
 					effectDamage = effectDamage * victim:InsaneStats_GetAttributeValue("shock_damagetaken")
 					
-					if shouldElectroblast then
-						effectDamage = effectDamage * 2
-						effectDamage = effectDamage * attacker:InsaneStats_GetAttributeValue("explode_damage")
-						effectDamage = effectDamage * victim:InsaneStats_GetAttributeValue("explode_damagetaken")
-						victim:InsaneStats_ApplyStatusEffect("electroblast", effectDamage, 5, {amplify = true, attacker = attacker})
-					else
-						victim:InsaneStats_ApplyStatusEffect("shock", effectDamage, 5, {amplify = true, attacker = attacker})
-					end
-					
-					local effdata = EffectData()
-					effdata:SetOrigin(victim:GetPos())
-					effdata:SetNormal(vector_up)
-					effdata:SetAngles(angle_zero)
-					util.Effect("ManhackSparks", effdata)
-					
-					victim:EmitSound("ambient/energy/weld1.wav", 75, 100, 1, CHAN_WEAPON)
+					victim:InsaneStats_ApplyStatusEffect("shock", effectDamage, 5, {amplify = true, attacker = attacker})
 				end
 			end
 			
 			if (shouldExplode or shouldElectroblast or shouldCosmicurse) and explosionCount < 10 then
 				table.insert(damageTiers, damageTier)
 				explosionCount = explosionCount + 1
-				
-				if shouldElectroblast then
-					damage = damage * 2
-				elseif shouldCosmicurse then
-					damage = damage * (attacker:InsaneStats_GetAttributeValue("cosmicurse")-1)
-				end
 				
 				local dmginfo = DamageInfo()
 				dmginfo:SetAmmoType(8)
@@ -418,58 +411,6 @@ local function CauseDelayedDamage(data)
 				effdata:SetScale(1)
 				effdata:SetFlags(0)
 				util.Effect("Explosion", effdata)
-				
-				if shouldCosmicurse and IsValid(victim) and attacker ~= victim then
-					local effectDamage = damage
-					effectDamage = effectDamage * attacker:InsaneStats_GetAttributeValue("poison_damage")
-					effectDamage = effectDamage * attacker:InsaneStats_GetAttributeValue("bleed_damage")
-					effectDamage = effectDamage * attacker:InsaneStats_GetAttributeValue("fire_damage")
-					effectDamage = effectDamage * attacker:InsaneStats_GetAttributeValue("freeze_damage")
-					effectDamage = effectDamage * attacker:InsaneStats_GetAttributeValue("shock_damage")
-					effectDamage = effectDamage * attacker:InsaneStats_GetAttributeValue("explode_damage")
-					
-					effectDamage = effectDamage * victim:InsaneStats_GetAttributeValue("poison_damagetaken")
-					effectDamage = effectDamage * victim:InsaneStats_GetAttributeValue("bleed_damagetaken")
-					effectDamage = effectDamage * victim:InsaneStats_GetAttributeValue("fire_damagetaken")
-					effectDamage = effectDamage * victim:InsaneStats_GetAttributeValue("freeze_damagetaken")
-					effectDamage = effectDamage * victim:InsaneStats_GetAttributeValue("shock_damagetaken")
-					effectDamage = effectDamage * victim:InsaneStats_GetAttributeValue("explode_damagetaken")
-					
-					victim:EmitSound(string.format("weapons/bugbait/bugbait_squeeze%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
-					victim:EmitSound(string.format("npc/manhack/grind_flesh%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
-					victim:EmitSound(string.format("physics/glass/glass_sheet_break%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
-					victim:EmitSound(string.format("ambient/energy/weld%u.wav", math.random(2)), 75, 100, 1, CHAN_WEAPON)
-					
-					effdata:SetOrigin(damagePos)
-					effdata:SetAngles(angle_zero)
-					effdata:SetEntity(victim)
-					effdata:SetScale(1)
-					effdata:SetMagnitude(1)
-					effdata:SetRadius(16)
-					effdata:SetNormal(vector_up)
-					util.Effect("StriderBlood", effdata)
-					util.Effect("GlassImpact", effdata)
-					util.Effect("ManhackSparks", effdata)
-					
-					effdata:SetStart(attacker:GetPos())
-					effdata:SetHitBox(0)
-					effdata:SetFlags(3)
-					effdata:SetColor(0)
-					effdata:SetScale(10)
-					effdata:SetMagnitude(1)
-					util.Effect("bloodspray", effdata)
-					victim:Ignite(5)
-					
-					if victim:IsNPC()
-					and victim:InsaneStats_GetStatusEffectLevel("stun_immune") <= 0
-					and victim:InsaneStats_GetStatusEffectLevel("stunned") <= 0
-					and victim:Health() > 0 then
-						victim:InsaneStats_ApplyStatusEffect("stunned", 1, 2)
-						victim:SetSchedule(SCHED_NPC_FREEZE)
-					end
-					
-					victim:InsaneStats_ApplyStatusEffect("cosmicurse", effectDamage, 5, {amplify = true, attacker = attacker})
-				end
 				
 				table.remove(damageTiers)
 			end
@@ -606,7 +547,6 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 				
 				-- non-over time / delayed effects
 				local damage = dmginfo:GetDamage()
-				local explodeCondition = not dmginfo:IsBulletDamage() and damageTiers[#damageTiers] < 1 and vic:GetCollisionGroup() ~= COLLISION_GROUP_DEBRIS
 				--print(damage)
 				--print(not dmginfo:IsBulletDamage(), damageTiers[#damageTiers] < 1, vic:GetCollisionGroup() ~= COLLISION_GROUP_DEBRIS)
 				
@@ -643,33 +583,24 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 				local worldPos = dmginfo:GetDamagePosition()
 				worldPos = worldPos:IsZero() and vic:WorldSpaceCenter() or worldPos
 				
-				local shouldExplode = explodeCondition and math.random() < attacker:InsaneStats_GetAttributeValue("explode") - 1
+				local explodeCondition = not dmginfo:IsBulletDamage() and damageTiers[#damageTiers] < 1 and vic:GetCollisionGroup() ~= COLLISION_GROUP_DEBRIS
+				local shouldExplode = math.random() < attacker:InsaneStats_GetAttributeValue("explode") - 1
 				local shouldShock = math.random() < attacker:InsaneStats_GetAttributeValue("shock") - 1
-				local shouldElectroblast = explodeCondition and math.random() < attacker:InsaneStats_GetAttributeValue("electroblast") - 1
-				local shouldCosmicurse = explodeCondition and attacker:InsaneStats_GetAttributeValue("cosmicurse") > 1
+				local shouldElectroblast = math.random() < attacker:InsaneStats_GetAttributeValue("electroblast") - 1
+				local shouldCosmicurse = attacker:InsaneStats_GetAttributeValue("cosmicurse") > 1
 				
 				if shouldExplode or shouldShock or shouldElectroblast or shouldCosmicurse then
-					--error(tostring(vic))
-					
 					CauseDelayedDamage({
 						pos = worldPos,
 						attacker = attacker,
 						victim = vic,
 						damage = damage,
 						damageTier = 2,
-						shouldExplode = shouldExplode,
+						shouldExplode = explodeCondition and shouldExplode,
 						shouldShock = shouldShock,
-						shouldElectroblast = shouldElectroblast,
-						shouldCosmicurse = shouldCosmicurse
+						shouldElectroblast = explodeCondition and shouldElectroblast,
+						shouldCosmicurse = explodeCondition and shouldCosmicurse
 					})
-					
-					if shouldExplode then
-						local effdata = EffectData()
-						effdata:SetOrigin(worldPos)
-						effdata:SetScale(1)
-						effdata:SetMagnitude(1)
-						util.Effect("StunstickImpact", effdata)
-					end
 				end
 				
 				if attacker:InsaneStats_GetAttributeValue("perhit_victim_damagetaken") ~= 1 then
@@ -735,32 +666,10 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 					if shouldPoison or shouldHemotoxin then
 						effectDamage = effectDamage * attacker:InsaneStats_GetAttributeValue("poison_damage")
 						effectDamage = effectDamage * vic:InsaneStats_GetAttributeValue("poison_damagetaken")
-					
-						vic:EmitSound(string.format("weapons/bugbait/bugbait_squeeze%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
-						local effdata = EffectData()
-						effdata:SetOrigin(worldPos)
-						effdata:SetEntity(vic)
-						effdata:SetScale(1)
-						effdata:SetMagnitude(1)
-						effdata:SetRadius(16)
-						effdata:SetNormal(vector_up)
-						util.Effect("StriderBlood", effdata)
 					end
 					if shouldBleed or shouldHemotoxin then
 						effectDamage = effectDamage * attacker:InsaneStats_GetAttributeValue("bleed_damage")
 						effectDamage = effectDamage * vic:InsaneStats_GetAttributeValue("bleed_damagetaken")
-					
-						vic:EmitSound(string.format("npc/manhack/grind_flesh%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
-						local effdata = EffectData()
-						effdata:SetOrigin(worldPos)
-						effdata:SetEntity(vic)
-						effdata:SetStart(attacker:GetPos())
-						effdata:SetHitBox(0)
-						effdata:SetFlags(3)
-						effdata:SetColor(0)
-						effdata:SetScale(10)
-						effdata:SetMagnitude(1)
-						util.Effect("bloodspray", effdata)
 					end
 					
 					if shouldPoison then
@@ -785,27 +694,10 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 					if shouldFire or shouldFrostfire then
 						effectDamage = effectDamage * attacker:InsaneStats_GetAttributeValue("fire_damage")
 						effectDamage = effectDamage * vic:InsaneStats_GetAttributeValue("fire_damagetaken")
-						
-						vic:Ignite(5)
 					end
 					if shouldFreeze or shouldFrostfire then
 						effectDamage = effectDamage * attacker:InsaneStats_GetAttributeValue("freeze_damage")
 						effectDamage = effectDamage * vic:InsaneStats_GetAttributeValue("freeze_damagetaken")
-					
-						vic:EmitSound(string.format("physics/glass/glass_sheet_break%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
-						local effdata = EffectData()
-						effdata:SetOrigin(worldPos)
-						effdata:SetScale(1)
-						effdata:SetMagnitude(1)
-						util.Effect("GlassImpact", effdata)
-						
-						if vic:IsNPC()
-						and vic:InsaneStats_GetStatusEffectLevel("stun_immune") <= 0
-						and vic:InsaneStats_GetStatusEffectLevel("stunned") <= 0
-						and vic:InsaneStats_GetHealth() > 0 then
-							vic:InsaneStats_ApplyStatusEffect("stunned", 1, 2)
-							vic:SetSchedule(SCHED_NPC_FREEZE)
-						end
 					end
 					
 					if shouldFire then
@@ -817,7 +709,42 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 					end
 				end
 				
-				if damageTiers[#damageTiers] < 5 then
+				local damageTier = damageTiers[#damageTiers]
+				local hasElectroblast = attacker:InsaneStats_GetAttributeValue("electroblast") > 1
+				if damageTier > 0 and damageTier < 3
+				and (hasElectroblast or shouldCosmicurse) then
+					local effectDamage = 0
+				
+					if hasElectroblast then
+						effectDamage = damage * 2
+					else
+						effectDamage = damage * (attacker:InsaneStats_GetAttributeValue("cosmicurse")-1)
+					end
+
+					effectDamage = effectDamage * attacker:InsaneStats_GetAttributeValue("shock_damage")
+					effectDamage = effectDamage * vic:InsaneStats_GetAttributeValue("shock_damagetaken")
+					effectDamage = effectDamage * attacker:InsaneStats_GetAttributeValue("explode_damage")
+					effectDamage = effectDamage * vic:InsaneStats_GetAttributeValue("explode_damagetaken")
+
+					if shouldCosmicurse then
+						effectDamage = effectDamage * attacker:InsaneStats_GetAttributeValue("poison_damage")
+						effectDamage = effectDamage * attacker:InsaneStats_GetAttributeValue("bleed_damage")
+						effectDamage = effectDamage * attacker:InsaneStats_GetAttributeValue("fire_damage")
+						effectDamage = effectDamage * attacker:InsaneStats_GetAttributeValue("freeze_damage")
+						effectDamage = effectDamage * vic:InsaneStats_GetAttributeValue("poison_damagetaken")
+						effectDamage = effectDamage * vic:InsaneStats_GetAttributeValue("bleed_damagetaken")
+						effectDamage = effectDamage * vic:InsaneStats_GetAttributeValue("fire_damagetaken")
+						effectDamage = effectDamage * vic:InsaneStats_GetAttributeValue("freeze_damagetaken")
+					end
+					
+					if hasElectroblast then
+						vic:InsaneStats_ApplyStatusEffect("electroblast", effectDamage, 5, {amplify = true, attacker = attacker})
+					else
+						vic:InsaneStats_ApplyStatusEffect("cosmicurse", effectDamage, 5, {amplify = true, attacker = attacker})
+					end
+				end
+				
+				if damageTier < 5 then
 					local effectDamage = damage*(attacker:InsaneStats_GetAttributeValue("repeat1s_damage")-1)
 					vic:InsaneStats_ApplyStatusEffect("doom", effectDamage, 1, {amplify = true, attacker = attacker})
 				end
@@ -997,12 +924,13 @@ hook.Add("EntityFireBullets", "InsaneStatsWPASS2", function(attacker, data)
 				isModified = true
 			end
 		end
+				
+		local explodeCondition = damageTiers[#damageTiers] < 1
+		local shouldExplode = math.random() < attacker:InsaneStats_GetAttributeValue("explode") - 1
+		local shouldElectroblast = math.random() < attacker:InsaneStats_GetAttributeValue("electroblast") - 1
+		local shouldCosmicurse = attacker:InsaneStats_GetAttributeValue("cosmicurse") > 1
 		
-		local shouldExplode = damageTiers[#damageTiers] < 1 and (math.random() < attacker:InsaneStats_GetAttributeValue("explode") - 1
-		or math.random() < attacker:InsaneStats_GetAttributeValue("electroblast") - 1
-		or attacker:InsaneStats_GetAttributeValue("cosmicurse") > 1)
-		
-		if shouldExplode then
+		if explodeCondition and (shouldExplode or shouldElectroblast or shouldCosmicurse) then
 			local oldCallback = data.Callback
 			data.Callback = function(attacker, trace, dmginfo, ...)
 				if oldCallback then
@@ -1016,16 +944,10 @@ hook.Add("EntityFireBullets", "InsaneStatsWPASS2", function(attacker, data)
 						victim = trace.Entity,
 						damage = dmginfo:GetDamage(),
 						damageTier = 1,
-						shouldExplode = shouldExplode
+						shouldExplode = shouldExplode,
+						shouldElectroblast = shouldElectroblast,
+						shouldCosmicurse = shouldCosmicurse
 					})
-				
-					if shouldExplode then
-						local effdata = EffectData()
-						effdata:SetOrigin(trace.HitPos)
-						effdata:SetScale(1)
-						effdata:SetMagnitude(1)
-						util.Effect("StunstickImpact", effdata)
-					end
 				end
 			end
 		
@@ -1122,6 +1044,8 @@ local function SpawnRandomItems(items, pos)
 		item:SetKeyValue("DesiredAmmoAR2", string.format("%f", math.random()))
 		item:SetKeyValue("DesiredAmmoBuckshot", string.format("%f", math.random()))
 		item:SetKeyValue("DesiredAmmoRPG_Round", string.format("%f", math.random()))
+		-- the following is a weapon rather than an item
+		-- allowing this would allow for sequence-breaking in certain campaign maps
 		item:SetKeyValue("DesiredAmmoGrenade", "0.0")--string.format("%f", math.random()))
 		item:SetKeyValue("DesiredAmmo357", string.format("%f", math.random()))
 		item:SetKeyValue("DesiredAmmoCrossbow", string.format("%f", math.random()))
@@ -1253,7 +1177,7 @@ end)
 
 local function AttemptDupeEntity(ply, item)
 	if InsaneStats:GetConVarValue("wpass2_enabled") then
-		local itemHasNoModifiers = item:InsaneStats_IsWPASS2Pickup() and item.insaneStats_Tier == 0
+		local itemHasNoModifiers = not item:InsaneStats_IsWPASS2Pickup() or item.insaneStats_Tier == 0
 		local ignoreWPASS2Pickup = (item.insaneStats_DisableWPASS2Pickup or 0) > RealTime()
 		local itemPickupCooldownElapsed = (item.insaneStats_NextPickup or 0) < CurTime()
 		
@@ -1338,11 +1262,16 @@ hook.Add("InsaneStatsArmorBatteryChanged", "InsaneStatsWPASS2", function(ent, it
 	item.insaneStats_Duplicated = true
 end)
 
+local notAppliedForNonNPCs = bit.bor(DMG_SLOWBURN, DMG_NERVEGAS)
 local function CauseStatusEffectDamage(data)
 	local stat = data.stat
 	for i, victim in ipairs(InsaneStats:GetEntitiesByStatusEffect(stat)) do
 		local statLevel = victim:InsaneStats_GetStatusEffectLevel(stat)
 		if victim:InsaneStats_GetHealth() > 0 then
+			local damageType = bit.bor(data.damageType, DMG_PREVENT_PHYSICS_FORCE)
+			if not victim:IsNPC() then
+				damageType = bit.band(damageType, bit.bnot(notAppliedForNonNPCs))
+			end
 			--print(stat, statLevel)
 			table.insert(damageTiers, 4)
 			--PrintTable(data)
@@ -1359,7 +1288,7 @@ local function CauseStatusEffectDamage(data)
 			dmginfo:SetDamage(damage)
 			dmginfo:SetDamageForce(vector_origin)
 			dmginfo:SetDamagePosition(victim:WorldSpaceCenter())
-			dmginfo:SetDamageType(bit.bor(data.damageType, DMG_PREVENT_PHYSICS_FORCE))
+			dmginfo:SetDamageType(damageType)
 			dmginfo:SetInflictor(attacker)
 			dmginfo:SetMaxDamage(damage)
 			dmginfo:SetReportedPosition(attacker:WorldSpaceCenter())
@@ -1447,7 +1376,7 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 			v:InsaneStats_SetStatusEffectLevel("stack_firerate_up", v:InsaneStats_GetStatusEffectLevel("stack_firerate_up") * decayRate)
 		end
 		for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("starlight")) do
-			local radius = v:InsaneStats_GetStatusEffectDuration("starlight") * 2
+			local radius = math.sqrt(v:InsaneStats_GetStatusEffectDuration("starlight")) * 32
 			if v:InsaneStats_GetStatusEffectLevel("invisibility") > 0 then
 				radius = 0
 			end
@@ -1646,14 +1575,14 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 		timeIndex[2] = timeIndex[2] + SysTime() - tempTimeStart
 		
 		local delay = SysTime() - startTime
-		--if delay > 0 then
-			--[[InsaneStats:Log("WARNING: WPASS2 attribute timer at tick index "..tickIndex.." is taking "..(delay*1000).."ms more than expected!")]]
-			-- InsaneStats:Log("Time breakdown:")
-			-- InsaneStats:Log("1: "..(timeIndex[1]*1000).."ms")
-			-- InsaneStats:Log("2: "..(timeIndex[2]*1000).."ms")
-			-- InsaneStats:Log("3: "..(timeIndex[3]*1000).."ms")
-			-- InsaneStats:Log("4: "..(timeIndex[4]*1000).."ms")
-		--end
+		if delay > 0.01 then
+			InsaneStats:Log("WARNING: WPASS2 attribute timer at tick index "..tickIndex.." is taking "..(delay*1000-10).."ms more than expected!")
+			InsaneStats:Log("Time breakdown:")
+			InsaneStats:Log("1: "..(timeIndex[1]*1000).."ms")
+			InsaneStats:Log("2: "..(timeIndex[2]*1000).."ms")
+			InsaneStats:Log("3: "..(timeIndex[3]*1000).."ms")
+			InsaneStats:Log("4: "..(timeIndex[4]*1000).."ms")
+		end
 	end
 end)
 
@@ -1761,7 +1690,7 @@ hook.Add("PlayerUse", "InsaneStatsWPASS2", function(ply, ent)
 			* (ply.insaneStats_CurrentArmorAdd or 1)
 			
 			if ent:HasSpawnFlags(8192) then
-				ply:InsaneStats_AddHealthCapped(armorToAdd/2)
+				ply:SetHealth(ply:InsaneStats_GetHealth() + armorToAdd/2)
 			end
 				
 			if ply:InsaneStats_GetStatusEffectLevel("shock") > 0
