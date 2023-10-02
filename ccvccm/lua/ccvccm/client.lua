@@ -76,11 +76,11 @@ net.Receive('ccvccm', function(length)
     local fullName = CCVCCM:ExtractSingleFromNetMessage('s')
     local unitType = CCVCCM:GetNetSingleAddonType(fullName)
     local value = CCVCCM:ExtractSingleFromNetMessage(unitType)
-    CCVCCM:Log('Recieved value of ', fullName, ':')
+    CCVCCM:Log('Received value of ', fullName, ':')
     if CCVCCM:ShouldLog() then
       PrintTable(value)
     end
-    return CCVCCM:_SetAddonVar(fullName, value)
+    return CCVCCM:SetVarValue(fullName, value)
   elseif CCVCCM.ENUMS.NET.QUERY == _exp_0 then
     local cls = ManagerUI:GetInstance()
     if cls then
@@ -102,7 +102,7 @@ net.Receive('ccvccm', function(length)
       local fullName = CCVCCM:ExtractSingleFromNetMessage('s')
       local unitType = CCVCCM:GetNetSingleAddonType(fullName)
       local value = CCVCCM:ExtractSingleFromNetMessage(unitType)
-      CCVCCM:_SetAddonVar(fullName, value)
+      CCVCCM:SetVarValue(fullName, value)
     end
   end
 end)
@@ -249,7 +249,7 @@ do
       return self:GetPanel():SetMinMax(...)
     end,
     SetInterval = function(self, interval)
-      self:GetPanel():SetDecimals(math.log10(math.abs(interval)))
+      self:GetPanel():SetDecimals(-(math.log10(math.abs(interval))))
       self.interval = interval
     end,
     SetLogarithmic = function(self, logarithmic)
@@ -661,6 +661,11 @@ do
       elseif ETYPES.ADDON == _exp_0 then
         local classPanel = CAVACPanel(self.items, data, self.window, self.static)
         createdPanel = classPanel:GetPanel()
+      else
+        for k, v in pairs(data) do
+          print(k, v)
+        end
+        error(tostring(data.elementType) .. " is not a valid element type!")
       end
       return createdPanel
     end,
@@ -759,6 +764,8 @@ do
         data.elementType = ETYPES.SERVER_CCMD
       elseif 'addon' == _exp_0 then
         data.elementType = ETYPES.ADDON
+      else
+        CCVCCM:Log("Couldn't translate unsupported element type " .. tostring(data.elementType) .. "!")
       end
       local _exp_1 = data.dataType
       if 'none' == _exp_1 then
@@ -1097,6 +1104,7 @@ do
       end)
     end,
     FilterElements = function(self, text)
+      self.category:DoExpansion(true)
       return self.contentPanel:FilterElements(text)
     end,
     SaveToTable = function(self)
@@ -1162,6 +1170,7 @@ do
         _with_0:SetLabel(data.displayName or 'New Category')
         _with_0:SetContents(self.contentPanel:GetPanel())
         _with_0:SetList(parent)
+        _with_0:SetExpanded(false)
         _with_0:Dock(TOP)
         if not (static) then
           _with_0.Header.DoDoubleClick = function()
@@ -1499,26 +1508,6 @@ do
       self.window = window
       self:InitializeElementPanel(parent, static)
       local panel = self:GetPanel()
-      local arguments, fullName
-      arguments, fullName = data.arguments, data.fullName
-      local apiType, realm, displayName, default, manual, typeInfo
-      do
-        local _obj_0 = CCVCCM:_GetRegisteredData(fullName)
-        apiType, realm, displayName, default, manual, typeInfo = _obj_0.type, _obj_0.data.realm, _obj_0.data.name, _obj_0.data.default, _obj_0.data.manual, _obj_0.data.typeInfo
-      end
-      local DTYPES = AddElementUI.DATA_TYPES
-      local dataType = self:TranslateTypeInfo(typeInfo)
-      self:Log('TranslateTypeInfo')
-      if CCVCCM:ShouldLog() then
-        PrintTable(dataType)
-      end
-      local isClient = realm == 'client'
-      local isVar = apiType == 'addonvar'
-      if not isVar and arguments ~= nil then
-        self.arguments = arguments
-      else
-        self.arguments = CCVCCM:_GetAddonVar(fullName)
-      end
       do
         local controlPanel = vgui.Create('DPanel', panel)
         controlPanel:SetTall(22)
@@ -1544,7 +1533,48 @@ do
         end
         self.window:AddControlPanel(controlPanel)
       end
-      if not isVar or manual then
+      local arguments, fullName
+      arguments, fullName = data.arguments, data.fullName
+      local registeredData = CCVCCM:_GetRegisteredData(fullName)
+      CCVCCM:Log("Creating CAVACPanel from \"" .. tostring(fullName) .. "\" data:")
+      if not (registeredData) then
+        CCVCCM:Log('Failed to get registered data!')
+        local labelParent
+        do
+          local _with_0 = vgui.Create('DSizeToContents', panel)
+          _with_0:SetSizeX(false)
+          _with_0:SetZPos(2)
+          _with_0:DockPadding(4, 4, 4, 4)
+          _with_0:Dock(TOP)
+          labelParent = _with_0
+        end
+        do
+          local _with_0 = self:CreateLabel(labelParent, "Could not find control \"" .. tostring(fullName) .. "\", please check your addons!")
+          _with_0:Dock(TOP)
+          _with_0:SetDark(true)
+        end
+        return 
+      end
+      if CCVCCM:ShouldLog() then
+        PrintTable(registeredData)
+      end
+      local apiType, realm, displayName, default, manual, typeInfo
+      apiType, realm, displayName, default, manual, typeInfo = registeredData.type, registeredData.data.realm, registeredData.data.name, registeredData.data.default, registeredData.data.manual, registeredData.data.typeInfo
+      local DTYPES = AddElementUI.DATA_TYPES
+      local dataType = self:TranslateTypeInfo(typeInfo)
+      self:Log('TranslateTypeInfo')
+      if CCVCCM:ShouldLog() then
+        PrintTable(dataType)
+      end
+      local isClient = realm == 'client'
+      local isVar = apiType == 'addonvar'
+      if not isVar and arguments ~= nil then
+        self.arguments = arguments
+      else
+        self.arguments = CCVCCM:_GetAddonVar(fullName)
+      end
+      manual = manual or not isVar
+      if manual then
         local buttonText
         if isVar then
           buttonText = 'Apply Changes'
@@ -1834,6 +1864,10 @@ do
       local ETYPES = AddElementUI.ELEMENT_TYPES
       local isClient = elementType == ETYPES.CLIENT_CCMD or elementType == ETYPES.CLIENT_CVAR
       local isVar = elementType == ETYPES.CLIENT_CVAR or elementType == ETYPES.SERVER_CVAR
+      manual = manual or not isVar
+      if isVar and not isClient and GetConVar(internalName) then
+        self:SetArgs(GetConVar(internalName):GetString())
+      end
       do
         local controlPanel = vgui.Create('DPanel', panel)
         controlPanel:SetTall(22)
@@ -1874,7 +1908,7 @@ do
           return self:SendToServer()
         end
       end
-      if not isVar or manual then
+      if manual then
         local buttonText
         if isVar then
           buttonText = 'Apply Changes'
@@ -2238,6 +2272,8 @@ do
         elementTypeStr = 'serverConVar'
       elseif ETYPES.SERVER_CCMD == _exp_0 then
         elementTypeStr = 'serverConCommand'
+      else
+        error(tostring(data.elementType) .. " is not a valid element type!")
       end
       saveTable.elementType = elementTypeStr
       local dataTypeStr
@@ -2268,6 +2304,8 @@ do
         data.dataType = 'numberList'
       elseif DTYPES.STRING_LIST == _exp_1 then
         dataTypeStr = 'stringList'
+      else
+        CCVCCM:Log("Failed to serialize data type " .. tostring(data.dataType) .. "!")
       end
       saveTable.dataType = dataTypeStr
       return saveTable
@@ -2423,6 +2461,7 @@ do
           table.insert(varSendTable, 's')
           table.insert(varSendTable, k)
           self.serverVarQueryRequests[k] = nil
+          self:Log("FulfillServerVarQueryRequests: " .. tostring(k))
           if #varSendTable >= 127 then
             break
           end
@@ -2439,6 +2478,7 @@ do
       end
     end,
     ReceiveServerVarQueryResult = function(self, var, val)
+      self:Log("ReceiveServerVarQueryResult: " .. tostring(var) .. " = " .. tostring(val))
       local _list_0 = self.serverVarClass[var]
       for _index_0 = 1, #_list_0 do
         local cls = _list_0[_index_0]
@@ -3146,7 +3186,7 @@ do
             end
             local stepValue = self.data.interval or ''
             if stepValue == '' then
-              stepValue = 0.01
+              stepValue = 10 ^ -(math.Round(4 - math.log10(math.abs(maxValue - minValue))))
             else
               stepValue = tonumber(stepValue)
             end
@@ -3453,6 +3493,14 @@ do
     SetCallback = function(self, callback)
       self.callback = callback
     end,
+    SetValue = function(self, values)
+      self.rowPanels = { }
+      self.listPanel:Clear()
+      for _index_0 = 1, #values do
+        local rowValues = values[_index_0]
+        self:AddRow(rowValues)
+      end
+    end,
     AddRow = function(self, rowValues)
       if rowValues == nil then
         rowValues = { }
@@ -3525,9 +3573,15 @@ do
           do
             local _with_0 = CustomNumSlider(rowElementPanel)
             _with_0:SetText(nil)
-            _with_0:SetMinMax(min, max)
-            _with_0:SetInterval(interval)
-            _with_0:SetLogarithmic(logarithmic)
+            if min and max then
+              _with_0:SetMinMax(min, max)
+            end
+            if interval then
+              _with_0:SetInterval(interval)
+            end
+            if logarithmic then
+              _with_0:SetLogarithmic(logarithmic)
+            end
             if currentValue then
               _with_0:GetPanel():SetValue(currentValue)
             end
@@ -3553,6 +3607,8 @@ do
           button.GetValue = function()
             return currentValue
           end
+        else
+          error(tostring(dataTypeInfo.dataType) .. " is not a valid data type!")
         end
       end
       self.rowPanels[rowClass] = true
@@ -3588,11 +3644,42 @@ do
             rowValues[j] = childrenPanels[j]:GetText()
           elseif DTYPES.COMPLEX_LIST == _exp_0 then
             rowValues[j] = childrenPanels[j]:GetValue()
+          else
+            error(tostring(dataTypeInfo.dataType) .. " is not a valid data type!")
           end
         end
         values[i] = rowValues
       end
       return values
+    end,
+    FindValue = function(self, findValue)
+      local DTYPES = AddElementUI.DATA_TYPES
+      for rowClass, _ in pairs(self.rowPanels) do
+        local rowPanel = rowClass:GetPanel()
+        local childrenPanels = rowPanel:GetChildren()
+        for j, dataTypeInfo in ipairs(self.dataTypes) do
+          local valueMatched = false
+          local _exp_0 = dataTypeInfo.dataType
+          if DTYPES.BOOL == _exp_0 then
+            local value = childrenPanels[j]:GetChild(0):GetChecked() or false
+            valueMatched = value == tobool(findValue)
+          elseif DTYPES.CHOICE == _exp_0 then
+            valueMatched = childrenPanels[j]:GetSelected() == findValue
+          elseif DTYPES.NUMBER == _exp_0 then
+            valueMatched = childrenPanels[j]:GetValue() == tonumber(findValue)
+          elseif DTYPES.STRING == _exp_0 then
+            valueMatched = childrenPanels[j]:GetText() == findValue
+          elseif DTYPES.COMPLEX_LIST == _exp_0 then
+            valueMatched = false
+          else
+            error(tostring(dataTypeInfo.dataType) .. " is not a valid data type!")
+          end
+          if valueMatched then
+            self.scrollPanel:ScrollToChild(rowPanel)
+            return true
+          end
+        end
+      end
     end
   }
   _base_0.__index = _base_0
@@ -3616,13 +3703,62 @@ do
           _with_0:Dock(TOP)
         end
       end
+      local findPanel
+      do
+        local _with_0 = vgui.Create('DPanel', window)
+        _with_0:SetTall(22)
+        _with_0:Dock(TOP)
+        _with_0:SetZPos(2)
+        _with_0.Paint = nil
+        findPanel = _with_0
+      end
+      local findEntry
+      do
+        local _with_0 = vgui.Create('DTextEntry', findPanel)
+        _with_0:SetPlaceholderText('Find... (must be exact value!)')
+        _with_0:Dock(FILL)
+        findEntry = _with_0
+      end
+      do
+        local _with_0 = self:CreateButton(findPanel, 'Paste JSON', 1, 'paste_plain')
+        _with_0:Dock(RIGHT)
+        _with_0.DoClick = function()
+          return Derma_StringRequest('Paste', 'Enter JSON - note that all values will be overwritten!', '', function(jsonData)
+            local tab = util.JSONToTable(jsonData)
+            if tab then
+              return self:SetValue(tab)
+            else
+              return Derma_Message('Entered text isn\'t valid JSON!', 'Paste Error', 'OK')
+            end
+          end)
+        end
+      end
+      do
+        local _with_0 = self:CreateButton(findPanel, 'Copy JSON', 2, 'page_white_text')
+        _with_0:Dock(RIGHT)
+        _with_0.DoClick = function()
+          SetClipboardText(util.TableToJSON(self:GetValues(), true))
+          return Derma_Message('Copied as JSON!', 'Copy', 'OK')
+        end
+      end
+      do
+        local _with_0 = self:CreateButton(findPanel, 'Find', 3, 'magnifier')
+        _with_0:Dock(RIGHT)
+        _with_0.DoClick = function()
+          local findValue = findEntry:GetValue()
+          local result = self:FindValue(findValue)
+          if not (result) then
+            return Derma_Message("Couldn't find value " .. tostring(findValue) .. "!", 'Find Failed', 'OK')
+          end
+        end
+      end
       if data.names then
         local rowPanel
         do
           local _with_0 = vgui.Create('DPanel', window)
           _with_0:SetTall(22)
           _with_0:Dock(TOP)
-          _with_0:SetZPos(2)
+          _with_0:SetZPos(3)
           _with_0.Paint = nil
           rowPanel = _with_0
         end
@@ -3650,14 +3786,13 @@ do
           end
         end
       end
-      local scrollPanel
       do
         local _with_0 = vgui.Create('DScrollPanel', window)
         _with_0:Dock(FILL)
-        scrollPanel = _with_0
+        self.scrollPanel = _with_0
       end
       do
-        local _with_0 = vgui.Create('DIconLayout', scrollPanel)
+        local _with_0 = vgui.Create('DIconLayout', self.scrollPanel)
         _with_0:SetZPos(1)
         _with_0:Dock(TOP)
         _with_0:SetDropPos('28')
@@ -3666,7 +3801,7 @@ do
       end
       self:MakeDraggable(self.listPanel)
       do
-        local _with_0 = vgui.Create('DImageButton', scrollPanel)
+        local _with_0 = vgui.Create('DImageButton', self.scrollPanel)
         _with_0:SetImage('icon16/add.png')
         _with_0:SetStretchToFit(false)
         _with_0:SetTall(22)
@@ -3676,10 +3811,7 @@ do
           return self:AddRow()
         end
       end
-      for _index_0 = 1, #values do
-        local rowValues = values[_index_0]
-        self:AddRow(rowValues)
-      end
+      return self:SetValue(values)
     end,
     __base = _base_0,
     __name = "ListInputUI",
@@ -3744,22 +3876,27 @@ do
       self.expectedRuns = expectedRuns
       self:WrapFunc(window, 'Think', false, function()
         if not self.stopped then
-          local ok
-          ok, self.stopped = coroutine.resume(routine)
-          self.resumes = self.resumes + 1
-          if ok then
-            if self.stopped then
-              self.button:SetText('OK')
-              self.button:SizeToContentsX(22)
-              self.progressBar:SetFraction(1)
-              return self.progressLabel:SetText(self.stopped)
+          local stopTime = SysTime() + 1 / self.__class.ELEMENT_FPS
+          while SysTime() < stopTime do
+            local ok
+            ok, self.stopped = coroutine.resume(routine)
+            self.resumes = self.resumes + 1
+            if ok then
+              if self.stopped then
+                self.button:SetText('OK')
+                self.button:SizeToContentsX(22)
+                self.progressBar:SetFraction(1)
+                self.progressLabel:SetText(self.stopped)
+                break
+              else
+                self:RecomputeFraction()
+              end
+            elseif self.stopped then
+              error(self.stopped)
             else
-              return self:RecomputeFraction()
+              self.stopped = true
+              break
             end
-          elseif self.stopped then
-            return error(self.stopped)
-          else
-            self.stopped = true
           end
         end
       end)
@@ -3824,6 +3961,8 @@ do
     end
   })
   _base_0.__class = _class_0
+  local self = _class_0
+  self.ELEMENT_FPS = 30
   if _parent_0.__inherited then
     _parent_0.__inherited(_parent_0, _class_0)
   end

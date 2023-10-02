@@ -85,9 +85,9 @@ net.Receive 'ccvccm', (length) ->
 			fullName = CCVCCM\ExtractSingleFromNetMessage 's'
 			unitType = CCVCCM\GetNetSingleAddonType fullName
 			value = CCVCCM\ExtractSingleFromNetMessage unitType
-			CCVCCM\Log 'Recieved value of ', fullName, ':'
+			CCVCCM\Log 'Received value of ', fullName, ':'
 			PrintTable value if CCVCCM\ShouldLog!
-			CCVCCM\_SetAddonVar fullName, value
+			CCVCCM\SetVarValue fullName, value
 		when CCVCCM.ENUMS.NET.QUERY
 			cls = ManagerUI\GetInstance!
 			if cls
@@ -106,7 +106,7 @@ net.Receive 'ccvccm', (length) ->
 				fullName = CCVCCM\ExtractSingleFromNetMessage 's'
 				unitType = CCVCCM\GetNetSingleAddonType fullName
 				value = CCVCCM\ExtractSingleFromNetMessage unitType
-				CCVCCM\_SetAddonVar fullName, value
+				CCVCCM\SetVarValue fullName, value
 
 CCVCCM.CountTablesRecursive = (items, acc = {}, fillAccOnly = false) =>
 	-- returns the number of tables within tab
@@ -242,7 +242,7 @@ class CustomNumSlider extends BasePanel
 		@GetPanel!\SetMinMax ...
 	
 	SetInterval: (interval) =>
-		@GetPanel!\SetDecimals math.log10 math.abs interval
+		@GetPanel!\SetDecimals -(math.log10 math.abs interval)
 		@interval = interval
 	
 	SetLogarithmic: (logarithmic) =>
@@ -512,6 +512,10 @@ class ContentPanel extends SavablePanel
 			when ETYPES.ADDON
 				classPanel = CAVACPanel @items, data, @window, @static
 				createdPanel = classPanel\GetPanel!
+			
+			else
+				for k,v in pairs data do print k,v
+				error "#{data.elementType} is not a valid element type!"
 				
 		createdPanel
 
@@ -590,6 +594,8 @@ class ContentPanel extends SavablePanel
 				data.elementType = ETYPES.SERVER_CCMD
 			when 'addon'
 				data.elementType = ETYPES.ADDON
+			else
+				CCVCCM\Log "Couldn't translate unsupported element type #{data.elementType}!"
 		
 		switch data.dataType
 			when 'none'
@@ -728,6 +734,7 @@ class CategoryPanel extends SavablePanel
 			\SetLabel data.displayName or 'New Category'
 			\SetContents @contentPanel\GetPanel!
 			\SetList parent
+			\SetExpanded false
 			\Dock TOP
 			unless static
 				.Header.DoDoubleClick = -> @PromptRenameDisplay! if window\GetControlPanelVisibility!
@@ -741,7 +748,9 @@ class CategoryPanel extends SavablePanel
 		Derma_StringRequest 'Rename', 'Enter new category name:', categoryHeader\GetText!, (newName) ->
 			categoryHeader\SetText newName
 	
-	FilterElements: (text) => @contentPanel\FilterElements text
+	FilterElements: (text) =>
+		@category\DoExpansion true
+		@contentPanel\FilterElements text
 	
 	SaveToTable: => {
 		elementType: "category"
@@ -842,33 +851,6 @@ class CAVACPanel extends SavablePanel
 		@InitializeElementPanel parent, static
 		panel = @GetPanel!
 
-		-- unlike CCVCCPanels, the variables displayName, dataType, elementType and even manual
-		-- is derived from data returned by CCVCCM\_GetRegisteredData
-		{:arguments, :fullName} = data
-		{
-			type: apiType,
-			data: {
-				:realm,
-				name: displayName,
-				:default,
-				:manual,
-				:typeInfo
-			}
-		} = CCVCCM\_GetRegisteredData fullName
-
-		-- ListInputUI requires data to be in terms of DTYPES
-		DTYPES = AddElementUI.DATA_TYPES
-		dataType = @TranslateTypeInfo typeInfo
-		@Log 'TranslateTypeInfo'
-		PrintTable dataType if CCVCCM\ShouldLog!
-		
-		-- this isn't applicable
-		-- ETYPES = AddElementUI.ELEMENT_TYPES
-
-		isClient = realm == 'client'
-		isVar = apiType == 'addonvar'
-		@arguments = if not isVar and arguments ~= nil then arguments else CCVCCM\_GetAddonVar fullName
-
 		with controlPanel = vgui.Create 'DPanel', panel
 			\SetTall 22
 			\SetZPos 1
@@ -887,7 +869,53 @@ class CAVACPanel extends SavablePanel
 			
 			@window\AddControlPanel controlPanel
 
-		if not isVar or manual
+		-- unlike CCVCCPanels, the variables displayName, dataType, elementType and even manual
+		-- is derived from data returned by CCVCCM\_GetRegisteredData
+		{:arguments, :fullName} = data
+		registeredData = CCVCCM\_GetRegisteredData fullName
+		CCVCCM\Log "Creating CAVACPanel from \"#{fullName}\" data:"
+		unless registeredData
+			CCVCCM\Log 'Failed to get registered data!'
+		
+			-- make a text panel instead
+			labelParent = with vgui.Create 'DSizeToContents', panel
+				\SetSizeX false
+				\SetZPos 2
+				\DockPadding 4, 4, 4, 4
+				\Dock TOP
+			
+			with @CreateLabel labelParent, "Could not find control \"#{fullName}\", please check your addons!"
+				\Dock TOP
+				\SetDark true
+			
+			return
+		PrintTable registeredData if CCVCCM\ShouldLog!
+		{
+			type: apiType,
+			data: {
+				:realm,
+				name: displayName,
+				:default,
+				:manual,
+				:typeInfo
+			}
+		} = registeredData
+
+		-- ListInputUI requires data to be in terms of DTYPES
+		DTYPES = AddElementUI.DATA_TYPES
+		dataType = @TranslateTypeInfo typeInfo
+		@Log 'TranslateTypeInfo'
+		PrintTable dataType if CCVCCM\ShouldLog!
+		
+		-- this isn't applicable
+		-- ETYPES = AddElementUI.ELEMENT_TYPES
+
+		isClient = realm == 'client'
+		isVar = apiType == 'addonvar'
+		@arguments = if not isVar and arguments ~= nil then arguments else CCVCCM\_GetAddonVar fullName
+		manual or= not isVar
+
+		if manual
 			local buttonText
 			if isVar
 				buttonText = 'Apply Changes'
@@ -1149,6 +1177,10 @@ class CCVCCPanel extends SavablePanel
 
 		isClient = elementType == ETYPES.CLIENT_CCMD or elementType == ETYPES.CLIENT_CVAR
 		isVar = elementType == ETYPES.CLIENT_CVAR or elementType == ETYPES.SERVER_CVAR
+		manual or= not isVar
+
+		if isVar and not isClient and GetConVar internalName
+			@SetArgs GetConVar(internalName)\GetString!
 
 		with controlPanel = vgui.Create 'DPanel', panel
 			\SetTall 22
@@ -1177,7 +1209,7 @@ class CCVCCPanel extends SavablePanel
 				LocalPlayer!\ConCommand internalName..' '..@arguments
 			else @SendToServer!
 
-		if not isVar or manual
+		if manual
 			local buttonText
 			if isVar
 				buttonText = 'Apply Changes'
@@ -1406,6 +1438,8 @@ class CCVCCPanel extends SavablePanel
 				elementTypeStr = 'serverConVar'
 			when ETYPES.SERVER_CCMD
 				elementTypeStr = 'serverConCommand'
+			else
+				error "#{data.elementType} is not a valid element type!"
 		saveTable.elementType = elementTypeStr
 		
 		local dataTypeStr
@@ -1435,6 +1469,8 @@ class CCVCCPanel extends SavablePanel
 				data.dataType = 'numberList'
 			when DTYPES.STRING_LIST
 				dataTypeStr = 'stringList'
+			else
+				CCVCCM\Log "Failed to serialize data type #{data.dataType}!"
 		saveTable.dataType = dataTypeStr
 		saveTable
 	
@@ -1582,13 +1618,16 @@ class ManagerUI extends BaseUI
 				table.insert varSendTable, 's'
 				table.insert varSendTable, k
 				@serverVarQueryRequests[k] = nil
+				@Log "FulfillServerVarQueryRequests: #{k}"
 				break if #varSendTable >= 127
 			CCVCCM\StartNet!
 			CCVCCM\AddPayloadToNetMessage {'u8', CCVCCM.ENUMS.NET.QUERY, 'u8', #varSendTable / 2}
 			CCVCCM\AddPayloadToNetMessage varSendTable
 			CCVCCM\FinishNet!
 	
-	ReceiveServerVarQueryResult: (var, val) => for cls in *@serverVarClass[var] do cls\SetValue val
+	ReceiveServerVarQueryResult: (var, val) =>
+		@Log "ReceiveServerVarQueryResult: #{var} = #{val}"
+		for cls in *@serverVarClass[var] do cls\SetValue val
 
 	AddMenuOption: (menuBar, menuName, menuOptions) =>
 		menu = menuBar\AddMenu menuName
@@ -2025,7 +2064,7 @@ class AddElementUI extends BaseUI
 						
 						stepValue = @data.interval or ''
 						if stepValue == ''
-							stepValue = 0.01
+							stepValue = 10 ^ -(math.Round 4 - math.log10 math.abs maxValue - minValue)
 						else
 							stepValue = tonumber stepValue
 						
@@ -2045,7 +2084,7 @@ class AddElementUI extends BaseUI
 						unless choices > 0
 							dataValid = false
 							invalidReason = "You must specify at least one choice!"
-		
+			
 		dataValid, invalidReason
 
 	SetCallback: (func) => @callback = func
@@ -2133,11 +2172,45 @@ class ListInputUI extends BaseUI
 				\SetZPos 1
 				\Dock TOP
 		
+		findPanel = with vgui.Create 'DPanel', window
+			\SetTall 22
+			\Dock TOP
+			\SetZPos 2
+			.Paint = nil
+		
+		findEntry = with vgui.Create 'DTextEntry', findPanel
+			\SetPlaceholderText 'Find... (must be exact value!)'
+			\Dock FILL
+		
+		with @CreateButton findPanel, 'Paste JSON', 1, 'paste_plain'
+			\Dock RIGHT
+			.DoClick = ->
+				Derma_StringRequest 'Paste', 'Enter JSON - note that all values will be overwritten!', '', (jsonData) ->
+					tab = util.JSONToTable jsonData
+					if tab
+						@SetValue tab
+					else
+						Derma_Message 'Entered text isn\'t valid JSON!', 'Paste Error', 'OK'
+		
+		with @CreateButton findPanel, 'Copy JSON', 2, 'page_white_text'
+			\Dock RIGHT
+			.DoClick = ->
+				SetClipboardText util.TableToJSON @GetValues!, true
+				Derma_Message 'Copied as JSON!', 'Copy', 'OK'
+		
+		with @CreateButton findPanel, 'Find', 3, 'magnifier'
+			\Dock RIGHT
+			.DoClick = ->
+				findValue = findEntry\GetValue!
+				result = @FindValue findValue
+				unless result
+					Derma_Message "Couldn't find value #{findValue}!", 'Find Failed', 'OK'
+		
 		if data.names
 			rowPanel = with vgui.Create 'DPanel', window
 				\SetTall 22
 				\Dock TOP
-				\SetZPos 2
+				\SetZPos 3
 				.Paint = nil
 			
 			local rowElementPanel
@@ -2157,10 +2230,10 @@ class ListInputUI extends BaseUI
 				window\Close!
 				@callback @GetValues! if @callback
 		
-		scrollPanel = with vgui.Create 'DScrollPanel', window
+		@scrollPanel = with vgui.Create 'DScrollPanel', window
 			\Dock FILL
 		
-		@listPanel = with vgui.Create 'DIconLayout', scrollPanel
+		@listPanel = with vgui.Create 'DIconLayout', @scrollPanel
 			\SetZPos 1
 			\Dock TOP
 			\SetDropPos '28'
@@ -2168,7 +2241,7 @@ class ListInputUI extends BaseUI
 
 		@MakeDraggable @listPanel
 
-		with vgui.Create 'DImageButton', scrollPanel
+		with vgui.Create 'DImageButton', @scrollPanel
 			\SetImage 'icon16/add.png'
 			\SetStretchToFit false
 			\SetTall 22
@@ -2176,9 +2249,14 @@ class ListInputUI extends BaseUI
 			\Dock TOP
 			.DoClick = -> @AddRow!
 		
-		for rowValues in *values do @AddRow rowValues
+		@SetValue values
 	
 	SetCallback: (callback) => @callback = callback
+
+	SetValue: (values) =>
+		@rowPanels = {}
+		@listPanel\Clear!
+		for rowValues in *values do @AddRow rowValues
 	
 	AddRow: (rowValues = {}) =>
 		rowPanel = with vgui.Create 'DPanel', @listPanel
@@ -2233,9 +2311,9 @@ class ListInputUI extends BaseUI
 					{:min, :max, :interval, :logarithmic} = dataTypeInfo
 					with CustomNumSlider rowElementPanel
 						\SetText nil
-						\SetMinMax min, max
-						\SetInterval interval
-						\SetLogarithmic logarithmic
+						\SetMinMax min, max if min and max
+						\SetInterval interval if interval
+						\SetLogarithmic logarithmic if logarithmic
 						\GetPanel!\SetValue currentValue if currentValue
 				when DTYPES.STRING
 					with vgui.Create 'DTextEntry', rowElementPanel
@@ -2247,6 +2325,8 @@ class ListInputUI extends BaseUI
 							\SetCallback (classData, values) ->
 								currentValue = values
 					button.GetValue = -> currentValue
+				else
+					error "#{dataTypeInfo.dataType} is not a valid data type!"
 
 		@rowPanels[rowClass] = true
 		rowClass
@@ -2277,12 +2357,40 @@ class ListInputUI extends BaseUI
 						rowValues[j] = childrenPanels[j]\GetText!
 					when DTYPES.COMPLEX_LIST
 						rowValues[j] = childrenPanels[j]\GetValue!
+					else
+						error "#{dataTypeInfo.dataType} is not a valid data type!"
 
 			values[i] = rowValues
 		values
+	
+	FindValue: (findValue) =>
+		DTYPES = AddElementUI.DATA_TYPES
+		for rowClass, _ in pairs @rowPanels
+			rowPanel = rowClass\GetPanel!
+			childrenPanels = rowPanel\GetChildren!
+
+			for j, dataTypeInfo in ipairs @dataTypes
+				valueMatched = false
+				switch dataTypeInfo.dataType
+					when DTYPES.BOOL
+						value = childrenPanels[j]\GetChild(0)\GetChecked! or false
+						valueMatched = value == tobool findValue
+					when DTYPES.CHOICE
+						valueMatched = childrenPanels[j]\GetSelected! == findValue
+					when DTYPES.NUMBER
+						valueMatched = childrenPanels[j]\GetValue! == tonumber findValue
+					when DTYPES.STRING
+						valueMatched = childrenPanels[j]\GetText! == findValue
+					when DTYPES.COMPLEX_LIST
+						valueMatched = false
+					else
+						error "#{dataTypeInfo.dataType} is not a valid data type!"
+				if valueMatched
+					@scrollPanel\ScrollToChild rowPanel
+					return true
 
 class ProgressUI extends BaseUI
-	-- @ELEMENT_FPS: 10
+	@ELEMENT_FPS: 30
 	stopped: false
 	resumes: 0
 
@@ -2296,24 +2404,23 @@ class ProgressUI extends BaseUI
 
 		@WrapFunc window, 'Think', false, ->
 			if not @stopped
-				-- stopTime = SysTime! + 1/@@ELEMENT_FPS
-				-- while SysTime! < stopTime
-				ok, @stopped = coroutine.resume routine
-				@resumes += 1
-				if ok
-					if @stopped
-						@button\SetText 'OK'
-						@button\SizeToContentsX 22
-						@progressBar\SetFraction 1
-						@progressLabel\SetText @stopped
-						-- break
-					else @RecomputeFraction!
-				elseif @stopped
-					error @stopped
-				else
-					@stopped = true
-				-- break
-
+				stopTime = SysTime! + 1/@@ELEMENT_FPS
+				while SysTime! < stopTime
+					ok, @stopped = coroutine.resume routine
+					@resumes += 1
+					if ok
+						if @stopped
+							@button\SetText 'OK'
+							@button\SizeToContentsX 22
+							@progressBar\SetFraction 1
+							@progressLabel\SetText @stopped
+							break
+						else @RecomputeFraction!
+					elseif @stopped
+						error @stopped
+					else
+						@stopped = true
+						break
 
 		with @CreateLabel window, headerText
 			\SetZPos 1

@@ -123,10 +123,13 @@ CCVCCM.api or= {
 	layout: {
 		['']: {
 			name: 'Other'
-			useTab: {}
+			useTab: false
 			layoutOrder: {}
 			layoutData: {}
 		}
+	}
+	aliases: {
+		-- [string]: string
 	}
 	data: {
 		-- [string]: registeredData
@@ -150,13 +153,17 @@ loadedData = CCVCCM\SQL 'SELECT "value" FROM "ccvccm"'
 if loadedData
 	CCVCCM.api.addonVars = util.JSONToTable loadedData[1].value
 
-hook.Add 'ShutDown', 'CCVCCM', ->
-	CCVCCM\Log 'Saving data...'
-	data = {k,v for k,v in pairs CCVCCM.api.addonVars when CCVCCM.api.data[k]}
-	CCVCCM\SQL 'BEGIN'
-	CCVCCM\SQL 'INSERT INTO "ccvccm" ("var", "value") VALUES (%s, %s)', {'', util.TableToJSON data}
-	CCVCCM\SQL 'COMMIT'
-	CCVCCM\Log 'Saved!'
+CCVCCM.SaveData = =>
+	@Log 'Saving data...'
+	data = {k,v for k,v in pairs @api.addonVars}
+	@SQL 'BEGIN'
+	@SQL 'INSERT INTO "ccvccm" ("var", "value") VALUES (%s, %s)', {'', util.TableToJSON data}
+	@SQL 'COMMIT'
+	@Log 'Saved!'
+
+timer.Create 'ccvccm_autosave', 120, 0, CCVCCM\SaveData
+
+hook.Add 'ShutDown', 'CCVCCM', CCVCCM\SaveData
 
 hook.Add 'CCVCCMDataLoad', 'CCVCCM', (data) ->
 	table.Add data, CCVCCM\_CreateElementData!
@@ -170,6 +177,30 @@ hook.Add 'CCVCCMRun', 'CCVCCM', ->
 		help: 'Layout to automatically load when CCVCCM is opened.'
 		generate: true
 	}
+	CCVCCM\AddConVar 'autosave_interval_client', {
+		realm: 'client'
+		name: 'Autosave Interval (Client)'
+		help: 'Time between saves.'
+		type: 'int'
+		min: 30
+		max: 3600
+		generate: true
+	}
+	CCVCCM\AddConVar 'autosave_interval_server', {
+		realm: 'server'
+		name: 'Autosave Interval (Server)'
+		help: 'Time between saves.'
+		type: 'int'
+		min: 30
+		max: 3600
+		generate: true
+	}
+	cvars.AddChangeCallback 'ccvccm_autosave_interval_client', ((conVarName, oldValue, newValue) ->
+		timer.Adjust 'ccvccm_autosave', tonumber(newValue)
+	), 'ccvccm_autosave'
+	cvars.AddChangeCallback 'ccvccm_autosave_interval_server', ((conVarName, oldValue, newValue) ->
+		timer.Adjust 'ccvccm_autosave', tonumber(newValue)
+	), 'ccvccm_autosave'
 	CCVCCM\AddAddonVar 'addonvar', {
 		realm: 'client'
 		name: 'Test AddonVar'
@@ -209,6 +240,7 @@ hook.Add 'CCVCCMRun', 'CCVCCM', ->
 			print "#{fullName} from #{ply} on server:" if SERVER
 			PrintTable value
 	}
+	return -- otherwise this will stop other hooks
 
 -- internal portion
 -- CCVCCM._ValidConVarTypes = {
@@ -224,7 +256,7 @@ CCVCCM._ConstructCategory = (displayName, icon) =>
 	{
 		name: displayName
 		icon: icon
-		useTab: {}
+		useTab: false
 		layoutOrder: {}
 		layoutData: {}
 	}
@@ -252,23 +284,26 @@ CCVCCM._GetCheatsEnabled = => GetConVar('sv_cheats')\GetBool!
 
 CCVCCM._RegisterIntoCategory = (name, registeredData, registeredType) =>
 	category = @_GetCategoryTable!
-	fullName = @_AssembleVarName name
-	table.insert category.layoutOrder, name unless @_GetRegisteredData fullName
+	categoryFullName = @_AssembleVarName name
+	realFullName = registeredData.fullName or categoryFullName
+	table.insert category.layoutOrder, name unless @_GetRegisteredData categoryFullName
 	
 	registeredData.hide = {str, true for str in *string.Explode('%s+', registeredData.hide or '', true)}
 	registeredData.flags = {str, true for str in *string.Explode('%s+', registeredData.flags or '', true)}
-	@api.data[fullName] = type: registeredType, data: registeredData
+	@api.data[realFullName] = type: registeredType, data: registeredData
+	@api.aliases[categoryFullName] = realFullName if categoryFullName ~= realFullName
 
 CCVCCM._AssembleVarName = (name, addon = @api.addon, categoryPath = @api.categoryPath) =>
 	nameFragments = {addon}
-	for category in *categoryPath do table.insert nameFragments, category
+	for category in *categoryPath
+		table.insert nameFragments, category if category ~= ""
 	table.insert nameFragments, name
 	table.concat nameFragments, '_'
 
 CCVCCM._GenerateConVar = (name, data) =>
 	realm = data.realm or 'server'
 	if realm == 'shared' or realm == 'server' and SERVER or realm == 'client' and CLIENT
-		{:help, :default, :hide, :flags, :min, :max, :clamp} = data
+		{:help, :default, :hide, :flags, :min, :max, :clamp, :fullName} = data
 		archiveFlags = bit.bor FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX
 		conFlags = bit.bor archiveFlags, FCVAR_PRINTABLEONLY
 
@@ -312,12 +347,13 @@ CCVCCM._GenerateConVar = (name, data) =>
 		unless clamp
 			min = nil
 			max = nil
-		CreateConVar @_AssembleVarName(name), default, conFlags, help, min, max
+		fullName or= @_AssembleVarName name
+		CreateConVar fullName, default, conFlags, help, min, max
 
 CCVCCM._GenerateConCommand = (name, data) =>
 	realm = data.realm
 	if realm == 'shared' or realm == 'server' and SERVER or realm == 'client' and CLIENT
-		{:help, :func, :autoComplete, :choices, :hide, :flags} = data
+		{:help, :func, :autoComplete, :choices, :hide, :flags, :fullName} = data
 		-- if no auto-complete is specified yet choices are given,
 		-- create our own auto-complete function that sends those choices
 		unless autoComplete
@@ -343,7 +379,8 @@ CCVCCM._GenerateConCommand = (name, data) =>
 			if flags.demo then error('demo and nodemo flags cannot be on the same ConVar!')
 			conFlags = bit.bor conFlags, FCVAR_DONTRECORD
 
-		concommand.Add @_AssembleVarName(name), func, autoComplete, help, conFlags
+		fullName or= @_AssembleVarName name
+		concommand.Add fullName, func, autoComplete, help, conFlags
 
 CCVCCM._SetAddonVar = (fullName, value) =>
 	-- internal method for setting the addonvar and do nothing else
@@ -384,6 +421,7 @@ CCVCCM._CreateCategoryData = (addon, categoryPath, categoryTable) =>
 			table.insert tabsTable, tabTable
 		else
 			fullName = @_AssembleVarName layoutKey, addon, categoryPath
+			fullName = @api.aliases[fullName] or fullName
 			registeredData = @_GetRegisteredData fullName
 			{
 				:name,
@@ -468,13 +506,13 @@ CCVCCM._CreateCategoryData = (addon, categoryPath, categoryTable) =>
 	if next tabsTable
 		if useTab
 			table.insert saveTable, {
-				type: "tabs"
+				elementType: 'tabs'
 				tabs: tabsTable
 			}
 		else
 			for tabTable in *tabsTable
 				table.insert saveTable, {
-					type: "category"
+					elementType: 'category'
 					displayName: tabTable.displayName
 					content: tabTable.content
 				}
@@ -492,6 +530,8 @@ CCVCCM._CreateElementData = =>
 				content: @_CreateCategoryData addon, {}, addonTable
 				static: true
 			}
+	@Log 'Resulting save table:'
+	PrintTable saveTable if @ShouldLog!
 	saveTable
 
 -- public portion
@@ -507,8 +547,8 @@ CCVCCM.SetAddon = (addon = '', display, icon) =>
 CCVCCM.PushCategory = (name, display, tabs, icon) =>
 	@_GetCategoryTable!.useTab or= tabs
 
+	@_GenerateAndGetCategoryTable name, display
 	table.insert @api.categoryPath, name
-	@_GenerateAndGetCategoryTable, display, icon
 
 CCVCCM.PopCategory = (num = 1) =>
 	categoryPath = @api.categoryPath
@@ -525,34 +565,35 @@ CCVCCM.AddConVar = (name, registeredData) =>
 	unless registeredData.realm == 'client' and not registeredData.userInfo and SERVER
 		@_RegisterIntoCategory name, registeredData, 'convar'
 		@_GenerateConVar name, registeredData if registeredData.generate
-		CCVCCMPointer @_AssembleVarName name
+		CCVCCMPointer(registeredData.fullName or @_AssembleVarName name)
 
 CCVCCM.AddConCommand = (name, registeredData) =>
 	unless registeredData.realm == 'client' and SERVER
 		@_RegisterIntoCategory name, registeredData, 'concommand'
 		@_GenerateConCommand name, registeredData if registeredData.generate
-		CCVCCMPointer @_AssembleVarName name
+		CCVCCMPointer(registeredData.fullName or @_AssembleVarName name)
 
 CCVCCM.AddAddonVar = (name, registeredData) =>
 	noValue = registeredData.userInfo and SERVER
 	unless registeredData.realm == 'client' and not registeredData.userInfo and SERVER
 		@_RegisterIntoCategory name, registeredData, 'addonvar'
+		fullName = registeredData.fullName or @_AssembleVarName name
 
 		-- FIXME: this save-first-ask-later approach might cause issues!
 		unless noValue
-			fullName = @_AssembleVarName name
 			@_SetAddonVar fullName, registeredData.default if @_GetAddonVar(fullName) == nil or registeredData.flags.nosave
-			registeredData.func @_GetAddonVar(fullName), fullName
+			registeredData.func @_GetAddonVar(fullName), fullName if registeredData.func
 		CCVCCMPointer fullName
 
 CCVCCM.AddAddonCommand = (name, registeredData) =>
 	unless registeredData.realm == 'client' and SERVER
 		@_RegisterIntoCategory name, registeredData, 'addoncommand'
-		CCVCCMPointer @_AssembleVarName name
+		CCVCCMPointer(registeredData.fullName or @_AssembleVarName name)
 
 CCVCCM.GetVarValue = (fullName, ply) =>
 	-- figure out the variable type
 	fullName = table.concat fullName, '_' if istable fullName
+	fullName = @api.aliases[fullName] or fullName
 	registeredData = @_GetRegisteredData fullName
 	if registeredData
 		{type: registeredType, data: {type: dataType, :sep, :userInfo}} = registeredData
@@ -595,6 +636,7 @@ CCVCCM.GetVarValue = (fullName, ply) =>
 
 CCVCCM.SetVarValue = (fullName, value) =>
 	fullName = table.concat fullName, '_' if istable fullName
+	fullName = @api.aliases[fullName] or fullName
 	registeredData = @_GetRegisteredData fullName
 	if registeredData
 		{
@@ -654,7 +696,7 @@ CCVCCM.SetVarValue = (fullName, value) =>
 					@Send payload
 				if SERVER
 					if notify
-						PrintMessage HUD_PRINTTALK, "Server addon var '#{fullName}' changed to '#{tostring(value)}'"
+						PrintMessage HUD_PRINTTALK, "Server addon var '#{fullName}' changed to '#{value}'"
 					if realm == 'shared'
 						payload = {
 							'u8', @ENUMS.NET.REP,
@@ -666,6 +708,7 @@ CCVCCM.SetVarValue = (fullName, value) =>
 
 CCVCCM.RevertVarValue = (fullName) =>
 	fullName = table.concat fullName, '_' if istable fullName
+	fullName = @api.aliases[fullName] or fullName
 	registeredData = @_GetRegisteredData fullName
 	if registeredData
 		@_RevertDataByRegistered registeredData, fullName
@@ -680,10 +723,12 @@ CCVCCM.RevertByAddonAndCategory = (addon, ...) =>
 			table.remove categoryPath
 		else
 			fullName = @_AssembleVarName layoutKey, addon, categoryPath
+			fullName = @api.aliases[fullName] or fullName
 			registeredData = @_GetRegisteredData fullName
 			@_RevertDataByRegistered registeredData, fullName
 
 CCVCCM.RunCommand = (fullName, ply, value) =>
+	fullName = table.concat fullName, '_' if istable fullName
 	registeredData = @_GetRegisteredData fullName
 	if registeredData
 		{

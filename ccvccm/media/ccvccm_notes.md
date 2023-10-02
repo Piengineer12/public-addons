@@ -1,30 +1,27 @@
 # Setting Up ConVars Using CCVCCM
-All var / command adding methods should return a class containing the variable / command.
-This will minimize the use of GetConVar which needs to take in arguments involving addons, categories and whatnot.
 ```lua
 -- this hook will run during Initialize if CCVCCM is present
--- the next methods in this group should run in this hook
+-- at this point CCVCCM will be fully initialized and you can add ConVars
 hook.Add("CCVCCMRun", "uniqueIdentifier", function() --[[...]] end)
 
 -- prefix for all ConVars / ConCommands that will be added by this addon
+-- this will also pop all declared categories
 -- addon_name will be added as a root tab in CCVCCM if it doesn't exist
--- the second argument dictates what's displayed in CCVCCM as the addon name and ideally should only be done once
--- the third argument controls the icon
--- this will also pop any existing categories
+-- the second argument is optional and dictates the addon's nice name, this argument only needs to be passed once anytime
+-- the third argument is optional and controls the addon icon displayed in CCVCCM, this argument only needs to be passed once anytime
 CCVCCM:SetAddon("addon_name", "Addon Name", "icon16/star.png")
 
 -- all ConVars / ConCommands inserted after this will be part of a category
 -- internal names will be prefixed with _category_name (after the addon prefix) while
--- the second argument will be what's displayed in CCVCCM
--- if the third argument is true, CCVCCM will insert the category as a tab instead of a list of collapsible categories
--- the fourth argument controls the icon IF within a category that supports icons
--- both the second and third arguments should only be provided once
+-- the second argument is optional and dictates the category's nice name
+-- the third argument is optional, a true value will make CCVCCM insert the category as a tab instead of a collapsible category
+-- if tabs are used, the fourth argument controls the icon
 CCVCCM:PushCategory("category_name", "Category Name", true, "icon16/star.png")
 
 -- all ConVars / ConCommands inserted after this will not be part of the previous category
 -- raises an error if not in a category
 -- if a number is provided, indicates the number of categories to pop
--- -1 will pop any existing categories
+-- -1 will pop all existing categories
 CCVCCM:PopCategory()
 
 -- equivalent to CCVCCM:PopCategory() CCVCCM:PushCategory(...), but will not call CCVCCM:PopCategory() if not currently in a category
@@ -35,12 +32,13 @@ CCVCCM:NextCategory("category_name", "Category Name", true, "icon16/star.png")
 CCVCCM:AddConVar("convar_name", {
     realm = "server", -- one of "client", "server" or "shared", default: server
         -- for consistency reasons, "shared" will automatically mark the CVar as replicated and only modifiable on the server's side
-        -- if realm == "client" and userInfo ~= true, the server won't add the CVar on its end
-        -- WARNING: if realm == "server", this still needs to be called SHARED to be added in the client's CCVCCM!
-    name = "Display Name",
-    help = "Description of ConVar",
-    default = "default",
-    manual = true,
+        -- WARNING: even if realm == "server", this still needs to be called SHARED to be added in the client's CCVCCM!
+    name = "Display Name", -- default: full name of ConVar
+    fullName = "addon_categories_name", -- changes how this is referred to by CCVCCM:GetVarValue() and the like
+        -- will not affect CCVCCM:RevertByAddonAndCategory() behaviour
+    help = "Description of ConVar", -- optional
+    default = "default", -- MUST be provided
+    manual = true, -- optional
     type = "string", -- one of "bool", "keybind", "int", "float", "string"
     choices = {{"Display Name 1", "value1"}, {"Display Name 2", "value2"}}, -- if specified, CCVCCM will show list of choices for this ConVar
     min = 1, -- only for int and float types
@@ -52,15 +50,12 @@ CCVCCM:AddConVar("convar_name", {
         -- default: false for float type, true for int type
     sep = " ", -- if specified, CCVCCM:GetConVarValue will return a table of the specified type
         -- only applicable for int, float and string types
-    uiOnly = true, -- if true, this will not add a ConVar
+    generate = true, -- if true, this will generate a ConVar in addition to the ConVar being added to CCVCCM
 
     userInfo = true, -- only if realm == "client"
-    notify = true,
-    hide = "client server console log",
-    flags = "cheat nosave sp control demo nodemo",
-        -- cheat: implies nosave
-        -- control: error if realm == "shared", userInfo == true or notify == true
-        -- nodemo: error if demo is specified
+    notify = true, -- optional
+    hide = "client server console log", -- optional
+    flags = "cheat nosave sp control demo nodemo", -- optional
 })
 
 -- adds a ConCommand
@@ -69,20 +64,21 @@ CCVCCM:AddConCommand("concommand_name", {
     -- the same fields as above, with some differences:
     -- default, manual, userInfo, notify are not valid keys
     type = "none", -- "none" is valid
-    func = function(ply, cmd, args, argStr) --[[...]] end,
-    autoComplete = function(cmd, argStr) --[[...]] end,
-    hide = "console log",
-    flags = "cheat sp demo nodemo"
+    func = function(ply, cmd, args, argStr) --[[...]] end, -- required
+    autoComplete = function(cmd, argStr) --[[...]] end, -- optional
+    hide = "console log", -- optional
+    flags = "cheat sp demo nodemo" -- optional
 })
 
 -- adds a addon variable - this variable can't be modified in the console, but allows for very complex typing
 -- overwrites if the full name is already registered in CCVCCM
 CCVCCM:AddAddonVar("var_name", {
     realm = "server", -- one of "client", "server" or "shared", default: server
-    name = "Display Name",
-    help = "Description",
-    default = "default",
-    manual = true,
+    name = "Display Name", -- default: full name of AddonVar
+    fullName = "addon_categories_name", -- changes how this is referred to by CCVCCM:GetVarValue() and the like
+    help = "Description", -- optional
+    default = "default", -- MUST be provided
+    manual = true, -- optional
     typeInfo = {
         name = "Display Name", -- displayed as button text / type help text
         help = "Description", -- displayed as header text, only valid when type == nil
@@ -93,12 +89,13 @@ CCVCCM:AddAddonVar("var_name", {
         interval = 0.01, -- only when type == "number"
         logarithmic = true, -- only when type == "number"
         {} -- if nested typeInfo tables are supplied, this will be presented as a list of types
-        -- type = "keybind" is not implemented here
+            -- type = "keybind" is not implemented here
     },
-    userInfo = true,
-    notify = true,
-    flags = "cheat nosave sp",
-        -- cheat: implies nosave
+    userInfo = true, -- only if realm == "client"
+    notify = true, -- optional
+    flags = "cheat nosave sp", -- optional
+    func = function(arg, fullName, ply) --[[...]] end, -- runs every time a value is set
+        -- ply is only defined serverside for client addonvars with userInfo = true
 })
 
 -- adds an addon command
@@ -106,10 +103,10 @@ CCVCCM:AddAddonVar("var_name", {
 CCVCCM:AddAddonCommand("command_name", "default", {
     -- the same fields as above, with some differences:
     -- default, manual, userInfo, notify are not valid keys
+    func = function(ply, arg, fullName) --[[...]] end, -- required
     typeInfo = {}, -- an empty table can be specified
-    func = function(ply, cmd, args) --[[...]] end,
     -- userInfo, notify are not valid keys
-    flags = "cheat sp"
+    flags = "cheat sp" -- optional
 })
 ```
 
@@ -119,158 +116,30 @@ Unlike the above methods, these should only be called AFTER the CCVCCMRun hook i
 -- returns a CCVCCMPointer instance
 -- a CCVCCMPointer already gets returned from the CCVCCM:Add* methods above
 -- note that the CCVCCMPointer constructor is only accessible to CCVCCM
-CCVCCM:Pointer("addon_name", {"category_name"}, "name")
+CCVCCM:Pointer("addon_categories_name")
 
 -- returns the current var value
-CCVCCMPointer:Get()
+CCVCCMPointer:Get(ply)
 
--- sets the var value and returns the previous value
-CCVCCMPointer:Set("value")
+-- sets the var value
+CCVCCMPointer:Set(value)
 
 -- sets the var value to the default value
 CCVCCMPointer:Revert()
 
--- callback when the value is changed
-CCVCCMPointer:AddChangeCallback("id", function(ptr, oldValue, newValue) end)
-
--- remove a callback
-CCVCCMPointer:RemoveChangeCallback("id")
-
 -- runs the command with the passed value
-CCVCCMPointer:Run(value)
+CCVCCMPointer:Run(value, ply)
 
 -- returns the value of var_name as a bool / number / string / table
 -- depending on the type specified in CCVCCM:Add*Var
-CCVCCM:GetVarValue("addon_name", {"categories"}, "var_name")
+CCVCCM:GetVarValue("addon_categories_name")
 
 -- sets the value of a registered var
-CCVCCM:SetVarValue("addon_name", {"categories"}, "var_name", "value")
+CCVCCM:SetVarValue("addon_categories_name", "value")
 
 -- reverts the value of a registered var
--- can also revert all ConVars and AddonVars of a specific addon or category
-CCVCCM:RevertVarValue("addon_name", {"categories (optional)"}, "var_name (optional)")
-```
+CCVCCM:RevertVarValue("addon_categories_name")
 
-# (Internal) API Data Handling
-While the order of addons isn't too important to be saved, the order of categories and variables are.
-
-Also, there needs to be a way such that "category_convar" and "convar" with category "category" mean the same thing,
-while GetConVarValue needs to read the data table too.
-```json
-{ //#=1
-    "<name>": {
-        "name": "<>",
-        "icon": "<>",
-        "categories": "#=1",
-        "categoriesOrder": ["<name>", "..."],
-        "categoriesUseTab": true,
-        "registered": {
-            "<name>": {
-                "type": "<>",
-                "data": "{data}"
-            }
-        },
-        "registeredOrder": ["<name>", "..."]
-    }
-}
-```
-
-# (Internal) Structure of Save Tables
-```json
-[
-	{
-		"displayName": "<string>",
-		"icon": "<string>",
-		"content": [
-			{
-				"type": "text",
-				"displayName": "<string>"
-			},
-			{
-				"type": "category",
-				"displayName": "<string>",
-				"content": []
-			},
-			{
-				"type": "tabs",
-				"tabs": [
-					{
-						"displayName": "<string>",
-						"icon": "<string>",
-						"content": []
-					}
-				]
-			},
-			{
-				"type": "clientConVar / clientConCommand / serverConVar / serverConCommand",
-				"internalName": "<string>",
-				"displayName": "<string>",
-                "manual": true,
-				"dataType": "none / bool / choices / number / string / stringList",
-				"arguments": "<string>",
-				"choices": [
-					["<string>", "<string>"],
-					["<string>", "<string>"],
-					["..."]
-				],
-				"minimum": "<number>",
-				"maximum": "<number>",
-				"interval": "<number>",
-				"logarithmic": true
-			},
-			{
-				"type": "complex",
-				"internalName": "<string>",
-				"realm": "client / server / shared",
-				"dataType": "<dataType>(bool / choices / number / string) / [<dataType>, <dataType>, ...]",
-			}
-		]
-	}
-]
-```
-
-# (Internal) Structure required by ListInputUI
-```json
-{
-    "header": "headerText",
-    "names": ["columnName1", "columnName2", "..."],
-    "types": [
-        {
-            "dataType": "DTYPE",
-            "choices": [["key1", "value1"], ["key1", "value1"]],
-            "min": 0,
-            "max": 10,
-            "interval": 0.01,
-            "logarithmic": false,
-            "header": "headerText",
-            "names": ["columnName1", "columnName2", "..."],
-            "types": [
-                {
-                    "dataType": "DTYPE",
-                    "choices": [["key1", "value1"], ["key1", "value1"]],
-                    "min": 0,
-                    "max": 10,
-                    "interval": 0.01,
-                    "logarithmic": false,
-                    "header": "headerText",
-                    "names": ["columnName1", "columnName2", "..."],
-                    "types": ["..."]
-                }
-            ]
-        },
-        {
-            "dataType": "DTYPE",
-            "choices": [["key1", "value1"], ["key1", "value1"]],
-            "min": 0,
-            "max": 10,
-            "interval": 0.01,
-            "logarithmic": false,
-            "header": "headerText",
-            "names": ["columnName1", "columnName2", "..."],
-            "types": []
-        },
-        "..."
-    ]
-    //
-}
+-- reverts all ConVars and AddonVars of a specific addon (and category)
+CCVCCM:RevertByAddonAndCategory("addon", "[category1]", "[category2]")
 ```

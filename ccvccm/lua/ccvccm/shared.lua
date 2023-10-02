@@ -194,11 +194,12 @@ CCVCCM.api = CCVCCM.api or {
   layout = {
     [''] = {
       name = 'Other',
-      useTab = { },
+      useTab = false,
       layoutOrder = { },
       layoutData = { }
     }
   },
+  aliases = { },
   data = { },
   addonVars = { },
   addon = '',
@@ -209,26 +210,38 @@ local loadedData = CCVCCM:SQL('SELECT "value" FROM "ccvccm"')
 if loadedData then
   CCVCCM.api.addonVars = util.JSONToTable(loadedData[1].value)
 end
-hook.Add('ShutDown', 'CCVCCM', function()
-  CCVCCM:Log('Saving data...')
+CCVCCM.SaveData = function(self)
+  self:Log('Saving data...')
   local data
   do
     local _tbl_0 = { }
-    for k, v in pairs(CCVCCM.api.addonVars) do
-      if CCVCCM.api.data[k] then
-        _tbl_0[k] = v
-      end
+    for k, v in pairs(self.api.addonVars) do
+      _tbl_0[k] = v
     end
     data = _tbl_0
   end
-  CCVCCM:SQL('BEGIN')
-  CCVCCM:SQL('INSERT INTO "ccvccm" ("var", "value") VALUES (%s, %s)', {
+  self:SQL('BEGIN')
+  self:SQL('INSERT INTO "ccvccm" ("var", "value") VALUES (%s, %s)', {
     '',
     util.TableToJSON(data)
   })
-  CCVCCM:SQL('COMMIT')
-  return CCVCCM:Log('Saved!')
-end)
+  self:SQL('COMMIT')
+  return self:Log('Saved!')
+end
+timer.Create('ccvccm_autosave', 120, 0, (function()
+  local _base_0 = CCVCCM
+  local _fn_0 = _base_0.SaveData
+  return function(...)
+    return _fn_0(_base_0, ...)
+  end
+end)())
+hook.Add('ShutDown', 'CCVCCM', (function()
+  local _base_0 = CCVCCM
+  local _fn_0 = _base_0.SaveData
+  return function(...)
+    return _fn_0(_base_0, ...)
+  end
+end)())
 hook.Add('CCVCCMDataLoad', 'CCVCCM', function(data)
   return table.Add(data, CCVCCM:_CreateElementData())
 end)
@@ -243,7 +256,31 @@ hook.Add('CCVCCMRun', 'CCVCCM', function()
     help = 'Layout to automatically load when CCVCCM is opened.',
     generate = true
   })
-  return CCVCCM:AddAddonVar('addonvar', {
+  CCVCCM:AddConVar('autosave_interval_client', {
+    realm = 'client',
+    name = 'Autosave Interval (Client)',
+    help = 'Time between saves.',
+    type = 'int',
+    min = 30,
+    max = 3600,
+    generate = true
+  })
+  CCVCCM:AddConVar('autosave_interval_server', {
+    realm = 'server',
+    name = 'Autosave Interval (Server)',
+    help = 'Time between saves.',
+    type = 'int',
+    min = 30,
+    max = 3600,
+    generate = true
+  })
+  cvars.AddChangeCallback('ccvccm_autosave_interval_client', (function(conVarName, oldValue, newValue)
+    return timer.Adjust('ccvccm_autosave', tonumber(newValue))
+  end), 'ccvccm_autosave')
+  cvars.AddChangeCallback('ccvccm_autosave_interval_server', (function(conVarName, oldValue, newValue)
+    return timer.Adjust('ccvccm_autosave', tonumber(newValue))
+  end), 'ccvccm_autosave')
+  CCVCCM:AddAddonVar('addonvar', {
     realm = 'client',
     name = 'Test AddonVar',
     help = 'This is a test AddonVar to demonstrate the capabilities of CCVCCM\'s API.',
@@ -292,7 +329,7 @@ CCVCCM._ConstructCategory = function(self, displayName, icon)
   return {
     name = displayName,
     icon = icon,
-    useTab = { },
+    useTab = false,
     layoutOrder = { },
     layoutData = { }
   }
@@ -330,8 +367,9 @@ CCVCCM._GetCheatsEnabled = function(self)
 end
 CCVCCM._RegisterIntoCategory = function(self, name, registeredData, registeredType)
   local category = self:_GetCategoryTable()
-  local fullName = self:_AssembleVarName(name)
-  if not (self:_GetRegisteredData(fullName)) then
+  local categoryFullName = self:_AssembleVarName(name)
+  local realFullName = registeredData.fullName or categoryFullName
+  if not (self:_GetRegisteredData(categoryFullName)) then
     table.insert(category.layoutOrder, name)
   end
   do
@@ -352,10 +390,13 @@ CCVCCM._RegisterIntoCategory = function(self, name, registeredData, registeredTy
     end
     registeredData.flags = _tbl_0
   end
-  self.api.data[fullName] = {
+  self.api.data[realFullName] = {
     type = registeredType,
     data = registeredData
   }
+  if categoryFullName ~= realFullName then
+    self.api.aliases[categoryFullName] = realFullName
+  end
 end
 CCVCCM._AssembleVarName = function(self, name, addon, categoryPath)
   if addon == nil then
@@ -369,7 +410,9 @@ CCVCCM._AssembleVarName = function(self, name, addon, categoryPath)
   }
   for _index_0 = 1, #categoryPath do
     local category = categoryPath[_index_0]
-    table.insert(nameFragments, category)
+    if category ~= "" then
+      table.insert(nameFragments, category)
+    end
   end
   table.insert(nameFragments, name)
   return table.concat(nameFragments, '_')
@@ -377,8 +420,8 @@ end
 CCVCCM._GenerateConVar = function(self, name, data)
   local realm = data.realm or 'server'
   if realm == 'shared' or realm == 'server' and SERVER or realm == 'client' and CLIENT then
-    local help, default, hide, flags, min, max, clamp
-    help, default, hide, flags, min, max, clamp = data.help, data.default, data.hide, data.flags, data.min, data.max, data.clamp
+    local help, default, hide, flags, min, max, clamp, fullName
+    help, default, hide, flags, min, max, clamp, fullName = data.help, data.default, data.hide, data.flags, data.min, data.max, data.clamp, data.fullName
     local archiveFlags = bit.bor(FCVAR_ARCHIVE, FCVAR_ARCHIVE_XBOX)
     local conFlags = bit.bor(archiveFlags, FCVAR_PRINTABLEONLY)
     if data.userInfo then
@@ -438,14 +481,15 @@ CCVCCM._GenerateConVar = function(self, name, data)
       min = nil
       max = nil
     end
-    return CreateConVar(self:_AssembleVarName(name), default, conFlags, help, min, max)
+    fullName = fullName or self:_AssembleVarName(name)
+    return CreateConVar(fullName, default, conFlags, help, min, max)
   end
 end
 CCVCCM._GenerateConCommand = function(self, name, data)
   local realm = data.realm
   if realm == 'shared' or realm == 'server' and SERVER or realm == 'client' and CLIENT then
-    local help, func, autoComplete, choices, hide, flags
-    help, func, autoComplete, choices, hide, flags = data.help, data.func, data.autoComplete, data.choices, data.hide, data.flags
+    local help, func, autoComplete, choices, hide, flags, fullName
+    help, func, autoComplete, choices, hide, flags, fullName = data.help, data.func, data.autoComplete, data.choices, data.hide, data.flags, data.fullName
     if not (autoComplete) then
       local choiceValuesLowercase
       do
@@ -493,7 +537,8 @@ CCVCCM._GenerateConCommand = function(self, name, data)
       end
       conFlags = bit.bor(conFlags, FCVAR_DONTRECORD)
     end
-    return concommand.Add(self:_AssembleVarName(name), func, autoComplete, help, conFlags)
+    fullName = fullName or self:_AssembleVarName(name)
+    return concommand.Add(fullName, func, autoComplete, help, conFlags)
   end
 end
 CCVCCM._SetAddonVar = function(self, fullName, value)
@@ -534,6 +579,7 @@ CCVCCM._CreateCategoryData = function(self, addon, categoryPath, categoryTable)
       table.insert(tabsTable, tabTable)
     else
       local fullName = self:_AssembleVarName(layoutKey, addon, categoryPath)
+      fullName = self.api.aliases[fullName] or fullName
       local registeredData = self:_GetRegisteredData(fullName)
       local name, help, realm, manual, dataType, sep, choices, min, max, interval, logarithmic
       do
@@ -643,14 +689,14 @@ CCVCCM._CreateCategoryData = function(self, addon, categoryPath, categoryTable)
   if next(tabsTable) then
     if useTab then
       table.insert(saveTable, {
-        type = "tabs",
+        elementType = 'tabs',
         tabs = tabsTable
       })
     else
       for _index_0 = 1, #tabsTable do
         local tabTable = tabsTable[_index_0]
         table.insert(saveTable, {
-          type = "category",
+          elementType = 'category',
           displayName = tabTable.displayName,
           content = tabTable.content
         })
@@ -675,6 +721,10 @@ CCVCCM._CreateElementData = function(self)
       })
     end
   end
+  self:Log('Resulting save table:')
+  if self:ShouldLog() then
+    PrintTable(saveTable)
+  end
   return saveTable
 end
 CCVCCM.Pointer = function(self, fullName, ply)
@@ -694,8 +744,8 @@ CCVCCM.SetAddon = function(self, addon, display, icon)
 end
 CCVCCM.PushCategory = function(self, name, display, tabs, icon)
   self:_GetCategoryTable().useTab = self:_GetCategoryTable().useTab or tabs
-  table.insert(self.api.categoryPath, name)
-  return self._GenerateAndGetCategoryTable, display, icon
+  self:_GenerateAndGetCategoryTable(name, display)
+  return table.insert(self.api.categoryPath, name)
 end
 CCVCCM.PopCategory = function(self, num)
   if num == nil then
@@ -722,7 +772,7 @@ CCVCCM.AddConVar = function(self, name, registeredData)
     if registeredData.generate then
       self:_GenerateConVar(name, registeredData)
     end
-    return CCVCCMPointer(self:_AssembleVarName(name))
+    return CCVCCMPointer(registeredData.fullName or self:_AssembleVarName(name))
   end
 end
 CCVCCM.AddConCommand = function(self, name, registeredData)
@@ -731,19 +781,21 @@ CCVCCM.AddConCommand = function(self, name, registeredData)
     if registeredData.generate then
       self:_GenerateConCommand(name, registeredData)
     end
-    return CCVCCMPointer(self:_AssembleVarName(name))
+    return CCVCCMPointer(registeredData.fullName or self:_AssembleVarName(name))
   end
 end
 CCVCCM.AddAddonVar = function(self, name, registeredData)
   local noValue = registeredData.userInfo and SERVER
   if not (registeredData.realm == 'client' and not registeredData.userInfo and SERVER) then
     self:_RegisterIntoCategory(name, registeredData, 'addonvar')
+    local fullName = registeredData.fullName or self:_AssembleVarName(name)
     if not (noValue) then
-      local fullName = self:_AssembleVarName(name)
       if self:_GetAddonVar(fullName) == nil or registeredData.flags.nosave then
         self:_SetAddonVar(fullName, registeredData.default)
       end
-      registeredData.func(self:_GetAddonVar(fullName), fullName)
+      if registeredData.func then
+        registeredData.func(self:_GetAddonVar(fullName), fullName)
+      end
     end
     return CCVCCMPointer(fullName)
   end
@@ -751,13 +803,14 @@ end
 CCVCCM.AddAddonCommand = function(self, name, registeredData)
   if not (registeredData.realm == 'client' and SERVER) then
     self:_RegisterIntoCategory(name, registeredData, 'addoncommand')
-    return CCVCCMPointer(self:_AssembleVarName(name))
+    return CCVCCMPointer(registeredData.fullName or self:_AssembleVarName(name))
   end
 end
 CCVCCM.GetVarValue = function(self, fullName, ply)
   if istable(fullName) then
     fullName = table.concat(fullName, '_')
   end
+  fullName = self.api.aliases[fullName] or fullName
   local registeredData = self:_GetRegisteredData(fullName)
   if registeredData then
     local registeredType, dataType, sep, userInfo
@@ -827,6 +880,7 @@ CCVCCM.SetVarValue = function(self, fullName, value)
   if istable(fullName) then
     fullName = table.concat(fullName, '_')
   end
+  fullName = self.api.aliases[fullName] or fullName
   local registeredData = self:_GetRegisteredData(fullName)
   if registeredData then
     local registeredType, dataType, sep, userInfo, typeInfo, realm, notify, flags, func
@@ -910,7 +964,7 @@ CCVCCM.SetVarValue = function(self, fullName, value)
       end
       if SERVER then
         if notify then
-          PrintMessage(HUD_PRINTTALK, "Server addon var '" .. tostring(fullName) .. "' changed to '" .. tostring(tostring(value)) .. "'")
+          PrintMessage(HUD_PRINTTALK, "Server addon var '" .. tostring(fullName) .. "' changed to '" .. tostring(value) .. "'")
         end
         if realm == 'shared' then
           local payload = {
@@ -931,6 +985,7 @@ CCVCCM.RevertVarValue = function(self, fullName)
   if istable(fullName) then
     fullName = table.concat(fullName, '_')
   end
+  fullName = self.api.aliases[fullName] or fullName
   local registeredData = self:_GetRegisteredData(fullName)
   if registeredData then
     return self:_RevertDataByRegistered(registeredData, fullName)
@@ -950,12 +1005,16 @@ CCVCCM.RevertByAddonAndCategory = function(self, addon, ...)
       table.remove(categoryPath)
     else
       local fullName = self:_AssembleVarName(layoutKey, addon, categoryPath)
+      fullName = self.api.aliases[fullName] or fullName
       local registeredData = self:_GetRegisteredData(fullName)
       self:_RevertDataByRegistered(registeredData, fullName)
     end
   end
 end
 CCVCCM.RunCommand = function(self, fullName, ply, value)
+  if istable(fullName) then
+    fullName = table.concat(fullName, '_')
+  end
   local registeredData = self:_GetRegisteredData(fullName)
   if registeredData then
     local registeredType, dataType, sep, func

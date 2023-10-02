@@ -1,6 +1,7 @@
 --[[
 what still needs to be done:
 
+fix error caused by CAVACPanel trying to load when external addon is missing
 foolproofing
 ability to retexture CCVCCM window
 
@@ -37,9 +38,9 @@ super keybinds
 -- moonloader.PreCacheDir 'ccvccm'
 
 CCVCCM = {
-	_VERSION = '0.3.0',
-	_VERSIONDATE = '2023-09-16',
-	_VERSIONNUMBER = 200
+	_VERSION = '0.3.1',
+	_VERSIONDATE = '2023-10-02',
+	_VERSIONNUMBER = 301
 }
 
 if SERVER then
