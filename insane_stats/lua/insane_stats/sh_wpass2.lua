@@ -3,7 +3,8 @@ InsaneStats.WPASS2_FLAGS = {
 	XP = 2,
 	SCRIPTED_ONLY = 4,
 	SP_ONLY = 8,
-	SUIT_POWER = 16
+	SUIT_POWER = 16,
+	KNOCKBACK = 32
 	
 	-- non-obvious combinations:
 	-- 5: NEVER
@@ -38,6 +39,13 @@ InsaneStats:RegisterConVar("wpass2_modifiers_player_save_death", "insanestats_wp
 InsaneStats:RegisterConVar("wpass2_modifiers_player_save_death_battery", "insanestats_wpass2_modifiers_player_save_death_battery", "-1", {
 	display = "Save Player Battery Modifiers Across Deaths", desc = "If 0 or above, overrides insanestats_wpass2_modifiers_player_save_death for armor batteries.",
 	type = InsaneStats.INT, min = -1, max = 2
+})
+InsaneStats:RegisterConVar("wpass2_modifiers_other_create", "insanestats_wpass2_modifiers_other_create", "2", {
+	display = "Create Weapon for Non-players", desc = "If 1, NPCs and NextBots will still get weapon modifiers even while not carrying a weapon. \z
+	This works by creating an invisible and intangible weapon_base that is tied to the entity.\n\z
+	If 2, only humanoid and Combine entities are able to get weapon modifiers. \n\z
+	If 3, ALL entities will gain weapon modifiers in the same way. Setting this to 3 is NOT RECOMMENDED.",
+	type = InsaneStats.INT, min = 0, max = 3
 })
 InsaneStats:RegisterConVar("wpass2_autopickup", "insanestats_wpass2_autopickup", "1", {
 	display = "Auto Pickup Mode", desc = "Determines whether weapons / armor batteries will be automatically picked up for ammo / armor.\n\z
@@ -444,6 +452,7 @@ end)]]
 local registeredEffects, modifiers, attributes = {}, {}, {}
 local effectNamesToIDs = {}
 local effectIDsToNames = {}
+local applyEffects = {}
 local expiryEffects = {}
 local entitiesByStatusEffect = {} -- used for optimization purposes
 local function MapStatusEffectNamesToIDs()
@@ -452,6 +461,7 @@ local function MapStatusEffectNamesToIDs()
 	
 	for k,v in SortedPairs(registeredEffects) do
 		effectNamesToIDs[k] = table.insert(effectIDsToNames, k)
+		applyEffects[k] = v.apply
 		expiryEffects[k] = v.expiry
 	end
 	
@@ -600,9 +610,37 @@ function ENTITY:InsaneStats_GetAttributeValue(attribute)
 		totalMul = totalMul * (self.insaneStats_Attributes and self.insaneStats_Attributes[attribute] or 1)
 	end
 	
-	local wep = weaponHasEffect > 0 and self.GetActiveWeapon and self:GetActiveWeapon()
-	if IsValid(wep) then
-		totalMul = totalMul * (wep.insaneStats_Attributes and wep.insaneStats_Attributes[attribute] or 1)
+	if weaponHasEffect > 0 then
+		local wep = self.GetActiveWeapon and self:GetActiveWeapon()
+
+		if not IsValid(wep) then
+			wep = self.insaneStats_ProxyWeapon
+		end
+
+		if IsValid(wep) then
+			totalMul = totalMul * (wep.insaneStats_Attributes and wep.insaneStats_Attributes[attribute] or 1)
+		elseif SERVER and self.insaneStats_ProxyWeaponLastTick ~= engine.TickCount() then
+			local shouldGive = InsaneStats:GetConVarValue("wpass2_modifiers_other_create")
+			if shouldGive < 1 then
+				shouldGive = false
+			elseif shouldGive < 3 and not self:InsaneStats_IsMob() then
+				shouldGive = false
+			elseif shouldGive > 1 and not self:InsaneStats_ArmorSensible() then
+				shouldGive = false
+			end
+
+			if shouldGive then
+				wep = ents.Create("weapon_base")
+				wep:SetKeyValue("spawnflags", 3)
+				wep:Spawn()
+				wep:PhysicsDestroy()
+				wep:SetNoDraw(true)
+				wep.insaneStats_IsProxyWeapon = true
+				wep.insaneStats_ProxyWeaponTo = self
+				self.insaneStats_ProxyWeapon = wep
+			end
+			self.insaneStats_ProxyWeaponLastTick = engine.TickCount()
+		end
 	end
 	
 	return totalMul
@@ -675,6 +713,9 @@ function ENTITY:InsaneStats_ApplyStatusEffect(id, level, duration, data)
 	end
 	
 	if SERVER and changeOccured then
+		if applyEffects[id] and effectTable then
+			applyEffects[id](self, effectTable.level or 0, effectTable.duration or 0, effectTable.attacker)
+		end
 		self.insaneStats_StatusEffectsToNetwork[id] = true
 		self:InsaneStats_MarkForUpdate(16)
 	end

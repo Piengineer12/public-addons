@@ -145,6 +145,10 @@ function InsaneStats:GetDFormGenerator(title, conVarsData)
 				self:CreateAppropriateDFormPanel(DForm, v)
 				--panel:SetZPos(i)
 			end
+
+			if title == "Miscellaneous" then
+				DForm:Button("Reset All ConVars", "insanestats_revert_all_convars", "yes")
+			end
 		else
 			DForm:ControlHelp("You must be an admin to use this menu.")
 		end
@@ -203,5 +207,102 @@ hook.Add("PopulateToolMenu", "InsaneStatsOptions", function()
 	local items = InsaneStats:ConstructToolMenuOptionTables()
 	for k,v in pairs(items) do
 		spawnmenu.AddToolMenuOption(unpack(v))
+	end
+end)
+
+-- this concommand just tells the server to run this concommand on its end
+concommand.Add("insanestats_revert_all_convars", function(ply, cmd, args, argStr)
+	if argStr:lower() == "yes" then
+		net.Start("insane_stats")
+		net.WriteUInt(2, 8)
+		net.WriteUInt(1, 8)
+		net.WriteString("insanestats_revert_all_convars")
+		net.SendToServer()
+		InsaneStats:Log("Sent revert request to server!")
+	else
+		InsaneStats:Log("Reverts all server-side Insane Stats ConVars. You must pass the argument \"yes\" for this command to work.")
+	end
+end, nil, "Reverts all server-side Insane Stats ConVars. You must pass the argument \"yes\" for this command to work.")
+
+-- CCVCCM compat.
+local ccvccmTypes = {
+	[InsaneStats.BOOL] = "bool",
+	[InsaneStats.INT] = "int",
+	[InsaneStats.FLOAT] = "float",
+}
+hook.Add("CCVCCMRun", "InsaneStatsOptions", function()
+	local categoryOptionData = InsaneStats:ConstructCategoryOptionTables()
+	CCVCCM:SetAddon("Insane Stats")
+	for k,v in SortedPairs(categoryOptionData) do
+		CCVCCM:PushCategory(k, nil, true)
+		for k2,v2 in SortedPairs(v) do
+			CCVCCM:PushCategory(k2)
+
+			if k == "Server" and k2 == "XP - General" then
+				CCVCCM:AddConCommand("player_level_set", {
+					realm = "server",
+					fullName = "insanestats_xp_player_level_set",
+					name = "Set Player Level",
+					help = "Sets a player's level. If no player is provided, this command will set your level instead. \z
+					Usage: [player] <level>",
+					type = "string"
+				})
+			end
+
+			for i,v3 in ipairs(v2) do
+				local conVar = v3[2].conVar
+				local realm = conVar:IsFlagSet(FCVAR_REPLICATED) and "shared" or "client"
+				local insaneStatsType = v3[2].type
+				local ccvccmType = insaneStatsType and ccvccmTypes[insaneStatsType]
+				CCVCCM:AddConVar(v3[1], {
+					realm = realm, fullName = conVar:GetName(),
+					name = v3[2].display or conVar:GetName(),
+					help = v3[2].desc,
+					type = ccvccmType, default = conVar:GetDefault(),
+					min = v3[2].min, max = v3[2].max,
+					userInfo = v3[2].userInfo
+				})
+			end
+			
+			-- CCVCCM EXCLUSIVE!
+			if k == "Server" then
+				if k2 == "Miscellaneous" then
+					CCVCCM:AddConCommand("revert_all_convars", {
+						realm = "server",
+						fullName = "insanestats_revert_all_convars",
+						name = "Revert All ConVars",
+						help = "Reverts all server-side Insane Stats ConVars. You must pass the argument \"yes\" for this command to work.",
+						type = "string"
+					})
+				elseif k2 == "XP - Level Calculations" then
+					CCVCCM:AddConCommand("other_level_maps_show", {
+						realm = "server",
+						fullName = "insanestats_xp_other_level_maps_show",
+						name = "Show Factored Maps",
+						help = "Dumps into the console all maps that are currently factored into level scaling.",
+						type = "none"
+					})
+					CCVCCM:AddConCommand("other_level_maps_remove", {
+						realm = "server",
+						fullName = "insanestats_xp_other_level_maps_remove",
+						name = "Remove Factored Maps",
+						help = "Removes maps from the recorded maps list. * wildcards are allowed. \z
+						If a number is given (and no matching map was found), \z
+						the number will be interpreted as the number of recent maps to remove. \z
+						Note that a map restart is required for the map number to be updated.",
+						type = "string"
+					})
+					CCVCCM:AddConCommand("other_level_maps_reset", {
+						realm = "server",
+						fullName = "insanestats_xp_other_level_maps_reset",
+						name = "Reset Factored Maps",
+						help = "Clears the recorded maps list."
+					})
+				end
+			end
+
+			CCVCCM:PopCategory()
+		end
+		CCVCCM:PopCategory()
 	end
 end)

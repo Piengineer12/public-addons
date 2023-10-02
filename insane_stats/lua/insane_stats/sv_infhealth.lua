@@ -36,7 +36,8 @@ local doNotKnockbackClasses = {
 	npc_sniper = true
 }
 function ENT:InsaneStats_ApplyKnockback(knockback, additionalVelocity)
-	if IsValid(self:GetPhysicsObject()) and not doNotKnockbackClasses[self:GetClass()] and not self:IsScripted() then
+	if IsValid(self:GetPhysicsObject()) and not doNotKnockbackClasses[self:GetClass()]
+	and not self:IsScripted() and InsaneStats:GetConVarValue("infhealth_knockback") then
 		local reductionFactor = self:GetPhysicsObject():GetMass()
 		local originalKnockback = knockback
 		knockback = knockback / reductionFactor
@@ -369,10 +370,10 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 			end
 			
 			-- beware of the nans!
-			if not (healthDamage < math.huge) then
+			if not (healthDamage < math.huge and newHealth > -math.huge) then
 				newHealth = -math.huge
 			end
-			if not (armorDamage < math.huge) then
+			if not (armorDamage < math.huge and newArmor > -math.huge) then
 				newArmor = -math.huge
 			end
 			
@@ -423,14 +424,14 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 			ent:SetHealth(ent:InsaneStats_GetHealth()*7.5)
 			ent:SetMaxHealth(ent:InsaneStats_GetMaxHealth()*7.5)
 		
-		elseif class == "item_suitcharger" or class == "func_recharge" then
+		--[[elseif class == "item_suitcharger" or class == "func_recharge" then
 			if ent:HasSpawnFlags(8192) then
 				ent:Fire("AddOutput","OutRemainingCharge !activator:InsaneStatsSuperSuitChargerPoint::0:-1")
 			else
 				ent:Fire("AddOutput","OutRemainingCharge !activator:InsaneStatsSuitChargerPoint::0:-1")
 			end
 		elseif class == "item_healthcharger" or class == "func_healthcharger" then
-			ent:Fire("AddOutput","OutRemainingCharge !activator:InsaneStatsHealthChargerPoint::0:-1")
+			ent:Fire("AddOutput","OutRemainingCharge !activator:InsaneStatsHealthChargerPoint::0:-1")]]
 		end
 	end
 end)

@@ -29,7 +29,7 @@ InsaneStats:RegisterConVar("coins_drop_count", "insanestats_coins_drop_count", "
 })
 InsaneStats:RegisterConVar("coins_drop_max", "insanestats_coins_drop_max", "25", {
 	display = "Max Coins", desc = "Maximum number of coins allowed to be present in the world. \z
-	If this limit is reached, addtional coins dropped by entities will cause existing coins to randomly be given to random players.",
+	If this limit is reached, addtional coins dropped by entities will cause existing coins to be randomly given to random players.",
 	type = InsaneStats.INT, min = 0, max = 1000
 })
 
@@ -61,6 +61,115 @@ InsaneStats:RegisterConVar("coins_level_add_add", "insanestats_coins_level_add_a
 	This is only applied if \"insanestats_coins_level_add_mode\" is 0.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
+
+InsaneStats:SetDefaultConVarCategory("Coin Drops - Costs")
+
+InsaneStats:RegisterConVar("coins_weapon_price_start", "insanestats_coins_weapon_price_start", "1", {
+	display = "Weapon Cost Minimum", desc = "Lowest weapon item price.",
+	type = InsaneStats.FLOAT, min = 0, max = 10000
+})
+InsaneStats:RegisterConVar("coins_weapon_price_end", "insanestats_coins_weapon_price_end", "10000", {
+	display = "Weapon Cost Maximum", desc = "Highest weapon item price.",
+	type = InsaneStats.FLOAT, min = 0, max = 10000
+})
+InsaneStats:RegisterConVar("coins_weapon_price_geometric", "insanestats_coins_weapon_price_geometric", "1", {
+	display = "Weapon Costs Follow Geometric Progression", desc = "If disabled, weapon costs will increase linearly between items. \z
+	This is forcefully disabled when either insanestats_coins_weapon_price_start or insanestats_coins_weapon_price_end are 0 or less.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterConVar("coins_weapon_max", "insanestats_coins_weapon_max", "50", {
+	display = "Weapons Per Shop", desc = "Up to this many weapons will be randomly chosen for each Insane Stats Coin Shop.",
+	type = InsaneStats.INT, min = 0, max = 65535
+})
+InsaneStats:RegisterConVar("coins_weapon_max_price", "insanestats_coins_weapon_max_price", "100", {
+	display = "Max Considered Weapon Price", desc = "The maximum price of weapons randomly chosen by Insane Stats Coin Shops will not exceed this value, \z
+	unless there are less than insanestats_coins_weapon_max weapons to choose from.",
+	type = InsaneStats.FLOAT, min = 0, max = 10000
+})
+InsaneStats:RegisterConVar("coins_weapon_max_price_level_add", "insanestats_coins_weapon_max_price_level_add", "10", {
+	display = "Level Scaling", desc = "% additional max considered weapon price per Insane Stats Coin Shop level. Only relevant when Insane Stats XP is enabled.",
+	type = InsaneStats.FLOAT, min = 0, max = 1000
+})
+InsaneStats:RegisterConVar("coins_weapon_max_price_level_add_mode", "insanestats_coins_weapon_max_price_level_add_mode", "-1", {
+	display = "Level Mode", desc = "If enabled, % additional max considered weapon price is applied additively rather than multiplicatively. \z
+		-1 causes this ConVar to use the value of insanestats_xp_mode.",
+	type = InsaneStats.INT, min = -1, max = 1
+})
+InsaneStats:RegisterConVar("coins_weapon_max_price_level_add_add", "insanestats_coins_weapon_max_price_level_add_add", "10", {
+	display = "Level Growth", desc = "Additional % of % additional max considered weapon price per level. \z
+	This is only applied if \"insanestats_coins_weapon_max_price_level_add_mode\" is 0.",
+	type = InsaneStats.FLOAT, min = 0, max = 1000
+})
+
+InsaneStats:RegisterConVar("coins_reforge_cost", "insanestats_coins_reforge_cost", "100", {
+	display = "Reforge Cost", desc = "Base price of rerolling WPASS2 modifiers on a tier 1 weapon / armor battery.",
+	type = InsaneStats.FLOAT, min = 0, max = 1000
+})
+InsaneStats:RegisterConVar("coins_reforge_cost_add", "insanestats_coins_reforge_cost_add", "40", {
+	display = "Reforge Cost Scaling", desc = "% additional cost per tier. This is always applied multiplicatively.",
+	type = InsaneStats.FLOAT, min = 0, max = 1000
+})
+
+InsaneStats.ShopItems = {
+	{"item_battery", 25},
+	{"item_healthvial", 10},
+	{"item_healthkit", 25},
+	{"item_ammo_357", 10},
+	{"item_ammo_ar2", 10},
+	{"item_ammo_ar2_altfire", 50},
+	{"item_ammo_crossbow", 25},
+	{"item_ammo_pistol", 10},
+	{"item_ammo_smg1", 10},
+	{"item_ammo_smg1_grenade", 50},
+	{"item_box_buckshot", 25},
+	{"item_rpg_round", 50},
+}
+InsaneStats.ShopItemsAutomaticPrice = {
+	"gmod_camera",
+	"weapon_fists",
+	"weapon_medkit",
+	"weapon_slam",
+	"weapon_physgun",
+	"gmod_tool"
+}
+
+function InsaneStats:GetReforgeCost(tier)
+	return InsaneStats:ScaleValueToLevelPure(
+		InsaneStats:GetConVarValue("coins_reforge_cost"),
+		InsaneStats:GetConVarValue("coins_reforge_cost_add")/100,
+		tier,
+		true
+	)
+end
+
+function InsaneStats:GetItemCost(index, ply)
+	local itemInfo = InsaneStats.ShopItems[index]
+	local cost = itemInfo[2]
+	if InsaneStats:GetConVarValue("xp_enabled") and cost then
+		cost = InsaneStats:ScaleValueToLevelQuadratic(
+			cost,
+			InsaneStats:GetConVarValue("coins_level_add")/100,
+			ply:InsaneStats_GetLevel(),
+			"coins_level_add_mode",
+			false,
+			InsaneStats:GetConVarValue("coins_level_add_add")/100
+		)
+	end
+	return cost
+end
+
+function InsaneStats:GetWeaponCost(index)
+	local maxIndex = #InsaneStats.ShopItemsAutomaticPrice
+	local minPrice = InsaneStats:GetConVarValue("coins_weapon_price_start")
+	local maxPrice = InsaneStats:GetConVarValue("coins_weapon_price_end")
+	local geometric = minPrice > 0 and maxPrice > 0 and InsaneStats:GetConVarValue("coins_weapon_price_geometric")
+
+	if geometric then
+		return math.exp(math.Remap(index, 1, maxIndex, math.log(minPrice), math.log(maxPrice)))
+	else
+		return math.Remap(index, 1, maxIndex, minPrice, maxPrice)
+	end
+end
 
 -- the server needs access for setting the fallback coin color
 local color_gray = Color(127, 127, 127)
@@ -106,6 +215,10 @@ end
 
 function ENT:InsaneStats_AddCoins(coins)
     return self:InsaneStats_SetCoins(self:InsaneStats_GetCoins() + coins)
+end
+
+function ENT:InsaneStats_RemoveCoins(coins)
+    return self:InsaneStats_SetCoins(self:InsaneStats_GetCoins() - coins)
 end
 
 function ENT:InsaneStats_SetLastCoinTier(tier)

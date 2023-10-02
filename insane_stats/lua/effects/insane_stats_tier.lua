@@ -1,5 +1,7 @@
 local particleDelay = 0.015
 local lifeTime = 1
+local color_gray = InsaneStats:GetColor("gray")
+local color_dark_green = InsaneStats:GetColor("dark_green")
 
 function EFFECT:Init(effdata)
 	self.KillTime = CurTime() + lifeTime
@@ -77,11 +79,38 @@ function EFFECT:AddParticles(num)
 	end
 end
 
+local healthClasses = {
+	item_healthkit = true,
+	item_healthvial = true,
+	item_grubnugget = true
+}
+local ammoClasses = {
+	item_ammo_357 = true,
+	item_ammo_357_large = true,
+	item_ammo_ar2 = true,
+	item_ammo_ar2_large = true,
+	item_ammo_ar2_altfire = true,
+	item_ammo_crossbow = true,
+	item_ammo_pistol = true,
+	item_ammo_pistol_large = true,
+	item_ammo_smg1 = true,
+	item_ammo_smg1_large = true,
+	item_ammo_smg1_grenade = true,
+	item_box_buckshot = true,
+	item_rpg_round = true,
+}
 function EFFECT:GetParticleColor()
 	local color = color_black
 	
-	if self:ShouldDrawBeam() and self.Entity.insaneStats_Rarity then
-		color = InsaneStats:GetRarityColor(self.Entity.insaneStats_Rarity)
+	if self:ShouldDrawBeam() then
+		local class = self.Entity:GetClass()
+		if self.Entity.insaneStats_Rarity then
+			color = InsaneStats:GetRarityColor(self.Entity.insaneStats_Rarity)
+		elseif healthClasses[class] then
+			color = color_dark_green
+		elseif ammoClasses[class] then
+			color = color_gray
+		end
 	end
 	
 	return color.r, color.g, color.b, color.a

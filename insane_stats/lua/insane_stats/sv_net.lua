@@ -7,7 +7,7 @@ local entitiesRequireUpdate = {}
 local damageInfosRequireUpdate = {}
 
 function ENT:InsaneStats_MarkForUpdate(flag)
-	if (self:GetModel() or "") ~= "" and IsValid(self) then
+	if IsValid(self) then
 		entitiesRequireUpdate[self] = bit.bor(entitiesRequireUpdate[self] or 0, flag)
 	end
 end
@@ -19,28 +19,30 @@ end
 end]]
 
 function ENT:InsaneStats_DamageNumber(attacker, damage, types, hitgroup)
-	local entIndex = self:EntIndex()
-	
-	damageInfosRequireUpdate[entIndex] = damageInfosRequireUpdate[entIndex]
-		or {damage = 0, types = 0, flags = 0, hitgroup = 10, position = self:LocalToWorld(self:OBBCenter())}
-	
-	local currentDamageInfo = damageInfosRequireUpdate[entIndex]
-	currentDamageInfo.attacker = IsValid(attacker) and attacker or currentDamageInfo.attacker
-	if tonumber(damage) then
-		currentDamageInfo.damage = currentDamageInfo.damage + damage
-	elseif damage == "immune" then
-		currentDamageInfo.flags = bit.bor(currentDamageInfo.flags, 2)
-	elseif damage == "miss" then
-		currentDamageInfo.flags = bit.bor(currentDamageInfo.flags, 1)
+	if IsValid(self) then
+		local entIndex = self:EntIndex()
+		
+		damageInfosRequireUpdate[entIndex] = damageInfosRequireUpdate[entIndex]
+			or {damage = 0, types = 0, flags = 0, hitgroup = 10, position = self:LocalToWorld(self:OBBCenter())}
+		
+		local currentDamageInfo = damageInfosRequireUpdate[entIndex]
+		currentDamageInfo.attacker = IsValid(attacker) and attacker or currentDamageInfo.attacker
+		if tonumber(damage) then
+			currentDamageInfo.damage = currentDamageInfo.damage + damage
+		elseif damage == "immune" then
+			currentDamageInfo.flags = bit.bor(currentDamageInfo.flags, 2)
+		elseif damage == "miss" then
+			currentDamageInfo.flags = bit.bor(currentDamageInfo.flags, 1)
+		end
+		currentDamageInfo.types = bit.bor(currentDamageInfo.types, types or 0)
+						
+		-- generic hitgroup has value 8 for our purposes
+		local hitgroup = hitgroup or 0
+		if hitgroup == 0 then
+			hitgroup = 8
+		end
+		currentDamageInfo.hitgroup = math.min(currentDamageInfo.hitgroup, hitgroup)
 	end
-	currentDamageInfo.types = bit.bor(currentDamageInfo.types, types or 0)
-					
-	-- generic hitgroup has value 8 for our purposes
-	local hitgroup = hitgroup or 0
-	if hitgroup == 0 then
-		hitgroup = 8
-	end
-	currentDamageInfo.hitgroup = math.min(currentDamageInfo.hitgroup, hitgroup)
 end
 
 local function BroadcastEntityUpdates()
@@ -113,10 +115,10 @@ local function BroadcastEntityUpdates()
 			end
 			
 			net.WriteUInt(#data, 16)
-			for k,v in pairs(data) do
-				net.WriteUInt(v.id, 16)
-				net.WriteDouble(v.level)
-				net.WriteFloat(v.expiry)
+			for k2,v2 in pairs(data) do
+				net.WriteUInt(v2.id or 0, 16)
+				net.WriteDouble(v2.level)
+				net.WriteFloat(v2.expiry)
 			end
 			
 			k.insaneStats_StatusEffectsToNetwork = {}
@@ -333,19 +335,64 @@ net.Receive("insane_stats", function(length, ply)
 	elseif func == 2 and ply:IsAdmin() then
 		for i=1, net.ReadUInt(8) do
 			local conVarName = net.ReadString()
-			local typ = InsaneStats:GetConVarData(conVarName).type
-			
-			if typ == InsaneStats.BOOL then
-				InsaneStats:GetConVarData(conVarName).conVar:SetBool(net.ReadBool())
-			elseif typ == InsaneStats.INT then
-				InsaneStats:GetConVarData(conVarName).conVar:SetInt(net.ReadInt(32))
-			elseif typ == InsaneStats.FLOAT then
-				InsaneStats:GetConVarData(conVarName).conVar:SetFloat(net.ReadDouble())
+			if conVarName == "insanestats_revert_all_convars" then
+				RunConsoleCommand("insanestats_revert_all_convars", "yes")
 			else
-				InsaneStats:GetConVarData(conVarName).conVar:SetString(net.ReadString())
+				local typ = InsaneStats:GetConVarData(conVarName).type
+				
+				if typ == InsaneStats.BOOL then
+					InsaneStats:GetConVarData(conVarName).conVar:SetBool(net.ReadBool())
+				elseif typ == InsaneStats.INT then
+					InsaneStats:GetConVarData(conVarName).conVar:SetInt(net.ReadInt(32))
+				elseif typ == InsaneStats.FLOAT then
+					InsaneStats:GetConVarData(conVarName).conVar:SetFloat(net.ReadDouble())
+				else
+					InsaneStats:GetConVarData(conVarName).conVar:SetString(net.ReadString())
+				end
 			end
 		end
 	elseif func == 3 then
 		ply:InsaneStats_AttemptEquipItem(ply:GetUseEntity())
+	elseif func == 4 then
+		ply.insaneStats_HoldingCtrl = net.ReadBool()
+	elseif func == 5 then
+		local shopEntity = net.ReadEntity()
+		if (IsValid(shopEntity) and shopEntity:GetClass() == "insanestats_shop"
+		and shopEntity:WorldSpaceCenter():DistToSqr(ply:GetShootPos()) < 32768) then
+			local subFunc = net.ReadUInt(4)
+			if subFunc == 1 then
+				local wepIndex = net.ReadUInt(16)
+				local price = InsaneStats:GetWeaponCost(wepIndex)
+				if ply:InsaneStats_GetCoins() >= price then
+					local class = InsaneStats.ShopItemsAutomaticPrice[wepIndex]
+					local wep = ply:Give(class)
+					if IsValid(wep) then
+						ply:InsaneStats_RemoveCoins(price)
+					end
+				end
+			elseif subFunc == 2 then
+				local itemIndex = net.ReadUInt(16)
+				local price = InsaneStats:GetItemCost(itemIndex, ply)
+				if ply:InsaneStats_GetCoins() >= price then
+					local itemName = InsaneStats.ShopItems[itemIndex][1]
+					local item = ply:Give(itemName)
+					if IsValid(item) then
+						ply:InsaneStats_RemoveCoins(price)
+					end
+				end
+			elseif subFunc == 3 then
+				local ent = net.ReadEntity()
+				if (IsValid(ent) and ent:GetOwner() == ply) or ent == ply then
+					local tier = ent.insaneStats_Tier or 0
+					local price = InsaneStats:GetReforgeCost(tier)
+					if ply:InsaneStats_GetCoins() >= price and tier > 0 then
+						ent.insaneStats_Modifiers = {}
+						InsaneStats:ApplyWPASS2Modifiers(ent)
+						ent.insaneStats_ModifierChangeReason = 2
+						ply:InsaneStats_RemoveCoins(price)
+					end
+				end
+			end
+		end
 	end
 end)

@@ -526,8 +526,16 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 							2, color_black
 						)
 						
+						local smallText
 						if statusEffectData.level ~= 1 then
-							draw.SimpleTextOutlined(InsaneStats:FormatNumber(statusEffectData.level, {decimals = 0}),
+							smallText = InsaneStats:FormatNumber(statusEffectData.level, {decimals = 0})
+						elseif statusEffectData.expiry < math.huge then
+							local duration = math.ceil(statusEffectData.expiry - CurTime())
+							smallText = InsaneStats:FormatNumber(duration, {decimals = 0}).."s"
+						end
+
+						if smallText then
+							draw.SimpleTextOutlined(smallText,
 								"InsaneStats.Small", currentX + iconSize - 2, currentY + iconSize - 2, statusEffectColor,
 								TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black
 							)

@@ -39,6 +39,8 @@ local function ApplyWPASS2StartTier(ent)
 	local probability
 	local isNotWep = not ent:IsWeapon()
 	local owner = ent:GetOwner()
+
+	if not IsValid(owner) then owner = ent.insaneStats_ProxyWeaponTo or NULL end
 	
 	if ent:InsaneStats_IsWPASS2Pickup() and not IsValid(owner) then
 		probability = InsaneStats:GetConVarValueDefaulted(isNotWep and "wpass2_chance_unowned_battery", "wpass2_chance_unowned")
@@ -118,7 +120,8 @@ local function ApplyWPASS2Tier(ent)
 		local effectiveLevel = ent:InsaneStats_GetLevel()
 		if not ent:InsaneStats_IsWPASS2Pickup() then
 			if not ent.insaneStats_BatteryXP then
-				ent:InsaneStats_SetBatteryXP(InsaneStats:DetermineEntitySpawnedXP(ent:GetPos()))
+				--ent:InsaneStats_SetBatteryXP(InsaneStats:DetermineEntitySpawnedXP(ent:GetPos()))
+				ent:InsaneStats_SetBatteryXP(ent:InsaneStats_GetXP())
 				if not ent.insaneStats_BatteryXP then return false end
 			end
 			effectiveLevel = math.floor(InsaneStats:GetLevelByXPRequired(ent:InsaneStats_GetBatteryXP()))
@@ -182,13 +185,16 @@ function InsaneStats:ApplyWPASS2Modifiers(wep)
 	if GetConVar("gmod_suit"):GetBool() then
 		inclusiveFlags = bit.bor(inclusiveFlags, self.WPASS2_FLAGS.SUIT_POWER)
 	end
+	if self:GetConVarValue("infhealth_knockback") then
+		inclusiveFlags = bit.bor(inclusiveFlags, self.WPASS2_FLAGS.KNOCKBACK)
+	end
 	
 	local modifierProbabilities = {}
 	for k,v in pairs(modifiers) do
 		if not (v.flags and bit.band(inclusiveFlags, v.flags) ~= v.flags) then
 			local weight = v.weight or 1
 			-- if a modifier DOES NOT have bitflag 1 and inclusiveFlags DOES,
-			-- do not consider the probability, and vice versa
+			-- do not consider it, and vice versa
 			if bit.band(v.flags or 0, 1) == bit.band(inclusiveFlags, 1) then
 				modifierProbabilities[k] = weight
 			end
@@ -203,6 +209,7 @@ function InsaneStats:ApplyWPASS2Modifiers(wep)
 	
 	for k,v in pairs(applyModifiers) do
 		local modifierTable = modifiers[k]
+		assert(modifierTable, "Could not find modifier "..k.."!")
 		
 		modifiersLeft = modifiersLeft - 1
 		maxSpendablePoints = maxSpendablePoints + (modifierTable.max or 65536)
@@ -534,6 +541,28 @@ function PLAYER:InsaneStats_AttemptEquipItem(ent)
 					end
 				end)
 			end
+
+			if ent:InsaneStats_IsWPASS2Pickup() then
+				self.insaneStats_Last2Pickups = self.insaneStats_Last2Pickups or {}
+				while #self.insaneStats_Last2Pickups > 1 do
+					local lastLastPickup = table.remove(self.insaneStats_Last2Pickups)
+					if lastLastPickup == ent then
+						self.insaneStats_ReswappedCount = (self.insaneStats_ReswappedCount or 0) + 1
+					else
+						self.insaneStats_ReswappedCount = 0
+					end
+				end
+				table.insert(self.insaneStats_Last2Pickups, 1, ent)
+
+				if (self.insaneStats_ReswappedCount or 0) > 4 then
+					self.insaneStats_ReswappedCount = -5
+					net.Start("insane_stats")
+					net.WriteUInt(5, 8)
+					net.WriteString("Hold the Sprint key while pressing Use to pick up items normally!")
+					net.WriteColor(Color(255, 0, 0))
+					net.Send(self)
+				end
+			end
 		end
 	end
 end
@@ -580,8 +609,7 @@ hook.Add("InsaneStatsPlayerCanPickupItem", "InsaneStatsWPASS", function(ply, ite
 end)
 
 hook.Add("PlayerCanPickupWeapon", "InsaneStatsWPASS", function(ply, wep)
-	if InsaneStats:GetConVarValue("wpass2_enabled") and ply:HasWeapon(wep:GetClass())
-	and (wep.insaneStats_DisableWPASS2Pickup or 0) <= RealTime() then
+	if InsaneStats:GetConVarValue("wpass2_enabled") and (wep.insaneStats_DisableWPASS2Pickup or 0) <= RealTime() then
 		local autoPickup = ply:GetInfoNum("insanestats_wpass2_autopickup_override", -1) or -1
 		if autoPickup < 0 then
 			autoPickup = InsaneStats:GetConVarValue("wpass2_autopickup")
@@ -593,16 +621,18 @@ hook.Add("PlayerCanPickupWeapon", "InsaneStatsWPASS", function(ply, wep)
 			if autoPickup == 1 then return false end 
 			
 			local ourWep = ply:GetWeapon(wep:GetClass())
-			local currentTier = ourWep.insaneStats_Tier or 0
-			
-			if newTier > currentTier then
-				if autoPickup == 3 or autoPickup == 5 then
-					ply:InsaneStats_AttemptEquipItem(wep)
-				end
+			if IsValid(ourWep) then
+				local currentTier = ourWep.insaneStats_Tier or 0
 				
-				if autoPickup < 6 then return false end
-			elseif newTier == currentTier and autoPickup < 4 then
-				return false
+				if newTier > currentTier then
+					if autoPickup == 3 or autoPickup == 5 then
+						ply:InsaneStats_AttemptEquipItem(wep)
+					end
+					
+					if autoPickup < 6 then return false end
+				elseif newTier == currentTier and autoPickup < 4 then
+					return false
+				end
 			end
 		end
 	end
@@ -612,7 +642,7 @@ hook.Add("PlayerCanPickupWeapon", "InsaneStatsWPASS", function(ply, wep)
 end)
 
 hook.Add("PlayerUse", "InsaneStatsWPASS", function(ply, ent)
-	if (ent:IsWeapon() or ent:GetClass() == "item_battery") and ply:KeyDown(IN_SPEED) then
+	if ent:InsaneStats_IsWPASS2Pickup() and ply:KeyDown(IN_SPEED) then
 		local nextPickup = ply.insaneStats_NextPickup or 0
 		local curTime = CurTime()
 		
@@ -636,7 +666,7 @@ SaveDataFile = function()
 	end
 end
 
-local function GetPlayerWPASS2SaveData(ply, shouldSave, shouldSaveBattery)
+local function GetPlayerWPASS2SaveData(ply, shouldSave, shouldSaveBattery, oldData)
 	local steamID = ply:SteamID()
 	if steamID then
 		local plyWPASS2Data = {}
@@ -681,16 +711,37 @@ local function GetPlayerWPASS2SaveData(ply, shouldSave, shouldSaveBattery)
 			
 			if shouldSaveBattery == 1 then
 				-- save health, max health, armor, max armor and suit status
+				oldData = oldData or {}
+				oldData.healthArmorAndSuitStats = oldData.healthArmorAndSuitStats or {}
 				plyWPASS2Data.healthArmorAndSuitStats = {
-					health = ply:Alive() and ply:InsaneStats_GetHealth(),
-					maxHealth = ply:InsaneStats_GetMaxHealth(),
-					armor = ply:Alive() and ply:InsaneStats_GetArmor(),
-					maxArmor = ply:InsaneStats_GetMaxArmor(),
+					maxHealth = oldData.healthArmorAndSuitStats.maxHealth,
+					maxArmor = oldData.healthArmorAndSuitStats.maxArmor,
 					suit = ply:IsSuitEquipped()
 				}
+
+				local health, maxHealth = ply:InsaneStats_GetHealth(), ply:InsaneStats_GetMaxHealth()
+				local armor, maxArmor = ply:InsaneStats_GetArmor(), ply:InsaneStats_GetMaxArmor()
+				if ply:Alive() then
+					if health > 0 then
+						plyWPASS2Data.healthArmorAndSuitStats.health = health
+					end
+					if armor > 0 then
+						plyWPASS2Data.healthArmorAndSuitStats.armor = armor
+					end
+				end
+				if maxHealth > 0 then
+					plyWPASS2Data.healthArmorAndSuitStats.maxHealth = maxHealth
+				end
+				if maxArmor > 0 then
+					plyWPASS2Data.healthArmorAndSuitStats.maxArmor = maxArmor
+				end
 			end
 		end
 		
+		--[[if GetConVar("developer"):GetInt() > 0 then
+			InsaneStats:Log("Saved data for "..steamID)
+			PrintTable(plyWPASS2Data)
+		end]]
 		return plyWPASS2Data
 	end
 end
@@ -702,7 +753,7 @@ SaveData = function(ply, forced)
 		local shouldSaveBattery = InsaneStats:GetConVarValueDefaulted("wpass2_modifiers_player_save_death_battery", "wpass2_modifiers_player_save_death")
 		
 		if shouldSave > 0 or shouldSaveBattery > 0 then
-			playerLoadoutData[steamID] = GetPlayerWPASS2SaveData(ply, shouldSave, shouldSaveBattery)
+			playerLoadoutData[steamID] = GetPlayerWPASS2SaveData(ply, shouldSave, shouldSaveBattery, playerLoadoutData[steamID])
 		else
 			playerLoadoutData[steamID] = nil
 		end
@@ -784,6 +835,9 @@ hook.Add("InsaneStatsTransitionCompat", "InsaneStatsWPASS", function(ent)
 	if ent.insaneStats_BatteryXPRoot8 then
 		ent:InsaneStats_SetBatteryXP(ent.insaneStats_BatteryXPRoot8 ^ 8)
 	end
+	if ent.insaneStats_IsProxyWeapon and not IsValid(ent.insaneStats_ProxyWeaponTo) then
+		SafeRemoveEntityDelayed(ent, 0.015)
+	end
 end)
 
 hook.Add("PlayerSpawn", "InsaneStatsWPASS", function(ply, fromTransition)
@@ -808,10 +862,12 @@ hook.Add("PlayerSpawn", "InsaneStatsWPASS", function(ply, fromTransition)
 					
 					local steamID = ply:SteamID()
 					local plyWPASS2Data = steamID and playerLoadoutData[steamID]
-					-- reject from transitions
-					if plyWPASS2Data and not fromTransition then
-						InsaneStats:Log("Loaded data for "..steamID)
-						PrintTable(plyWPASS2Data)
+					
+					if plyWPASS2Data then
+						if GetConVar("developer"):GetInt() > 0 then
+							InsaneStats:Log("Loaded data for "..steamID)
+							PrintTable(plyWPASS2Data)
+						end
 						
 						if plyWPASS2Data.modifiers then
 							for k,v in pairs(plyWPASS2Data.modifiers.weapons) do
@@ -843,7 +899,7 @@ hook.Add("PlayerSpawn", "InsaneStatsWPASS", function(ply, fromTransition)
 							ApplyWPASS2Tier(ply)
 							InsaneStats:ApplyWPASS2Attributes(ply)
 							ply.insaneStats_ModifierChangeReason = 2
-							ply:InsaneStats_MarkForUpdate(8)
+							ply:InsaneStats_MarkForUpdate(72)
 						end
 						
 						if plyWPASS2Data.healthArmorAndSuitStats then
@@ -853,8 +909,12 @@ hook.Add("PlayerSpawn", "InsaneStatsWPASS", function(ply, fromTransition)
 							if plyWPASS2Data.healthArmorAndSuitStats.armor then
 								ply:SetArmor(plyWPASS2Data.healthArmorAndSuitStats.armor)
 							end
-							ply:SetMaxHealth(plyWPASS2Data.healthArmorAndSuitStats.maxHealth)
-							ply:SetMaxArmor(plyWPASS2Data.healthArmorAndSuitStats.maxArmor)
+							if plyWPASS2Data.healthArmorAndSuitStats.maxHealth > 0 then
+								ply:SetMaxHealth(plyWPASS2Data.healthArmorAndSuitStats.maxHealth)
+							end
+							if plyWPASS2Data.healthArmorAndSuitStats.maxArmor > 0 then
+								ply:SetMaxArmor(plyWPASS2Data.healthArmorAndSuitStats.maxArmor)
+							end
 							
 							if ply:IsSuitEquipped() ~= plyWPASS2Data.healthArmorAndSuitStats.suit then
 								if plyWPASS2Data.healthArmorAndSuitStats.suit then
@@ -933,4 +993,8 @@ hook.Add("InsaneStatsApplyLevel", "InsaneStatsWPASS", function(ent, level)
 			end
 		end)
 	end
+end)
+
+hook.Add("EntityRemoved", "InsaneStatsWPASS", function(ent)
+	SafeRemoveEntity(ent.insaneStats_ProxyWeapon)
 end)

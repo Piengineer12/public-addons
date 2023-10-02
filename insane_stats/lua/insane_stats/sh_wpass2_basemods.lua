@@ -38,6 +38,7 @@ local modifiers = {
 		modifiers = {
 			explode = 1.1
 		},
+		weight = 1,
 		max = 7
 	},
 	earth = {
@@ -46,6 +47,7 @@ local modifiers = {
 		modifiers = {
 			poison = 1.1
 		},
+		weight = 1,
 		max = 7
 	},
 	fire = {
@@ -54,6 +56,7 @@ local modifiers = {
 		modifiers = {
 			fire = 1.1
 		},
+		weight = 1,
 		max = 7
 	},
 	water = {
@@ -62,6 +65,7 @@ local modifiers = {
 		modifiers = {
 			freeze = 1.1
 		},
+		weight = 1,
 		max = 7
 	},
 	air = {
@@ -70,6 +74,7 @@ local modifiers = {
 		modifiers = {
 			shock = 1.1
 		},
+		weight = 1,
 		max = 7
 	},
 	blood = {
@@ -78,6 +83,7 @@ local modifiers = {
 		modifiers = {
 			bleed = 1.1
 		},
+		weight = 1,
 		max = 7
 	},
 	arc = {
@@ -414,6 +420,7 @@ local modifiers = {
 			knockback = 1/1.4641,
 			damage = 1.331
 		},
+		flags = InsaneStats.WPASS2_FLAGS.KNOCKBACK,
 		weight = 0.5,
 		max = 5,
 		cost = 2
@@ -437,6 +444,7 @@ local modifiers = {
 			knockback = 1.4641,
 			firerate = 1.21
 		},
+		flags = InsaneStats.WPASS2_FLAGS.KNOCKBACK,
 		weight = 0.5,
 		max = 5,
 		cost = 2
@@ -604,6 +612,7 @@ local modifiers = {
 		modifiers = {
 			knockback = 1.4641
 		},
+		flags = InsaneStats.WPASS2_FLAGS.KNOCKBACK,
 		weight = 2,
 		max = 5
 	},
@@ -761,7 +770,7 @@ local modifiers = {
 			starlight_glow = 1.1
 		},
 		cost = 2,
-		max = 5
+		max = 4
 	},
 	
 	-- utility
@@ -797,7 +806,7 @@ local modifiers = {
 		modifiers = {
 			speed_dilation = 1.1
 		},
-		max = 10,
+		max = 5,
 		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SP_ONLY),
 	},
 	auxiliary = {
@@ -821,9 +830,8 @@ local modifiers = {
 		weight = 0.5,
 		max = 10
 	},]]
-	agile = {
-		prefix = "Agile",
-		suffix = "Agility",
+	sprint = {
+		prefix = "Sprinting",
 		modifiers = {
 			sprint_speed = 1.1
 		},
@@ -831,16 +839,16 @@ local modifiers = {
 		weight = 0.5,
 		max = 5
 	},
-	fleeting = {
-		prefix = "Fleeting",
-		modifiers = {
-			crouch_speed = 1.1
-			--kill5s_speed = 1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		max = 5
-	},
+	-- fleeting = {
+	-- 	prefix = "Fleeting",
+	-- 	modifiers = {
+	-- 		crouch_speed = 1.1
+	-- 		--kill5s_speed = 1.1
+	-- 	},
+	-- 	flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+	-- 	weight = 0.5,
+	-- 	max = 5
+	-- },
 	buckle = {
 		prefix = "Buckling",
 		modifiers = {
@@ -869,17 +877,27 @@ local modifiers = {
 		weight = 0.5,
 		max = 10
 	},
+	respite = {
+		prefix = "Respiteful",
+		suffix = "Respite",
+		modifiers = {
+			alt_damagetaken = 1/1.1
+		},
+		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		weight = 0.5,
+		max = 1
+	},
 	adrenaline = {
 		prefix = "Adrenal",
 		suffix = "Adrenaline",
 		modifiers = {
-			alt_dilation = 1.1
+			alt_gamespeed = 1/1.1
 		},
 		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SP_ONLY),
 		weight = 0.5,
-		max = 10
+		max = 1
 	},
-	--[[agile = {
+	agile = {
 		prefix = "Agile",
 		suffix = "Agility",
 		modifiers = {
@@ -887,8 +905,8 @@ local modifiers = {
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
-		max = 3
-	},]]
+		max = 2
+	},
 	acknowledge = {
 		prefix = "Acknowledging",
 		suffix = "Acknowledgement",
@@ -973,6 +991,16 @@ local modifiers = {
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5
+	},
+	detect = {
+		prefix = "Detective",
+		suffix = "Detection",
+		modifiers = {
+			reveal = 1.4641
+		},
+		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		weight = 0.5,
+		max = 5
 	},
 	
 	-- utility, half weight doubled cost
@@ -1080,7 +1108,7 @@ local modifiers = {
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
 		cost = 2,
-		max = 5
+		max = 10
 	},
 	supreme = {
 		prefix = "Supreme",
@@ -1129,18 +1157,16 @@ local modifiers = {
 		cost = 2,
 		max = 10
 	},
-	quirk = {
-		prefix = "Quirky",
-		suffix = "Quirkiness",
+	fleeting = {
+		prefix = "Fleeting",
 		modifiers = {
-			ctrl_timeboost = 1.1,
-			ctrl_timeboost_damage = 1.1,
-			ctrl_timeboost_reset = 1.1
+			ctrl_gamespeed = 1.1,
+			ctrl_damage = 1.1
 		},
 		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SP_ONLY),
 		weight = 0.5,
 		cost = 2,
-		max = 5
+		max = 1
 	},
 	
 	-- defensive
@@ -1159,7 +1185,7 @@ local modifiers = {
 			knockbacktaken = 1/1.4641,
 			self_knockbacktaken = 1.4641,
 		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.KNOCKBACK),
 		max = 5
 	},
 	bulk = {
@@ -1735,7 +1761,7 @@ local attributes = {
 		mul = 30
 	},
 	starlight_glow = {
-		display = "+2 glow radius, scaled by starlit duration",
+		display = "+1 glow power, scaled by starlit duration",
 		mul = 30,
 		invert = true
 	},
@@ -1766,13 +1792,11 @@ local attributes = {
 	},
 	kill5s_regen = {
 		display = "%s health regen for 5s after kill",
-		mul = 1.25,
-		nopercent = true
+		mul = 0.03125
 	},
 	kill5s_armorregen = {
 		display = "%s armor regen for 5s after kill",
-		mul = 1.25,
-		nopercent = true
+		mul = 0.03125
 	},
 	kill5s_damageaura = {
 		display = "%s damage aura for 5s after kill",
@@ -1861,20 +1885,18 @@ local attributes = {
 	},
 	hittaken_regen = {
 		display = "%s health regen for 10s on hit taken, 60s cooldown",
-		mul = 5,
-		nopercent = true
+		mul = 0.125
 	},
 	hittaken_armorregen = {
 		display = "%s armor regen for 10s on hit taken, 60s cooldown",
-		mul = 5,
-		nopercent = true
+		mul = 0.125
 	},
 	hittakenstack_defence = {
 		display = "%s defence per hit taken, decays over time",
 		mul = 0.1
 	},
 	dissolvewarning = {
-		display = "Dissolving damage ignores invincibility and cannot miss",
+		display = "Dissolving damage taken ignores invincibility and cannot miss",
 		mul = 60,
 		invert = true
 	},
@@ -2030,23 +2052,19 @@ local attributes = {
 	},
 	crit_lifesteal = {
 		display = "%s healing on crit",
-		mul = 1,
-		nopercent = true
+		mul = 0.125
 	},
 	crit_armorsteal = {
-		display = "%s armor on crit",
-		mul = 1,
-		nopercent = true
+		display = "%s armor recharged on crit",
+		mul = 0.125
 	},
 	kill_lifesteal = {
 		display = "%s healing on kill",
-		mul = 5,
-		nopercent = true
+		mul = 0.125
 	},
 	kill_armorsteal = {
-		display = "%s armor on kill",
-		mul = 5,
-		nopercent = true
+		display = "%s armor recharged on kill",
+		mul = 0.125
 	},
 	kill_clipsteal = {
 		display = "%s clip refilled on kill"
@@ -2117,18 +2135,18 @@ local attributes = {
 	copying = {
 		display = "%s item pickups"
 	},
-	noncombat_speed = {
+	--[[noncombat_speed = {
 		display = "%s movement speed out of combat",
 		mul = 2
-	},
+	},]]
 	sprint_speed = {
 		display = "%s sprint speed",
 		mul = 2
 	},
-	crouch_speed = {
+	--[[crouch_speed = {
 		display = "%s speed while crouched",
 		mul = 2
-	},
+	},]]
 	bloodletting = {
 		display = "Health above max %s turned into armor",
 		invert = true,
@@ -2154,21 +2172,26 @@ local attributes = {
 	},
 	alt_damage = {
 		display = "%s damage dealt after slow walk double tap, 60s cooldown",
-		mul = 8
+		mul = 7
 	},
 	alt_firerate = {
 		display = "%s fire rate after slow walk double tap, 60s cooldown",
-		mul = 8
+		mul = 7
 	},
-	alt_dilation = {
-		display = "-50%% game speed for %ss after slow walk double tap, 60s cooldown",
-		mul = 30,
-		nopercent = true
+	alt_speed = {
+		display = "%s movement speed after slow walk double tap, 60s cooldown",
+		mul = 7
 	},
-	--[[alt_speed = {
-		display = "%s movement speed after Alt double tap, 60s cooldown",
-		mul = 8
-	},]]
+	alt_damagetaken = {
+		display = "%s damage taken after slow walk double tap, 60s cooldown",
+		invert = true,
+		mul = 7
+	},
+	alt_gamespeed = {
+		display = "%s game speed after slow walk double tap, 60s cooldown",
+		invert = true,
+		mul = 7
+	},
 	--[[combat5s_dodge = {
 		display = "Up to %s dodge chance over 5s in combat",
 		mode = 2
@@ -2186,66 +2209,240 @@ local attributes = {
 		invert = true,
 		mul = 2
 	},
-	ctrl_timeboost = {
+	ctrl_gamespeed = {
 		display = "%s game speed per second while crouch key held",
-		mul = 0.2,
-		invert = true
+		invert = true,
+		mul = 0.5
 	},
-	ctrl_timeboost_damage = {
-		display = "+1%% damage dealt per stack of Game Speed Up",
-		mul = 0.2
+	ctrl_damage = {
+		display = "%s damage dealt per second while crouch key held",
+		mul = 0.5
 	},
-	ctrl_timeboost_reset = {
-		display = "Game Speed Up expires after releasing crouch key",
-		mul = 0.2
+	reveal = {
+		display = "%s button, breakable and door reveal radius",
+		mul = 250,
+		nopercent = true
 	},
 }
 
+local canPlayPoisonSound = true
+local canPlayFreezeSound = true
+local canPlayShockSound = true
+local canPlayBleedSound = true
 local statusEffects = {
 	poison = {
 		name = "Poisoned",
 		typ = -1,
-		img = Material("insane_stats/status_effects/poison-bottle.png", "mips smooth")
+		img = Material("insane_stats/status_effects/poison-bottle.png", "mips smooth"),
+		apply = SERVER and function(ent, level, duration, attacker)
+			if canPlayPoisonSound then
+				canPlayPoisonSound = false
+				ent:EmitSound(string.format("weapons/bugbait/bugbait_squeeze%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+			end
+			local effdata = EffectData()
+			effdata:SetOrigin(ent:GetPos())
+			effdata:SetEntity(ent)
+			effdata:SetScale(1)
+			effdata:SetMagnitude(1)
+			effdata:SetRadius(16)
+			effdata:SetNormal(vector_up)
+			util.Effect("StriderBlood", effdata)
+		end
 	},
 	fire = {
 		name = "On Fire",
 		typ = -1,
-		img = Material("insane_stats/status_effects/small-fire.png", "mips smooth")
+		img = Material("insane_stats/status_effects/small-fire.png", "mips smooth"),
+		apply = SERVER and function(ent, level, duration, attacker)
+			ent:Ignite(duration)
+		end
 	},
 	freeze = {
 		name = "Freezing",
 		typ = -1,
-		img = Material("insane_stats/status_effects/snowflake-2.png", "mips smooth")
+		img = Material("insane_stats/status_effects/snowflake-2.png", "mips smooth"),
+		apply = SERVER and function(ent, level, duration, attacker)
+			if canPlayFreezeSound then
+				canPlayFreezeSound = false
+				ent:EmitSound(string.format("physics/glass/glass_sheet_break%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+			end
+			local effdata = EffectData()
+			effdata:SetOrigin(ent:GetPos())
+			effdata:SetScale(1)
+			effdata:SetMagnitude(1)
+			util.Effect("GlassImpact", effdata)
+			
+			if ent:IsNPC()
+			and ent:InsaneStats_GetStatusEffectLevel("stun_immune") <= 0
+			and ent:InsaneStats_GetStatusEffectLevel("stunned") <= 0
+			and ent:InsaneStats_GetHealth() > 0 then
+				ent:InsaneStats_ApplyStatusEffect("stunned", 1, 2)
+				ent:SetSchedule(SCHED_NPC_FREEZE)
+			end
+		end
 	},
 	shock = {
 		name = "Shocked",
 		typ = -1,
-		img = Material("insane_stats/status_effects/lightning-frequency.png", "mips smooth")
+		img = Material("insane_stats/status_effects/lightning-frequency.png", "mips smooth"),
+		apply = SERVER and function(ent, level, duration, attacker)
+			if canPlayShockSound then
+				canPlayShockSound = false
+				ent:EmitSound("ambient/energy/weld1.wav", 75, 100, 1, CHAN_WEAPON)
+			end
+
+			local effdata = EffectData()
+			effdata:SetOrigin(ent:GetPos())
+			effdata:SetNormal(vector_up)
+			effdata:SetAngles(angle_zero)
+			util.Effect("ManhackSparks", effdata)
+		end
 	},
 	bleed = {
 		name = "Bleeding",
 		typ = -1,
-		img = Material("insane_stats/status_effects/droplets.png", "mips smooth")
+		img = Material("insane_stats/status_effects/droplets.png", "mips smooth"),
+		apply = SERVER and function(ent, level, duration, attacker)
+			if canPlayBleedSound then
+				canPlayBleedSound = false
+				ent:EmitSound(string.format("npc/manhack/grind_flesh%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+			end
+			local effdata = EffectData()
+			effdata:SetOrigin(ent:GetPos())
+			effdata:SetEntity(ent)
+			effdata:SetStart(attacker:GetPos())
+			effdata:SetHitBox(0)
+			effdata:SetFlags(3)
+			effdata:SetColor(0)
+			effdata:SetScale(10)
+			effdata:SetMagnitude(1)
+			util.Effect("bloodspray", effdata)
+		end
 	},
 	hemotoxin = {
 		name = "Hemotoxicated",
 		typ = -1,
-		img = Material("insane_stats/status_effects/spotted-wound.png", "mips smooth")
+		img = Material("insane_stats/status_effects/spotted-wound.png", "mips smooth"),
+		apply = SERVER and function(ent, level, duration, attacker)
+			if canPlayPoisonSound then
+				canPlayPoisonSound = false
+				ent:EmitSound(string.format("weapons/bugbait/bugbait_squeeze%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+			end
+			if canPlayBleedSound then
+				canPlayBleedSound = false
+				ent:EmitSound(string.format("npc/manhack/grind_flesh%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+			end
+			local effdata = EffectData()
+			effdata:SetOrigin(ent:GetPos())
+			effdata:SetEntity(ent)
+			effdata:SetScale(1)
+			effdata:SetMagnitude(1)
+			effdata:SetRadius(16)
+			effdata:SetNormal(vector_up)
+			util.Effect("StriderBlood", effdata)
+			
+			effdata:SetStart(attacker:GetPos())
+			effdata:SetHitBox(0)
+			effdata:SetFlags(3)
+			effdata:SetColor(0)
+			effdata:SetScale(10)
+			util.Effect("bloodspray", effdata)
+		end
 	},
 	frostfire = {
 		name = "Frostfire",
 		typ = -1,
-		img = Material("insane_stats/status_effects/frostfire.png", "mips smooth")
+		img = Material("insane_stats/status_effects/frostfire.png", "mips smooth"),
+		apply = SERVER and function(ent, level, duration, attacker)
+			ent:Ignite(duration)
+			if canPlayFreezeSound then
+				canPlayFreezeSound = false
+				ent:EmitSound(string.format("physics/glass/glass_sheet_break%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+			end
+			
+			local effdata = EffectData()
+			effdata:SetOrigin(ent:GetPos())
+			effdata:SetScale(1)
+			effdata:SetMagnitude(1)
+			util.Effect("GlassImpact", effdata)
+			
+			if ent:IsNPC()
+			and ent:InsaneStats_GetStatusEffectLevel("stun_immune") <= 0
+			and ent:InsaneStats_GetStatusEffectLevel("stunned") <= 0
+			and ent:InsaneStats_GetHealth() > 0 then
+				ent:InsaneStats_ApplyStatusEffect("stunned", 1, 2)
+				ent:SetSchedule(SCHED_NPC_FREEZE)
+			end
+		end
 	},
 	electroblast = {
 		name = "Electroblasted",
 		typ = -1,
-		img = Material("insane_stats/status_effects/sonic-lightning.png", "mips smooth")
+		img = Material("insane_stats/status_effects/sonic-lightning.png", "mips smooth"),
+		apply = SERVER and function(ent, level, duration, attacker)
+			if canPlayShockSound then
+				canPlayShockSound = false
+				ent:EmitSound("ambient/energy/weld1.wav", 75, 100, 1, CHAN_WEAPON)
+			end
+
+			local effdata = EffectData()
+			effdata:SetOrigin(ent:GetPos())
+			effdata:SetNormal(vector_up)
+			effdata:SetAngles(angle_zero)
+			util.Effect("ManhackSparks", effdata)
+		end
 	},
 	cosmicurse = {
 		name = "Cosmic Annihilation",
 		typ = -1,
-		img = Material("insane_stats/status_effects/black-hole-bolas.png", "mips smooth")
+		img = Material("insane_stats/status_effects/black-hole-bolas.png", "mips smooth"),
+		apply = SERVER and function(ent, level, duration, attacker)
+			ent:Ignite(duration)
+			if canPlayPoisonSound then
+				canPlayPoisonSound = false
+				ent:EmitSound(string.format("weapons/bugbait/bugbait_squeeze%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+			end
+			if canPlayFreezeSound then
+				canPlayFreezeSound = false
+				ent:EmitSound(string.format("physics/glass/glass_sheet_break%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+			end
+			if canPlayBleedSound then
+				canPlayBleedSound = false
+				ent:EmitSound(string.format("npc/manhack/grind_flesh%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+			end
+			if canPlayShockSound then
+				canPlayShockSound = false
+				ent:EmitSound("ambient/energy/weld1.wav", 75, 100, 1, CHAN_WEAPON)
+			end
+			
+			local effdata = EffectData()
+			effdata:SetOrigin(ent:GetPos())
+			effdata:SetAngles(angle_zero)
+			effdata:SetEntity(ent)
+			effdata:SetScale(1)
+			effdata:SetMagnitude(1)
+			effdata:SetRadius(16)
+			effdata:SetNormal(vector_up)
+			util.Effect("StriderBlood", effdata)
+			util.Effect("GlassImpact", effdata)
+			util.Effect("ManhackSparks", effdata)
+			
+			effdata:SetStart(attacker:GetPos())
+			effdata:SetHitBox(0)
+			effdata:SetFlags(3)
+			effdata:SetColor(0)
+			effdata:SetScale(10)
+			effdata:SetMagnitude(1)
+			util.Effect("bloodspray", effdata)
+			
+			if ent:IsNPC()
+			and ent:InsaneStats_GetStatusEffectLevel("stun_immune") <= 0
+			and ent:InsaneStats_GetStatusEffectLevel("stunned") <= 0
+			and ent:Health() > 0 then
+				ent:InsaneStats_ApplyStatusEffect("stunned", 1, 2)
+				ent:SetSchedule(SCHED_NPC_FREEZE)
+			end
+		end
 	},
 	doom = {
 		name = "Doomed",
@@ -2463,10 +2660,10 @@ local statusEffects = {
 		typ = 1,
 		img = Material("insane_stats/status_effects/crystal-shine.png", "mips smooth")
 	},
-	gamespeed_up = {
-		name = "Game Speed Up",
+	air_jumped = {
+		name = "Extra Jump Used",
 		typ = -1,
-		img = Material("insane_stats/status_effects/clockwork.png", "mips smooth")
+		img = Material("insane_stats/status_effects/fluffy-trefoil.png", "mips smooth")
 	},
 	
 	starlight = {
@@ -2474,8 +2671,10 @@ local statusEffects = {
 		typ = 0,
 		img = Material("insane_stats/status_effects/sundial.png", "mips smooth"),
 		expiry = SERVER and function(ent, level, attacker)
-			if IsValid(ent.insaneStats_Starlight) then
-				ent.insaneStats_Starlight:Remove()
+			for i,v in ipairs(ent:GetChildren()) do
+				if v.insaneStats_IsStarlight then
+					SafeRemoveEntityDelayed(v, 1)
+				end
 			end
 		end
 	},
@@ -2513,6 +2712,19 @@ local statusEffects = {
 		typ = -1,
 		img = Material("insane_stats/status_effects/sword-in-stone.png", "mips smooth")
 	},
+	alt_defence_up = {
+		name = "Respite Defence Up",
+		typ = 2,
+		img = Material("insane_stats/status_effects/checked-shield.png", "mips smooth"),
+		expiry = SERVER and function(ent, level, attacker)
+			ent:InsaneStats_ApplyStatusEffect("alt_defence_cooldown", 1, 60)
+		end
+	},
+	alt_defence_cooldown = {
+		name = "Respite Cooldown",
+		typ = -1,
+		img = Material("insane_stats/status_effects/zebra-shield.png", "mips smooth")
+	},
 	alt_firerate_up = {
 		name = "Haste Fire Rate Up",
 		typ = 2,
@@ -2539,7 +2751,7 @@ local statusEffects = {
 		typ = -1,
 		img = Material("insane_stats/status_effects/life-support.png", "mips smooth")
 	},
-	--[[alt_speed_up = {
+	alt_speed_up = {
 		name = "Agility Speed Up",
 		typ = 2,
 		img = Material("insane_stats/status_effects/sprint.png", "mips smooth"),
@@ -2551,7 +2763,17 @@ local statusEffects = {
 		name = "Agility Cooldown",
 		typ = -1,
 		img = Material("insane_stats/status_effects/barefoot.png", "mips smooth")
-	},]]
+	},
+	ctrl_gamespeed_up = {
+		name = "Fleeting Game Speed Up",
+		typ = -1,
+		img = Material("insane_stats/status_effects/clockwork.png", "mips smooth")
+	},
+	ctrl_damage_up = {
+		name = "Fleeting Damage Up",
+		typ = 1,
+		img = Material("insane_stats/status_effects/pointy-sword.png", "mips smooth")
+	},
 	stack_damage_up = {
 		name = "Stacking Damage Up",
 		typ = 2,
@@ -2697,14 +2919,14 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 		local healthFraction = 1-math.Clamp(ent:InsaneStats_GetHealth() / ent:InsaneStats_GetMaxHealth(), 0, 1)
 		local speedMul = ent:InsaneStats_GetAttributeValue("speed")
 		
-		if combatFraction <= 0 then
+		--[[if combatFraction <= 0 then
 			speedMul = speedMul * ent:InsaneStats_GetAttributeValue("noncombat_speed")
-		end
+		end]]
 		
 		--speedMul = speedMul * (1 + ent:InsaneStats_GetStatusEffectLevel("stack_speed_up") / 100)
 	
 		speedMul = speedMul * (1+ent:InsaneStats_GetStatusEffectLevel("speed_up")/100)
-		--speedMul = speedMul * (1+ent:InsaneStats_GetStatusEffectLevel("alt_speed_up")/100)
+		speedMul = speedMul * (1+ent:InsaneStats_GetStatusEffectLevel("alt_speed_up")/100)
 		speedMul = speedMul * (1-ent:InsaneStats_GetStatusEffectLevel("speed_down")/100)
 		
 		if ent:InsaneStats_GetStatusEffectLevel("freeze") > 0
@@ -2715,7 +2937,7 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 		
 		data.speed = data.speed * speedMul
 		data.sprintSpeed = data.sprintSpeed * ent:InsaneStats_GetAttributeValue("sprint_speed")
-		data.crouchedSpeed = data.crouchedSpeed * ent:InsaneStats_GetAttributeValue("crouch_speed")
+		--data.crouchedSpeed = data.crouchedSpeed * ent:InsaneStats_GetAttributeValue("crouch_speed")
 	end
 end)
 
@@ -2744,7 +2966,7 @@ end)
 hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd)
 	if InsaneStats:GetConVarValue("wpass2_enabled") then
 		if movedata:KeyPressed(IN_WALK) then
-			if (ply.insaneStats_LastAltPress or 0) + 1 > CurTime() then
+			if (ply.insaneStats_LastAltPress or 0) + 1 > CurTime() and (ply.insaneStats_LastAltPress or 0) < CurTime() then
 				ply.insaneStats_LastAltPress = 0
 				
 				local duration = ply:InsaneStats_GetAttributeValue("alt_invisible") - 1
@@ -2762,6 +2984,20 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 					ply:InsaneStats_ApplyStatusEffect("alt_damage_up", stacks, 10)
 				end
 				
+				stacks = (ply:InsaneStats_GetAttributeValue("alt_speed") - 1) * 100
+				if ply:InsaneStats_GetStatusEffectLevel("alt_speed_cooldown") <= 0
+				and ply:InsaneStats_GetStatusEffectLevel("alt_speed_up") <= 0
+				and stacks ~= 0 then
+					ply:InsaneStats_ApplyStatusEffect("alt_speed_up", stacks, 10)
+				end
+				
+				stacks = 100 / ply:InsaneStats_GetAttributeValue("alt_damagetaken") - 100
+				if ply:InsaneStats_GetStatusEffectLevel("alt_defence_cooldown") <= 0
+				and ply:InsaneStats_GetStatusEffectLevel("alt_defence_up") <= 0
+				and stacks ~= 0 then
+					ply:InsaneStats_ApplyStatusEffect("alt_defence_up", stacks, 10)
+				end
+				
 				stacks = (ply:InsaneStats_GetAttributeValue("alt_firerate") - 1) * 100
 				if ply:InsaneStats_GetStatusEffectLevel("alt_firerate_cooldown") <= 0
 				and ply:InsaneStats_GetStatusEffectLevel("alt_firerate_up") <= 0
@@ -2769,28 +3005,21 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 					ply:InsaneStats_ApplyStatusEffect("alt_firerate_up", stacks, 10)
 				end
 				
-				duration = ply:InsaneStats_GetAttributeValue("alt_dilation") - 1
+				stacks = (1 - ply:InsaneStats_GetAttributeValue("alt_gamespeed")) * 100
 				if ply:InsaneStats_GetStatusEffectLevel("alt_gamespeed_cooldown") <= 0
 				and ply:InsaneStats_GetStatusEffectLevel("alt_gamespeed_down") <= 0
-				and duration ~= 0 then
-					ply:InsaneStats_ApplyStatusEffect("alt_gamespeed_down", 50, duration)
-				end
-				
-				--[[stacks = (ply:InsaneStats_GetAttributeValue("alt_speed") - 1) * 100
-				if ply:InsaneStats_GetStatusEffectLevel("alt_speed_cooldown") <= 0
-				and ply:InsaneStats_GetStatusEffectLevel("alt_speed_up") <= 0
 				and stacks ~= 0 then
-					ply:InsaneStats_ApplyStatusEffect("alt_speed_up", stacks, 10)
-				end]]
+					ply:InsaneStats_ApplyStatusEffect("alt_gamespeed_down", stacks, 10)
+				end
 			else
 				ply.insaneStats_LastAltPress = CurTime()
 			end
 		end
 		if ply:OnGround() then
-			ply.insaneStats_Jumps = ply:InsaneStats_GetAttributeValue("jumps") - 1
+			ply:InsaneStats_ClearStatusEffect("air_jumped")
 		elseif movedata:KeyPressed(IN_JUMP) then
-			if ply.insaneStats_Jumps > 0 then
-				ply.insaneStats_Jumps = ply.insaneStats_Jumps - 1
+			if ply:InsaneStats_GetStatusEffectLevel("air_jumped") + 1 < ply:InsaneStats_GetAttributeValue("jumps") then
+				ply:InsaneStats_ApplyStatusEffect("air_jumped", 1, math.huge, {amplify = true})
 
 				-- vertical
 				local currentVel = movedata:GetVelocity()
@@ -2839,3 +3068,12 @@ hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data
 		return true
 	end
 end)
+
+if SERVER then
+	hook.Add("Think", "InsaneStatsSharedWPASS2", function()
+		canPlayPoisonSound = true
+		canPlayFreezeSound = true
+		canPlayBleedSound = true
+		canPlayShockSound = true
+	end)
+end

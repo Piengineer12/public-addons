@@ -1,5 +1,15 @@
 InsaneStats:SetDefaultConVarCategory("Weapon Prefixes and Suffixes System 2")
 
+-- clients are allowed to choose the auto-pickup mode
+InsaneStats:RegisterClientConVar("wpass2_autopickup_override", "insanestats_wpass2_autopickup_override", "-1", {
+	display = "Auto Pickup Mode Override", desc = "If 0 or above, overrides insanestats_wpass2_autopickup for yourself.",
+	type = InsaneStats.INT, min = -1, max = 6, userinfo = true
+})
+InsaneStats:RegisterClientConVar("wpass2_autopickup_battery_override", "insanestats_wpass2_autopickup_battery_override", "-1", {
+	display = "Auto Battery Pickup Mode Override", desc = "If 0 or above, overrides insanestats_wpass2_autopickup_battery for yourself.",
+	type = InsaneStats.INT, min = -1, max = 6, userinfo = true
+})
+
 InsaneStats:RegisterClientConVar("hud_wpass2_hold", "insanestats_hud_wpass2_hold", "10", {
 	display = "Weapon Panel Hold Time", desc = "Amount of time to display weapon information.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
@@ -14,6 +24,10 @@ InsaneStats:RegisterClientConVar("hud_wpass2_height", "insanestats_hud_wpass2_he
 })
 InsaneStats:RegisterClientConVar("hud_wpass2_lootbeams", "insanestats_hud_wpass2_lootbeams", "1", {
 	display = "Loot Beams", desc = "Shows loot beams for weapons and armor batteries that have modifiers.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterClientConVar("hud_wpass2_lootbeams_extra", "insanestats_hud_wpass2_lootbeams_extra", "1", {
+	display = "Extra Loot Beams", desc = "Shows loot beams for health kits, health vials and ammo.",
 	type = InsaneStats.BOOL
 })
 
@@ -34,16 +48,6 @@ InsaneStats:RegisterClientConVar("hud_wpass2_hovered_y", "insanestats_hud_wpass2
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
 
--- clients are allowed to choose the auto-pickup mode
-InsaneStats:RegisterClientConVar("wpass2_autopickup_override", "insanestats_wpass2_autopickup_override", "-1", {
-	display = "Auto Pickup Mode Override", desc = "If 0 or above, overrides insanestats_wpass2_autopickup for yourself.",
-	type = InsaneStats.INT, min = -1, max = 6, userinfo = true
-})
-InsaneStats:RegisterClientConVar("wpass2_autopickup_battery_override", "insanestats_wpass2_autopickup_battery_override", "-1", {
-	display = "Auto Battery Pickup Mode Override", desc = "If 0 or above, overrides insanestats_wpass2_autopickup_battery for yourself.",
-	type = InsaneStats.INT, min = -1, max = 6, userinfo = true
-})
-
 InsaneStats:RegisterClientConVar("hud_statuseffects_x", "insanestats_hud_statuseffects_x", "0.01", {
 	display = "Status Effects X", desc = "Horizontal position of status effects.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
@@ -59,6 +63,27 @@ concommand.Add("insanestats_wpass2_swap", function()
 	net.SendToServer()
 end, nil,
 "Swaps your current weapon / armor battery with whatever you're hovering over.")
+
+--[[hook.Run("CCVCCMRun", "InsaneStatsWPASS", function()
+	CCVCCM:SetAddon("insane_stats", "Insane Stats")
+	CCVCCM:PushCategory("hud", "Client")
+	CCVCCM:PushCategory("wpass2", "WPASS2")
+	CCVCCM:AddConVar("autopickup_override", {
+		realm = "client",
+		name = "Auto Pickup Mode Override",
+		help = "If 0 or above, overrides insanestats_wpass2_autopickup for yourself.",
+		type = "int", default = -1,
+		min = -1, max = 6,
+		userInfo = true
+	})
+	CCVCCM:AddConVar("hold", {
+		realm = "client",
+		name = "Weapon Panel Hold Time",
+		help = "Amount of time to display weapon information.",
+		type = "float", default = 10,
+		min = 0, max = 100
+	})
+end)]]
 
 local rarityNames = {
 	"Junk",
@@ -151,7 +176,7 @@ local function CreateName(wep)
 	end
 	
 	local isWep = wep:IsWeapon()
-	local name = language.GetPhrase(wep.PrintName ~= "" and wep.PrintName or isWep and wep:GetClass() or "item_battery")
+	local name = isWep and InsaneStats:GetWeaponName(wep) or language.GetPhrase("item_battery")
 	local lastSuffix = #modifiersAscending
 	if lastSuffix % 2 == 0 then lastSuffix = lastSuffix - 1 end
 	
@@ -242,7 +267,8 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 	extra = extra or {}
 	
 	surface.SetAlphaMultiplier(alphaMod)
-	local titleText = (extra.dropped and "Hovered " or "Current ")..language.GetPhrase(wep.PrintName ~= "" and wep.PrintName or wep:IsWeapon() and wep:GetClass() or "item_battery")..":"
+	local name = wep:IsWeapon() and InsaneStats:GetWeaponName(wep) or language.GetPhrase("item_battery")
+	local titleText = (extra.dropped and "Hovered " or "Current ")..name..":"
 	textOffsetX, textOffsetY = draw.SimpleTextOutlined(titleText, "InsaneStats.Medium", panelX+outlineThickness, panelY+outlineThickness, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, outlineThickness, color_black)
 	panelY = panelY + textOffsetY
 	
@@ -374,7 +400,7 @@ hook.Add("InsaneStatsModifiersChanging", "InsaneStatsWPASS", function(ent, oldMo
 			end
 			
 			if baseText then
-				local entityName = language.GetPhrase(ent.PrintName ~= "" and ent.PrintName or ent:IsPlayer() and "item_battery" or ent:GetClass())
+				local entityName = ent:IsWeapon() and InsaneStats:GetWeaponName(ent) or language.GetPhrase("item_battery")
 				local modifierName = modifiers[k] and (modifiers[k].suffix or modifiers[k].prefix) or k
 				--notification.AddLegacy(string.format(baseText, entityName, modifierName), NOTIFY_GENERIC, 5)
 				chat.AddText(string.format(baseText, entityName, modifierName))
@@ -560,6 +586,26 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 	end
 end)
 
+local healthClasses = {
+	item_healthkit = true,
+	item_healthvial = true,
+	item_grubnugget = true
+}
+local ammoClasses = {
+	item_ammo_357 = true,
+	item_ammo_357_large = true,
+	item_ammo_ar2 = true,
+	item_ammo_ar2_large = true,
+	item_ammo_ar2_altfire = true,
+	item_ammo_crossbow = true,
+	item_ammo_pistol = true,
+	item_ammo_pistol_large = true,
+	item_ammo_smg1 = true,
+	item_ammo_smg1_large = true,
+	item_ammo_smg1_grenade = true,
+	item_box_buckshot = true,
+	item_rpg_round = true,
+}
 timer.Create("InsaneStatsWPASS", 1, 0, function()
 	if InsaneStats:GetConVarValue("hud_wpass2_lootbeams") then
 		for k,v in pairs(ents.GetAll()) do
@@ -575,6 +621,10 @@ timer.Create("InsaneStatsWPASS", 1, 0, function()
 				else
 					v:InsaneStats_MarkForUpdate()
 				end
+			elseif healthClasses[v:GetClass()] or ammoClasses[v:GetClass()] then
+				local effData = EffectData()
+				effData:SetEntity(v)
+				util.Effect("insane_stats_tier", effData)
 			end
 		end
 	end

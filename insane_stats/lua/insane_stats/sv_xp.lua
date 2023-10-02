@@ -6,12 +6,12 @@ concommand.Add("insanestats_xp_other_level_maps_show", function(ply, cmd, args, 
 		PrintTable(mapOrder)
 		print("You are on map #"..mapNumber..".")
 	end
-end, nil, "Shows recorded maps.")
+end, nil, "Shows all maps that are currently factored into level scaling.")
 concommand.Add("insanestats_xp_other_level_maps_reset", function(ply, cmd, args, argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
 		mapOrder = {}
 	end
-end, nil, "Resets recorded maps.")
+end, nil, "Clears the recorded maps list.")
 concommand.Add("insanestats_xp_other_level_maps_remove", function(ply, cmd, args, argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
 		-- use a search pattern
@@ -43,7 +43,9 @@ concommand.Add("insanestats_xp_other_level_maps_remove", function(ply, cmd, args
 			InsaneStats:Log("Could not find map "..argStr..".")
 		end
 	end
-end, nil, "Removes a map from the map record list. If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. Note that a map restart is required for the map number to be updated.")
+end, nil, "Removes maps from the recorded maps list. * wildcards are allowed. \z
+If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. \z
+Note that a map restart is required for the map number to be updated.")
 
 concommand.Add("insanestats_xp_player_level_set", function(ply, cmd, args, argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
@@ -356,7 +358,10 @@ hook.Add("InsaneStatsEntityKilled", "InsaneStatsXP", function(victim, attacker, 
 	end
 end)
 
-function InsaneStats:DetermineEntitySpawnedXP(pos)
+function InsaneStats:DetermineEntitySpawnedXP(ent)
+	local owner = ent:GetOwner()
+	if IsValid(owner) and owner:InsaneStats_GetXP() >= 0 then return owner:InsaneStats_GetXP() end
+
 	-- get base level
 	local level = self:GetConVarValue("xp_other_level_start")
 	local allPlayers = player.GetAll()
@@ -370,7 +375,7 @@ function InsaneStats:DetermineEntitySpawnedXP(pos)
 	end
 	
 	local typ = self:GetConVarValue("xp_other_level_factor")
-	if typ >= 1 and typ <= 4 then
+	if typ > 0 then
 		if hasPlayer then
 			if typ == 1 then
 				-- get average level
@@ -417,11 +422,17 @@ function InsaneStats:DetermineEntitySpawnedXP(pos)
 			end
 		else return
 		end
-	elseif typ == 5 then
-		local minimum = level + self:GetConVarValue("xp_other_level_maps_minimum") * mapNumber
-		local current = self:ScaleValueToLevel(level, self:GetConVarValue("xp_other_level_maps")/100, mapNumber, "xp_other_level_maps_mode", true)
-		level = math.max(minimum, current)
 	end
+
+	local minimum = level + self:GetConVarValue("xp_other_level_maps_minimum") * mapNumber
+	local current = self:ScaleValueToLevel(level, self:GetConVarValue("xp_other_level_maps")/100, mapNumber, "xp_other_level_maps_mode", true)
+	level = math.max(minimum, current)
+
+	local curMinutes = CurTime() / 60
+	minimum = level + self:GetConVarValue("xp_other_level_time_minimum") * curMinutes
+	current = self:ScaleValueToLevel(level, self:GetConVarValue("xp_other_level_time")/100, curMinutes, "xp_other_level_time_mode", true)
+	level = math.max(minimum, current)
+	--print(pos, "has time scaled level", math.max(minimum, current))
 	
 	local playerScalingMode = self:GetConVarValueDefaulted("xp_other_level_players_mode", "xp_mode") > 0
 	if playerScalingMode then
@@ -530,7 +541,7 @@ local toUpdateLevelEntities = {}
 --local loadedData = {}
 hook.Add("InsaneStatsEntityCreated", "InsaneStatsXP", function(ent)
 	if not ent.insaneStats_XP then
-		local shouldXP = InsaneStats:DetermineEntitySpawnedXP(ent:GetPos())
+		local shouldXP = InsaneStats:DetermineEntitySpawnedXP(ent)
 		--print(ent, "should spawn with ", shouldXP, " xp")
 		if shouldXP then
 			ent:InsaneStats_SetXP(shouldXP)
@@ -574,7 +585,7 @@ timer.Create("InsaneStatsXP", 0.5, 0, function()
 				if v.insaneStats_XP then
 					toUpdateLevelEntities[k] = nil
 				else
-					local shouldXP = InsaneStats:DetermineEntitySpawnedXP(ent)
+					local shouldXP = InsaneStats:DetermineEntitySpawnedXP(v)
 					--print(shouldXP)
 					if shouldXP then
 						v:InsaneStats_SetXP(shouldXP)

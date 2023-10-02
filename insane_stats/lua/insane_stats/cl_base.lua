@@ -20,7 +20,9 @@ surface.CreateFont("InsaneStats.Big", {
 })
 
 local colors = {
+	black_translucent = Color(0, 0, 0, 191),
 	gray = Color(127, 127, 127),
+	white_translucent = Color(255, 255, 255, 191),
 	dark_red = Color(127, 0, 0),
 	red = Color(255, 0, 0),
 	semilight_red = Color(255, 63, 63),
@@ -29,9 +31,10 @@ local colors = {
 	yellow = Color(255, 255, 0),
 	light_yellow = Color(255, 255, 127),
 	lime = Color(127, 255, 0),
+	dark_green = Color(0, 127, 0),
 	green = Color(0, 255, 0),
 	light_green = Color(127, 255, 127),
-	marine = Color(0, 255, 127),
+	mint = Color(0, 255, 127),
 	aqua = Color(0, 255, 255),
 	light_aqua = Color(127, 255, 255),
 	sky = Color(0, 127, 255),
@@ -53,6 +56,10 @@ local colors = {
 	
 	return fontName
 end]]
+
+function InsaneStats:GetWeaponName(wep)
+	return language.GetPhrase(wep.PrintName ~= "" and wep.PrintName or wep:GetClass())
+end
 
 function InsaneStats:GetColor(color)
 	return colors[color]

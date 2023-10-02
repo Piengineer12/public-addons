@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 ]]
 
 InsaneStats = {
-	VERSION = "1.2.1",
-	VERSION_DATE = "2023-09-10"
+	VERSION = "1.3.0",
+	VERSION_DATE = "2023-10-02"
 }
 
 function InsaneStats:Log(msg)
@@ -20,7 +20,12 @@ function InsaneStats:Log(msg)
 	)
 end
 
-InsaneStats:Log(string.format("Loading Insane Stats version %s (%s) by Piengineer12", InsaneStats.VERSION, InsaneStats.VERSION_DATE))
+InsaneStats:Log(
+	string.format(
+		"Loading Insane Stats version %s (%s) by Piengineer12",
+		InsaneStats.VERSION, InsaneStats.VERSION_DATE
+	)
+)
 
 local clientFiles = {
 	"cl_base",
@@ -37,6 +42,7 @@ local sharedFiles = {
 	"sh_base",
 	"sh_coin",
 	"sh_infhealth",
+	"sh_options",
 	"sh_soundfixes",
 	"sh_wpass2",
 	"sh_wpass2_basemods",
