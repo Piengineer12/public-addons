@@ -115,7 +115,7 @@ Unlike the above methods, these should only be called AFTER the CCVCCMRun hook i
 ```lua
 -- returns a CCVCCMPointer instance
 -- a CCVCCMPointer already gets returned from the CCVCCM:Add* methods above
--- note that the CCVCCMPointer constructor is only accessible to CCVCCM
+-- note that the CCVCCMPointer constructor itself is private
 CCVCCM:Pointer("addon_categories_name")
 
 -- returns the current var value
@@ -140,6 +140,6 @@ CCVCCM:SetVarValue("addon_categories_name", "value")
 -- reverts the value of a registered var
 CCVCCM:RevertVarValue("addon_categories_name")
 
--- reverts all ConVars and AddonVars of a specific addon (and category)
+-- reverts all ConVars and AddonVars of a specific addon (and optionally category)
 CCVCCM:RevertByAddonAndCategory("addon", "[category1]", "[category2]")
 ```
