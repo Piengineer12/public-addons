@@ -86,7 +86,8 @@ CCVCCM.ExtractPayloadFromNetMessage = (dataTypes) =>
 CCVCCM.GetNetSingleAddonType = (fullName) =>
 	registeredData = CCVCCM\_GetRegisteredData fullName
 	if registeredData
-		switch registeredData.data.typeInfo.type
+		typeInfo = registeredData.data.typeInfo or {}
+		switch typeInfo.type
 			when 'bool'
 				'b'
 			-- when 'keybind'
@@ -96,7 +97,7 @@ CCVCCM.GetNetSingleAddonType = (fullName) =>
 			when 'keybind', 'string'
 				's'
 			else
-				't'
+				if typeInfo[1] then 't' else ''
 
 CCVCCM.SQL = (query, params = {}) =>
 	params = [sql.SQLStr(param) for param in *params]
@@ -201,6 +202,7 @@ hook.Add 'CCVCCMRun', 'CCVCCM', ->
 	cvars.AddChangeCallback 'ccvccm_autosave_interval_server', ((conVarName, oldValue, newValue) ->
 		timer.Adjust 'ccvccm_autosave', tonumber(newValue)
 	), 'ccvccm_autosave'
+	CCVCCM\PushCategory 'test', 'API Tests'
 	CCVCCM\AddAddonVar 'addonvar', {
 		realm: 'client'
 		name: 'Test AddonVar'
@@ -236,9 +238,17 @@ hook.Add 'CCVCCMRun', 'CCVCCM', ->
 		userInfo: true
 		notify: true
 		func: (value, fullName, ply) ->
-			print "#{fullName} on client:" if CLIENT
-			print "#{fullName} from #{ply} on server:" if SERVER
-			PrintTable value
+			if CCVCCM\ShouldLog!
+				print "#{fullName} on client:" if CLIENT
+				print "#{fullName} from #{ply} on server:" if SERVER
+				PrintTable value
+	}
+	CCVCCM\AddAddonCommand 'addoncommand', {
+		realm: 'server'
+		name: 'Test AddonCommand'
+		help: 'This is a test AddonCommand to demonstrate the capabilities of CCVCCM\'s API.'
+		func: (ply, value, fullName) ->
+			print "#{ply} has invoked ccvccm_addoncommand!" if CCVCCM\ShouldLog!
 	}
 	return -- otherwise this will stop other hooks
 
@@ -748,9 +758,9 @@ CCVCCM.RunCommand = (fullName, ply, value) =>
 					RunConsoleCommand fullName, unpack value
 				else
 					if dataType == 'bool'
-						RunConsoleCommand fullName, if value then '1' or '0'
+						RunConsoleCommand fullName, if value then '1' else '0'
 					else
-						RunConsoleCommand fullName, tostring value
+						RunConsoleCommand fullName, if value then tostring value else ''
 				
 			when 'addoncommand'
 				func ply, value, fullName

@@ -33,14 +33,16 @@ super keybinds
 	1+2,!(1+2) 1+3 or 1+2 -2+!(1+2) 1+3
 ]]
 
--- -- if you want to use Moonloader, make sure to also remove all .lua files in lua/ccvccm!
--- require 'moonloader'
--- moonloader.PreCacheDir 'ccvccm'
+if false then
+	-- if you want to use Moonloader, make sure to also remove all .lua files in lua/ccvccm!
+	require 'moonloader'
+	moonloader.PreCacheDir 'ccvccm'
+end
 
 CCVCCM = {
-	_VERSION = '0.3.1',
-	_VERSIONDATE = '2023-10-02',
-	_VERSIONNUMBER = 301
+	_VERSION = '1.0.0',
+	_VERSIONNUMBER = 10000,
+	_VERSIONDATE = '2023-10-06'
 }
 
 if SERVER then

@@ -105,7 +105,8 @@ end
 CCVCCM.GetNetSingleAddonType = function(self, fullName)
   local registeredData = CCVCCM:_GetRegisteredData(fullName)
   if registeredData then
-    local _exp_0 = registeredData.data.typeInfo.type
+    local typeInfo = registeredData.data.typeInfo or { }
+    local _exp_0 = typeInfo.type
     if 'bool' == _exp_0 then
       return 'b'
     elseif 'number' == _exp_0 then
@@ -113,7 +114,11 @@ CCVCCM.GetNetSingleAddonType = function(self, fullName)
     elseif 'keybind' == _exp_0 or 'string' == _exp_0 then
       return 's'
     else
-      return 't'
+      if typeInfo[1] then
+        return 't'
+      else
+        return ''
+      end
     end
   end
 end
@@ -280,6 +285,7 @@ hook.Add('CCVCCMRun', 'CCVCCM', function()
   cvars.AddChangeCallback('ccvccm_autosave_interval_server', (function(conVarName, oldValue, newValue)
     return timer.Adjust('ccvccm_autosave', tonumber(newValue))
   end), 'ccvccm_autosave')
+  CCVCCM:PushCategory('test', 'API Tests')
   CCVCCM:AddAddonVar('addonvar', {
     realm = 'client',
     name = 'Test AddonVar',
@@ -315,13 +321,25 @@ hook.Add('CCVCCMRun', 'CCVCCM', function()
     userInfo = true,
     notify = true,
     func = function(value, fullName, ply)
-      if CLIENT then
-        print(tostring(fullName) .. " on client:")
+      if CCVCCM:ShouldLog() then
+        if CLIENT then
+          print(tostring(fullName) .. " on client:")
+        end
+        if SERVER then
+          print(tostring(fullName) .. " from " .. tostring(ply) .. " on server:")
+        end
+        return PrintTable(value)
       end
-      if SERVER then
-        print(tostring(fullName) .. " from " .. tostring(ply) .. " on server:")
+    end
+  })
+  CCVCCM:AddAddonCommand('addoncommand', {
+    realm = 'server',
+    name = 'Test AddonCommand',
+    help = 'This is a test AddonCommand to demonstrate the capabilities of CCVCCM\'s API.',
+    func = function(ply, value, fullName)
+      if CCVCCM:ShouldLog() then
+        return print(tostring(ply) .. " has invoked ccvccm_addoncommand!")
       end
-      return PrintTable(value)
     end
   })
 end)
@@ -1054,11 +1072,19 @@ CCVCCM.RunCommand = function(self, fullName, ply, value)
         if dataType == 'bool' then
           return RunConsoleCommand(fullName, (function()
             if value then
-              return '1' or '0'
+              return '1'
+            else
+              return '0'
             end
           end)())
         else
-          return RunConsoleCommand(fullName, tostring(value))
+          return RunConsoleCommand(fullName, (function()
+            if value then
+              return tostring(value)
+            else
+              return ''
+            end
+          end)())
         end
       end
     elseif 'addoncommand' == _exp_0 then

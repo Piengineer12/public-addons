@@ -1,7 +1,7 @@
 # Setting Up ConVars Using CCVCCM
 ```lua
 -- this hook will run during Initialize if CCVCCM is present
--- at this point CCVCCM will be fully initialized and you can add ConVars
+-- in this hook CCVCCM will be already fully initialized and you can add ConVars
 hook.Add("CCVCCMRun", "uniqueIdentifier", function() --[[...]] end)
 
 -- prefix for all ConVars / ConCommands that will be added by this addon

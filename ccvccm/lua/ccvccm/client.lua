@@ -1415,6 +1415,9 @@ do
       end
     end,
     TranslateTypeInfo = function(self, component, parentTable)
+      if component == nil then
+        component = { }
+      end
       local DTYPES = AddElementUI.DATA_TYPES
       local name, help, compType, choices, min, max, interval, logarithmic
       name, help, compType, choices, min, max, interval, logarithmic = component.name, component.help, component.type, component.choices, component.min, component.max, component.interval, component.logarithmic
@@ -1444,16 +1447,20 @@ do
         elseif 'string' == _exp_0 then
           dataType.dataType = DTYPES.STRING
         else
-          dataType.dataType = DTYPES.COMPLEX_LIST
-          do
-            local _accum_0 = { }
-            local _len_0 = 1
-            for _index_0 = 1, #component do
-              local v = component[_index_0]
-              _accum_0[_len_0] = self:TranslateTypeInfo(v, dataType)
-              _len_0 = _len_0 + 1
+          if component[1] then
+            dataType.dataType = DTYPES.COMPLEX_LIST
+            do
+              local _accum_0 = { }
+              local _len_0 = 1
+              for _index_0 = 1, #component do
+                local v = component[_index_0]
+                _accum_0[_len_0] = self:TranslateTypeInfo(v, dataType)
+                _len_0 = _len_0 + 1
+              end
+              dataType.types = _accum_0
             end
-            dataType.types = _accum_0
+          else
+            dataType.dataType = DTYPES.NONE
           end
         end
       end

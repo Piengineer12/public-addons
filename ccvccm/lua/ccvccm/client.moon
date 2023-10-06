@@ -1085,7 +1085,7 @@ class CAVACPanel extends SavablePanel
 					CCVCCM\RunCommand fullName, LocalPlayer!, @arguments
 			else @SendToServer!
 	
-	TranslateTypeInfo: (component, parentTable) =>
+	TranslateTypeInfo: (component = {}, parentTable) =>
 		DTYPES = AddElementUI.DATA_TYPES
 		{:name, :help, type: compType, :choices, :min, :max, :interval, :logarithmic} = component
 
@@ -1116,8 +1116,11 @@ class CAVACPanel extends SavablePanel
 				when 'string'
 					dataType.dataType = DTYPES.STRING
 				else
-					dataType.dataType = DTYPES.COMPLEX_LIST
-					dataType.types = [@TranslateTypeInfo(v, dataType) for v in *component]
+					if component[1]
+						dataType.dataType = DTYPES.COMPLEX_LIST
+						dataType.types = [@TranslateTypeInfo(v, dataType) for v in *component]
+					else
+						dataType.dataType = DTYPES.NONE
 
 		dataType
 	
