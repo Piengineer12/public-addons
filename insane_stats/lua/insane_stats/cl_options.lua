@@ -230,7 +230,7 @@ local ccvccmTypes = {
 	[InsaneStats.INT] = "int",
 	[InsaneStats.FLOAT] = "float",
 }
-hook.Add("CCVCCMRun", "InsaneStatsOptions", function()
+hook.Add("InsaneStats_CCVCCMRun", "InsaneStatsOptions", function()
 	local categoryOptionData = InsaneStats:ConstructCategoryOptionTables()
 	CCVCCM:SetAddon("Insane Stats")
 	for k,v in SortedPairs(categoryOptionData) do

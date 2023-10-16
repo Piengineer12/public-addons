@@ -166,7 +166,6 @@ local color_light_aqua = Color(127, 255, 255)
 local color_light_blue = Color(127, 127, 255)
 local color_light_magenta = Color(255, 127, 255)
 local baseHues = {120, 240, 270, 0, 30, 60, 90, 210, 180, 300}
-local iconSize = 36
 
 local function CreateName(wep)
 	local modifiers = InsaneStats:GetAllModifiers()
@@ -530,6 +529,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 				end
 			end)
 			
+			local iconSize = InsaneStats.FONT_SMALL * 3
 			local baseX = scrW * InsaneStats:GetConVarValue("hud_statuseffects_x")
 			local baseY = (scrH - #statusEffectOrder * iconSize) * InsaneStats:GetConVarValue("hud_statuseffects_y")
 			

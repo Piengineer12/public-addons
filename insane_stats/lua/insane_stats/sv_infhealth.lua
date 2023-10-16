@@ -273,7 +273,7 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 				local healthRatio = vic:InsaneStats_GetHealth() / vic:InsaneStats_GetMaxHealth()
 				if (vic:GetClass() == "npc_helicopter"
 				or vic.insaneStats_PreventLethalDamage)
-				and healthRatio > 0.2 or stunned then
+				and not vic.insaneStats_HitAtHalfHealth or stunned then
 					-- if damage exceeds health * 0.75, nerf damage received
 					-- we have to do this otherwise the helicopter might remain in a dead-not-dead state
 					local maxDamage = vic:InsaneStats_GetRawHealth() * 0.75
@@ -284,9 +284,12 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 							vic:InsaneStats_ApplyStatusEffect("invincible", 1, 0.25)
 						end
 					end
-					if healthRatio <= 0.5 and vic.insaneStats_PreventLethalDamage then
-						vic:InsaneStats_ApplyStatusEffect("invincible", 1, 10)
-						vic.insaneStats_PreventLethalDamage = nil
+					if healthRatio <= 0.5 then
+						vic.insaneStats_HitAtHalfHealth = true
+						if vic.insaneStats_PreventLethalDamage then
+							vic:InsaneStats_ApplyStatusEffect("invincible", 1, 10)
+							vic.insaneStats_PreventLethalDamage = nil
+						end
 					end
 				end
 			end

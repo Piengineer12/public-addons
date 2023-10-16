@@ -133,16 +133,27 @@ hook.Add("AcceptInput", "InsaneStats", function(ent, input, activator, caller, v
 	end
 end)
 
+function InsaneStats:PerformSave()
+	-- do not save within the first minute, as this can cause data loss
+	if CurTime() > 60 then
+		local data = self:Load()
+		hook.Run("InsaneStatsSave", data)
+		self:Save(data)
+		--[[if GetConVar("developer"):GetInt() > 0 then
+			print("Save data:")
+			PrintTable(data)
+		end]]
+	end
+end
+
 local function SaveData()
-	local data = InsaneStats:Load()
-	hook.Run("InsaneStatsSave", data)
-	InsaneStats:Save(data)
+	InsaneStats:PerformSave()
 end
 
 local saveThinkCooldown = 0
 hook.Add("Think", "InsaneStats", function()
 	if saveThinkCooldown < RealTime() then
-		SaveData()
+		InsaneStats:PerformSave()
 		saveThinkCooldown = RealTime() + 30
 	end
 

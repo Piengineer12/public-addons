@@ -66,7 +66,6 @@ local xpDisplayExpiryTimestamp = 0
 local xpFlashDisplayExpiryTimestamp = 0
 local nextEntityUpdateTimestamp = 0
 local lookEntityInfo = {}
-local iconSize = 36
 local color_gray = InsaneStats:GetColor("gray")
 local color_light_red = InsaneStats:GetColor("light_red")
 local color_light_yellow = InsaneStats:GetColor("light_yellow")
@@ -153,7 +152,6 @@ local function UpdateLookEntityInfo(ent, reset)
 			end
 		else
 			lookEntityInfo.teamColor = color_white
-			lookEntityInfo.name = language.GetPhrase(ent.PrintName ~= "" and ent.PrintName or ent.insaneStats_Class)
 			
 			if ent:IsNPC() then
 				local disposition = ent.insaneStats_Disposition
@@ -164,6 +162,13 @@ local function UpdateLookEntityInfo(ent, reset)
 					lookEntityInfo.startingHue = 120
 				end
 			end
+		end
+		local classDisplayName = language.GetPhrase(ent.PrintName ~= "" and ent.PrintName or ent.insaneStats_Class)
+		local mappingName = ent.insaneStats_Name or ""
+		if mappingName == "" then
+			lookEntityInfo.name = classDisplayName
+		else
+			lookEntityInfo.name = string.format("%s (%s)", classDisplayName, mappingName)
 		end
 	else
 		ent:InsaneStats_MarkForUpdate()
@@ -488,6 +493,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 				
 				-- status effects
 				if lookEntityInfo.statusEffects then
+					local iconSize = InsaneStats.FONT_SMALL * 3
 					local iconsPerRow = math.max(math.floor(healthBarWidth / iconSize), 5)
 					local startX = infoX
 					local startY = infoY + InsaneStats.FONT_BIG

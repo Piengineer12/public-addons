@@ -179,15 +179,6 @@ local modifiers = {
 		},
 		weight = 0.5
 	},
-	--[[chain = {
-		prefix = "Chaining",
-		modifiers = {
-			kill5s_damage = 1.1,
-			kill5s_speed = 1.1
-		},
-		weight = 0.5,
-		max = 12
-	},]]
 	murderous = {
 		prefix = "Murderous",
 		suffix = "Murder",
@@ -720,6 +711,13 @@ local modifiers = {
 		max = 10,
 		flags = InsaneStats.WPASS2_FLAGS.XP
 	},
+	glimmer = {
+		prefix = "Glimmering",
+		modifiers = {
+			armor_xp = 1.1,
+		},
+		weight = 1
+	},
 	resist = {
 		prefix = "Resisting",
 		modifiers = {
@@ -781,7 +779,7 @@ local modifiers = {
 			speed = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		max = 5
+		max = 10
 	},
 	copy = {
 		prefix = "Copycat",
@@ -820,16 +818,6 @@ local modifiers = {
 	},
 	
 	-- utility, half weight
-	--[[brisk = {
-		prefix = "Brisk",
-		suffix = "Brisking",
-		modifiers = {
-			noncombat_speed = 1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		max = 10
-	},]]
 	sprint = {
 		prefix = "Sprinting",
 		modifiers = {
@@ -839,16 +827,6 @@ local modifiers = {
 		weight = 0.5,
 		max = 5
 	},
-	-- fleeting = {
-	-- 	prefix = "Fleeting",
-	-- 	modifiers = {
-	-- 		crouch_speed = 1.1
-	-- 		--kill5s_speed = 1.1
-	-- 	},
-	-- 	flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-	-- 	weight = 0.5,
-	-- 	max = 5
-	-- },
 	buckle = {
 		prefix = "Buckling",
 		modifiers = {
@@ -905,7 +883,7 @@ local modifiers = {
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
-		max = 2
+		max = 3
 	},
 	acknowledge = {
 		prefix = "Acknowledging",
@@ -1161,7 +1139,7 @@ local modifiers = {
 		prefix = "Fleeting",
 		modifiers = {
 			ctrl_gamespeed = 1.1,
-			ctrl_damage = 1.1
+			ctrl_defence = 1.1
 		},
 		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SP_ONLY),
 		weight = 0.5,
@@ -1934,10 +1912,10 @@ local attributes = {
 		display = "%s coins and XP gain on crit kills",
 		mul = 2
 	},
-	--[[simul_xp = {
-		display = "%s XP gain per multikilled entity",
-		mul = 100
-	},]]
+	armor_xp = {
+		display = "%s XP gain, scaled by armor %%",
+		mul = 2
+	},
 	explode = {
 		display = "%s explosion chance after 0.5s",
 	},
@@ -2172,25 +2150,25 @@ local attributes = {
 	},
 	alt_damage = {
 		display = "%s damage dealt after slow walk double tap, 60s cooldown",
-		mul = 7
+		mul = 8
 	},
 	alt_firerate = {
 		display = "%s fire rate after slow walk double tap, 60s cooldown",
-		mul = 7
+		mul = 8
 	},
 	alt_speed = {
 		display = "%s movement speed after slow walk double tap, 60s cooldown",
-		mul = 7
+		mul = 8
 	},
 	alt_damagetaken = {
 		display = "%s damage taken after slow walk double tap, 60s cooldown",
 		invert = true,
-		mul = 7
+		mul = 8
 	},
 	alt_gamespeed = {
 		display = "%s game speed after slow walk double tap, 60s cooldown",
 		invert = true,
-		mul = 7
+		mul = 8
 	},
 	--[[combat5s_dodge = {
 		display = "Up to %s dodge chance over 5s in combat",
@@ -2214,8 +2192,8 @@ local attributes = {
 		invert = true,
 		mul = 0.5
 	},
-	ctrl_damage = {
-		display = "%s damage dealt per second while crouch key held",
+	ctrl_defence = {
+		display = "%s defence per second while crouch key held",
 		mul = 0.5
 	},
 	reveal = {
@@ -2769,10 +2747,10 @@ local statusEffects = {
 		typ = -1,
 		img = Material("insane_stats/status_effects/clockwork.png", "mips smooth")
 	},
-	ctrl_damage_up = {
-		name = "Fleeting Damage Up",
+	ctrl_defence_up = {
+		name = "Fleeting Defence Up",
 		typ = 1,
-		img = Material("insane_stats/status_effects/pointy-sword.png", "mips smooth")
+		img = Material("insane_stats/status_effects/checked-shield.png", "mips smooth")
 	},
 	stack_damage_up = {
 		name = "Stacking Damage Up",
@@ -3019,7 +2997,7 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 			ply:InsaneStats_ClearStatusEffect("air_jumped")
 		elseif movedata:KeyPressed(IN_JUMP) then
 			if ply:InsaneStats_GetStatusEffectLevel("air_jumped") + 1 < ply:InsaneStats_GetAttributeValue("jumps") then
-				ply:InsaneStats_ApplyStatusEffect("air_jumped", 1, math.huge, {amplify = true})
+				ply:InsaneStats_ApplyStatusEffect("air_jumped", 1, 5, {amplify = true})
 
 				-- vertical
 				local currentVel = movedata:GetVelocity()

@@ -74,8 +74,10 @@ function ENT:Initialize()
 		if modelModified then
 			self:PhysicsInit(SOLID_VPHYSICS)
 			self:Activate()
+			self:UseTriggerBounds(true, 32 / sizeMultiplier)
 		else
 			self:PhysicsInitSphere(6 * sizeMultiplier, "gmod_bouncy")
+			self:UseTriggerBounds(true, 128)
 		end
 		
 		local physobj = self:GetPhysicsObject()
@@ -90,7 +92,6 @@ function ENT:Initialize()
 
 		self:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
 		self:SetTrigger(true)
-		self:UseTriggerBounds(true, 128)
 		self:SetMaterial("models/shiny")
 		self:AddEffects(EF_ITEM_BLINK)
 		self:SetColor(InsaneStats:GetCoinColor(self:GetValueExponent()))

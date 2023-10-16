@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 ]]
 
 InsaneStats = {
-	VERSION = "1.3.0",
-	VERSION_DATE = "2023-10-02"
+	VERSION = "1.3.1",
+	VERSION_DATE = "2023-10-16"
 }
 
 function InsaneStats:Log(msg)
@@ -43,6 +43,7 @@ local sharedFiles = {
 	"sh_coin",
 	"sh_infhealth",
 	"sh_options",
+	"sh_pointcommander",
 	"sh_soundfixes",
 	"sh_wpass2",
 	"sh_wpass2_basemods",
@@ -54,6 +55,7 @@ local serverFiles = {
 	"sv_coin",
 	"sv_infhealth",
 	"sv_net",
+	"sv_pointcommander",
 	"sv_wpass2",
 	"sv_wpass2_basemods",
 	"sv_xp"

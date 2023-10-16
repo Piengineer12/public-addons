@@ -29,7 +29,7 @@ concommand.Add("insanestats_xp_other_level_maps_remove", function(ply, cmd, args
 			end
 			v = mapOrder[i]
 		end
-		if success then return success end
+		if success then return InsaneStats:PerformSave() end
 		
 		if tonumber(argStr) then
 			local toRemove = math.min(#mapOrder, tonumber(argStr) or 0)
@@ -37,6 +37,7 @@ concommand.Add("insanestats_xp_other_level_maps_remove", function(ply, cmd, args
 				local value = table.remove(mapOrder)
 				InsaneStats:Log("Removed map "..value..".")
 			end
+			InsaneStats:PerformSave()
 		elseif argStr == "" then
 			InsaneStats:Log("Removes a map from the map record list. If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. * wildcards are allowed. Note that a map restart is required for the map number to be updated.")
 		else
@@ -627,6 +628,15 @@ hook.Add("InitPostEntity", "InsaneStatsXP", function()
 	end
 end)
 
+local function DoSetHealth(ent, health)
+	if IsValid(ent) then
+		ent:SetHealth(health)
+		
+		if ent:InsaneStats_GetMaxHealth() < health then
+			ent:SetMaxHealth(health)
+		end
+	end
+end
 hook.Add("AcceptInput", "InsaneStatsXP", function(ent, input, activator, caller, data)
 	input = input:lower()
 	data = data or ""
@@ -662,52 +672,65 @@ hook.Add("AcceptInput", "InsaneStatsXP", function(ent, input, activator, caller,
 		local healthMul = ent.insaneStats_CurrentHealthAdd or 1
 		if (tonumber(data) and tonumber(data) > 0) then
 			local newHealth = healthMul * tonumber(data)
-			ent:SetHealth(newHealth)
+			-- if health is 0, DO NOT return true, and set the new health on the next tick
+			-- otherwise func_breakables that start at 0 health will still retain their unbreakability
+			if ent:InsaneStats_GetHealth() > 0 then
+				DoSetHealth(ent, newHealth)
 			
-			if ent:InsaneStats_GetMaxHealth() < newHealth then
-				ent:SetMaxHealth(newHealth)
+				return true
+			else
+				timer.Simple(0, function()
+					DoSetHealth(ent, newHealth)
+				end)
 			end
-			
-			return true
 		end
 	elseif input == "addhealth" then
 		local healthMul = ent.insaneStats_CurrentHealthAdd or 1
 		if tonumber(data) then
-			local newHealth = ent:InsaneStats_GetHealth() + healthMul * tonumber(data)
-			ent:SetHealth(newHealth)
+			local oldHealth = ent:InsaneStats_GetHealth()
+			local newHealth = oldHealth + healthMul * tonumber(data)
+			if oldHealth > 0 then
+				DoSetHealth(ent, newHealth)
 			
-			if ent:InsaneStats_GetMaxHealth() < newHealth then
-				ent:SetMaxHealth(newHealth)
-			end
-			
-			if ent:InsaneStats_GetRawHealth() > 1 then
-				return true
+				if ent:InsaneStats_GetRawHealth() > 1 then
+					return true
+				end
+			else
+				timer.Simple(0, function()
+					DoSetHealth(ent, newHealth)
+				end)
 			end
 		end
 	elseif input == "removehealth" then
 		local healthMul = ent.insaneStats_CurrentHealthAdd or 1
 		if tonumber(data) then
-			local newHealth = ent:InsaneStats_GetHealth() - healthMul * tonumber(data)
-			ent:SetHealth(newHealth)
+			local oldHealth = ent:InsaneStats_GetHealth()
+			local newHealth = oldHealth - healthMul * tonumber(data)
+			if oldHealth > 0 then
+				DoSetHealth(ent, newHealth)
 			
-			if ent:InsaneStats_GetMaxHealth() < newHealth then
-				ent:SetMaxHealth(newHealth)
-			end
-			
-			if ent:InsaneStats_GetRawHealth() > 1 then
-				return true
+				if ent:InsaneStats_GetRawHealth() > 1 then
+					return true
+				end
+			else
+				timer.Simple(0, function()
+					DoSetHealth(ent, newHealth)
+				end)
 			end
 		end
 	elseif input == "sethealthfraction" then
-		if (tonumber(data) and tonumber(data) > 0) then
-			local newHealth = ent:InsaneStats_GetMaxHealth() * tonumber(data) / 100
-			ent:SetHealth(newHealth)
+		local dataNumber = tonumber(data) or 0
+		if dataNumber > 0 then
+			local newHealth = ent:InsaneStats_GetMaxHealth() * dataNumber / 100
+			if ent:InsaneStats_GetHealth() > 0 then
+				DoSetHealth(ent, newHealth)
 			
-			if ent:InsaneStats_GetMaxHealth() < newHealth then
-				ent:SetMaxHealth(newHealth)
+				return true
+			else
+				timer.Simple(0, function()
+					DoSetHealth(ent, newHealth)
+				end)
 			end
-			
-			return true
 		end
 	elseif input == "setplayerhealth" and ent:GetClass() == "logic_playerproxy" then
 		if (tonumber(data) and tonumber(data) > 0) then
@@ -742,13 +765,17 @@ hook.Add("EntityKeyValue", "InsaneStatsXP", function(ent, key, value)
 		
 		if key == "health" then
 			local newHealth = healthMul * value
-			ent:SetHealth(newHealth)
+			-- if health is 0, DO NOT return true, and set the new health on the next tick
+			-- otherwise func_breakables that start at 0 health will still retain their unbreakability
+			if ent:InsaneStats_GetHealth() > 0 then
+				DoSetHealth(ent, newHealth)
 			
-			if ent:InsaneStats_GetMaxHealth() < newHealth then
-				ent:SetMaxHealth(newHealth)
+				return true
+			else
+				timer.Simple(0, function()
+					DoSetHealth(ent, newHealth)
+				end)
 			end
-			
-			return true
 		elseif key == "max_health" then
 			local newHealth = healthMul * value
 			ent:SetMaxHealth(newHealth)

@@ -633,6 +633,7 @@ function ENTITY:InsaneStats_GetAttributeValue(attribute)
 				wep = ents.Create("weapon_base")
 				wep:SetKeyValue("spawnflags", 3)
 				wep:Spawn()
+				wep:SetMoveType(MOVETYPE_NONE)
 				wep:PhysicsDestroy()
 				wep:SetNoDraw(true)
 				wep.insaneStats_IsProxyWeapon = true

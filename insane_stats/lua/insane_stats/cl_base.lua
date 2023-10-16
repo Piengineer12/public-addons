@@ -1,24 +1,5 @@
 --local createdFonts = {}
 
-InsaneStats.FONT_SMALL = ScreenScale(6)
-InsaneStats.FONT_MEDIUM = ScreenScale(8)
-InsaneStats.FONT_BIG = ScreenScale(12)
-
-surface.CreateFont("InsaneStats.Small", {
-	font = "Orbitron Medium",
-	size = InsaneStats.FONT_SMALL
-})
-
-surface.CreateFont("InsaneStats.Medium", {
-	font = "Orbitron Medium",
-	size = InsaneStats.FONT_MEDIUM
-})
-
-surface.CreateFont("InsaneStats.Big", {
-	font = "Orbitron Medium",
-	size = InsaneStats.FONT_BIG
-})
-
 local colors = {
 	black_translucent = Color(0, 0, 0, 191),
 	gray = Color(127, 127, 127),
@@ -73,7 +54,9 @@ function InsaneStats:TransitionUINumber(a, b)
 	end
 end
 
-local order = {"M", "B", "T", "Q", "Qt", "Se", "Sp", "Oc", "No", "De", "Un", --[["Du", "Te", "Qtd", "Qid", "Sed", "Spd", "Ocd", "Nod", "Vig"]]}
+local order = {"M", "B", "T", "Q", "Qt", "Sx", "Sp", "Oc", "No", "Dc"--[[,
+"Un", "Du", "Te", "Qtd", "Qid", "Sed", "Spd", "Ocd", "Nod", "Vig",
+"Unv", "Duv", "Tiv", "Qtv", "Qiv", "Sev", "Spv", "Ocv", "Nov"]]}
 function InsaneStats:FormatNumber(number, data)
 	data = data or {}
 	local plusStr = data.plus and number > 0 and "+" or ""
@@ -88,17 +71,17 @@ function InsaneStats:FormatNumber(number, data)
 		numberStr = plusStr..string.Comma(math.Round(number, decimalPlaces))
 	elseif absNumber < (data.maximumBeforeShortening or 1e6) then
 		numberStr = plusStr..string.Comma(math.floor(number))
-	elseif absNumber < 1e36 then
-		local orderNeeded = math.floor(math.log10(absNumber)/3)-1
-		number = number / 1e3^(orderNeeded+1)
-		
-		numberStr = string.format("%"..plusStr.."."..decimalStr.."f", number)
-		suffixStr = " "..order[orderNeeded]
 	elseif absNumber < math.huge then
-		local rawStr = string.format("%"..plusStr.."."..decimalStr.."e", number)
-		
-		numberStr, suffixStr = string.match(rawStr, "^(%A*)(e.*)$")
-		--print(rawStr, numberStr, suffixStr)
+		local orderNeeded = math.floor(math.log10(absNumber)/3)-1
+		if order[orderNeeded] then
+			number = number / 1e3^(orderNeeded+1)
+			
+			numberStr = string.format("%"..plusStr.."."..decimalStr.."f", number)
+			suffixStr = " "..order[orderNeeded]
+		else
+			local rawStr = string.format("%"..plusStr.."."..decimalStr.."e", number)
+			numberStr, suffixStr = string.match(rawStr, "^(%A*)(e.*)$")
+		end
 	elseif number == math.huge then
 		numberStr = ""
 		suffixStr = "∞"
@@ -179,6 +162,45 @@ function InsaneStats:DrawMaterialOutlined(material, x, y, w, h, color, outlineTh
 	surface.SetDrawColor(color.r, color.g, color.b, color.a)
 	return surface.DrawTexturedRect(x, y, w, h)
 end
+
+InsaneStats:SetDefaultConVarCategory("Miscellaneous")
+
+InsaneStats:RegisterClientConVar("hud_scale", "insanestats_hud_scale", "1", {
+	display = "HUD Scale", desc = "Modifies HUD scale. A map restart is required for this to take effect.",
+	type = InsaneStats.FLOAT, min = 0.1, max = 10
+})
+
+local function GenerateFonts()
+	local scale = InsaneStats:GetConVarValue("hud_scale")
+	InsaneStats.FONT_SMALL = ScreenScale(6 * scale)
+	InsaneStats.FONT_MEDIUM = ScreenScale(8 * scale)
+	InsaneStats.FONT_BIG = ScreenScale(12 * scale)
+	
+	surface.CreateFont("InsaneStats.Small", {
+		font = "Orbitron Medium",
+		size = InsaneStats.FONT_SMALL
+	})
+	
+	surface.CreateFont("InsaneStats.Medium", {
+		font = "Orbitron Medium",
+		size = InsaneStats.FONT_MEDIUM
+	})
+	
+	surface.CreateFont("InsaneStats.Big", {
+		font = "Orbitron Medium",
+		size = InsaneStats.FONT_BIG
+	})
+end
+
+GenerateFonts()
+
+local scale
+timer.Create("InsaneStats", 1, 0, function()
+	if scale ~= InsaneStats:GetConVarValue("hud_scale") then
+		scale = InsaneStats:GetConVarValue("hud_scale")
+		GenerateFonts()
+	end
+end)
 
 --[[InsaneStats:SetDefaultConVarCategory("HUD")
 

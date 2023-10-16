@@ -25,11 +25,33 @@ local revealIcons = {
 	func_rot_button = GetIcon("cursor"),
 	momentary_rot_button = GetIcon("cursor"),
 	func_breakable = GetIcon("asterisk_yellow"),
+	func_breakable_surf = GetIcon("asterisk_orange"),
 	func_door = GetIcon("door"),
 	func_door_rotating = GetIcon("door"),
 	prop_door_rotating = GetIcon("door"),
 	npc_grenade_frag = GetIcon("exclamation"),
+
+	trigger_hurt = GetIcon("error"),
+	trigger_push = GetIcon("weather_clouds"),
+	trigger_teleport = GetIcon("transmit"),
+	trigger_once = GetIcon("transmit"),
+	trigger_multiple = GetIcon("transmit"),
 }
+local eyeIcon = GetIcon("eye")
+local vitalIcon = GetIcon("ruby")
+local function GetIconForEntity(ent)
+	local ply = LocalPlayer()
+	if ent:GetOwner() == ply or ent:GetParent() == ply then return end
+	if ent:GetNWBool("insanestats_look") then return eyeIcon end
+	if ent:GetNWBool("insanestats_vital") then return vitalIcon end
+	if ent:GetNWBool("insanestats_use") then return revealIcons.func_button end
+
+	if (ent:GetModel() or "")~="" then
+		local icon = revealIcons[ent:GetClass()]
+		if icon then return icon end
+	end
+end
+
 hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 	if InsaneStats:GetConVarValue("wpass2_enabled") then
 		if markedEntityInfo.refreshedTime + 1 > CurTime() then
@@ -115,8 +137,8 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 			local eyePos = EyePos()
 			cam.Start3D()
 			for i,v in ipairs(ents.FindInSphere(eyePos, revealRadius)) do
-				local icon = revealIcons[v:GetClass()]
-				if icon and (v:GetModel() or "")~="" then
+				local icon = GetIconForEntity(v)
+				if icon then
 					local pos = v:WorldSpaceCenter()
 					local viewData = pos:ToScreen()
 					if viewData.visible then
