@@ -40,8 +40,8 @@ function GM:SendMapDifficulties()
 end
 
 function GM:ChangeDifficulty(difficulty)
-	-- if it is October and no players have beaten it, have a 5% chance to switch the difficulty to Special - Nightmare
-	if os.date("%m") == "10" and math.random() < 0.05 then
+	-- if it is October and no players have beaten it, have a 25% chance to switch the difficulty to Special - Nightmare
+	if os.date("%m") == "10" and math.random() < 0.25 then
 		local cancel = false
 		for k,v in pairs(hook.Run("GetNightmareBeatenPlayers")) do
 			if IsValid(k) then

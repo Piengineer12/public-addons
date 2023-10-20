@@ -1,8 +1,8 @@
 GM.Name							= "RotgB: The Gamemode!"
 GM.Author						= "Piengineer12"
-GM.Version						= "2.0.6"
-GM.VersionDate					= "2023-06-17"
-GM.Email						= "[REDACTED]"
+GM.Version						= "2.0.7"
+GM.VersionDate					= "2023-10-20"
+GM.Email						= "piengineer12videos@gmail.com"
 GM.Website						= "https://steamcommunity.com/id/Piengineer12"
 GM.TeamBased					= false
 GM.SecondsBetweenTeamSwitches	= 1
@@ -13,6 +13,13 @@ GM.DatabaseSaveInterval			= 30
 GM.VoteTime						= 15
 GM.DebugMode					= false
 GM.ROTGB_ShowHUD				= true
+
+--[[
+Steam Workshop:	https://steamcommunity.com/sharedfiles/filedetails/?id=2734409345
+Steam Profile:	https://steamcommunity.com/id/Piengineer12
+GitHub:			https://github.com/Piengineer12/public-addons/tree/master/rotgb_the_gamemode
+Donate:			https://ko-fi.com/piengineer12
+]]
 
 RTG_STAT_POPS = 1
 RTG_STAT_INIT = 2
