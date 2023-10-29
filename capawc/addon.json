@@ -1,0 +1,10 @@
+{
+	"title": "Customizable ConVar and ConCommand Manager",
+	"type": "tool",
+	"tags": ["build"],
+	"ignore": [
+		"*.moon",
+		"media/*",
+		"personal/*"
+	]
+}
