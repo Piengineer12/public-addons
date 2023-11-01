@@ -238,15 +238,36 @@ hook.Add("InsaneStats_CCVCCMRun", "InsaneStatsOptions", function()
 		for k2,v2 in SortedPairs(v) do
 			CCVCCM:PushCategory(k2)
 
-			if k == "Server" and k2 == "XP - General" then
-				CCVCCM:AddConCommand("player_level_set", {
-					realm = "server",
-					fullName = "insanestats_xp_player_level_set",
-					name = "Set Player Level",
-					help = "Sets a player's level. If no player is provided, this command will set your level instead. \z
-					Usage: [player] <level>",
-					type = "string"
-				})
+			if k == "Server" then
+				if k2 == "XP - General" then
+					CCVCCM:AddConCommand("player_level_set", {
+						realm = "server",
+						fullName = "insanestats_xp_player_level_set",
+						name = "Set Player Level",
+						help = "Sets a player's level. If no player is provided, this command will set your level instead. \z
+						Usage: [player] <level>",
+						type = "string"
+					})
+				elseif k2 == "WPASS2 - General" then
+					CCVCCM:AddConCommand("wpass2_statuseffect", {
+						realm = "server",
+						fullName = "insanestats_wpass2_statuseffect",
+						name = "Apply Status Effect",
+						help = "Applies a status effect to a named entity. If no name is specified, the effect will be applied to you, \z
+						or to all players when entered through the server console.\n\z
+						Format: insanestats_wpass2_statuseffect <internalName> [level=1] [duration=10] [entity=self]",
+						type = "string"
+					})
+					CCVCCM:AddConCommand("wpass2_statuseffect_clear", {
+						realm = "server",
+						fullName = "insanestats_wpass2_statuseffect_clear",
+						name = "Clear Status Effect",
+						help = "Clears a status effect from a named entity. If no name is specified, the effect will be cleared from you, \z
+						or from all players when entered through the server console.\n\z
+						Format: insanestats_wpass2_statuseffect_clear <internalName> [entity=self]",
+						type = "string"
+					})
+				end
 			end
 
 			for i,v3 in ipairs(v2) do

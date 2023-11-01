@@ -41,7 +41,7 @@ local eyeIcon = GetIcon("eye")
 local vitalIcon = GetIcon("ruby")
 local function GetIconForEntity(ent)
 	local ply = LocalPlayer()
-	if ent:GetOwner() == ply or ent:GetParent() == ply then return end
+	if ent == ply or ent:GetOwner() == ply or ent:GetParent() == ply then return end
 	if ent:GetNWBool("insanestats_look") then return eyeIcon end
 	if ent:GetNWBool("insanestats_vital") then return vitalIcon end
 	if ent:GetNWBool("insanestats_use") then return revealIcons.func_button end

@@ -17,6 +17,10 @@ InsaneStats:RegisterClientConVar("hud_dps_y", "insanestats_hud_dps_y", "0.94", {
 	display = "DPS Meter Y", desc = "Vertical position of DPS meter.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
+InsaneStats:RegisterClientConVar("hud_dps_time", "insanestats_hud_dps_time", "5", {
+	display = "DPS Timer", desc = "Damage done after this amount of time will not be factored into the DPS.",
+	type = InsaneStats.FLOAT, min = 0, max = 60
+})
 
 InsaneStats:RegisterClientConVar("hud_hp_enabled", "insanestats_hud_hp_enabled", "1", {
 	display = "Health and Armor Meters", desc = "Shows the health meter. For the target info HUD, see the hud_target_enabled ConVar.",
@@ -58,42 +62,45 @@ local ourDamages = {}
 local allDamageNumbers = {}
 local shouldUpdateDPS = false
 hook.Add("InsaneStatsHUDDamageTaken", "InsaneStats", function(entIndex, attacker, damage, types, hitgroup, position, flags)
-	allDamageNumbers[entIndex] = allDamageNumbers[entIndex] or {}
-	
-	local entityDamageNumbers = allDamageNumbers[entIndex]
-	local requireNewAdd = Entity(entIndex) ~= LocalPlayer()
-	if next(entityDamageNumbers) and requireNewAdd then
-		local latestEntDamage = entityDamageNumbers[#entityDamageNumbers]
-		-- check whether the previous damage number should have elapsed
-		if latestEntDamage.time + 0.5 > RealTime() then
-			latestEntDamage.damage = latestEntDamage.damage + damage
-			latestEntDamage.types = bit.bor(latestEntDamage.types, types)
-			latestEntDamage.crit = latestEntDamage.crit or hitgroup == 1
-			--latestEntDamage.time = RealTime()
-			--latestEntDamage.origin = position
-			latestEntDamage.flags = flags
-			
-			requireNewAdd = false
+	local ply = LocalPlayer()
+	if ply:IsSuitEquipped() then
+		allDamageNumbers[entIndex] = allDamageNumbers[entIndex] or {}
+		
+		local entityDamageNumbers = allDamageNumbers[entIndex]
+		local requireNewAdd = Entity(entIndex) ~= ply
+		if next(entityDamageNumbers) and requireNewAdd then
+			local latestEntDamage = entityDamageNumbers[#entityDamageNumbers]
+			-- check whether the previous damage number should have elapsed
+			if latestEntDamage.time + 0.5 > RealTime() then
+				latestEntDamage.damage = latestEntDamage.damage + damage
+				latestEntDamage.types = bit.bor(latestEntDamage.types, types)
+				latestEntDamage.crit = latestEntDamage.crit or hitgroup == 1
+				--latestEntDamage.time = RealTime()
+				--latestEntDamage.origin = position
+				latestEntDamage.flags = flags
+				
+				requireNewAdd = false
+			end
 		end
-	end
-	
-	if requireNewAdd and (LocalPlayer():IsLineOfSightClear(position) or attacker == LocalPlayer()) then
-		table.insert(entityDamageNumbers, {
-			damage = damage,
-			types = types,
-			crit = hitgroup == 1,
-			time = RealTime(),
-			origin = position,
-			flags = flags
-		})
-	end
-	
-	if attacker == LocalPlayer() and not missed and damage > 0 then
-		shouldUpdateDPS = true
-		table.insert(ourDamages, {
-			damage = damage,
-			time = RealTime()
-		})
+		
+		if requireNewAdd and (ply:IsLineOfSightClear(position) or attacker == ply) then
+			table.insert(entityDamageNumbers, {
+				damage = damage,
+				types = types,
+				crit = hitgroup == 1,
+				time = RealTime(),
+				origin = position,
+				flags = flags
+			})
+		end
+		
+		if attacker == ply and not missed and damage > 0 then
+			shouldUpdateDPS = true
+			table.insert(ourDamages, {
+				damage = damage,
+				time = RealTime()
+			})
+		end
 	end
 end)
 
@@ -248,6 +255,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 	end
 	
 	if InsaneStats:GetConVarValue("hud_dps_enabled") then
+		local discardTime = RealTime() - InsaneStats:GetConVarValue("hud_dps_time")
 		if shouldUpdateDPS then
 			totalDamage = 0
 			local totalLatestDamage = 0
@@ -258,7 +266,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 			for k,v in pairs(ourDamages) do
 				totalDamage = totalDamage + v.damage
 				
-				if v.time + 5 > RealTime() then
+				if v.time > discardTime then
 					totalLatestDamage = totalLatestDamage + v.damage
 					minTime = math.min(minTime, v.time)
 					maxTime = math.max(maxTime, v.time)
@@ -282,7 +290,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 		end
 		
 		if next(ourDamages) then
-			local life = ourDamages[#ourDamages].time - RealTime() + 10
+			local life = ourDamages[#ourDamages].time - discardTime
 			surface.SetAlphaMultiplier(life)
 			
 			if life > 0 then
@@ -316,6 +324,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 		local barW = InsaneStats.FONT_MEDIUM * 16
 		local barH = InsaneStats.FONT_MEDIUM
 		local ply = LocalPlayer()
+		local hasSuit = ply:IsSuitEquipped()
 		
 		-- armor bar
 		local armor = ply:InsaneStats_GetArmor()
@@ -340,7 +349,9 @@ hook.Add("HUDPaint", "InsaneStats", function()
 			
 			local text = InsaneStats:FormatNumber(math.Round(slowArmor)).." / "..InsaneStats:FormatNumber(math.Round(maxArmor))
 			draw.SimpleTextOutlined("Shield", "InsaneStats.Medium", baseX + 2, baseY - barH, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
-			draw.SimpleTextOutlined(text, "InsaneStats.Medium", baseX + barW - 2, baseY - barH, barColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
+			if hasSuit then
+				draw.SimpleTextOutlined(text, "InsaneStats.Medium", baseX + barW - 2, baseY - barH, barColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
+			end
 			if slowArmor > maxArmor then
 				draw.SimpleTextOutlined("x"..InsaneStats:FormatNumber(bars), "InsaneStats.Medium", baseX + barW, baseY, barColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
 			end
@@ -371,7 +382,9 @@ hook.Add("HUDPaint", "InsaneStats", function()
 		
 		local text = InsaneStats:FormatNumber(math.Round(slowHealth)).." / "..InsaneStats:FormatNumber(math.Round(maxHealth))
 		draw.SimpleTextOutlined("Health", "InsaneStats.Medium", baseX + 2, baseY - barH, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
-		draw.SimpleTextOutlined(text, "InsaneStats.Medium", baseX + barW - 2, baseY - barH, barColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
+		if hasSuit then
+			draw.SimpleTextOutlined(text, "InsaneStats.Medium", baseX + barW - 2, baseY - barH, barColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
+		end
 		if slowHealth > maxHealth then
 			draw.SimpleTextOutlined("x"..InsaneStats:FormatNumber(bars), "InsaneStats.Medium", baseX + barW, baseY, barColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
 		end

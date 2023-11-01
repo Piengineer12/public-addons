@@ -199,7 +199,9 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 	local scrW = ScrW()
 	local scrH = ScrH()
 	local ply = LocalPlayer()
+	local hasSuit = ply:IsSuitEquipped()
 	local realTime = RealTime()
+	local curTime = CurTime()
 	local level = ply:InsaneStats_GetLevel()
 	
 	if InsaneStats:GetConVarValue("xp_enabled") and InsaneStats:GetConVarValue("hud_xp_enabled") then
@@ -246,8 +248,8 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 		end
 		
 		if xp ~= oldXP then
-			if oldXP >= 0 then
-				xpDisplayExpiryTimestamp = realTime + 1.5
+			if oldXP >= 0 and hasSuit then
+				xpDisplayExpiryTimestamp = curTime + 1
 			else
 				oldXPDelayed = xp
 			end
@@ -255,13 +257,13 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 			oldXP = xp
 		end
 		
-		if xpDisplayExpiryTimestamp <= realTime and oldXPDelayed ~= xp then
+		if xpDisplayExpiryTimestamp <= curTime and oldXPDelayed ~= xp then
 			oldXPDelayed = xp
 			xpFlashDisplayExpiryTimestamp = realTime + 0.5
 		end
 		
 		local levelDisplayExpiryDuration = levelDisplayExpiryTimestamp - realTime
-		local xpDisplayExpiryDuration = xpDisplayExpiryTimestamp - realTime
+		local xpDisplayExpiryDuration = xpDisplayExpiryTimestamp - curTime
 		local xpFlashDisplayExpiryDuration = xpFlashDisplayExpiryTimestamp - realTime
 		
 		if xpFlashDisplayExpiryDuration > 0 then
@@ -293,10 +295,12 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 				end
 			end
 			
-			local xpString = InsaneStats:FormatNumber(currentXP)
-			local requiredXp = InsaneStats:FormatNumber(nextXP)
-			local experienceText = xpString .. " / " .. requiredXp
-			draw.SimpleTextOutlined(experienceText, "InsaneStats.Medium", barX+barWidth, barY-2, fgColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
+			if hasSuit then
+				local xpString = InsaneStats:FormatNumber(currentXP)
+				local requiredXp = InsaneStats:FormatNumber(nextXP)
+				local experienceText = xpString .. " / " .. requiredXp
+				draw.SimpleTextOutlined(experienceText, "InsaneStats.Medium", barX+barWidth, barY-2, fgColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
+			end
 			olderLevel = -1
 		else
 			local color = HSVToColor(levelHue, (math.cos(levelDisplayExpiryDuration*math.pi)+1)/2*maxSaturation, 1)
@@ -326,8 +330,8 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 			textY = textY + offset * scrH * InsaneStats:GetConVarValue("hud_xp_gained_y")
 			
 			local outlineLum = 0
-			if xpDisplayExpiryDuration > 1 then
-				outlineLum = (xpDisplayExpiryDuration*2-2) * 255
+			if xpDisplayExpiryDuration > 0.75 then
+				outlineLum = math.Remap(xpDisplayExpiryDuration, 1, 0.75, 255, 0)
 			end
 			
 			local outlineColor = Color(outlineLum, outlineLum, outlineLum)
@@ -377,7 +381,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 				if lookEntityInfo.maxHealth == ourAttack then
 					healthBarWidthPercent = 1
 				end
-				local healthBarWidth = healthBarWidthPercent * InsaneStats.FONT_MEDIUM * 20 + barH * 10
+				local healthBarWidth = healthBarWidthPercent * InsaneStats.FONT_MEDIUM * 20 + barH * 3
 				infoW = infoW + math.max(healthBarWidth, surface.GetTextSize(lookEntityInfo.name))
 				
 				local infoX = (scrW - infoW) * InsaneStats:GetConVarValue("hud_target_x")
@@ -459,7 +463,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 						if lookEntityInfo.maxArmor == ourAttack then
 							armorBarWidthPercent = 1
 						end
-						armorBarWidth = armorBarWidthPercent * InsaneStats.FONT_MEDIUM * 20 + barH * 10
+						armorBarWidth = armorBarWidthPercent * InsaneStats.FONT_MEDIUM * 20 + barH * 3
 						local armor = IsValid(lookEntityInfo.ent) and lookEntityInfo.armor or 0
 						lookEntityInfo.slowArmor = InsaneStats:TransitionUINumber(lookEntityInfo.slowArmor or armor, armor)
 						local barData = InsaneStats:CalculateMultibar(lookEntityInfo.slowArmor, math.min(lookEntityInfo.maxArmor, ourAttack), 180)
@@ -492,7 +496,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 				end
 				
 				-- status effects
-				if lookEntityInfo.statusEffects then
+				if lookEntityInfo.statusEffects and hasSuit then
 					local iconSize = InsaneStats.FONT_SMALL * 3
 					local iconsPerRow = math.max(math.floor(healthBarWidth / iconSize), 5)
 					local startX = infoX

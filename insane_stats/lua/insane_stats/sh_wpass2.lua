@@ -16,6 +16,10 @@ InsaneStats:RegisterConVar("wpass2_enabled", "insanestats_wpass2_enabled", "1", 
 	display = "Enable WPASS2", desc = "Enables WPASS2, allowing weapons / armor batteries to gain prefixes and suffixes.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterConVar("wpass2_dropship_invincible", "insanestats_wpass2_dropship_invincible", "1", {
+	display = "Invincible Dropship Containers", desc = "All Combine dropship containers are invincible. This has been known to break maps if disabled!",
+	type = InsaneStats.BOOL
+})
 InsaneStats:RegisterConVar("wpass2_modifiers_player_save", "insanestats_wpass2_modifiers_player_save", "0", {
 	display = "Save Player Modifiers Across Maps", desc = "If 1, modifiers on player weapons / armor batteries will be saved across maps. \z
 	Consequently, all weapons and ammo are also perserved across maps. \z
@@ -46,6 +50,12 @@ InsaneStats:RegisterConVar("wpass2_modifiers_other_create", "insanestats_wpass2_
 	If 2, only humanoid and Combine entities are able to get weapon modifiers. \n\z
 	If 3, ALL entities will gain weapon modifiers in the same way. Setting this to 3 is NOT RECOMMENDED.",
 	type = InsaneStats.INT, min = 0, max = 3
+})
+InsaneStats:RegisterConVar("wpass2_modifiers_blacklist", "insanestats_wpass2_modifiers_blacklist", "", {
+	display = "Modifier Blacklist", desc = "Modifiers in this list will never appear on weapons nor armor batteries.\n\z
+	Note that you must specify the internal name of modifiers, not the display name. You can find the internal name \z
+	of item modifiers in the Insane Stats Coin Shop's item reforge menu.",
+	type = InsaneStats.STRING
 })
 InsaneStats:RegisterConVar("wpass2_autopickup", "insanestats_wpass2_autopickup", "1", {
 	display = "Auto Pickup Mode", desc = "Determines whether weapons / armor batteries will be automatically picked up for ammo / armor.\n\z
@@ -680,14 +690,20 @@ function ENTITY:InsaneStats_ApplyStatusEffect(id, level, duration, data)
 	if (effectTable and effectTable.expiry > curTime) then
 		if data.amplify then level = level + effectTable.level end
 		
-		if level >= effectTable.level then
-			if data.extend and duration ~= 0 then
-				effectTable.expiry = effectTable.expiry + duration
-				changeOccured = true
-			elseif curTime + duration > effectTable.expiry then
-				effectTable.expiry = curTime + duration
-				changeOccured = true
+		if data.extend and duration ~= 0 then
+			local maxDuration = tonumber(data.extend) or math.huge
+			local maxExpiry = curTime + maxDuration
+			local newExpiry = effectTable.expiry + duration
+			if maxExpiry < newExpiry then
+				-- amplify effect, multiplied by % of duration lost
+				level = effectTable.level + (newExpiry - maxExpiry) / maxDuration * level
+				newExpiry = maxExpiry
 			end
+			effectTable.expiry = newExpiry
+			changeOccured = true
+		elseif curTime + duration > effectTable.expiry then
+			effectTable.expiry = curTime + duration
+			changeOccured = true
 		end
 		
 		if level > effectTable.level then
@@ -714,6 +730,7 @@ function ENTITY:InsaneStats_ApplyStatusEffect(id, level, duration, data)
 	end
 	
 	if SERVER and changeOccured then
+		effectTable = self.insaneStats_StatusEffects[id]
 		if applyEffects[id] and effectTable then
 			applyEffects[id](self, effectTable.level or 0, effectTable.duration or 0, effectTable.attacker)
 		end

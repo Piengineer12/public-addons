@@ -80,7 +80,9 @@ local function OverrideHealth()
 			self.insaneStats_OldRawHealth = scaledHealth
 		end
 		
-		self:InsaneStats_MarkForUpdate(1)
+		if SERVER then
+			self:InsaneStats_MarkForUpdate(1)
+		end
 		--[[if self:IsPlayer() then
 			print(newHealth)
 			debug.Trace()
@@ -114,7 +116,9 @@ local function OverrideHealth()
 			end
 		end
 		
-		self:InsaneStats_MarkForUpdate(1)
+		if SERVER then
+			self:InsaneStats_MarkForUpdate(1)
+		end
 		--[[if SERVER and self:IsPlayer() then
 			print(newHealth)
 			debug.Trace()
@@ -156,7 +160,9 @@ local function OverrideArmor()
 		if newArmor > 0 then
 			self.insaneStats_ArmorRoot8 = newArmor^0.125
 		end
-		self:InsaneStats_MarkForUpdate(1)
+		if SERVER then
+			self:InsaneStats_MarkForUpdate(1)
+		end
 	end
 
 	function ENT:Armor()
@@ -171,7 +177,9 @@ local function OverrideArmor()
 		if newArmor > 0 then
 			self.insaneStats_MaxArmorRoot8 = newArmor^0.125
 		end
-		self:InsaneStats_MarkForUpdate(1)
+		if SERVER then
+			self:InsaneStats_MarkForUpdate(1)
+		end
 	end
 	
 	function ENT:GetMaxArmor()
@@ -198,7 +206,9 @@ local function OverrideArmor()
 			self.insaneStats_OldRawArmor = scaledArmor
 		end
 		
-		self:InsaneStats_MarkForUpdate(1)
+		if SERVER then
+			self:InsaneStats_MarkForUpdate(1)
+		end
 	end
 	
 	function PLAYER:Armor()
@@ -227,7 +237,9 @@ local function OverrideArmor()
 			end
 		end
 		
-		self:InsaneStats_MarkForUpdate(1)
+		if SERVER then
+			self:InsaneStats_MarkForUpdate(1)
+		end
 	end
 	
 	function PLAYER:GetMaxArmor()

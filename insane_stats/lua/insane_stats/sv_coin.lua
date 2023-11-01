@@ -71,58 +71,31 @@ hook.Add("InsaneStatsEntityKilledPostXP", "InsaneStatsCoins", function(victim, a
 	end
 end)
 
-local function ProcessBreakEvent(victim, attacker)
-	if not IsValid(attacker) then
-		if IsValid(victim.insaneStats_LastAttacker) then
-			attacker = victim.insaneStats_LastAttacker
-		else
-			attacker = game.GetWorld()
-		end
+hook.Add("InsaneStatsPropBroke", "InsaneStatsCoins", function(victim, attacker)
+	local inflictor = attacker.GetActiveWeapon and attacker:GetActiveWeapon() or attacker
+	local mul = InsaneStats:GetConVarValue("coins_breakable_mul")
+	local currentHealthAdd = victim.insaneStats_CurrentHealthAdd or 1
+	local startingHealth = victim:InsaneStats_GetMaxHealth() / currentHealthAdd
+	local value = startingHealth * math.random() / 16 * mul
+	if InsaneStats:GetConVarValue("xp_enabled") then
+		value = InsaneStats:ScaleValueToLevelQuadratic(
+			value,
+			InsaneStats:GetConVarValue("coins_level_add")/100,
+			victim:InsaneStats_GetLevel(),
+			"coins_level_add_mode",
+			false,
+			InsaneStats:GetConVarValue("coins_level_add_add")/100
+		)
 	end
+	
+	local data = {victim = victim, attacker = attacker, inflictor = inflictor, coins = value}
+	hook.Run("InsaneStatsScaleCoins", data)
+	value = data.coins
 
-	if IsValid(victim) and victim:GetCollisionGroup() ~= COLLISION_GROUP_DEBRIS
-	and not victim.insaneStats_SuppressCoinDrops then
-		local inflictor = attacker.GetActiveWeapon and attacker:GetActiveWeapon() or attacker
-		local mul = InsaneStats:GetConVarValue("coins_breakable_mul")
-		local currentHealthAdd = victim.insaneStats_CurrentHealthAdd or 1
-		local startingHealth = victim:InsaneStats_GetMaxHealth() / currentHealthAdd
-		local value = startingHealth * math.random() / 16 * mul
-		if InsaneStats:GetConVarValue("xp_enabled") then
-			value = InsaneStats:ScaleValueToLevelQuadratic(
-				value,
-				InsaneStats:GetConVarValue("coins_level_add")/100,
-				victim:InsaneStats_GetLevel(),
-				"coins_level_add_mode",
-				false,
-				InsaneStats:GetConVarValue("coins_level_add_add")/100
-			)
-		end
-		
-		local data = {victim = victim, attacker = attacker, inflictor = inflictor, coins = value}
-		hook.Run("InsaneStatsScaleCoins", data)
-		value = data.coins
+	local extraValue = victim:InsaneStats_GetCoins()
+	value = value + extraValue
 
-		local extraValue = victim:InsaneStats_GetCoins()
-		value = value + extraValue
-
-		SpawnCoins(victim, value)
-	end
-end
-
-hook.Add("break_prop", "InsaneStatsCoins", function(data)
-	if InsaneStats:GetConVarValue("coins_enabled") then
-		local victim = Entity(data.entindex or 0)
-		local attacker = Player(data.userid or 0)
-		ProcessBreakEvent(victim, attacker)
-	end
-end)
-
-hook.Add("break_breakable", "InsaneStatsCoins", function(data)
-	if InsaneStats:GetConVarValue("coins_enabled") then
-		local victim = Entity(data.entindex or 0)
-		local attacker = Player(data.userid or 0)
-		ProcessBreakEvent(victim, attacker)
-	end
+	SpawnCoins(victim, value)
 end)
 
 local savedPlayerCoins

@@ -805,7 +805,7 @@ hook.Add("EntityTakeDamage", "InsaneStatsXP", function(vic, dmginfo)
 	end
 	
 	if InsaneStats:GetConVarValue("xp_enabled") then
-		if dmginfo:GetAttacker() ~= vic and attacker:GetClass() ~= "entityflame" then
+		if (IsValid(attacker) and attacker:GetClass() ~= "entityflame") and attacker ~= vic then
 			vic.insaneStats_LastAttacker = attacker
 		end
 		

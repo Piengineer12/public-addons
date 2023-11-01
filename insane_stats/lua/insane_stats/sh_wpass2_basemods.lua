@@ -259,6 +259,7 @@ local modifiers = {
 			lowhealth_firerate = 1.1,
 		},
 		weight = 0.5,
+		max = 10
 	},
 	gatling = {
 		prefix = "Gatling",
@@ -288,7 +289,8 @@ local modifiers = {
 		modifiers = {
 			killstack_firerate = 1.1
 		},
-		weight = 0.5
+		weight = 0.5,
+		max = 10
 	},
 	ruthless = {
 		prefix = "Ruthless",
@@ -534,11 +536,12 @@ local modifiers = {
 		prefix = "Awkward",
 		suffix = "Awkwardness",
 		modifiers = {
-			damage = 1.331,
-			spread = 1.21,
-			nonbullet_damage = 1/1.1
+			damage = 1/1.1,
+			spread = 1/1.771561,
+			nonbullet_damage = 1.331
 		},
 		weight = 0.5,
+		max = 5,
 		cost = 2
 	},
 	
@@ -830,11 +833,10 @@ local modifiers = {
 	buckle = {
 		prefix = "Buckling",
 		modifiers = {
-			speed_damagetaken = 1/1.1
+			speed_defence = 1.1
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		max = 5
+		weight = 0.5
 	},
 	nasty = {
 		prefix = "Nasty",
@@ -978,7 +980,7 @@ local modifiers = {
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
-		max = 5
+		max = 7
 	},
 	
 	-- utility, half weight doubled cost
@@ -1053,17 +1055,6 @@ local modifiers = {
 		weight = 0.5,
 		cost = 2,
 		max = 2
-	},
-	aggravate = {
-		prefix = "Aggravating",
-		suffix = "Aggravation",
-		modifiers = {
-			damagetaken = 1.1,
-			damage = 1.331,
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		cost = 2
 	},
 	light = {
 		prefix = "Light",
@@ -1412,8 +1403,20 @@ local modifiers = {
 		prefix = "Slow",
 		suffix = "Slowing",
 		modifiers = {
-			speed = 1/1.1,
+			firerate = 1/1.1,
 			damagetaken = 1/1.331
+		},
+		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		weight = 0.5,
+		cost = 2,
+		max = 10
+	},
+	aggravate = {
+		prefix = "Aggravating",
+		suffix = "Aggravation",
+		modifiers = {
+			speed = 1/1.1,
+			damagetaken = 1/1.331,
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
@@ -1462,8 +1465,7 @@ local modifiers = {
 		modifiers = {
 			health = 1/1.1,
 			armor = 1.1,
-			damage = 1.1,
-			damagetaken = 1/1.1
+			damagetaken = 1/1.21
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
@@ -1671,9 +1673,8 @@ local attributes = {
 		invert = true,
 		mul = 0.625
 	},
-	speed_damagetaken = {
-		display = "%s damage taken, scaled by speed",
-		invert = true,
+	speed_defence = {
+		display = "%s defence, scaled by speed",
 		mul = 2
 	},
 	mark_damagetaken = {
@@ -1744,49 +1745,49 @@ local attributes = {
 		invert = true
 	},
 	kill5s_damage = {
-		display = "%s damage dealt for 5s after kill",
+		display = "%s damage dealt for +5s after kill",
 		mul = 2
 	},
 	kill5s_damagetaken = {
-		display = "%s damage taken for 5s after kill",
+		display = "%s damage taken for +5s after kill",
 		mul = 2,
 		invert = true
 	},
 	kill5s_ally_damage = {
-		display = "%s damage dealt for 5s after ally kill",
+		display = "%s damage dealt for +5s after ally kill",
 		mul = 5
 	},
 	kill5s_firerate = {
-		display = "%s fire rate for 5s after kill",
+		display = "%s fire rate for +5s after kill",
 		mul = 2
 	},
 	kill5s_speed = {
-		display = "%s movement speed for 5s after kill",
+		display = "%s movement speed for +5s after kill",
 		mul = 2
 	},
 	kill5s_xp = {
-		display = "%s coins and XP gain for 5s after kill",
+		display = "%s coins and XP gain for +5s after kill",
 		mul = 2
 	},
 	kill5s_regen = {
-		display = "%s health regen for 5s after kill",
+		display = "%s health regen for +5s after kill",
 		mul = 0.03125
 	},
 	kill5s_armorregen = {
-		display = "%s armor regen for 5s after kill",
+		display = "%s armor regen for +5s after kill",
 		mul = 0.03125
 	},
 	kill5s_damageaura = {
-		display = "%s damage aura for 5s after kill",
+		display = "%s damage aura for +5s after kill",
 		nopercent = true,
 		mul = 10,
 	},
 	kill1s_xp = {
-		display = "%s coins and XP gain for 1s after kill, scaled by duration",
+		display = "%s coins and XP gain for +1s after kill (stacks above 1s)",
 		mul = 10
 	},
 	kill1s_xp2 = {
-		display = "%s coins and XP gain for 1s from props, scaled by duration",
+		display = "%s coins and XP gain for +1s from props (stacks above 1s)",
 		mul = 10
 	},
 	killstack_damage = {
@@ -1854,7 +1855,8 @@ local attributes = {
 	hittaken_invincible = {
 		display = "%ss invincibility on hit taken, 60s cooldown",
 		mul = 60,
-		nopercent = true
+		nopercent = true,
+		noplus = true
 	},
 	hittaken_invincible_meleebreak = {
 		display = "%ss invincibility per melee hit taken",
@@ -2146,7 +2148,8 @@ local attributes = {
 	alt_invisible = {
 		display = "%ss invisibility after slow walk double tap, 60s cooldown",
 		mul = 60,
-		nopercent = true
+		nopercent = true,
+		noplus = true
 	},
 	alt_damage = {
 		display = "%s damage dealt after slow walk double tap, 60s cooldown",
@@ -2157,7 +2160,7 @@ local attributes = {
 		mul = 8
 	},
 	alt_speed = {
-		display = "%s movement speed after slow walk double tap, 60s cooldown",
+		display = "%s movement rate after slow walk double tap, 60s cooldown",
 		mul = 8
 	},
 	alt_damagetaken = {
@@ -2730,17 +2733,33 @@ local statusEffects = {
 		img = Material("insane_stats/status_effects/life-support.png", "mips smooth")
 	},
 	alt_speed_up = {
-		name = "Agility Speed Up",
+		name = "Agility Movement Rate Up",
 		typ = 2,
-		img = Material("insane_stats/status_effects/sprint.png", "mips smooth"),
+		img = Material("insane_stats/status_effects/pentarrows-tornado.png", "mips smooth"),
+		apply = SERVER and function(ent, level, attacker)
+			if ent:IsPlayer() then
+				local newMovementValue = 1+level/100
+				if not InsaneStats:GetConVarValue("wpass2_attributes_player_constant_speed") then
+					newMovementValue = newMovementValue * ent:GetLaggedMovementValue()
+				end
+				ent:SetLaggedMovementValue(newMovementValue)
+			end
+		end,
 		expiry = SERVER and function(ent, level, attacker)
+			if ent:IsPlayer() then
+				local newMovementValue = 1
+				if not InsaneStats:GetConVarValue("wpass2_attributes_player_constant_speed") then
+					newMovementValue = ent:GetLaggedMovementValue() / (1+level/100)
+				end
+				ent:SetLaggedMovementValue(newMovementValue)
+			end
 			ent:InsaneStats_ApplyStatusEffect("alt_speed_cooldown", 1, 60)
 		end
 	},
 	alt_speed_cooldown = {
 		name = "Agility Cooldown",
 		typ = -1,
-		img = Material("insane_stats/status_effects/barefoot.png", "mips smooth")
+		img = Material("insane_stats/status_effects/twirly-flower.png", "mips smooth")
 	},
 	ctrl_gamespeed_up = {
 		name = "Fleeting Game Speed Up",
@@ -2904,7 +2923,7 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 		--speedMul = speedMul * (1 + ent:InsaneStats_GetStatusEffectLevel("stack_speed_up") / 100)
 	
 		speedMul = speedMul * (1+ent:InsaneStats_GetStatusEffectLevel("speed_up")/100)
-		speedMul = speedMul * (1+ent:InsaneStats_GetStatusEffectLevel("alt_speed_up")/100)
+		--speedMul = speedMul * (1+ent:InsaneStats_GetStatusEffectLevel("alt_speed_up")/100)
 		speedMul = speedMul * (1-ent:InsaneStats_GetStatusEffectLevel("speed_down")/100)
 		
 		if ent:InsaneStats_GetStatusEffectLevel("freeze") > 0
@@ -3010,11 +3029,11 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 				local shuntStrength = (bit.band(buttons,IN_SPEED)~=0 and ply:GetRunSpeed() or ply:GetWalkSpeed())
 				local Forward = (bit.band(buttons,IN_FORWARD)~=0 and 1 or 0) + (bit.band(buttons,IN_BACK)~=0 and -1 or 0)
 				if Forward~=0 then
-					horizontalVector:Add(ply:GetForward() * shuntStrength)
+					horizontalVector:Add(ply:GetForward() * shuntStrength * Forward)
 				end
-				local Right = (bit.band(buttons,IN_RIGHT)~=0 and 1 or 0) + (bit.band(buttons,IN_LEFT)~=0 and -1 or 0)
+				local Right = (bit.band(buttons,IN_MOVERIGHT)~=0 and 1 or 0) + (bit.band(buttons,IN_MOVELEFT)~=0 and -1 or 0)
 				if Right~=0 then
-					horizontalVector:Add(ply:GetRight() * shuntStrength)
+					horizontalVector:Add(ply:GetRight() * shuntStrength * Right)
 				end
 				local maxSpeed = movedata:GetMaxSpeed() * 1.5
 				if horizontalVector:LengthSqr() > maxSpeed^2 then

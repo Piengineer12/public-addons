@@ -63,44 +63,46 @@ end
 hook.Add("HUDPaint", "InsaneStatsCoins", function()
 	if InsaneStats:GetConVarValue("hud_coins_enabled") then
 		local ply = LocalPlayer()
-		local coins = ply:InsaneStats_GetCoins()
-		local mustShow = ply:KeyDown(IN_WALK)
-		local realTime = RealTime()
-		if oldCoins ~= coins then
-			if oldCoins then
-				lastCoinUpdate = realTime
+		if ply:IsSuitEquipped() then
+			local coins = ply:InsaneStats_GetCoins()
+			local mustShow = ply:KeyDown(IN_WALK)
+			local realTime = RealTime()
+			if oldCoins ~= coins then
+				if oldCoins then
+					lastCoinUpdate = realTime
+				end
+				oldCoins = coins
+			elseif mustShow then
+				lastCoinUpdate = math.max(lastCoinUpdate, realTime - 3.5)
 			end
-			oldCoins = coins
-		elseif mustShow then
-			lastCoinUpdate = math.max(lastCoinUpdate, realTime - 3.5)
-		end
-		local life = 5 + lastCoinUpdate - realTime
-		if life < 0 then
-			slowCoins = coins
-		else
-			surface.SetAlphaMultiplier(life)
-	
-			local popAmt = math.max(1, life - 3.75)
-			local scrW = ScrW()
-			local scrH = ScrH()
-			local x = scrW * InsaneStats:GetConVarValue("hud_coins_x") - 8
-			local y = scrH * InsaneStats:GetConVarValue("hud_coins_y") - 8
-	
-			local m = Matrix()
-			m:Translate(Vector(x, y, 0))
-			m:Scale(Vector(popAmt, popAmt, popAmt))
-			
-			render.PushFilterMag(TEXFILTER.ANISOTROPIC)
-			cam.PushModelMatrix(m, true)
+			local life = 5 + lastCoinUpdate - realTime
+			if life < 0 then
+				slowCoins = coins
+			else
+				surface.SetAlphaMultiplier(life)
+		
+				local popAmt = math.max(1, life - 3.75)
+				local scrW = ScrW()
+				local scrH = ScrH()
+				local x = scrW * InsaneStats:GetConVarValue("hud_coins_x") - 8
+				local y = scrH * InsaneStats:GetConVarValue("hud_coins_y") - 8
+		
+				local m = Matrix()
+				m:Translate(Vector(x, y, 0))
+				m:Scale(Vector(popAmt, popAmt, popAmt))
+				
+				render.PushFilterMag(TEXFILTER.ANISOTROPIC)
+				cam.PushModelMatrix(m, true)
 
-			local ok, err = pcall(DangerousPaint)
-	
-			cam.PopModelMatrix()
-			render.PopFilterMag()
-			surface.SetAlphaMultiplier(1)
+				local ok, err = pcall(DangerousPaint)
+		
+				cam.PopModelMatrix()
+				render.PopFilterMag()
+				surface.SetAlphaMultiplier(1)
 
-			if not ok then
-				error(err)
+				if not ok then
+					error(err)
+				end
 			end
 		end
 	end
@@ -300,6 +302,7 @@ local function CreateReforgePanel(parent, shopEntity)
 		local column = ModifierList:AddColumn("Modifier Name")
 		-- column.Header:SetFont("InsaneStats.Medium")
 		-- column.Header:SizeToContentsY(4)
+		column = ModifierList:AddColumn("Internal Name")
 		column = ModifierList:AddColumn("Stacks")
 		-- column.Header:SetFont("InsaneStats.Medium")
 		-- column.Header:SizeToContentsY(4)
@@ -333,7 +336,7 @@ local function CreateReforgePanel(parent, shopEntity)
 				local modifierName = modifiers[k] and (modifiers[k].suffix or modifiers[k].prefix) or k
 				local modifierMax = modifiers[k] and modifiers[k].max or "∞"
 				local modifierWeight = modifiers[k] and modifiers[k].weight or 1
-				ModifierList:AddLine(modifierName, v, modifierMax, modifierWeight * 100)
+				ModifierList:AddLine(modifierName, k, v, modifierMax, modifierWeight)
 			end
 			selectedEntity = value
 			ReforgeButton:Show()

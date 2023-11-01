@@ -312,54 +312,59 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 	end
 	
 	panelY = panelY + textOffsetY
-	
-	if not wep.insaneStats_AttributeOrder then error(wep.insaneStats_WPASS2Name, type(wep.insaneStats_WPASS2Name)) end
-	
-	local attribY1 = panelY + 2
-	local attribY2 = maxY
-	local excessY = math.max(#wep.insaneStats_AttributeOrder * InsaneStats.FONT_SMALL + attribY1 - attribY2 + outlineThickness*2, 0)
-	local holdTime = (attribY2 - attribY1) / InsaneStats.FONT_SMALL / 2
-	local pathDuration = holdTime + excessY / InsaneStats.FONT_SMALL
-	local animDuration = pathDuration * 2
-	local animCurrent = changeDuration % animDuration
-	
-	local offsetY
-	if animCurrent <= pathDuration or excessY == 0 then
-		offsetY = math.min(math.Remap(animCurrent, holdTime, pathDuration, 0, -excessY), 0)
-	else
-		offsetY = math.max(math.Remap(animCurrent, pathDuration + holdTime, animDuration, -excessY, 0), -excessY)
-	end
-	
-	--[[local sf1 = math.max(#wep.insaneStats_AttributeOrder - 4, 4)
-	local sf2 = (changeDuration + sf1) % (sf1 * 2) - sf1
-	local sf3 = math.Clamp(math.abs(sf2) - 2, 0, sf1-4)]]
-	
-	render.SetScissorRect(panelX, panelY+outlineThickness, panelX+maxW, maxY, true)
-	
-	for i,v in ipairs(wep.insaneStats_AttributeOrder) do
-		local textY = panelY + (i-1) * InsaneStats.FONT_SMALL + offsetY
-		-- don't bother if out of range
-		if textY > attribY1-InsaneStats.FONT_SMALL-4 and textY < attribY2+outlineThickness then
-			local attribValue = wep.insaneStats_Attributes[v]
-			if not attribValue then
-				PrintTable(wep.insaneStats_Attributes)
-			end
-			if not attributes[v] then error(v) end
-			
-			local displayColor = (attribValue < 1 == tobool(attributes[v].invert)) and color_light_blue or color_light_red
-			
-			local numberDisplay = InsaneStats:FormatNumber((attribValue-1)*(attributes[v].nopercent and 1 or 100), {plus = true, decimals = 1})
-				..(attributes[v].nopercent and "" or "%")
-			--[[if attribValue >= 10001 then
-				numberDisplay = InsaneStats:FormatNumber((attribValue-1)*100) .. " %"
-			end]]
-			local attribDisplay = string.format(attributes[v].display, numberDisplay)
-			
-			textOffsetX, textOffsetY = draw.SimpleTextOutlined(attribDisplay, "InsaneStats.Small", panelX+outlineThickness, textY+outlineThickness, displayColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, outlineThickness, color_black)
+
+	if LocalPlayer():IsSuitEquipped() then
+		if not wep.insaneStats_AttributeOrder then error(wep.insaneStats_WPASS2Name, type(wep.insaneStats_WPASS2Name)) end
+		
+		local attribY1 = panelY + 2
+		local attribY2 = maxY
+		local excessY = math.max(#wep.insaneStats_AttributeOrder * InsaneStats.FONT_SMALL + attribY1 - attribY2 + outlineThickness*2, 0)
+		local holdTime = (attribY2 - attribY1) / InsaneStats.FONT_SMALL / 2
+		local pathDuration = holdTime + excessY / InsaneStats.FONT_SMALL
+		local animDuration = pathDuration * 2
+		local animCurrent = changeDuration % animDuration
+		
+		local offsetY
+		if animCurrent <= pathDuration or excessY == 0 then
+			offsetY = math.min(math.Remap(animCurrent, holdTime, pathDuration, 0, -excessY), 0)
+		else
+			offsetY = math.max(math.Remap(animCurrent, pathDuration + holdTime, animDuration, -excessY, 0), -excessY)
 		end
+		
+		--[[local sf1 = math.max(#wep.insaneStats_AttributeOrder - 4, 4)
+		local sf2 = (changeDuration + sf1) % (sf1 * 2) - sf1
+		local sf3 = math.Clamp(math.abs(sf2) - 2, 0, sf1-4)]]
+		
+		render.SetScissorRect(panelX, panelY+outlineThickness, panelX+maxW, maxY, true)
+		
+		for i,v in ipairs(wep.insaneStats_AttributeOrder) do
+			local textY = panelY + (i-1) * InsaneStats.FONT_SMALL + offsetY
+			-- don't bother if out of range
+			if textY > attribY1-InsaneStats.FONT_SMALL-4 and textY < attribY2+outlineThickness then
+				local attribValue = wep.insaneStats_Attributes[v]
+				if not attribValue then
+					PrintTable(wep.insaneStats_Attributes)
+				end
+				local attribInfo = attributes[v]
+				if not attribInfo then error(v) end
+				
+				local displayColor = (attribValue < 1 == tobool(attribInfo.invert)) and color_light_blue or color_light_red
+				
+				local numberDisplay = InsaneStats:FormatNumber((attribValue-1)*(attribInfo.nopercent and 1 or 100), {plus = not attribInfo.noplus, decimals = 1})
+					..(attribInfo.nopercent and "" or "%")
+				--[[if attribValue >= 10001 then
+					numberDisplay = InsaneStats:FormatNumber((attribValue-1)*100) .. " %"
+				end]]
+				local attribDisplay = string.format(attribInfo.display, numberDisplay)
+				
+				textOffsetX, textOffsetY = draw.SimpleTextOutlined(attribDisplay, "InsaneStats.Small", panelX+outlineThickness, textY+outlineThickness, displayColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, outlineThickness, color_black)
+			end
+		end
+		
+		render.SetScissorRect(0, 0, 0, 0, false)
+	elseif next(wep.insaneStats_AttributeOrder) then
+		draw.SimpleTextOutlined("(H.E.V. suit required for details)", "InsaneStats.Small", panelX+outlineThickness, panelY, color_light_yellow, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, outlineThickness, color_black)
 	end
-	
-	render.SetScissorRect(0, 0, 0, 0, false)
 	surface.SetAlphaMultiplier(1)
 end
 
@@ -607,7 +612,7 @@ local ammoClasses = {
 	item_rpg_round = true,
 }
 timer.Create("InsaneStatsWPASS", 1, 0, function()
-	if InsaneStats:GetConVarValue("hud_wpass2_lootbeams") then
+	if InsaneStats:GetConVarValue("hud_wpass2_lootbeams") and LocalPlayer():IsSuitEquipped() then
 		for k,v in pairs(ents.GetAll()) do
 			if v:InsaneStats_IsWPASS2Pickup() and not IsValid(v:GetOwner()) and not v:IsDormant() then
 				if v.insaneStats_Modifiers then

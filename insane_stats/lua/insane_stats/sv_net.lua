@@ -56,7 +56,7 @@ local function BroadcastEntityUpdates()
 	
 	net.Start("insane_stats")
 	net.WriteUInt(1, 8)
-	local count = math.min(table.Count(entitiesRequireUpdate), 32)
+	local count = math.min(table.Count(entitiesRequireUpdate), 16)
 	net.WriteUInt(count, 8)
 	
 	for k,v in pairs(entitiesRequireUpdate) do

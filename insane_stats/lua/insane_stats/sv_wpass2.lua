@@ -5,7 +5,7 @@ InsaneStats.mergeEffectsToCheck = InsaneStats.mergeEffectsToCheck or {}
 concommand.Add("insanestats_wpass2_statuseffect", function(ply, cmd, args, argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
 		if #args < 1 then
-			InsaneStats:Log("Format: insanestats_wpass2_statuseffect <internalName> [level=1] [duration=10] [player=self]")
+			InsaneStats:Log("Format: insanestats_wpass2_statuseffect <internalName> [level=1] [duration=10] [entity=self]")
 		else
 			local status, level, duration = args[1], args[2], args[3]
 			local target = table.concat(args, " ", 4)
@@ -21,8 +21,8 @@ concommand.Add("insanestats_wpass2_statuseffect", function(ply, cmd, args, argSt
 				targets = IsValid(ply) and {ply} or player.GetAll()
 			else
 				targets = {}
-				for i,v in ipairs(player.GetAll()) do
-					if v:Nick() == target then
+				for k,v in pairs(ents.GetAll()) do
+					if v:GetName() == target then
 						table.insert(targets, v)
 					end
 				end
@@ -30,31 +30,109 @@ concommand.Add("insanestats_wpass2_statuseffect", function(ply, cmd, args, argSt
 			
 			if next(targets) then
 				for i,v in ipairs(targets) do
-					v:InsaneStats_ApplyStatusEffect(status, level, duration)
+					v:InsaneStats_ApplyStatusEffect(status, level, duration, {attacker = IsValid(ply) and ply or game.GetWorld()})
 				end
 			else
-				InsaneStats:Log("Could not find player \""..target.."\".")
+				InsaneStats:Log("Could not find entity named \""..target.."\".")
 			end
 		end
 	end
 end, function(cmd, argStr)
-	--                                                                                    [i]  [l]  [d]   [p]
-	local prevArgs, playerInput = string.match(argStr, "(insanestats_wpass2_statuseffect%s%S*%s%S*%s%S*%s)(.*)")
+	local _, internalName, level, duration, playerInput = unpack(string.Explode("%s", argStr, true))
 	if playerInput then
 		local suggestions = {}
-		playerInput = playerInput:Trim()
+		playerInput = playerInput:lower():Trim()
 		
-		for k,v in pairs(player.GetAll()) do
-			if string.StartsWith(v:Nick():Trim(), playerInput) then
-				table.insert(suggestions, prevArgs.." \""..v:Nick().."\"")
+		for k,v in pairs(ents.GetAll()) do
+			local entityName = v:GetName():Trim()
+			if entityName ~= "" and entityName:lower():StartsWith(playerInput) then
+				table.insert(suggestions, "insanestats_wpass2_statuseffect "..internalName.." "..level.." "..duration.." \""..entityName.."\"")
 			end
 		end
 		
+		table.sort(suggestions)
+		return suggestions
+	elseif internalName and not level then
+		local suggestions = {}
+		internalName = internalName:lower():Trim()
+		
+		for k,v in pairs(InsaneStats:GetAllStatusEffects()) do
+			if k:lower():StartsWith(internalName) then
+				table.insert(suggestions, "insanestats_wpass2_statuseffect "..k)
+			end
+		end
+		
+		table.sort(suggestions)
 		return suggestions
 	end
-end, "Applies a status effect to a player. If no player is specified, the effect will be applied to you, \z
+end, "Applies a status effect to a named entity. If no name is specified, the effect will be applied to you, \z
 or to all players when entered through the server console.\
-Format: insanestats_wpass2_statuseffect <internalName> [level=1] [duration=10] [player=self]")
+Format: insanestats_wpass2_statuseffect <internalName> [level=1] [duration=10] [entity=self]")
+
+concommand.Add("insanestats_wpass2_statuseffect_clear", function(ply, cmd, args, argStr)
+	if (not IsValid(ply) or ply:IsAdmin()) then
+		if #args < 1 then
+			InsaneStats:Log("Format: insanestats_wpass2_statuseffect_clear <internalName> [entity=self]")
+		else
+			local status = args[1]
+			local target = table.concat(args, " ", 2)
+
+			if not InsaneStats:GetStatusEffectInfo(status) then
+				return InsaneStats:Log("\""..status.."\" is not a valid status effect!")
+			end
+
+			local targets
+			if target == "" then
+				targets = IsValid(ply) and {ply} or player.GetAll()
+			else
+				targets = {}
+				for k,v in pairs(ents.GetAll()) do
+					if v:GetName() == target then
+						table.insert(targets, v)
+					end
+				end
+			end
+			
+			if next(targets) then
+				for i,v in ipairs(targets) do
+					v:InsaneStats_ClearStatusEffect(status)
+				end
+			else
+				InsaneStats:Log("Could not find entity named \""..target.."\".")
+			end
+		end
+	end
+end, function(cmd, argStr)
+	local _, internalName, playerInput = unpack(string.Explode("%s", argStr, true))
+	if playerInput then
+		local suggestions = {}
+		playerInput = playerInput:lower():Trim()
+		
+		for k,v in pairs(ents.GetAll()) do
+			local entityName = v:GetName():Trim()
+			if entityName ~= "" and entityName:lower():StartsWith(playerInput) then
+				table.insert(suggestions, "insanestats_wpass2_statuseffect_clear "..internalName.." \""..entityName.."\"")
+			end
+		end
+
+		table.sort(suggestions)
+		return suggestions
+	elseif internalName then
+		local suggestions = {}
+		internalName = internalName:lower():Trim()
+		
+		for k,v in pairs(InsaneStats:GetAllStatusEffects()) do
+			if k:lower():StartsWith(internalName) then
+				table.insert(suggestions, "insanestats_wpass2_statuseffect_clear "..k)
+			end
+		end
+		
+		table.sort(suggestions)
+		return suggestions
+	end
+end, "Clears a status effect from a named entity. If no name is specified, the effect will be cleared from you, \z
+or from all players when entered through the server console.\
+Format: insanestats_wpass2_statuseffect_clear <internalName> [entity=self]")
 
 hook.Add("InsaneStatsPostLoadWPASS", "InsaneStatsWPASS", function(modifiers, attributes, registeredEffects)
 	InsaneStats.mergeEffectsToCheck = {}
@@ -245,8 +323,12 @@ function InsaneStats:ApplyWPASS2Modifiers(wep)
 	end
 	
 	local modifierProbabilities = {}
+	local blacklistedModifiers = {}
+	for w in string.gmatch(InsaneStats:GetConVarValue("wpass2_modifiers_blacklist"), "%S+") do
+		blacklistedModifiers[w] = true
+	end
 	for k,v in pairs(modifiers) do
-		if not (v.flags and bit.band(inclusiveFlags, v.flags) ~= v.flags) then
+		if not (blacklistedModifiers[k] or v.flags and bit.band(inclusiveFlags, v.flags) ~= v.flags) then
 			local weight = v.weight or 1
 			-- if a modifier DOES NOT have bitflag 1 and inclusiveFlags DOES,
 			-- do not consider it, and vice versa
@@ -528,7 +610,7 @@ function PLAYER:InsaneStats_EquipBattery(item)
 		oldItem.insaneStats_StartTier = self.insaneStats_StartTier
 		oldItem.insaneStats_Tier = self.insaneStats_Tier
 		oldItem.insaneStats_Modifiers = self.insaneStats_Modifiers or {}
-		oldItem.insaneStats_NextPickup = CurTime() + 1
+		oldItem.insaneStats_NextPickup = CurTime() + 0.2
 		oldItem:SetPos(self:GetShootPos())
 		oldItem:Spawn()
 		InsaneStats:ApplyWPASS2Attributes(oldItem)
@@ -581,7 +663,7 @@ function PLAYER:InsaneStats_AttemptEquipItem(ent)
 				local class = ent:GetClass()
 				for i,v in ipairs(ents.FindInBox(mins, maxs)) do
 					if v:GetClass() == class and v ~= ent then
-						v.insaneStats_NextPickup = curTime + 1
+						v.insaneStats_NextPickup = curTime + 0.2
 					end
 				end
 				
@@ -643,6 +725,42 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsWPASS", function(ent)
 				end
 			end
 		end)
+
+		--[[if ent:GetClass() == "trigger_changelevel" then
+			ent:Fire("AddOutput", "OnChangeLevel !self:InsaneStatsChangeLevel::0:-1")
+		end]]
+	end
+end)
+
+hook.Add("AcceptInput", "InsaneStatsWPASS", function(ent, input, activator, caller, value)
+	input = input:lower()
+	if input == "insidetransition" or input == "outsidetransition" then
+		-- purge stats
+		ent.insaneStats_Health = nil
+		ent.insaneStats_MaxHealth = nil
+		ent.insaneStats_Armor = nil
+		ent.insaneStats_MaxArmor = nil
+		ent.insaneStats_CurrentHealthAdd = nil
+		ent.insaneStats_CurrentArmorAdd = nil
+		ent.insaneStats_XP = nil
+		ent.insaneStats_DropXP = nil
+		ent.insaneStats_BatteryXP = nil
+		ent.insaneStats_IsAlly = nil
+		ent.insaneStats_IsEnemy = nil
+		if input == "outsidetransition" then
+			local devEnabled = GetConVar("developer"):GetInt() > 0
+			if devEnabled and ent.insaneStats_Modifiers then
+				InsaneStats:Log(string.format("Purging %u modifiers from %s to save space!", table.Count(ent.insaneStats_Modifiers), tostring(ent)))
+			end
+			ent.insaneStats_Modifiers = nil
+			if devEnabled and ent.insaneStats_Attributes then
+				InsaneStats:Log(string.format("Purging %u attributes from %s to save space!", table.Count(ent.insaneStats_Attributes), tostring(ent)))
+			end
+			ent.insaneStats_Attributes = nil
+			if ent.insaneStats_IsProxyWeapon then
+				ent:Fire("Kill")
+			end
+		end
 	end
 end)
 
@@ -1020,10 +1138,10 @@ hook.Add("PlayerSpawn", "InsaneStatsWPASS", function(ply, fromTransition)
 								if plyWPASS2Data.healthArmorAndSuitStats.armor then
 									ply:SetArmor(plyWPASS2Data.healthArmorAndSuitStats.armor)
 								end
-								if plyWPASS2Data.healthArmorAndSuitStats.maxHealth > 0 then
+								if (plyWPASS2Data.healthArmorAndSuitStats.maxHealth or 0) > 0 then
 									ply:SetMaxHealth(plyWPASS2Data.healthArmorAndSuitStats.maxHealth)
 								end
-								if plyWPASS2Data.healthArmorAndSuitStats.maxArmor > 0 then
+								if (plyWPASS2Data.healthArmorAndSuitStats.maxArmor or 0) > 0 then
 									ply:SetMaxArmor(plyWPASS2Data.healthArmorAndSuitStats.maxArmor)
 								end
 								

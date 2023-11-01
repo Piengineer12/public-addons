@@ -54,7 +54,7 @@ function InsaneStats:TransitionUINumber(a, b)
 	end
 end
 
-local order = {"M", "B", "T", "Q", "Qt", "Sx", "Sp", "Oc", "No", "Dc"--[[,
+local order = {"M", "B", "T", "Q", "Qt", "Sx", "Sp", "Oc", "No", "De"--[[,
 "Un", "Du", "Te", "Qtd", "Qid", "Sed", "Spd", "Ocd", "Nod", "Vig",
 "Unv", "Duv", "Tiv", "Qtv", "Qiv", "Sev", "Spv", "Ocv", "Nov"]]}
 function InsaneStats:FormatNumber(number, data)
@@ -166,38 +166,43 @@ end
 InsaneStats:SetDefaultConVarCategory("Miscellaneous")
 
 InsaneStats:RegisterClientConVar("hud_scale", "insanestats_hud_scale", "1", {
-	display = "HUD Scale", desc = "Modifies HUD scale. A map restart is required for this to take effect.",
+	display = "HUD Scale", desc = "Modifies HUD scale.",
 	type = InsaneStats.FLOAT, min = 0.1, max = 10
+})
+InsaneStats:RegisterClientConVar("hud_font", "insanestats_hud_font", "Orbitron Medium", {
+	display = "HUD Font", desc = "Modifies HUD font.",
+	type = InsaneStats.STRING
 })
 
 local function GenerateFonts()
 	local scale = InsaneStats:GetConVarValue("hud_scale")
+	local font = InsaneStats:GetConVarValue("hud_font")
+
 	InsaneStats.FONT_SMALL = ScreenScale(6 * scale)
 	InsaneStats.FONT_MEDIUM = ScreenScale(8 * scale)
 	InsaneStats.FONT_BIG = ScreenScale(12 * scale)
 	
 	surface.CreateFont("InsaneStats.Small", {
-		font = "Orbitron Medium",
+		font = font,
 		size = InsaneStats.FONT_SMALL
 	})
-	
 	surface.CreateFont("InsaneStats.Medium", {
-		font = "Orbitron Medium",
+		font = font,
 		size = InsaneStats.FONT_MEDIUM
 	})
-	
 	surface.CreateFont("InsaneStats.Big", {
-		font = "Orbitron Medium",
+		font = font,
 		size = InsaneStats.FONT_BIG
 	})
 end
 
-GenerateFonts()
+GenerateFonts() -- FIXME: is this really necessary?
 
-local scale
+local scale, font
 timer.Create("InsaneStats", 1, 0, function()
-	if scale ~= InsaneStats:GetConVarValue("hud_scale") then
+	if scale ~= InsaneStats:GetConVarValue("hud_scale") or font ~= InsaneStats:GetConVarValue("hud_font") then
 		scale = InsaneStats:GetConVarValue("hud_scale")
+		font = InsaneStats:GetConVarValue("hud_font")
 		GenerateFonts()
 	end
 end)

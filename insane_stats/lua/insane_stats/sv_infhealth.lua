@@ -210,6 +210,7 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 	if not vic:IsVehicle() then
 		local multiplier = InsaneStats:DetermineDamageMul(vic, dmginfo)
 		dmginfo:ScaleDamage(multiplier)
+		--print(InsaneStats:GetDamage())
 		
 		if InsaneStats:GetConVarValue("infhealth_enabled") then
 			-- if armor is present and the entity is not a player, reduce raw damage
@@ -284,12 +285,10 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 							vic:InsaneStats_ApplyStatusEffect("invincible", 1, 0.25)
 						end
 					end
-					if healthRatio <= 0.5 then
-						vic.insaneStats_HitAtHalfHealth = true
-						if vic.insaneStats_PreventLethalDamage then
-							vic:InsaneStats_ApplyStatusEffect("invincible", 1, 10)
-							vic.insaneStats_PreventLethalDamage = nil
-						end
+					vic.insaneStats_HitAtHalfHealth = healthRatio <= 0.5
+					if vic.insaneStats_HitAtHalfHealth and vic.insaneStats_PreventLethalDamage then
+						vic:InsaneStats_ApplyStatusEffect("invincible", 1, 10)
+						vic.insaneStats_PreventLethalDamage = nil
 					end
 				end
 			end
@@ -329,7 +328,6 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 			
 			--print(armorDamage)
 			
-			--print(healthDamage, armorDamage)
 			if healthDamage == 0 and armorDamage == 0 then -- calculate damage from total HP
 				healthDamage = rawHealthDamage
 				
