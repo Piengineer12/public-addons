@@ -1,8 +1,8 @@
 local commonHelpText = 'Format: <color1> <duration1> <color2> <duration2> <color3> <duration3> ...\nColors must be specified in RGB or RRGGBB hexadecimal formats, or be one of (without quotes) "r", "g", "b", "c", "m", "y", "k", "u" or "w". \z\nThe RRRRGGGGBBBB hexadecimal format is also accepted for color overclocking. Note that values above 32767 are subtracted by 65536, leading to color underclocking.\n"+" is also accepted, which uses the previous color.\nDuration specifies how many seconds it takes to blend between colors. Decimal values are allowed.'
-local playerEnabledConVar = CreateClientConVar('capawc_player_colors_enabled', '1', true, true, 'Enables player color animation.', 0, 1)
-local weaponEnabledConVar = CreateClientConVar('capawc_weapon_colors_enabled', '1', true, true, 'Enables weapon color animation.', 0, 1)
-local playerColorConVar = CreateClientConVar('capawc_player_colors', 'F00 2 FF0 2 0F0 2 0FF 2 00F 2 F0F 2', true, false, 'Sets your player colors.\n' .. commonHelpText)
-local weaponColorConVar = CreateClientConVar('capawc_weapon_colors', 'F11 4 1F1 4 11F 4', true, false, 'Sets your weapon colors.\n' .. commonHelpText)
+local playerEnabledConVar = CreateClientConVar('capawc_cl_player_colors_enabled', '1', true, true, 'Enables player color animation.', 0, 1)
+local weaponEnabledConVar = CreateClientConVar('capawc_cl_weapon_colors_enabled', '1', true, true, 'Enables weapon color animation.', 0, 1)
+local playerColorConVar = CreateClientConVar('capawc_cl_player_colors', 'F00 2 FF0 2 0F0 2 0FF 2 00F 2 F0F 2', true, false, 'Sets your player colors.\n' .. commonHelpText)
+local weaponColorConVar = CreateClientConVar('capawc_cl_weapon_colors', 'F11 4 1F1 4 11F 4', true, false, 'Sets your weapon colors.\n' .. commonHelpText)
 local WriteColorAnimation
 WriteColorAnimation = function(animatedColors)
   local halfNumAC = #animatedColors / 2
@@ -94,7 +94,7 @@ InterpretColorDurationString = function(colorDurationString)
   end
   return true, animatedColors
 end
-cvars.AddChangeCallback('capawc_player_colors', (function(name, oldValue, newValue)
+cvars.AddChangeCallback('capawc_cl_player_colors', (function(name, oldValue, newValue)
   local success, animatedColors = InterpretColorDurationString(newValue)
   if success then
     net.Start('capawc')
@@ -105,7 +105,7 @@ cvars.AddChangeCallback('capawc_player_colors', (function(name, oldValue, newVal
     return chat.AddText(Color(255, 63, 63), animatedColors)
   end
 end), 'capawc')
-cvars.AddChangeCallback('capawc_weapon_colors', (function(name, oldValue, newValue)
+cvars.AddChangeCallback('capawc_cl_weapon_colors', (function(name, oldValue, newValue)
   local success, animatedColors = InterpretColorDurationString(newValue)
   if success then
     local halfNumAC = #animatedColors / 2
@@ -135,6 +135,126 @@ ReloadColorAnimations = function()
   end
 end
 ReloadColorAnimations()
-return hook.Add('InitPostEntity', 'capawc', function()
+hook.Add('InitPostEntity', 'capawc', function()
   ReloadColorAnimations()
+end)
+return hook.Add('CCVCCMRun', 'capawc', function()
+  do
+    local _with_0 = CCVCCM
+    _with_0:SetAddon('capawc', 'CAPAWC')
+    _with_0:PushCategory('cl', 'Client', true)
+    _with_0:AddConVar('player_colors_enabled', {
+      realm = 'client',
+      default = true,
+      name = 'Enable Player Color Animation',
+      type = 'bool',
+      userInfo = true
+    })
+    _with_0:AddAddonVar('player_colors', {
+      realm = 'client',
+      default = {
+        {
+          'F00',
+          2
+        },
+        {
+          'FF0',
+          2
+        },
+        {
+          '0F0',
+          2
+        },
+        {
+          '0FF',
+          2
+        },
+        {
+          '00F',
+          2
+        },
+        {
+          'F0F',
+          2
+        }
+      },
+      typeInfo = {
+        help = 'Sets your player colors.\nColor ' .. commonHelpText,
+        {
+          name = 'Color',
+          type = 'string'
+        },
+        {
+          name = 'Blend Duration',
+          type = 'number',
+          min = 0,
+          max = 60
+        }
+      },
+      name = 'Player Colors',
+      func = function(value)
+        return playerColorConVar:SetString(table.concat((function()
+          local _accum_0 = { }
+          local _len_0 = 1
+          for _index_0 = 1, #value do
+            local valueParts = value[_index_0]
+            _accum_0[_len_0] = tostring(valueParts[1]) .. " " .. tostring(valueParts[2])
+            _len_0 = _len_0 + 1
+          end
+          return _accum_0
+        end)(), ' '))
+      end
+    })
+    _with_0:AddConVar('weapon_colors_enabled', {
+      realm = 'client',
+      default = true,
+      name = 'Enable Weapon Color Animation',
+      type = 'bool',
+      userInfo = true
+    })
+    _with_0:AddAddonVar('weapon_colors', {
+      realm = 'client',
+      default = {
+        {
+          'F11',
+          4
+        },
+        {
+          '1F1',
+          4
+        },
+        {
+          '11F',
+          4
+        }
+      },
+      typeInfo = {
+        help = 'Sets your weapon colors.\nColor ' .. commonHelpText,
+        {
+          name = 'Color',
+          type = 'string'
+        },
+        {
+          name = 'Blend Duration',
+          type = 'number',
+          min = 0,
+          max = 60
+        }
+      },
+      name = 'Weapon Colors',
+      func = function(value)
+        return weaponColorConVar:SetString(table.concat((function()
+          local _accum_0 = { }
+          local _len_0 = 1
+          for _index_0 = 1, #value do
+            local valueParts = value[_index_0]
+            _accum_0[_len_0] = tostring(valueParts[1]) .. " " .. tostring(valueParts[2])
+            _len_0 = _len_0 + 1
+          end
+          return _accum_0
+        end)(), ' '))
+      end
+    })
+    return _with_0
+  end
 end)

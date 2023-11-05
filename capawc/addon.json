@@ -1,7 +1,7 @@
 {
-	"title": "Customizable ConVar and ConCommand Manager",
-	"type": "tool",
-	"tags": ["build"],
+	"title": "Customizable Animated Player and Weapon Colors",
+	"type": "effects",
+	"tags": ["cartoon"],
 	"ignore": [
 		"*.moon",
 		"media/*",

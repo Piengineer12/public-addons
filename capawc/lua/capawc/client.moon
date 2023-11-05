@@ -4,16 +4,16 @@ The RRRRGGGGBBBB hexadecimal format is also accepted for color overclocking. Not
 "+" is also accepted, which uses the previous color.
 Duration specifies how many seconds it takes to blend between colors. Decimal values are allowed.'
 
-playerEnabledConVar = CreateClientConVar 'capawc_player_colors_enabled', '1', true, true,
+playerEnabledConVar = CreateClientConVar 'capawc_cl_player_colors_enabled', '1', true, true,
 	'Enables player color animation.', 0, 1
 
-weaponEnabledConVar = CreateClientConVar 'capawc_weapon_colors_enabled', '1', true, true,
+weaponEnabledConVar = CreateClientConVar 'capawc_cl_weapon_colors_enabled', '1', true, true,
 	'Enables weapon color animation.', 0, 1
 
-playerColorConVar = CreateClientConVar 'capawc_player_colors', 'F00 2 FF0 2 0F0 2 0FF 2 00F 2 F0F 2', true, false,
+playerColorConVar = CreateClientConVar 'capawc_cl_player_colors', 'F00 2 FF0 2 0F0 2 0FF 2 00F 2 F0F 2', true, false,
 	'Sets your player colors.\n'..commonHelpText
 
-weaponColorConVar = CreateClientConVar 'capawc_weapon_colors', 'F11 4 1F1 4 11F 4', true, false,
+weaponColorConVar = CreateClientConVar 'capawc_cl_weapon_colors', 'F11 4 1F1 4 11F 4', true, false,
 	'Sets your weapon colors.\n'..commonHelpText
 
 WriteColorAnimation = (animatedColors) ->
@@ -92,7 +92,7 @@ InterpretColorDurationString = (colorDurationString) ->
 	
 	true, animatedColors
 
-cvars.AddChangeCallback 'capawc_player_colors', ((name, oldValue, newValue) ->
+cvars.AddChangeCallback 'capawc_cl_player_colors', ((name, oldValue, newValue) ->
 	success, animatedColors = InterpretColorDurationString newValue
 	if success
 		net.Start 'capawc'
@@ -101,7 +101,7 @@ cvars.AddChangeCallback 'capawc_player_colors', ((name, oldValue, newValue) ->
 		net.SendToServer!
 	else chat.AddText Color(255, 63, 63), animatedColors
 ), 'capawc'
-cvars.AddChangeCallback 'capawc_weapon_colors', ((name, oldValue, newValue) ->
+cvars.AddChangeCallback 'capawc_cl_weapon_colors', ((name, oldValue, newValue) ->
 	success, animatedColors = InterpretColorDurationString newValue
 	if success
 		halfNumAC = #animatedColors / 2
@@ -132,3 +132,73 @@ ReloadColorAnimations!
 hook.Add 'InitPostEntity', 'capawc', ->
 	ReloadColorAnimations!
 	return
+
+hook.Add 'CCVCCMRun', 'capawc', ->
+	with CCVCCM
+		\SetAddon 'capawc', 'CAPAWC'
+		\PushCategory 'cl', 'Client', true
+		\AddConVar 'player_colors_enabled', {
+			realm: 'client'
+			default: true
+			name: 'Enable Player Color Animation'
+			type: 'bool'
+			userInfo: true
+		}
+		\AddAddonVar 'player_colors', {
+			realm: 'client'
+			default: {
+				{'F00', 2}
+				{'FF0', 2}
+				{'0F0', 2}
+				{'0FF', 2}
+				{'00F', 2}
+				{'F0F', 2}
+			}
+			typeInfo: {
+				help: 'Sets your player colors.\nColor '..commonHelpText
+				{
+					name: 'Color'
+					type: 'string'
+				}
+				{
+					name: 'Blend Duration'
+					type: 'number'
+					min: 0
+					max: 60
+				}
+			}
+			name: 'Player Colors'
+			func: (value) ->
+				playerColorConVar\SetString table.concat ["#{valueParts[1]} #{valueParts[2]}" for valueParts in *value], ' '
+		}
+		\AddConVar 'weapon_colors_enabled', {
+			realm: 'client'
+			default: true
+			name: 'Enable Weapon Color Animation'
+			type: 'bool'
+			userInfo: true
+		}
+		\AddAddonVar 'weapon_colors', {
+			realm: 'client'
+			default: {
+				{'F11', 4}
+				{'1F1', 4}
+				{'11F', 4}
+			}
+			typeInfo: {
+				help: 'Sets your weapon colors.\nColor '..commonHelpText
+				{
+					name: 'Color'
+					type: 'string'
+				}
+				{
+					name: 'Blend Duration'
+					type: 'number'
+					min: 0
+					max: 60
+				}
+			}
+			name: 'Weapon Colors'
+			func: (value) ->
+				weaponColorConVar\SetString table.concat ["#{valueParts[1]} #{valueParts[2]}" for valueParts in *value], ' '
+		}

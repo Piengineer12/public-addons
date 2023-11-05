@@ -1,10 +1,10 @@
 local playerAnimationPlayerData = { }
 local weaponAnimationPlayerData = { }
-local minBlendTimeConVar = CreateConVar('capawc_minimum_blend_time', '0', FCVAR_ARCHIVE, 'Minimum time between color blends. This is ignored when "blending" two colors that are the same.', 0, 2)
-local botConVar = CreateConVar('capawc_bots', '1', FCVAR_ARCHIVE, 'Should bots be affected? Note that bots will simply have rainbow colors.', 0, 1)
-local gamemodeBlacklistConVar = CreateConVar('capawc_gamemode_blacklist', '', FCVAR_ARCHIVE, 'Player colors will never be animated in these gamemodes. This has no effect on weapon colors.')
-local gamemodeWhitelistConVar = CreateConVar('capawc_gamemode_whitelist', 'base sandbox cinema elevator jazztronauts', FCVAR_ARCHIVE, 'Player colors will be animated in these gamemodes when the gamemode whitelist is enabled.')
-local gamemodeWhitelistEnabledConVar = CreateConVar('capawc_gamemode_whitelist_enabled', 0, FCVAR_ARCHIVE, 'Player colors will only be animated in the gamemodes specified by capawc_gamemode_whitelist.')
+local minBlendTimeConVar = CreateConVar('capawc_sv_minimum_blend_time', '0', FCVAR_ARCHIVE, 'Minimum time between color blends. This is ignored when "blending" two colors that are the same.', 0, 2)
+local botConVar = CreateConVar('capawc_sv_bots', '1', FCVAR_ARCHIVE, 'Should bots be affected? Note that bots will simply have rainbow colors.', 0, 1)
+local gamemodeBlacklistConVar = CreateConVar('capawc_sv_gamemode_blacklist', '', FCVAR_ARCHIVE, 'Player colors will never be animated in these gamemodes. This has no effect on weapon colors.')
+local gamemodeWhitelistConVar = CreateConVar('capawc_sv_gamemode_whitelist', 'base sandbox cinema elevator jazztronauts', FCVAR_ARCHIVE, 'Player colors will be animated in these gamemodes when the gamemode whitelist is enabled.')
+local gamemodeWhitelistEnabledConVar = CreateConVar('capawc_sv_gamemode_whitelist_enabled', 0, FCVAR_ARCHIVE, 'Player colors will only be animated in the gamemodes specified by capawc_sv_gamemode_whitelist.')
 local gamemodeEnables = false
 local RecheckGamemodeEnabledState
 RecheckGamemodeEnabledState = function()
@@ -33,7 +33,7 @@ RecheckGamemodeEnabledState = function()
     end
   end)
 end
-cvars.AddChangeCallback('capawc_minimum_blend_time', (function(name, oldValue, newValue)
+cvars.AddChangeCallback('capawc_sv_minimum_blend_time', (function(name, oldValue, newValue)
   for ply, animationData in pairs(playerAnimationPlayerData) do
     animationData[3] = nil
   end
@@ -41,9 +41,9 @@ cvars.AddChangeCallback('capawc_minimum_blend_time', (function(name, oldValue, n
     animationData[3] = nil
   end
 end), 'capawc')
-cvars.AddChangeCallback('capawc_gamemode_blacklist', RecheckGamemodeEnabledState, 'capawc')
-cvars.AddChangeCallback('capawc_gamemode_whitelist', RecheckGamemodeEnabledState, 'capawc')
-cvars.AddChangeCallback('capawc_gamemode_whitelist_enabled', RecheckGamemodeEnabledState, 'capawc')
+cvars.AddChangeCallback('capawc_sv_gamemode_blacklist', RecheckGamemodeEnabledState, 'capawc')
+cvars.AddChangeCallback('capawc_sv_gamemode_whitelist', RecheckGamemodeEnabledState, 'capawc')
+cvars.AddChangeCallback('capawc_sv_gamemode_whitelist_enabled', RecheckGamemodeEnabledState, 'capawc')
 hook.Add('InitPostEntity', 'capawc', RecheckGamemodeEnabledState)
 local TranslateAndOptimize
 TranslateAndOptimize = function(animationColors)
@@ -133,12 +133,12 @@ return hook.Add('Think', 'capawc', function()
     local ply = _list_0[_index_0]
     if not ply:IsBot() or botConVar:GetBool() then
       local animationData = playerAnimationPlayerData[ply]
-      if animationData and gamemodeEnables and tobool(ply:GetInfo('capawc_player_colors_enabled')) then
+      if animationData and gamemodeEnables and tobool(ply:GetInfo('capawc_cl_player_colors_enabled')) then
         local color = GetCurrentColorByAnimationData(animationData)
         ply:SetPlayerColor(color)
       end
       animationData = weaponAnimationPlayerData[ply]
-      if animationData and tobool(ply:GetInfo('capawc_weapon_colors_enabled')) then
+      if animationData and tobool(ply:GetInfo('capawc_cl_weapon_colors_enabled')) then
         local color = GetCurrentColorByAnimationData(animationData)
         ply:SetWeaponColor(color)
       end
