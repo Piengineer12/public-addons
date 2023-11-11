@@ -1,23 +1,26 @@
 --[[
 Workshop:		https://steamcommunity.com/sharedfiles/filedetails/?id=2403043112
 Profile Page:	https://steamcommunity.com/id/Piengineer12
-GitHub Page:	https://github.com/Piengineer12/public-addons/tree/master/lua_repair
+GitHub Page:	https://github.com/Piengineer12/public-addons/tree/master/lua_patcher
 Donate:			https://ko-fi.com/piengineer12
 
 Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 format. 
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_REPAIR_VERSION = "2.0.7"
-LUA_REPAIR_VERSION_DATE = "2023-09-28"
+LUA_PATCHER_VERSION = "2.1.0"
+LUA_PATCHER_VERSION_DATE = "2023-11-11"
+LUA_REPAIR_VERSION = LUA_PATCHER_VERSION
+LUA_REPAIR_VERSION_DATE = LUA_PATCHER_VERSION_DATE
 
 local FIXED
+local color_red = Color(255, 0, 0)
 local color_aqua = Color(0, 255, 255)
-local conVarLogging = CreateConVar("lua_repair_logging", "0", FCVAR_ARCHIVED, "Enables Lua Repair logging.")
+local conVarLogging = CreateConVar("lua_patcher_logging", "0", FCVAR_ARCHIVED, "Enables Lua Patcher logging.")
 local lastError = 0
 
 local function Log(...)
-	local message = {color_aqua, "[Lua Repair ", SERVER and "Server] " or "Client] ", color_white, ...}
+	local message = {color_aqua, "[Lua Patcher ", SERVER and "Server] " or "Client] ", color_white, ...}
 	table.insert(message, '\n')
 	MsgC(unpack(message))
 end
@@ -25,7 +28,7 @@ end
 local function LogError(...)
 	if conVarLogging:GetBool() and lastError < RealTime() and not string.find(debug.traceback(), "'pcall'") then
 		lastError = RealTime() + 1
-		local message = {color_aqua, "[Lua Repair ", SERVER and "Server] " or "Client] ", color_white, ...}
+		local message = {color_aqua, "[Lua Patcher ", SERVER and "Server] " or "Client] ", color_white, ...}
 		table.insert(message, '\n')
 		MsgC(unpack(message))
 		debug.Trace()
@@ -34,8 +37,8 @@ end
 
 -- aaand pretty much everything here is dangerous
 local function FixAllErrors()
-	if LUA_REPAIR_FIXED then return end
-	Log("Loading Lua Repair by Piengineer12, version "..LUA_REPAIR_VERSION.." ("..LUA_REPAIR_VERSION_DATE..")")
+	if LUA_PATCHER_FIXED then return end
+	Log("Loading Lua Patcher by Piengineer12, version "..LUA_PATCHER_VERSION.." ("..LUA_PATCHER_VERSION_DATE..")")
 	
 	Log("Patching primitives...")
 	local NIL = getmetatable(nil) or {}
@@ -182,8 +185,6 @@ local function FixAllErrors()
 	end
 	
 	debug.setmetatable(nil,NIL)
-	--debug.setmetatable("",STRING)
-	--debug.setmetatable(0,NUMBER)
 	
 	local oldadd,oldsub = VECTOR.__add,VECTOR.__sub
 	local oldmul,olddiv = VECTOR.__mul,VECTOR.__div
@@ -215,7 +216,6 @@ local function FixAllErrors()
 	local oldGC = ENTITY.GetClass
 	ENTITY.GetClass = function(ent, ...)
 		if not IsValid(ent) then
-			--LogError("Some code attempted to get the class of a NULL entity.")
 			return ent.__tostring(ent, ...)
 		else return oldGC(ent, ...)
 		end
@@ -259,16 +259,6 @@ local function FixAllErrors()
 			return unpack(retValues)
 		end
 	end
-	--[[local oldindex = NULL_META.__index
-	NULL_META.__index = function(ent,key)
-		if rawget() then
-			local args = {pcall(oldindex,ent,key)}
-			if not args[1] then
-				error("Attempt to call \""..key.."\" on a NULL entity (tell the owner of \"Lua and Model Error Fixers\" about it!)")
-			end
-		else return oldindex(ent,key)
-		end
-	end]]
 	local oldPhysicsAttacker = ENTITY.SetPhysicsAttacker
 	ENTITY.SetPhysicsAttacker = function(ent, attacker, ...)
 		if attacker:IsPlayer() then
@@ -280,17 +270,24 @@ local function FixAllErrors()
 		end
 	end
 	local oldSetColor = ENTITY.SetColor
-	ENTITY.SetColor = function(ent, ...)
+	ENTITY.SetColor = function(ent, col, ...)
 		if not IsValid(ent) then
 			LogError("Some code attempted to set the color of a NULL entity.")
-		else return oldSetColor(ent, ...)
+		else
+			local useCol = col
+			if not (col.r and col.g and col.b and col.a) then
+				LogError("Some code attempted to set the color of an entity with an invalid table.")
+				useCol = Color(tonumber(col.r) or 255, tonumber(col.g) or 255, tonumber(col.b) or 255, tonumber(col.a) or 255)
+			end
+			return oldSetColor(ent, useCol, ...)
 		end
 	end
 	local oldSetColor4Part = ENTITY.SetColor4Part
-	ENTITY.SetColor4Part = function(ent, ...)
+	ENTITY.SetColor4Part = function(ent, r, g, b, a, ...)
 		if not IsValid(ent) then
 			LogError("Some code attempted to set the color of a NULL entity.")
-		else return oldSetColor4Part(ent, ...)
+		else
+			return oldSetColor4Part(ent, r, g, b, a, ...)
 		end
 	end
 	local oldGetBoneCount = ENTITY.GetBoneCount
@@ -454,7 +451,7 @@ local function FixAllErrors()
 			return select(2, unpack(retValues))
 		else
 			LogError("Caught a net.Start error: "..retValues[2])
-			return oldNetStart("lua_repair")
+			return oldNetStart("lua_patcher")
 		end
 	end
 
@@ -539,28 +536,17 @@ local function FixAllErrors()
 		end
 	end
 	if DLib then
-		DLib.MessageWarning("DLib hook system is being overwritten by another addon - THIS IS STUPID AND WILL CAUSE ERRORS")
+		DLib.MessageWarning("DLib hook system is being overwritten by another addon - THIS IS STUPID AND WILL CAUSE ERRORS!")
 		Log("DLib, shut up and hold still...")
 	end
 	Log("Hooks patched!")
-	LUA_REPAIR_FIXED = true
+	LUA_PATCHER_FIXED = true
 	
 	Log("Waiting for all other addons to load...")
 	local startWaitTime = SysTime()
 	timer.Simple(0,function()
 		Log(string.format("Waited %.2f seconds. Hopefully all other addons have initialized by now.", SysTime()-startWaitTime))
 		Log("Patching console commands...")
-		
-		--[[local shouldBlockCommands = {
-			["con_filter_enable"] = true,
-			["con_filter_text_out"] = true,
-			["crosshair"] = true,
-			["sv_cheats"] = true,
-			["mp_flashlight"] = true
-		}
-		local shouldBlockCommandsClientPlayer = {
-			["con_filter_text_out"] = true
-		}]]
 		
 		local function ReportBlockedCommand(cmd)
 			LogError("An addon tried to use the console command "..cmd.." which is not allowed.")
@@ -573,10 +559,6 @@ local function FixAllErrors()
 				ReportBlockedCommand(cmd)
 			else
 				oldRunConsoleCommand(cmd, ...)
-				--[[local resultTab = {pcall(oldRunConsoleCommand, cmd, ...)}
-				if not resultTab[1] then
-					ReportBlockedCommand(cmd)
-				end]]
 			end
 		end
 		local oldGameConsoleCommand = game.ConsoleCommand
@@ -591,10 +573,6 @@ local function FixAllErrors()
 				ReportBlockedCommand(cmd)
 			else
 				oldGameConsoleCommand(cmdStr, ...)
-				--[[local resultTab = {pcall(oldGameConsoleCommand, cmdStr, ...)}
-				if not resultTab[1] then
-					ReportBlockedCommand(cmd)
-				end]]
 			end
 		end
 		local PLAYER = FindMetaTable("Player")
@@ -611,10 +589,6 @@ local function FixAllErrors()
 					ReportBlockedCommand(cmd)
 				else
 					oldConCommand(self, cmdStr, ...)
-					--[[local resultTab = {pcall(oldConCommand, cmdStr, ...)}
-					if not resultTab[1] then
-						ReportBlockedCommand(cmd)
-					end]]
 				end
 			end
 		end
@@ -629,68 +603,45 @@ local function FixAllErrors()
 		Log("Console commands patched!")
 	
 		if SERVER then
-			Log("Lua has been repaired! Remember that if you are a Lua developer, please disable this addon or your users may get errors from your code!")
+			Log("Lua has been patched! Remember that if you are a Lua developer, please disable this addon or your users may get errors from your code!")
 		end
 		if CLIENT then
-			Log("Lua has been repaired! If you still see errors, remember to report the full error message to the creator of Lua Repair!")
+			Log("Lua has been patched! Remember that if you are a Lua developer, please disable this addon or your users may get errors from your code!")
 		end
 	end)
 end
 
 FixAllErrors()
 
---[[function SetAutoFix(bool)
-	if bool then
-		cookie.Delete("dont_lua_repair")
-	else
-		cookie.Set("dont_lua_repair", 1)
-	end
-end
-
-function GetAutoFix()
-	return not cookie.GetString("dont_lua_repair")
-end
-
-if GetAutoFix() then
-	FixAllErrors()
-end]]
-
-if SERVER then util.AddNetworkString("lua_repair") end
+if SERVER then util.AddNetworkString("lua_patcher") end
 
 if CLIENT then
-	concommand.Add("lua_repair_run",function(ply,cmd,args,str)
+	concommand.Add("lua_patcher_run",function(ply,cmd,args,str)
 		FixAllErrors()
-		net.Start("lua_repair")
+		net.Start("lua_patcher")
 		net.SendToServer()
 	end)
 end
 
-net.Receive("lua_repair",function()
+net.Receive("lua_patcher",function()
 	FixAllErrors()
 end)
 
-hook.Add("AddToolMenuCategories","lua_repair",function()
-	spawnmenu.AddToolCategory("Utilities","lua_repair","Lua Repair")
+hook.Add("AddToolMenuCategories","lua_patcher",function()
+	spawnmenu.AddToolCategory("Utilities","lua_patcher","Lua Patcher")
 end)
 
-hook.Add("OnReloaded","lua_repair",function()
+hook.Add("OnReloaded","lua_patcher",function()
 	if FIXED and CLIENT then
-		chat.AddText(Color(255,0,0),"Make sure to turn off Lua Repair first before editing your Lua files!")
+		chat.AddText(color_red,"Remember to turn off Lua Patcher first before editing your Lua files!")
 	end
 end)
 
-hook.Add("PopulateToolMenu","lua_repair",function()
-	spawnmenu.AddToolMenuOption("Utilities","lua_repair","lua_repair","Lua Repair","","",function(DForm)
+hook.Add("PopulateToolMenu","lua_patcher",function()
+	spawnmenu.AddToolMenuOption("Utilities","lua_patcher","lua_patcher","Lua Patcher","","",function(DForm)
 		local DLabel = DForm:Help("WARNING: If you are a Lua developer, or want to report an addon bug, make sure that this WHOLE addon is DISABLED before testing!")
-		DLabel:SetTextColor(Color(255,0,0))
-		DForm:CheckBox("Enable Error Logging", "lua_repair_logging")
-		DForm:Button("Run Lua Repair","lua_repair_run")
-		--[[local checkBoxLabel = vgui.Create("DCheckBoxLabel")
-		checkBoxLabel:SetText("Run On Startup")
-		checkBoxLabel:SetValue(GetAutoFix())
-		function checkBoxLabel:OnChange(bool)
-			SetAutoFix(bool)
-		end
-		DForm:AddItem(checkBoxLabel)]]
+		DLabel:SetTextColor(color_red)
+		DForm:CheckBox("Enable Error Logging", "lua_patcher_logging")
+		DForm:Button("Run Lua Patcher","lua_patcher_run")
 	end)
 end)
