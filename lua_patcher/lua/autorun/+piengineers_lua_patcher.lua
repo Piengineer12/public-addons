@@ -8,8 +8,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_PATCHER_VERSION = "2.1.0"
-LUA_PATCHER_VERSION_DATE = "2023-11-11"
+LUA_PATCHER_VERSION = "2.1.1"
+LUA_PATCHER_VERSION_DATE = "2023-12-05"
 LUA_REPAIR_VERSION = LUA_PATCHER_VERSION
 LUA_REPAIR_VERSION_DATE = LUA_PATCHER_VERSION_DATE
 
@@ -119,7 +119,7 @@ local function FixAllErrors()
 	local oldPairs = pairs
 	pairs = function(tab, ...)
 		if not tab then
-			LogError("Some code attempted to iterate over an empty table.")
+			LogError("Some code attempted to iterate over nothing.")
 		end
 		tab = tab or {}
 		return oldPairs(tab, ...)
@@ -269,10 +269,19 @@ local function FixAllErrors()
 			LogError("Some code attempted to set the physics attacker of an entity to a non-player.")
 		end
 	end
+	local oldSetBodyGroups = ENTITY.SetBodyGroups
+	ENTITY.SetBodyGroups = function(ent, bodygroups, ...)
+		if not bodygroups then
+			LogError("Some code attempted to call Entity:SetBodyGroups() without valid string.")
+		end
+		return oldSetBodyGroups(ent, bodygroups or "", ...)
+	end
 	local oldSetColor = ENTITY.SetColor
 	ENTITY.SetColor = function(ent, col, ...)
 		if not IsValid(ent) then
 			LogError("Some code attempted to set the color of a NULL entity.")
+		elseif not istable(col) then
+			LogError("Some code attempted to set the color of an entity with a non-table value.")
 		else
 			local useCol = col
 			if not (col.r and col.g and col.b and col.a) then
@@ -410,6 +419,10 @@ local function FixAllErrors()
 			LogError("Some code attempted to call CreateConVar with non-number max argument.")
 			max = nil
 		end
+		if not isstring(helptext) then
+			helptext = tostring(helptext)
+			LogError("Some code attempted to call CreateConVar with non-string help text.")
+		end
 		return oldCreateConVar(name, default, flags, helptext, min, max, ...)
 	end
 
@@ -474,6 +487,15 @@ local function FixAllErrors()
 	end
 	
 	if CLIENT then
+		local oldCreateParticleSystem = CreateParticleSystem
+		function CreateParticleSystem(ent, effect, partAttachment, entAttachment, offset)
+			if not isvector(offset) then
+				offset = Vector(0, 0, 0)
+				LogError("Some code attempted to call CreateParticleSystem with an invalid offset argument.")
+			end
+			return oldCreateParticleSystem(ent, effect, partAttachment, entAttachment, offset)
+		end
+
 		local oldIsKeyDown = input.IsKeyDown
 		function input.IsKeyDown(key, ...)
 			if not key then
