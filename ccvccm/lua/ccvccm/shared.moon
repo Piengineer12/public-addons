@@ -637,7 +637,8 @@ CCVCCM.GetVarValue = (fullName, ply) =>
 							when 'float'
 								conVar\GetFloat!
 							else
-								conVar\GetString!
+								retValue = conVar\GetString!
+								retValue == '#empty' and '' or retValue
 			when 'addonvar'
 				if userInfo and SERVER
 					CCVCCM\_GetUserInfoVar fullName, ply

@@ -1,6 +1,7 @@
 local ENUMS
 ENUMS = CCVCCM.ENUMS
 local GetBitflagFromIndices, BasePanel, CustomNumSlider, CustomPanelContainer, SavablePanel, ContentPanel, TextPanel, CategoryPanel, TabPanel, CAVACPanel, CCVCCPanel, BaseUI, ManagerUI, AddElementUI, EditIconUI, MultilineTextUI, ListInputUI, ProgressUI, LoadUI
+CreateClientConVar('ccvccm_layout_editing', 1, true, false, 'Layout editing mode when CCVCCM is launched.', 0, 1)
 CCVCCM.GetUserInfoValues = function(self)
   local results = { }
   for fullName, registeredData in pairs(self.api.data) do
@@ -1178,14 +1179,14 @@ do
               return self:PromptRenameDisplay()
             end
           end
+          window:AddControlPanel(self.contentPanel:GetControlPanel())
         end
         self.category = _with_0
       end
       self:WrapFunc(self.category, 'OnRemove', false, function()
         return self:UpdateSavables()
       end)
-      self.contentPanel:LoadFromTable(data.content)
-      return window:AddControlPanel(self.contentPanel:GetControlPanel())
+      return self.contentPanel:LoadFromTable(data.content)
     end,
     __base = _base_0,
     __name = "CategoryPanel",
@@ -1231,8 +1232,8 @@ do
             return contentPanel:PromptRenameTab()
           end
         end
+        self.window:AddControlPanel(contentPanel:GetControlPanel())
       end
-      self.window:AddControlPanel(contentPanel:GetControlPanel())
       return contentPanel:LoadFromTable(content)
     end,
     FilterElements = function(self, text)
@@ -2430,7 +2431,6 @@ do
   local _class_0
   local _parent_0 = BaseUI
   local _base_0 = {
-    controlPanelVisibility = true,
     GetInstance = function(self)
       return self.__class.managerClass
     end,
@@ -2442,6 +2442,7 @@ do
     end,
     SetControlPanelVisibility = function(self, menu, bool)
       self.controlPanelVisibility = bool
+      GetConVar('ccvccm_layout_editing'):SetBool(bool)
       local _list_0 = self.controlPanels
       for _index_0 = 1, #_list_0 do
         local panel = _list_0[_index_0]
@@ -2456,8 +2457,7 @@ do
       return self.controlPanelVisibility
     end,
     AddServerVarQueryRequest = function(self, var, cls)
-      local _update_0 = var
-      self.serverVarClass[_update_0] = self.serverVarClass[_update_0] or { }
+      self.serverVarClass[var] = self.serverVarClass[var] or { }
       table.insert(self.serverVarClass[var], cls)
       self.serverVarQueryRequests[var] = true
     end,
@@ -2530,8 +2530,8 @@ do
             return contentPanel:PromptRenameTab()
           end
         end
+        self:AddControlPanel(contentPanel:GetControlPanel())
       end
-      self:AddControlPanel(contentPanel:GetControlPanel())
       return contentPanel:LoadFromTable(content)
     end,
     CreateSheet = function(self)
@@ -2553,8 +2553,9 @@ do
       return Derma_Query('Are you sure?', 'New File', 'Yes', (function()
         self.__class.saveName = ''
         if IsValid(self.sheet) then
-          return self.sheet:Remove()
+          self.sheet:Remove()
         end
+        return self:LoadFromFile('')
       end), 'No')
     end,
     PromptSave = function(self)
@@ -2658,7 +2659,7 @@ do
     LoadFromFile = function(self, saveName)
       self.__class.saveName = saveName
       local fileName = "ccvccm/" .. tostring(saveName) .. ".json"
-      if file.Exists(fileName, 'DATA') then
+      if saveName == '' or file.Exists(fileName, 'DATA') then
         local routine = coroutine.create((function()
           local _base_1 = self
           local _fn_0 = _base_1.LoadFromFileRoutine
@@ -2687,10 +2688,12 @@ do
       end
     end,
     LoadFromFileRoutine = function(self, fileName)
-      local fileText = file.Read(fileName, 'DATA')
-      local data
-      if fileText then
-        data = util.JSONToTable(fileText)
+      local data = { }
+      if fileName ~= 'ccvccm/.json' then
+        local fileText = file.Read(fileName, 'DATA')
+        if fileText then
+          data = util.JSONToTable(fileText)
+        end
       end
       hook.Run('CCVCCMDataLoad', data)
       coroutine.yield(data)
@@ -2793,6 +2796,7 @@ do
         end
         self.__class.managerWindow = window
         self.__class.managerClass = self
+        self.controlPanelVisibility = GetConVar('ccvccm_layout_editing'):GetBool()
         local menuBar = vgui.Create('DMenuBar', window)
         self:AddMenuOption(menuBar, 'File', {
           {
@@ -2881,9 +2885,7 @@ do
         self.serverVarClass = { }
         self.serverVarQueryRequests = { }
         local saveFile = CCVCCM:GetVarValue('ccvccm_autoload')
-        if saveFile ~= '' then
-          return self:LoadFromFile(saveFile)
-        end
+        return self:LoadFromFile(saveFile)
       end
     end,
     __base = _base_0,

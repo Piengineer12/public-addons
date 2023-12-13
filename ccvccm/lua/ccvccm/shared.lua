@@ -210,7 +210,7 @@ CCVCCM.api = CCVCCM.api or {
   addon = '',
   categoryPath = { }
 }
-CCVCCM:SQL('CREATE TABLE IF NOT EXISTS "ccvccm" (\r\n	"var" TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,\r\n	"value" TEXT NOT NULL\r\n)')
+CCVCCM:SQL('CREATE TABLE IF NOT EXISTS "ccvccm" (\n	"var" TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,\n	"value" TEXT NOT NULL\n)')
 local loadedData = CCVCCM:SQL('SELECT "value" FROM "ccvccm"')
 if loadedData then
   CCVCCM.api.addonVars = util.JSONToTable(loadedData[1].value)
@@ -756,8 +756,7 @@ CCVCCM.SetAddon = function(self, addon, display, icon)
   self.api.categoryPath = { }
   if addon ~= '' then
     local layout = self.api.layout
-    local _update_0 = addon
-    layout[_update_0] = layout[_update_0] or self:_ConstructCategory(display, icon)
+    layout[addon] = layout[addon] or self:_ConstructCategory(display, icon)
   end
 end
 CCVCCM.PushCategory = function(self, name, display, tabs, icon)
@@ -881,7 +880,8 @@ CCVCCM.GetVarValue = function(self, fullName, ply)
           elseif 'float' == _exp_1 then
             return conVar:GetFloat()
           else
-            return conVar:GetString()
+            local retValue = conVar:GetString()
+            return retValue == '#empty' and '' or retValue
           end
         end
       end

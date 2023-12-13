@@ -37,6 +37,8 @@
 import ENUMS from CCVCCM
 local ^
 
+CreateClientConVar 'ccvccm_layout_editing', 1, true, false, 'Layout editing mode when CCVCCM is launched.', 0, 1
+
 CCVCCM.GetUserInfoValues = =>
 	results = {}
 	for fullName, registeredData in pairs @api.data
@@ -738,10 +740,9 @@ class CategoryPanel extends SavablePanel
 			\Dock TOP
 			unless static
 				.Header.DoDoubleClick = -> @PromptRenameDisplay! if window\GetControlPanelVisibility!
+				window\AddControlPanel @contentPanel\GetControlPanel!
 		@WrapFunc @category, 'OnRemove', false, -> @UpdateSavables!
 		@contentPanel\LoadFromTable data.content
-		
-		window\AddControlPanel @contentPanel\GetControlPanel!
 	
 	PromptRenameDisplay: =>
 		categoryHeader = @category.Header
@@ -809,7 +810,7 @@ class TabPanel extends SavablePanel
 		{Tab: tab} = @sheet\AddSheet displayName, contentPanel\GetPanel!, icon, false, true
 		unless @static
 			tab.DoDoubleClick = -> contentPanel\PromptRenameTab! if @window\GetControlPanelVisibility!
-		@window\AddControlPanel contentPanel\GetControlPanel!
+			@window\AddControlPanel contentPanel\GetControlPanel!
 		contentPanel\LoadFromTable content
 	
 	FilterElements: (text) =>
@@ -1507,7 +1508,6 @@ class BaseUI extends BasePanel
 
 class ManagerUI extends BaseUI
 	@saveName: ''
-	controlPanelVisibility: true
 	
 	new: (w, h) =>
 		if IsValid @@managerWindow
@@ -1569,6 +1569,7 @@ class ManagerUI extends BaseUI
 			@@managerWindow = window
 			@@managerClass = @
 
+			@controlPanelVisibility = GetConVar('ccvccm_layout_editing')\GetBool!
 			menuBar = vgui.Create 'DMenuBar', window
 			@AddMenuOption menuBar, 'File', {
 				{name: 'New', icon: 'page_add', func: @\PromptClear},
@@ -1589,7 +1590,7 @@ class ManagerUI extends BaseUI
 			@serverVarQueryRequests = {}
 
 			saveFile = CCVCCM\GetVarValue 'ccvccm_autoload'
-			@LoadFromFile saveFile if saveFile != ''
+			@LoadFromFile saveFile
 	
 	GetInstance: => @@managerClass
 	
@@ -1600,6 +1601,7 @@ class ManagerUI extends BaseUI
 	
 	SetControlPanelVisibility: (menu, bool) =>
 		@controlPanelVisibility = bool
+		GetConVar('ccvccm_layout_editing')\SetBool bool
 		
 		for panel in *@controlPanels do
 			if IsValid panel
@@ -1656,7 +1658,7 @@ class ManagerUI extends BaseUI
 		{Tab: tab} = @sheet\AddSheet displayName, contentPanel\GetPanel!, icon, false, true
 		unless static
 			tab.DoDoubleClick = -> contentPanel\PromptRenameTab! if @controlPanelVisibility
-		@AddControlPanel contentPanel\GetControlPanel!
+			@AddControlPanel contentPanel\GetControlPanel!
 		contentPanel\LoadFromTable content
 	
 	CreateSheet: =>
@@ -1675,6 +1677,7 @@ class ManagerUI extends BaseUI
 		Derma_Query 'Are you sure?', 'New File', 'Yes', (->
 			@@saveName = ''
 			@sheet\Remove! if IsValid @sheet
+			@LoadFromFile ''
 		), 'No'
 	
 	PromptSave: => if @@saveName != '' then @SaveToFile @@saveName else @PromptSaveAs!
@@ -1748,7 +1751,7 @@ class ManagerUI extends BaseUI
 		@@saveName = saveName
 		fileName = "ccvccm/#{saveName}.json"
 		-- I have to check for existence here due to auto-load
-		if file.Exists fileName, 'DATA'
+		if saveName == '' or file.Exists fileName, 'DATA'
 			routine = coroutine.create @\LoadFromFileRoutine
 			ok, data = coroutine.resume routine, fileName
 			if ok
@@ -1762,8 +1765,10 @@ class ManagerUI extends BaseUI
 		else Derma_Message "Couldn't load file \"data/#{fileName}\"!", 'Load Error', 'OK'
 	
 	LoadFromFileRoutine: (fileName) =>
-		fileText = file.Read fileName, 'DATA'
-		data = util.JSONToTable fileText if fileText
+		data = {}
+		if fileName ~= 'ccvccm/.json'
+			fileText = file.Read fileName, 'DATA'
+			data = util.JSONToTable fileText if fileText
 		hook.Run 'CCVCCMDataLoad', data
 		coroutine.yield data
 		if data

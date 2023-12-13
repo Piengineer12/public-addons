@@ -5,8 +5,7 @@ CCVCCM.api.clientInfoVars = CCVCCM.api.clientInfoVars or {
   [''] = { }
 }
 CCVCCM._SetUserInfoVar = function(self, fullName, ply, value)
-  local _update_0 = fullName
-  self.api.clientInfoVars[_update_0] = self.api.clientInfoVars[_update_0] or { }
+  self.api.clientInfoVars[fullName] = self.api.clientInfoVars[fullName] or { }
   self.api.clientInfoVars[fullName][ply] = value
   local func
   func = self:_GetRegisteredData(fullName).data.func
@@ -15,8 +14,7 @@ CCVCCM._SetUserInfoVar = function(self, fullName, ply, value)
   end
 end
 CCVCCM._GetUserInfoVar = function(self, fullName, ply)
-  local _update_0 = fullName
-  self.api.clientInfoVars[_update_0] = self.api.clientInfoVars[_update_0] or { }
+  self.api.clientInfoVars[fullName] = self.api.clientInfoVars[fullName] or { }
   return self.api.clientInfoVars[fullName][ply]
 end
 CCVCCM.GetSharedValues = function(self)

@@ -1,7 +1,6 @@
 --[[
 what still needs to be done:
 
-fix error caused by CAVACPanel trying to load when external addon is missing
 foolproofing
 ability to retexture CCVCCM window
 
@@ -40,9 +39,9 @@ if false then
 end
 
 CCVCCM = {
-	_VERSION = '1.0.0',
-	_VERSIONNUMBER = 10000,
-	_VERSIONDATE = '2023-10-06'
+	_VERSION = '1.0.1',
+	_VERSIONNUMBER = 10001,
+	_VERSIONDATE = '2023-12-13'
 }
 
 if SERVER then
