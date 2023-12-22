@@ -8,8 +8,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_PATCHER_VERSION = "2.1.1"
-LUA_PATCHER_VERSION_DATE = "2023-12-05"
+LUA_PATCHER_VERSION = "2.1.2"
+LUA_PATCHER_VERSION_DATE = "2023-12-22"
 LUA_REPAIR_VERSION = LUA_PATCHER_VERSION
 LUA_REPAIR_VERSION_DATE = LUA_PATCHER_VERSION_DATE
 
@@ -524,6 +524,15 @@ local function FixAllErrors()
 				return oldSurfaceSetFont("Default")
 			end
 		end
+
+		local oldDynamicLight = DynamicLight
+		function DynamicLight(index, ...)
+			if not index then
+				LogError("Some code attempted to call DynamicLight without index.")
+				index = 0
+			end
+			return oldDynamicLight(index, ...)
+		end
 	end
 
 	Log("Primitives patched!")
@@ -576,7 +585,7 @@ local function FixAllErrors()
 		
 		local oldRunConsoleCommand = RunConsoleCommand
 		RunConsoleCommand = function(cmd, ...)
-			cmd = cmd or ""
+			cmd = string.gsub(cmd or "", "[%c%s]+", "")
 			if IsConCommandBlocked(cmd) or #cmd < 2 then
 				ReportBlockedCommand(cmd)
 			else
@@ -590,7 +599,7 @@ local function FixAllErrors()
 			if not cmd then
 				cmd = string.match(cmdStr, "^[^%s%c]+")
 			end
-			cmd = cmd or ""
+			cmd = string.gsub(cmd or "", "%c", " ")
 			if IsConCommandBlocked(cmd) then
 				ReportBlockedCommand(cmd)
 			else
@@ -606,7 +615,7 @@ local function FixAllErrors()
 				if not cmd then
 					cmd = string.match(cmdStr, "^[^%s%c]+")
 				end
-				cmd = cmd or ""
+				cmd = string.gsub(cmd or "", "%c", " ")
 				if IsConCommandBlocked(cmd) then
 					ReportBlockedCommand(cmd)
 				else
