@@ -31,20 +31,24 @@ local function DangerousPaint()
 	local lastCoinTier = ply:InsaneStats_GetLastCoinTier()
 	local x = 8
 	local y = 8
+	local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
 
 	InsaneStats:DrawMaterialOutlined(
 		icons[InsaneStats:GetConVarValue("coins_legacy") and 2 or 1],
 		x, y,
 		InsaneStats.FONT_BIG, InsaneStats.FONT_BIG,
 		InsaneStats:GetCoinColor(lastCoinTier),
-		2,
+		outlineThickness,
 		color_black
 	)
 
-	x = x + InsaneStats.FONT_BIG + 2
+	x = x + InsaneStats.FONT_BIG + outlineThickness
 
 	local text = string.Comma(math.floor(coins))
-	draw.SimpleTextOutlined(text, "InsaneStats.Big", x, y, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 2, color_black)
+	draw.SimpleTextOutlined(
+		text, "InsaneStats.Big", x, y, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
+		outlineThickness, color_black
+	)
 
 	if slowCoins ~= coins then
 		y = y + InsaneStats.FONT_BIG
@@ -56,7 +60,10 @@ local function DangerousPaint()
 			change < 0 and "" or "+",
 			string.Comma(math.floor(change))
 		)
-		draw.SimpleTextOutlined(text, "InsaneStats.Big", x, y, textColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 2, color_black)
+		draw.SimpleTextOutlined(
+			text, "InsaneStats.Big", x, y, textColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
+			outlineThickness, color_black
+		)
 	end
 end
 
@@ -160,7 +167,7 @@ local function CreateWeaponryPanel(parent, shopEntity, weaponsSold)
 	local WeaponText = vgui.Create("RichText", RightPanel)
 	WeaponText:Dock(FILL)
 	function WeaponText:PerformLayout()
-		self:SetFontInternal("InsaneStats.Small")
+		self:SetFontInternal("InsaneStats.Medium")
 	end
 
 	local WeaponBuy = vgui.Create("DButton", RightPanel)
@@ -464,22 +471,31 @@ function InsaneStats:CreateShopMenu(shopEntity, weaponsSold)
 	CoinDisplay:Dock(TOP)
 	function CoinDisplay:Paint(w, h)
 		local ply = LocalPlayer()
-		local x = 2
-		x = x + draw.SimpleTextOutlined("You have ", "InsaneStats.Big", x, 2, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 2, color_black)
-		x = x + 2
+		local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
+		local x = outlineThickness
+		x = x + draw.SimpleTextOutlined(
+			"You have ", "InsaneStats.Big", x, outlineThickness,
+			color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
+			outlineThickness, color_black
+		)
+		x = x + outlineThickness
 		
 		InsaneStats:DrawMaterialOutlined(
 			icons[InsaneStats:GetConVarValue("coins_legacy") and 2 or 1],
-			x, 2,
+			x, outlineThickness,
 			InsaneStats.FONT_BIG, InsaneStats.FONT_BIG,
 			InsaneStats:GetCoinColor(ply:InsaneStats_GetLastCoinTier()),
-			2,
+			outlineThickness,
 			color_black
 		)
-		x = x + InsaneStats.FONT_BIG + 2
+		x = x + InsaneStats.FONT_BIG + outlineThickness
 
 		local text = InsaneStats:FormatNumber(math.floor(ply:InsaneStats_GetCoins()))
-		draw.SimpleTextOutlined(text, "InsaneStats.Big", x, 2, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 2, color_black)
+		draw.SimpleTextOutlined(
+			text, "InsaneStats.Big", x, outlineThickness,
+			color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
+			outlineThickness, color_black
+		)
 	end
 
 	local Categories = vgui.Create("DColumnSheet", Main)

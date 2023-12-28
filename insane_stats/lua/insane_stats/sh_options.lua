@@ -66,6 +66,7 @@ hook.Add("CCVCCMRun", "InsaneStatsOptionsShared", function()
 		help = "Allows other events to happen when a map event happens.",
 		default = table.Copy(InsaneStats.PointCommandCustomEvents),
 		typeInfo = {
+			help = "* and ? wildcards are accepted.",
 			{
 				name = "Map Name",
 				type = "string"
@@ -76,25 +77,26 @@ hook.Add("CCVCCMRun", "InsaneStatsOptionsShared", function()
 					name = "Event Type",
 					type = "number",
 					min = 0,
-					max = 3,
+					max = 7,
 					choices = {
 						{"Initialize", 0},
 						{"Disconnect / Background Map", 1},
 						{"Map Change", 2},
-						{"Game End", 3},
-						{"All Enemies Killed", 4},
-						{"Map Entity Input", 5},
-						{"Spherical Player Trigger", 6}
+						{"Map Restart", 3},
+						{"Game End", 4},
+						{"All Enemies Killed", 5},
+						{"Map Entity Input", 6},
+						{"Spherical Player Trigger", 7}
 					}
 				},
 				{
 					name = "Event Parameters",
 					help = "* and ? wildcards are accepted. Note that the number of text lines that need to be here changes depending on type:\n\z
 					Initialize: 0\n\z
-					Disconnect / Background Map: 0-1, [target map]\n\z
-					Map Change: 0-1, [target map]\n\z
-					Map Entity Input: 2-3, <name> <input> [value]\n\z
-					Spherical Player Trigger: 4, <x> <y> <z> <radius>",
+					Disconnect / Background Map: 0-1 ([target map])\n\z
+					Map Change: 0-1 ([target map])\n\z
+					Map Entity Input: 2-3 (<name>, <input>, [value])\n\z
+					Spherical Player Trigger: 3-5 (<x>, <y>, <z>, [radius (default: 128)], [minPercentOfPlayers (default: 0)])",
 					{
 						name = "Event Parameters",
 						type = "string"
@@ -106,10 +108,10 @@ hook.Add("CCVCCMRun", "InsaneStatsOptionsShared", function()
 						name = "Action Type",
 						type = "number",
 						min = 0,
-						max = 11,
+						max = 12,
 						choices = {
 							{"Cancel", 0},
-							{"Cancel + Map Change", 1},
+							{"Cancel + Restart / Map Change", 1},
 							{"Map Entity Input", 2},
 							{"Apply Status Effect", 3},
 							{"Clear Status Effect", 4},
@@ -127,18 +129,18 @@ hook.Add("CCVCCMRun", "InsaneStatsOptionsShared", function()
 						name = "Action Parameters",
 						help = "Note that the number of text lines that need to be here changes depending on type:\n\z
 						Cancel: 0\n\z
-						Cancel + Map Change: 0-1, [target map]\n\z
-						Map Entity Input: 2-3, <name> <input> [value]\n\z
-						Apply Status Effect: 1-3, <name> [level] [duration]\n\z
-						Clear Status Effect: 1, <name>\n\z
-						Toggle ConVar: 1, <name>\n\z
-						Add ConVar: 2, <name> <value>\n\z
-						Multiply ConVar: 2, <name> <value>\n\z
+						Cancel + Restart / Map Change: 0-1 ([target map (default: current map)])\n\z
+						Map Entity Input: 2-3 (<name>, <input>, [value])\n\z
+						Apply Status Effect: 1-3 (<name>, [level (default: 1)], [duration (default: 10)])\n\z
+						Clear Status Effect: 1 (<name>)\n\z
+						Toggle ConVar: 1 (<name>)\n\z
+						Add ConVar: 2 (<name>, <value>)\n\z
+						Multiply ConVar: 2 (<name>, <value>)\n\z
 						Remove Weapons: 0\n\z
 						Remove Suit: 0\n\z
-						Play Sound: 1, <name>\n\z
-						Run Command: 1+, <command> [arg1] [arg2] [...]\n\z
-						Run Lua Code: 1, <code>",
+						Play Sound: 1 (<name>)\n\z
+						Run Command: 1+ (<command>, [arg1], [arg2], [...])\n\z
+						Run Lua Code: 1+, (<line1>, [line2], [...])",
 						{
 							name = "Action Parameters",
 							type = "string"

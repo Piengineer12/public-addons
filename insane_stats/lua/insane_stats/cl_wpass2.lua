@@ -262,7 +262,7 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 	local maxY = panelY + maxH
 	local rarityColor = InsaneStats:GetRarityColor(wep.insaneStats_Rarity)
 	local typeText = wep:IsWeapon() and " Weapon" or " Battery"
-	local outlineThickness = 2
+	local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
 	extra = extra or {}
 	
 	surface.SetAlphaMultiplier(alphaMod)
@@ -350,7 +350,11 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 				
 				local displayColor = (attribValue < 1 == tobool(attribInfo.invert)) and color_light_blue or color_light_red
 				
-				local numberDisplay = InsaneStats:FormatNumber((attribValue-1)*(attribInfo.nopercent and 1 or 100), {plus = not attribInfo.noplus, decimals = 1})
+				local decimals = 1
+				if attribValue > 0 and attribValue < 0.01 then
+					decimals = math.floor(-math.log10(attribValue))
+				end
+				local numberDisplay = InsaneStats:FormatNumber((attribValue-1)*(attribInfo.nopercent and 1 or 100), {plus = not attribInfo.noplus, decimals = decimals})
 					..(attribInfo.nopercent and "" or "%")
 				--[[if attribValue >= 10001 then
 					numberDisplay = InsaneStats:FormatNumber((attribValue-1)*100) .. " %"
@@ -423,6 +427,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 		local trace = ply:GetEyeTrace()
 		local scrW = ScrW()
 		local scrH = ScrH()
+		local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
 		
 		if trace.Hit then
 			local lookedAtWep = GetLookedAtWep(trace.HitPos)--ply:GetUseEntity()
@@ -560,7 +565,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 					iconSize,
 					iconSize,
 					statusEffectColor,
-					2,
+					outlineThickness,
 					Color(0, 0, 0, statusEffectColor.a)
 				)
 				
@@ -582,10 +587,10 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 				if statusEffectData.level ~= 1 then
 					title = title .. " " .. InsaneStats:FormatNumber(statusEffectData.level)
 				end
-				draw.SimpleTextOutlined(title, "InsaneStats.Small", baseX+iconSize, baseY+(i-0.5)*iconSize, statusEffectColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
+				draw.SimpleTextOutlined(title, "InsaneStats.Small", baseX+iconSize+outlineThickness, baseY+(i-0.5)*iconSize, statusEffectColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, outlineThickness, color_black)
 				
 				local durationText = InsaneStats:FormatNumber(statusEffectData.expiry - CurTime(), {decimals = 1}) .. (statusEffectData.expiry == math.huge and "" or "s")
-				draw.SimpleTextOutlined(durationText, "InsaneStats.Small", baseX+iconSize, baseY+(i-0.5)*iconSize, statusEffectColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 2, color_black)
+				draw.SimpleTextOutlined(durationText, "InsaneStats.Small", baseX+iconSize+outlineThickness, baseY+(i-0.5)*iconSize, statusEffectColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, outlineThickness, color_black)
 			end
 		end
 	end

@@ -173,6 +173,10 @@ InsaneStats:RegisterClientConVar("hud_font", "insanestats_hud_font", "Orbitron M
 	display = "HUD Font", desc = "Modifies HUD font.",
 	type = InsaneStats.STRING
 })
+InsaneStats:RegisterClientConVar("hud_outline", "insanestats_hud_outline", "2", {
+	display = "HUD Outline", desc = "Modifies HUD outline width.",
+	type = InsaneStats.INT, min = 0, max = 10
+})
 
 local function GenerateFonts()
 	local scale = InsaneStats:GetConVarValue("hud_scale")

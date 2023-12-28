@@ -29,6 +29,14 @@ hook.Add("OnEntityCreated", "InsaneStats", function(ent)
 	end)
 end)
 
+--[[hook.Add("Saved", "InsaneStats", function(ent)
+	timer.Simple(0, function()
+		for i,v in ipairs(ents.GetAll()) do
+			hook.Run("InsaneStatsTransitionCompat", v)
+		end
+	end)
+end)]]
+
 hook.Add("entity_killed", "InsaneStats", function(data)
 	local victim = Entity(data.entindex_killed or 0)
 	local attacker = Entity(data.entindex_attacker or 0)

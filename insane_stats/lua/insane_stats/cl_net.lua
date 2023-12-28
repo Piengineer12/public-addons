@@ -22,7 +22,7 @@ net.Receive("insane_stats", function()
 			local entIndex = net.ReadUInt(16)
 			local flags = net.ReadUInt(8)
 			local health, maxHealth, armor, maxArmor
-			local xp, class, name, disposition
+			local xp, class, name, isAlpha, disposition
 			local batteryXP, modifierChangeReason, tier
 			local modifiers, statusEffects, coins
 			local lastCoinTier
@@ -41,6 +41,7 @@ net.Receive("insane_stats", function()
 			if bit.band(flags, 4) ~= 0 then
 				class = net.ReadString()
 				name = net.ReadString()
+				isAlpha = net.ReadBool()
 			end
 			
 			if bit.band(flags, 8) ~= 0 then
@@ -113,6 +114,7 @@ net.Receive("insane_stats", function()
 				if class then
 					ent.insaneStats_Class = class
 					ent.insaneStats_Name = name
+					ent:InsaneStats_SetIsAlpha(isAlpha)
 				end
 				
 				if batteryXP then

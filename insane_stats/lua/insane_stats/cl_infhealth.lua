@@ -150,6 +150,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 		end
 		cam.End3D()
 		
+		local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
 		for ent,entityDamageNumbers in pairs(allDamageNumbers) do
 			for k,entityDamageInfo in pairs(entityDamageNumbers) do
 				if entityDamageInfo.posX then
@@ -230,7 +231,11 @@ hook.Add("HUDPaint", "InsaneStats", function()
 					local totalOffsetX = surface.GetTextSize(numberText..suffixText)
 					
 					local textStartX = posX - totalOffsetX / 2
-					draw.SimpleTextOutlined(numberText..suffixText, "InsaneStats.Medium", textStartX, posY, color_transparent, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, outlineColor)
+					draw.SimpleTextOutlined(
+						numberText..suffixText, "InsaneStats.Medium", textStartX, posY,
+						color_transparent, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM,
+						outlineThickness, outlineColor
+					)
 					
 					for chr in string.gmatch(numberText, '.') do
 						local blendFactor = (RealTime() / 2 + offsetX / maxOffsetX) % 1 * #numberColors
@@ -246,7 +251,11 @@ hook.Add("HUDPaint", "InsaneStats", function()
 					
 					-- if crit, draw extra text
 					if entityDamageInfo.crit then
-						draw.SimpleTextOutlined("Critical!", "InsaneStats.Medium", posX, posY - InsaneStats.FONT_MEDIUM, color_red, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM, 2, outlineColor)
+						draw.SimpleTextOutlined(
+							"Critical!", "InsaneStats.Medium", posX, posY - InsaneStats.FONT_MEDIUM,
+							color_red, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM,
+							outlineThickness, outlineColor
+						)
 					end
 				end
 			end
@@ -255,6 +264,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 	end
 	
 	if InsaneStats:GetConVarValue("hud_dps_enabled") then
+		local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
 		local discardTime = RealTime() - InsaneStats:GetConVarValue("hud_dps_time")
 		if shouldUpdateDPS then
 			totalDamage = 0
@@ -308,7 +318,11 @@ hook.Add("HUDPaint", "InsaneStats", function()
 				
 				local x = scrW * InsaneStats:GetConVarValue("hud_dps_x")
 				local y = scrH * InsaneStats:GetConVarValue("hud_dps_y")
-				draw.SimpleTextOutlined(text, "InsaneStats.Big", x, y, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
+				draw.SimpleTextOutlined(
+					text, "InsaneStats.Big", x, y,
+					color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM,
+					outlineThickness, color_black
+				)
 			else
 				ourDamages = {}
 				slowDamage = 0
@@ -322,9 +336,10 @@ hook.Add("HUDPaint", "InsaneStats", function()
 		local baseX = scrW * InsaneStats:GetConVarValue("hud_hp_x")
 		local baseY = scrH * InsaneStats:GetConVarValue("hud_hp_y")
 		local barW = InsaneStats.FONT_MEDIUM * 16
-		local barH = InsaneStats.FONT_MEDIUM
+		local barH = InsaneStats.FONT_SMALL
 		local ply = LocalPlayer()
 		local hasSuit = ply:IsSuitEquipped()
+		local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
 		
 		-- armor bar
 		local armor = ply:InsaneStats_GetArmor()
@@ -336,26 +351,43 @@ hook.Add("HUDPaint", "InsaneStats", function()
 			local bars = barData.bars
 			local barColor = barData.color
 			local nextColor = barData.nextColor
-			local barFracWidth = math.floor(barData.frac > 0 and (barW - 4) * barData.frac or -2)
+			local barFracWidth = math.floor(barData.frac > 0 and barW * barData.frac or -outlineThickness)
 			
 			surface.SetDrawColor(0, 0, 0)
-			surface.DrawRect(baseX, baseY - barH, barW, barH)
+			surface.DrawRect(
+				baseX - outlineThickness,
+				baseY - barH - outlineThickness,
+				barW + outlineThickness * 2,
+				barH + outlineThickness * 2
+			)
 			surface.SetDrawColor(nextColor.r, nextColor.g, nextColor.b, nextColor.a)
-			surface.DrawRect(baseX + 2, baseY - barH + 2, barW - 4, barH - 4)
+			surface.DrawRect(baseX, baseY - barH, barW, barH)
 			surface.SetDrawColor(barColor.r, barColor.g, barColor.b, barColor.a)
-			surface.DrawRect(baseX + 2, baseY - barH + 2, barFracWidth, barH - 4)
+			surface.DrawRect(baseX, baseY - barH, barFracWidth, barH)
 			surface.SetDrawColor(0, 0, 0)
-			surface.DrawRect(baseX + 2 + barFracWidth, baseY - barH + 2, 2, barH - 4)
+			surface.DrawRect(baseX + barFracWidth, baseY - barH, outlineThickness, barH)
 			
 			local text = InsaneStats:FormatNumber(math.Round(slowArmor)).." / "..InsaneStats:FormatNumber(math.Round(maxArmor))
-			draw.SimpleTextOutlined("Shield", "InsaneStats.Medium", baseX + 2, baseY - barH, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
+			local offsetX, offsetY = draw.SimpleTextOutlined(
+				"Shield", "InsaneStats.Medium", baseX, baseY - barH - outlineThickness,
+				color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM,
+				outlineThickness, color_black
+			)
 			if hasSuit then
-				draw.SimpleTextOutlined(text, "InsaneStats.Medium", baseX + barW - 2, baseY - barH, barColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
+				draw.SimpleTextOutlined(
+					text, "InsaneStats.Medium", baseX + barW, baseY - barH - outlineThickness,
+					barColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM,
+					outlineThickness, color_black
+				)
 			end
 			if slowArmor > maxArmor then
-				draw.SimpleTextOutlined("x"..InsaneStats:FormatNumber(bars), "InsaneStats.Medium", baseX + barW, baseY, barColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
+				draw.SimpleTextOutlined(
+					"x"..InsaneStats:FormatNumber(bars), "InsaneStats.Medium", baseX + barW + outlineThickness, baseY,
+					barColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM,
+					outlineThickness, color_black
+				)
 			end
-			baseY = baseY - barH * 2
+			baseY = baseY - barH - offsetY - outlineThickness * 2
 		else
 			slowArmor = armor
 		end
@@ -369,24 +401,41 @@ hook.Add("HUDPaint", "InsaneStats", function()
 		local bars = barData.bars
 		local barColor = barData.color
 		local nextColor = barData.nextColor
-		local barFracWidth = math.floor(barData.frac > 0 and (barW - 4) * barData.frac or -2)
+		local barFracWidth = math.floor(barData.frac > 0 and barW * barData.frac or -outlineThickness)
 		
 		surface.SetDrawColor(0, 0, 0)
-		surface.DrawRect(baseX, baseY - barH, barW, barH)
+		surface.DrawRect(
+			baseX - outlineThickness,
+			baseY - barH - outlineThickness,
+			barW + outlineThickness * 2,
+			barH + outlineThickness * 2
+		)
 		surface.SetDrawColor(nextColor.r, nextColor.g, nextColor.b, nextColor.a)
-		surface.DrawRect(baseX + 2, baseY - barH + 2, barW - 4, barH - 4)
+		surface.DrawRect(baseX, baseY - barH, barW, barH)
 		surface.SetDrawColor(barColor.r, barColor.g, barColor.b, barColor.a)
-		surface.DrawRect(baseX + 2, baseY - barH + 2, barFracWidth, barH - 4)
+		surface.DrawRect(baseX, baseY - barH, barFracWidth, barH)
 		surface.SetDrawColor(0, 0, 0)
-		surface.DrawRect(baseX + 2 + barFracWidth, baseY - barH + 2, 2, barH - 4)
+		surface.DrawRect(baseX + barFracWidth, baseY - barH, outlineThickness, barH)
 		
 		local text = InsaneStats:FormatNumber(math.Round(slowHealth)).." / "..InsaneStats:FormatNumber(math.Round(maxHealth))
-		draw.SimpleTextOutlined("Health", "InsaneStats.Medium", baseX + 2, baseY - barH, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
+		draw.SimpleTextOutlined(
+			"Health", "InsaneStats.Medium", baseX, baseY - barH - outlineThickness,
+			color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM,
+			outlineThickness, color_black
+		)
 		if hasSuit then
-			draw.SimpleTextOutlined(text, "InsaneStats.Medium", baseX + barW - 2, baseY - barH, barColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black)
+			draw.SimpleTextOutlined(
+				text, "InsaneStats.Medium", baseX + barW, baseY - barH - outlineThickness,
+				barColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM,
+				outlineThickness, color_black
+			)
 		end
 		if slowHealth > maxHealth then
-			draw.SimpleTextOutlined("x"..InsaneStats:FormatNumber(bars), "InsaneStats.Medium", baseX + barW, baseY, barColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, 2, color_black)
+			draw.SimpleTextOutlined(
+				"x"..InsaneStats:FormatNumber(bars), "InsaneStats.Medium", baseX + barW + outlineThickness, baseY,
+				barColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM,
+				outlineThickness, color_black
+			)
 		end
 	end
 end)

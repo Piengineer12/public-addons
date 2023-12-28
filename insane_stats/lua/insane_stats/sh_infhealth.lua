@@ -66,7 +66,7 @@ local function OverrideHealth()
 		end
 		self.insaneStats_Health = newHealth
 		if newHealth > 0 then
-			self.insaneStats_HealthRoot8 = newHealth^0.125
+			self.insaneStats_HealthRoot8 = InsaneStats:CalculateRoot8(newHealth)
 		end
 		
 		if self.InsaneStats_SetRawHealth then
@@ -100,7 +100,7 @@ local function OverrideHealth()
 		end
 		self.insaneStats_MaxHealth = newHealth
 		if newHealth > 0 then
-			self.insaneStats_MaxHealthRoot8 = newHealth^0.125
+			self.insaneStats_MaxHealthRoot8 = InsaneStats:CalculateRoot8(newHealth)
 		end
 		
 		if self.InsaneStats_SetRawMaxHealth then
@@ -158,7 +158,7 @@ local function OverrideArmor()
 		end
 		self.insaneStats_Armor = newArmor
 		if newArmor > 0 then
-			self.insaneStats_ArmorRoot8 = newArmor^0.125
+			self.insaneStats_ArmorRoot8 = InsaneStats:CalculateRoot8(newArmor)
 		end
 		if SERVER then
 			self:InsaneStats_MarkForUpdate(1)
@@ -175,7 +175,7 @@ local function OverrideArmor()
 		end
 		self.insaneStats_MaxArmor = newArmor
 		if newArmor > 0 then
-			self.insaneStats_MaxArmorRoot8 = newArmor^0.125
+			self.insaneStats_MaxArmorRoot8 = InsaneStats:CalculateRoot8(newArmor)
 		end
 		if SERVER then
 			self:InsaneStats_MarkForUpdate(1)
@@ -192,7 +192,7 @@ local function OverrideArmor()
 		end
 		self.insaneStats_Armor = newArmor
 		if newArmor > 0 then
-			self.insaneStats_ArmorRoot8 = newArmor^0.125
+			self.insaneStats_ArmorRoot8 = InsaneStats:CalculateRoot8(newArmor)
 		end
 		
 		if self.InsaneStats_SetRawArmor then
@@ -221,7 +221,7 @@ local function OverrideArmor()
 		end
 		self.insaneStats_MaxArmor = newArmor
 		if newArmor > 0 then
-			self.insaneStats_MaxArmorRoot8 = newArmor^0.125
+			self.insaneStats_MaxArmorRoot8 = InsaneStats:CalculateRoot8(newArmor)
 		end
 		
 		if self.InsaneStats_SetRawMaxArmor then

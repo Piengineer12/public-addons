@@ -296,6 +296,7 @@ net.Receive("insane_stats", function(length, ply)
 				
 				net.WriteString(updateEntity:GetClass())
 				net.WriteString(updateEntity:GetName())
+				net.WriteBool(updateEntity:InsaneStats_GetIsAlpha())
 					
 				net.WriteDouble(updateEntity:InsaneStats_GetBatteryXP())
 				net.WriteBool(updateEntity.insaneStats_ModifierChangeReason == 1)

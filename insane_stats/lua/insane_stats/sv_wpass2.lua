@@ -253,7 +253,6 @@ local function ApplyWPASS2Tier(ent)
 		local effectiveLevel = ent:InsaneStats_GetLevel()
 		if not ent:InsaneStats_IsWPASS2Pickup() then
 			if not ent.insaneStats_BatteryXP then
-				--ent:InsaneStats_SetBatteryXP(InsaneStats:DetermineEntitySpawnedXP(ent:GetPos()))
 				ent:InsaneStats_SetBatteryXP(ent:InsaneStats_GetXP())
 				if not ent.insaneStats_BatteryXP then return false end
 			end
@@ -508,10 +507,11 @@ function ENTITY:InsaneStats_AddArmorNerfed(armor)
 		if armor > 0 then
 			-- nerfed amount, yes it is a bit complicated
 			local currentArmorPercent = self:InsaneStats_GetArmor() / self:InsaneStats_GetMaxArmor()
-			local wouldRestoreToPercent = currentArmorPercent + armor / self:InsaneStats_GetMaxArmor()
+			local curveStart = math.exp(currentArmorPercent - 1)
+			local curveEnd = curveStart + armor / self:InsaneStats_GetMaxArmor()
 			
-			if wouldRestoreToPercent > currentArmorPercent then
-				local nerfMul = math.log(wouldRestoreToPercent/currentArmorPercent) / (wouldRestoreToPercent-currentArmorPercent)
+			if curveEnd > curveStart then
+				local nerfMul = math.log(curveEnd/curveStart) / (curveEnd-curveStart)
 				armor = armor * nerfMul
 				self:SetArmor(self:InsaneStats_GetArmor() + armor)
 			end

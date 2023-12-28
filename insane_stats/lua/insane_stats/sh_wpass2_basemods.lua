@@ -251,6 +251,7 @@ local modifiers = {
 			kill_victim_firerate = 1/1.1
 		},
 		weight = 0.5,
+		max = 10
 	},]]
 	savage = {
 		prefix = "Savage",
@@ -368,6 +369,15 @@ local modifiers = {
 			front_damage = 1.21
 		},
 		weight = 0.5
+	},
+	pressure = {
+		prefix = "Pressurized",
+		suffix = "Pressure",
+		modifiers = {
+			clip_firerate = 1.1
+		},
+		weight = 0.5,
+		max = 10
 	},
 	
 	-- damage, half weight doubled cost
@@ -750,6 +760,13 @@ local modifiers = {
 		},
 		max = 1
 	},
+	surge = {
+		prefix = "Surgical",
+		suffix = "Surging",
+		modifiers = {
+			clip_xp = 1.1
+		}
+	},
 	
 	-- damage utility doubled cost
 	conscious = {
@@ -904,7 +921,7 @@ local modifiers = {
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
-		max = 5
+		max = 2
 	},
 	spike = {
 		prefix = "Spiked",
@@ -980,7 +997,7 @@ local modifiers = {
 		},
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
-		max = 7
+		max = 5
 	},
 	
 	-- utility, half weight doubled cost
@@ -1136,6 +1153,17 @@ local modifiers = {
 		weight = 0.5,
 		cost = 2,
 		max = 1
+	},
+	fester = {
+		prefix = "Festering",
+		modifiers = {
+			ammo_convert = 1/1.1,
+			death_promise_damage = 1.1
+		},
+		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR),
+		weight = 0.5,
+		cost = 2,
+		max = 10
 	},
 	
 	-- defensive
@@ -1588,6 +1616,9 @@ local attributes = {
 		display = "+/%s random damage dealt",
 		mode = 3
 	},
+	death_promise_damage = {
+		display = "%s Corpse Exploder stacks gained",
+	},
 	--[[perdebuff_damage = {
 		display = "%s damage dealt per Insane Stats victim debuff"
 	},
@@ -1900,12 +1931,22 @@ local attributes = {
 	clip = {
 		display = "%s clip size",
 	},
+	clip_firerate = {
+		display = "%s fire rate, scaled by clip %%",
+		mul = 2
+	},
 	lastammo_damage = {
 		display = "%s last clip shot damage dealt",
 	},
+	--[[lastammo_firerate = {
+		display = "%s last clip shot fire rate",
+	},]]
 	ammo_savechance = {
 		display = "%s chance to not consume ammo",
 		mode = 2
+	},
+	ammo_convert = {
+		display = "Reserve ammo above max %s turned into Corpse Exploder stacks"
 	},
 	xp = {
 		display = "%s coins and XP gain",
@@ -1916,6 +1957,10 @@ local attributes = {
 	},
 	armor_xp = {
 		display = "%s XP gain, scaled by armor %%",
+		mul = 2
+	},
+	clip_xp = {
+		display = "%s XP gain, scaled by clip %%",
 		mul = 2
 	},
 	explode = {
@@ -2219,15 +2264,16 @@ local statusEffects = {
 			if canPlayPoisonSound then
 				canPlayPoisonSound = false
 				ent:EmitSound(string.format("weapons/bugbait/bugbait_squeeze%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+				
+				local effdata = EffectData()
+				effdata:SetOrigin(ent:GetPos())
+				effdata:SetEntity(ent)
+				effdata:SetScale(1)
+				effdata:SetMagnitude(1)
+				effdata:SetRadius(16)
+				effdata:SetNormal(vector_up)
+				util.Effect("StriderBlood", effdata)
 			end
-			local effdata = EffectData()
-			effdata:SetOrigin(ent:GetPos())
-			effdata:SetEntity(ent)
-			effdata:SetScale(1)
-			effdata:SetMagnitude(1)
-			effdata:SetRadius(16)
-			effdata:SetNormal(vector_up)
-			util.Effect("StriderBlood", effdata)
 		end
 	},
 	fire = {
@@ -2246,19 +2292,19 @@ local statusEffects = {
 			if canPlayFreezeSound then
 				canPlayFreezeSound = false
 				ent:EmitSound(string.format("physics/glass/glass_sheet_break%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+				
+				local effdata = EffectData()
+				effdata:SetOrigin(ent:GetPos())
+				effdata:SetScale(1)
+				effdata:SetMagnitude(1)
+				util.Effect("GlassImpact", effdata)
 			end
-			local effdata = EffectData()
-			effdata:SetOrigin(ent:GetPos())
-			effdata:SetScale(1)
-			effdata:SetMagnitude(1)
-			util.Effect("GlassImpact", effdata)
 			
 			if ent:IsNPC()
 			and ent:InsaneStats_GetStatusEffectLevel("stun_immune") <= 0
 			and ent:InsaneStats_GetStatusEffectLevel("stunned") <= 0
 			and ent:InsaneStats_GetHealth() > 0 then
 				ent:InsaneStats_ApplyStatusEffect("stunned", 1, 2)
-				ent:SetSchedule(SCHED_NPC_FREEZE)
 			end
 		end
 	},
@@ -2270,13 +2316,13 @@ local statusEffects = {
 			if canPlayShockSound then
 				canPlayShockSound = false
 				ent:EmitSound("ambient/energy/weld1.wav", 75, 100, 1, CHAN_WEAPON)
-			end
 
-			local effdata = EffectData()
-			effdata:SetOrigin(ent:GetPos())
-			effdata:SetNormal(vector_up)
-			effdata:SetAngles(angle_zero)
-			util.Effect("ManhackSparks", effdata)
+				local effdata = EffectData()
+				effdata:SetOrigin(ent:GetPos())
+				effdata:SetNormal(vector_up)
+				effdata:SetAngles(angle_zero)
+				util.Effect("ManhackSparks", effdata)
+			end
 		end
 	},
 	bleed = {
@@ -2287,17 +2333,18 @@ local statusEffects = {
 			if canPlayBleedSound then
 				canPlayBleedSound = false
 				ent:EmitSound(string.format("npc/manhack/grind_flesh%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+
+				local effdata = EffectData()
+				effdata:SetOrigin(ent:GetPos())
+				effdata:SetEntity(ent)
+				effdata:SetStart(attacker:GetPos())
+				effdata:SetHitBox(0)
+				effdata:SetFlags(3)
+				effdata:SetColor(0)
+				effdata:SetScale(10)
+				effdata:SetMagnitude(1)
+				util.Effect("bloodspray", effdata)
 			end
-			local effdata = EffectData()
-			effdata:SetOrigin(ent:GetPos())
-			effdata:SetEntity(ent)
-			effdata:SetStart(attacker:GetPos())
-			effdata:SetHitBox(0)
-			effdata:SetFlags(3)
-			effdata:SetColor(0)
-			effdata:SetScale(10)
-			effdata:SetMagnitude(1)
-			util.Effect("bloodspray", effdata)
 		end
 	},
 	hemotoxin = {
@@ -2308,26 +2355,31 @@ local statusEffects = {
 			if canPlayPoisonSound then
 				canPlayPoisonSound = false
 				ent:EmitSound(string.format("weapons/bugbait/bugbait_squeeze%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+				
+				local effdata = EffectData()
+				effdata:SetOrigin(ent:GetPos())
+				effdata:SetEntity(ent)
+				effdata:SetScale(1)
+				effdata:SetMagnitude(1)
+				effdata:SetRadius(16)
+				effdata:SetNormal(vector_up)
+				util.Effect("StriderBlood", effdata)
 			end
 			if canPlayBleedSound then
 				canPlayBleedSound = false
 				ent:EmitSound(string.format("npc/manhack/grind_flesh%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+				
+				local effdata = EffectData()
+				effdata:SetOrigin(ent:GetPos())
+				effdata:SetEntity(ent)
+				effdata:SetStart(attacker:GetPos())
+				effdata:SetHitBox(0)
+				effdata:SetFlags(3)
+				effdata:SetColor(0)
+				effdata:SetScale(10)
+				effdata:SetMagnitude(1)
+				util.Effect("bloodspray", effdata)
 			end
-			local effdata = EffectData()
-			effdata:SetOrigin(ent:GetPos())
-			effdata:SetEntity(ent)
-			effdata:SetScale(1)
-			effdata:SetMagnitude(1)
-			effdata:SetRadius(16)
-			effdata:SetNormal(vector_up)
-			util.Effect("StriderBlood", effdata)
-			
-			effdata:SetStart(attacker:GetPos())
-			effdata:SetHitBox(0)
-			effdata:SetFlags(3)
-			effdata:SetColor(0)
-			effdata:SetScale(10)
-			util.Effect("bloodspray", effdata)
 		end
 	},
 	frostfire = {
@@ -2339,20 +2391,19 @@ local statusEffects = {
 			if canPlayFreezeSound then
 				canPlayFreezeSound = false
 				ent:EmitSound(string.format("physics/glass/glass_sheet_break%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+				
+				local effdata = EffectData()
+				effdata:SetOrigin(ent:GetPos())
+				effdata:SetScale(1)
+				effdata:SetMagnitude(1)
+				util.Effect("GlassImpact", effdata)
 			end
-			
-			local effdata = EffectData()
-			effdata:SetOrigin(ent:GetPos())
-			effdata:SetScale(1)
-			effdata:SetMagnitude(1)
-			util.Effect("GlassImpact", effdata)
 			
 			if ent:IsNPC()
 			and ent:InsaneStats_GetStatusEffectLevel("stun_immune") <= 0
 			and ent:InsaneStats_GetStatusEffectLevel("stunned") <= 0
 			and ent:InsaneStats_GetHealth() > 0 then
 				ent:InsaneStats_ApplyStatusEffect("stunned", 1, 2)
-				ent:SetSchedule(SCHED_NPC_FREEZE)
 			end
 		end
 	},
@@ -2364,13 +2415,13 @@ local statusEffects = {
 			if canPlayShockSound then
 				canPlayShockSound = false
 				ent:EmitSound("ambient/energy/weld1.wav", 75, 100, 1, CHAN_WEAPON)
-			end
 
-			local effdata = EffectData()
-			effdata:SetOrigin(ent:GetPos())
-			effdata:SetNormal(vector_up)
-			effdata:SetAngles(angle_zero)
-			util.Effect("ManhackSparks", effdata)
+				local effdata = EffectData()
+				effdata:SetOrigin(ent:GetPos())
+				effdata:SetNormal(vector_up)
+				effdata:SetAngles(angle_zero)
+				util.Effect("ManhackSparks", effdata)
+			end
 		end
 	},
 	cosmicurse = {
@@ -2382,46 +2433,57 @@ local statusEffects = {
 			if canPlayPoisonSound then
 				canPlayPoisonSound = false
 				ent:EmitSound(string.format("weapons/bugbait/bugbait_squeeze%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+
+				local effdata = EffectData()
+				effdata:SetOrigin(ent:GetPos())
+				effdata:SetEntity(ent)
+				effdata:SetScale(1)
+				effdata:SetMagnitude(1)
+				effdata:SetRadius(16)
+				effdata:SetNormal(vector_up)
+				util.Effect("StriderBlood", effdata)
 			end
 			if canPlayFreezeSound then
 				canPlayFreezeSound = false
 				ent:EmitSound(string.format("physics/glass/glass_sheet_break%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+				
+				local effdata = EffectData()
+				effdata:SetOrigin(ent:GetPos())
+				effdata:SetScale(1)
+				effdata:SetMagnitude(1)
+				util.Effect("GlassImpact", effdata)
 			end
 			if canPlayBleedSound then
 				canPlayBleedSound = false
 				ent:EmitSound(string.format("npc/manhack/grind_flesh%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
+				
+				local effdata = EffectData()
+				effdata:SetOrigin(ent:GetPos())
+				effdata:SetEntity(ent)
+				effdata:SetStart(attacker:GetPos())
+				effdata:SetHitBox(0)
+				effdata:SetFlags(3)
+				effdata:SetColor(0)
+				effdata:SetScale(10)
+				effdata:SetMagnitude(1)
+				util.Effect("bloodspray", effdata)
 			end
 			if canPlayShockSound then
 				canPlayShockSound = false
 				ent:EmitSound("ambient/energy/weld1.wav", 75, 100, 1, CHAN_WEAPON)
+
+				local effdata = EffectData()
+				effdata:SetOrigin(ent:GetPos())
+				effdata:SetNormal(vector_up)
+				effdata:SetAngles(angle_zero)
+				util.Effect("ManhackSparks", effdata)
 			end
-			
-			local effdata = EffectData()
-			effdata:SetOrigin(ent:GetPos())
-			effdata:SetAngles(angle_zero)
-			effdata:SetEntity(ent)
-			effdata:SetScale(1)
-			effdata:SetMagnitude(1)
-			effdata:SetRadius(16)
-			effdata:SetNormal(vector_up)
-			util.Effect("StriderBlood", effdata)
-			util.Effect("GlassImpact", effdata)
-			util.Effect("ManhackSparks", effdata)
-			
-			effdata:SetStart(attacker:GetPos())
-			effdata:SetHitBox(0)
-			effdata:SetFlags(3)
-			effdata:SetColor(0)
-			effdata:SetScale(10)
-			effdata:SetMagnitude(1)
-			util.Effect("bloodspray", effdata)
 			
 			if ent:IsNPC()
 			and ent:InsaneStats_GetStatusEffectLevel("stun_immune") <= 0
 			and ent:InsaneStats_GetStatusEffectLevel("stunned") <= 0
 			and ent:Health() > 0 then
 				ent:InsaneStats_ApplyStatusEffect("stunned", 1, 2)
-				ent:SetSchedule(SCHED_NPC_FREEZE)
 			end
 		end
 	},
@@ -2438,6 +2500,11 @@ local statusEffects = {
 		name = "Stunned",
 		typ = -1,
 		img = Material("insane_stats/status_effects/coma.png", "mips smooth"),
+		apply = SERVER and function(ent, level, duration, attacker)
+			if ent:IsNPC() then
+				ent:SetSchedule(SCHED_NPC_FREEZE)
+			end
+		end,
 		expiry = SERVER and function(ent, level, attacker)
 			if ent:IsNPC() and level > 0 then
 				ent:SetCondition(68)
@@ -2645,6 +2712,11 @@ local statusEffects = {
 		name = "Extra Jump Used",
 		typ = -1,
 		img = Material("insane_stats/status_effects/fluffy-trefoil.png", "mips smooth")
+	},
+	death_promise = {
+		name = "Corpse Exploder",
+		typ = 2,
+		img = Material("insane_stats/status_effects/death-note.png", "mips smooth")
 	},
 	
 	starlight = {
@@ -2893,8 +2965,27 @@ hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 	local attacker = data.attacker
 	if IsValid(attacker) then
 		--local combatFraction = SERVER and math.Clamp(attacker:InsaneStats_GetCombatTime()/5, 0, 1) or 0
-		local healthFraction = 1-math.Clamp(attacker:InsaneStats_GetHealth() / attacker:InsaneStats_GetMaxHealth(), 0, 1)
+		local wep = data.wep
 		local totalMul = attacker:InsaneStats_GetAttributeValue("firerate")
+	
+		if IsValid(wep) then
+			if wep:GetClass() == "weapon_physcannon" then return end
+			if wep.Clip1 then
+				local clip1 = wep:Clip1()
+				local maxClip1 = wep:GetMaxClip1()
+				local clip1Fraction = clip1 / maxClip1
+				if maxClip1 <= 0 then
+					clip1Fraction = 1
+				end
+				totalMul = totalMul * (1 + (attacker:InsaneStats_GetAttributeValue("clip_firerate") - 1) * clip1Fraction)
+				
+				--[[if clip1 < 2 then
+					totalMul = totalMul * attacker:InsaneStats_GetAttributeValue("lastammo_firerate")
+				end]]
+			end
+		end
+
+		local healthFraction = 1-math.Clamp(attacker:InsaneStats_GetHealth() / attacker:InsaneStats_GetMaxHealth(), 0, 1)
 		--totalMul = totalMul * (1 + (attacker:InsaneStats_GetAttributeValue("combat5s_firerate") - 1) * combatFraction)
 		totalMul = totalMul * (1 + (attacker:InsaneStats_GetAttributeValue("lowhealth_firerate") - 1) * healthFraction)
 		

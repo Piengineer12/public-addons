@@ -206,7 +206,7 @@ end
 function ENT:InsaneStats_SetCoins(coins)
 	self.insaneStats_Coins = coins
 	if coins > 0 then
-		self.insaneStats_CoinsRoot8 = coins^0.125
+		self.insaneStats_CoinsRoot8 = InsaneStats:CalculateRoot8(coins)
 	end
     if SERVER then
 	    self:InsaneStats_MarkForUpdate(64)

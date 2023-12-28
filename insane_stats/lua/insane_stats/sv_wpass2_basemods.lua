@@ -546,7 +546,8 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 			
 			local wep = attacker.GetActiveWeapon and attacker:GetActiveWeapon()
 			
-			if damageTiers[#damageTiers] < 4 and not dmginfo:IsDamageType(DMG_BURN) and not IsValid(vic:GetParent()) then
+			local damageTier = damageTiers[#damageTiers]
+			if damageTier < 4 and not dmginfo:IsDamageType(DMG_BURN) and not IsValid(vic:GetParent()) then
 				-- non-damage based effects
 				local speedDownLevel = (1 - attacker:InsaneStats_GetAttributeValue("victim_speed")) * 100
 				vic:InsaneStats_ApplyStatusEffect("speed_down", speedDownLevel, 5)
@@ -595,7 +596,7 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 				local worldPos = dmginfo:GetDamagePosition()
 				worldPos = worldPos:IsZero() and vic:WorldSpaceCenter() or worldPos
 				
-				local explodeCondition = not dmginfo:IsBulletDamage() and damageTiers[#damageTiers] < 1 and vic:GetCollisionGroup() ~= COLLISION_GROUP_DEBRIS
+				local explodeCondition = not dmginfo:IsBulletDamage() and damageTier < 1 and vic:GetCollisionGroup() ~= COLLISION_GROUP_DEBRIS
 				local shouldExplode = math.random() < attacker:InsaneStats_GetAttributeValue("explode") - 1
 				local shouldShock = math.random() < attacker:InsaneStats_GetAttributeValue("shock") - 1
 				local shouldElectroblast = math.random() < attacker:InsaneStats_GetAttributeValue("electroblast") - 1
@@ -721,7 +722,6 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 					end
 				end
 				
-				local damageTier = damageTiers[#damageTiers]
 				local hasElectroblast = attacker:InsaneStats_GetAttributeValue("electroblast") > 1
 				if damageTier > 0 and damageTier < 3
 				and (hasElectroblast or shouldCosmicurse) then
@@ -811,8 +811,6 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 						if attacker:InsaneStats_GetStatusEffectLevel("hit100_damagepulse_stacks") < 99 then
 							attacker:InsaneStats_ApplyStatusEffect("hit100_damagepulse_stacks", 1, math.huge, {amplify = true})
 						else
-							attacker:InsaneStats_ClearStatusEffect("hit100_damagepulse_stacks")
-							
 							local damage = attacker:InsaneStats_GetAttributeValue("hit100_damagepulse") - 1
 							local dmginfo = DamageInfo()
 							dmginfo:SetAttacker(attacker)
@@ -828,23 +826,30 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 							local trace = {
 								start = attacker:WorldSpaceCenter(),
 								filter = {attacker, attacker.GetVehicle and attacker:GetVehicle()},
-								mask = MASK_SHOT,
+								mask = MASK_SHOT_HULL,
 								output = traceResult
 							}
 							
+							local success = false
 							for k,v in pairs(ents.FindInPVS(attacker)) do
-								if attacker:InsaneStats_IsValidEnemy(v) then
+								if v ~= attacker and not attacker:InsaneStats_IsValidAlly(v) then
 									local damagePos = v:HeadTarget(attacker:WorldSpaceCenter()) or v:WorldSpaceCenter()
 									damagePos = damagePos:IsZero() and v:WorldSpaceCenter() or damagePos
 									trace.endpos = damagePos
 									util.TraceLine(trace)
 									if not traceResult.Hit or traceResult.Entity == v then
+										success = true
+										attacker:InsaneStats_ClearStatusEffect("hit100_damagepulse_stacks")
 										dmginfo:SetDamagePosition(damagePos)
 										v:TakeDamageInfo(dmginfo)
 									end
 								end
 							end
-							attacker:EmitSound("ambient/energy/whiteflash.wav", 100, 100, 1, CHAN_WEAPON)
+
+							if success then 
+								attacker:InsaneStats_ClearStatusEffect("hit100_damagepulse_stacks")
+								attacker:EmitSound("ambient/energy/whiteflash.wav", 100, 100, 1, CHAN_WEAPON)
+							end
 						end
 					end
 				
@@ -1001,6 +1006,17 @@ hook.Add("InsaneStatsScaleXP", "InsaneStatsWPASS2", function(data)
 		local masterfulXPFactor = attacker:InsaneStats_GetStatusEffectLevel("masterful_xp")
 		masterfulXPFactor = math.max(masterfulXPFactor - (attacker:InsaneStats_GetAttributeValue("kill1s_xp") - 1) * 100, 0)
 		newXP = newXP * (1 + masterfulXPFactor / 100)
+		
+		local wep = attacker.GetActiveWeapon and attacker:GetActiveWeapon()
+		if (IsValid(wep) and wep.Clip1) then
+			local clip1 = wep:Clip1()
+			local maxClip1 = wep:GetMaxClip1()
+			local clip1Fraction = clip1 / maxClip1
+			if maxClip1 <= 0 then
+				clip1Fraction = 1
+			end
+			newXP = newXP * (1 + (attacker:InsaneStats_GetAttributeValue("clip_xp") - 1) * clip1Fraction)
+		end
 
 		data.xp = newXP
 		
@@ -1043,6 +1059,20 @@ hook.Add("InsaneStatsScaleCoins", "InsaneStatsWPASS2", function(data)
 	end
 end)
 
+local lastPlayersAmmoUpdate = 0
+local cachedPlayersAmmo = {}
+local keyValuesOrder = {
+	"DesiredAmmoAR2",
+	"DesiredAmmoAR2_AltFire",
+	"DesiredAmmoPistol",
+	"DesiredAmmoSMG1",
+	"DesiredAmmo357",
+	"DesiredAmmoCrossbow",
+	"DesiredAmmoBuckshot",
+	"DesiredAmmoRPG_Round",
+	"DesiredAmmoSMG1_Grenade",
+	"DesiredAmmoGrenade"
+}
 local function SpawnRandomItems(items, pos)
 	if math.random() < items then
 	--[[if math.random() < items%1 then
@@ -1051,21 +1081,33 @@ local function SpawnRandomItems(items, pos)
 		items = math.floor(items)
 	end
 	for i=1, items do]]
+		local currentTick = engine.TickCount()
+		if lastPlayersAmmoUpdate ~= currentTick then
+			lastPlayersAmmoUpdate = currentTick
+			local plys = player.GetAll()
+			for i=1,9 do
+				cachedPlayersAmmo[i] = false
+				for j,v in ipairs(plys) do
+					if v:GetAmmoCount(i) > 0 then
+						cachedPlayersAmmo[i] = true break
+					end
+				end
+			end
+
+			cachedPlayersAmmo[10] = false
+			for i,v in ipairs(plys) do
+				if v:HasWeapon("weapon_grenade") then
+					cachedPlayersAmmo[10] = true break
+				end
+			end
+		end
+
 		local item = ents.Create("item_dynamic_resupply")
 		item:SetKeyValue("DesiredHealth", string.format("%f", math.random()))
 		item:SetKeyValue("DesiredArmor", string.format("%f", math.random()))
-		item:SetKeyValue("DesiredAmmoPistol", string.format("%f", math.random()))
-		item:SetKeyValue("DesiredAmmoSMG1", string.format("%f", math.random()))
-		item:SetKeyValue("DesiredAmmoSMG1_Grenade", string.format("%f", math.random()))
-		item:SetKeyValue("DesiredAmmoAR2", string.format("%f", math.random()))
-		item:SetKeyValue("DesiredAmmoBuckshot", string.format("%f", math.random()))
-		item:SetKeyValue("DesiredAmmoRPG_Round", string.format("%f", math.random()))
-		-- the following is a weapon rather than an item
-		-- allowing this would allow for sequence-breaking in certain campaign maps
-		item:SetKeyValue("DesiredAmmoGrenade", "0.0")--string.format("%f", math.random()))
-		item:SetKeyValue("DesiredAmmo357", string.format("%f", math.random()))
-		item:SetKeyValue("DesiredAmmoCrossbow", string.format("%f", math.random()))
-		item:SetKeyValue("DesiredAmmoAR2_AltFire", string.format("%f", math.random()))
+		for i,v in ipairs(keyValuesOrder) do
+			item:SetKeyValue(v, cachedPlayersAmmo[i] and string.format("%f", math.random()) or "0.0")
+		end
 		item:SetKeyValue("spawnflags", 8)
 		item:SetPos(pos)
 		item:Spawn()
@@ -1187,6 +1229,53 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsWPASS2", function(victim, at
 			
 			stacks = (attacker:InsaneStats_GetAttributeValue("kill1s_xp") - 1) * 100
 			attacker:InsaneStats_ApplyStatusEffect("masterful_xp", stacks, 1, {extend = 1})
+		end
+	end
+end)
+
+hook.Add("InsaneStatsEntityKilledPostXP", "InsaneStatsWPASS2", function(victim, attacker, inflictor)
+	if InsaneStats:GetConVarValue("wpass2_enabled") and IsValid(attacker) and IsValid(victim) then
+		local damage = attacker:InsaneStats_GetStatusEffectLevel("death_promise")
+		if damage > 0 then
+			local damageOrigin = victim:WorldSpaceCenter()
+			local dmginfo = DamageInfo()
+			dmginfo:SetAttacker(attacker)
+			dmginfo:SetInflictor(attacker)
+			dmginfo:SetBaseDamage(damage)
+			dmginfo:SetDamage(damage)
+			dmginfo:SetMaxDamage(damage)
+			dmginfo:SetDamageForce(vector_origin)
+			dmginfo:SetDamageType(bit.bor(DMG_SONIC, DMG_ENERGYBEAM))
+			dmginfo:SetReportedPosition(damageOrigin)
+			
+			local traceResult = {}
+			local trace = {
+				start = damageOrigin,
+				filter = {victim, victim.GetVehicle and victim:GetVehicle()},
+				mask = MASK_SHOT_HULL,
+				output = traceResult
+			}
+			
+			local success = false
+			for k,v in pairs(ents.FindInPVS(damageOrigin)) do
+				if v ~= attacker and not attacker:InsaneStats_IsValidAlly(v) then
+					local damagePos = v:HeadTarget(damageOrigin) or v:WorldSpaceCenter()
+					damagePos = damagePos:IsZero() and v:WorldSpaceCenter() or damagePos
+					trace.endpos = damagePos
+					util.TraceLine(trace)
+					if not traceResult.Hit or traceResult.Entity == v then
+						success = true
+						attacker:InsaneStats_ClearStatusEffect("death_promise")
+						dmginfo:SetDamagePosition(damagePos)
+						v:TakeDamageInfo(dmginfo)
+					end
+				end
+			end
+			
+			if success then
+				local soundIndex = math.random() < 0.5 and 1 or 3
+				victim:EmitSound(string.format("weapons/bugbait/bugbait_impact%u.wav", soundIndex), 100, 100, 1, CHAN_WEAPON)
+			end
 		end
 	end
 end)
@@ -1525,7 +1614,7 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 					output = traceResult
 				}
 				
-				for k2,v2 in pairs(ents.FindInSphere(v:WorldSpaceCenter(), 512)) do
+				for i,v2 in ipairs(ents.FindInSphere(v:WorldSpaceCenter(), 512)) do
 					if v:InsaneStats_IsValidEnemy(v2) then
 						local damagePos = v2:HeadTarget(v:WorldSpaceCenter()) or v2:WorldSpaceCenter()
 						damagePos = damagePos:IsZero() and v2:WorldSpaceCenter() or damagePos
@@ -2127,3 +2216,17 @@ hook.Add("InsaneStatsPlayerRemoveAmmo", "InsaneStatsWPASS2", function(data)
 	end
 end)
 
+hook.Add("PlayerAmmoChanged", "InsaneStatsWPASS2", function(ply, ammoID, oldAmount, newAmount)
+	if InsaneStats:GetConVarValue("wpass2_enabled") then
+		local maxReserve = game.GetAmmoMax(ammoID)
+		local threshold = ply:InsaneStats_GetAttributeValue("ammo_convert")
+		local maxPlayerReserve = math.ceil(maxReserve*threshold)
+		if threshold < 1 and newAmount > maxPlayerReserve then
+			local stacks = (math.min(newAmount, maxReserve) - maxPlayerReserve) / maxReserve * ply:InsaneStats_GetAttributeValue("death_promise_damage")
+			--timer.Simple(0, function()
+				ply:InsaneStats_ApplyStatusEffect("death_promise", stacks * 10, math.huge, {amplify = true})
+				ply:InsaneStats_SetRawAmmo(maxPlayerReserve, ammoID)
+			--end)
+		end
+	end
+end)

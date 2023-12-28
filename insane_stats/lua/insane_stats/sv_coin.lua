@@ -142,3 +142,37 @@ hook.Add("AllowPlayerPickup", "InsaneStatsCoins", function(ply, ent)
 		ent.insaneStats_SuppressCoinDrops = true
 	end
 end)
+
+local function CheckWeaponsAndItems()
+	local missing = {}
+	local scriptedEntsList = scripted_ents.GetList()
+	local weaponsList = {}
+	for i,v in ipairs(weapons.GetList()) do
+		weaponsList[v.ClassName] = true
+	end
+	for i,v in ipairs(InsaneStats.ShopItemsAutomaticPrice) do
+		if not (scriptedEntsList[v] or weaponsList[v]) then
+			missing[v] = true
+		end
+	end
+	for i,v in ipairs(InsaneStats.ShopItems) do
+		local itemName = v[1]
+		if not (scriptedEntsList[itemName] or weaponsList[itemName]) then
+			missing[itemName] = true
+		end
+	end
+	return missing
+end
+
+concommand.Add("insanestats_coins_check", function(ply, cmd, args, argStr)
+	if (not IsValid(ply) or ply:IsAdmin()) then
+		local results = CheckWeaponsAndItems()
+		if next(results) then
+			InsaneStats:Log("The following shop weapons / items are either invalid or are in C++:")
+			for k,v in SortedPairs(results) do
+				InsaneStats:Log(k)
+			end
+		end
+	end
+end, nil, "Checks that all weapons and items sellable by Insane Stats Coin Shops are valid.\
+Note that C++ entities will be considered invalid even if they really do exist, due to technical limitations.")

@@ -78,6 +78,10 @@ InsaneStats:RegisterConVar("xp_other_extra", "insanestats_xp_other_extrapercent"
 	display = "Non-player Additional XP %", desc = "Experience % added when non-players kill other non-players, scaled by the difference between levels.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
+InsaneStats:RegisterConVar("xp_weapon_mul", "insanestats_xp_weapon_mul", "1", {
+	display = "Weapon Gain Multiplier", desc = "Multiplier for experience gained by weapons.",
+	type = InsaneStats.FLOAT, min = 0, max = 10
+})
 
 InsaneStats:SetDefaultConVarCategory("XP - Level Calculations")
 
@@ -102,14 +106,9 @@ InsaneStats:RegisterConVar("xp_other_level_factor", "insanestats_xp_other_level_
 		4: Scale based on level of activator / nearest player",
 	type = InsaneStats.INT, min = 0, max = 4
 })
-InsaneStats:RegisterConVar("xp_other_level_players", "insanestats_xp_other_level_players", "10", {
-	display = "Non-player Player Level Scaling", desc = "Level increase of spawned non-players per extra player in the server.",
+InsaneStats:RegisterConVar("xp_other_level_players", "insanestats_xp_other_players", "25", {
+	display = "Non-player Player Bonus XP", desc = "Raises the levels of non-players by spawning them with this % more XP per extra player in the server.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
-})
-InsaneStats:RegisterConVar("xp_other_level_players_mode", "insanestats_xp_other_level_players_mode", "-1", {
-	display = "Non-player Player Level Scaling Mode", desc = "If 1, insanestats_xp_other_levelplayers is interpreted as an absolute value instead of a percentage. \z
-		-1 causes this ConVar to use the value of insanestats_xp_mode.",
-	type = InsaneStats.INT, min = -1, max = 1
 })
 InsaneStats:RegisterConVar("xp_other_level_maps", "insanestats_xp_other_level_maps", "0", {
 	display = "Non-player Maps Level Scaling", desc = "% level increase of spawned entities per map.",
@@ -137,19 +136,26 @@ InsaneStats:RegisterConVar("xp_other_level_time_minimum", "insanestats_xp_other_
 	display = "Non-player Time Level Minimum", desc = "Minimum level increase of spawned entities per minute.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
-InsaneStats:RegisterConVar("xp_other_level_drift", "insanestats_xp_other_level_drift", "10", {
-	display = "Non-player Level Drift", desc = "Randomly alters NPC levels by +/- this value.",
-	type = InsaneStats.FLOAT, min = 0, max = 1000
+InsaneStats:RegisterConVar("xp_other_level_drift", "insanestats_xp_other_drift", "2", {
+	display = "Non-player XP Drift", desc = "Randomly alters spawned non-players' XP by multiplying / dividing up to this factor.",
+	type = InsaneStats.FLOAT, min = 1, max = 100
 })
-InsaneStats:RegisterConVar("xp_other_level_drift_mode", "insanestats_xp_other_level_drift_mode", "-1", {
-	display = "Non-player Level Drift Mode", desc = "If 1, the level drift is interpreted as an absolute value instead of a percentage. \z
-		-1 causes this ConVar to use the value of insanestats_xp_mode.",
-	type = InsaneStats.INT, min = -1, max = 1
-})
-InsaneStats:RegisterConVar("xp_other_level_drift_harshness", "insanestats_xp_other_level_drift_harshness", "1", {
-	display = "Non-player Level Drift Harshness", desc = "Reduces the chance for high amounts of level drift. \z
+InsaneStats:RegisterConVar("xp_other_level_drift_harshness", "insanestats_xp_other_drift_harshness", "1", {
+	display = "Non-player XP Drift Harshness", desc = "Reduces the chance for high amounts of XP drift. \z
 		At 0, the drift distribution is uniform (every possible drift amount is equally likely).",
 	type = InsaneStats.FLOAT, min = 0, max = 10
+})
+InsaneStats:RegisterConVar("xp_other_alpha_chance", "insanestats_xp_other_alpha_chance", "1.5625", {
+	display = "Alpha Chance", desc = "% chance for a non-player entity to be an Alpha, spawning with much more XP.",
+	type = InsaneStats.FLOAT, min = 0, max = 100
+})
+InsaneStats:RegisterConVar("xp_other_alpha_mul", "insanestats_xp_other_alpha_mul", "8", {
+	display = "Alpha XP Multiplier", desc = "Alpha entities spawn with this times more XP.",
+	type = InsaneStats.FLOAT, min = 0, max = 100
+})
+InsaneStats:RegisterConVar("xp_other_alpha_model_scale", "insanestats_xp_other_model_scale", "1", {
+	display = "Alpha Model Scale", desc = "Alpha entities will be resized by this factor.",
+	type = InsaneStats.FLOAT, min = 0.25, max = 4
 })
 
 InsaneStats:SetDefaultConVarCategory("XP - Player Scales")
@@ -390,13 +396,13 @@ function ENT:InsaneStats_SetXP(xp, dropValue)
 	
 	self.insaneStats_XP = xp
 	if xp > 0 then
-		self.insaneStats_XPRoot8 = xp^0.125
+		self.insaneStats_XPRoot8 = InsaneStats:CalculateRoot8(xp)
 	end
 	
 	if dropValue then
 		self.insaneStats_DropXP = dropValue
 		if dropValue > 0 then
-			self.insaneStats_DropXPRoot8 = dropValue^0.125
+			self.insaneStats_DropXPRoot8 = InsaneStats:CalculateRoot8(dropValue)
 		end
 	end
 	
@@ -410,6 +416,20 @@ function ENT:InsaneStats_SetXP(xp, dropValue)
     if SERVER then
 	    self:InsaneStats_MarkForUpdate(2)
     end
+end
+
+function ENT:InsaneStats_GetIsAlpha(isAlpha)
+	return tobool(self.insaneStats_IsAlpha)
+end
+
+function ENT:InsaneStats_SetIsAlpha(isAlpha)
+	self.insaneStats_IsAlpha = tobool(isAlpha)
+	if self:GetModelScale() == 1 and self:IsNPC() then
+		self:SetModelScale(isAlpha and InsaneStats:GetConVarValue("xp_other_alpha_model_scale") or 1, 0.01)
+	end
+   --[[if SERVER then
+	    self:InsaneStats_MarkForUpdate(4)
+    end]]
 end
 
 function ENT:InsaneStats_AddXP(xp, addDropValue)

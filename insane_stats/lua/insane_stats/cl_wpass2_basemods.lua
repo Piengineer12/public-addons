@@ -125,7 +125,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 					color_yellow,
 					TEXT_ALIGN_CENTER,
 					TEXT_ALIGN_TOP,
-					2,
+					InsaneStats:GetConVarValue("hud_outline"),
 					color_black
 				)
 			end

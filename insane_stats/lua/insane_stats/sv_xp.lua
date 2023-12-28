@@ -136,7 +136,7 @@ function ENT:InsaneStats_ApplyLevel(level)
 		else
 			self.insaneStats_CurrentHealthAdd = newHealth / startingHealth
 		end
-		self.insaneStats_CurrentHealthAddRoot8 = self.insaneStats_CurrentHealthAdd^0.125
+		self.insaneStats_CurrentHealthAddRoot8 = InsaneStats:CalculateRoot8(self.insaneStats_CurrentHealthAdd)
 		
 		if self:InsaneStats_GetMaxArmor() > 0 then
 			local currentArmorFrac = self:InsaneStats_GetMaxArmor() == 0 and 0
@@ -174,7 +174,7 @@ function ENT:InsaneStats_ApplyLevel(level)
 			else
 				self.insaneStats_CurrentArmorAdd = newArmor / startingArmor
 			end
-			self.insaneStats_CurrentArmorAddRoot8 = self.insaneStats_CurrentArmorAdd^0.125
+			self.insaneStats_CurrentArmorAddRoot8 = InsaneStats:CalculateRoot8(self.insaneStats_CurrentArmorAdd)
 		end
 		
 		hook.Run("InsaneStatsApplyLevel", self, level)
@@ -288,28 +288,31 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 						shouldDropMul[driver] = true
 					end
 				end
-			
+				
+				local wepMul = InsaneStats:GetConVarValue("xp_weapon_mul")
 				for k,v in pairs(data.receivers) do
 					local tempExtraXP = (k:IsPlayer() or k:GetOwner():IsPlayer()) and 0 or extraXP * v
 					local tempDropMul = shouldDropMul[k] and xpDropMul or 0
 					local xp = xpToGive * v
+					if k:IsWeapon() then xp = xp * wepMul end
 					--print("xp, tempExtraXP, tempDropMul")
 					--print(xp, tempExtraXP, tempDropMul)
 					--print(k, xp, xpToGive, v, victim.insaneStats_DropXP, tempExtraXP)
 					k:InsaneStats_AddXP(xp+tempExtraXP, xp*tempDropMul)
 					k:InsaneStats_AddBatteryXP(xp)
 					
-					local wep = k.GetActiveWeapon and k:GetActiveWeapon()
-					if IsValid(wep) and not data.receivers[wep] then
-						--print(wep, xp, xpToGive, victim.insaneStats_DropXP, tempExtraXP)
-						wep:InsaneStats_AddXP(xp+tempExtraXP, xp*tempDropMul)
-						wep:InsaneStats_AddBatteryXP(xp)
-					end
-					
 					local driver = k.GetDriver and k:GetDriver()
 					if IsValid(driver) and not data.receivers[driver] then
 						driver:InsaneStats_AddXP(xp+tempExtraXP, xp*tempDropMul)
 						driver:InsaneStats_AddBatteryXP(xp)
+					end
+					
+					local wep = k.GetActiveWeapon and k:GetActiveWeapon()
+					if IsValid(wep) and not data.receivers[wep] then
+						if wep:IsWeapon() then xp = xp * wepMul end
+						--print(wep, xp, xpToGive, victim.insaneStats_DropXP, tempExtraXP)
+						wep:InsaneStats_AddXP((xp+tempExtraXP)*wepMul, xp*tempDropMul)
+						wep:InsaneStats_AddBatteryXP(xp*wepMul)
 					end
 				end
 				
@@ -434,33 +437,22 @@ function InsaneStats:DetermineEntitySpawnedXP(ent)
 	current = self:ScaleValueToLevel(level, self:GetConVarValue("xp_other_level_time")/100, curMinutes, "xp_other_level_time_mode", true)
 	level = math.max(minimum, current)
 	--print(pos, "has time scaled level", math.max(minimum, current))
-	
-	local playerScalingMode = self:GetConVarValueDefaulted("xp_other_level_players_mode", "xp_mode") > 0
-	if playerScalingMode then
-		level = level + self:GetConVarValue("xp_other_level_players") * (playerCount - 1)
-	else
-		level = level * (1+self:GetConVarValue("xp_other_level_players")/100 * (playerCount - 1))
-	end
 	--print(pos, "has player count scaled level", level)
 	
-	local drift = Lerp(math.random(), -self:GetConVarValue("xp_other_level_drift"), self:GetConVarValue("xp_other_level_drift"))
-	drift = drift * math.random() ^ self:GetConVarValue("xp_other_level_drift_harshness")
-	
-	local driftMode = self:GetConVarValueDefaulted("xp_other_level_drift_mode", "xp_mode") > 0
-	if driftMode then
-		level = level + drift
-	else
-		level = level * (1+drift/100)
-	end
-	--print(pos, "has randomized level", level)
-	
 	level = math.max(level, 1)
-	
-	if self:GetConVarValue("xp_scale_maxlevel") > 0 then
-		level = math.min(level, self:GetConVarValue("xp_scale_maxlevel"))
+
+	local playerXPMul = 1 + self:GetConVarValue("xp_other_level_players")/100 * (playerCount - 1)
+
+	local driftXPFactor = math.random()*2-1
+	driftXPFactor = driftXPFactor * math.random() ^ self:GetConVarValue("xp_other_level_drift_harshness")
+	driftXPFactor = self:GetConVarValue("xp_other_level_drift") ^ driftXPFactor
+
+	local alphaXPMul = 1
+	local isAlpha = math.random()*100 < self:GetConVarValue("xp_other_alpha_chance")
+	if isAlpha then
+		alphaXPMul = self:GetConVarValue("xp_other_alpha_mul")
 	end
-	
-	return self:GetXPRequiredToLevel(level)
+	return self:GetXPRequiredToLevel(level) * playerXPMul * driftXPFactor * alphaXPMul, isAlpha
 end
 
 function InsaneStats:DetermineDamageMul(vic, dmginfo)
@@ -542,10 +534,11 @@ local toUpdateLevelEntities = {}
 --local loadedData = {}
 hook.Add("InsaneStatsEntityCreated", "InsaneStatsXP", function(ent)
 	if not ent.insaneStats_XP then
-		local shouldXP = InsaneStats:DetermineEntitySpawnedXP(ent)
+		local shouldXP, isAlpha = InsaneStats:DetermineEntitySpawnedXP(ent)
 		--print(ent, "should spawn with ", shouldXP, " xp")
 		if shouldXP then
 			ent:InsaneStats_SetXP(shouldXP)
+			ent:InsaneStats_SetIsAlpha(isAlpha)
 		else
 			table.insert(toUpdateLevelEntities, ent)
 		end
@@ -586,10 +579,11 @@ timer.Create("InsaneStatsXP", 0.5, 0, function()
 				if v.insaneStats_XP then
 					toUpdateLevelEntities[k] = nil
 				else
-					local shouldXP = InsaneStats:DetermineEntitySpawnedXP(v)
+					local shouldXP, isAlpha = InsaneStats:DetermineEntitySpawnedXP(v)
 					--print(shouldXP)
 					if shouldXP then
 						v:InsaneStats_SetXP(shouldXP)
+						v:InsaneStats_SetIsAlpha(isAlpha)
 						toUpdateLevelEntities[k] = nil
 					end
 				end
@@ -670,14 +664,16 @@ hook.Add("AcceptInput", "InsaneStatsXP", function(ent, input, activator, caller,
 	
 	if input == "sethealth" then
 		local healthMul = ent.insaneStats_CurrentHealthAdd or 1
-		if (tonumber(data) and tonumber(data) > 0) then
+		if tonumber(data) then
 			local newHealth = healthMul * tonumber(data)
 			-- if health is 0, DO NOT return true, and set the new health on the next tick
 			-- otherwise func_breakables that start at 0 health will still retain their unbreakability
 			if ent:InsaneStats_GetHealth() > 0 then
 				DoSetHealth(ent, newHealth)
 			
-				return true
+				if ent:InsaneStats_GetRawHealth() > 1 then
+					return true
+				end
 			else
 				timer.Simple(0, function()
 					DoSetHealth(ent, newHealth)
@@ -719,13 +715,15 @@ hook.Add("AcceptInput", "InsaneStatsXP", function(ent, input, activator, caller,
 			end
 		end
 	elseif input == "sethealthfraction" then
-		local dataNumber = tonumber(data) or 0
-		if dataNumber > 0 then
+		local dataNumber = tonumber(data)
+		if dataNumber then
 			local newHealth = ent:InsaneStats_GetMaxHealth() * dataNumber / 100
 			if ent:InsaneStats_GetHealth() > 0 then
 				DoSetHealth(ent, newHealth)
 			
-				return true
+				if ent:InsaneStats_GetRawHealth() > 1 then
+					return true
+				end
 			else
 				timer.Simple(0, function()
 					DoSetHealth(ent, newHealth)
@@ -733,7 +731,7 @@ hook.Add("AcceptInput", "InsaneStatsXP", function(ent, input, activator, caller,
 			end
 		end
 	elseif input == "setplayerhealth" and ent:GetClass() == "logic_playerproxy" then
-		if (tonumber(data) and tonumber(data) > 0) then
+		if tonumber(data) then
 			for k,v in pairs(player.GetAll()) do
 				local healthMul = v.insaneStats_CurrentHealthAdd or 1
 				local newHealth = healthMul * tonumber(data)
@@ -744,7 +742,9 @@ hook.Add("AcceptInput", "InsaneStatsXP", function(ent, input, activator, caller,
 				end
 			end
 			
-			return true
+			if tonumber(data) > 0 then
+				return true
+			end
 		end
 	elseif input == "addoutput" then
 		local key, value = data:lower():match("(%w*health)%s+(%w*)$")
@@ -769,7 +769,7 @@ hook.Add("EntityKeyValue", "InsaneStatsXP", function(ent, key, value)
 			-- otherwise func_breakables that start at 0 health will still retain their unbreakability
 			if ent:InsaneStats_GetHealth() > 0 then
 				DoSetHealth(ent, newHealth)
-			
+
 				return true
 			else
 				timer.Simple(0, function()
@@ -965,77 +965,3 @@ hook.Add("PlayerCanPickupItem", "InsaneStatsXP", function(ply, item)
 		end
 	end
 end)
-
---[[hook.Add("PlayerCanPickupWeapon", "InsaneStatsXP", function(ply, wep)
-	if wep:GetClass() == "weapon_smg1" and not wep.insaneStats_Rectified then
-		wep.insaneStats_Rectified = true
-		
-		if wep.InsaneStats_SetRawClip1 then
-			wep:InsaneStats_SetRawClip1(45)
-		else
-			wep:SetClip1(45)
-		end
-	end
-end)]]
-
---[[ to fix transitions
-saverestore.AddSaveHook("InsaneStatsXP", function(save)
-	save:StartBlock("InsaneStatsXP")
-	
-	-- for every entity, record the 128th root of their health and armor
-	local entsToUpdate = {}
-	local updateReasons = {}
-	for k,v in pairs(ents.GetAll()) do
-		local updateReason = bit.bor(
-			(v.insaneStats_CurrentHealthAdd and v.insaneStats_CurrentHealthAdd >= 2^128 and 1 or 0),
-			(v.insaneStats_CurrentArmorAdd and v.insaneStats_CurrentArmorAdd >= 2^128 and 2 or 0),
-			(v:InsaneStats_GetXP() >= 2^128 and v:InsaneStats_GetXP() < math.huge and 4 or 0),
-			(v.insaneStats_DropXP and v.insaneStats_DropXP >= 2^128 and v.insaneStats_DropXP < math.huge and 8 or 0)
-		)
-		
-		if updateReason ~= 0 then
-			table.insert(entsToUpdate, v)
-			updateReasons[v] = updateReason
-		end
-	end
-	
-	save:WriteInt(#entsToUpdate)
-	for k,v in pairs(entsToUpdate) do
-		local updateReason = updateReasons[v]
-		local hp = bit.band(updateReason, 1) ~= 0 and v.insaneStats_CurrentHealthAdd^0.125 or -1
-		local ar = bit.band(updateReason, 2) ~= 0 and v.insaneStats_CurrentArmorAdd^0.125 or -1
-		local xp = bit.band(updateReason, 4) ~= 0 and v:InsaneStats_GetXP()^0.125 or -1
-		local dropXP = bit.band(updateReason, 8) ~= 0 and v.insaneStats_DropXP^0.125 or -1
-		
-		save:WriteEntity(v)
-		save:WriteFloat(hp)
-		save:WriteFloat(ar)
-		save:WriteFloat(xp)
-		save:WriteFloat(dropXP)
-	end
-	
-	save:EndBlock()
-end)
-
-saverestore.AddRestoreHook("InsaneStatsXP", function(save)
-	save:StartBlock("InsaneStatsXP")
-	
-	for i=1,save:ReadInt() do
-		local ent = save:ReadEntity()
-		local hp = save:ReadFloat()
-		local ar = save:ReadFloat()
-		local xp = save:ReadFloat()
-		local dropXP = save:ReadFloat()
-		
-		if IsValid(ent) then
-			loadedData[ent] = {
-				hp > 0 and hp^8,
-				ar > 0 and ar^8,
-				xp > 0 and xp^8,
-				dropXP > 0 and dropXP^8
-			}
-		end
-	end
-	
-	save:EndBlock()
-end)]]

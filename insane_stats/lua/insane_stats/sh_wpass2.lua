@@ -585,7 +585,7 @@ local ENTITY = FindMetaTable("Entity")
 function ENTITY:InsaneStats_SetBatteryXP(xp)
 	self.insaneStats_BatteryXP = xp
 	if xp then
-		self.insaneStats_BatteryXPRoot8 = xp^0.125
+		self.insaneStats_BatteryXPRoot8 = InsaneStats:CalculateRoot8(xp)
 	end
 end
 
