@@ -8,8 +8,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_PATCHER_VERSION = "2.1.2"
-LUA_PATCHER_VERSION_DATE = "2023-12-22"
+LUA_PATCHER_VERSION = "2.1.4"
+LUA_PATCHER_VERSION_DATE = "2024-01-14"
 LUA_REPAIR_VERSION = LUA_PATCHER_VERSION
 LUA_REPAIR_VERSION_DATE = LUA_PATCHER_VERSION_DATE
 
@@ -46,6 +46,7 @@ local function FixAllErrors()
 	local STRING = getmetatable("") or {}
 	local VECTOR = FindMetaTable("Vector")
 	local ENTITY = FindMetaTable("Entity")
+	local WEAPON = FindMetaTable("Weapon")
 	local NPC = FindMetaTable("NPC")
 	local PLAYER = FindMetaTable("Player")
 	local CLUAEMITTER = FindMetaTable("CLuaEmitter")
@@ -184,7 +185,7 @@ local function FixAllErrors()
 		return oldExplode(separator, str, withpattern)
 	end
 	
-	debug.setmetatable(nil,NIL)
+	debug.setmetatable(nil, NIL)
 	
 	local oldadd,oldsub = VECTOR.__add,VECTOR.__sub
 	local oldmul,olddiv = VECTOR.__mul,VECTOR.__div
@@ -212,6 +213,38 @@ local function FixAllErrors()
 		end
 		return olddiv(a or 1,b or 1)
 	end
+
+	-- this doesn't work because the error happens when the method is called, not indexed
+	--[[local oldIndex = NULL_META.__index
+	NULL_META.__index = function(ent, key, ...)
+		local ret = {pcall(oldIndex, ent, key, ...)}
+		if ret[1] then
+			return select(2, unpack(ret))
+		else
+			LogError(string.format("Method %s on entity %s failed: %s", tostring(key), tostring(ent), ret[2]))
+			return nil
+		end
+	end]]
+
+	-- this doesn't work either and just subliminates RAM
+	--[[local oldFuncs = {}
+	for k,v in pairs(ENTITY) do
+		if isfunction(v) then
+			oldFuncs[k] = v
+		end
+	end
+
+	for k,v in pairs(oldFuncs) do
+		ENTITY[k] = function(ent, ...)
+			local ret = {pcall(v(ent, ...))}
+			if ret[1] then
+				return select(2, unpack(ret))
+			else
+				LogError(string.format("Method %s on entity %s failed: %s", tostring(k), tostring(ent), ret[2]))
+				return nil
+			end
+		end
+	end]]
 	
 	local oldGC = ENTITY.GetClass
 	ENTITY.GetClass = function(ent, ...)
@@ -313,6 +346,31 @@ local function FixAllErrors()
 			return oldEmitSound(ent, soundName, ...)
 		else
 			LogError("Some code attempted to call EmitSound on an entity with non-string sound name.")
+		end
+	end
+	local oldGetNWBool = ENTITY.GetNWBool
+	ENTITY.GetNWBool = function(ent, ...)
+		if not IsValid(ent) then
+			LogError("Some code attempted to get the networked bool of a NULL entity.")
+			return false
+		else return oldGetNWBool(ent, ...)
+		end
+	end
+	local oldGetNWEntity = ENTITY.GetNWEntity
+	ENTITY.GetNWEntity = function(ent, ...)
+		if not IsValid(ent) then
+			LogError("Some code attempted to get the networked entity of a NULL entity.")
+			return NULL
+		else return oldGetNWEntity(ent, ...)
+		end
+	end
+
+	local oldGetPrintName = WEAPON.GetPrintName
+	WEAPON.GetPrintName = function(ent, ...)
+		if not IsValid(ent) then
+			LogError("Some code attempted to get the print name of a NULL weapon.")
+			return tostring(ent)
+		else return oldGetPrintName(ent, ...)
 		end
 	end
 
@@ -434,7 +492,7 @@ local function FixAllErrors()
 			LogError("Some code attempted to call EmitSound with non-string sound name.")
 		end
 	end
-	
+
 	local oldEntsFindInSphere = ents.FindInSphere
 	function ents.FindInSphere(origin, radius, ...)
 		if not origin then
@@ -484,6 +542,15 @@ local function FixAllErrors()
 			model = tostring(model)
 		end
 		return oldUtilIsValidModel(model, ...)
+	end
+	
+	local oldVguiCreate = vgui.Create
+	function vgui.Create(pnl, parent, ...)
+		if not ispanel(parent) then
+			LogError("Some code attempted to parent a panel to a non-panel.")
+			parent = nil
+		end
+		return oldVguiCreate(pnl, parent, ...)
 	end
 	
 	if CLIENT then
@@ -569,6 +636,32 @@ local function FixAllErrors()
 	if DLib then
 		DLib.MessageWarning("DLib hook system is being overwritten by another addon - THIS IS STUPID AND WILL CAUSE ERRORS!")
 		Log("DLib, shut up and hold still...")
+	end
+	local oldHookRemove = hook.Remove
+	function hook.Remove(event_name, name, ...)
+		if isfunction(event_name) then
+			event_name = util.CRC(string.dump(event_name))
+			LogError("Some code attempted to call hook.Remove() with function as first argument.")
+		end
+		if isfunction(name) then
+			name = util.CRC(string.dump(name))
+			LogError("Some code attempted to call hook.Remove() with function as second argument.")
+		elseif isnumber(name) and not DLib then
+			name = tostring(name)
+			LogError("Some code attempted to call hook.Remove() with number as second argument.")
+		elseif isbool(name) then
+			name = tostring(name)
+			LogError("Some code attempted to call hook.Remove() with boolean as second argument.")
+		end
+		
+		if isstring(event_name) then
+			local valid = DLib and type(name) == "thread" or name.IsValid or IsValid(name)
+			if isstring(name) or valid then
+				oldHookRemove(event_name, name, ...)
+			else
+				LogError("Some code attempted to call hook.Remove() with invalid second argument.")
+			end
+		end
 	end
 	Log("Hooks patched!")
 	LUA_PATCHER_FIXED = true
