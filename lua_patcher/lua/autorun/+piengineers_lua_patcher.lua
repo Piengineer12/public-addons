@@ -8,8 +8,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_PATCHER_VERSION = "2.1.4"
-LUA_PATCHER_VERSION_DATE = "2024-01-14"
+LUA_PATCHER_VERSION = "2.1.6"
+LUA_PATCHER_VERSION_DATE = "2024-01-31"
 LUA_REPAIR_VERSION = LUA_PATCHER_VERSION
 LUA_REPAIR_VERSION_DATE = LUA_PATCHER_VERSION_DATE
 
@@ -186,6 +186,9 @@ local function FixAllErrors()
 	end
 	
 	debug.setmetatable(nil, NIL)
+
+	Log("Primitives patched!")
+	Log("Patching classes...")
 	
 	local oldadd,oldsub = VECTOR.__add,VECTOR.__sub
 	local oldmul,olddiv = VECTOR.__mul,VECTOR.__div
@@ -348,7 +351,85 @@ local function FixAllErrors()
 			LogError("Some code attempted to call EmitSound on an entity with non-string sound name.")
 		end
 	end
-	local oldGetNWBool = ENTITY.GetNWBool
+	local function TurnTableLikeIntoTable(tableLike)
+		reconstructed = {}
+		for i,v in ipairs(tableLike) do
+			reconstructed[i] = v
+		end
+		return reconstructed
+	end
+	local oldPhysicsFromMesh = ENTITY.PhysicsFromMesh
+	ENTITY.PhysicsFromMesh = function(ent, mesh, ...)
+		if istable(mesh) then
+			return oldPhysicsFromMesh(ent, mesh, ...)
+		else
+			-- maybe it's iterable userdata, try a recovery function
+			local ret = {pcall(TurnTableLikeIntoTable, mesh)}
+			if ret[1] then
+				ret = {pcall(oldPhysicsFromMesh, ret[2], ...)}
+				if not ret[1] then
+					LogError("ENTITY:PhysicsFromMesh failed: "..ret[2])
+				else
+					return select(2, unpack(ret))
+				end
+			else
+				LogError("Some code attempted to call PhysicsFromMesh with invalid first argument type.")
+			end
+		end
+	end
+	local oldPhysicsInit = ENTITY.PhysicsInit
+	ENTITY.PhysicsInit = function(ent, solidType, ...)
+		-- this doesn't work
+		--[[local retValues = {pcall(oldPhysicsInit, ...)}
+		if retValues[1] then
+			return select(2, unpack(retValues))
+		else
+			LogError("Caught a ENTITY.PhysicsInit error: "..retValues[2])
+		end]]
+
+		if solidType == SOLID_NONE then
+			-- take a while to remove the physics object if it exists
+			timer.Simple(0, function()
+				if (IsValid(ent) and IsValid(ent:GetPhysicsObject())) then
+					ent:PhysicsDestroy()
+				end
+			end)
+			return true
+		else
+			return oldPhysicsInit(ent, solidType, ...)
+		end
+	end
+
+	local nwToOverride = {
+		Angle = angle_zero,
+		Bool = false,
+		Entity = NULL,
+		Float = 0,
+		Int = 0,
+		String = ""
+	}
+	local oldNWFuncs = {Set = {}, Get = {}}
+	for k,v in pairs(nwToOverride) do
+		local setFuncName = "SetNW"..k
+		oldNWFuncs.Set[k] = ENTITY[setFuncName]
+		ENTITY[setFuncName] = function(ent, ...)
+			if not IsValid(ent) then
+				LogError("Some code attempted to call "..setFuncName.." on a NULL entity.")
+			else return oldNWFuncs.Set[k](ent, ...)
+			end
+		end
+
+		local getFuncName = "GetNW"..k
+		oldNWFuncs.Get[k] = ENTITY[getFuncName]
+		ENTITY[getFuncName] = function(ent, ...)
+			if not IsValid(ent) then
+				LogError("Some code attempted to call "..getFuncName.." on a NULL entity.")
+				return v
+			else return oldNWFuncs.Get[k](ent, ...)
+			end
+		end
+	end
+	--[[local oldGetNWBool = ENTITY.GetNWBool
 	ENTITY.GetNWBool = function(ent, ...)
 		if not IsValid(ent) then
 			LogError("Some code attempted to get the networked bool of a NULL entity.")
@@ -363,7 +444,7 @@ local function FixAllErrors()
 			return NULL
 		else return oldGetNWEntity(ent, ...)
 		end
-	end
+	end]]
 
 	local oldGetPrintName = WEAPON.GetPrintName
 	WEAPON.GetPrintName = function(ent, ...)
@@ -546,7 +627,7 @@ local function FixAllErrors()
 	
 	local oldVguiCreate = vgui.Create
 	function vgui.Create(pnl, parent, ...)
-		if not ispanel(parent) then
+		if not ispanel(parent) and parent ~= nil then
 			LogError("Some code attempted to parent a panel to a non-panel.")
 			parent = nil
 		end
@@ -602,9 +683,9 @@ local function FixAllErrors()
 		end
 	end
 
-	Log("Primitives patched!")
-	
+	Log("Classes patched!")
 	Log("Patching hooks...")
+
 	local oldHookAdd = hook.Add
 	function hook.Add(event_name, name, func, ...)
 		if isfunction(event_name) then
