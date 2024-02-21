@@ -8,8 +8,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_PATCHER_VERSION = "2.1.6"
-LUA_PATCHER_VERSION_DATE = "2024-01-31"
+LUA_PATCHER_VERSION = "2.1.7"
+LUA_PATCHER_VERSION_DATE = "2024-02-21"
 LUA_REPAIR_VERSION = LUA_PATCHER_VERSION
 LUA_REPAIR_VERSION_DATE = LUA_PATCHER_VERSION_DATE
 
@@ -351,20 +351,20 @@ local function FixAllErrors()
 			LogError("Some code attempted to call EmitSound on an entity with non-string sound name.")
 		end
 	end
-	local function TurnTableLikeIntoTable(tableLike)
+	--[[local function TurnTableLikeIntoTable(tableLike)
 		reconstructed = {}
 		for i,v in ipairs(tableLike) do
 			reconstructed[i] = v
 		end
 		return reconstructed
-	end
+	end]]
 	local oldPhysicsFromMesh = ENTITY.PhysicsFromMesh
 	ENTITY.PhysicsFromMesh = function(ent, mesh, ...)
 		if istable(mesh) then
 			return oldPhysicsFromMesh(ent, mesh, ...)
 		else
 			-- maybe it's iterable userdata, try a recovery function
-			local ret = {pcall(TurnTableLikeIntoTable, mesh)}
+			--[[local ret = {pcall(TurnTableLikeIntoTable, mesh)}
 			if ret[1] then
 				ret = {pcall(oldPhysicsFromMesh, ret[2], ...)}
 				if not ret[1] then
@@ -372,9 +372,9 @@ local function FixAllErrors()
 				else
 					return select(2, unpack(ret))
 				end
-			else
+			else]]
 				LogError("Some code attempted to call PhysicsFromMesh with invalid first argument type.")
-			end
+			--end
 		end
 	end
 	local oldPhysicsInit = ENTITY.PhysicsInit
