@@ -187,5 +187,39 @@ net.Receive("insane_stats", function()
 			table.insert(soldWeapons, net.ReadUInt(16))
 		end
 		InsaneStats:CreateShopMenu(ent, soldWeapons)
+	elseif func == 7 then
+		local skills = {}
+		for i=1, net.ReadUInt(8) do
+			local skillName = InsaneStats:GetSkillName(net.ReadUInt(8))
+			skills[skillName] = net.ReadUInt(4)
+		end
+		LocalPlayer():InsaneStats_SetSkills(skills)
+	elseif func == 8 then
+		local ply = LocalPlayer()
+		ply.insaneStats_SkillData = ply.insaneStats_SkillData or {}
+		
+		if IsValid(ply) then
+			for i=1, net.ReadUInt(8) do
+				local id = net.ReadUInt(8)
+				local state = net.ReadInt(2)
+				local stacks = net.ReadDouble()
+				local updateTime = net.ReadFloat()
+				
+				-- decode the id to a named one
+				local idStr = InsaneStats:GetSkillName(id)
+				
+				if idStr then
+					ply.insaneStats_SkillData[idStr] = {state = state, stacks = stacks, updateTime = updateTime}
+				else
+					InsaneStats:Log("Received unknown skill ID "..id..", is the network toasted?")
+					InsaneStats:Log("This occured while processing entity "..entIndex..".")
+				end
+			end
+		end
+	elseif func == 9 then
+		InsaneStats.lookPositions = {}
+		for i=1, net.ReadUInt(8) do
+			table.insert(InsaneStats.lookPositions, net.ReadVector())
+		end
 	end
 end)

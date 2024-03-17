@@ -42,7 +42,6 @@ local vitalIcon = GetIcon("ruby")
 local function GetIconForEntity(ent)
 	local ply = LocalPlayer()
 	if ent == ply or ent:GetOwner() == ply or ent:GetParent() == ply then return end
-	if ent:GetNWBool("insanestats_look") then return eyeIcon end
 	if ent:GetNWBool("insanestats_vital") then return vitalIcon end
 	if ent:GetNWBool("insanestats_use") then return revealIcons.func_button end
 
@@ -53,8 +52,8 @@ local function GetIconForEntity(ent)
 end
 
 hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
-	if InsaneStats:GetConVarValue("wpass2_enabled") then
-		if markedEntityInfo.refreshedTime + 1 > CurTime() then
+	if InsaneStats:GetConVarValue("hud_wpass2_attributes") then
+		if markedEntityInfo.refreshedTime + 0.5 > CurTime() then
 			-- if the entity is valid, update markedEntityInfo
 			local ent = Entity(markedEntityInfo.index)
 			if (IsValid(ent) and not ent:IsDormant()) then
@@ -132,9 +131,11 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 		end
 		local ply = LocalPlayer()
 		local revealRadius = ply:InsaneStats_GetAttributeValue("reveal") - 1
+		+ ply:InsaneStats_GetSkillValues("map_sense")
 		if revealRadius > 0 then
 			local toDraw = {}
 			local eyePos = EyePos()
+
 			cam.Start3D()
 			for i,v in ipairs(ents.FindInSphere(eyePos, revealRadius)) do
 				local icon = GetIconForEntity(v)
@@ -152,7 +153,23 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 					end
 				end
 			end
+			for i,v in ipairs(InsaneStats.lookPositions or {}) do
+				local dist = v:Distance(eyePos)
+				if dist <= revealRadius then
+					local viewData = v:ToScreen()
+					if viewData.visible then
+						table.insert(toDraw, {
+							icon = eyeIcon,
+							x = viewData.x,
+							y = viewData.y,
+							dist = dist,
+							progress = 0
+						})
+					end
+				end
+			end
 			cam.End3D()
+
 			for i,v in ipairs(toDraw) do
 				local alpha = (1-v.dist/revealRadius)^2
 				surface.SetAlphaMultiplier(math.Clamp(alpha, 0, 1))

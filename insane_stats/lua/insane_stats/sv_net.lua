@@ -115,7 +115,7 @@ local function BroadcastEntityUpdates()
 			end
 			
 			net.WriteUInt(#data, 16)
-			for k2,v2 in pairs(data) do
+			for i,v2 in ipairs(data) do
 				net.WriteUInt(v2.id or 0, 16)
 				net.WriteDouble(v2.level)
 				net.WriteFloat(v2.expiry)
@@ -393,7 +393,66 @@ net.Receive("insane_stats", function(length, ply)
 						ply:InsaneStats_RemoveCoins(price)
 					end
 				end
+			elseif subFunc == 4 then
+				local price = InsaneStats:GetRespecCost(ply)
+				if ply:InsaneStats_GetCoins() >= InsaneStats:GetRespecCost(ply) then
+					ply:InsaneStats_SetSkills({})
+
+					net.Start("insane_stats")
+					net.WriteUInt(7, 8)
+					net.WriteUInt(0, 8)
+					net.Send(ply)
+
+					ply:InsaneStats_RemoveCoins(price)
+				end
 			end
 		end
+	elseif func == 6 then
+		--[[
+			operations:
+			0: add 1
+			1: add max
+			4: use skill ID for extended operation codes
+		]]
+		local operation = net.ReadUInt(4)
+		if operation == 0 then
+			local skillID = net.ReadUInt(8) + 1
+			local skillName = InsaneStats:GetSkillName(skillID)
+			if skillName then
+				local max = InsaneStats:GetSkillInfo(skillName).max or 5
+				local currentTier = ply:InsaneStats_GetSkillTier(skillName)
+				if currentTier < max and ply:InsaneStats_GetSkillPoints() >= 1 then
+					ply:InsaneStats_SetSkillTier(skillName, currentTier+1)
+				elseif currentTier < max * 2 and ply:InsaneStats_GetUberSkillPoints() >= 1 then
+					ply:InsaneStats_SetSkillTier(skillName, currentTier*2)
+				end
+			end
+		elseif operation == 1 then
+			local skillID = net.ReadUInt(8) + 1
+			local skillName = InsaneStats:GetSkillName(skillID)
+			if skillName then
+				local max = InsaneStats:GetSkillInfo(skillName).max or 5
+				local currentTier = ply:InsaneStats_GetSkillTier(skillName)
+				local spend = math.min(ply:InsaneStats_GetSkillPoints(), max - currentTier)
+				
+				ply:InsaneStats_SetSkillTier(skillName, currentTier + spend)
+			end
+		elseif operation == 4 then
+			local suboperation = net.ReadUInt(8)
+			if suboperation == 1 then
+				ply:InsaneStats_MaxAllSkills(false)
+			elseif suboperation == 2 then
+				ply:InsaneStats_MaxAllSkills(true)
+			end
+		end
+		
+		net.Start("insane_stats")
+		net.WriteUInt(7, 8)
+		net.WriteUInt(table.Count(ply:InsaneStats_GetSkills()), 8)
+		for k,v in pairs(ply:InsaneStats_GetSkills()) do
+			net.WriteUInt(InsaneStats:GetSkillID(k), 8)
+			net.WriteUInt(v, 4)
+		end
+		net.Send(ply)
 	end
 end)

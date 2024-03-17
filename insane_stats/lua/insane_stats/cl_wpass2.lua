@@ -30,6 +30,10 @@ InsaneStats:RegisterClientConVar("hud_wpass2_lootbeams_extra", "insanestats_hud_
 	display = "Extra Loot Beams", desc = "Shows loot beams for health kits, health vials and ammo.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterClientConVar("hud_wpass2_attributes", "insanestats_hud_wpass2_attributes", "1", {
+	display = "Attribute HUDs", desc = "Shows HUD elements added by WPASS2 attributes. Note that this system is also used by some skills.",
+	type = InsaneStats.BOOL
+})
 
 InsaneStats:RegisterClientConVar("hud_wpass2_current_x", "insanestats_hud_wpass2_current_x", "0.66", {
 	display = "Current Weapon Panel X", desc = "Horizontal position of current weapon panel.",
@@ -395,23 +399,25 @@ local function GetLookedAtWep(pos)
 end
 
 hook.Add("InsaneStatsModifiersChanging", "InsaneStatsWPASS", function(ent, oldMods, newMods, modifierChangeReason)
-	local ply = LocalPlayer()
-	local modifiers = InsaneStats:GetAllModifiers()
-	if oldMods and modifierChangeReason and (ent:IsWeapon() and ent:GetOwner() == ply or ent == ply) and ent:GetCreationTime() + 1 < CurTime() then
-		for k,v in pairs(newMods) do
-			local baseText
-			
-			if not oldMods[k] then
-				baseText = "Your %s has gained the %s modifier!"
-			elseif oldMods[k] < v then
-				baseText = "Your %s has strengthened its %s modifier!"
-			end
-			
-			if baseText then
-				local entityName = ent:IsWeapon() and InsaneStats:GetWeaponName(ent) or language.GetPhrase("item_battery")
-				local modifierName = modifiers[k] and (modifiers[k].suffix or modifiers[k].prefix) or k
-				--notification.AddLegacy(string.format(baseText, entityName, modifierName), NOTIFY_GENERIC, 5)
-				chat.AddText(string.format(baseText, entityName, modifierName))
+	if InsaneStats:GetConVarValue("wpass2_enabled") then
+		local ply = LocalPlayer()
+		local modifiers = InsaneStats:GetAllModifiers()
+		if oldMods and modifierChangeReason and (ent:IsWeapon() and ent:GetOwner() == ply or ent == ply) and ent:GetCreationTime() + 1 < CurTime() then
+			for k,v in pairs(newMods) do
+				local baseText
+				
+				if not oldMods[k] then
+					baseText = "Your %s has gained the %s modifier!"
+				elseif oldMods[k] < v then
+					baseText = "Your %s has strengthened its %s modifier!"
+				end
+				
+				if baseText then
+					local entityName = ent:IsWeapon() and InsaneStats:GetWeaponName(ent) or language.GetPhrase("item_battery")
+					local modifierName = modifiers[k] and (modifiers[k].suffix or modifiers[k].prefix) or k
+					--notification.AddLegacy(string.format(baseText, entityName, modifierName), NOTIFY_GENERIC, 5)
+					chat.AddText(string.format(baseText, entityName, modifierName))
+				end
 			end
 		end
 	end
@@ -420,95 +426,98 @@ end)
 local lastLookedAtWep2
 local lastLookedAtWepEntIndex
 hook.Add("HUDPaint", "InsaneStatsWPASS", function()
-	if InsaneStats:GetConVarValue("wpass2_enabled") then
+	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
 		local ply = LocalPlayer()
-		local wep = ply:KeyDown(IN_WALK) and ply or ply:GetActiveWeapon()
 		local realTime = RealTime()
-		local trace = ply:GetEyeTrace()
 		local scrW = ScrW()
 		local scrH = ScrH()
 		local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
-		
-		if trace.Hit then
-			local lookedAtWep = GetLookedAtWep(trace.HitPos)--ply:GetUseEntity()
-			if (IsValid(lookedAtWep) and lookedAtWep:InsaneStats_IsWPASS2Pickup()) then
-				if lastLookedAtWepEntIndex ~= lookedAtWep:EntIndex() then
-					mouseOverChangeTime = realTime
-					panelDisplayChangeTime = realTime
+
+		if InsaneStats:GetConVarValue("wpass2_enabled") then
+			local wep = ply:KeyDown(IN_WALK) and ply or ply:GetActiveWeapon()
+			local trace = ply:GetEyeTrace()
+			
+			if trace.Hit then
+				local lookedAtWep = GetLookedAtWep(trace.HitPos)--ply:GetUseEntity()
+				if (IsValid(lookedAtWep) and lookedAtWep:InsaneStats_IsWPASS2Pickup()) then
+					if lastLookedAtWepEntIndex ~= lookedAtWep:EntIndex() then
+						mouseOverChangeTime = realTime
+						panelDisplayChangeTime = realTime
+					end
+					mouseOverDieTime = realTime + 1.1
+					panelDisplayDieTime = realTime + InsaneStats:GetConVarValue("hud_wpass2_hold")
+					lastLookedAtWep2 = lookedAtWep
+					
+					local lookClass = lookedAtWep:GetClass()
+					
+					if lookClass == "item_battery" then
+						wep = ply
+					elseif ply:HasWeapon(lookClass) then
+						wep = ply:GetWeapon(lookedAtWep:GetClass())
+					end
+					
+					lastLookedAtWepEntIndex = lookedAtWep:EntIndex()
+				else
+					lastLookedAtWepEntIndex = 0
 				end
-				mouseOverDieTime = realTime + 1.1
-				panelDisplayDieTime = realTime + InsaneStats:GetConVarValue("hud_wpass2_hold")
-				lastLookedAtWep2 = lookedAtWep
-				
-				local lookClass = lookedAtWep:GetClass()
-				
-				if lookClass == "item_battery" then
-					wep = ply
-				elseif ply:HasWeapon(lookClass) then
-					wep = ply:GetWeapon(lookedAtWep:GetClass())
-				end
-				
-				lastLookedAtWepEntIndex = lookedAtWep:EntIndex()
 			else
 				lastLookedAtWepEntIndex = 0
 			end
-		else
-			lastLookedAtWepEntIndex = 0
-		end
-		
-		if IsValid(wep) then
-			if equippedWep ~= wep:EntIndex() or oldLevel ~= wep:InsaneStats_GetLevel() then
-				oldLevel = wep:InsaneStats_GetLevel()
-				if equippedWep ~= wep:EntIndex() then
-					equippedWep = wep:EntIndex()
-					panelDisplayChangeTime = realTime
-					olderLevel = oldLevel
-				--[[elseif panelDisplayDieTime <= realTime then
-					olderLevel = oldLevel]]
+			
+			if IsValid(wep) then
+				if equippedWep ~= wep:EntIndex() or oldLevel ~= wep:InsaneStats_GetLevel() then
+					oldLevel = wep:InsaneStats_GetLevel()
+					if equippedWep ~= wep:EntIndex() then
+						equippedWep = wep:EntIndex()
+						panelDisplayChangeTime = realTime
+						olderLevel = oldLevel
+					--[[elseif panelDisplayDieTime <= realTime then
+						olderLevel = oldLevel]]
+					end
+					panelDisplayDieTime = realTime + InsaneStats:GetConVarValue("hud_wpass2_hold") + 1
 				end
-				panelDisplayDieTime = realTime + InsaneStats:GetConVarValue("hud_wpass2_hold") + 1
+				
+				if wep.insaneStats_Modifiers then
+					if not wep.insaneStats_WPASS2Name or (wep.insaneStats_WPASS2NameLastRefresh or 0) + 5 < RealTime() then
+						CreateName(wep)
+					end
+					if panelDisplayDieTime > realTime then
+						DrawWeaponPanel(
+							scrW*InsaneStats:GetConVarValue("hud_wpass2_current_x"),
+							scrH*InsaneStats:GetConVarValue("hud_wpass2_current_y"),
+							wep,
+							RealTime() - panelDisplayChangeTime,
+							math.min(1, panelDisplayDieTime - realTime),
+							{levelDiff = wep:InsaneStats_GetLevel() - olderLevel}
+						)
+					else
+						olderLevel = oldLevel
+					end
+				else
+					wep:InsaneStats_MarkForUpdate()
+				end
 			end
 			
-			if wep.insaneStats_Modifiers then
-				if not wep.insaneStats_WPASS2Name or (wep.insaneStats_WPASS2NameLastRefresh or 0) + 5 < RealTime() then
-					CreateName(wep)
-				end
-				if panelDisplayDieTime > realTime then
-					DrawWeaponPanel(
-						scrW*InsaneStats:GetConVarValue("hud_wpass2_current_x"),
-						scrH*InsaneStats:GetConVarValue("hud_wpass2_current_y"),
-						wep,
-						RealTime() - panelDisplayChangeTime,
-						math.min(1, panelDisplayDieTime - realTime),
-						{levelDiff = wep:InsaneStats_GetLevel() - olderLevel}
-					)
+			if IsValid(lastLookedAtWep2) then
+				if lastLookedAtWep2.insaneStats_Modifiers then
+					if not lastLookedAtWep2.insaneStats_WPASS2Name or (wep.insaneStats_WPASS2NameLastRefresh or 0) + 5 < RealTime() then
+						CreateName(lastLookedAtWep2)
+					end
+					if mouseOverDieTime > realTime then
+						DrawWeaponPanel(
+							scrW*InsaneStats:GetConVarValue("hud_wpass2_hovered_x"),
+							scrH*InsaneStats:GetConVarValue("hud_wpass2_hovered_y"),
+							lastLookedAtWep2,
+							RealTime() - mouseOverChangeTime,
+							math.min(1, mouseOverDieTime - realTime),
+							{dropped = true}
+						)
+					else
+						lastLookedAtWep2 = nil
+					end
 				else
-					olderLevel = oldLevel
+					lastLookedAtWep2:InsaneStats_MarkForUpdate()
 				end
-			else
-				wep:InsaneStats_MarkForUpdate()
-			end
-		end
-		
-		if IsValid(lastLookedAtWep2) then
-			if lastLookedAtWep2.insaneStats_Modifiers then
-				if not lastLookedAtWep2.insaneStats_WPASS2Name or (wep.insaneStats_WPASS2NameLastRefresh or 0) + 5 < RealTime() then
-					CreateName(lastLookedAtWep2)
-				end
-				if mouseOverDieTime > realTime then
-					DrawWeaponPanel(
-						scrW*InsaneStats:GetConVarValue("hud_wpass2_hovered_x"),
-						scrH*InsaneStats:GetConVarValue("hud_wpass2_hovered_y"),
-						lastLookedAtWep2,
-						RealTime() - mouseOverChangeTime,
-						math.min(1, mouseOverDieTime - realTime),
-						{dropped = true}
-					)
-				else
-					lastLookedAtWep2 = nil
-				end
-			else
-				lastLookedAtWep2:InsaneStats_MarkForUpdate()
 			end
 		end
 		
@@ -549,7 +558,6 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 				local statusEffectColor = statusEffectColors[statusEffectInfo.typ]
 				if oldStatusEffects[v].lastChanged + 1 > realTime then
 					local lerpFactor = 0.75+(oldStatusEffects[v].lastChanged - realTime)*0.75
-					--print(v, lerpFactor)
 					statusEffectColor = Color(
 						Lerp(lerpFactor, statusEffectColor.r, 255),
 						Lerp(lerpFactor, statusEffectColor.g, 255),
@@ -617,7 +625,8 @@ local ammoClasses = {
 	item_rpg_round = true,
 }
 timer.Create("InsaneStatsWPASS", 1, 0, function()
-	if InsaneStats:GetConVarValue("hud_wpass2_lootbeams") and LocalPlayer():IsSuitEquipped() then
+	local ply = LocalPlayer()
+	if InsaneStats:GetConVarValue("hud_wpass2_lootbeams") and (IsValid(ply) and ply:IsSuitEquipped()) then
 		for k,v in pairs(ents.GetAll()) do
 			if v:InsaneStats_IsWPASS2Pickup() and not IsValid(v:GetOwner()) and not v:IsDormant() then
 				if v.insaneStats_Modifiers then

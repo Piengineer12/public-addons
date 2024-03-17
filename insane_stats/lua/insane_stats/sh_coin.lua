@@ -110,6 +110,15 @@ InsaneStats:RegisterConVar("coins_reforge_cost_add", "insanestats_coins_reforge_
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
 
+InsaneStats:RegisterConVar("coins_respec_cost", "insanestats_coins_respec_cost", "100", {
+	display = "Respec Cost", desc = "Base price of refunding all skill points spent.",
+	type = InsaneStats.FLOAT, min = 0, max = 1000
+})
+InsaneStats:RegisterConVar("coins_respec_cost_add", "insanestats_coins_respec_cost_add", "10", {
+	display = "Respec Cost Scaling", desc = "% additional cost per skill point spent. This is always applied multiplicatively.",
+	type = InsaneStats.FLOAT, min = 0, max = 1000
+})
+
 InsaneStats.ShopItems = {
 	{"item_battery", 25},
 	{"item_healthvial", 10},
@@ -169,6 +178,16 @@ function InsaneStats:GetWeaponCost(index)
 	else
 		return math.Remap(index, 1, maxIndex, minPrice, maxPrice)
 	end
+end
+
+function InsaneStats:GetRespecCost(ent)
+	return InsaneStats:ScaleValueToLevelPure(
+		InsaneStats:GetConVarValue("coins_respec_cost"),
+		InsaneStats:GetConVarValue("coins_respec_cost_add")/100,
+		ent:InsaneStats_GetTotalSkillPoints() - ent:InsaneStats_GetSkillPoints()
+		+ ent:InsaneStats_GetTotalUberSkillPoints() - ent:InsaneStats_GetUberSkillPoints(),
+		true
+	)
 end
 
 -- the server needs access for setting the fallback coin color

@@ -288,6 +288,14 @@ function InsaneStats:ScaleValueToLevelPure(value, mul, level, multiplicative)
 	end
 end
 
+function InsaneStats:ScaleLevelFromValuePure(value, mul, start, multiplicative)
+	if multiplicative then
+		return math.log(value/start, 1+mul)+1
+	else
+		return (value/start-1)/mul+1
+	end
+end
+
 function InsaneStats:ScaleValueToLevel(value, mul, level, mode, invertMode)
 	local multiplicative = self:GetConVarValueDefaulted(mode, "xp_mode") > 0
 	if invertMode then
@@ -317,7 +325,7 @@ local function ScaleTotalValueToLevel(value, mul, level, multiplicative)
 	end
 end
 
-local function ScaleLevelToTotalValue(value, mul, start, multiplicative)
+function InsaneStats:ScaleLevelToTotalValue(value, mul, start, multiplicative)
 	if multiplicative then
 		-- value = -start/mul*(1-(mul+1)^(level-1))
 		-- log(value/start*mul+1)/log((mul+1))+1 = level
@@ -350,7 +358,7 @@ end
 
 function InsaneStats:GetLevelByXPRequired(xp)
 	if xp == math.huge then return math.huge end
-	local rawValue = ScaleLevelToTotalValue(
+	local rawValue = InsaneStats:ScaleLevelToTotalValue(
 		xp,
 		self:GetConVarValue("xp_scale_add")/100,
 		self:GetConVarValue("xp_scale_start"),
@@ -361,6 +369,56 @@ function InsaneStats:GetLevelByXPRequired(xp)
 	else
 		return rawValue
 	end
+end
+
+function InsaneStats:DetermineDamageMulPure(attacker, vic)
+	local damageBonus = 1
+	
+	if self:GetConVarValue("xp_enabled") then
+		local level = attacker:InsaneStats_GetLevel()
+		if attacker:IsPlayer() then
+			damageBonus = self:ScaleValueToLevelQuadratic(
+				damageBonus,
+				self:GetConVarValue("xp_player_damage")/100,
+				level,
+				"xp_player_damage_mode",
+				false,
+				self:GetConVarValue("xp_player_damage_add")/100
+			)
+		else
+			damageBonus = self:ScaleValueToLevelQuadratic(
+				damageBonus,
+				self:GetConVarValue("xp_other_damage")/100,
+				level,
+				"xp_other_damage_mode",
+				false,
+				self:GetConVarValue("xp_other_damage_add")/100
+			)
+		end
+
+		level = vic:InsaneStats_GetLevel()
+		if vic:IsPlayer() then
+			damageBonus = damageBonus / self:ScaleValueToLevelQuadratic(
+				1,
+				self:GetConVarValue("xp_player_resistance")/100,
+				level,
+				"xp_player_resistance_mode",
+				false,
+				self:GetConVarValue("xp_player_resistance_add")/100
+			)
+		else
+			damageBonus = damageBonus / self:ScaleValueToLevelQuadratic(
+				1,
+				self:GetConVarValue("xp_other_resistance")/100,
+				level,
+				"xp_other_resistance_mode",
+				false,
+				self:GetConVarValue("xp_other_resistance_add")/100
+			)
+		end
+	end
+
+	return damageBonus
 end
 
 local ENT = FindMetaTable("Entity")
@@ -388,6 +446,12 @@ function ENT:InsaneStats_GetXP()
 end
 
 function ENT:InsaneStats_SetXP(xp, dropValue)
+	if isstring(xp) then
+		InsaneStats:Log("XP for "..tostring(self).." attempted to be set to a string value \""..xp.."\"!")
+		InsaneStats:Log("This is a bug, report this if you see this message!")
+		debug.Trace()
+		xp = tonumber(xp) or math.huge
+	end
 	assert(xp >= -math.huge, "Something tried to set XP on "..tostring(self).." to nan!")
 	--[[if SERVER and self:GetClass() == "prop_physics" then
 		print(self, xp)
@@ -409,6 +473,7 @@ function ENT:InsaneStats_SetXP(xp, dropValue)
 	local newLevel = math.floor(InsaneStats:GetLevelByXPRequired(xp))
 	-- self.insaneStats_Level can be nil
 	if self.insaneStats_Level ~= newLevel and SERVER then
+		hook.Run("InsaneStatsLevelChanged", self, self.insaneStats_Level or newLevel, newLevel)
 		self:InsaneStats_ApplyLevel(newLevel)
 	end
 	

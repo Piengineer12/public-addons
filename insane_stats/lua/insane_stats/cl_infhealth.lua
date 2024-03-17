@@ -63,7 +63,7 @@ local allDamageNumbers = {}
 local shouldUpdateDPS = false
 hook.Add("InsaneStatsHUDDamageTaken", "InsaneStats", function(entIndex, attacker, damage, types, hitgroup, position, flags)
 	local ply = LocalPlayer()
-	if ply:IsSuitEquipped() then
+	if (IsValid(ply) and ply:IsSuitEquipped()) then
 		allDamageNumbers[entIndex] = allDamageNumbers[entIndex] or {}
 		
 		local entityDamageNumbers = allDamageNumbers[entIndex]
@@ -294,7 +294,6 @@ hook.Add("HUDPaint", "InsaneStats", function()
 			
 			local entryFactor = #ourDamages > 1 and 1+1/(#ourDamages - 1) or 1
 			local timeDifference = math.max((maxTime - minTime) * entryFactor, 1)
-			--print(totalDamage, "over", timeDifference)
 			totalDPS = totalLatestDamage / timeDifference
 			shouldUpdateDPS = false
 		end

@@ -221,7 +221,6 @@ local function ApplyWPASS2StartTier(ent)
 	end
 	
 	if math.random()*100 < probability and canGetModifiers then
-		--print(probability, ent)
 		local tier = InsaneStats:GetConVarValueDefaulted(isNotWep and "wpass2_tier_start_battery", "wpass2_tier_start")
 		local tierEnd = InsaneStats:GetConVarValueDefaulted(isNotWep and "wpass2_tier_max_battery", "wpass2_tier_max")
 		
@@ -246,9 +245,6 @@ local function ApplyWPASS2Tier(ent)
 	local tier = ent.insaneStats_StartTier or ApplyWPASS2StartTier(ent)
 	local isNotWep = not ent:IsWeapon()
 	
-	--[[if ent:IsPlayer() then
-		print(ent, tier)
-	end]]
 	if InsaneStats:GetConVarValue("xp_enabled") and InsaneStats:GetConVarValue("wpass2_tier_xp_enable") and tier ~= 0 then
 		local effectiveLevel = ent:InsaneStats_GetLevel()
 		if not ent:InsaneStats_IsWPASS2Pickup() then
@@ -285,9 +281,6 @@ local function ApplyWPASS2Tier(ent)
 			)
 		)
 	)
-	-- if ent:IsPlayer() then
-	-- 	print(ent, ent.insaneStats_Tier)
-	-- end
 	
 	return true
 end
@@ -427,7 +420,8 @@ function InsaneStats:ApplyWPASS2Modifiers(wep)
 	end
 	
 	wep.insaneStats_Modifiers = applyModifiers
-	if not wep:InsaneStats_IsWPASS2Pickup() and (wep.GetMaxArmor and wep:GetMaxArmor() <= 0) and not wep:IsPlayer() and wep.insaneStats_Tier ~= 0 then
+	if not wep:InsaneStats_IsWPASS2Pickup() and (wep.GetMaxArmor and wep:GetMaxArmor() <= 0)
+	and not wep:IsPlayer() and wep.insaneStats_Tier ~= 0 then
 		-- apply armor
 		local startingHealth = wep:InsaneStats_GetMaxHealth() / (wep.insaneStats_CurrentHealthAdd or 1)
 		local startingArmor = startingHealth * self:GetConVarValue("infhealth_armor_mul")
@@ -446,7 +440,7 @@ local toSavePlayers = {}
 local playerLoadoutData = {}
 local saveRequested = false
 local saveThinkCooldown = 10
-timer.Create("InsaneStatsWPASS", 0.5, 0, function()
+timer.Create("InsaneStatsWPASS", 5, 0, function()
 	if next(toUpdateModifierEntities) then
 		for k,v in pairs(toUpdateModifierEntities) do
 			toUpdateModifierEntities[k] = nil
@@ -480,20 +474,52 @@ end)
 local ENTITY = FindMetaTable("Entity")
 
 function ENTITY:InsaneStats_GetCombatTime()
-	if self.insaneStats_LastCombatTime and self.insaneStats_LastCombatTime + 5 < CurTime() then
+	if self.insaneStats_LastCombatTime and self.insaneStats_LastCombatTime + 10 < CurTime() then
 		self.insaneStats_StartCombatTime = nil
 	end
 	return self.insaneStats_StartCombatTime and CurTime() - self.insaneStats_StartCombatTime or -1
 end
 
 function ENTITY:InsaneStats_UpdateCombatTime()
-	if self.insaneStats_LastCombatTime and self.insaneStats_LastCombatTime + 5 < CurTime() then
+	if self.insaneStats_LastCombatTime and self.insaneStats_LastCombatTime + 10 < CurTime() then
 		self.insaneStats_StartCombatTime = nil
 	end
 	if not self.insaneStats_StartCombatTime then
 		self.insaneStats_StartCombatTime = CurTime()
 	end
 	self.insaneStats_LastCombatTime = CurTime()
+end
+
+function ENTITY:InsaneStats_TimeSinceCombat()
+	return self.insaneStats_LastCombatTime and self.insaneStats_LastCombatTime - CurTime() or math.huge
+end
+
+function ENTITY:InsaneStats_AddHealthNerfed(health)
+	if self:InsaneStats_GetHealth() < math.huge and self:InsaneStats_GetHealth() > 0 then
+		local unnerfedHealthRestored = math.Clamp(self:InsaneStats_GetMaxHealth() - self:InsaneStats_GetHealth(), 0, health)
+		health = health - unnerfedHealthRestored
+		if unnerfedHealthRestored > 0 then
+			self:SetHealth(self:InsaneStats_GetHealth() + unnerfedHealthRestored)
+		end
+		
+		if health > 0 then
+			-- nerfed amount, yes it is a bit complicated
+			local currentHealthPercent = self:InsaneStats_GetHealth() / self:InsaneStats_GetMaxHealth()
+			local curveStart = math.exp(currentHealthPercent - 1)
+			local curveEnd = curveStart + health / self:InsaneStats_GetMaxHealth()
+			
+			if curveEnd > curveStart then
+				local nerfMul = math.log(curveEnd/curveStart) / (curveEnd-curveStart)
+				health = health * nerfMul
+				self:SetHealth(self:InsaneStats_GetHealth() + health)
+			end
+		end
+		
+		local healthAdded = unnerfedHealthRestored + health
+		if healthAdded ~= 0 then
+			self:InsaneStats_DamageNumber(self, -healthAdded, DMG_DROWNRECOVER)
+		end
+	end
 end
 
 function ENTITY:InsaneStats_AddArmorNerfed(armor)
@@ -518,7 +544,9 @@ function ENTITY:InsaneStats_AddArmorNerfed(armor)
 		end
 		
 		local armorAdded = unnerfedArmorRestored + armor
-		self:InsaneStats_DamageNumber(self, -armorAdded, DMG_DROWN)
+		if armorAdded ~= 0 then
+			self:InsaneStats_DamageNumber(self, -armorAdded, DMG_DROWN)
+		end
 	end
 end
 
@@ -526,7 +554,9 @@ function ENTITY:InsaneStats_AddHealthCapped(health)
 	if self:InsaneStats_GetHealth() > 0 and self:InsaneStats_GetHealth() < self:InsaneStats_GetMaxHealth() then
 		local healthAdded = self:InsaneStats_GetHealth() < math.huge and math.min(health, self:InsaneStats_GetMaxHealth() - self:InsaneStats_GetHealth()) or 0
 		self:SetHealth(self:InsaneStats_GetHealth() + healthAdded)
-		self:InsaneStats_DamageNumber(self, -healthAdded, DMG_DROWNRECOVER)
+		if healthAdded ~= 0 then
+			self:InsaneStats_DamageNumber(self, -healthAdded, DMG_DROWNRECOVER)
+		end
 	end
 end
 

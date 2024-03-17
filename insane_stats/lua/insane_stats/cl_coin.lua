@@ -241,9 +241,16 @@ end
 local function CreateReforgePanel(parent, shopEntity)
 	local ply = LocalPlayer()
 
-	local Panel = vgui.Create("DPanel", parent)
+	local Panel = vgui.Create("DScrollPanel", parent)
 	Panel:Dock(FILL)
 	Panel.Paint = nil
+
+	local WPASS2Label = vgui.Create("DLabel", Panel)
+	WPASS2Label:SetWrap(true)
+	WPASS2Label:SetAutoStretchVertical(true)
+	WPASS2Label:SetFont("InsaneStats.Big")
+	WPASS2Label:SetText("WPASS2 Weapon / Armor Battery Reforging")
+	WPASS2Label:Dock(TOP)
 
 	local wpass2Enabled = InsaneStats:GetConVarValue("wpass2_enabled")
 
@@ -305,7 +312,8 @@ local function CreateReforgePanel(parent, shopEntity)
 		local ModifierList = vgui.Create("DListView", Panel)
 		--ModifierList:SetTall(ScrH()/3)
 		ModifierList:SetMultiSelect(false)
-		ModifierList:Dock(FILL)
+		ModifierList:SetTall(InsaneStats.FONT_BIG * 12)
+		ModifierList:Dock(TOP)
 		local column = ModifierList:AddColumn("Modifier Name")
 		-- column.Header:SetFont("InsaneStats.Medium")
 		-- column.Header:SizeToContentsY(4)
@@ -357,6 +365,54 @@ local function CreateReforgePanel(parent, shopEntity)
 			if newModifiers ~= currentModifiers then
 				currentModifiers = newModifiers
 				self:OnSelect(0, text, ent)
+			end
+		end
+	end
+
+	local SkillsLabel = vgui.Create("DLabel", Panel)
+	SkillsLabel:SetWrap(true)
+	SkillsLabel:SetAutoStretchVertical(true)
+	SkillsLabel:SetFont("InsaneStats.Big")
+	SkillsLabel:SetText("\nSkills Respec")
+	SkillsLabel:Dock(TOP)
+
+	local skillsEnabled = InsaneStats:GetConVarValue("skills_enabled")
+
+	local RespecLabel = vgui.Create("DLabel", Panel)
+	RespecLabel:SetWrap(true)
+	RespecLabel:SetAutoStretchVertical(true)
+	RespecLabel:SetFont("InsaneStats.Medium")
+	RespecLabel:Dock(TOP)
+
+	local currentText = ""
+	local oldThink = RespecLabel.Think
+	function RespecLabel:Think()
+		local cost = InsaneStats:GetRespecCost(ply)
+		if skillsEnabled then
+			currentText = "Respec Cost: "..InsaneStats:FormatNumber(math.ceil(cost))
+		else
+			currentText = "This feature requires Skills to be enabled."
+		end
+
+		if self:GetText() ~= currentText then
+			self:SetText(currentText)
+		end
+
+		oldThink(self)
+	end
+
+	if skillsEnabled then
+		local RespecButton = vgui.Create("DButton", Panel)
+		RespecButton:SetFont("InsaneStats.Medium")
+		RespecButton:SetText("RESPEC")
+		RespecButton:Dock(TOP)
+		function RespecButton:DoClick()
+			if ply:InsaneStats_GetCoins() >= InsaneStats:GetRespecCost(ply) then
+				net.Start("insane_stats")
+				net.WriteUInt(5, 8)
+				net.WriteEntity(shopEntity)
+				net.WriteUInt(4, 4)
+				net.SendToServer()
 			end
 		end
 	end
@@ -502,5 +558,5 @@ function InsaneStats:CreateShopMenu(shopEntity, weaponsSold)
 	Categories:Dock(FILL)
 	Categories:AddSheet("Weapons", CreateWeaponryPanel(Categories, shopEntity, weaponsSold), "icon16/gun.png")
 	Categories:AddSheet("Items", CreateItemsPanel(Categories, shopEntity), "icon16/bricks.png")
-	Categories:AddSheet("Reforge", CreateReforgePanel(Categories, shopEntity), "icon16/database_gear.png")
+	Categories:AddSheet("Others", CreateReforgePanel(Categories, shopEntity), "icon16/database_gear.png")
 end

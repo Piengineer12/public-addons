@@ -176,6 +176,17 @@ local function UpdateLookEntityInfo(ent, reset)
 	end
 end
 
+function InsaneStats:GetXPBarHue(level)
+	if level == math.huge then
+		return RealTime()*120 % 360
+	elseif math.abs(level) > 9007199254740992 then
+		-- return a random number seeded with the level
+		return math.floor(util.SharedRandom("InsaneStatsLevelHue"..string.format("%.11e", level), 0, 72))*5
+	else
+		return (level*5+60) % 360
+	end
+end
+
 hook.Add("HUDPaint", "InsaneStatsXP", function()
 	local scrW = ScrW()
 	local scrH = ScrH()
@@ -195,13 +206,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 		local maxSaturation = 0.75
 		
 		local xp = math.floor(ply:InsaneStats_GetXP())
-		local levelHue = (level*5+60) % 360
-		if ply:InsaneStats_GetXP() == math.huge then
-			levelHue = realTime*120 % 360
-		elseif math.abs(level) > 9007199254740992 then
-			-- return a random number seeded with the level
-			levelHue = math.floor(util.SharedRandom("InsaneStatsLevelHue"..level, 0, 72))*5
-		end
+		local levelHue = InsaneStats:GetXPBarHue(level)
 		local fgColor = HSVToColor(levelHue, maxSaturation, 1)
 		local bgColor = HSVToColor(levelHue, maxSaturation, 0.5)
 		

@@ -295,19 +295,24 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 		end
 	end
 
-	if dmginfo:GetDamage() > vic:InsaneStats_GetHealth() then
-		hook.Run("InsaneStatsPreDeath", vic, dmginfo)
+	if dmginfo:InsaneStats_GetRawDamage() >= vic:InsaneStats_GetRawHealth() then
+		local ret = hook.Run("InsaneStatsPreDeath", vic, dmginfo)
+		if ret then return ret end
 	end
 	
 	-- important for next part
 	vic.insaneStats_Health = vic:InsaneStats_GetHealth()
 	vic.insaneStats_Armor = vic:InsaneStats_GetArmor()
 	vic.insaneStats_OldVelocity = vic:GetVelocity()
-	--print("PreEntityTakeDamage", vic, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth())
+	--[[if vic:IsPlayer() then
+		print("PreEntityTakeDamage", vic, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth())
+	end]]
 end)
 
 hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo, notImmune, ...)
-	--print("PostEntityTakeDamage", vic, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth())
+	--[[if vic:IsPlayer() then
+		print("PostEntityTakeDamage", vic, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth())
+	end]]
 	vic.insaneStats_OldVelocity = vic.insaneStats_OldVelocity or vic:GetVelocity()
 	if not dmginfo:IsDamageType(armorBypassingDamage) then
 		vic:InsaneStats_ApplyKnockback(dmginfo:GetDamageForce(), vic.insaneStats_OldVelocity-vic:GetVelocity())

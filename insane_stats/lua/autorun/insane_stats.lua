@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 ]]
 
 InsaneStats = {
-	VERSION = "1.4.0",
-	VERSION_DATE = "2023-12-28"
+	VERSION = "1.5.0",
+	VERSION_DATE = "2024-03-17"
 }
 
 function InsaneStats:Log(msg)
@@ -33,6 +33,7 @@ local clientFiles = {
 	"cl_infhealth",
 	"cl_net",
 	"cl_options",
+	"cl_skills",
 	"cl_wpass2",
 	"cl_wpass2_basemods",
 	"cl_xp"
@@ -44,6 +45,8 @@ local sharedFiles = {
 	"sh_infhealth",
 	"sh_options",
 	"sh_pointcommander",
+	"sh_skills",
+	"sh_skills_basemods",
 	"sh_soundfixes",
 	"sh_wpass2",
 	"sh_wpass2_basemods",
@@ -56,6 +59,7 @@ local serverFiles = {
 	"sv_infhealth",
 	"sv_net",
 	"sv_pointcommander",
+	"sv_skills",
 	"sv_wpass2",
 	"sv_wpass2_basemods",
 	"sv_xp"

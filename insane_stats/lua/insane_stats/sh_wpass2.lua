@@ -268,7 +268,7 @@ local function PerformHookOverrides(hookName, suppressed)
 			for k,v in pairs(originalHooks) do
 				if nopString ~= tostring(v) and k ~= "InsaneStats" then
 					hook.Add("NonInsaneStats"..hookName, k, v)
-					hook.Add("hookName", k, InsaneStats.NOP)
+					hook.Add(hookName, k, InsaneStats.NOP)
 				end
 			end
 		end
@@ -286,7 +286,7 @@ local function PerformHookOverrides(hookName, suppressed)
 	end
 end
 
-timer.Create("InsaneStatsSharedWPASS", 0.5, 0, function()
+timer.Create("InsaneStatsSharedWPASS", 5, 0, function()
 	-- the reason we don't alter for DLib is to prevent functions from returning true, which would break our bullets
 	-- some addons also mistakenly return true on PlayerCanPickup* hooks as well
 	-- exception to EntityFireBullets: if we see GetConVar("rnpct_weaponproficiency_support"), BAIL! that addon is already doing our job!
@@ -379,8 +379,9 @@ local function DeOverrideWeapons()
 end
 
 local function CheckOverrideWeapons()
-	if doWeaponOverride ~= InsaneStats:GetConVarValue("wpass2_enabled") then
-		doWeaponOverride = InsaneStats:GetConVarValue("wpass2_enabled")
+	local shouldWeaponOverride = InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled")
+	if doWeaponOverride ~= shouldWeaponOverride then
+		doWeaponOverride = shouldWeaponOverride
 		if doWeaponOverride then
 			OverrideWeapons()
 		else
@@ -393,15 +394,10 @@ hook.Add("EntityFireBullets", "InsaneStats", function(...)
 	if doWeaponOverride and doEFBOverride then
 		-- run the others first, but in a more roundabout way
 		local nonInsaneStatsHooks = hook.GetTable().NonInsaneStatsEntityFireBullets or {}
-		local shouldAlter = false
 		for k,v in pairs(nonInsaneStatsHooks) do
 			local ret = v(...)
-			if ret then
-				shouldAlter = true
-			elseif ret == false then return false end
+			if ret == false then return false end
 		end
-		
-		if shouldAlter then return true end
 	end
 end)
 hook.Add("PlayerCanPickupWeapon", "InsaneStats", function(...)
@@ -583,6 +579,12 @@ end
 local ENTITY = FindMetaTable("Entity")
 
 function ENTITY:InsaneStats_SetBatteryXP(xp)
+	if isstring(xp) then
+		InsaneStats:Log("Battery XP for "..tostring(self).." attempted to be set to a string value \""..xp.."\"!")
+		InsaneStats:Log("This is a bug, report this if you see this message!")
+		debug.Trace()
+		xp = tonumber(xp) or math.huge
+	end
 	self.insaneStats_BatteryXP = xp
 	if xp then
 		self.insaneStats_BatteryXPRoot8 = InsaneStats:CalculateRoot8(xp)
@@ -594,71 +596,99 @@ function ENTITY:InsaneStats_GetBatteryXP()
 end
 
 function ENTITY:InsaneStats_GetAttributeValue(attribute)
-	local totalMul = 1
-	local weaponEffectVars = {"wpass2_attributes_other_enabled"}
-	local batteryEffectVars = {"wpass2_attributes_other_enabled_battery", "wpass2_attributes_other_enabled"}
-	
-	if self:IsPlayer() then
-		weaponEffectVars = {"wpass2_attributes_player_enabled"}
-		batteryEffectVars = {"wpass2_attributes_player_enabled_battery", "wpass2_attributes_player_enabled"}
-	elseif self.insaneStats_IsAlly ~= self.insaneStats_IsEnemy or self.insaneStats_Disposition then
-		if self.insaneStats_IsAlly or self.insaneStats_Disposition == 3 then
-			weaponEffectVars = {"wpass2_attributes_ally_enabled", "wpass2_attributes_other_enabled"}
-			batteryEffectVars = {"wpass2_attributes_ally_enabled_battery", "wpass2_attributes_ally_enabled",
-			"wpass2_attributes_other_enabled_battery", "wpass2_attributes_other_enabled"}
-		elseif self.insaneStats_IsEnemy or self.insaneStats_Disposition == 1 then
-			weaponEffectVars = {"wpass2_attributes_enemy_enabled", "wpass2_attributes_other_enabled"}
-			batteryEffectVars = {"wpass2_attributes_enemy_enabled_battery", "wpass2_attributes_enemy_enabled",
-			"wpass2_attributes_other_enabled_battery", "wpass2_attributes_other_enabled"}
+	if InsaneStats:GetConVarValue("wpass2_enabled") then
+		local totalMul = 1
+		local weaponEffectVars = {"wpass2_attributes_other_enabled"}
+		local batteryEffectVars = {"wpass2_attributes_other_enabled_battery", "wpass2_attributes_other_enabled"}
+		
+		if self:IsPlayer() then
+			weaponEffectVars = {"wpass2_attributes_player_enabled"}
+			batteryEffectVars = {"wpass2_attributes_player_enabled_battery", "wpass2_attributes_player_enabled"}
+		elseif self.insaneStats_IsAlly ~= self.insaneStats_IsEnemy or self.insaneStats_Disposition then
+			if self.insaneStats_IsAlly or self.insaneStats_Disposition == 3 then
+				weaponEffectVars = {"wpass2_attributes_ally_enabled", "wpass2_attributes_other_enabled"}
+				batteryEffectVars = {"wpass2_attributes_ally_enabled_battery", "wpass2_attributes_ally_enabled",
+				"wpass2_attributes_other_enabled_battery", "wpass2_attributes_other_enabled"}
+			elseif self.insaneStats_IsEnemy or self.insaneStats_Disposition == 1 then
+				weaponEffectVars = {"wpass2_attributes_enemy_enabled", "wpass2_attributes_other_enabled"}
+				batteryEffectVars = {"wpass2_attributes_enemy_enabled_battery", "wpass2_attributes_enemy_enabled",
+				"wpass2_attributes_other_enabled_battery", "wpass2_attributes_other_enabled"}
+			end
 		end
-	end
-	
-	local weaponHasEffect = InsaneStats:GetConVarValueDefaulted(weaponEffectVars)
-	local armorBatteryHasEffect = InsaneStats:GetConVarValueDefaulted(batteryEffectVars)
-	
-	if armorBatteryHasEffect > 0 then
-		totalMul = totalMul * (self.insaneStats_Attributes and self.insaneStats_Attributes[attribute] or 1)
-	end
-	
-	if weaponHasEffect > 0 then
-		local wep = self.GetActiveWeapon and self:GetActiveWeapon()
-
-		if not IsValid(wep) then
-			wep = self.insaneStats_ProxyWeapon
+		
+		local weaponHasEffect = InsaneStats:GetConVarValueDefaulted(weaponEffectVars)
+		local armorBatteryHasEffect = InsaneStats:GetConVarValueDefaulted(batteryEffectVars)
+		
+		if armorBatteryHasEffect > 0 then
+			totalMul = totalMul * (self.insaneStats_Attributes and self.insaneStats_Attributes[attribute] or 1)
 		end
+		
+		if weaponHasEffect > 0 then
+			local wep = self.GetActiveWeapon and self:GetActiveWeapon()
 
-		if IsValid(wep) then
-			totalMul = totalMul * (wep.insaneStats_Attributes and wep.insaneStats_Attributes[attribute] or 1)
-		elseif SERVER and self.insaneStats_ProxyWeaponLastTick ~= engine.TickCount() then
-			local shouldGive = InsaneStats:GetConVarValue("wpass2_modifiers_other_create")
-			if shouldGive < 1 then
-				shouldGive = false
-			elseif shouldGive < 3 and not self:InsaneStats_IsMob() then
-				shouldGive = false
-			elseif shouldGive > 1 and not self:InsaneStats_ArmorSensible() then
-				shouldGive = false
+			if not IsValid(wep) then
+				wep = self.insaneStats_ProxyWeapon
 			end
 
-			if shouldGive then
-				wep = ents.Create("weapon_base")
-				wep:SetKeyValue("spawnflags", 3)
-				wep:Spawn()
-				wep:SetMoveType(MOVETYPE_NONE)
-				wep:PhysicsDestroy()
-				wep:SetNoDraw(true)
-				wep.insaneStats_IsProxyWeapon = true
-				wep.insaneStats_ProxyWeaponTo = self
-				self.insaneStats_ProxyWeapon = wep
+			if IsValid(wep) then
+				totalMul = totalMul * (wep.insaneStats_Attributes and wep.insaneStats_Attributes[attribute] or 1)
+			elseif SERVER and self.insaneStats_ProxyWeaponLastTick ~= engine.TickCount() then
+				local shouldGive = InsaneStats:GetConVarValue("wpass2_modifiers_other_create")
+				if shouldGive < 1 then
+					shouldGive = false
+				elseif shouldGive < 3 and not self:InsaneStats_IsMob() then
+					shouldGive = false
+				elseif shouldGive > 1 and not self:InsaneStats_ArmorSensible() then
+					shouldGive = false
+				end
+
+				if shouldGive then
+					wep = ents.Create("weapon_base")
+					wep:SetKeyValue("spawnflags", 3)
+					wep:Spawn()
+					wep:SetMoveType(MOVETYPE_NONE)
+					wep:PhysicsDestroy()
+					wep:SetNoDraw(true)
+					wep.insaneStats_IsProxyWeapon = true
+					wep.insaneStats_ProxyWeaponTo = self
+					self.insaneStats_ProxyWeapon = wep
+				end
+				self.insaneStats_ProxyWeaponLastTick = engine.TickCount()
 			end
-			self.insaneStats_ProxyWeaponLastTick = engine.TickCount()
 		end
+		
+		return totalMul
+	else return 1
 	end
-	
-	return totalMul
 end
 
 function ENTITY:InsaneStats_IsWPASS2Pickup()
 	return self:IsWeapon() or self:GetClass() == "item_battery"
+end
+
+local healthClasses = {
+	item_healthkit = true,
+	item_healthvial = true,
+	item_grubnugget = true
+}
+local ammoClasses = {
+	item_ammo_357 = true,
+	item_ammo_357_large = true,
+	item_ammo_ar2 = true,
+	item_ammo_ar2_large = true,
+	item_ammo_ar2_altfire = true,
+	item_ammo_crossbow = true,
+	item_ammo_pistol = true,
+	item_ammo_pistol_large = true,
+	item_ammo_smg1 = true,
+	item_ammo_smg1_large = true,
+	item_ammo_smg1_grenade = true,
+	item_box_buckshot = true,
+	item_rpg_round = true,
+}
+function ENTITY:InsaneStats_IsItem()
+	local class = self:GetClass()
+	return self:InsaneStats_IsWPASS2Pickup() or healthClasses[class] or ammoClasses[class]
 end
 
 local function EntityInitStatusEffects(ent)

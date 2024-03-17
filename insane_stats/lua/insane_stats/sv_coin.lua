@@ -118,7 +118,7 @@ end
 
 ReloadCoins()
 
-hook.Add("InitPostEntity", "InsaneStatsXP", function()
+hook.Add("InitPostEntity", "InsaneStatsCoins", function()
 	ReloadCoins()
 end)
 

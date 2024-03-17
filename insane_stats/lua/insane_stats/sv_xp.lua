@@ -100,7 +100,7 @@ function ENT:InsaneStats_ApplyLevel(level)
 	if InsaneStats:GetConVarValue("xp_enabled") and (self:GetModel() or "") ~= "" then
 		local isPlayer = self:IsPlayer()
 		
-		local currentHealthFrac = (self:InsaneStats_GetMaxHealth() == 0
+		local currentHealthFrac = (self:InsaneStats_GetMaxHealth() <= 0
 			or self:InsaneStats_GetHealth() == math.huge) and 1
 			or self:InsaneStats_GetHealth() / self:InsaneStats_GetMaxHealth()
 		local currentHealthAdd = self.insaneStats_CurrentHealthAdd or 1
@@ -196,7 +196,6 @@ hook.Add("InsaneStatsScaleXP", "InsaneStatsXP", function(data)
 		false,
 		InsaneStats:GetConVarValue("xp_drop_add_add")/100
 	) + (data.victim.insaneStats_DropXP or 0)
-	
 end)
 
 local function ProcessKillEvent(victim, attacker, inflictor)
@@ -449,6 +448,7 @@ function InsaneStats:DetermineEntitySpawnedXP(ent)
 
 	local alphaXPMul = 1
 	local isAlpha = math.random()*100 < self:GetConVarValue("xp_other_alpha_chance")
+	isAlpha = hook.Run("InsaneStatsEntityShouldBeAlpha", ent) or isAlpha
 	if isAlpha then
 		alphaXPMul = self:GetConVarValue("xp_other_alpha_mul")
 	end
@@ -459,7 +459,6 @@ function InsaneStats:DetermineDamageMul(vic, dmginfo)
 	if self:GetConVarValue("xp_enabled") then
 		local attacker = dmginfo:GetAttacker()
 		local inflictor = dmginfo:GetInflictor()
-		local damageBonus = 1
 		
 		if not (IsValid(attacker) and attacker:GetClass()~="entityflame") and IsValid(vic.insaneStats_LastAttacker) then
 			inflictor = attacker
@@ -480,51 +479,8 @@ function InsaneStats:DetermineDamageMul(vic, dmginfo)
 				attacker = inflictor
 			end
 		end
-	
-		local level = attacker:InsaneStats_GetLevel()
-		if attacker:IsPlayer() then
-			damageBonus = self:ScaleValueToLevelQuadratic(
-				damageBonus,
-				self:GetConVarValue("xp_player_damage")/100,
-				level,
-				"xp_player_damage_mode",
-				false,
-				self:GetConVarValue("xp_player_damage_add")/100
-			)
-		else
-			damageBonus = self:ScaleValueToLevelQuadratic(
-				damageBonus,
-				self:GetConVarValue("xp_other_damage")/100,
-				level,
-				"xp_other_damage_mode",
-				false,
-				self:GetConVarValue("xp_other_damage_add")/100
-			)
-		end
-	
-		level = vic:InsaneStats_GetLevel()
-		if vic:IsPlayer() then
-			damageBonus = damageBonus / self:ScaleValueToLevelQuadratic(
-				1,
-				self:GetConVarValue("xp_player_resistance")/100,
-				level,
-				"xp_player_resistance_mode",
-				false,
-				self:GetConVarValue("xp_player_resistance_add")/100
-			)
-		else
-			damageBonus = damageBonus / self:ScaleValueToLevelQuadratic(
-				1,
-				self:GetConVarValue("xp_other_resistance")/100,
-				level,
-				"xp_other_resistance_mode",
-				false,
-				self:GetConVarValue("xp_other_resistance_add")/100
-			)
-		end
 		
-		--print(damageBonus)
-		return damageBonus
+		return InsaneStats:DetermineDamageMulPure(attacker, vic)
 	else
 		return 1
 	end
@@ -758,10 +714,10 @@ end)
 
 hook.Add("EntityKeyValue", "InsaneStatsXP", function(ent, key, value)
 	value = tonumber(value)
+	key = key:lower()
 	local healthMul = ent.insaneStats_CurrentHealthAdd or 1
 	
 	if healthMul ~= 1 and value then
-		key = key:lower()
 		
 		if key == "health" then
 			local newHealth = healthMul * value
@@ -782,6 +738,10 @@ hook.Add("EntityKeyValue", "InsaneStatsXP", function(ent, key, value)
 			
 			return true
 		end
+	end
+
+	if key == "onplayertouch" then
+		ent.insaneStats_NoCustomItemProcessing = true
 	end
 end)
 
@@ -890,7 +850,8 @@ hook.Add("PlayerCanPickupItem", "InsaneStatsXP", function(ply, item)
 	local ret = hook.Run("InsaneStatsPlayerCanPickupItem", ply, item)
 	if ret == false then return false end
 
-	if InsaneStats:GetConVarValue("xp_enabled") then
+	hook.Run("InsaneStatsPlayerPickedUpItem", ply, item)
+	if InsaneStats:GetConVarValue("xp_enabled") and not item.insaneStats_NoCustomItemProcessing then
 		local class = item:GetClass()
 		if class == "item_healthvial" then
 			if ply:InsaneStats_GetHealth() < ply:InsaneStats_GetMaxHealth() then
