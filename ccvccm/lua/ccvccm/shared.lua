@@ -231,7 +231,7 @@ CCVCCM.SaveData = function(self)
     util.TableToJSON(data)
   })
   self:SQL('COMMIT')
-  return self:Log('Saved!')
+  self:Log('Saved!')
 end
 timer.Create('ccvccm_autosave', 120, 0, (function()
   local _base_0 = CCVCCM
@@ -248,10 +248,10 @@ hook.Add('ShutDown', 'CCVCCM', (function()
   end
 end)())
 hook.Add('CCVCCMDataLoad', 'CCVCCM', function(data)
-  return table.Add(data, CCVCCM:_CreateElementData())
+  table.Add(data, CCVCCM:_CreateElementData())
 end)
 hook.Add('Initialize', 'CCVCCM', function()
-  return hook.Run('CCVCCMRun')
+  hook.Run('CCVCCMRun')
 end)
 hook.Add('CCVCCMRun', 'CCVCCM', function()
   CCVCCM:SetAddon('ccvccm', 'CCVCCM')
@@ -810,7 +810,7 @@ CCVCCM.AddAddonVar = function(self, name, registeredData)
       if self:_GetAddonVar(fullName) == nil or registeredData.flags.nosave then
         self:_SetAddonVar(fullName, registeredData.default)
       end
-      if registeredData.func then
+      if registeredData.func and not registeredData.flags.noinitfunc then
         registeredData.func(self:_GetAddonVar(fullName), fullName)
       end
     end

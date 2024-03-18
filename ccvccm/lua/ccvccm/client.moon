@@ -79,6 +79,7 @@ timer.Create 'CCVCCM', 0.015, 0, ->
 
 hook.Add 'InitPostEntity', 'CCVCCM', ->
 	CCVCCM\StartAVUIProcess!
+	return
 
 net.Receive 'ccvccm', (length) ->
 	operation = CCVCCM\ExtractSingleFromNetMessage 'u8'

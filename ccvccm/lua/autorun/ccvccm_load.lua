@@ -14,7 +14,7 @@ super keybinds
 	#1 -> always interpreted as true, can be used for comments
 	!1 -> same as #1 but entire keybind is aborted if 1 is pressed after this set
 	@1 -> same as #1 but entire keybind is accepted if 1 is pressed after this set
-	1x2 -> 1+*2, where * is one of the five unary operators above
+	1x2 -> 1+*2, where x is one of the five unary operators above
 	1,2 -> 1 -1+2
 	1+2,3 -> 1+2 -2+3
 	(1+2),3 -> (1+2) -(1+2)+3
@@ -39,9 +39,9 @@ if false then
 end
 
 CCVCCM = {
-	_VERSION = '1.0.1',
-	_VERSIONNUMBER = 10001,
-	_VERSIONDATE = '2023-12-13'
+	_VERSION = '1.0.2',
+	_VERSIONNUMBER = 10002,
+	_VERSIONDATE = '2024-03-18'
 }
 
 if SERVER then

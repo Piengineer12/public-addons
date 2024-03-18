@@ -68,7 +68,7 @@ timer.Create('CCVCCM', 0.015, 0, function()
   end
 end)
 hook.Add('InitPostEntity', 'CCVCCM', function()
-  return CCVCCM:StartAVUIProcess()
+  CCVCCM:StartAVUIProcess()
 end)
 net.Receive('ccvccm', function(length)
   local operation = CCVCCM:ExtractSingleFromNetMessage('u8')

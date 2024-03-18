@@ -161,6 +161,7 @@ CCVCCM.SaveData = =>
 	@SQL 'INSERT INTO "ccvccm" ("var", "value") VALUES (%s, %s)', {'', util.TableToJSON data}
 	@SQL 'COMMIT'
 	@Log 'Saved!'
+	return
 
 timer.Create 'ccvccm_autosave', 120, 0, CCVCCM\SaveData
 
@@ -168,7 +169,12 @@ hook.Add 'ShutDown', 'CCVCCM', CCVCCM\SaveData
 
 hook.Add 'CCVCCMDataLoad', 'CCVCCM', (data) ->
 	table.Add data, CCVCCM\_CreateElementData!
-hook.Add 'Initialize', 'CCVCCM', -> hook.Run 'CCVCCMRun'
+	return
+
+hook.Add 'Initialize', 'CCVCCM', ->
+	hook.Run 'CCVCCMRun'
+	return
+
 hook.Add 'CCVCCMRun', 'CCVCCM', ->
 	-- add clientside ccvccm_autoload convar
 	CCVCCM\SetAddon 'ccvccm', 'CCVCCM'
@@ -592,7 +598,7 @@ CCVCCM.AddAddonVar = (name, registeredData) =>
 		-- FIXME: this save-first-ask-later approach might cause issues!
 		unless noValue
 			@_SetAddonVar fullName, registeredData.default if @_GetAddonVar(fullName) == nil or registeredData.flags.nosave
-			registeredData.func @_GetAddonVar(fullName), fullName if registeredData.func
+			registeredData.func @_GetAddonVar(fullName), fullName if registeredData.func and not registeredData.flags.noinitfunc
 		CCVCCMPointer fullName
 
 CCVCCM.AddAddonCommand = (name, registeredData) =>
