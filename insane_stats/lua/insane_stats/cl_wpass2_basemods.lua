@@ -16,33 +16,29 @@ hook.Add("InsaneStatsWPASS2EntityMarked", "InsaneStatsWPASS2", function(entIndex
 	}
 end)
 
-local function GetIcon(icon)
-	return Material("icon16/"..icon..".png", "mips smooth")
-end
 local revealIcons = {
-	["class C_BaseEntity"] = GetIcon("cursor"),
-	func_button = GetIcon("cursor"),
-	func_rot_button = GetIcon("cursor"),
-	momentary_rot_button = GetIcon("cursor"),
-	func_breakable = GetIcon("asterisk_yellow"),
-	func_breakable_surf = GetIcon("asterisk_orange"),
-	func_door = GetIcon("door"),
-	func_door_rotating = GetIcon("door"),
-	prop_door_rotating = GetIcon("door"),
-	npc_grenade_frag = GetIcon("exclamation"),
+	["class C_BaseEntity"] = InsaneStats:GetIconMaterial("cursor"),
+	func_button = InsaneStats:GetIconMaterial("cursor"),
+	func_rot_button = InsaneStats:GetIconMaterial("cursor"),
+	momentary_rot_button = InsaneStats:GetIconMaterial("cursor"),
+	func_breakable = InsaneStats:GetIconMaterial("asterisk_yellow"),
+	func_breakable_surf = InsaneStats:GetIconMaterial("asterisk_orange"),
+	func_door = InsaneStats:GetIconMaterial("door"),
+	func_door_rotating = InsaneStats:GetIconMaterial("door"),
+	prop_door_rotating = InsaneStats:GetIconMaterial("door"),
+	npc_grenade_frag = InsaneStats:GetIconMaterial("exclamation"),
 
-	trigger_hurt = GetIcon("error"),
-	trigger_push = GetIcon("weather_clouds"),
-	trigger_teleport = GetIcon("transmit"),
-	trigger_once = GetIcon("transmit"),
-	trigger_multiple = GetIcon("transmit"),
+	trigger_hurt = InsaneStats:GetIconMaterial("error"),
+	trigger_push = InsaneStats:GetIconMaterial("weather_clouds"),
+	trigger_teleport = InsaneStats:GetIconMaterial("transmit"),
+	trigger_once = InsaneStats:GetIconMaterial("transmit"),
+	trigger_multiple = InsaneStats:GetIconMaterial("transmit"),
 }
-local eyeIcon = GetIcon("eye")
-local vitalIcon = GetIcon("ruby")
+
 local function GetIconForEntity(ent)
 	local ply = LocalPlayer()
 	if ent == ply or ent:GetOwner() == ply or ent:GetParent() == ply then return end
-	if ent:GetNWBool("insanestats_vital") then return vitalIcon end
+	if ent:GetNWBool("insanestats_vital") then return InsaneStats:GetIconMaterial("ruby") end
 	if ent:GetNWBool("insanestats_use") then return revealIcons.func_button end
 
 	if (ent:GetModel() or "")~="" then
@@ -159,7 +155,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 					local viewData = v:ToScreen()
 					if viewData.visible then
 						table.insert(toDraw, {
-							icon = eyeIcon,
+							icon = InsaneStats:GetIconMaterial("eye"),
 							x = viewData.x,
 							y = viewData.y,
 							dist = dist,

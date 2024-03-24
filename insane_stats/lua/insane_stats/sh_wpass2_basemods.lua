@@ -2259,7 +2259,7 @@ local statusEffects = {
 	poison = {
 		name = "Poisoned",
 		typ = -1,
-		img = Material("insane_stats/poison-bottle.png", "mips smooth"),
+		img = "poison-bottle",
 		apply = SERVER and function(ent, level, duration, attacker)
 			if canPlayPoisonSound then
 				canPlayPoisonSound = false
@@ -2279,7 +2279,7 @@ local statusEffects = {
 	fire = {
 		name = "On Fire",
 		typ = -1,
-		img = Material("insane_stats/small-fire.png", "mips smooth"),
+		img = "small-fire",
 		apply = SERVER and function(ent, level, duration, attacker)
 			ent:Ignite(duration)
 		end
@@ -2287,7 +2287,7 @@ local statusEffects = {
 	freeze = {
 		name = "Freezing",
 		typ = -1,
-		img = Material("insane_stats/snowflake-2.png", "mips smooth"),
+		img = "snowflake-2",
 		apply = SERVER and function(ent, level, duration, attacker)
 			if canPlayFreezeSound then
 				canPlayFreezeSound = false
@@ -2311,7 +2311,7 @@ local statusEffects = {
 	shock = {
 		name = "Shocked",
 		typ = -1,
-		img = Material("insane_stats/lightning-frequency.png", "mips smooth"),
+		img = "lightning-frequency",
 		apply = SERVER and function(ent, level, duration, attacker)
 			if canPlayShockSound then
 				canPlayShockSound = false
@@ -2328,7 +2328,7 @@ local statusEffects = {
 	bleed = {
 		name = "Bleeding",
 		typ = -1,
-		img = Material("insane_stats/droplets.png", "mips smooth"),
+		img = "droplets",
 		apply = SERVER and function(ent, level, duration, attacker)
 			if canPlayBleedSound then
 				canPlayBleedSound = false
@@ -2350,7 +2350,7 @@ local statusEffects = {
 	hemotoxin = {
 		name = "Hemotoxicated",
 		typ = -1,
-		img = Material("insane_stats/spotted-wound.png", "mips smooth"),
+		img = "spotted-wound",
 		apply = SERVER and function(ent, level, duration, attacker)
 			if canPlayPoisonSound then
 				canPlayPoisonSound = false
@@ -2385,7 +2385,7 @@ local statusEffects = {
 	frostfire = {
 		name = "Frostfire",
 		typ = -1,
-		img = Material("insane_stats/frostfire.png", "mips smooth"),
+		img = "frostfire",
 		apply = SERVER and function(ent, level, duration, attacker)
 			ent:Ignite(duration)
 			if canPlayFreezeSound then
@@ -2410,7 +2410,7 @@ local statusEffects = {
 	electroblast = {
 		name = "Electroblasted",
 		typ = -1,
-		img = Material("insane_stats/sonic-lightning.png", "mips smooth"),
+		img = "sonic-lightning",
 		apply = SERVER and function(ent, level, duration, attacker)
 			if canPlayShockSound then
 				canPlayShockSound = false
@@ -2427,7 +2427,7 @@ local statusEffects = {
 	cosmicurse = {
 		name = "Cosmic Annihilation",
 		typ = -1,
-		img = Material("insane_stats/black-hole-bolas.png", "mips smooth"),
+		img = "black-hole-bolas",
 		apply = SERVER and function(ent, level, duration, attacker)
 			ent:Ignite(duration)
 			if canPlayPoisonSound then
@@ -2490,7 +2490,7 @@ local statusEffects = {
 	doom = {
 		name = "Doomed",
 		typ = -1,
-		img = Material("insane_stats/shark-jaws.png", "mips smooth"),
+		img = "shark-jaws",
 		expiry = SERVER and function(ent, level, attacker)
 			hook.Run("InsaneStatsWPASS2Doom", ent, level, attacker)
 		end
@@ -2499,7 +2499,7 @@ local statusEffects = {
 	stunned = {
 		name = "Stunned",
 		typ = -1,
-		img = Material("insane_stats/coma.png", "mips smooth"),
+		img = "coma",
 		apply = SERVER and function(ent, level, duration, attacker)
 			if ent:IsNPC() then
 				ent:SetSchedule(SCHED_NPC_FREEZE)
@@ -2515,37 +2515,37 @@ local statusEffects = {
 	stun_immune = {
 		name = "Stun Immunity",
 		typ = 1,
-		img = Material("insane_stats/surprised.png", "mips smooth")
+		img = "surprised"
 	},
 	retaliation10_buildup = {
 		name = "Retaliation Buildup",
 		typ = 1,
-		img = Material("insane_stats/shield-reflect.png", "mips smooth")
+		img = "shield-reflect"
 	},
 	hit100_selfdamage_stacks = {
 		name = "Dangerous Buildup",
 		typ = -1,
-		img = Material("insane_stats/dread-skull.png", "mips smooth")
+		img = "dread-skull"
 	},
 	perhit_defence_down = {
 		name = "Ruthless Defence Down",
 		typ = -1,
-		img = Material("insane_stats/skull-crack.png", "mips smooth")
+		img = "skull-crack"
 	},
 	hit3_damage_stacks = {
 		name = "Strong Buildup",
 		typ = 2,
-		img = Material("insane_stats/triple-scratches.png", "mips smooth")
+		img = "triple-scratches"
 	},
 	hit100_damagepulse_stacks = {
 		name = "Godly Buildup",
 		typ = 2,
-		img = Material("insane_stats/orbital-rays.png", "mips smooth")
+		img = "orbital-rays"
 	},
 	--[[hit10s_damage_up = {
 		name = "Unpleasant Damage Up",
 		typ = 2,
-		img = Material("insane_stats/pointy-sword.png", "mips smooth"),
+		img = "pointy-sword",
 		expiry = SERVER and function(ent, level, attacker)
 			ent:InsaneStats_ApplyStatusEffect("hit10s_damage_cooldown", 1, 60)
 		end
@@ -2553,12 +2553,12 @@ local statusEffects = {
 	hit1s_damage_cooldown = {
 		name = "Unpleasancy Cooldown",
 		typ = -1,
-		img = Material("insane_stats/shattered-sword.png", "mips smooth")
+		img = "shattered-sword"
 	},
 	--[[hit10s_firerate_up = {
 		name = "Mystical Fire Rate Up",
 		typ = 2,
-		img = Material("insane_stats/striking-arrows.png", "mips smooth"),
+		img = "striking-arrows",
 		expiry = SERVER and function(ent, level, attacker)
 			ent:InsaneStats_ApplyStatusEffect("hit10s_firerate_cooldown", 1, 60)
 		end
@@ -2566,12 +2566,12 @@ local statusEffects = {
 	hittaken1s_damagetaken_cooldown = {
 		name = "Mystical Cooldown",
 		typ = -1,
-		img = Material("insane_stats/cracked-shield.png", "mips smooth")
+		img = "cracked-shield"
 	},
 	hittaken_invincible = {
 		name = "Sharp Invincibility",
 		typ = 2,
-		img = Material("insane_stats/mesh-ball.png", "mips smooth"),
+		img = "mesh-ball",
 		expiry = SERVER and function(ent, level, attacker)
 			ent:InsaneStats_ApplyStatusEffect("hittaken_invincible_cooldown", 1, 60)
 		end
@@ -2579,12 +2579,12 @@ local statusEffects = {
 	hittaken_invincible_cooldown = {
 		name = "Sharp Invincibility Cooldown",
 		typ = -2,
-		img = Material("insane_stats/caged-ball.png", "mips smooth")
+		img = "caged-ball"
 	},
 	hittaken_damage_up = {
 		name = "Fury Damage Up",
 		typ = 2,
-		img = Material("insane_stats/pointy-sword.png", "mips smooth"),
+		img = "pointy-sword",
 		expiry = SERVER and function(ent, level, attacker)
 			ent:InsaneStats_ApplyStatusEffect("hittaken_damage_cooldown", 1, 60)
 		end
@@ -2592,12 +2592,12 @@ local statusEffects = {
 	hittaken_damage_cooldown = {
 		name = "Fury Cooldown",
 		typ = -1,
-		img = Material("insane_stats/sword-in-stone.png", "mips smooth")
+		img = "sword-in-stone"
 	},
 	hittaken_regen = {
 		name = "Revitalizing Regeneration",
 		typ = 2,
-		img = Material("insane_stats/heart-bottle.png", "mips smooth"),
+		img = "heart-bottle",
 		expiry = SERVER and function(ent, level, attacker)
 			ent:InsaneStats_ApplyStatusEffect("hittaken_regen_cooldown", 1, 60)
 		end
@@ -2605,12 +2605,12 @@ local statusEffects = {
 	hittaken_regen_cooldown = {
 		name = "Revitalization Cooldown",
 		typ = -1,
-		img = Material("insane_stats/square-bottle.png", "mips smooth")
+		img = "square-bottle"
 	},
 	hittaken_armorregen = {
 		name = "Shielding Armor Regeneration",
 		typ = 2,
-		img = Material("insane_stats/bolt-shield.png", "mips smooth"),
+		img = "bolt-shield",
 		expiry = SERVER and function(ent, level, attacker)
 			ent:InsaneStats_ApplyStatusEffect("hittaken_armorregen_cooldown", 1, 60)
 		end
@@ -2618,58 +2618,58 @@ local statusEffects = {
 	hittaken_armorregen_cooldown = {
 		name = "Shielding Cooldown",
 		typ = -1,
-		img = Material("insane_stats/bottled-bolt.png", "mips smooth")
+		img = "bottled-bolt"
 	},
 	
 	damage_down = {
 		name = "Damage Down",
 		typ = -1,
-		img = Material("insane_stats/shattered-sword.png", "mips smooth")
+		img = "shattered-sword"
 	},
 	defence_down = {
 		name = "Defence Down",
 		typ = -1,
-		img = Material("insane_stats/cracked-shield.png", "mips smooth")
+		img = "cracked-shield"
 	},
 	speed_down = {
 		name = "Speed Down",
 		typ = -1,
-		img = Material("insane_stats/snail.png", "mips smooth")
+		img = "snail"
 	},
 	firerate_down = {
 		name = "Fire Rate Down",
 		typ = -1,
-		img = Material("insane_stats/handcuffs.png", "mips smooth")
+		img = "handcuffs"
 	},
 	damage_up = {
 		name = "Damage Up",
 		typ = 1,
-		img = Material("insane_stats/pointy-sword.png", "mips smooth")
+		img = "pointy-sword"
 	},
 	defence_up = {
 		name = "Defence Up",
 		typ = 1,
-		img = Material("insane_stats/checked-shield.png", "mips smooth")
+		img = "checked-shield"
 	},
 	speed_up = {
 		name = "Speed Up",
 		typ = 1,
-		img = Material("insane_stats/sprint.png", "mips smooth")
+		img = "sprint"
 	},
 	firerate_up = {
 		name = "Fire Rate Up",
 		typ = 1,
-		img = Material("insane_stats/striking-arrows.png", "mips smooth")
+		img = "striking-arrows"
 	},
 	xp_up = {
 		name = "Loot Up",
 		typ = 1,
-		img = Material("insane_stats/cool-spices.png", "mips smooth")
+		img = "cool-spices"
 	},
 	arcane_damage_up = {
 		name = "Arcane Damage Up",
 		typ = 1,
-		img = Material("insane_stats/pointy-sword.png", "mips smooth"),
+		img = "pointy-sword",
 		expiry = SERVER and function(ent, level, attacker)
 			if ent:InsaneStats_GetAttributeValue("toggle_damage") ~= 1 then
 				local stacks = (ent:InsaneStats_GetAttributeValue("toggle_damage")-1)*100
@@ -2680,7 +2680,7 @@ local statusEffects = {
 	arcane_defence_up = {
 		name = "Arcane Defence Up",
 		typ = 1,
-		img = Material("insane_stats/checked-shield.png", "mips smooth"),
+		img = "checked-shield",
 		expiry = SERVER and function(ent, level, attacker)
 			if ent:InsaneStats_GetAttributeValue("toggle_damage") ~= 1 then
 				local stacks = (ent:InsaneStats_GetAttributeValue("toggle_damage")-1)*100
@@ -2691,38 +2691,38 @@ local statusEffects = {
 	regen = {
 		name = "Regeneration",
 		typ = 1,
-		img = Material("insane_stats/heart-bottle.png", "mips smooth")
+		img = "heart-bottle"
 	},
 	armor_regen = {
 		name = "Armor Regeneration",
 		typ = 1,
-		img = Material("insane_stats/bolt-shield.png", "mips smooth")
+		img = "bolt-shield"
 	},
 	damage_aura = {
 		name = "Damage Aura",
 		typ = 1,
-		img = Material("insane_stats/broken-heart-zone.png", "mips smooth")
+		img = "broken-heart-zone"
 	},
 	masterful_xp = {
 		name = "Loot Power",
 		typ = 1,
-		img = Material("insane_stats/crystal-shine.png", "mips smooth")
+		img = "crystal-shine"
 	},
 	air_jumped = {
 		name = "Extra Jump Used",
 		typ = -1,
-		img = Material("insane_stats/fluffy-trefoil.png", "mips smooth")
+		img = "fluffy-trefoil"
 	},
 	death_promise = {
 		name = "Corpse Exploder",
 		typ = 2,
-		img = Material("insane_stats/death-note.png", "mips smooth")
+		img = "death-note"
 	},
 	
 	starlight = {
 		name = "Starlit",
 		typ = 0,
-		img = Material("insane_stats/sundial.png", "mips smooth"),
+		img = "sundial",
 		expiry = SERVER and function(ent, level, attacker)
 			for i,v in ipairs(ent:GetChildren()) do
 				if v.insaneStats_IsStarlight then
@@ -2734,12 +2734,12 @@ local statusEffects = {
 	invincible = {
 		name = "Invincible",
 		typ = 1,
-		img = Material("insane_stats/mesh-ball.png", "mips smooth")
+		img = "mesh-ball"
 	},
 	invisible = {
 		name = "Invisible",
 		typ = 2,
-		img = Material("insane_stats/domino-mask.png", "mips smooth"),
+		img = "domino-mask",
 		apply = function(ent, level, duration, attacker)
 			ent:AddFlags(FL_NOTARGET)
 			ent:RemoveFlags(FL_AIMTARGET)
@@ -2755,12 +2755,12 @@ local statusEffects = {
 	invisible_cooldown = {
 		name = "Invisibility Cooldown",
 		typ = -1,
-		img = Material("insane_stats/one-eyed.png", "mips smooth")
+		img = "one-eyed"
 	},
 	alt_damage_up = {
 		name = "Nasty Damage Up",
 		typ = 2,
-		img = Material("insane_stats/pointy-sword.png", "mips smooth"),
+		img = "pointy-sword",
 		expiry = SERVER and function(ent, level, attacker)
 			ent:InsaneStats_ApplyStatusEffect("alt_damage_cooldown", 1, 60)
 		end
@@ -2768,12 +2768,12 @@ local statusEffects = {
 	alt_damage_cooldown = {
 		name = "Nasty Cooldown",
 		typ = -1,
-		img = Material("insane_stats/sword-in-stone.png", "mips smooth")
+		img = "sword-in-stone"
 	},
 	alt_defence_up = {
 		name = "Respite Defence Up",
 		typ = 2,
-		img = Material("insane_stats/checked-shield.png", "mips smooth"),
+		img = "checked-shield",
 		expiry = SERVER and function(ent, level, attacker)
 			ent:InsaneStats_ApplyStatusEffect("alt_defence_cooldown", 1, 60)
 		end
@@ -2781,12 +2781,12 @@ local statusEffects = {
 	alt_defence_cooldown = {
 		name = "Respite Cooldown",
 		typ = -1,
-		img = Material("insane_stats/zebra-shield.png", "mips smooth")
+		img = "zebra-shield"
 	},
 	alt_firerate_up = {
 		name = "Haste Fire Rate Up",
 		typ = 2,
-		img = Material("insane_stats/striking-arrows.png", "mips smooth"),
+		img = "striking-arrows",
 		expiry = SERVER and function(ent, level, attacker)
 			ent:InsaneStats_ApplyStatusEffect("alt_firerate_cooldown", 1, 60)
 		end
@@ -2794,12 +2794,12 @@ local statusEffects = {
 	alt_firerate_cooldown = {
 		name = "Haste Cooldown",
 		typ = -1,
-		img = Material("insane_stats/hand.png", "mips smooth")
+		img = "hand"
 	},
 	alt_gamespeed_down = {
 		name = "Adrenaline Game Speed Down",
 		typ = 2,
-		img = Material("insane_stats/sands-of-time.png", "mips smooth"),
+		img = "sands-of-time",
 		expiry = SERVER and function(ent, level, attacker)
 			ent:InsaneStats_ApplyStatusEffect("alt_gamespeed_cooldown", 1, 60)
 		end
@@ -2807,12 +2807,12 @@ local statusEffects = {
 	alt_gamespeed_cooldown = {
 		name = "Adrenaline Cooldown",
 		typ = -1,
-		img = Material("insane_stats/life-support.png", "mips smooth")
+		img = "life-support"
 	},
 	alt_speed_up = {
 		name = "Agility Movement Rate Up",
 		typ = 2,
-		img = Material("insane_stats/pentarrows-tornado.png", "mips smooth"),
+		img = "pentarrows-tornado",
 		apply = SERVER and function(ent, level, attacker)
 			if ent:IsPlayer() then
 				local newMovementValue = 1+level/100
@@ -2836,42 +2836,42 @@ local statusEffects = {
 	alt_speed_cooldown = {
 		name = "Agility Cooldown",
 		typ = -1,
-		img = Material("insane_stats/twirly-flower.png", "mips smooth")
+		img = "twirly-flower"
 	},
 	ctrl_gamespeed_up = {
 		name = "Fleeting Game Speed Up",
 		typ = -1,
-		img = Material("insane_stats/clockwork.png", "mips smooth")
+		img = "clockwork"
 	},
 	ctrl_defence_up = {
 		name = "Fleeting Defence Up",
 		typ = 1,
-		img = Material("insane_stats/checked-shield.png", "mips smooth")
+		img = "checked-shield"
 	},
 	stack_damage_up = {
 		name = "Stacking Damage Up",
 		typ = 2,
-		img = Material("insane_stats/pointy-sword.png", "mips smooth")
+		img = "pointy-sword"
 	},
 	stack_firerate_up = {
 		name = "Stacking Fire Rate Up",
 		typ = 2,
-		img = Material("insane_stats/striking-arrows.png", "mips smooth")
+		img = "striking-arrows"
 	},
 	stack_defence_up = {
 		name = "Stacking Defence Up",
 		typ = 2,
-		img = Material("insane_stats/checked-shield.png", "mips smooth")
+		img = "checked-shield"
 	},
 	--[[stack_speed_up = {
 		name = "Stacking Speed Up",
 		typ = 2,
-		img = Material("insane_stats/sprint.png", "mips smooth")
+		img = "sprint"
 	},]]
 	stack_xp_up = {
 		name = "Stacking Loot Up",
 		typ = 2,
-		img = Material("insane_stats/cool-spices.png", "mips smooth")
+		img = "cool-spices"
 	},
 }
 

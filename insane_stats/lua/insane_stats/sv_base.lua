@@ -88,6 +88,18 @@ end)
 
 -- MISC
 
+concommand.Add("insanestats_save", function(ply, cmd, args, argStr)
+	if ply:IsAdmin() then
+		local data = InsaneStats:Load()
+		hook.Run("InsaneStatsSave", data)
+		InsaneStats:Save(data)
+
+		InsaneStats:Log("Data saved!")
+	else
+		InsaneStats:Log("This command can only be run by admins!")
+	end
+end, nil, "Saves all Insane Stats data immediately.")
+
 concommand.Add("insanestats_revert_all_convars", function(ply, cmd, args, argStr)
 	if argStr:lower() == "yes" then
 		for name, data in pairs(InsaneStats.conVars) do

@@ -18,7 +18,7 @@ end
 AccessorFunc(InsaneStats, "SkillDataToNetwork", "SkillDataToNetwork")
 
 hook.Add("InsaneStatsSave", "InsaneStatsSkills", function(data)
-	if InsaneStats:GetConVarValue("skills_enabled") and savedPlayerSkills then
+	if InsaneStats:GetConVarValue("skills_enabled") and InsaneStats:GetConVarValue("skills_save") and savedPlayerSkills then
 		for i,v in ipairs(player.GetAll()) do
 			local steamID = v:SteamID()
             local skills = v:InsaneStats_GetSkills()
@@ -46,7 +46,7 @@ hook.Add("PlayerSpawn", "InsaneStatsSkills", function(ply, fromTransition)
 		ply:InsaneStats_SetSkills(nil)
 	end
 	
-	if not ply.insaneStats_Skills then
+	if not ply.insaneStats_Skills and InsaneStats:GetConVarValue("skills_save") then
 		local skills = savedPlayerSkills[ply:SteamID()] or {}
 		ply:InsaneStats_SetSkills(skills)
 	end

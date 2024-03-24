@@ -20,6 +20,13 @@ InsaneStats:RegisterClientConVar("hud_skills_per_row", "insanestats_hud_skills_p
 concommand.Add("insanestats_skills_menu", function()
 	InsaneStats:CreateSkillMenu()
 end, nil, "Opens the skill web.")
+concommand.Add("insanestats_skills_reset", function()
+	net.Start("insane_stats")
+	net.WriteUInt(6, 8)
+	net.WriteUInt(4, 4)
+	net.WriteUInt(3, 4)
+	net.SendToServer()
+end, nil, "If manual skill respecs are enabled, this ConCommand respecs all skills.")
 
 local color_gray = InsaneStats:GetColor("gray")
 local color_yellow = InsaneStats:GetColor("yellow")
@@ -96,7 +103,7 @@ local function CreateSkillButton(parent, skillName)
 			or enabled and color_white
 			or color_gray
 		InsaneStats:DrawMaterialOutlined(
-			skillInfo.img,
+			InsaneStats:GetIconMaterial(skillInfo.img),
 			outlineWidth, outlineWidth,
 			w - outlineWidth * 2, h - outlineWidth * 2,
 			color, outlineWidth, color_black
@@ -342,7 +349,7 @@ local function CreateSkillHeaders(parent)
 	HeaderLabel:SetZPos(2)
 	HeaderLabel:Dock(TOP)
 	HeaderLabel:SetTextColor(color_gray)
-	HeaderLabel:Hide()
+	HeaderLabel:SetTall(0)
 	function HeaderLabel:Think()
 		local ply = LocalPlayer()
 		local texts = {}
@@ -363,13 +370,19 @@ local function CreateSkillHeaders(parent)
 		if totalUberSkillPoints >= InsaneStats:GetMaxUberSkillPoints() and not allSkillsUberMaxed then
 			table.insert(texts, "Press Ctrl + Shift + Space to assign max skill points and über skill points to all skills.")
 		end
+		if totalSkillPoints > skillPoints and bit.band(InsaneStats:GetConVarValue("skills_allow_reset"), 1) ~= 0 then
+			table.insert(texts, "Press Ctrl + Delete to respec.")
+		end
 		texts = table.concat(texts, '\n')
 		if self:GetText() ~= texts then
 			self:SetText(texts)
-			self:SetVisible(texts ~= "")
 		end
 
-		self:SizeToContentsY(4)
+		if texts == "" then
+			self:SetTall(4)
+		else
+			self:SizeToContentsY(4)
+		end
 	end
 end
 
@@ -393,15 +406,27 @@ function InsaneStats:CreateSkillMenu(frame)
 	end
 	if InsaneStats:GetConVarValue("skills_enabled") then
 		function Main:OnKeyCodePressed(key)
-			if key == KEY_SPACE and input.IsControlDown() then
-				LocalPlayer():InsaneStats_MaxAllSkills(input.IsShiftDown())
-				net.Start("insane_stats")
-				net.WriteUInt(6, 8)
-				net.WriteUInt(4, 4)
-				net.WriteUInt(input.IsShiftDown() and 2 or 1, 4)
-				net.SendToServer()
+			if input.IsControlDown() then
+				if key == KEY_SPACE then
+					LocalPlayer():InsaneStats_MaxAllSkills(input.IsShiftDown())
+					net.Start("insane_stats")
+					net.WriteUInt(6, 8)
+					net.WriteUInt(4, 4)
+					net.WriteUInt(input.IsShiftDown() and 2 or 1, 8)
+					net.SendToServer()
 
-				SkillPanel:Refresh()
+					SkillPanel:Refresh()
+				elseif key == KEY_DELETE and bit.band(InsaneStats:GetConVarValue("skills_allow_reset"), 1) ~= 0 then
+					LocalPlayer():InsaneStats_SetSkills({})
+
+					net.Start("insane_stats")
+					net.WriteUInt(6, 8)
+					net.WriteUInt(4, 4)
+					net.WriteUInt(3, 8)
+					net.SendToServer()
+
+					SkillPanel:Refresh()
+				end
 			end
 		end
 
@@ -439,7 +464,7 @@ hook.Add("InitPostEntity", "InsaneStatsSkills", function()
 end)
 
 hook.Add("HUDPaint", "InsaneStatsSkills", function()
-	if InsaneStats:GetConVarValue("skills_enabled") then
+	if InsaneStats:GetConVarValue("skills_enabled") and InsaneStats:GetConVarValue("hud_skills_enabled") then
 		local ply = LocalPlayer()
 		local iconSkills = {}
 		for k,v in SortedPairs(ply:InsaneStats_GetSkills(), true) do
@@ -476,7 +501,8 @@ hook.Add("HUDPaint", "InsaneStatsSkills", function()
 			local anchorY = baseY - rowY * (skillSize + outlineThickness)
 
 			InsaneStats:DrawMaterialOutlined(
-				skillInfo.img, anchorX - skillSize/2, anchorY - skillSize,
+				InsaneStats:GetIconMaterial(skillInfo.img),
+				anchorX - skillSize/2, anchorY - skillSize,
 				skillSize, skillSize, skillColor, outlineThickness, color_black
 			)
 			if skillStacks ~= 0 then

@@ -146,6 +146,17 @@ function InsaneStats:RegisterClientConVar(name, internal, default, data)
 	return conVar
 end
 
+local icons = {}
+function InsaneStats:GetIconMaterial(name)
+	if not icons[name] then
+		icons[name] = Material("insane_stats/"..name..".png", "mips smooth")
+		if icons[name]:IsError() then
+			icons[name] = Material("icon16/"..name..".png", "mips smooth")
+		end
+	end
+	return icons[name]
+end
+
 function InsaneStats:DrawMaterialOutlined(material, x, y, w, h, color, outlineThickness, outlineColor)
 	surface.SetMaterial(material)
 	-- draw the outline

@@ -521,7 +521,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 						local statusEffectColor = statusEffectColors[statusEffectInfo.typ]
 						
 						InsaneStats:DrawMaterialOutlined(
-							statusEffectInfo.img,
+							InsaneStats:GetIconMaterial(statusEffectInfo.img),
 							currentX, currentY,
 							iconSize, iconSize,
 							statusEffectColor,

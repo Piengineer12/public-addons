@@ -567,29 +567,11 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 				end
 				
 				InsaneStats:DrawMaterialOutlined(
-					statusEffectInfo.img,
-					baseX,
-					baseY+(i-1)*iconSize,
-					iconSize,
-					iconSize,
-					statusEffectColor,
-					outlineThickness,
-					Color(0, 0, 0, statusEffectColor.a)
+					InsaneStats:GetIconMaterial(statusEffectInfo.img),
+					baseX, baseY+(i-1)*iconSize,
+					iconSize, iconSize,
+					statusEffectColor, outlineThickness, Color(0, 0, 0, statusEffectColor.a)
 				)
-				
-				--[[surface.SetMaterial(statusEffectInfo.img)
-				-- draw the outline
-				surface.SetDrawColor(0,0,0,statusEffectColor.a)
-				for j=-2,2 do
-					for k=-2,2 do
-						if j ~= 0 and k ~= 0 then
-							surface.DrawTexturedRect(baseX+j, baseY+(i-1)*iconSize+k, iconSize, iconSize)
-						end
-					end
-				end
-				
-				surface.SetDrawColor(statusEffectColor.r, statusEffectColor.g, statusEffectColor.b, statusEffectColor.a)
-				surface.DrawTexturedRect(baseX, baseY+(i-1)*iconSize, iconSize, iconSize)]]
 				
 				local title = statusEffectInfo.name
 				if statusEffectData.level ~= 1 then

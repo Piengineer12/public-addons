@@ -9,6 +9,20 @@ InsaneStats:RegisterConVar("skills_start", "insanestats_skills_start", "0", {
 	display = "Starting Skill Points", desc = "Starting number of skill points for each player.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
+InsaneStats:RegisterConVar("skills_allow_reset", "insanestats_skills_allow_reset", "2", {
+	display = "Respec Mode", desc = "Determines how players respec their skills.\n\z
+	0: None\n\z
+	1: Manually via insanestats_skills_reset ConCommand\n\z
+	2: Insane Stats Coin Shop\n\z
+	3: Both\n\z",
+	type = InsaneStats.INT, min = 0, max = 3
+})
+InsaneStats:RegisterConVar("skills_save", "insanestats_skills_save", "1", {
+	display = "Save Player Skills", desc = "Causes player skills to be saved across maps. \z
+	Disconnected players will also have their skills saved even if the map has changed.\n\z
+	Note that Half-Life 2 level transitions already carry skills across the transitioned levels, even when this ConVar is off.",
+	type = InsaneStats.BOOL
+})
 
 InsaneStats:RegisterConVar("skills_level_start", "insanestats_skills_level_start", "2", {
 	display = "Starting Level Required", desc = "Level required to earn the first skill point.",

@@ -20,10 +20,6 @@ local color_green = InsaneStats:GetColor("green")
 local lastCoinUpdate = 0
 local slowCoins = 0
 local oldCoins = LocalPlayer():InsaneStats_GetCoins()
-local icons = {
-	Material("insane_stats/metal-disc.png", "mips smooth"),
-	Material("insane_stats/emerald.png", "mips smooth")
-}
 
 local function DangerousPaint()
 	local ply = LocalPlayer()
@@ -34,7 +30,9 @@ local function DangerousPaint()
 	local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
 
 	InsaneStats:DrawMaterialOutlined(
-		icons[InsaneStats:GetConVarValue("coins_legacy") and 2 or 1],
+		InsaneStats:GetIconMaterial(
+			InsaneStats:GetConVarValue("coins_legacy") and "emerald" or "metal-disc"
+		),
 		x, y,
 		InsaneStats.FONT_BIG, InsaneStats.FONT_BIG,
 		InsaneStats:GetCoinColor(lastCoinTier),
@@ -377,6 +375,7 @@ local function CreateReforgePanel(parent, shopEntity)
 	SkillsLabel:Dock(TOP)
 
 	local skillsEnabled = InsaneStats:GetConVarValue("skills_enabled")
+	and bit.band(InsaneStats:GetConVarValue("skills_allow_reset"), 2) ~= 0
 
 	local RespecLabel = vgui.Create("DLabel", Panel)
 	RespecLabel:SetWrap(true)
@@ -390,6 +389,8 @@ local function CreateReforgePanel(parent, shopEntity)
 		local cost = InsaneStats:GetRespecCost(ply)
 		if skillsEnabled then
 			currentText = "Respec Cost: "..InsaneStats:FormatNumber(math.ceil(cost))
+		elseif InsaneStats:GetConVarValue("skills_enabled") then
+			currentText = "Skill respec via Insane Stats Coin Shops is disabled."
 		else
 			currentText = "This feature requires Skills to be enabled."
 		end
@@ -484,14 +485,6 @@ local function CreateItemsPanel(parent, shopEntity)
 				draw.RoundedBox(4, borderSize, y, w - borderSize * 2, boxHeight, color_black_ui)
 				y = y + boxPadding
 				draw.SimpleText(name, "InsaneStats.Small", w/2, y, color_white, TEXT_ALIGN_CENTER)
-
-				--[[surface.SetFont("InsaneStats.Small")
-				local line2Size = surface.GetTextSize(costStr) + InsaneStats.FONT_SMALL
-				y = h - borderSize - boxHeight/2
-				surface.SetDrawColor(255, 255, 255)
-				surface.SetMaterial(icons[InsaneStats:GetConVarValue("coins_legacy") and 2 or 1])
-				surface.DrawTexturedRect(w/2 - line2Size/2, y, InsaneStats.FONT_SMALL, InsaneStats.FONT_SMALL)
-				draw.SimpleText(costStr, "InsaneStats.Small", w/2 + line2Size/2, y, color_white, TEXT_ALIGN_RIGHT)]]
 			end
 		end
 		
@@ -501,10 +494,6 @@ local function CreateItemsPanel(parent, shopEntity)
 			currentItem = i
 			BuyButton:SetEnabled(true)
 		end
-
-		--[[local Item = vgui.Create("ContentIcon", ItemList)
-		Item:SetName(name)
-		Item:SetMaterial("entities/"..v[1]..".png")]]
 	end
 
 	return Panel
@@ -537,7 +526,9 @@ function InsaneStats:CreateShopMenu(shopEntity, weaponsSold)
 		x = x + outlineThickness
 		
 		InsaneStats:DrawMaterialOutlined(
-			icons[InsaneStats:GetConVarValue("coins_legacy") and 2 or 1],
+			InsaneStats:GetIconMaterial(
+				InsaneStats:GetConVarValue("coins_legacy") and "emerald" or "metal-disc"
+			),
 			x, outlineThickness,
 			InsaneStats.FONT_BIG, InsaneStats.FONT_BIG,
 			InsaneStats:GetCoinColor(ply:InsaneStats_GetLastCoinTier()),

@@ -393,7 +393,7 @@ net.Receive("insane_stats", function(length, ply)
 						ply:InsaneStats_RemoveCoins(price)
 					end
 				end
-			elseif subFunc == 4 then
+			elseif subFunc == 4 and bit.band(InsaneStats:GetConVarValue("skills_allow_reset"), 2) ~= 0 then
 				local price = InsaneStats:GetRespecCost(ply)
 				if ply:InsaneStats_GetCoins() >= InsaneStats:GetRespecCost(ply) then
 					ply:InsaneStats_SetSkills({})
@@ -443,6 +443,13 @@ net.Receive("insane_stats", function(length, ply)
 				ply:InsaneStats_MaxAllSkills(false)
 			elseif suboperation == 2 then
 				ply:InsaneStats_MaxAllSkills(true)
+			elseif suboperation == 3 and bit.band(InsaneStats:GetConVarValue("skills_allow_reset"), 1) ~= 0 then
+				ply:InsaneStats_SetSkills({})
+
+				net.Start("insane_stats")
+				net.WriteUInt(7, 8)
+				net.WriteUInt(0, 8)
+				net.Send(ply)
 			end
 		end
 		

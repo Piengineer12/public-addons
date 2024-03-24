@@ -5,7 +5,7 @@ local skills = {
 		values = function(level)
 			return level * 2, -level * 2, level * 2, level * 2
 		end,
-		img = Material("insane_stats/juggler.png", "mips smooth"),
+		img = "juggler",
 		pos = {0, 0}
 	},
 
@@ -16,7 +16,7 @@ local skills = {
 		values = function(level)
 			return level * 5
 		end,
-		img = Material("insane_stats/pointy-sword.png", "mips smooth"),
+		img = "pointy-sword",
 		pos = {0, -1},
 		minpts = 5
 	},
@@ -26,7 +26,7 @@ local skills = {
 		values = function(level)
 			return level * 5
 		end,
-		img = Material("insane_stats/cool-spices.png", "mips smooth"),
+		img = "cool-spices",
 		pos = {1, 0},
 		minpts = 5
 	},
@@ -36,7 +36,7 @@ local skills = {
 		values = function(level)
 			return level * 5
 		end,
-		img = Material("insane_stats/sprint.png", "mips smooth"),
+		img = "sprint",
 		pos = {0, 1},
 		minpts = 5
 	},
@@ -46,7 +46,7 @@ local skills = {
 		values = function(level)
 			return level * -5
 		end,
-		img = Material("insane_stats/checked-shield.png", "mips smooth"),
+		img = "checked-shield",
 		pos = {-1, 0},
 		minpts = 5
 	},
@@ -62,7 +62,7 @@ local skills = {
 			local nextStacks = math.max(current - time, 0)
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
-		img = Material("insane_stats/triple-skulls.png", "mips smooth"),
+		img = "triple-skulls",
 		pos = {0, -2},
 		minpts = 5
 	},
@@ -76,7 +76,7 @@ local skills = {
 			local nextStacks = math.max(current - time, 0)
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
-		img = Material("insane_stats/laser-sparks.png", "mips smooth"),
+		img = "laser-sparks",
 		pos = {1, -1},
 		minpts = 5
 	},
@@ -86,7 +86,7 @@ local skills = {
 		values = function(level)
 			return level * 10
 		end,
-		img = Material("insane_stats/despair.png", "mips smooth"),
+		img = "despair",
 		pos = {2, 0},
 		minpts = 5
 	},
@@ -96,7 +96,7 @@ local skills = {
 		values = function(level)
 			return level * 20
 		end,
-		img = Material("insane_stats/evil-book.png", "mips smooth"),
+		img = "evil-book",
 		pos = {1, 1},
 		minpts = 5
 	},
@@ -106,7 +106,7 @@ local skills = {
 		values = function(level)
 			return level * 10
 		end,
-		img = Material("insane_stats/wingfoot.png", "mips smooth"),
+		img = "wingfoot",
 		pos = {0, 2},
 		minpts = 5
 	},
@@ -116,7 +116,7 @@ local skills = {
 		values = function(level)
 			return level * -8
 		end,
-		img = Material("insane_stats/dodging.png", "mips smooth"),
+		img = "dodging",
 		pos = {-1, 1},
 		minpts = 5
 	},
@@ -126,7 +126,7 @@ local skills = {
 		values = function(level)
 			return level * 5
 		end,
-		img = Material("insane_stats/journey.png", "mips smooth"),
+		img = "journey",
 		pos = {-2, 0},
 		minpts = 5
 	},
@@ -140,7 +140,7 @@ local skills = {
 			local nextStacks = math.max(current - time, 0)
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
-		img = Material("insane_stats/skull-shield.png", "mips smooth"),
+		img = "skull-shield",
 		pos = {-1, -1},
 		minpts = 5
 	},
@@ -152,7 +152,7 @@ local skills = {
 		values = function(level)
 			return level * 10
 		end,
-		img = Material("insane_stats/arrow-scope.png", "mips smooth"),
+		img = "arrow-scope",
 		pos = {1, -2},
 		minpts = 5
 	},
@@ -162,7 +162,7 @@ local skills = {
 		values = function(level)
 			return level * 20
 		end,
-		img = Material("insane_stats/cubeforce.png", "mips smooth"),
+		img = "cubeforce",
 		pos = {2, -1},
 		minpts = 5
 	},
@@ -173,7 +173,7 @@ local skills = {
 		values = function(level)
 			return level * 5, level * 10
 		end,
-		img = Material("insane_stats/scarecrow.png", "mips smooth"),
+		img = "scarecrow",
 		pos = {2, 1},
 		minpts = 5
 	},
@@ -187,7 +187,7 @@ local skills = {
 			local nextStacks = math.max(current - time, 0)
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
-		img = Material("insane_stats/chained-arrow-heads.png", "mips smooth"),
+		img = "chained-arrow-heads",
 		pos = {1, 2},
 		minpts = 5
 	},
@@ -201,7 +201,7 @@ local skills = {
 			local nextStacks = math.max(current - time, 0)
 			return nextStacks <= 0 and 1 or -1, nextStacks
 		end,
-		img = Material("insane_stats/cowled.png", "mips smooth"),
+		img = "cowled",
 		pos = {-1, 2},
 		minpts = 5
 	},
@@ -211,7 +211,7 @@ local skills = {
 		values = function(level)
 			return level/5
 		end,
-		img = Material("insane_stats/heart-bottle.png", "mips smooth"),
+		img = "heart-bottle",
 		pos = {-2, 1},
 		minpts = 5
 	},
@@ -221,7 +221,7 @@ local skills = {
 		values = function(level)
 			return level * -8
 		end,
-		img = Material("insane_stats/metal-scales.png", "mips smooth"),
+		img = "metal-scales",
 		pos = {-2, -1},
 		minpts = 5
 	},
@@ -231,7 +231,7 @@ local skills = {
 		values = function(level)
 			return level * 5
 		end,
-		img = Material("insane_stats/striking-arrows.png", "mips smooth"),
+		img = "striking-arrows",
 		pos = {-1, -2},
 		minpts = 5
 	},
@@ -243,7 +243,7 @@ local skills = {
 		values = function(level)
 			return level * 20
 		end,
-		img = Material("insane_stats/wolf-head.png", "mips smooth"),
+		img = "wolf-head",
 		pos = {1, -3},
 		minpts = 5
 	},
@@ -253,7 +253,7 @@ local skills = {
 		values = function(level)
 			return level * 10
 		end,
-		img = Material("insane_stats/william-tell-skull.png", "mips smooth"),
+		img = "william-tell-skull",
 		pos = {2, -2},
 		minpts = 5
 	},
@@ -263,7 +263,7 @@ local skills = {
 		values = function(level)
 			return level * 10
 		end,
-		img = Material("insane_stats/cogsplosion.png", "mips smooth"),
+		img = "cogsplosion",
 		pos = {3, -1},
 		minpts = 5
 	},
@@ -273,7 +273,7 @@ local skills = {
 		values = function(level)
 			return level * 10
 		end,
-		img = Material("insane_stats/diamond-hard.png", "mips smooth"),
+		img = "diamond-hard",
 		pos = {3, 1},
 		minpts = 5
 	},
@@ -283,7 +283,7 @@ local skills = {
 		values = function(level)
 			return level * 10
 		end,
-		img = Material("insane_stats/strafe.png", "mips smooth"),
+		img = "strafe",
 		pos = {2, 2},
 		minpts = 5
 	},
@@ -293,7 +293,7 @@ local skills = {
 		values = function(level)
 			return level * 20
 		end,
-		img = Material("insane_stats/screaming.png", "mips smooth"),
+		img = "screaming",
 		pos = {1, 3},
 		minpts = 5
 	},
@@ -303,7 +303,7 @@ local skills = {
 		values = function(level)
 			return level
 		end,
-		img = Material("insane_stats/fluffy-trefoil.png", "mips smooth"),
+		img = "fluffy-trefoil",
 		pos = {-1, 3},
 		minpts = 5
 	},
@@ -313,7 +313,7 @@ local skills = {
 		values = function(level)
 			return level * -10
 		end,
-		img = Material("insane_stats/life-in-the-balance.png", "mips smooth"),
+		img = "life-in-the-balance",
 		pos = {-2, 2},
 		minpts = 5
 	},
@@ -329,7 +329,7 @@ local skills = {
 			local nextStacks = math.max(current - time, 0)
 			return nextStacks <= 0 and 0 or -1, nextStacks
 		end,
-		img = Material("insane_stats/hospital-cross.png", "mips smooth"),
+		img = "hospital-cross",
 		pos = {-3, 1},
 		minpts = 5
 	},
@@ -339,7 +339,7 @@ local skills = {
 		values = function(level)
 			return level
 		end,
-		img = Material("insane_stats/shining-heart.png", "mips smooth"),
+		img = "shining-heart",
 		pos = {-3, -1},
 		minpts = 5
 	},
@@ -349,7 +349,7 @@ local skills = {
 		values = function(level)
 			return level * 10, level
 		end,
-		img = Material("insane_stats/explosion-rays.png", "mips smooth"),
+		img = "explosion-rays",
 		pos = {-2, -2},
 		minpts = 5
 	},
@@ -359,7 +359,7 @@ local skills = {
 		values = function(level)
 			return level * 10
 		end,
-		img = Material("insane_stats/plain-dagger.png", "mips smooth"),
+		img = "plain-dagger",
 		pos = {-1, -3},
 		minpts = 5
 	},
@@ -381,7 +381,7 @@ local skills = {
 		stackTick = function(state, current, time, ent)
 			return ent:IsPlayer() and ent:KeyDown(IN_WALK) and -1 or 1, current
 		end,
-		img = Material("insane_stats/explosive-materials.png", "mips smooth"),
+		img = "explosive-materials",
 		pos = {0, -3},
 		minpts = 10,
 		max = 1
@@ -394,7 +394,7 @@ local skills = {
 		values = function(level)
 			return level * 10, level * 10, level * 10
 		end,
-		img = Material("insane_stats/cracked-disc.png", "mips smooth"),
+		img = "cracked-disc",
 		pos = {2, -3},
 		minpts = 5
 	},
@@ -404,7 +404,7 @@ local skills = {
 		values = function(level)
 			return level * 8
 		end,
-		img = Material("insane_stats/crystal-bars.png", "mips smooth"),
+		img = "crystal-bars",
 		pos = {3, -2},
 		minpts = 5
 	},
@@ -428,7 +428,7 @@ local skills = {
 		stackTick = function(state, current, time, ent)
 			return ent:IsPlayer() and ent:KeyDown(IN_WALK) and -1 or 1, current
 		end,
-		img = Material("insane_stats/two-shadows.png", "mips smooth"),
+		img = "two-shadows",
 		pos = {3, 0},
 		minpts = 10,
 		max = 1
@@ -439,7 +439,7 @@ local skills = {
 		values = function(level)
 			return level * 10
 		end,
-		img = Material("insane_stats/gift-of-knowledge.png", "mips smooth"),
+		img = "gift-of-knowledge",
 		pos = {3, 2},
 		minpts = 5
 	},
@@ -466,7 +466,7 @@ local skills = {
 			* (1 + current/100)
 			return state, current + add
 		end,
-		img = Material("insane_stats/clockwork.png", "mips smooth"),
+		img = "clockwork",
 		pos = {2, 3},
 		minpts = 5
 	} or {
@@ -476,7 +476,7 @@ local skills = {
 		values = function(level)
 			return level * 20, level/2.5
 		end,
-		img = Material("insane_stats/cheerful.png", "mips smooth"),
+		img = "cheerful",
 		pos = {2, 3},
 		minpts = 5
 	},
@@ -497,7 +497,7 @@ local skills = {
 			local nextStacks = math.max(current - time, 0)
 			return state < 0 and current <= 0 and 0 or state, nextStacks
 		end,
-		img = Material("insane_stats/domino-mask.png", "mips smooth"),
+		img = "domino-mask",
 		pos = {0, 3},
 		minpts = 10,
 		max = 1
@@ -509,7 +509,7 @@ local skills = {
 		values = function(level)
 			return level * 10
 		end,
-		img = Material("insane_stats/ice-cube.png", "mips smooth"),
+		img = "ice-cube",
 		pos = {-2, 3},
 		minpts = 5
 	} or {
@@ -520,7 +520,7 @@ local skills = {
 		values = function(level)
 			return level * 2.5, level * -2.5
 		end,
-		img = Material("insane_stats/telepathy.png", "mips smooth"),
+		img = "telepathy",
 		pos = {-2, 3},
 		minpts = 5
 	},
@@ -531,7 +531,7 @@ local skills = {
 			return math.Remap(math.sin(CurTime()), -1, 1, 50 + level * -5, -50 + level * -5)
 		end,
 		no_cache_values = true,
-		img = Material("insane_stats/bell-shield.png", "mips smooth"),
+		img = "bell-shield",
 		pos = {-3, 2},
 		minpts = 5
 	},
@@ -545,7 +545,7 @@ local skills = {
 			local nextStacks = math.max(current - time, 0)
 			return state < 0 and current <= 0 and 0 or state, nextStacks
 		end,
-		img = Material("insane_stats/mesh-ball.png", "mips smooth"),
+		img = "mesh-ball",
 		pos = {-3, 0},
 		minpts = 10,
 		max = 1
@@ -556,7 +556,7 @@ local skills = {
 		values = function(level)
 			return level
 		end,
-		img = Material("insane_stats/energise.png", "mips smooth"),
+		img = "energise",
 		pos = {-3, -2},
 		minpts = 5
 	},
@@ -570,7 +570,7 @@ local skills = {
 			local nextStacks = current * .999 ^ time
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
-		img = Material("insane_stats/hydra-shot.png", "mips smooth"),
+		img = "hydra-shot",
 		pos = {-2, -3},
 		minpts = 5
 	},
@@ -582,7 +582,7 @@ local skills = {
 		values = function(level)
 			return level * 20, math.max(level * -20, -100)
 		end,
-		img = Material("insane_stats/crossed-pistols.png", "mips smooth"),
+		img = "crossed-pistols",
 		pos = {2, -4},
 		minpts = 5
 	},
@@ -596,7 +596,7 @@ local skills = {
 			local nextStacks = current * .999 ^ time
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
-		img = Material("insane_stats/hot-spices.png", "mips smooth"),
+		img = "hot-spices",
 		pos = {3, -3},
 		minpts = 5
 	},
@@ -614,7 +614,7 @@ local skills = {
 			)
 			return CLIENT and InsaneStats:FormatNumber(val), val
 		end,
-		img = Material("insane_stats/glass-heart.png", "mips smooth"),
+		img = "glass-heart",
 		pos = {4, -2},
 		minpts = 5
 	},
@@ -632,7 +632,7 @@ local skills = {
 			)
 			return CLIENT and InsaneStats:FormatNumber(val), val
 		end,
-		img = Material("insane_stats/bordered-shield.png", "mips smooth"),
+		img = "bordered-shield",
 		pos = {4, 2},
 		minpts = 5
 	},
@@ -642,7 +642,7 @@ local skills = {
 		values = function(level)
 			return level * 10
 		end,
-		img = Material("insane_stats/swan-breeze.png", "mips smooth"),
+		img = "swan-breeze",
 		pos = {3, 3},
 		minpts = 5
 	},
@@ -652,7 +652,7 @@ local skills = {
 		values = function(level)
 			return level * 5, level * 10
 		end,
-		img = Material("insane_stats/batteries.png", "mips smooth"),
+		img = "batteries",
 		pos = {2, 4},
 		minpts = 5
 	},
@@ -662,7 +662,7 @@ local skills = {
 		values = function(level, ent)
 			return 100 - level * 2 * (1 + ent:InsaneStats_GetSkillValues("bloodletters_revelation", 2) / 100)
 		end,
-		img = Material("insane_stats/bleeding-heart.png", "mips smooth"),
+		img = "bleeding-heart",
 		pos = {-2, 4},
 		minpts = 5
 	},
@@ -676,7 +676,7 @@ local skills = {
 			local nextStacks = current * .999 ^ time
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
-		img = Material("insane_stats/arrows-shield.png", "mips smooth"),
+		img = "arrows-shield",
 		pos = {-3, 3},
 		minpts = 5
 	},
@@ -686,7 +686,7 @@ local skills = {
 		values = function(level)
 			return level * 5
 		end,
-		img = Material("insane_stats/rosa-shield.png", "mips smooth"),
+		img = "rosa-shield",
 		pos = {-4, 2},
 		minpts = 5
 	},
@@ -696,7 +696,7 @@ local skills = {
 		values = function(level, ent)
 			return level * -8
 		end,
-		img = Material("insane_stats/crenulated-shield.png", "mips smooth"),
+		img = "crenulated-shield",
 		pos = {-4, -2},
 		minpts = 5
 	},
@@ -712,7 +712,7 @@ local skills = {
 			local nextStacks = current * .999 ^ time
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
-		img = Material("insane_stats/cluster-bomb.png", "mips smooth"),
+		img = "cluster-bomb",
 		pos = {-3, -3},
 		minpts = 5
 	},
@@ -722,7 +722,7 @@ local skills = {
 		values = function(level)
 			return level * 5, level * 5, level * -5
 		end,
-		img = Material("insane_stats/supersonic-bullet.png", "mips smooth"),
+		img = "supersonic-bullet",
 		pos = {-2, -4},
 		minpts = 5
 	},
@@ -734,7 +734,7 @@ local skills = {
 		values = function(level)
 			return level * 5
 		end,
-		img = Material("insane_stats/droplets.png", "mips smooth"),
+		img = "droplets",
 		pos = {1, -4},
 		minpts = 10,
 		max = 1
@@ -748,7 +748,7 @@ local skills = {
 			)
 			return level * 10, CLIENT and InsaneStats:FormatNumber(val)
 		end,
-		img = Material("insane_stats/shield-reflect.png", "mips smooth"),
+		img = "shield-reflect",
 		pos = {3, -4},
 		minpts = 5
 	},
@@ -758,7 +758,7 @@ local skills = {
 		values = function(level)
 			return level * 100
 		end,
-		img = Material("insane_stats/double-shot.png", "mips smooth"),
+		img = "double-shot",
 		pos = {4, -3},
 		minpts = 5
 	},
@@ -769,7 +769,7 @@ local skills = {
 		values = function(level)
 			return level * 25, level * -25
 		end,
-		img = Material("insane_stats/radar-sweep.png", "mips smooth"),
+		img = "radar-sweep",
 		pos = {4, -1},
 		minpts = 10,
 		max = 1
@@ -784,7 +784,7 @@ local skills = {
 				return "", ""
 			end
 		end,
-		img = Material("insane_stats/winged-shield.png", "mips smooth"),
+		img = "winged-shield",
 		pos = {4, 1},
 		minpts = 10,
 		max = 1
@@ -815,7 +815,7 @@ local skills = {
 			return CLIENT and InsaneStats:FormatNumber(value1), CLIENT and InsaneStats:FormatNumber(value2),
 			value1, value2
 		end,
-		img = Material("insane_stats/flowers.png", "mips smooth"),
+		img = "flowers",
 		pos = {4, 3},
 		minpts = 5
 	},
@@ -825,7 +825,7 @@ local skills = {
 		values = function(level, ent)
 			return level * 256, 20 - level * 2
 		end,
-		img = Material("insane_stats/magnet.png", "mips smooth"),
+		img = "magnet",
 		pos = {3, 4},
 		minpts = 5
 	},
@@ -835,7 +835,7 @@ local skills = {
 		values = function(level)
 			return level * 512
 		end,
-		img = Material("insane_stats/world.png", "mips smooth"),
+		img = "world",
 		pos = {1, 4},
 		minpts = 10,
 		max = 1
@@ -858,7 +858,7 @@ local skills = {
 			local nextStacks = math.max(current - time, 0)
 			return state < 0 and current <= 0 and 0 or state, nextStacks
 		end,
-		img = Material("insane_stats/sands-of-time.png", "mips smooth"),
+		img = "sands-of-time",
 		pos = {-1, 4},
 		minpts = 10,
 		max = 1
@@ -880,7 +880,7 @@ local skills = {
 			local nextStacks = math.max(current - time, 0)
 			return state < 0 and current <= 0 and 0 or state, nextStacks
 		end,
-		img = Material("insane_stats/anthem.png", "mips smooth"),
+		img = "anthem",
 		pos = {-1, 4},
 		minpts = 10,
 		max = 1
@@ -891,7 +891,7 @@ local skills = {
 		values = function(level)
 			return level * 8, level * 20
 		end,
-		img = Material("insane_stats/dripping-goo.png", "mips smooth"),
+		img = "dripping-goo",
 		pos = {-3, 4},
 		minpts = 5
 	},
@@ -905,7 +905,7 @@ local skills = {
 			local nextStacks = math.max(current - time, 0)
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
-		img = Material("insane_stats/sundial.png", "mips smooth"),
+		img = "sundial",
 		pos = {-4, 3},
 		minpts = 5
 	},
@@ -927,7 +927,7 @@ local skills = {
 				return state, nextStacks
 			end
 		end,
-		img = Material("insane_stats/defibrilate.png", "mips smooth"),
+		img = "defibrilate",
 		pos = {-4, 1},
 		minpts = 10,
 		max = 1
@@ -958,7 +958,7 @@ local skills = {
 
 			return CLIENT and InsaneStats:FormatNumber(value1), CLIENT and InsaneStats:FormatNumber(value2), value1, value2
 		end,
-		img = Material("insane_stats/deadly-strike.png", "mips smooth"),
+		img = "deadly-strike",
 		pos = {-4, -1},
 		minpts = 10,
 		max = 1
@@ -969,7 +969,7 @@ local skills = {
 		values = function(level)
 			return level
 		end,
-		img = Material("insane_stats/bird-claw.png", "mips smooth"),
+		img = "bird-claw",
 		pos = {-4, -3},
 		minpts = 5
 	},
@@ -983,7 +983,7 @@ local skills = {
 			)
 			return CLIENT and InsaneStats:FormatNumber(value), math.min(level/2.5 - 2.4, 0)
 		end,
-		img = Material("insane_stats/shield-bounces.png", "mips smooth"),
+		img = "shield-bounces",
 		pos = {-3, -4},
 		minpts = 5
 	},
@@ -997,7 +997,7 @@ local skills = {
 			local nextStacks = math.max(current - time, 0)
 			return state < 0 and current <= 0 and 0 or state, nextStacks
 		end,
-		img = Material("insane_stats/snake-bite.png", "mips smooth"),
+		img = "snake-bite",
 		pos = {-1, -4},
 		minpts = 10,
 		max = 1
@@ -1016,7 +1016,7 @@ local skills = {
 				return "1 stack"
 			end
 		end,
-		img = Material("insane_stats/mouth-watering.png", "mips smooth"),
+		img = "mouth-watering",
 		pos = {0, -4},
 		minpts = 2,
 		max = 1
@@ -1027,7 +1027,7 @@ local skills = {
 		values = function(level)
 			return level * 8
 		end,
-		img = Material("insane_stats/microscope-lens.png", "mips smooth"),
+		img = "microscope-lens",
 		pos = {4, -4},
 		minpts = 5
 	},
@@ -1037,7 +1037,7 @@ local skills = {
 		values = function(level)
 			return 30 - level*10
 		end,
-		img = Material("insane_stats/star-swirl.png", "mips smooth"),
+		img = "star-swirl",
 		pos = {4, 0},
 		minpts = 2,
 		max = 1
@@ -1048,7 +1048,7 @@ local skills = {
 		values = function(level)
 			return level
 		end,
-		img = Material("insane_stats/quake-stomp.png", "mips smooth"),
+		img = "quake-stomp",
 		pos = {4, 4},
 		minpts = 5
 	},
@@ -1062,7 +1062,7 @@ local skills = {
 				return ""
 			end
 		end,
-		img = Material("insane_stats/celebration-fire.png", "mips smooth"),
+		img = "celebration-fire",
 		pos = {0, 4},
 		minpts = 2,
 		max = 1
@@ -1073,7 +1073,7 @@ local skills = {
 		values = function(level)
 			return level
 		end,
-		img = Material("insane_stats/heart-tower.png", "mips smooth"),
+		img = "heart-tower",
 		pos = {-4, 4},
 		minpts = 5
 	},
@@ -1088,7 +1088,7 @@ local skills = {
 				return ""
 			end
 		end,
-		img = Material("insane_stats/guarded-tower.png", "mips smooth"),
+		img = "guarded-tower",
 		pos = {-4, 0},
 		minpts = 2,
 		max = 1
@@ -1103,7 +1103,7 @@ local skills = {
 				return -100, " Taking explosive damage also restores +1% of max health."
 			end
 		end,
-		img = Material("insane_stats/robot-golem.png", "mips smooth"),
+		img = "robot-golem",
 		pos = {-4, -4},
 		minpts = 5
 	}
@@ -1117,86 +1117,86 @@ local statusEffects = {
 	skill_bleed = {
 		name = "Bleeding",
 		typ = -1,
-		img = Material("insane_stats/droplets.png", "mips smooth")
+		img = "droplets"
 	},
 	charge = {
 		name = "Charge!",
 		typ = 2,
-		img = Material("insane_stats/anthem.png", "mips smooth")
+		img = "anthem"
 	},
 	killing_spree = {
 		name = "Killing Spree",
 		typ = 1,
-		img = Material("insane_stats/mouth-watering.png", "mips smooth")
+		img = "mouth-watering"
 	},
 	multi_killer = {
 		name = "Multi Killer",
 		typ = 1,
-		img = Material("insane_stats/double-shot.png", "mips smooth")
+		img = "double-shot"
 	},
 
 	skill_damage_up = {
 		name = "Damage Up",
 		typ = 1,
-		img = Material("insane_stats/pointy-sword.png", "mips smooth")
+		img = "pointy-sword"
 	},
 	skill_crit_damage_up = {
 		name = "Critical Damage Up",
 		typ = 1,
-		img = Material("insane_stats/fast-arrow.png", "mips smooth")
+		img = "fast-arrow"
 	},
 	skill_firerate_up = {
 		name = "Fire Rate Up",
 		typ = 1,
-		img = Material("insane_stats/striking-arrows.png", "mips smooth")
+		img = "striking-arrows"
 	},
 	skill_accuracy_up = {
 		name = "Accuracy Up",
 		typ = 1,
-		img = Material("insane_stats/on-target.png", "mips smooth")
+		img = "on-target"
 	},
 
 	skill_defence_up = {
 		name = "Defence Up",
 		typ = 1,
-		img = Material("insane_stats/checked-shield.png", "mips smooth")
+		img = "checked-shield"
 	},
 	skill_regen = {
 		name = "Regeneration",
 		typ = 1,
-		img = Material("insane_stats/heart-bottle.png", "mips smooth")
+		img = "heart-bottle"
 	},
 	skill_armor_regen = {
 		name = "Armor Regeneration",
 		typ = 1,
-		img = Material("insane_stats/bolt-shield.png", "mips smooth")
+		img = "bolt-shield"
 	},
 	skill_absorption = {
 		name = "Absorption",
 		typ = 1,
-		img = Material("insane_stats/rosa-shield.png", "mips smooth")
+		img = "rosa-shield"
 	},
 
 	skill_knockback_resistance_up = {
 		name = "Knockback Resistance Up",
 		typ = 1,
-		img = Material("insane_stats/breastplate.png", "mips smooth")
+		img = "breastplate"
 	},
 
 	skill_xp_up = {
 		name = "Loot Up",
 		typ = 1,
-		img = Material("insane_stats/cool-spices.png", "mips smooth")
+		img = "cool-spices"
 	},
 	skill_crit_xp_up = {
 		name = "Critical Loot Up",
 		typ = 1,
-		img = Material("insane_stats/william-tell-skull.png", "mips smooth")
+		img = "william-tell-skull"
 	},
 	skill_ammo_efficiency_up = {
 		name = "Ammo Efficiency Up",
 		typ = 1,
-		img = Material("insane_stats/crystal-bars.png", "mips smooth")
+		img = "crystal-bars"
 	},
 }
 
