@@ -130,7 +130,12 @@ end
 
 function ENTITY:InsaneStats_GetSkillTier(skill)
 	if InsaneStats:GetConVarValue("skills_enabled") then
-		return self:InsaneStats_GetSkills()[skill] or 0
+		local val = hook.Run("InsaneStatsGetSkillTier", self, skill)
+		if val then
+			return val
+		else
+			return self:InsaneStats_GetSkills()[skill] or 0
+		end
 	else
 		return 0
 	end

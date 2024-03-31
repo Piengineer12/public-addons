@@ -463,63 +463,85 @@ hook.Add("InitPostEntity", "InsaneStatsSkills", function()
 	net.SendToServer()
 end)
 
+local oldTotalSkillPoints = -1
 hook.Add("HUDPaint", "InsaneStatsSkills", function()
-	if InsaneStats:GetConVarValue("skills_enabled") and InsaneStats:GetConVarValue("hud_skills_enabled") then
-		local ply = LocalPlayer()
-		local iconSkills = {}
-		for k,v in SortedPairs(ply:InsaneStats_GetSkills(), true) do
-			if ply:InsaneStats_GetSkillState(k) ~= -2 then
-				table.insert(iconSkills, k)
+	local ply = LocalPlayer()
+	if InsaneStats:GetConVarValue("skills_enabled") and InsaneStats:GetConVarValue("hud_skills_enabled")
+	and IsValid(ply) then
+		local totalSkillPoints = ply:InsaneStats_GetTotalSkillPoints()
+		if totalSkillPoints ~= oldTotalSkillPoints then
+			if oldTotalSkillPoints >= 0 then
+				local diff = totalSkillPoints - oldTotalSkillPoints
+				if diff > 0 then
+					chat.AddText(string.format(
+						"You have gained %s skill point(s)! Open the Insane Stats Skills menu to spend them.",
+						InsaneStats:FormatNumber(diff)
+					))
+				else
+					chat.AddText(string.format(
+						"You have lost %s skill point(s)!",
+						InsaneStats:FormatNumber(-diff)
+					))
+				end
 			end
+			oldTotalSkillPoints = totalSkillPoints
 		end
+		if ply:IsSuitEquipped() then
+			local iconSkills = {}
+			for k,v in SortedPairs(ply:InsaneStats_GetSkills(), true) do
+				if ply:InsaneStats_GetSkillState(k) ~= -2 then
+					table.insert(iconSkills, k)
+				end
+			end
 
-		local baseX = InsaneStats:GetConVarValue("hud_skills_x") * ScrW()
-		local baseY = InsaneStats:GetConVarValue("hud_skills_y") * ScrH()
-		local skillSize = InsaneStats.FONT_BIG * 2
-		local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
-		local totalIconSkills = #iconSkills
+			local baseX = InsaneStats:GetConVarValue("hud_skills_x") * ScrW()
+			local baseY = InsaneStats:GetConVarValue("hud_skills_y") * ScrH()
+			local skillSize = InsaneStats.FONT_BIG * 2
+			local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
+			local totalIconSkills = #iconSkills
 
-		for i,v in ipairs(iconSkills) do
-			local skillInfo = InsaneStats:GetSkillInfo(v)
-			local skillState = ply:InsaneStats_GetSkillState(v, true)
-			local skillStacks = ply:InsaneStats_GetSkillStacks(v, true)
-			local skillColor = skillState == 0 and color_white or skillState > 0 and color_aqua or color_gray
+			for i,v in ipairs(iconSkills) do
+				local skillInfo = InsaneStats:GetSkillInfo(v)
+				local skillState = ply:InsaneStats_GetSkillState(v, true)
+				local skillStacks = ply:InsaneStats_GetSkillStacks(v, true)
+				local skillColor = skillState == 0 and color_white or skillState > 0 and color_aqua or color_gray
 
-			local skillsPerRow = InsaneStats:GetConVarValue("hud_skills_per_row")
-			skillsPerRow = skillsPerRow < 1 and 65536 or skillsPerRow
+				local skillsPerRow = InsaneStats:GetConVarValue("hud_skills_per_row")
+				skillsPerRow = skillsPerRow < 1 and 65536 or skillsPerRow
 
-			-- what row number is this skill in? (0-indexed)
-			local rowY = math.ceil(i / skillsPerRow) - 1
+				-- what row number is this skill in? (0-indexed)
+				local rowY = math.ceil(i / skillsPerRow) - 1
 
-			-- how many skills are in this row?
-			local rowSkillCount = math.min(totalIconSkills - rowY * skillsPerRow, skillsPerRow)
+				-- how many skills are in this row?
+				local rowSkillCount = math.min(totalIconSkills - rowY * skillsPerRow, skillsPerRow)
 
-			-- what position in row is this skill in? (0-indexed)
-			local rowX = i - rowY * skillsPerRow - 1
+				-- what position in row is this skill in? (0-indexed)
+				local rowX = i - rowY * skillsPerRow - 1
 
-			local anchorX = baseX + ((rowSkillCount-1)/2 - rowX) * (skillSize + outlineThickness)
-			local anchorY = baseY - rowY * (skillSize + outlineThickness)
+				local anchorX = baseX + ((rowSkillCount-1)/2 - rowX) * (skillSize + outlineThickness)
+				local anchorY = baseY - rowY * (skillSize + outlineThickness)
 
-			InsaneStats:DrawMaterialOutlined(
-				InsaneStats:GetIconMaterial(skillInfo.img),
-				anchorX - skillSize/2, anchorY - skillSize,
-				skillSize, skillSize, skillColor, outlineThickness, color_black
-			)
-			if skillStacks ~= 0 then
-				local stackText = string.format("%.1f", skillStacks)
-				draw.SimpleTextOutlined(
-					stackText, "InsaneStats.Medium",
-					anchorX + skillSize/2, anchorY, color_white,
-					TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM,
-					outlineThickness, color_black
+				InsaneStats:DrawMaterialOutlined(
+					InsaneStats:GetIconMaterial(skillInfo.img),
+					anchorX - skillSize/2, anchorY - skillSize,
+					skillSize, skillSize, skillColor, outlineThickness, color_black
 				)
+				if skillStacks ~= 0 then
+					local stackText = string.format("%.1f", skillStacks)
+					draw.SimpleTextOutlined(
+						stackText, "InsaneStats.Medium",
+						anchorX + skillSize/2, anchorY, color_white,
+						TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM,
+						outlineThickness, color_black
+					)
+				end
 			end
 		end
 	end
 end)
 
 list.Set("DesktopWindows", "InsaneStatsSkills", {
-	title = "Insane Stats Skills",
+	title = "I. Stats Skills",
 	icon = "insane_stats/insane_stats_skills.png",
 	init = function(iconPanel, frame)
 		InsaneStats:CreateSkillMenu(frame)

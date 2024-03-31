@@ -523,7 +523,8 @@ function ENTITY:InsaneStats_AddHealthNerfed(health)
 end
 
 function ENTITY:InsaneStats_AddArmorNerfed(armor)
-	if self:InsaneStats_GetArmor() < math.huge and self:InsaneStats_GetHealth() > 0 then
+	if self:InsaneStats_GetArmor() < math.huge and self:InsaneStats_GetHealth() > 0
+	and self:InsaneStats_GetMaxArmor() > 0 then
 		local unnerfedArmorRestored = math.Clamp(self:InsaneStats_GetMaxArmor() - self:InsaneStats_GetArmor(), 0, armor)
 		armor = armor - unnerfedArmorRestored
 		if unnerfedArmorRestored > 0 then
@@ -561,7 +562,7 @@ function ENTITY:InsaneStats_AddHealthCapped(health)
 end
 
 function ENTITY:InsaneStats_IsMob()
-	return self:IsPlayer() or self:IsNPC() or self:IsNextBot() or self:GetClass()=="prop_vehicle_apc"
+	return IsValid(self) and (self:IsPlayer() or self:IsNPC() or self:IsNextBot() or self:GetClass()=="prop_vehicle_apc")
 end
 
 function ENTITY:InsaneStats_IsValidEnemy(ent)
@@ -837,16 +838,23 @@ hook.Add("PlayerCanPickupWeapon", "InsaneStatsWPASS", function(ply, wep)
 		end
 		return false
 	end
-	if InsaneStats:GetConVarValue("wpass2_enabled") and (wep.insaneStats_DisableWPASS2Pickup or 0) <= RealTime() then
+	if InsaneStats:GetConVarValue("wpass2_enabled") and (wep.insaneStats_DisableWPASS2Pickup or 0) <= RealTime()
+	and ply:HasWeapon(wep:GetClass()) then
 		local autoPickup = ply:GetInfoNum("insanestats_wpass2_autopickup_override", -1) or -1
 		if autoPickup < 0 then
 			autoPickup = InsaneStats:GetConVarValue("wpass2_autopickup")
 		end
+		if devEnabled then
+			InsaneStats:Log(string.format(
+				"Auto pickup mode is %s for %s.",
+				autoPickup, tostring(ply)
+			))
+		end
 		if autoPickup == 0 then
 			if devEnabled then
 				InsaneStats:Log(string.format(
-					"Prevented %s from picking up %s due to auto pickup rules.",
-					tostring(ply), tostring(wep)
+					"[%f] Prevented %s from picking up %s due to auto pickup rules.",
+					RealTime(), tostring(ply), tostring(wep)
 				))
 			end
 			return false
@@ -857,8 +865,8 @@ hook.Add("PlayerCanPickupWeapon", "InsaneStatsWPASS", function(ply, wep)
 			if autoPickup == 1 then
 				if devEnabled then
 					InsaneStats:Log(string.format(
-						"Prevented %s from picking up %s due to auto pickup rules.",
-						tostring(ply), tostring(wep)
+						"[%f] Prevented %s from picking up %s due to auto pickup rules.",
+						RealTime(), tostring(ply), tostring(wep)
 					))
 				end
 				return false
@@ -876,8 +884,8 @@ hook.Add("PlayerCanPickupWeapon", "InsaneStatsWPASS", function(ply, wep)
 					if autoPickup < 6 then
 						if devEnabled then
 							InsaneStats:Log(string.format(
-								"Prevented %s from picking up %s due to auto pickup rules.",
-								tostring(ply), tostring(wep)
+								"[%f] Prevented %s from picking up %s due to auto pickup rules.",
+								RealTime(), tostring(ply), tostring(wep)
 							))
 						end
 						return false
@@ -885,8 +893,8 @@ hook.Add("PlayerCanPickupWeapon", "InsaneStatsWPASS", function(ply, wep)
 				elseif newTier == currentTier and autoPickup < 4 then
 					if devEnabled then
 						InsaneStats:Log(string.format(
-							"Prevented %s from picking up %s due to auto pickup rules.",
-							tostring(ply), tostring(wep)
+							"[%f] Prevented %s from picking up %s due to auto pickup rules.",
+							RealTime(), tostring(ply), tostring(wep)
 						))
 					end
 					return false
@@ -1009,7 +1017,6 @@ SaveData = function(ply, forced)
 	if steamID and (ply:Alive() or forced) and ply.insaneStats_WPASS2DataLoaded then
 		local shouldSave = InsaneStats:GetConVarValue("wpass2_modifiers_player_save_death")
 		local shouldSaveBattery = InsaneStats:GetConVarValueDefaulted("wpass2_modifiers_player_save_death_battery", "wpass2_modifiers_player_save_death")
-		
 		if shouldSave > 0 or shouldSaveBattery > 0 then
 			playerLoadoutData[steamID] = GetPlayerWPASS2SaveData(ply, shouldSave, shouldSaveBattery, playerLoadoutData[steamID])
 		else

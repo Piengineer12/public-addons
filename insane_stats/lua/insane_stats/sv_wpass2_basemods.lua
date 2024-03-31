@@ -70,13 +70,6 @@ local function ShouldDodge(vic, attacker, dmginfo)
 		if attacker:InsaneStats_GetStatusEffectLevel("stunned") > 0 then return true end
 
 		if math.random() * 100 < vic:InsaneStats_GetSkillValues("dodger") then return true end
-		if math.random() * 100 < vic:InsaneStats_GetSkillValues("absorption_shield")
-		and vic:InsaneStats_GetArmor() > 0 then
-			if vic:IsPlayer() then
-				vic:GiveAmmo(1, math.random(#game.GetAmmoTypes()))
-			end
-			return true
-		end
 		if vic:InsaneStats_GetStatusEffectLevel("skill_absorption") > 0 then
 			if vic:IsPlayer() then
 				vic:GiveAmmo(1, math.random(#game.GetAmmoTypes()))
@@ -594,46 +587,49 @@ hook.Add("EntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo)
 
 		-- crits
 		local attacker = dmginfo:GetAttacker()
-		if (IsValid(attacker) and math.random() < attacker:InsaneStats_GetAttributeValue("crit_chance") - 1)
-		and vic.insaneStats_LastHitGroup ~= HITGROUP_HEAD then
-			if not storedScaleCVars then
-				storedScaleCVars = {
-					npc = {
-						arm = GetConVar("sk_npc_arm"),
-						chest = GetConVar("sk_npc_chest"),
-						head = GetConVar("sk_npc_head"),
-						leg = GetConVar("sk_npc_leg"),
-						stomach = GetConVar("sk_npc_stomach")
-					},
-					player = {
-						arm = GetConVar("sk_player_arm"),
-						chest = GetConVar("sk_player_chest"),
-						head = GetConVar("sk_player_head"),
-						leg = GetConVar("sk_player_leg"),
-						stomach = GetConVar("sk_player_stomach")
+		if IsValid(attacker) and vic.insaneStats_LastHitGroup ~= HITGROUP_HEAD then
+			local shouldCrit = (math.random() < attacker:InsaneStats_GetAttributeValue("crit_chance") - 1)
+			or not dmginfo:IsBulletDamage() and math.random() * 100 < attacker:InsaneStats_GetSkillValues("aimbot", 2)
+			if shouldCrit then
+				if not storedScaleCVars then
+					storedScaleCVars = {
+						npc = {
+							arm = GetConVar("sk_npc_arm"),
+							chest = GetConVar("sk_npc_chest"),
+							head = GetConVar("sk_npc_head"),
+							leg = GetConVar("sk_npc_leg"),
+							stomach = GetConVar("sk_npc_stomach")
+						},
+						player = {
+							arm = GetConVar("sk_player_arm"),
+							chest = GetConVar("sk_player_chest"),
+							head = GetConVar("sk_player_head"),
+							leg = GetConVar("sk_player_leg"),
+							stomach = GetConVar("sk_player_stomach")
+						}
 					}
-				}
+				end
+				local damageMultiplier = 1
+				local scaleCVars = vic:IsPlayer() and storedScaleCVars.player or storedScaleCVars.npc
+				local lastHitGroup = vic.insaneStats_LastHitGroup
+				if lastHitGroup == HITGROUP_CHEST then
+					damageMultiplier = scaleCVars.chest:GetFloat()
+				elseif lastHitGroup == HITGROUP_STOMACH then
+					damageMultiplier = scaleCVars.stomach:GetFloat()
+				elseif lastHitGroup == HITGROUP_LEFTARM	or lastHitGroup == HITGROUP_RIGHTARM then
+					damageMultiplier = scaleCVars.arm:GetFloat()
+				elseif lastHitGroup == HITGROUP_LEFTLEG	or lastHitGroup == HITGROUP_RIGHTLEG then
+					damageMultiplier = scaleCVars.leg:GetFloat()
+				--[[elseif lastHitGroup == HITGROUP_GEAR then
+					damageMultiplier = 0.01]]
+				end
+				if damageMultiplier > 0 then
+					damageMultiplier = scaleCVars.head:GetFloat() / damageMultiplier
+				end
+				dmginfo:ScaleDamage(damageMultiplier)
+				vic.insaneStats_LastHitGroup = HITGROUP_HEAD
+				vic.insaneStats_LastHitGroupUpdate = engine.TickCount()
 			end
-			local damageMultiplier = 1
-			local scaleCVars = vic:IsPlayer() and storedScaleCVars.player or storedScaleCVars.npc
-			local lastHitGroup = vic.insaneStats_LastHitGroup
-			if lastHitGroup == HITGROUP_CHEST then
-				damageMultiplier = scaleCVars.chest:GetFloat()
-			elseif lastHitGroup == HITGROUP_STOMACH then
-				damageMultiplier = scaleCVars.stomach:GetFloat()
-			elseif lastHitGroup == HITGROUP_LEFTARM	or lastHitGroup == HITGROUP_RIGHTARM then
-				damageMultiplier = scaleCVars.arm:GetFloat()
-			elseif lastHitGroup == HITGROUP_LEFTLEG	or lastHitGroup == HITGROUP_RIGHTLEG then
-				damageMultiplier = scaleCVars.leg:GetFloat()
-			--[[elseif lastHitGroup == HITGROUP_GEAR then
-				damageMultiplier = 0.01]]
-			end
-			if damageMultiplier > 0 then
-				damageMultiplier = scaleCVars.head:GetFloat() / damageMultiplier
-			end
-			dmginfo:ScaleDamage(damageMultiplier)
-			vic.insaneStats_LastHitGroup = HITGROUP_HEAD
-			vic.insaneStats_LastHitGroupUpdate = engine.TickCount()
 		end
 
 		-- always-trigger damage taken skills
@@ -702,6 +698,16 @@ hook.Add("EntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo)
 			return true
 		end
 
+		if math.random() * 100 < vic:InsaneStats_GetSkillValues("absorption_shield")
+		and vic:InsaneStats_GetArmor() > 0 then
+			if vic:IsPlayer() then
+				vic:GiveAmmo(1, math.random(#game.GetAmmoTypes()))
+			end
+			
+			vic:InsaneStats_DamageNumber(attacker, "miss")
+			return true
+		end
+
 		if (vic:InsaneStats_GetStatusEffectLevel("hittaken_invincible") > 0 or vic:InsaneStats_GetStatusEffectLevel("invincible") > 0)
 		and not dmginfo:IsDamageType(DMG_DISSOLVE) then
 			vic:InsaneStats_DamageNumber(attacker, "immune")
@@ -726,7 +732,8 @@ hook.Add("EntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo)
 		end
 
 		if vic:InsaneStats_GetSkillTier("rock_solid") > 0 then
-			if vic:InVehicle() or dmginfo:IsDamageType(fireDamageTypes) or vic:InsaneStats_GetSkillTier("rock_solid") > 1
+			if (vic:IsPlayer() and vic:InVehicle()) or dmginfo:IsDamageType(fireDamageTypes)
+			or vic:InsaneStats_GetSkillTier("rock_solid") > 1
 			and dmginfo:IsDamageType(bit.bor(poisonDamageTypes, DMG_SHOCK)) then
 				vic:InsaneStats_DamageNumber(attacker, "immune")
 				return true
@@ -1208,6 +1215,19 @@ hook.Add("ScalePlayerDamage", "InsaneStatsWPASS2", function(vic, hitgroup, dmgin
 	vic.insaneStats_LastHitGroupUpdate = engine.TickCount()
 end)
 
+local color_aqua = Color(0, 255, 255)
+local color_red = Color(255, 0, 0)
+local function CalculateAimbotPosition(ent)
+	local pos = ent:WorldSpaceCenter()
+
+	for i=1, ent:GetHitBoxCount(0) do
+		if ent:GetHitBoxHitGroup(i, 0) == HITGROUP_HEAD then
+			pos = ent:GetBonePosition(ent:GetHitBoxBone(i, 0))
+		end
+	end
+
+	return pos
+end
 hook.Add("EntityFireBullets", "InsaneStatsWPASS2", function(attacker, data)
 	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
 		local shouldAimbot = math.random() + 1 < attacker:InsaneStats_GetAttributeValue("aimbot")
@@ -1232,8 +1252,9 @@ hook.Add("EntityFireBullets", "InsaneStatsWPASS2", function(attacker, data)
 						bulletDir:Normalize()
 					end
 					
-					local allegedHeadTarget = k:HeadTarget(data.Src) or k:WorldSpaceCenter()
-					local endPos = allegedHeadTarget:IsZero() and k:WorldSpaceCenter() or allegedHeadTarget 
+					--local allegedHeadTarget = k:HeadTarget(data.Src) or k:WorldSpaceCenter()
+					--local endPos = allegedHeadTarget:IsZero() and k:WorldSpaceCenter() or allegedHeadTarget
+					local endPos = CalculateAimbotPosition(k)
 					local desiredDir = endPos - data.Src
 					desiredDir:Normalize()
 					
@@ -1243,21 +1264,29 @@ hook.Add("EntityFireBullets", "InsaneStatsWPASS2", function(attacker, data)
 						trace.endpos = endPos
 						trace.endpos:Mul(2)
 						trace.endpos:Sub(trace.start)
-						--debugoverlay.Cross(endPos, 10, 0.5, color_white, true)
+						debugoverlay.Cross(endPos, 10, 2, color_aqua, true)
 						util.TraceLine(trace)
 
 						local hitEntity = traceResult.Entity
 						if hitEntity == k then
 							bestNPC = k
 							bestCos = desiredCos
+						elseif GetConVar("developer"):GetInt() > 0 then
+							InsaneStats:Log(string.format(
+								"Wanted to aimbot %s but bullet was stopped:",
+								tostring(k)
+							))
+							PrintTable(traceResult)
 						end
 					end
 				end
 			end
 			
 			if IsValid(bestNPC) then
-				local allegedHeadTarget = bestNPC:HeadTarget(data.Src) or bestNPC:WorldSpaceCenter()
-				local endPos = allegedHeadTarget:IsZero() and bestNPC:WorldSpaceCenter() or allegedHeadTarget
+				--local allegedHeadTarget = bestNPC:HeadTarget(data.Src) or bestNPC:WorldSpaceCenter()
+				--local endPos = allegedHeadTarget:IsZero() and bestNPC:WorldSpaceCenter() or allegedHeadTarget
+				local endPos = CalculateAimbotPosition(bestNPC)
+				debugoverlay.Cross(endPos, 10, 2, color_red, true)
 				data.Dir = endPos - data.Src
 				data.Dir:Normalize()
 			end
@@ -1530,9 +1559,17 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsSkills", function(victim, at
 					v:InsaneStats_GetMaxHealth() + v:InsaneStats_GetSkillValues("infusion", 2)
 				)
 			end
+
 			if v:InsaneStats_HasSkill("additional_pylons") then
+				local maxArmor = v:InsaneStats_GetSkillValues("additional_pylons", 2)
+				-- if insaneStats_CurrentArmorAdd is nil, define it
+				-- so that the level system doesn't assume the already level-scaled armor to be starting armor
+				if not v.insaneStats_CurrentArmorAdd and maxArmor > 0 then
+					v.insaneStats_CurrentArmorAdd = maxArmor * 5000 / v:InsaneStats_GetSkillTier("actually_levelling_up")
+				end
+
 				v:SetMaxArmor(
-					v:InsaneStats_GetMaxArmor() + v:InsaneStats_GetSkillValues("additional_pylons", 2)
+					v:InsaneStats_GetMaxArmor() + maxArmor
 				)
 			end
 
@@ -1597,7 +1634,9 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsSkills", function(victim, at
 				v:InsaneStats_SetSkillData("starlight", 1, newStacks)
 			end
 
-			SpawnRandomItems(v:InsaneStats_GetSkillValues("looting") / 100, victim:WorldSpaceCenter())
+			if v:IsPlayer() then
+				SpawnRandomItems(v:InsaneStats_GetSkillValues("looting") / 100, victim:WorldSpaceCenter())
+			end
 
 			if v:InsaneStats_HasSkill("killing_spree") then
 				v:InsaneStats_ApplyStatusEffect(
@@ -1770,6 +1809,9 @@ hook.Add("InsaneStatsEntityKilledPostXP", "InsaneStatsSkills", function(victim, 
 			if v:InsaneStats_GetSkillState("fight_for_your_life") == 1 then
 				v:InsaneStats_AddHealthNerfed(v:InsaneStats_GetMaxHealth())
 				v:InsaneStats_SetSkillData("fight_for_your_life", 0, v.insaneStats_FFYLStacksAdd or 0)
+
+				local name = v:GetName() ~= "" and v:GetName() or v:GetClass()
+				PrintMessage(HUD_PRINTTALK, name.." is back up!")
 			end
 		end
 	end
@@ -1876,7 +1918,7 @@ local function AttemptDupeEntity(ply, item)
 					for i,v in ipairs(duplicates) do
 						v:SetPos(ply:WorldSpaceCenter())
 					end
-					v.insaneStats_PreventMagnet = true
+					v.insaneStats_PreventMagnet = 100
 					return false
 				end
 			end
@@ -1887,7 +1929,9 @@ local function AttemptDupeEntity(ply, item)
 				or 0
 			) + (ply:InsaneStats_HasSkill("boundless_shield") and 1 or 0)
 			
-			if (class == "item_battery" or class == "weapon_stunstick") and overLoadedArmor > 0 then
+			if (class == "item_battery"
+			or class == "weapon_stunstick" and ply:HasWeapon("weapon_stunstick")
+			or class == "weapon_medkit" and ply:HasWeapon("weapon_medkit")) and overLoadedArmor > 0 then
 				local shouldAutoPickup = true
 				local autoPickup = ply:GetInfoNum("insanestats_wpass2_autopickup_battery_override", -1) or -1
 				if autoPickup < 0 then
@@ -1904,34 +1948,56 @@ local function AttemptDupeEntity(ply, item)
 					end
 				end
 				if shouldAutoPickup or ignoreWPASS2Pickup then
-					local expectedArmor = GetConVar("sk_battery"):GetFloat() * (ply.insaneStats_CurrentArmorAdd or 1)
-					* (class == "weapon_stunstick" and 0.5 or 1)
-
-					if ply:InsaneStats_GetArmor() + expectedArmor > ply:InsaneStats_GetMaxArmor() then
-						if ply:InsaneStats_GetArmor() < ply:InsaneStats_GetMaxArmor() then
-							expectedArmor = expectedArmor + ply:InsaneStats_GetArmor() - ply:InsaneStats_GetMaxArmor()
-							ply:SetArmor(ply:InsaneStats_GetMaxArmor())
-						end
-						
-						expectedArmor = expectedArmor * overLoadedArmor
-						
-						if ply:InsaneStats_GetStatusEffectLevel("shock") > 0
-						or ply:InsaneStats_GetStatusEffectLevel("electroblast") > 0
+					if class == "weapon_medkit" then
+						local expectedHealth = GetConVar("sk_healthkit"):GetFloat() * (ply.insaneStats_CurrentHealthAdd or 1)
+							
+						if ply:InsaneStats_GetStatusEffectLevel("bleed") > 0
+						or ply:InsaneStats_GetStatusEffectLevel("hemotoxin") > 0
 						or ply:InsaneStats_GetStatusEffectLevel("cosmicurse") > 0 then
-							expectedArmor = expectedArmor / 2
+							expectedHealth = expectedHealth / 2
 						end
 						
 						hook.Run("InsaneStatsPlayerPickedUpItem", ply, item)
-						ply:InsaneStats_AddArmorNerfed(expectedArmor)
+						ply:InsaneStats_AddHealthNerfed(expectedHealth)
 						
-						ply:EmitSound("ItemBattery.Touch")
+						ply:EmitSound("HealthKit.Touch")
 						net.Start("insane_stats")
 						net.WriteUInt(2, 8)
-						net.WriteString(class)
+						net.WriteString("item_healthkit")
 						net.Send(ply)
 						item:Remove()
 						
 						return false
+					else
+						local expectedArmor = GetConVar("sk_battery"):GetFloat() * (ply.insaneStats_CurrentArmorAdd or 1)
+						* (class == "weapon_stunstick" and 0.5 or 1)
+
+						if ply:InsaneStats_GetArmor() + expectedArmor > ply:InsaneStats_GetMaxArmor() then
+							if ply:InsaneStats_GetArmor() < ply:InsaneStats_GetMaxArmor() then
+								expectedArmor = expectedArmor + ply:InsaneStats_GetArmor() - ply:InsaneStats_GetMaxArmor()
+								ply:SetArmor(ply:InsaneStats_GetMaxArmor())
+							end
+							
+							expectedArmor = expectedArmor * overLoadedArmor
+							
+							if ply:InsaneStats_GetStatusEffectLevel("shock") > 0
+							or ply:InsaneStats_GetStatusEffectLevel("electroblast") > 0
+							or ply:InsaneStats_GetStatusEffectLevel("cosmicurse") > 0 then
+								expectedArmor = expectedArmor / 2
+							end
+							
+							hook.Run("InsaneStatsPlayerPickedUpItem", ply, item)
+							ply:InsaneStats_AddArmorNerfed(expectedArmor)
+							
+							ply:EmitSound("ItemBattery.Touch")
+							net.Start("insane_stats")
+							net.WriteUInt(2, 8)
+							net.WriteString(class)
+							net.Send(ply)
+							item:Remove()
+							
+							return false
+						end
 					end
 				end
 			end
@@ -2001,6 +2067,7 @@ local tickIndex = 0
 local occupyRatio = 0.125
 local timerResolution = 0.2
 local decayRate = 0.99^timerResolution
+local coins = {}
 timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
 		local startTime = SysTime()
@@ -2110,7 +2177,9 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 			end
 		end
 		for k,v in pairs(InsaneStats:GetEntitiesWithSkills()) do
-			starlightRadii[k] = (starlightRadii[k] or 0) + k:InsaneStats_GetSkillStacks("starlight") * 4
+			if k:IsPlayer() then
+				starlightRadii[k] = (starlightRadii[k] or 0) + k:InsaneStats_GetSkillStacks("starlight") * 4
+			end
 		end
 		for k,v in pairs(starlightRadii) do
 			if v > 0 then
@@ -2157,7 +2226,7 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 			})
 		
 			tempTimeStart = SysTime()
-			local coins = {}
+			coins = {}
 			
 			for k,v in pairs(entities) do
 				if IsValid(k) then
@@ -2189,27 +2258,6 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 			for k,v in pairs(rapidThinkEntities) do
 				if not IsValid(k) then
 					rapidThinkEntities[k] = nil
-				end
-			end
-
-			local plys = player.GetAll()
-			for i,v in ipairs(coins) do
-				-- get nearest player
-				local nearestPlayer = NULL
-				local shortestDistance = math.huge
-				for i2,v2 in ipairs(plys) do
-					local squaredDistance = v:WorldSpaceCenter():DistToSqr(v2:WorldSpaceCenter())
-					if squaredDistance < shortestDistance then
-						nearestPlayer = v2
-						shortestDistance = squaredDistance
-					end
-				end
-
-				if IsValid(nearestPlayer) then
-					if CurTime() >= v:GetCreationTime() + nearestPlayer:InsaneStats_GetSkillValues("item_magnet", 2)
-					and nearestPlayer:InsaneStats_HasSkill("item_magnet") then
-						v:Pickup(nearestPlayer)
-					end
 				end
 			end
 			
@@ -2417,7 +2465,11 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 			skillTime = k:InsaneStats_GetSkillStacks("fight_for_your_life")
 			if k:InsaneStats_GetSkillState("fight_for_your_life", true) == 1 and skillTime <= 0 then
 				k:InsaneStats_SetSkillData("fight_for_your_life", 0, 0)
-				k:Kill()
+				if k:IsPlayer() then
+					k:Kill()
+				else
+					k:Fire("SetHealth", "0")
+				end
 			end
 
 			skillTime = k:InsaneStats_GetSkillStacks("anger")
@@ -2440,7 +2492,7 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 				end
 			end
 
-			if k:InsaneStats_HasSkill("item_magnet") then
+			if k:InsaneStats_HasSkill("item_magnet") and k:IsPlayer() then
 				local traceResult = {}
 				local trace = {
 					start = k:WorldSpaceCenter(),
@@ -2455,7 +2507,8 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 					)
 				) do
 					if v2:InsaneStats_IsItem() and not IsValid(v2:GetOwner())
-					and (v2.insaneStats_PreventMagnet or 0) < 100 then
+					and (v2.insaneStats_PreventMagnet or 0) < 100
+					and (not v2:InsaneStats_IsWPASS2Pickup() or (v2.insaneStats_Tier or 0) == 0) then
 						local physObj = v2:GetPhysicsObject()
 						if IsValid(physObj) then
 							trace.endpos = v2:WorldSpaceCenter()
@@ -2571,7 +2624,7 @@ timer.Create("InsaneStatsWPASS2Look", 5, 0, function()
 	end
 end)
 
-hook.Add("InsaneStatsEntityShouldBeAlpha", "InsaneStatsWPASS2", function(ent)
+--[[hook.Add("InsaneStatsEntityShouldBeAlpha", "InsaneStatsWPASS2", function(ent)
 	if InsaneStats:GetConVarValue("skills_enabled") then
 		for k,v in pairs(InsaneStats:GetEntitiesWithSkills()) do
 			if k:InsaneStats_GetSkillTier("friendly_fire_off") > 1 and k:InsaneStats_IsValidAlly(ent) then
@@ -2579,7 +2632,7 @@ hook.Add("InsaneStatsEntityShouldBeAlpha", "InsaneStatsWPASS2", function(ent)
 			end
 		end
 	end
-end)
+end)]]
 
 local function ProcessBreakEvent(victim, attacker)
 	if not IsValid(attacker) then
@@ -2743,10 +2796,19 @@ hook.Add("PlayerUse", "InsaneStatsWPASS2", function(ply, ent)
 	end
 end)
 
+local currentCoinIndex = 1
 hook.Add("Think", "InsaneStatsWPASS2", function()
 	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
 		totalDamageTicks = 0
 		explosionCount = 0
+
+		currentCoinIndex = currentCoinIndex + 1
+		if not coins[currentCoinIndex] then
+			currentCoinIndex = 1
+		end
+		local currentCoin = coins[currentCoinIndex]
+		local coinNearestPlayer = NULL
+		local coinShortestDistance = math.huge
 		
 		game.SetTimeScale(game.GetTimeScale() * (InsaneStats.totalTimeDilation or 1))
 		InsaneStats.totalTimeDilation = 1
@@ -2854,6 +2916,14 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 								k.insaneStats_LastSuitPower = suitPower
 							end
 						end
+
+						if IsValid(currentCoin) then
+							local squaredDistance = currentCoin:WorldSpaceCenter():DistToSqr(k:WorldSpaceCenter())
+							if squaredDistance < coinShortestDistance then
+								coinNearestPlayer = k
+								coinShortestDistance = squaredDistance
+							end
+						end
 					end
 				end
 				
@@ -2862,7 +2932,7 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 					bloodFrac = math.min(bloodFrac, k:InsaneStats_GetSkillValues("bloodletter_pact") / 100)
 				end
 
-				if bloodFrac ~= 1 and k.SetArmor then
+				if bloodFrac ~= 1 and k:InsaneStats_GetMaxArmor() > 0 then
 					local minimumHealth = k:InsaneStats_GetMaxHealth() * bloodFrac
 					local lostHealth = math.ceil(k:InsaneStats_GetHealth() - minimumHealth)
 					local armorMul = 1
@@ -2942,6 +3012,13 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 						/ (1 + k:InsaneStats_GetSkillValues("just_breathe", 2)/100)
 					end
 				end
+			end
+		end
+		
+		if IsValid(coinNearestPlayer) then
+			if CurTime() >= currentCoin:GetCreationTime() + coinNearestPlayer:InsaneStats_GetSkillValues("item_magnet", 2)
+			and coinNearestPlayer:InsaneStats_HasSkill("item_magnet") then
+				currentCoin:Pickup(coinNearestPlayer)
 			end
 		end
 		
@@ -3038,12 +3115,13 @@ hook.Add("PlayerAmmoChanged", "InsaneStatsWPASS2", function(ply, ammoID, oldAmou
 
 	if InsaneStats:GetConVarValue("skills_enabled") and ply:InsaneStats_HasSkill("more_bullet_per_bullet") then
 		local maxReserve = game.GetAmmoMax(ammoID)
-		local threshold = ply:InsaneStats_GetSkillValues("more_bullet_per_bullet") / 100
-		local maxPlayerReserve = math.ceil(maxReserve * threshold)
-		if newAmount > maxPlayerReserve then
-			local newStacks = math.min(1000, ply:InsaneStats_GetSkillStacks("more_bullet_per_bullet")
-				+ (math.min(newAmount, maxReserve) - maxPlayerReserve)
-				/ maxReserve * (1 + ply:InsaneStats_GetSkillValues("more_bullet_per_bullet", 2))
+		local skillValues = {ply:InsaneStats_GetSkillValues("more_bullet_per_bullet")}
+		local maxPlayerReserve = math.ceil(maxReserve * skillValues[1] / 100)
+		if newAmount > maxPlayerReserve and maxReserve > 0 then
+			local newStacks = math.min(
+				skillValues[2],
+				ply:InsaneStats_GetSkillStacks("more_bullet_per_bullet")
+				+ (math.min(newAmount, maxReserve) - maxPlayerReserve) / maxReserve * 100
 			)
 			ply:InsaneStats_SetSkillData("more_bullet_per_bullet", 1, newStacks)
 			ply:InsaneStats_SetRawAmmo(maxPlayerReserve, ammoID)
@@ -3063,6 +3141,9 @@ hook.Add("InsaneStatsPreDeath", "InsaneStatsWPASS2", function(vic, dmginfo)
 				+ durationOffset
 			)
 			vic.insaneStats_FFYLStacksAdd = durationOffset - 2
+
+			local name = vic:GetName() ~= "" and vic:GetName() or vic:GetClass()
+			PrintMessage(HUD_PRINTTALK, name.." has been downed!")
 			vic:SetHealth(1)
 			vic:SetArmor(0)
 			return true
@@ -3074,17 +3155,25 @@ hook.Add("InsaneStatsLevelChanged", "InsaneStatsWPASS2", function(ent, oldLevel,
 	if InsaneStats:GetConVarValue("skills_enabled") and ent:InsaneStats_HasSkill("actually_levelling_up")
 	and oldLevel ~= newLevel then
 		local amplifier = newLevel - oldLevel
-		amplifier = amplifier * ent:InsaneStats_GetTotalSkillPoints()
+		if IsValid(ent) then
+			amplifier = amplifier * ent:InsaneStats_GetTotalSkillPoints()
 
-		local mhp, mar = ent:InsaneStats_GetSkillValues("actually_levelling_up", 3)
-		ent:SetMaxHealth(ent:InsaneStats_GetMaxHealth() + amplifier * mhp)
-		if ent.SetMaxArmor then
-			ent:SetMaxArmor(ent:InsaneStats_GetMaxArmor() + amplifier * mar)
-		end
+			local mhp, mar = ent:InsaneStats_GetSkillValues("actually_levelling_up", 3)
+			ent:SetMaxHealth(ent:InsaneStats_GetMaxHealth() + amplifier * mhp)
+			if ent.SetMaxArmor then
+				-- if insaneStats_CurrentArmorAdd is nil, define it
+				-- so that the level system doesn't assume the already level-scaled armor to be starting armor
+				if not ent.insaneStats_CurrentArmorAdd and mar > 0 then
+					ent.insaneStats_CurrentArmorAdd = mar * 100 / ent:InsaneStats_GetSkillTier("actually_levelling_up")
+				end
 
-		ent:InsaneStats_AddHealthNerfed(ent:InsaneStats_GetMaxHealth())
-		if ent.SetArmor then
-			ent:InsaneStats_AddArmorNerfed(ent:InsaneStats_GetMaxArmor())
+				ent:SetMaxArmor(ent:InsaneStats_GetMaxArmor() + amplifier * mar)
+			end
+
+			ent:InsaneStats_AddHealthNerfed(ent:InsaneStats_GetMaxHealth())
+			if ent.SetArmor then
+				ent:InsaneStats_AddArmorNerfed(ent:InsaneStats_GetMaxArmor())
+			end
 		end
 	end
 end)

@@ -212,7 +212,7 @@ net.Receive("insane_stats", function()
 					ply.insaneStats_SkillData[idStr] = {state = state, stacks = stacks, updateTime = updateTime}
 				else
 					InsaneStats:Log("Received unknown skill ID "..id..", is the network toasted?")
-					InsaneStats:Log("This occured while processing entity "..entIndex..".")
+					InsaneStats:Log("This occured while processing entity "..ply..".")
 				end
 			end
 		end

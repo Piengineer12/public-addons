@@ -15,6 +15,10 @@ function InsaneStats:GetEntitiesWithSkills()
 	return skillEntities
 end
 
+function InsaneStats:SetEntityAsContainingSkills(ent)
+	skillEntities[ent] = true
+end
+
 AccessorFunc(InsaneStats, "SkillDataToNetwork", "SkillDataToNetwork")
 
 hook.Add("InsaneStatsSave", "InsaneStatsSkills", function(data)

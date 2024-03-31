@@ -596,7 +596,7 @@ function ENTITY:InsaneStats_GetBatteryXP()
 end
 
 function ENTITY:InsaneStats_GetAttributeValue(attribute)
-	if InsaneStats:GetConVarValue("wpass2_enabled") then
+	if InsaneStats:GetConVarValue("wpass2_enabled") and IsValid(self) then
 		local totalMul = 1
 		local weaponEffectVars = {"wpass2_attributes_other_enabled"}
 		local batteryEffectVars = {"wpass2_attributes_other_enabled_battery", "wpass2_attributes_other_enabled"}

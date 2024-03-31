@@ -410,7 +410,7 @@ local skills = {
 	},
 	friendly_fire_off = {
 		name = "Friendly Fire OFF",
-		desc = "While %s is not held, deal -100%% non-dissolving damage against allies! %s",
+		desc = "While %s is not held, deal -100%% non-dissolving damage against allies%s",
 		values = function(level)
 			local slowWalkKey = "the Slow Walk key"
 			if CLIENT then
@@ -420,9 +420,9 @@ local skills = {
 				end
 			end
 			if level > 1 then
-				return slowWalkKey, " Non-player allies also always spawn as Alphas."
+				return slowWalkKey, " and share most skills with them!"
 			else
-				return slowWalkKey, ""
+				return slowWalkKey, "!"
 			end
 		end,
 		stackTick = function(state, current, time, ent)
@@ -622,13 +622,17 @@ local skills = {
 		name = "Additional Pylons",
 		desc = "On kill, gain +%s max armor.",
 		values = function(level, ent)
+			local scaleType = ent:IsPlayer() and "player" or "other"
+			local baseMult = ent:IsPlayer() and 1 or InsaneStats:GetConVarValue("infhealth_armor_mul")
+			local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and ent:InsaneStats_GetLevel() or 1
+
 			local val = InsaneStats:ScaleValueToLevelQuadratic(
-				level/50,
-				InsaneStats:GetConVarValue("xp_player_armor")/100,
-				InsaneStats:GetConVarValue("xp_enabled") and ent:InsaneStats_GetLevel() or 1,
-				"xp_player_armor_mode",
+				level/50*baseMult,
+				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
+				effectiveLevel,
+				"xp_"..scaleType.."_armor_mode",
 				false,
-				InsaneStats:GetConVarValue("xp_player_armor_add")/100
+				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor_add")/100
 			)
 			return CLIENT and InsaneStats:FormatNumber(val), val
 		end,
@@ -702,17 +706,17 @@ local skills = {
 	},
 	more_bullet_per_bullet = {
 		name = "More Bullet Per Bullet",
-		desc = "Reserve ammo above %u%% is converted into More Bullet Per Bullet stacks with +%u%% more efficiency. \z
-		Each stack increases defence and damage dealt by 1%%, but stacks are capped to a maximum of 1000 \z
+		desc = "Reserve ammo above %u%% is converted into More Bullet Per Bullet stacks. \z
+		Each stack increases defence and damage dealt by 1%%, but stacks are capped to a maximum of +%u \z
 		and decay at a rate of -0.1%%/s.",
 		values = function(level)
-			return 100 - level * 5, level * 10
+			return 100 - level * 5, level * 200
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = current * .999 ^ time
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
-		img = "cluster-bomb",
+		img = "implosion",
 		pos = {-3, -3},
 		minpts = 5
 	},
@@ -793,23 +797,25 @@ local skills = {
 		name = "Better Than Ever",
 		desc = "Health Kits increase max health by +%s, and Armor Batteries increase max armor by +%s!",
 		values = function(level, ent)
+			local scaleType = ent:IsPlayer() and "player" or "other"
+			local baseMult = ent:IsPlayer() and 1 or InsaneStats:GetConVarValue("infhealth_armor_mul")
 			local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and ent:InsaneStats_GetLevel() or 1
 
 			local value1 = InsaneStats:ScaleValueToLevelQuadratic(
 				level/100,
-				InsaneStats:GetConVarValue("xp_player_health")/100,
+				InsaneStats:GetConVarValue("xp_"..scaleType.."_health")/100,
 				effectiveLevel,
-				"xp_player_health_mode",
+				"xp_"..scaleType.."_health_mode",
 				false,
-				InsaneStats:GetConVarValue("xp_player_health_add")/100
+				InsaneStats:GetConVarValue("xp_"..scaleType.."_health_add")/100
 			)
 			local value2 = InsaneStats:ScaleValueToLevelQuadratic(
-				level/100,
-				InsaneStats:GetConVarValue("xp_player_armor")/100,
+				level/100*baseMult,
+				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
 				effectiveLevel,
-				"xp_player_armor_mode",
+				"xp_"..scaleType.."_armor_mode",
 				false,
-				InsaneStats:GetConVarValue("xp_player_armor_add")/100
+				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor_add")/100
 			)
 
 			return CLIENT and InsaneStats:FormatNumber(value1), CLIENT and InsaneStats:FormatNumber(value2),
@@ -939,20 +945,22 @@ local skills = {
 		Health and shield gained this way can exceed max health and max shield, \z
 		but with diminishing returns.",
 		values = function(level, ent)
+			local scaleType = ent:IsPlayer() and "player" or "other"
+			local baseMult = ent:IsPlayer() and 1 or InsaneStats:GetConVarValue("infhealth_armor_mul")
 			local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and ent:InsaneStats_GetLevel() or 1
 
 			local value1 = InsaneStats:ScaleValueToLevel(
 				level,
-				InsaneStats:GetConVarValue("xp_player_health")/100,
+				InsaneStats:GetConVarValue("xp_"..scaleType.."_health")/100,
 				effectiveLevel,
-				"xp_player_health_mode",
+				"xp_"..scaleType.."_health_mode",
 				false
 			)
 			local value2 = InsaneStats:ScaleValueToLevel(
-				level,
-				InsaneStats:GetConVarValue("xp_player_armor")/100,
+				level*baseMult,
+				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
 				effectiveLevel,
-				"xp_player_armor_mode",
+				"xp_"..scaleType.."_armor_mode",
 				false
 			)
 
@@ -1023,9 +1031,11 @@ local skills = {
 	},
 	aimbot = {
 		name = "Aimbot",
-		desc = "Fired bullets have %+.0f%% chance of being redirected to enemy critical hit spots! These bullets can still miss if the bullet spread is too high.",
+		desc = "Fired bullets have %+.0f%% chance of being redirected to enemy critical hit spots! \z
+		These bullets can still miss if the bullet spread is too high. \z
+		Additionally, non-bullet damage has a %+.0f%% chance to critically hit.",
 		values = function(level)
-			return level * 8
+			return level * 8, level * 8
 		end,
 		img = "microscope-lens",
 		pos = {4, -4},
@@ -1202,4 +1212,20 @@ local statusEffects = {
 
 hook.Add("InsaneStatsLoadWPASS", "InsaneStatsSkillsDefault", function(currentModifiers, currentAttributes, currentStatusEffects)
 	table.Merge(currentStatusEffects, statusEffects)
+end)
+
+hook.Add("InsaneStatsGetSkillTier", "InsaneStatsSkillsDefault", function(ent, skill)
+	if SERVER and skill ~= "friendly_fire_off" then
+		local highestLevel = ent:InsaneStats_GetSkills()[skill] or 0
+		for k,v in pairs(InsaneStats:GetEntitiesWithSkills()) do
+			if not (k:IsPlayer() and k:KeyDown(IN_WALK)) then
+				local theirSkills = k:InsaneStats_GetSkills()
+				if (theirSkills.friendly_fire_off or 0) > 1 and k:InsaneStats_IsValidAlly(ent) then
+					highestLevel = math.max(highestLevel, theirSkills[skill] or 0)
+					InsaneStats:SetEntityAsContainingSkills(ent)
+				end
+			end
+		end
+		return highestLevel
+	end
 end)

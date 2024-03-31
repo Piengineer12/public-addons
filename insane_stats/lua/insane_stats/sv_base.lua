@@ -117,6 +117,8 @@ end, nil, "Reverts all server-side Insane Stats ConVars. You must pass the argum
 hook.Add("EntityKeyValue", "InsaneStats", function(ent, key, value)
 	if ent:GetClass() == "game_text" and key == "color" then
 		ent.insaneStats_TextColor = string.ToColor(value.." 255")
+	elseif ent:GetClass() == "info_player_coop" and key == "StartDisabled" then
+		ent.insaneStats_Disabled = tobool(value)
 	end
 end)
 
@@ -264,7 +266,14 @@ end)
 
 hook.Add("PlayerSelectSpawn", "InsaneStats", function(ply, transition)
 	if InsaneStats:GetConVarValue("spawn_master") and not transition then
-		local spawnPoints = ents.FindByClass("info_player_start")
+		local spawnPoints = ents.FindByClass("info_player_coop")
+		for i, v in ipairs(spawnPoints) do
+			if not v.insaneStats_Disabled then
+				return v
+			end
+		end
+		
+		spawnPoints = ents.FindByClass("info_player_start")
 		for i, v in ipairs(spawnPoints) do
 			if v:HasSpawnFlags(1) and hook.Run("IsSpawnpointSuitable", ply, v, true) then
 				return v
