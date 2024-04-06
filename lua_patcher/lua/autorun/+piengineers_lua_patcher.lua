@@ -8,8 +8,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_PATCHER_VERSION = "2.1.7"
-LUA_PATCHER_VERSION_DATE = "2024-02-21"
+LUA_PATCHER_VERSION = "2.1.8"
+LUA_PATCHER_VERSION_DATE = "2024-04-06"
 LUA_REPAIR_VERSION = LUA_PATCHER_VERSION
 LUA_REPAIR_VERSION_DATE = LUA_PATCHER_VERSION_DATE
 
@@ -185,7 +185,11 @@ local function FixAllErrors()
 		return oldExplode(separator, str, withpattern)
 	end
 	
-	debug.setmetatable(nil, NIL)
+	if debug.setmetatable then
+		debug.setmetatable(nil, NIL)
+	else
+		LogError("debug.setmetatable is missing, nil CANNOT BE PATCHED!")
+	end
 
 	Log("Primitives patched!")
 	Log("Patching classes...")
@@ -217,20 +221,11 @@ local function FixAllErrors()
 		return olddiv(a or 1,b or 1)
 	end
 
-	-- this doesn't work because the error happens when the method is called, not indexed
-	--[[local oldIndex = NULL_META.__index
-	NULL_META.__index = function(ent, key, ...)
-		local ret = {pcall(oldIndex, ent, key, ...)}
-		if ret[1] then
-			return select(2, unpack(ret))
-		else
-			LogError(string.format("Method %s on entity %s failed: %s", tostring(key), tostring(ent), ret[2]))
-			return nil
-		end
-	end]]
+	-- redefining NULL to not error on index doesn't work because the error happens when the method is called
+	-- the error somehow bypasses pcall too so...
 
 	-- this doesn't work either and just subliminates RAM
-	--[[local oldFuncs = {}
+	--[=[local oldFuncs = {}
 	for k,v in pairs(ENTITY) do
 		if isfunction(v) then
 			oldFuncs[k] = v
@@ -247,7 +242,7 @@ local function FixAllErrors()
 				return nil
 			end
 		end
-	end]]
+	end]=]
 	
 	local oldGC = ENTITY.GetClass
 	ENTITY.GetClass = function(ent, ...)
@@ -351,47 +346,26 @@ local function FixAllErrors()
 			LogError("Some code attempted to call EmitSound on an entity with non-string sound name.")
 		end
 	end
-	--[[local function TurnTableLikeIntoTable(tableLike)
-		reconstructed = {}
-		for i,v in ipairs(tableLike) do
-			reconstructed[i] = v
-		end
-		return reconstructed
-	end]]
 	local oldPhysicsFromMesh = ENTITY.PhysicsFromMesh
 	ENTITY.PhysicsFromMesh = function(ent, mesh, ...)
 		if istable(mesh) then
 			return oldPhysicsFromMesh(ent, mesh, ...)
 		else
-			-- maybe it's iterable userdata, try a recovery function
-			--[[local ret = {pcall(TurnTableLikeIntoTable, mesh)}
-			if ret[1] then
-				ret = {pcall(oldPhysicsFromMesh, ret[2], ...)}
-				if not ret[1] then
-					LogError("ENTITY:PhysicsFromMesh failed: "..ret[2])
-				else
-					return select(2, unpack(ret))
-				end
-			else]]
-				LogError("Some code attempted to call PhysicsFromMesh with invalid first argument type.")
-			--end
+			LogError("Some code attempted to call PhysicsFromMesh with invalid first argument type.")
 		end
 	end
 	local oldPhysicsInit = ENTITY.PhysicsInit
 	ENTITY.PhysicsInit = function(ent, solidType, ...)
-		-- this doesn't work
-		--[[local retValues = {pcall(oldPhysicsInit, ...)}
-		if retValues[1] then
-			return select(2, unpack(retValues))
-		else
-			LogError("Caught a ENTITY.PhysicsInit error: "..retValues[2])
-		end]]
+		-- errors that happen from this resist pcall, classic...
 
 		if solidType == SOLID_NONE then
 			-- take a while to remove the physics object if it exists
+			local vars = {...}
 			timer.Simple(0, function()
 				if (IsValid(ent) and IsValid(ent:GetPhysicsObject())) then
-					ent:PhysicsDestroy()
+					oldPhysicsInit(ent, solidType, unpack(vars))
+					-- below causes issues with iv04 star wars nextbots
+					--ent:PhysicsDestroy()
 				end
 			end)
 			return true
@@ -429,22 +403,6 @@ local function FixAllErrors()
 			end
 		end
 	end
-	--[[local oldGetNWBool = ENTITY.GetNWBool
-	ENTITY.GetNWBool = function(ent, ...)
-		if not IsValid(ent) then
-			LogError("Some code attempted to get the networked bool of a NULL entity.")
-			return false
-		else return oldGetNWBool(ent, ...)
-		end
-	end
-	local oldGetNWEntity = ENTITY.GetNWEntity
-	ENTITY.GetNWEntity = function(ent, ...)
-		if not IsValid(ent) then
-			LogError("Some code attempted to get the networked entity of a NULL entity.")
-			return NULL
-		else return oldGetNWEntity(ent, ...)
-		end
-	end]]
 
 	local oldGetPrintName = WEAPON.GetPrintName
 	WEAPON.GetPrintName = function(ent, ...)
@@ -477,6 +435,22 @@ local function FixAllErrors()
 			return oldWake(physObj, ...)
 		else
 			LogError("Some code attempted to wake a NULL physics object.")
+		end
+	end
+	local oldEnableGravity = PHYSOBJ.EnableGravity
+	PHYSOBJ.EnableGravity = function(physObj, ...)
+		if IsValid(physObj) then
+			return oldEnableGravity(physObj, ...)
+		else
+			LogError("Some code attempted to toggle the gravity of a NULL physics object.")
+		end
+	end
+	local oldEnableMotion = PHYSOBJ.EnableMotion
+	PHYSOBJ.EnableMotion = function(physObj, ...)
+		if IsValid(physObj) then
+			return oldEnableMotion(physObj, ...)
+		else
+			LogError("Some code attempted to freeze or unfreeze a NULL physics object.")
 		end
 	end
 	local oldSetVelocity = PHYSOBJ.SetVelocity
@@ -534,6 +508,9 @@ local function FixAllErrors()
 			end
 		end
 	end
+
+	Log("Classes patched!")
+	Log("Patching libraries...")
 
 	local oldCreateClientConVar = CreateClientConVar
 	function CreateClientConVar(name, default, shouldsave, userinfo, helptext, min, max, ...)
@@ -683,7 +660,7 @@ local function FixAllErrors()
 		end
 	end
 
-	Log("Classes patched!")
+	Log("Libraries patched!")
 	Log("Patching hooks...")
 
 	local oldHookAdd = hook.Add
@@ -715,7 +692,7 @@ local function FixAllErrors()
 		end
 	end
 	if DLib then
-		DLib.MessageWarning("DLib hook system is being overwritten by another addon - THIS IS STUPID AND WILL CAUSE ERRORS!")
+		DLib.MessageWarning("DLib hook system is being overwritten by another addon - THIS IS STUPID AND WILL CAUSE ERRORS")
 		Log("DLib, shut up and hold still...")
 	end
 	local oldHookRemove = hook.Remove
