@@ -10,6 +10,7 @@ All Lua files here are licensed under the MIT License, see LICENSE.txt for licen
 ## Abandoned Addons
 These addons have been abandoned and no more support will be given:
 - basic_advanced_calculator
+- currency_exchanger
 - error_fixer_tools
 - hud_plus
 - hud_sway
