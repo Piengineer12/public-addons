@@ -1,10 +1,10 @@
 --[[
-Workshop:		https://steamcommunity.com/sharedfiles/filedetails/?id=1673039990
+Workshop:		https://steamcommunity.com/sharedfiles/filedetails/?id=1630061099
 Profile Page:	https://steamcommunity.com/id/Piengineer12
-GitHub Page:	https://github.com/Piengineer12/public-addons/tree/master/isawc
+GitHub Page:	https://github.com/Piengineer12/public-addons/tree/master/currency_exchanger
 Donate:			https://ko-fi.com/piengineer12
 
-Links above are confirmed working as of 2021-06-21. All dates are in ISO 8601 format. 
+Links above are confirmed working as of 2024-04-07.
 ]]
 
 AddCSLuaFile()
@@ -14,14 +14,14 @@ ENT.Type 			= "anim"
 ENT.Base 			= "base_anim"
 ENT.PrintName		= "Currency Exchanger"
 ENT.Author			= "Piengineer"
-ENT.Contact			= "http://steamcommunity.com/id/Piengineer12/"
+ENT.Contact			= "https://steamcommunity.com/id/Piengineer12/"
 ENT.Purpose			= "Change one currency to another! (may include additional fees)"
 ENT.Instructions	= "Press 'Use' to open up the menu."
 ENT.Category		= "Currency Exchanger"
 ENT.Spawnable		= true
 ENT.AdminOnly		= true
 
-ENT.Version			= "2.0.1"
+ENT.Version			= "2.0.2"
 
 if SERVER then
 	util.AddNetworkString("OpenCurrencyOptionMenu")
@@ -181,7 +181,19 @@ local currencylib = {
 		SetterVar = "BankMoney",
 		Getter = "GetNWString",
 		GetterVar = "BankMoney"
-	}
+	},
+	["Revenge of the gBalloons"]={
+		RequiredGlobalVariable = "ROTGB_SetCash",
+		CurrencyPrefix = "$",
+		SetGetType = 2,
+		SetGetTypeOverride={
+			Getter = 1
+		},
+		Getter = "ROTGB_GetCash",
+		Setter = "ROTGB_SetCash",
+		Adder = "ROTGB_AddCash",
+		Subtracter = "ROTGB_RemoveCash",
+	},
 }
 table.Merge(currencylib,util.JSONToTable(file.Read("currency_definitions.txt") or "") or {})
 
