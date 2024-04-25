@@ -8,8 +8,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 ]]
 
 -- The + at the name of this Lua file is important so that it loads before most other Lua files
-LUA_PATCHER_VERSION = "2.1.8"
-LUA_PATCHER_VERSION_DATE = "2024-04-06"
+LUA_PATCHER_VERSION = "2.1.9"
+LUA_PATCHER_VERSION_DATE = "2024-04-25"
 LUA_REPAIR_VERSION = LUA_PATCHER_VERSION
 LUA_REPAIR_VERSION_DATE = LUA_PATCHER_VERSION_DATE
 
@@ -53,6 +53,7 @@ local function FixAllErrors()
 	local NULL_META = getmetatable(NULL) or {}
 	local PHYSOBJ = FindMetaTable("PhysObj")
 	local CTAKEDAMAGEINFO = FindMetaTable("CTakeDamageInfo")
+	local PHYSCOLLIDE = FindMetaTable("PhysCollide")
 	local AUDIOCHANNEL = FindMetaTable("IGModAudioChannel")
 	local newNilMeta = {
 		__add = function(a,b)
@@ -188,7 +189,7 @@ local function FixAllErrors()
 	if debug.setmetatable then
 		debug.setmetatable(nil, NIL)
 	else
-		LogError("debug.setmetatable is missing, nil CANNOT BE PATCHED!")
+		Log("WARNING: debug.setmetatable is missing, nil CANNOT BE PATCHED!")
 	end
 
 	Log("Primitives patched!")
@@ -210,13 +211,13 @@ local function FixAllErrors()
 	end
 	VECTOR.__mul = function(a,b)
 		if not (isnumber(a) or isnumber(b) or isvector(a) and isvector(b)) then
-			LogError("Some code attempted to multiply a vector with something that isn't a number.")
+			LogError("Some code attempted to multiply a vector with something that is neither a vector nor a number.")
 		end
 		return oldmul(a or 1,b or 1)
 	end
 	VECTOR.__div = function(a,b)
 		if not (isnumber(a) or isnumber(b) or isvector(a) and isvector(b)) then
-			LogError("Some code attempted to divide a vector with something that isn't a number.")
+			LogError("Some code attempted to divide a vector with something that is neither a vector nor a number.")
 		end
 		return olddiv(a or 1,b or 1)
 	end
@@ -461,6 +462,14 @@ local function FixAllErrors()
 			LogError("Some code attempted to set the velocity of a NULL physics object.")
 		end
 	end
+	local oldTraceBox = PHYSCOLLIDE.TraceBox
+	PHYSCOLLIDE.TraceBox = function(physCollide, origin, ...)
+		if not origin then
+			LogError("Some code attempted to call TraceBox without box origin.")
+			return false
+		end
+		return oldTraceBox(physCollide, origin, ...)
+	end
 	
 	if CLUAEMITTER then
 		local oldAdd = CLUAEMITTER.Add
@@ -567,11 +576,7 @@ local function FixAllErrors()
 	local oldNetStart = net.Start
 	net.Start = function(...)
 		if net.BytesWritten() then
-			if SERVER then
-				net.Send({})
-			else
-				net.SendToServer()
-			end
+			net.Abort()
 			LogError("Some code attempted to call net.Start without finishing the previous net message.")
 		end
 
