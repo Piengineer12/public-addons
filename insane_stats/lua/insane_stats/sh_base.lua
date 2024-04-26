@@ -4,6 +4,43 @@ InsaneStats.FLOAT = 3
 InsaneStats.STRING = 4
 InsaneStats.NOP = function()end
 
+InsaneStats.EVENTS = {
+	INIT = 0,
+	DISC = 1,
+	CHANGE = 2,
+	RESTART = 3,
+	END = 4,
+	KILL = 5,
+	INPUT = 6,
+	TRIGGER = 7,
+	VAR = 8,
+	CREATE = 9
+}
+
+InsaneStats.ACTIONS = {
+	CANCEL = 0,
+	CHANGE = 1,
+	INPUT = 2,
+	APPLY_STATUS = 3,
+	CLEAR_STATUS = 4,
+	RUN_COMMAND = 5,
+	TOGGLE_CVAR = 6,
+	ADD_CVAR = 7,
+	MULT_CVAR = 8,
+	NO_WEPS = 9,
+	NO_SUIT = 10,
+	PLAY = 11,
+	SET_SVAR = 12,
+	TOGGLE_SVAR = 13,
+	ADD_SVAR = 14,
+	MULT_SVAR = 15,
+	LUA = 16,
+	TIMER = 17,
+	WAVE = 18,
+	CHAT = 19,
+	SPECIAL = 20
+}
+
 InsaneStats.numConVars = 0
 InsaneStats.conVars = {}
 InsaneStats._defaultConVarCategory = ""

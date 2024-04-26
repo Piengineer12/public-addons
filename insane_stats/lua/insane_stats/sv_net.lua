@@ -61,7 +61,7 @@ local function BroadcastEntityUpdates()
 	
 	for k,v in pairs(entitiesRequireUpdate) do
 		net.WriteUInt(k:EntIndex(), 16)
-		net.WriteUInt(v, 8)
+		net.WriteInt(v, 32)
 		--print(k)
 		--print(v)
 		
@@ -130,6 +130,12 @@ local function BroadcastEntityUpdates()
 			net.WriteDouble(k:InsaneStats_GetCoins())
 			net.WriteUInt(k:InsaneStats_GetLastCoinTier() + 1, 8)
 		end
+
+		-- bitflag 128 was removed
+		
+		if bit.band(v, 256) ~= 0 then
+			net.WriteUInt(k.insaneStats_CitizenFlags, 4)
+		end
 		
 		--print(k, v)
 		entitiesRequireUpdate[k] = nil
@@ -147,37 +153,6 @@ local function BroadcastEntityUpdates()
 	
 	net.Broadcast()
 end
-
---[[local function BroadcastEntityDispositionUpdates()
-	for k,v in pairs(entityDispositionsRequireUpdate) do
-		if not IsValid(k) then
-			entityDispositionsRequireUpdate[k] = nil
-		end
-	end
-	
-	if next(entityDispositionsRequireUpdate) then
-		for k,v in pairs(player.GetAll()) do
-			net.Start("insane_stats")
-			net.WriteUInt(1, 8)
-			local count = math.min(table.Count(entityDispositionsRequireUpdate), 127)
-			net.WriteUInt(count, 8)
-			
-			for k2,v2 in pairs(entityDispositionsRequireUpdate) do
-				net.WriteUInt(k2:EntIndex(), 16)
-				net.WriteUInt(32, 8)
-				
-				-- bitflag 32 is for disposition, but that works on a per player basis, so broadcasting isn't suitable
-				
-				--print(k, v)
-				entityDispositionsRequireUpdate[k2] = nil
-				count = count - 1
-				if count == 0 then break end
-			end
-			
-			net.Send(v)
-		end
-	end
-end]]
 
 local function BroadcastDamageUpdates()
 	net.Start("insane_stats", true)
@@ -200,7 +175,7 @@ local function BroadcastDamageUpdates()
 		local isAlly = false
 		local ent = Entity(k)
 		if (IsValid(ent) and ent:IsNPC()) then
-			isAlly = ent.insaneStats_IsAlly
+			isAlly = ent:InsaneStats_GetEntityData("is_ally")
 		end
 		net.WriteUInt(bit.bor(
 			v.flags,
@@ -233,10 +208,20 @@ timer.Create("InsaneStatsNet", 0.5, 0, function()
 					isEnemy = true
 				end
 			end
+
+			if ent:GetClass() == "npc_citizen" then
+				if (ent:GetInternalVariable("squadname") == "player_squad")
+				== (bit.band(ent.insaneStats_CitizenFlags or 0, 4) == 0) then
+					ent.insaneStats_CitizenFlags = bit.band(
+						ent.insaneStats_CitizenFlags or 0,
+						bit.bnot(ent:GetInternalVariable("squadname") == "player_squad" and 0 or 4)
+					)
+					ent:InsaneStats_MarkForUpdate(256)
+				end
+			end
 			
-			ent.insaneStats_IsAlly = isAlly
-			ent.insaneStats_IsEnemy = isEnemy
-			--print("ent.insaneStats_IsAlly, ent.insaneStats_IsEnemy", isAlly, isEnemy)
+			ent:InsaneStats_SetEntityData("is_ally", isAlly)
+			ent:InsaneStats_SetEntityData("is_enemy", isEnemy)
 			
 			i = i + 1
 		else
@@ -277,15 +262,22 @@ net.Receive("insane_stats", function(length, ply)
 		if IsValid(updateEntity) then
 			local creationID = updateEntity:GetCreationID()
 			
-			if (nextEntityUpdatePlayers[steamID][creationID] or 0) < RealTime() then
-				nextEntityUpdatePlayers[steamID][creationID] = RealTime() + 1
+			if (nextEntityUpdatePlayers[steamID][creationID] or 0) <= RealTime() then
+				nextEntityUpdatePlayers[steamID][creationID] = RealTime() + 0.5
+				local flags = 63
+				if updateEntity.insaneStats_CitizenFlags then
+					flags = bit.bor(flags, 256)
+				end
+				--[[if updateEntity.npcLVL then
+					flags = bit.bor(flags, 128)
+				end]]
 				
 				net.Start("insane_stats")
 				net.WriteUInt(1, 8)
 				net.WriteUInt(1, 8)
 				net.WriteUInt(updateEntity:EntIndex(), 16)
 				
-				net.WriteUInt(63, 8)
+				net.WriteInt(flags, 32)
 				
 				net.WriteDouble(updateEntity:InsaneStats_GetHealth())
 				net.WriteDouble(updateEntity:InsaneStats_GetMaxHealth())
@@ -328,6 +320,29 @@ net.Receive("insane_stats", function(length, ply)
 					net.WriteInt(updateEntity:Disposition(ply), 4)
 				else
 					net.WriteInt(-1, 4)
+				end
+
+				--print(flags)
+				--[[if bit.band(flags, 128) ~= 0 then
+					local npcLevelToWrite = updateEntity.npcLVL
+					local dangerous = false
+
+					-- SUPER HACK: get the world level and prestige by reading the first upvalue of NPCInit
+					-- this is an absolutely catastrophic thing to do but there'd be
+					-- literally no way otherwise to get the world level
+					-- also debug.getupvalue seems to be pending removal so check if it exists
+					if debug.getupvalue then
+						local _, worldLevel = debug.getupvalue(NPCInit, 1)
+						local _2, worldPrestige = debug.getupvalue(NPCInit, 2)
+						dangerous = npcLevelToWrite >= worldLevel + 5 * worldPrestige
+					end
+
+					net.WriteInt(npcLevelToWrite, 32)
+					net.WriteBool(dangerous)
+				end]]
+
+				if bit.band(flags, 256) ~= 0 then
+					net.WriteUInt(updateEntity.insaneStats_CitizenFlags, 4)
 				end
 				
 				net.Send(ply)

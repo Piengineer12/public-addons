@@ -57,10 +57,14 @@ InsaneStats:RegisterClientConVar("hud_target_y", "insanestats_hud_target_y", "0.
 	display = "Target Info Y", desc = "Vertical position of target info.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
+InsaneStats:RegisterClientConVar("hud_target_halo", "insanestats_hud_target_halo", "1", {
+	display = "Show Halo", desc = "Show a halo for the current entity displayed by the target info HUD.",
+	type = InsaneStats.BOOL
+})
 
-local oldLevel, olderLevel = -1, -1
-local oldXP = -1
-local oldXPDelayed = -1
+local oldLevel, olderLevel = 1, 1
+local oldXP = 0
+local oldXPDelayed = 0
 local levelDisplayExpiryTimestamp = 0
 local xpDisplayExpiryTimestamp = 0
 local xpFlashDisplayExpiryTimestamp = 0
@@ -133,6 +137,8 @@ local function UpdateLookEntityInfo(ent, reset)
 		lookEntityInfo.armor = ent:InsaneStats_GetArmor()
 		lookEntityInfo.maxArmor = ent:InsaneStats_GetMaxArmor()
 		lookEntityInfo.level = ent:InsaneStats_GetLevel()
+		--lookEntityInfo.wpLevel = ent.worldProgression_Level
+		--lookEntityInfo.wpDangerous = ent.worldProgression_Dangerous
 		lookEntityInfo.statusEffects = ent.insaneStats_StatusEffects
 		lookEntityInfo.decayTimestamp = realTime + 2
 		
@@ -162,14 +168,8 @@ local function UpdateLookEntityInfo(ent, reset)
 					lookEntityInfo.startingHue = 120
 				end
 			end
-		end
-		local classDisplayName = language.GetPhrase(ent.PrintName ~= "" and ent.PrintName or ent.insaneStats_Class)
-		local mappingName = ent.insaneStats_Name or ""
-		classDisplayName = (ent:InsaneStats_GetIsAlpha() and "Alpha " or "")..classDisplayName
-		if mappingName == "" then
-			lookEntityInfo.name = classDisplayName
-		else
-			lookEntityInfo.name = string.format("%s (%s)", classDisplayName, mappingName)
+			
+			lookEntityInfo.name = ent:InsaneStats_GetPrintName()
 		end
 	else
 		ent:InsaneStats_MarkForUpdate()
@@ -210,9 +210,9 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 		local fgColor = HSVToColor(levelHue, maxSaturation, 1)
 		local bgColor = HSVToColor(levelHue, maxSaturation, 0.5)
 		
-		if not ply.insaneStats_XP then
+		if not ply:InsaneStats_GetEntityData("xp") then
 			-- ask the server
-			xp = -1
+			xp = 0
 			ply:InsaneStats_MarkForUpdate()
 		end
 		
@@ -220,7 +220,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 		local barBGColor = bgColor
 		
 		if level ~= oldLevel then
-			if oldLevel > 0 then
+			if oldXP > 0 then
 				if levelDisplayExpiryTimestamp < realTime then
 					if level > oldLevel then
 						surface.PlaySound("ambient/levels/canals/windchime2.wav")
@@ -235,7 +235,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 		end
 		
 		if xp ~= oldXP then
-			if oldXP >= 0 and hasSuit then
+			if oldXP > 0 and hasSuit then
 				xpDisplayExpiryTimestamp = curTime + 1
 			else
 				oldXPDelayed = xp
@@ -292,7 +292,6 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 				local experienceText = xpString .. " / " .. requiredXp
 				draw.SimpleTextOutlined(experienceText, "InsaneStats.Medium", barX+barWidth, barY-outlineThickness, fgColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, outlineThickness, color_black)
 			end
-			olderLevel = -1
 		else
 			local color = HSVToColor(levelHue, (math.cos(levelDisplayExpiryDuration*math.pi)+1)/2*maxSaturation, 1)
 		
@@ -349,6 +348,16 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 				
 				local theirLevel = lookEntityInfo.level
 				local theirLevelString = InsaneStats:FormatNumber(theirLevel)
+				--[[local wpLevel = lookEntityInfo.wpLevel
+
+				if wpLevel then
+					theirLevelString = theirLevelString..'+'
+					if lookEntityInfo.wpDangerous ~= -2147483648 then
+						theirLevelString = theirLevelString..InsaneStats:FormatNumber(wpLevel)
+					else
+						theirLevelString = theirLevelString.."??"
+					end
+				end]]
 				
 				if InsaneStats:GetConVarValue("xp_enabled") then
 					surface.SetFont("InsaneStats.Big")
@@ -395,6 +404,11 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 						false,
 						InsaneStats:GetConVarValue("xp_drop_add_add")/100
 					)
+
+					--[[if wpLevel then
+						theirStrength = theirStrength * (1 + (wpLevel*0.08 + 0.04) * wpLevel)
+					end]]
+
 					local strengthMul = theirStrength / ourStrength
 					if theirStrength == ourStrength then -- to deal with inf
 						strengthMul = 1
@@ -547,6 +561,17 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 				
 				surface.SetAlphaMultiplier(1)
 			end
+		end
+	end
+end)
+
+hook.Add("PreDrawHalos", "InsaneStatsXP", function()
+	if IsValid(lookEntityInfo.ent) and InsaneStats:GetConVarValue("hud_target_enabled")
+	and InsaneStats:GetConVarValue("hud_target_halo") then
+		local haloAlpha = math.min(lookEntityInfo.decayTimestamp - RealTime(), 1)
+		if haloAlpha > 0 then
+			local haloColor = HSVToColor(lookEntityInfo.startingHue, 0.75, haloAlpha)
+			halo.Add({lookEntityInfo.ent}, haloColor, 1, 1)
 		end
 	end
 end)

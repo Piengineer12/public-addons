@@ -248,9 +248,9 @@ local function ApplyWPASS2Tier(ent)
 	if InsaneStats:GetConVarValue("xp_enabled") and InsaneStats:GetConVarValue("wpass2_tier_xp_enable") and tier ~= 0 then
 		local effectiveLevel = ent:InsaneStats_GetLevel()
 		if not ent:InsaneStats_IsWPASS2Pickup() then
-			if not ent.insaneStats_BatteryXP then
+			if not ent:InsaneStats_GetEntityData("battery_xp") then
 				ent:InsaneStats_SetBatteryXP(ent:InsaneStats_GetXP())
-				if not ent.insaneStats_BatteryXP then return false end
+				if not ent:InsaneStats_GetEntityData("battery_xp") then return false end
 			end
 			effectiveLevel = math.floor(InsaneStats:GetLevelByXPRequired(ent:InsaneStats_GetBatteryXP()))
 		end
@@ -423,10 +423,10 @@ function InsaneStats:ApplyWPASS2Modifiers(wep)
 	if not wep:InsaneStats_IsWPASS2Pickup() and (wep.GetMaxArmor and wep:GetMaxArmor() <= 0)
 	and not wep:IsPlayer() and wep.insaneStats_Tier ~= 0 then
 		-- apply armor
-		local startingHealth = wep:InsaneStats_GetMaxHealth() / (wep.insaneStats_CurrentHealthAdd or 1)
+		local startingHealth = wep:InsaneStats_GetMaxHealth() / wep:InsaneStats_GetCurrentHealthAdd()
 		local startingArmor = startingHealth * self:GetConVarValue("infhealth_armor_mul")
 		wep:SetMaxArmor(wep:InsaneStats_GetMaxHealth() * self:GetConVarValue("infhealth_armor_mul"))
-		wep.insaneStats_CurrentArmorAdd = wep:InsaneStats_GetMaxArmor() / startingArmor
+		wep:InsaneStats_SetCurrentArmorAdd(wep:InsaneStats_GetMaxArmor() / startingArmor)
 		wep:SetArmor(wep:InsaneStats_GetMaxArmor())
 	end
 	
@@ -518,6 +518,8 @@ function ENTITY:InsaneStats_AddHealthNerfed(health)
 		local healthAdded = unnerfedHealthRestored + health
 		if healthAdded ~= 0 then
 			self:InsaneStats_DamageNumber(self, -healthAdded, DMG_DROWNRECOVER)
+
+			hook.Run("InsaneStatsWPASS2AddHealth", self)
 		end
 	end
 end
@@ -557,6 +559,8 @@ function ENTITY:InsaneStats_AddHealthCapped(health)
 		self:SetHealth(self:InsaneStats_GetHealth() + healthAdded)
 		if healthAdded ~= 0 then
 			self:InsaneStats_DamageNumber(self, -healthAdded, DMG_DROWNRECOVER)
+
+			hook.Run("InsaneStatsWPASS2AddHealth", self)
 		end
 	end
 end
@@ -653,7 +657,7 @@ function PLAYER:InsaneStats_EquipBattery(item)
 	else -- pick it up like normal
 		local newArmor = math.min(
 			self:InsaneStats_GetMaxArmor(),
-			self:InsaneStats_GetArmor()+GetConVar("sk_battery"):GetFloat()*(self.insaneStats_CurrentArmorAdd or 1)
+			self:InsaneStats_GetArmor() + GetConVar("sk_battery"):GetFloat() * self:InsaneStats_GetCurrentArmorAdd()
 		)
 		self:SetArmor(newArmor)
 		self:EmitSound("ItemBattery.Touch")
@@ -767,27 +771,16 @@ hook.Add("AcceptInput", "InsaneStatsWPASS", function(ent, input, activator, call
 	input = input:lower()
 	if input == "insidetransition" or input == "outsidetransition" then
 		-- purge stats
-		ent.insaneStats_Health = nil
-		ent.insaneStats_MaxHealth = nil
-		ent.insaneStats_Armor = nil
-		ent.insaneStats_MaxArmor = nil
-		ent.insaneStats_CurrentHealthAdd = nil
-		ent.insaneStats_CurrentArmorAdd = nil
-		ent.insaneStats_XP = nil
-		ent.insaneStats_DropXP = nil
-		ent.insaneStats_BatteryXP = nil
-		ent.insaneStats_IsAlly = nil
-		ent.insaneStats_IsEnemy = nil
 		if input == "outsidetransition" then
 			local devEnabled = GetConVar("developer"):GetInt() > 0
 			if devEnabled and ent.insaneStats_Modifiers then
 				InsaneStats:Log(string.format("Purging %u modifiers from %s to save space!", table.Count(ent.insaneStats_Modifiers), tostring(ent)))
 			end
 			ent.insaneStats_Modifiers = nil
-			if devEnabled and ent.insaneStats_Attributes then
+			--[[if devEnabled and ent.insaneStats_Attributes then
 				InsaneStats:Log(string.format("Purging %u attributes from %s to save space!", table.Count(ent.insaneStats_Attributes), tostring(ent)))
 			end
-			ent.insaneStats_Attributes = nil
+			ent.insaneStats_Attributes = nil]]
 			if ent.insaneStats_IsProxyWeapon then
 				ent:Fire("Kill")
 			end
@@ -956,7 +949,7 @@ local function GetPlayerWPASS2SaveData(ply, shouldSave, shouldSaveBattery, oldDa
 				plyWPASS2Data.modifiers.weapons[v:GetClass()] = {
 					modifiers = v.insaneStats_Modifiers,
 					startTier = v.insaneStats_StartTier,
-					xp = v.insaneStats_XP ~= math.huge and v.insaneStats_XP or "inf"
+					xp = v:InsaneStats_GetXP() ~= math.huge and v:InsaneStats_GetXP() or "inf"
 				}
 				
 				if shouldSave == 1 then
@@ -1097,6 +1090,33 @@ hook.Add("PlayerLoadout", "InsaneStatsWPASS", function(ply)
 end)
 
 hook.Add("InsaneStatsTransitionCompat", "InsaneStatsWPASS", function(ent)
+	if ent.insaneStats_HealthRoot8 then
+		ent:InsaneStats_SetEntityData("health", ent.insaneStats_HealthRoot8 ^ 8)
+	end
+	if ent.insaneStats_MaxHealthRoot8 then
+		ent:InsaneStats_SetEntityData("max_health", ent.insaneStats_MaxHealthRoot8 ^ 8)
+	end
+	if ent.insaneStats_ArmorRoot8 then
+		ent:InsaneStats_SetEntityData("armor", ent.insaneStats_ArmorRoot8 ^ 8)
+	end
+	if ent.insaneStats_MaxArmorRoot8 then
+		ent:InsaneStats_SetEntityData("max_armor", ent.insaneStats_MaxArmorRoot8 ^ 8)
+	end
+	if ent.insaneStats_CurrentHealthAddRoot8 then
+		ent:InsaneStats_SetCurrentHealthAdd(ent.insaneStats_CurrentHealthAddRoot8 ^ 8)
+	end
+	if ent.insaneStats_CurrentArmorAddRoot8 then
+		ent:InsaneStats_SetCurrentArmorAdd(ent.insaneStats_CurrentArmorAddRoot8 ^ 8)
+	end
+	if ent.insaneStats_XPRoot8 then
+		ent:InsaneStats_SetXP(ent.insaneStats_XPRoot8 ^ 8)
+	end
+	if ent.insaneStats_DropXPRoot8 then
+		ent:InsaneStats_SetDropXP(ent.insaneStats_DropXPRoot8 ^ 8)
+	end
+	if ent.insaneStats_Modifiers then
+		InsaneStats:ApplyWPASS2Attributes(ent)
+	end
 	if ent.insaneStats_BatteryXPRoot8 then
 		ent:InsaneStats_SetBatteryXP(ent.insaneStats_BatteryXPRoot8 ^ 8)
 	end
@@ -1224,7 +1244,7 @@ hook.Add("InsaneStatsEntityKilled", "InsaneStatsWPASS", function(victim, attacke
 							victim.insaneStats_Tier = 0
 							victim.insaneStats_StartTier = nil
 							victim.insaneStats_Modifiers = {}
-							victim.insaneStats_BatteryXP = nil
+							victim:InsaneStats_SetEntityData("battery_xp", nil)
 							InsaneStats:ApplyWPASS2Attributes(victim)
 							victim.insaneStats_ModifierChangeReason = 2
 							victim:InsaneStats_MarkForUpdate(8)
@@ -1237,7 +1257,7 @@ hook.Add("InsaneStatsEntityKilled", "InsaneStatsWPASS", function(victim, attacke
 						victim.insaneStats_Tier = 0
 						victim.insaneStats_StartTier = nil
 						victim.insaneStats_Modifiers = {}
-						victim.insaneStats_BatteryXP = nil
+						victim:InsaneStats_SetEntityData("battery_xp", nil)
 						InsaneStats:ApplyWPASS2Attributes(victim)
 						victim.insaneStats_ModifierChangeReason = 2
 						victim:InsaneStats_MarkForUpdate(8)

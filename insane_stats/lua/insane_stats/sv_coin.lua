@@ -36,7 +36,7 @@ hook.Add("InsaneStatsEntityKilledPostXP", "InsaneStatsCoins", function(victim, a
 		local value = 0
 		if not victim.insaneStats_IsDead then
 			local mul = InsaneStats:GetConVarValue(victim:IsPlayer() and "coins_player_mul" or "coins_other_mul")
-			local currentHealthAdd = victim.insaneStats_CurrentHealthAdd or 1
+			local currentHealthAdd = victim:InsaneStats_GetCurrentHealthAdd()
 			local startingHealth = victim:InsaneStats_GetMaxHealth() / currentHealthAdd
 			value = startingHealth * math.random() / 16 * mul
 			if InsaneStats:GetConVarValue("xp_enabled") then
@@ -74,7 +74,7 @@ end)
 hook.Add("InsaneStatsPropBroke", "InsaneStatsCoins", function(victim, attacker)
 	local inflictor = attacker.GetActiveWeapon and attacker:GetActiveWeapon() or attacker
 	local mul = InsaneStats:GetConVarValue("coins_breakable_mul")
-	local currentHealthAdd = victim.insaneStats_CurrentHealthAdd or 1
+	local currentHealthAdd = victim:InsaneStats_GetCurrentHealthAdd()
 	local startingHealth = victim:InsaneStats_GetMaxHealth() / currentHealthAdd
 	local value = startingHealth * math.random() / 16 * mul
 	if InsaneStats:GetConVarValue("xp_enabled") then
@@ -103,7 +103,7 @@ hook.Add("InsaneStatsSave", "InsaneStatsCoins", function(data)
 	if InsaneStats:GetConVarValue("coins_enabled") and InsaneStats:GetConVarValue("coins_player_save") and savedPlayerCoins then
 		for k,v in pairs(player.GetAll()) do
 			local steamID = v:SteamID()
-			if steamID and v.insaneStats_CoinsLoaded then
+			if steamID and v:InsaneStats_GetEntityData("coins_loaded") then
 				savedPlayerCoins[steamID] = v:InsaneStats_GetCoins()
 			end
 		end
@@ -124,16 +124,16 @@ end)
 
 hook.Add("PlayerSpawn", "InsaneStatsCoins", function(ply, fromTransition)
 	if fromTransition then
-		ply.insaneStats_CoinsLoaded = nil
+		ply:InsaneStats_SetEntityData("coins_loaded", nil)
 	end
 	
-	if not ply.insaneStats_CoinsLoaded then
+	if not ply:InsaneStats_GetEntityData("coins_loaded") then
 		local coins = InsaneStats:GetConVarValue("coins_player_save") and savedPlayerCoins[ply:SteamID()]
 		if coins then
 			ply:InsaneStats_SetCoins(coins)
 		end
 		
-		ply.insaneStats_CoinsLoaded = true
+		ply:InsaneStats_SetEntityData("coins_loaded", true)
 	end
 end)
 

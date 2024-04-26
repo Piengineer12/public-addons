@@ -287,13 +287,24 @@ local skills = {
 		pos = {2, 2},
 		minpts = 5
 	},
-	panic = {
+	panic = game.SinglePlayer() and {
 		name = "PANIC",
-		desc = "Gain up to %+.0f%% movement speed at low health.",
+		desc = "Gain up to %+.0f%% movement speed at low health.\n\z
+		(This skill is completely different in multiplayer.)",
 		values = function(level)
 			return level * 20
 		end,
 		img = "screaming",
+		pos = {1, 3},
+		minpts = 5
+	} or {
+		name = "Stay Behind Me",
+		desc = "All allies within 512 Hu regenerate %+.1f%% of their missing health per second.\n\z
+		(This skill is completely different in singleplayer.)",
+		values = function(level)
+			return level/2.5
+		end,
+		img = "ghost-ally",
 		pos = {1, 3},
 		minpts = 5
 	},
@@ -471,10 +482,10 @@ local skills = {
 		minpts = 5
 	} or {
 		name = "Motivation",
-		desc = "Gain %+.1f%% of XP from ally kills. All allies regenerate health at a rate of %+.1f%%/s.\n\z
+		desc = "Gain +%u%% of XP from ally kills. All allies within 512 Hu regenerate health at a rate of %+.1f%%/s.\n\z
 		(This skill is completely different in singleplayer.)",
 		values = function(level)
-			return level * 20, level/2.5
+			return level * 20, level/5
 		end,
 		img = "cheerful",
 		pos = {2, 3},
@@ -514,11 +525,11 @@ local skills = {
 		minpts = 5
 	} or {
 		name = "Stick With The Team!",
-		desc = "For each ally within 512 Hu, gain %+.1f%% movement speed, coins, XP gain and damage dealt, \z
-		as well as %+.1f%% damage taken.\n\z
+		desc = "For each ally within 512 Hu, gain +%u%% coins, XP gain and damage dealt, \z
+		as well as %i%% damage taken.\n\z
 		(This skill is completely different in singleplayer.)",
 		values = function(level)
-			return level * 2.5, level * -2.5
+			return level * 3, level * -3
 		end,
 		img = "telepathy",
 		pos = {-2, 3},
@@ -758,9 +769,13 @@ local skills = {
 	},
 	multi_killer = {
 		name = "Multi Killer",
-		desc = "Gain up to %+.0f%% more coins and XP when multiple NPCs are killed or multiple props are broken within 1 second!",
+		desc = "For every NPC killed or prop broken within 1 second, gain up to %+.0f%% more coins and XP! "
+		..(game.SinglePlayer() and "Time also takes longer to pass," or "Damage dealt is also increased")
+		.." by the square root of the amount.\n(This skill is slightly different in "
+		..(game.SinglePlayer() and "multiplayer" or "singleplayer")
+		..".)",
 		values = function(level)
-			return level * 100
+			return level * 50
 		end,
 		img = "double-shot",
 		pos = {4, -3},
@@ -1024,7 +1039,7 @@ local skills = {
 				return "1 stack"
 			end
 		end,
-		img = "mouth-watering",
+		img = "skull-signet",
 		pos = {0, -4},
 		minpts = 2,
 		max = 1
@@ -1137,7 +1152,7 @@ local statusEffects = {
 	killing_spree = {
 		name = "Killing Spree",
 		typ = 1,
-		img = "mouth-watering"
+		img = "skull-signet"
 	},
 	multi_killer = {
 		name = "Multi Killer",

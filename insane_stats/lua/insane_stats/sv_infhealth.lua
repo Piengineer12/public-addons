@@ -162,7 +162,7 @@ hook.Add("Think", "InsaneStatsUnlimitedHealth", function()
 							difference = 0
 						end
 						
-						difference = difference * (k.insaneStats_CurrentHealthAdd or 1)
+						difference = difference * k:InsaneStats_GetCurrentHealthAdd()
 						
 						k:SetHealth(k:InsaneStats_GetHealth() + difference)
 					end
@@ -181,7 +181,7 @@ hook.Add("Think", "InsaneStatsUnlimitedHealth", function()
 					k.insaneStats_OldRawArmor = k.insaneStats_OldRawArmor or k:InsaneStats_GetRawArmor()
 					if k.insaneStats_OldRawArmor ~= k:InsaneStats_GetRawArmor() then
 						local difference = k:InsaneStats_GetRawArmor() - k.insaneStats_OldRawArmor
-						difference = difference * (k.insaneStats_CurrentArmorAdd or 1)
+						difference = difference * k:InsaneStats_GetCurrentArmorAdd()
 						k:SetArmor(k:InsaneStats_GetArmor() + difference)
 					end
 				end
@@ -217,7 +217,7 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 			local armor = vic:InsaneStats_GetArmor()
 			if armor > 0 then
 				-- if entity is marked to block ALL damage with armor, use special handling
-				if vic.insaneStats_ArmorBlocksAll then
+				if vic:InsaneStats_GetEntityData("armor_blocks_all") then
 					local fullDamage = InsaneStats:GetDamage()
 					local absorbedDamage = math.min(armor, fullDamage)
 					--[[local newArmor = math.max(armor - fullDamage, 0)
@@ -288,7 +288,12 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 					vic.insaneStats_HitAtHalfHealth = healthRatio <= 0.5
 					if vic.insaneStats_HitAtHalfHealth and vic.insaneStats_PreventLethalDamage then
 						vic:InsaneStats_ApplyStatusEffect("invincible", 1, 10)
-						vic.insaneStats_PreventLethalDamage = nil
+						timer.Simple(5, function()
+							if IsValid(vic) then
+								vic.insaneStats_HitAtHalfHealth = vic:InsaneStats_GetHealth()
+								/ vic:InsaneStats_GetMaxHealth() <= 0.5
+							end
+						end)
 					end
 				end
 			end
@@ -301,9 +306,9 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 	end
 	
 	-- important for next part
-	vic.insaneStats_Health = vic:InsaneStats_GetHealth()
-	vic.insaneStats_Armor = vic:InsaneStats_GetArmor()
-	vic.insaneStats_OldVelocity = vic:GetVelocity()
+	vic:InsaneStats_SetEntityData("health", vic:InsaneStats_GetHealth())
+	vic:InsaneStats_SetEntityData("armor", vic:InsaneStats_GetArmor())
+	vic:InsaneStats_SetEntityData("old_velocity", vic:GetVelocity())
 	--[[if vic:IsPlayer() then
 		print("PreEntityTakeDamage", vic, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth())
 	end]]
@@ -313,23 +318,26 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 	--[[if vic:IsPlayer() then
 		print("PostEntityTakeDamage", vic, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth())
 	end]]
-	vic.insaneStats_OldVelocity = vic.insaneStats_OldVelocity or vic:GetVelocity()
+	vic:InsaneStats_SetEntityData("old_velocity", vic:InsaneStats_GetEntityData("old_velocity") or vic:GetVelocity())
 	if not dmginfo:IsDamageType(armorBypassingDamage) then
-		vic:InsaneStats_ApplyKnockback(dmginfo:GetDamageForce(), vic.insaneStats_OldVelocity-vic:GetVelocity())
+		vic:InsaneStats_ApplyKnockback(
+			dmginfo:GetDamageForce(),
+			vic:InsaneStats_GetEntityData("old_velocity") - vic:GetVelocity()
+		)
 	end
 	
 	if not vic:IsVehicle() then
 		local reportedDamage = dmginfo:GetDamage()
-		local rawHealthDamage = vic.insaneStats_OldRawHealth - (vic.InsaneStats_GetRawHealth and vic:InsaneStats_GetRawHealth() or vic:Health())
+		local rawHealthDamage = vic.insaneStats_OldRawHealth and vic.insaneStats_OldRawHealth - (vic.InsaneStats_GetRawHealth and vic:InsaneStats_GetRawHealth() or vic:Health()) or 0
 		local rawArmorDamage = vic.InsaneStats_GetRawArmor and vic.insaneStats_OldRawArmor - vic:InsaneStats_GetRawArmor() or 0
 		
-		--print(vic, dmginfo:GetDamageForce(), vic.insaneStats_OldVelocity, vic:GetVelocity())
+		--print(vic, dmginfo:GetDamageForce(), vic:InsaneStats_GetEntityData("old_velocity"), vic:GetVelocity())
 		
 		--print(reportedDamage)
-		-- notImmune is set to false when damage == 0, even if vic.insaneStats_ArmorBlocksAll is present
-		if (notImmune or rawHealthDamage ~= 0 or vic.insaneStats_ArmorBlocksAll) and vic:GetClass() ~= "npc_turret_floor" and InsaneStats:GetConVarValue("infhealth_enabled") then
+		-- notImmune is set to false when damage == 0, even if vic:InsaneStats_GetEntityData("armor_blocks_all") is present
+		if (notImmune or rawHealthDamage ~= 0 or vic:InsaneStats_GetEntityData("armor_blocks_all")) and vic:GetClass() ~= "npc_turret_floor" and InsaneStats:GetConVarValue("infhealth_enabled") then
 			local healthDamage = dmginfo:GetDamage()
-			local armorDamage = InsaneStats:GetAbsorbedDamage()
+			local armorDamage = InsaneStats:GetAbsorbedDamage() or 0
 			
 			--print(armorDamage)
 			
@@ -412,10 +420,10 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 		and math.random() * 100 < InsaneStats:GetConVarValue("infhealth_armor_chance")
 		and (ent:InsaneStats_GetMaxArmor() <= 0)
 		and (not InsaneStats:GetConVarValue("infhealth_armor_sensible") or ent:InsaneStats_ArmorSensible()) then
-			local startingHealth = ent:InsaneStats_GetMaxHealth() / (ent.insaneStats_CurrentHealthAdd or 1)
+			local startingHealth = ent:InsaneStats_GetMaxHealth() / ent:InsaneStats_GetCurrentHealthAdd()
 			local startingArmor = startingHealth * InsaneStats:GetConVarValue("infhealth_armor_mul")
 			ent:SetMaxArmor(ent:InsaneStats_GetMaxHealth() * InsaneStats:GetConVarValue("infhealth_armor_mul"))
-			ent.insaneStats_CurrentArmorAdd = ent:InsaneStats_GetMaxArmor() / startingArmor
+			ent:InsaneStats_SetCurrentArmorAdd(ent:InsaneStats_GetMaxArmor() / startingArmor)
 			ent:SetArmor(ent:InsaneStats_GetMaxArmor())
 		end
 	end

@@ -219,11 +219,11 @@ end
 local ENT = FindMetaTable("Entity")
 
 function ENT:InsaneStats_GetCoins()
-	return self.insaneStats_Coins or 0
+	return self:InsaneStats_GetEntityData("coins") or 0
 end
 
 function ENT:InsaneStats_SetCoins(coins)
-	self.insaneStats_Coins = coins
+	self:InsaneStats_SetEntityData("coins", coins)
 	if coins > 0 then
 		self.insaneStats_CoinsRoot8 = InsaneStats:CalculateRoot8(coins)
 	end

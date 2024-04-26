@@ -60,6 +60,11 @@ InsaneStats:RegisterClientConVar("hud_statuseffects_y", "insanestats_hud_statuse
 	display = "Status Effects Y", desc = "Vertical position of status effects.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
+InsaneStats:RegisterClientConVar("hud_statuseffects_per_column", "insanestats_hud_statuseffects_per_column", "10", {
+	display = "Status Effects Per Column", desc = "Having more than this number of status effects \z
+	causes the display to be compressed. If set to -1, no display compression occurs.",
+	type = InsaneStats.INT, min = -1, max = 100
+})
 
 concommand.Add("insanestats_wpass2_swap", function()
 	net.Start("insane_stats")
@@ -210,7 +215,7 @@ local function CreateName(wep)
 	
 	local attribOrder = {}
 	local attribOrderValues = {}
-	for k,v in pairs(wep.insaneStats_Attributes) do
+	for k,v in pairs(wep:InsaneStats_GetAttributes()) do
 		v = math.abs(v-1)
 		--[[if v < 1 then
 			v = 1/v
@@ -345,9 +350,9 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 			local textY = panelY + (i-1) * InsaneStats.FONT_SMALL + offsetY
 			-- don't bother if out of range
 			if textY > attribY1-InsaneStats.FONT_SMALL-4 and textY < attribY2+outlineThickness then
-				local attribValue = wep.insaneStats_Attributes[v]
+				local attribValue = wep:InsaneStats_GetAttributes()[v]
 				if not attribValue then
-					PrintTable(wep.insaneStats_Attributes)
+					PrintTable(wep:InsaneStats_GetAttributes())
 				end
 				local attribInfo = attributes[v]
 				if not attribInfo then error(v) end
@@ -550,7 +555,10 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 			
 			local iconSize = InsaneStats.FONT_SMALL * 3
 			local baseX = scrW * InsaneStats:GetConVarValue("hud_statuseffects_x")
-			local baseY = (scrH - #statusEffectOrder * iconSize) * InsaneStats:GetConVarValue("hud_statuseffects_y")
+			local baseY = scrH * InsaneStats:GetConVarValue("hud_statuseffects_y")
+
+			local statusesPerColumn = InsaneStats:GetConVarValue("hud_statuseffects_per_column")
+			statusesPerColumn = statusesPerColumn < 1 and 65536 or statusesPerColumn
 			
 			for i,v in ipairs(statusEffectOrder) do
 				local statusEffectInfo = registeredEffects[v]
@@ -565,22 +573,74 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 						statusEffectColor.a
 					)
 				end
-				
+
+				-- what column number is this status in? (0-indexed)
+				local column = math.ceil(i / statusesPerColumn) - 1
+	
+				-- how many statuses are in this column?
+				local columnStatusCount = math.min(#statusEffectOrder - column * statusesPerColumn, statusesPerColumn)
+
+				-- what position in column is this status in? (0-indexed)
+				local row = i - column * statusesPerColumn - 1
+
+				local anchorX = baseX + column * (iconSize + outlineThickness)
+				local anchorY = baseY + (row - (columnStatusCount-1)/2) * (iconSize + outlineThickness)
+
 				InsaneStats:DrawMaterialOutlined(
 					InsaneStats:GetIconMaterial(statusEffectInfo.img),
-					baseX, baseY+(i-1)*iconSize,
-					iconSize, iconSize,
+					anchorX, anchorY - iconSize/2, iconSize, iconSize,
 					statusEffectColor, outlineThickness, Color(0, 0, 0, statusEffectColor.a)
 				)
 				
-				local title = statusEffectInfo.name
-				if statusEffectData.level ~= 1 then
-					title = title .. " " .. InsaneStats:FormatNumber(statusEffectData.level)
+				if #statusEffectOrder > statusesPerColumn then
+					local smallText
+					if statusEffectData.level ~= 1 then
+						smallText = InsaneStats:FormatNumber(statusEffectData.level, {decimals = 0})
+					elseif statusEffectData.expiry < math.huge then
+						local duration = math.ceil(statusEffectData.expiry - CurTime())
+						smallText = InsaneStats:FormatNumber(duration, {decimals = 0}).."s"
+					end
+
+					if smallText then
+						draw.SimpleTextOutlined(smallText,
+							"InsaneStats.Small", anchorX + iconSize, anchorY + iconSize / 2, statusEffectColor,
+							TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black
+						)
+					end
+
+					--[[anchorY = anchorY + iconSize / 2
+					local duration = math.ceil(statusEffectData.expiry - CurTime())
+					draw.SimpleTextOutlined(InsaneStats:FormatNumber(duration, {decimals = 0}).."s",
+						"InsaneStats.Small", anchorX + iconSize, anchorY, statusEffectColor,
+						TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black
+					)
+
+					anchorY = anchorY - InsaneStats.FONT_SMALL - outlineThickness
+					draw.SimpleTextOutlined(InsaneStats:FormatNumber(statusEffectData.level, {decimals = 0}),
+						"InsaneStats.Small", anchorX + iconSize, anchorY, statusEffectColor,
+						TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black
+					)]]
+				else
+					local title = statusEffectInfo.name
+					if statusEffectData.level ~= 1 then
+						title = title .. " " .. InsaneStats:FormatNumber(statusEffectData.level)
+					end
+					anchorX = anchorX+iconSize+outlineThickness
+					draw.SimpleTextOutlined(
+						title, "InsaneStats.Small",
+						anchorX, anchorY - outlineThickness / 2,
+						statusEffectColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM,
+						outlineThickness, color_black
+					)
+
+					local durationText = InsaneStats:FormatNumber(statusEffectData.expiry - CurTime(), {decimals = 1}) .. (statusEffectData.expiry == math.huge and "" or "s")
+					draw.SimpleTextOutlined(
+						durationText, "InsaneStats.Small",
+						anchorX, anchorY + outlineThickness / 2,
+						statusEffectColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
+						outlineThickness, color_black
+					)
 				end
-				draw.SimpleTextOutlined(title, "InsaneStats.Small", baseX+iconSize+outlineThickness, baseY+(i-0.5)*iconSize, statusEffectColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM, outlineThickness, color_black)
-				
-				local durationText = InsaneStats:FormatNumber(statusEffectData.expiry - CurTime(), {decimals = 1}) .. (statusEffectData.expiry == math.huge and "" or "s")
-				draw.SimpleTextOutlined(durationText, "InsaneStats.Small", baseX+iconSize+outlineThickness, baseY+(i-0.5)*iconSize, statusEffectColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, outlineThickness, color_black)
 			end
 		end
 	end

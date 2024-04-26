@@ -231,7 +231,6 @@ function ENTITY:InsaneStats_SetSkillData(skill, state, stacks)
 	skillData.stacks = stacks
 	skillData.updateTime = CurTime()
 	if SERVER then
-		self:InsaneStats_MarkForUpdate(128)
 		if not InsaneStats:GetSkillDataToNetwork() then
 			InsaneStats:SetSkillDataToNetwork({})
 		end

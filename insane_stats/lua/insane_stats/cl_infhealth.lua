@@ -61,7 +61,7 @@ local ourDamages = {}
 -- table fields: damage, types, crit, time, origin, posX, posY
 local allDamageNumbers = {}
 local shouldUpdateDPS = false
-hook.Add("InsaneStatsHUDDamageTaken", "InsaneStats", function(entIndex, attacker, damage, types, hitgroup, position, flags)
+hook.Add("InsaneStatsHUDDamageTaken", "InsaneStatsUnlimitedHealth", function(entIndex, attacker, damage, types, hitgroup, position, flags)
 	local ply = LocalPlayer()
 	if (IsValid(ply) and ply:IsSuitEquipped()) then
 		allDamageNumbers[entIndex] = allDamageNumbers[entIndex] or {}
@@ -111,7 +111,7 @@ local slowDPS = 0
 local totalDPS = 0
 local slowArmor = 0
 local slowHealth = 0
-hook.Add("HUDPaint", "InsaneStats", function()
+hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 	local scrW = ScrW()
 	local scrH = ScrH()
 	
@@ -443,6 +443,6 @@ local shouldHide = {
 	CHudHealth = true,
 	CHudBattery = true
 }
-hook.Add("HUDShouldDraw", "InsaneStats", function(name)
+hook.Add("HUDShouldDraw", "InsaneStatsUnlimitedHealth", function(name)
 	if InsaneStats:GetConVarValue("hud_hp_enabled") and shouldHide[name] then return false end
 end)

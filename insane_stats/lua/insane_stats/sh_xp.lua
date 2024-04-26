@@ -424,7 +424,7 @@ end
 local ENT = FindMetaTable("Entity")
 
 function ENT:InsaneStats_GetLevel()
-	return self.insaneStats_Level or 1
+	return self:InsaneStats_GetEntityData("level") or 1
 end
 
 function ENT:InsaneStats_GetLevelFraction()
@@ -442,7 +442,7 @@ function ENT:InsaneStats_GetLevelFraction()
 end
 
 function ENT:InsaneStats_GetXP()
-	return self.insaneStats_XP or 0
+	return self:InsaneStats_GetEntityData("xp") or 0
 end
 
 function ENT:InsaneStats_SetXP(xp, dropValue)
@@ -458,13 +458,13 @@ function ENT:InsaneStats_SetXP(xp, dropValue)
 		debug.Trace()
 	end]]
 	
-	self.insaneStats_XP = xp
+	self:InsaneStats_SetEntityData("xp", xp)
 	if xp > 0 then
 		self.insaneStats_XPRoot8 = InsaneStats:CalculateRoot8(xp)
 	end
 	
 	if dropValue then
-		self.insaneStats_DropXP = dropValue
+		self:InsaneStats_SetDropXP(dropValue)
 		if dropValue > 0 then
 			self.insaneStats_DropXPRoot8 = InsaneStats:CalculateRoot8(dropValue)
 		end
@@ -472,12 +472,12 @@ function ENT:InsaneStats_SetXP(xp, dropValue)
 	
 	local newLevel = math.floor(InsaneStats:GetLevelByXPRequired(xp))
 	-- self.insaneStats_Level can be nil
-	if self.insaneStats_Level ~= newLevel and SERVER then
-		hook.Run("InsaneStatsLevelChanged", self, self.insaneStats_Level or newLevel, newLevel)
+	if self:InsaneStats_GetEntityData("level") ~= newLevel and SERVER then
+		hook.Run("InsaneStatsLevelChanged", self, self:InsaneStats_GetEntityData("level") or newLevel, newLevel)
 		self:InsaneStats_ApplyLevel(newLevel)
 	end
 	
-	self.insaneStats_Level = newLevel
+	self:InsaneStats_SetEntityData("level", newLevel)
     if SERVER then
 	    self:InsaneStats_MarkForUpdate(2)
     end
@@ -498,10 +498,9 @@ function ENT:InsaneStats_SetIsAlpha(isAlpha)
 end
 
 function ENT:InsaneStats_AddXP(xp, addDropValue)
-	return self:InsaneStats_SetXP((self.insaneStats_XP or 0) + xp, (self.insaneStats_DropXP or 0) + addDropValue)
+	return self:InsaneStats_SetXP(self:InsaneStats_GetXP() + xp, self:InsaneStats_GetDropXP() + addDropValue)
 end
 
 function ENT:InsaneStats_GetXPToNextLevel()
 	return InsaneStats:GetXPRequiredToLevel(self:InsaneStats_GetLevel()+1)
 end
-

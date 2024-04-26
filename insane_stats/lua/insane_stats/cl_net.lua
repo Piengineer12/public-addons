@@ -20,12 +20,13 @@ net.Receive("insane_stats", function()
 		--print(count)
 		for i=1,count do
 			local entIndex = net.ReadUInt(16)
-			local flags = net.ReadUInt(8)
+			local flags = net.ReadInt(32)
 			local health, maxHealth, armor, maxArmor
 			local xp, class, name, isAlpha, disposition
 			local batteryXP, modifierChangeReason, tier
 			local modifiers, statusEffects, coins
-			local lastCoinTier
+			local lastCoinTier--, wpLevel, wpDangerous
+			local citizenFlags
 			
 			if bit.band(flags, 1) ~= 0 then
 				health = net.ReadDouble()
@@ -92,6 +93,15 @@ net.Receive("insane_stats", function()
 				lastCoinTier = net.ReadUInt(8)
 			end
 			
+			--[[if bit.band(flags, 128) ~= 0 then
+				wpLevel = net.ReadInt(32)
+				wpDangerous = net.ReadBool()
+			end]]
+
+			if bit.band(flags, 256) ~= 0 then
+				citizenFlags = net.ReadUInt(4)
+			end
+			
 			local ent = Entity(entIndex)
 			if IsValid(ent) and entIndex == ent:EntIndex() then
 				if health then
@@ -143,6 +153,15 @@ net.Receive("insane_stats", function()
 				if coins then
 					ent:InsaneStats_SetCoins(coins)
 					ent:InsaneStats_SetLastCoinTier(lastCoinTier - 1)
+				end
+
+				--[[if wpLevel then
+					ent.worldProgression_Level = wpLevel
+					ent.worldProgression_Dangerous = wpDangerous
+				end]]
+
+				if citizenFlags then
+					ent.insaneStats_CitizenFlags = citizenFlags
 				end
 				
 				hook.Run("InsaneStatsEntityUpdated", ent, flags)
@@ -221,5 +240,21 @@ net.Receive("insane_stats", function()
 		for i=1, net.ReadUInt(8) do
 			table.insert(InsaneStats.lookPositions, net.ReadVector())
 		end
+	elseif func == 10 then
+		local expiry = net.ReadFloat()
+		local color = net.ReadFloat()
+		InsaneStats.PointCommanderTimer = {expiry = expiry, color = color}
+	elseif func == 11 then
+		local toAddChat = {}
+		for i=1, net.ReadUInt(16) do
+			local isColor = net.ReadBool()
+			if isColor then
+				table.insert(toAddChat, net.ReadColor())
+			else
+				table.insert(toAddChat, net.ReadString())
+			end
+		end
+
+		chat.AddText(unpack(toAddChat))
 	end
 end)

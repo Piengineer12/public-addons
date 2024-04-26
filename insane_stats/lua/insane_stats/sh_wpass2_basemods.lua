@@ -999,6 +999,16 @@ local modifiers = {
 		weight = 0.5,
 		max = 5
 	},
+	attract = {
+		prefix = "Attractive",
+		suffix = "Attractiveness",
+		modifiers = {
+			magnet = 1.4641
+		},
+		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+		weight = 0.5,
+		max = 5
+	},
 	
 	-- utility, half weight doubled cost
 	volatile = {
@@ -2249,6 +2259,11 @@ local attributes = {
 		mul = 250,
 		nopercent = true
 	},
+	magnet = {
+		display = "%s item pull radius",
+		mul = 400,
+		nopercent = true
+	},
 }
 
 local canPlayPoisonSound = true
@@ -2503,13 +2518,17 @@ local statusEffects = {
 		apply = SERVER and function(ent, level, duration, attacker)
 			if ent:IsNPC() then
 				ent:SetSchedule(SCHED_NPC_FREEZE)
+			elseif ent:IsPlayer() then
+				ent:Freeze(true)
 			end
 		end,
 		expiry = SERVER and function(ent, level, attacker)
 			if ent:IsNPC() and level > 0 then
 				ent:SetCondition(68)
-				ent:InsaneStats_ApplyStatusEffect("stun_immune", 1, 2)
+			elseif ent:IsPlayer() then
+				ent:Freeze(false)
 			end
+			ent:InsaneStats_ApplyStatusEffect("stun_immune", 1, 2)
 		end
 	},
 	stun_immune = {
@@ -2535,7 +2554,7 @@ local statusEffects = {
 	hit3_damage_stacks = {
 		name = "Strong Buildup",
 		typ = 2,
-		img = "triple-scratches"
+		img = "hatchets"
 	},
 	hit100_damagepulse_stacks = {
 		name = "Godly Buildup",
@@ -2639,7 +2658,7 @@ local statusEffects = {
 	firerate_down = {
 		name = "Fire Rate Down",
 		typ = -1,
-		img = "handcuffs"
+		img = "spoon"
 	},
 	damage_up = {
 		name = "Damage Up",
@@ -2879,7 +2898,7 @@ local statusEffects = {
 hook.Add("InsaneStatsWPASS2AttributesChanged", "InsaneStatsSharedWPASS2", function(ent)
 	if ent:IsWeapon() and ent:IsScripted() then
 		local oldClipMul = ent.insaneStats_WPASS2ClipMul or 1
-		local newClipMul = ent.insaneStats_Attributes.clip or 1
+		local newClipMul = ent:InsaneStats_GetAttributes().clip or 1
 		
 		local weaponTable = ent:GetTable()
 		local entNewMaxClip1 = weaponTable.Primary
@@ -2907,8 +2926,8 @@ hook.Add("InsaneStatsWPASS2AttributesChanged", "InsaneStatsSharedWPASS2", functi
 		end]]
 		
 		ent.insaneStats_WPASS2ClipMul = newClipMul
-		ent.insaneStats_WPASS2SpreadMul = ent.insaneStats_Attributes.spread
-		ent.insaneStats_WPASS2BulletsMul = ent.insaneStats_Attributes.bullets
+		ent.insaneStats_WPASS2SpreadMul = ent:InsaneStats_GetAttributes().spread
+		ent.insaneStats_WPASS2BulletsMul = ent:InsaneStats_GetAttributes().bullets
 		
 		--[[if wepAttributes.clip and wep:IsScripted() then
 			if weaponTable.Primary then
@@ -3052,15 +3071,17 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 
 		speedMul = speedMul * (1 + ent:InsaneStats_GetSkillValues("quintessence", 3) / 100)
 		* (1 + ent:InsaneStats_GetSkillValues("speed") / 100)
-		* (1 + ent:InsaneStats_GetSkillValues("panic") / 100 * healthFraction)
 		* (1 + ent:InsaneStats_GetSkillValues("bloodletters_revelation") / 100 * (1 - healthFraction))
-		* (1 + ent:InsaneStats_GetSkillValues("super_cold") / 100 * ent:InsaneStats_GetSkillStacks("super_cold"))
+		--* (1 + ent:InsaneStats_GetSkillValues("super_cold") / 100 * ent:InsaneStats_GetSkillStacks("super_cold"))
 
 		if ent:InsaneStats_GetSkillStacks("hunting_spirit") > 0 then
 			speedMul = speedMul * (1 + ent:InsaneStats_GetSkillValues("hunting_spirit") / 100)
 		end
 		if ent:InsaneStats_GetSkillState("skip_the_scenery") == 1 then
 			speedMul = speedMul * (1 + ent:InsaneStats_GetSkillValues("skip_the_scenery") / 100)
+		end
+		if game.SinglePlayer() then
+			speedMul = speedMul * (1 + ent:InsaneStats_GetSkillValues("panic") / 100 * healthFraction)
 		end
 		
 		data.speed = data.speed * speedMul

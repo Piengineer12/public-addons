@@ -7,6 +7,7 @@
 	],
 	"ignore": [
 		"media/*",
-		"personal/*"
+		"personal/*",
+		"README.md"
 	]
 }

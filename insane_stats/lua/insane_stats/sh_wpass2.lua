@@ -557,7 +557,7 @@ function InsaneStats:ApplyWPASS2Attributes(wep)
 		end
 	end
 	
-	wep.insaneStats_Attributes = wepAttributes
+	wep:InsaneStats_SetAttributes(wepAttributes)
 	hook.Run("InsaneStatsWPASS2AttributesChanged", wep)
 end
 
@@ -585,14 +585,22 @@ function ENTITY:InsaneStats_SetBatteryXP(xp)
 		debug.Trace()
 		xp = tonumber(xp) or math.huge
 	end
-	self.insaneStats_BatteryXP = xp
+	self:InsaneStats_SetEntityData("battery_xp", xp)
 	if xp then
 		self.insaneStats_BatteryXPRoot8 = InsaneStats:CalculateRoot8(xp)
 	end
 end
 
 function ENTITY:InsaneStats_GetBatteryXP()
-	return self.insaneStats_BatteryXP or 0
+	return self:InsaneStats_GetEntityData("battery_xp") or 0
+end
+
+function ENTITY:InsaneStats_SetAttributes(attributes)
+	return self:InsaneStats_SetEntityData("attributes", attributes)
+end
+
+function ENTITY:InsaneStats_GetAttributes()
+	return self:InsaneStats_GetEntityData("attributes") or {}
 end
 
 function ENTITY:InsaneStats_GetAttributeValue(attribute)
@@ -604,12 +612,12 @@ function ENTITY:InsaneStats_GetAttributeValue(attribute)
 		if self:IsPlayer() then
 			weaponEffectVars = {"wpass2_attributes_player_enabled"}
 			batteryEffectVars = {"wpass2_attributes_player_enabled_battery", "wpass2_attributes_player_enabled"}
-		elseif self.insaneStats_IsAlly ~= self.insaneStats_IsEnemy or self.insaneStats_Disposition then
-			if self.insaneStats_IsAlly or self.insaneStats_Disposition == 3 then
+		elseif self:InsaneStats_GetEntityData("is_ally") ~= self:InsaneStats_GetEntityData("is_enemy") or self.insaneStats_Disposition then
+			if self:InsaneStats_GetEntityData("is_ally") or self.insaneStats_Disposition == 3 then
 				weaponEffectVars = {"wpass2_attributes_ally_enabled", "wpass2_attributes_other_enabled"}
 				batteryEffectVars = {"wpass2_attributes_ally_enabled_battery", "wpass2_attributes_ally_enabled",
 				"wpass2_attributes_other_enabled_battery", "wpass2_attributes_other_enabled"}
-			elseif self.insaneStats_IsEnemy or self.insaneStats_Disposition == 1 then
+			elseif self:InsaneStats_GetEntityData("is_enemy") or self.insaneStats_Disposition == 1 then
 				weaponEffectVars = {"wpass2_attributes_enemy_enabled", "wpass2_attributes_other_enabled"}
 				batteryEffectVars = {"wpass2_attributes_enemy_enabled_battery", "wpass2_attributes_enemy_enabled",
 				"wpass2_attributes_other_enabled_battery", "wpass2_attributes_other_enabled"}
@@ -620,7 +628,7 @@ function ENTITY:InsaneStats_GetAttributeValue(attribute)
 		local armorBatteryHasEffect = InsaneStats:GetConVarValueDefaulted(batteryEffectVars)
 		
 		if armorBatteryHasEffect > 0 then
-			totalMul = totalMul * (self.insaneStats_Attributes and self.insaneStats_Attributes[attribute] or 1)
+			totalMul = totalMul * (self:InsaneStats_GetAttributes()[attribute] or 1)
 		end
 		
 		if weaponHasEffect > 0 then
@@ -631,7 +639,7 @@ function ENTITY:InsaneStats_GetAttributeValue(attribute)
 			end
 
 			if IsValid(wep) then
-				totalMul = totalMul * (wep.insaneStats_Attributes and wep.insaneStats_Attributes[attribute] or 1)
+				totalMul = totalMul * (wep:InsaneStats_GetAttributes()[attribute] or 1)
 			elseif SERVER and self.insaneStats_ProxyWeaponLastTick ~= engine.TickCount() then
 				local shouldGive = InsaneStats:GetConVarValue("wpass2_modifiers_other_create")
 				if shouldGive < 1 then

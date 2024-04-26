@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 ]]
 
 InsaneStats = {
-	VERSION = "1.5.2",
-	VERSION_DATE = "2024-03-31"
+	VERSION = "1.5.3",
+	VERSION_DATE = "2024-04-26"
 }
 
 function InsaneStats:Log(msg)
@@ -33,6 +33,7 @@ local clientFiles = {
 	"cl_infhealth",
 	"cl_net",
 	"cl_options",
+	"cl_pointcommander",
 	"cl_skills",
 	"cl_wpass2",
 	"cl_wpass2_basemods",
@@ -87,4 +88,8 @@ for i,v in ipairs(clientFiles) do
 	else
 		include(filePath)
 	end
+end
+
+for i,v in ipairs(ents.GetAll()) do
+	hook.Run("InsaneStatsTransitionCompat", v)
 end

@@ -30,25 +30,41 @@ InsaneStats:RegisterConVar("infhealth_armor_regen_delay", "insanestats_infhealth
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
 
+InsaneStats.entityData = {}
+
 AccessorFunc(InsaneStats, "currentDamage", "Damage")
 
 local ENT = FindMetaTable("Entity")
 local PLAYER = FindMetaTable("Player")
 
+function ENT:InsaneStats_SetEntityData(k, v)
+	InsaneStats.entityData[self] = InsaneStats.entityData[self] or {}
+	InsaneStats.entityData[self][k] = v
+end
+
+function ENT:InsaneStats_GetEntityData(k)
+	InsaneStats.entityData[self] = InsaneStats.entityData[self] or {}
+	return InsaneStats.entityData[self][k]
+end
+
 function ENT:InsaneStats_GetHealth()
-	return InsaneStats:GetConVarValue("infhealth_enabled") and self.insaneStats_Health or self:Health()
+	return InsaneStats:GetConVarValue("infhealth_enabled") and self:InsaneStats_GetEntityData("health")
+	or self:Health()
 end
 	
 function ENT:InsaneStats_GetMaxHealth()
-	return InsaneStats:GetConVarValue("infhealth_enabled") and self.insaneStats_MaxHealth or self:GetMaxHealth()
+	return InsaneStats:GetConVarValue("infhealth_enabled") and self:InsaneStats_GetEntityData("max_health")
+	or self:GetMaxHealth()
 end
 	
 function ENT:InsaneStats_GetArmor()
-	return InsaneStats:GetConVarValue("infhealth_enabled") and tonumber(self.insaneStats_Armor) or self.Armor and tonumber(self:Armor()) or 0
+	return InsaneStats:GetConVarValue("infhealth_enabled") and tonumber(self:InsaneStats_GetEntityData("armor"))
+	or self.Armor and tonumber(self:Armor()) or 0
 end
 	
 function ENT:InsaneStats_GetMaxArmor()
-	return InsaneStats:GetConVarValue("infhealth_enabled") and tonumber(self.insaneStats_MaxArmor) or self.GetMaxArmor and tonumber(self:GetMaxArmor()) or 0
+	return InsaneStats:GetConVarValue("infhealth_enabled") and tonumber(self:InsaneStats_GetEntityData("max_armor"))
+	or self.GetMaxArmor and tonumber(self:GetMaxArmor()) or 0
 end
 
 local function OverrideHealth()
@@ -64,7 +80,7 @@ local function OverrideHealth()
 		if not (newHealth >= -math.huge) then -- nan
 			error("Something tried to set health on "..tostring(self).." to nan!")
 		end
-		self.insaneStats_Health = newHealth
+		self:InsaneStats_SetEntityData("health", newHealth)
 		if newHealth > 0 then
 			self.insaneStats_HealthRoot8 = InsaneStats:CalculateRoot8(newHealth)
 		end
@@ -90,7 +106,7 @@ local function OverrideHealth()
 	end
 	
 	function ENT:Health()
-		return math.ceil(self.insaneStats_Health or self:InsaneStats_GetRawHealth())
+		return math.ceil(self:InsaneStats_GetEntityData("health") or self:InsaneStats_GetRawHealth())
 	end
 	
 	function ENT:SetMaxHealth(newHealth)
@@ -98,7 +114,7 @@ local function OverrideHealth()
 		if not (newHealth >= -math.huge) then -- nan
 			error("Something tried to set max health on "..tostring(self).." to nan!")
 		end
-		self.insaneStats_MaxHealth = newHealth
+		self:InsaneStats_SetEntityData("max_health", newHealth)
 		if newHealth > 0 then
 			self.insaneStats_MaxHealthRoot8 = InsaneStats:CalculateRoot8(newHealth)
 		end
@@ -119,14 +135,14 @@ local function OverrideHealth()
 		if SERVER then
 			self:InsaneStats_MarkForUpdate(1)
 		end
-		--[[if SERVER and self:IsPlayer() then
-			print(newHealth)
+		if SERVER and self:IsPlayer() and GetConVar("developer"):GetInt() > 0 then
+			InsaneStats:Log(tostring(self).." max health set to "..newHealth)
 			debug.Trace()
-		end]]
+		end
 	end
 	
 	function ENT:GetMaxHealth()
-		return math.ceil(self.insaneStats_MaxHealth or self:InsaneStats_GetRawMaxHealth())
+		return math.ceil(self:InsaneStats_GetEntityData("max_health") or self:InsaneStats_GetRawMaxHealth())
 	end
 end
 
@@ -156,7 +172,7 @@ local function OverrideArmor()
 		if not (newArmor >= -math.huge) then -- nan
 			error("Something tried to set armor on "..tostring(self).." to nan!")
 		end
-		self.insaneStats_Armor = newArmor
+		self:InsaneStats_SetEntityData("armor", newArmor)
 		if newArmor > 0 then
 			self.insaneStats_ArmorRoot8 = InsaneStats:CalculateRoot8(newArmor)
 		end
@@ -166,14 +182,14 @@ local function OverrideArmor()
 	end
 
 	function ENT:Armor()
-		return math.ceil(self.insaneStats_Armor or 0)
+		return math.ceil(tonumber(self:InsaneStats_GetEntityData("armor")) or 0)
 	end
 
 	function ENT:SetMaxArmor(newArmor)
 		if not (newArmor >= -math.huge) then -- nan
 			error("Something tried to set max armor on "..tostring(self).." to nan!")
 		end
-		self.insaneStats_MaxArmor = newArmor
+		self:InsaneStats_SetEntityData("max_armor", newArmor)
 		if newArmor > 0 then
 			self.insaneStats_MaxArmorRoot8 = InsaneStats:CalculateRoot8(newArmor)
 		end
@@ -183,14 +199,14 @@ local function OverrideArmor()
 	end
 	
 	function ENT:GetMaxArmor()
-		return math.ceil(self.insaneStats_MaxArmor or 0)
+		return math.ceil(tonumber(self:InsaneStats_GetEntityData("max_armor")) or 0)
 	end
 	
 	function PLAYER:SetArmor(newArmor)
 		if not (newArmor >= -math.huge) then -- nan
 			error("Something tried to set armor on "..tostring(self).." to nan!")
 		end
-		self.insaneStats_Armor = newArmor
+		self:InsaneStats_SetEntityData("armor", newArmor)
 		if newArmor > 0 then
 			self.insaneStats_ArmorRoot8 = InsaneStats:CalculateRoot8(newArmor)
 		end
@@ -212,14 +228,14 @@ local function OverrideArmor()
 	end
 	
 	function PLAYER:Armor()
-		return math.ceil(self.insaneStats_Armor or self:InsaneStats_GetRawArmor())
+		return math.ceil(tonumber(self:InsaneStats_GetEntityData("armor")) or self:InsaneStats_GetRawArmor())
 	end
 	
 	function PLAYER:SetMaxArmor(newArmor)
 		if not (newArmor >= -math.huge) then -- nan
 			error("Something tried to set max armor on "..tostring(self).." to nan!")
 		end
-		self.insaneStats_MaxArmor = newArmor
+		self:InsaneStats_SetEntityData("max_armor", newArmor)
 		if newArmor > 0 then
 			self.insaneStats_MaxArmorRoot8 = InsaneStats:CalculateRoot8(newArmor)
 		end
@@ -243,7 +259,7 @@ local function OverrideArmor()
 	end
 	
 	function PLAYER:GetMaxArmor()
-		return math.ceil(self.insaneStats_MaxArmor or self:InsaneStats_GetRawMaxArmor())
+		return math.ceil(tonumber(self:InsaneStats_GetEntityData("max_armor")) or self:InsaneStats_GetRawMaxArmor())
 	end
 end
 

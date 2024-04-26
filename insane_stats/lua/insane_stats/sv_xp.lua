@@ -10,17 +10,19 @@ end, nil, "Shows all maps that are currently factored into level scaling.")
 concommand.Add("insanestats_xp_other_level_maps_reset", function(ply, cmd, args, argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
 		mapOrder = {}
+		InsaneStats:Log("All maps removed.")
+		InsaneStats:Log("Run the command insanestats_save to save the current map list!")
 	end
-end, nil, "Clears the recorded maps list.")
+end, nil, "Clears the recorded maps list. \z
+Note that a map restart is required for the map number to be updated.")
 concommand.Add("insanestats_xp_other_level_maps_remove", function(ply, cmd, args, argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
 		-- use a search pattern
 		local success = false
-		local searchStr = argStr:PatternSafe():Replace('%*', '.*')
 		local i = 1
 		local v = mapOrder[i]
 		while v do
-			if string.match(v, '^'..searchStr..'$') then
+			if InsaneStats:WildcardMatches(argStr, v) then
 				table.remove(mapOrder, i)
 				InsaneStats:Log("Removed map "..v..".")
 				success = true
@@ -29,7 +31,9 @@ concommand.Add("insanestats_xp_other_level_maps_remove", function(ply, cmd, args
 			end
 			v = mapOrder[i]
 		end
-		if success then return InsaneStats:PerformSave() end
+		if success then
+			return InsaneStats:Log("Run the command insanestats_save to save the current map list!")
+		end
 		
 		if tonumber(argStr) then
 			local toRemove = math.min(#mapOrder, tonumber(argStr) or 0)
@@ -37,14 +41,14 @@ concommand.Add("insanestats_xp_other_level_maps_remove", function(ply, cmd, args
 				local value = table.remove(mapOrder)
 				InsaneStats:Log("Removed map "..value..".")
 			end
-			InsaneStats:PerformSave()
+			InsaneStats:Log("Run the command insanestats_save to save the current map list!")
 		elseif argStr == "" then
 			InsaneStats:Log("Removes a map from the map record list. If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. * wildcards are allowed. Note that a map restart is required for the map number to be updated.")
 		else
 			InsaneStats:Log("Could not find map "..argStr..".")
 		end
 	end
-end, nil, "Removes maps from the recorded maps list. * wildcards are allowed. \z
+end, nil, "Removes maps from the recorded maps list. * and ? wildcards are allowed. \z
 If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. \z
 Note that a map restart is required for the map number to be updated.")
 
@@ -103,7 +107,7 @@ function ENT:InsaneStats_ApplyLevel(level)
 		local currentHealthFrac = (self:InsaneStats_GetMaxHealth() <= 0
 			or self:InsaneStats_GetHealth() == math.huge) and 1
 			or self:InsaneStats_GetHealth() / self:InsaneStats_GetMaxHealth()
-		local currentHealthAdd = self.insaneStats_CurrentHealthAdd or 1
+		local currentHealthAdd = self:InsaneStats_GetCurrentHealthAdd()
 		local startingHealth = self:InsaneStats_GetMaxHealth() / currentHealthAdd
 		--print(self:InsaneStats_GetMaxHealth(), currentHealthAdd)
 		local newHealth
@@ -132,17 +136,16 @@ function ENT:InsaneStats_ApplyLevel(level)
 		self:SetMaxHealth(newHealth)
 		self:SetHealth(currentHealthFrac * newHealth)
 		if newHealth == math.huge or startingHealth == 0 then
-			self.insaneStats_CurrentHealthAdd = 1
+			self:InsaneStats_SetCurrentHealthAdd(1)
 		else
-			self.insaneStats_CurrentHealthAdd = newHealth / startingHealth
+			self:InsaneStats_SetCurrentHealthAdd(newHealth / startingHealth)
 		end
-		self.insaneStats_CurrentHealthAddRoot8 = InsaneStats:CalculateRoot8(self.insaneStats_CurrentHealthAdd)
 		
 		if self:InsaneStats_GetMaxArmor() > 0 then
 			local currentArmorFrac = self:InsaneStats_GetMaxArmor() == 0 and 0
 				or self:InsaneStats_GetArmor() == math.huge and 1
 				or self:InsaneStats_GetArmor() / self:InsaneStats_GetMaxArmor()
-			local currentArmorAdd = self.insaneStats_CurrentArmorAdd or 1
+			local currentArmorAdd = self:InsaneStats_GetCurrentArmorAdd()
 			local startingArmor = self:InsaneStats_GetMaxArmor() / currentArmorAdd
 			local newArmor
 			if isPlayer then
@@ -170,11 +173,10 @@ function ENT:InsaneStats_ApplyLevel(level)
 			self:SetMaxArmor(newArmor)
 			self:SetArmor(currentArmorFrac * newArmor)
 			if newArmor == math.huge or startingArmor == 0 then
-				self.insaneStats_CurrentArmorAdd = 1
+				self:InsaneStats_SetCurrentArmorAdd(1)
 			else
-				self.insaneStats_CurrentArmorAdd = newArmor / startingArmor
+				self:InsaneStats_SetCurrentArmorAdd(newArmor / startingArmor)
 			end
-			self.insaneStats_CurrentArmorAddRoot8 = InsaneStats:CalculateRoot8(self.insaneStats_CurrentArmorAdd)
 		end
 		
 		hook.Run("InsaneStatsApplyLevel", self, level)
@@ -183,6 +185,32 @@ function ENT:InsaneStats_ApplyLevel(level)
 			print(newHealth)
 		end]]
 	end
+end
+
+function ENT:InsaneStats_SetCurrentHealthAdd(mul)
+	self:InsaneStats_SetEntityData("xp_health_mul", mul)
+	self.insaneStats_CurrentHealthAddRoot8 = InsaneStats:CalculateRoot8(mul)
+end
+
+function ENT:InsaneStats_GetCurrentHealthAdd()
+	return self:InsaneStats_GetEntityData("xp_health_mul") or 1
+end
+
+function ENT:InsaneStats_SetCurrentArmorAdd(mul)
+	self:InsaneStats_SetEntityData("xp_armor_mul", mul)
+	self.insaneStats_CurrentArmorAddRoot8 = InsaneStats:CalculateRoot8(mul)
+end
+
+function ENT:InsaneStats_GetCurrentArmorAdd()
+	return self:InsaneStats_GetEntityData("xp_armor_mul") or 1
+end
+
+function ENT:InsaneStats_SetDropXP(xp)
+	self:InsaneStats_SetEntityData("xp_drop", xp)
+end
+
+function ENT:InsaneStats_GetDropXP()
+	return self:InsaneStats_GetEntityData("xp_drop") or 0
 end
 
 local savedPlayerXP = {}
@@ -195,7 +223,7 @@ hook.Add("InsaneStatsScaleXP", "InsaneStatsXP", function(data)
 		"xp_drop_add_mode",
 		false,
 		InsaneStats:GetConVarValue("xp_drop_add_add")/100
-	) + (data.victim.insaneStats_DropXP or 0)
+	) + data.victim:InsaneStats_GetDropXP()
 end)
 
 local function ProcessKillEvent(victim, attacker, inflictor)
@@ -223,7 +251,7 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 		if InsaneStats:GetConVarValue("xp_enabled") then
 			if IsValid(attacker) and victim ~= attacker then
 				local xpMul = InsaneStats:GetConVarValue(victim:IsPlayer() and "xp_player_mul" or "xp_other_mul")
-				local currentHealthAdd = victim.insaneStats_CurrentHealthAdd or 1
+				local currentHealthAdd = victim:InsaneStats_GetCurrentHealthAdd()
 				local startingHealth = victim:InsaneStats_GetMaxHealth() / currentHealthAdd
 				local startXPToGive = victim.insaneStats_IsDead and 0 or startingHealth * xpMul / 5
 				
@@ -290,13 +318,16 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 				
 				local wepMul = InsaneStats:GetConVarValue("xp_weapon_mul")
 				for k,v in pairs(data.receivers) do
-					local tempExtraXP = (k:IsPlayer() or k:GetOwner():IsPlayer()) and 0 or extraXP * v
+					local tempExtraXP = (k:IsPlayer() or k:GetOwner():IsPlayer()) and 0 or extraXP-- * v
 					local tempDropMul = shouldDropMul[k] and xpDropMul or 0
 					local xp = xpToGive * v
 					if k:IsWeapon() then xp = xp * wepMul end
-					--print("xp, tempExtraXP, tempDropMul")
-					--print(xp, tempExtraXP, tempDropMul)
-					--print(k, xp, xpToGive, v, victim.insaneStats_DropXP, tempExtraXP)
+					if xp+tempExtraXP < -k:InsaneStats_GetXP() then
+						xp = -k:InsaneStats_GetXP() - tempExtraXP
+					end
+					--print("xp, extraXP, tempExtraXP, tempDropMul")
+					--print(xp, extraXP, tempExtraXP, tempDropMul)
+					--print(k, xp, xpToGive, v, victim:InsaneStats_GetDropXP(), tempExtraXP)
 					k:InsaneStats_AddXP(xp+tempExtraXP, xp*tempDropMul)
 					k:InsaneStats_AddBatteryXP(xp)
 					
@@ -309,7 +340,7 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 					local wep = k.GetActiveWeapon and k:GetActiveWeapon()
 					if IsValid(wep) and not data.receivers[wep] then
 						if wep:IsWeapon() then xp = xp * wepMul end
-						--print(wep, xp, xpToGive, victim.insaneStats_DropXP, tempExtraXP)
+						--print(wep, xp, xpToGive, victim:InsaneStats_GetDropXP(), tempExtraXP)
 						wep:InsaneStats_AddXP((xp+tempExtraXP)*wepMul, xp*tempDropMul)
 						wep:InsaneStats_AddBatteryXP(xp*wepMul)
 					end
@@ -324,7 +355,7 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 				victim:InsaneStats_SetXP(newXP, 0)
 			end
 
-			victim.insaneStats_DropXP = 0
+			victim:InsaneStats_SetDropXP(0)
 		end
 		
 		hook.Run("InsaneStatsEntityKilledPostXP", victim, attacker, inflictor)
@@ -372,7 +403,7 @@ function InsaneStats:DetermineEntitySpawnedXP(ent)
 	local hasPlayer = false
 	
 	for k,v in pairs(allPlayers) do
-		if v.insaneStats_XP then
+		if v:InsaneStats_GetEntityData("xp") then
 			hasPlayer = true break
 		end
 	end
@@ -384,7 +415,7 @@ function InsaneStats:DetermineEntitySpawnedXP(ent)
 				-- get average level
 				local totalLevel = 0
 				for k,v in pairs(allPlayers) do
-					if v.insaneStats_XP then
+					if v:InsaneStats_GetEntityData("xp") then
 						totalLevel = totalLevel + v:InsaneStats_GetLevel()
 					end
 				end
@@ -395,7 +426,7 @@ function InsaneStats:DetermineEntitySpawnedXP(ent)
 				local totalLevel = 1
 				local inversePlayerCount = 1/playerCount
 				for k,v in pairs(allPlayers) do
-					if v.insaneStats_XP then
+					if v:InsaneStats_GetEntityData("xp") then
 						totalLevel = totalLevel * v:InsaneStats_GetLevel() ^ inversePlayerCount
 					end
 				end
@@ -415,7 +446,7 @@ function InsaneStats:DetermineEntitySpawnedXP(ent)
 				local closestSqrDist = math.huge
 				for k,v in pairs(allPlayers) do
 					local sqrDist = pos:DistToSqr(v:GetPos())
-					if sqrDist < closestSqrDist and v.insaneStats_XP then
+					if sqrDist < closestSqrDist and v:InsaneStats_GetEntityData("xp") then
 						closestPlayer = v
 						closestSqrDist = sqrDist
 					end
@@ -489,7 +520,7 @@ end
 local toUpdateLevelEntities = {}
 --local loadedData = {}
 hook.Add("InsaneStatsEntityCreated", "InsaneStatsXP", function(ent)
-	if not ent.insaneStats_XP then
+	if ent:InsaneStats_GetXP() == 0 then
 		local shouldXP, isAlpha = InsaneStats:DetermineEntitySpawnedXP(ent)
 		--print(ent, "should spawn with ", shouldXP, " xp")
 		if shouldXP then
@@ -501,38 +532,11 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsXP", function(ent)
 	end
 end)
 
-hook.Add("InsaneStatsTransitionCompat", "InsaneStatsXP", function(ent)
-	if ent.insaneStats_HealthRoot8 then
-		ent.insaneStats_Health = ent.insaneStats_HealthRoot8 ^ 8
-	end
-	if ent.insaneStats_MaxHealthRoot8 then
-		ent.insaneStats_MaxHealth = ent.insaneStats_MaxHealthRoot8 ^ 8
-	end
-	if ent.insaneStats_ArmorRoot8 then
-		ent.insaneStats_Armor = ent.insaneStats_ArmorRoot8 ^ 8
-	end
-	if ent.insaneStats_MaxArmorRoot8 then
-		ent.insaneStats_MaxArmor = ent.insaneStats_MaxArmorRoot8 ^ 8
-	end
-	if ent.insaneStats_CurrentHealthAddRoot8 then
-		ent.insaneStats_CurrentHealthAdd = ent.insaneStats_CurrentHealthAddRoot8 ^ 8
-	end
-	if ent.insaneStats_CurrentArmorAddRoot8 then
-		ent.insaneStats_CurrentArmorAdd = ent.insaneStats_CurrentArmorAddRoot8 ^ 8
-	end
-	if ent.insaneStats_XPRoot8 then
-		ent:InsaneStats_SetXP(ent.insaneStats_XPRoot8 ^ 8)
-	end
-	if ent.insaneStats_DropXPRoot8 then
-		ent.insaneStats_DropXP = ent.insaneStats_DropXPRoot8 ^ 8
-	end
-end)
-
 timer.Create("InsaneStatsXP", 0.5, 0, function()
 	if next(toUpdateLevelEntities) then
 		for k,v in pairs(toUpdateLevelEntities) do
 			if IsValid(v) or v == game.GetWorld() then
-				if v.insaneStats_XP then
+				if v:InsaneStats_GetEntityData("xp") then
 					toUpdateLevelEntities[k] = nil
 				else
 					local shouldXP, isAlpha = InsaneStats:DetermineEntitySpawnedXP(v)
@@ -596,16 +600,16 @@ hook.Add("AcceptInput", "InsaneStatsXP", function(ent, input, activator, caller,
 			ent:SetHealth(ent:InsaneStats_GetHealth() + ent:InsaneStats_GetMaxHealth() / 100)
 			return true
 		else]]if input == "insanestatssuitchargerpoint" then
-			ent:SetArmor(ent:InsaneStats_GetArmor() + (ent.insaneStats_CurrentArmorAdd or 1))
+			ent:SetArmor(ent:InsaneStats_GetArmor() + ent:InsaneStats_GetCurrentArmorAdd())
 			return true
 		elseif input == "insanestatssupersuitchargerpoint" then
 			if ent:InsaneStats_GetArmor() * 100 < ent:InsaneStats_GetMaxArmor() * GetConVar("sk_suitcharger_citadel_maxarmor"):GetFloat() then
-				ent:SetArmor(ent:InsaneStats_GetArmor() + 10 * (ent.insaneStats_CurrentArmorAdd or 1))
+				ent:SetArmor(ent:InsaneStats_GetArmor() + 10 * ent:InsaneStats_GetCurrentArmorAdd())
 			end
 			
 			if ent:InsaneStats_GetHealth() < ent:InsaneStats_GetMaxHealth() then
 				ent:SetHealth(math.min(
-					ent:InsaneStats_GetHealth() + 5 * (ent.insaneStats_CurrentHealthAdd or 1),
+					ent:InsaneStats_GetHealth() + 5 * ent:InsaneStats_GetCurrentHealthAdd(),
 					ent:InsaneStats_GetMaxHealth()
 				))
 			end
@@ -619,7 +623,7 @@ hook.Add("AcceptInput", "InsaneStatsXP", function(ent, input, activator, caller,
 	end
 	
 	if input == "sethealth" then
-		local healthMul = ent.insaneStats_CurrentHealthAdd or 1
+		local healthMul = ent:InsaneStats_GetCurrentHealthAdd()
 		if tonumber(data) then
 			local newHealth = healthMul * tonumber(data)
 			-- if health is 0, DO NOT return true, and set the new health on the next tick
@@ -637,7 +641,7 @@ hook.Add("AcceptInput", "InsaneStatsXP", function(ent, input, activator, caller,
 			end
 		end
 	elseif input == "addhealth" then
-		local healthMul = ent.insaneStats_CurrentHealthAdd or 1
+		local healthMul = ent:InsaneStats_GetCurrentHealthAdd()
 		if tonumber(data) then
 			local oldHealth = ent:InsaneStats_GetHealth()
 			local newHealth = oldHealth + healthMul * tonumber(data)
@@ -654,7 +658,7 @@ hook.Add("AcceptInput", "InsaneStatsXP", function(ent, input, activator, caller,
 			end
 		end
 	elseif input == "removehealth" then
-		local healthMul = ent.insaneStats_CurrentHealthAdd or 1
+		local healthMul = ent:InsaneStats_GetCurrentHealthAdd()
 		if tonumber(data) then
 			local oldHealth = ent:InsaneStats_GetHealth()
 			local newHealth = oldHealth - healthMul * tonumber(data)
@@ -689,7 +693,7 @@ hook.Add("AcceptInput", "InsaneStatsXP", function(ent, input, activator, caller,
 	elseif input == "setplayerhealth" and ent:GetClass() == "logic_playerproxy" then
 		if tonumber(data) then
 			for k,v in pairs(player.GetAll()) do
-				local healthMul = v.insaneStats_CurrentHealthAdd or 1
+				local healthMul = v:InsaneStats_GetCurrentHealthAdd()
 				local newHealth = healthMul * tonumber(data)
 				v:SetHealth(newHealth)
 				
@@ -715,7 +719,7 @@ end)
 hook.Add("EntityKeyValue", "InsaneStatsXP", function(ent, key, value)
 	value = tonumber(value)
 	key = key:lower()
-	local healthMul = ent.insaneStats_CurrentHealthAdd or 1
+	local healthMul = ent:InsaneStats_GetCurrentHealthAdd()
 	
 	if healthMul ~= 1 and value then
 		
@@ -769,7 +773,7 @@ hook.Add("EntityTakeDamage", "InsaneStatsXP", function(vic, dmginfo)
 			vic.insaneStats_LastAttacker = attacker
 		end
 		
-		if not vic.insaneStats_Level then return true end
+		if not vic:InsaneStats_GetEntityData("level") then return true end
 	end
 end)
 
@@ -793,10 +797,10 @@ hook.Add("PlayerSpawn", "InsaneStatsXP", function(ply, fromTransition)
 	ply.insaneStats_IsDead = false
 	
 	if fromTransition then
-		ply.insaneStats_XPLoaded = nil
+		ply:InsaneStats_SetEntityData("xp_loaded", nil)
 	end
 	
-	if not ply.insaneStats_XPLoaded then
+	if not ply:InsaneStats_GetEntityData("xp_loaded") then
 		local xp = InsaneStats:GetConVarValue("xp_player_save") and savedPlayerXP[ply:SteamID()]
 		
 		if xp then
@@ -805,12 +809,12 @@ hook.Add("PlayerSpawn", "InsaneStatsXP", function(ply, fromTransition)
 			ply:InsaneStats_SetXP(InsaneStats:GetXPRequiredToLevel(InsaneStats:GetConVarValue("xp_player_level_start")))
 		end
 		
-		ply.insaneStats_XPLoaded = true
+		ply:InsaneStats_SetEntityData("xp_loaded", true)
 	end
 	
 	if not fromTransition then
-		ply.insaneStats_CurrentHealthAdd = 1
-		ply.insaneStats_CurrentArmorAdd = 1
+		ply:InsaneStats_SetCurrentHealthAdd(1)
+		ply:InsaneStats_SetCurrentArmorAdd(1)
 	end
 	
 	if InsaneStats:GetConVarValue("xp_enabled") then
@@ -857,7 +861,7 @@ hook.Add("PlayerCanPickupItem", "InsaneStatsXP", function(ply, item)
 			if ply:InsaneStats_GetHealth() < ply:InsaneStats_GetMaxHealth() then
 				local newHealth = math.min(
 					ply:InsaneStats_GetMaxHealth(),
-					ply:InsaneStats_GetHealth()+GetConVar("sk_healthvial"):GetFloat()*(ply.insaneStats_CurrentHealthAdd or 1)
+					ply:InsaneStats_GetHealth() + GetConVar("sk_healthvial"):GetFloat() * ply:InsaneStats_GetCurrentHealthAdd()
 				)
 				ply:SetHealth(newHealth)
 				ply:EmitSound("HealthVial.Touch")
@@ -874,7 +878,7 @@ hook.Add("PlayerCanPickupItem", "InsaneStatsXP", function(ply, item)
 			if ply:InsaneStats_GetHealth() < ply:InsaneStats_GetMaxHealth() then
 				local newHealth = math.min(
 					ply:InsaneStats_GetMaxHealth(),
-					ply:InsaneStats_GetHealth()+GetConVar("sk_healthkit"):GetFloat()*(ply.insaneStats_CurrentHealthAdd or 1)
+					ply:InsaneStats_GetHealth() + GetConVar("sk_healthkit"):GetFloat() * ply:InsaneStats_GetCurrentHealthAdd()
 				)
 				ply:SetHealth(newHealth)
 				ply:EmitSound("HealthKit.Touch")
@@ -902,7 +906,7 @@ hook.Add("PlayerCanPickupItem", "InsaneStatsXP", function(ply, item)
 			if ply:InsaneStats_GetHealth() < ply:InsaneStats_GetMaxHealth() then
 				local newHealth = math.min(
 					ply:InsaneStats_GetMaxHealth(),
-					ply:InsaneStats_GetHealth()+affectedConVar:GetFloat()*(ply.insaneStats_CurrentHealthAdd or 1)
+					ply:InsaneStats_GetHealth() + affectedConVar:GetFloat() * ply:InsaneStats_GetCurrentHealthAdd()
 				)
 				ply:SetHealth(newHealth)
 				ply:EmitSound("HealthKit.Touch")

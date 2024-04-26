@@ -20,6 +20,7 @@ local colors = {
 	aqua = Color(0, 255, 255),
 	light_aqua = Color(127, 255, 255),
 	sky = Color(0, 127, 255),
+	light_blue = Color(127, 127, 255),
 	purple = Color(127, 0, 255),
 	magenta = Color(255, 0, 255),
 	light_magenta = Color(255, 127, 255)
@@ -190,6 +191,42 @@ InsaneStats:RegisterClientConVar("hud_outline", "insanestats_hud_outline", "2", 
 	type = InsaneStats.INT, min = 0, max = 10
 })
 
+InsaneStats:RegisterClientConVar("hud_ally_enabled", "insanestats_hud_ally_enabled", "0", {
+	display = "Allies", desc = "Shows ally status displays.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterClientConVar("hud_ally_x", "insanestats_hud_ally_x", "0.01", {
+	display = "Allies Display X", desc = "Horizontal position of allies display.",
+	type = InsaneStats.FLOAT, min = 0, max = 1
+})
+InsaneStats:RegisterClientConVar("hud_ally_y", "insanestats_hud_ally_y", "0.06", {
+	display = "Allies Display Y", desc = "Vertical position of allies display.",
+	type = InsaneStats.FLOAT, min = 0, max = 1
+})
+InsaneStats:RegisterClientConVar("hud_ally_dist_min", "insanestats_hud_ally_dist_min", "512", {
+	display = "Allies Display Distance Minimum", desc = "Minimum distance to see simplified ally status display.",
+	type = InsaneStats.FLOAT, min = 0, max = 4096
+})
+InsaneStats:RegisterClientConVar("hud_ally_dist_opaque", "insanestats_hud_ally_dist_opaque", "256", {
+	display = "Allies Display Distance Opaque", desc = "Allies closer than this will have their simplified ally status display be at full opacity.",
+	type = InsaneStats.FLOAT, min = 0, max = 4096
+})
+
+local ENT = FindMetaTable("Entity")
+
+function ENT:InsaneStats_GetPrintName()
+	local classDisplayName = language.GetPhrase(
+		self.PrintName ~= "" and self.PrintName
+		or self.insaneStats_Class
+		or self:GetClass()
+	)
+	local mappingName = self.insaneStats_Name or ""
+	classDisplayName = (self:InsaneStats_GetIsAlpha() and "Alpha " or "")..classDisplayName
+	if mappingName == "" then return classDisplayName
+	else return string.format("%s (%s)", classDisplayName, mappingName)
+	end
+end
+
 local function GenerateFonts()
 	local scale = InsaneStats:GetConVarValue("hud_scale")
 	local font = InsaneStats:GetConVarValue("hud_font")
@@ -215,17 +252,204 @@ end
 GenerateFonts() -- FIXME: is this really necessary?
 
 local scale, font
+local citizens = {}
+local allEntities = {}
+local citizenSlowHealths = {}
 timer.Create("InsaneStats", 1, 0, function()
 	if scale ~= InsaneStats:GetConVarValue("hud_scale") or font ~= InsaneStats:GetConVarValue("hud_font") then
 		scale = InsaneStats:GetConVarValue("hud_scale")
 		font = InsaneStats:GetConVarValue("hud_font")
 		GenerateFonts()
 	end
+
+	citizens = ents.FindByClass("npc_citizen")
+	allEntities = ents.GetAll()
+
+	for k,v in pairs(citizenSlowHealths) do
+		if not IsValid(k) then
+			citizenSlowHealths[k] = nil
+		end
+	end
 end)
 
---[[InsaneStats:SetDefaultConVarCategory("HUD")
+-- MISC
 
-InsaneStats:RegisterClientConVar("hud_outline", "insanestats_hud_outline", "1", {
-	display = "Outline Thickness", desc = "Outline thickness of elements. A value of -1 disables outlines.",
-	type = InsaneStats.FLOAT, min = -1, max = 100
-})]]
+local citizenIcons = {
+	{"hospital-cross", colors.light_red},
+	{"knapsack", colors.light_green},
+	{"run", colors.light_blue}
+}
+hook.Add("HUDPaint", "InsaneStats", function()
+	if InsaneStats:GetConVarValue("hud_ally_enabled") then
+		local citizenCounts = {0, 0, 0}
+		local ply = LocalPlayer()
+		local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
+		
+		for i,v in ipairs(citizens) do
+			if (IsValid(v) and not v:IsDormant()) then
+				local citizenFlags = v.insaneStats_CitizenFlags
+				if citizenFlags then
+					if bit.band(citizenFlags, 4) ~= 0 then
+						if bit.band(citizenFlags, 1) ~= 0 then
+							citizenCounts[1] = citizenCounts[1] + 1
+						elseif bit.band(citizenFlags, 2) ~= 0 then
+							citizenCounts[2] = citizenCounts[2] + 1
+						else
+							citizenCounts[3] = citizenCounts[3] + 1
+						end
+					end
+				else
+					v:InsaneStats_MarkForUpdate()
+				end
+			end
+		end
+
+		local viewPoint = ply:GetShootPos()
+		local minDistSqr = InsaneStats:GetConVarValue("hud_ally_dist_min")^2
+		local opaqueDistSqr = InsaneStats:GetConVarValue("hud_ally_dist_opaque")^2
+		local allyValues = {}
+		cam.Start3D()
+		for i,v in ipairs(allEntities) do
+			if (IsValid(v) and not v:IsDormant() and v ~= ply) then
+				local isAlly = false
+
+				if v:IsNPC() then
+					if v.insaneStats_Disposition then
+						isAlly = v.insaneStats_Disposition == 3
+					else
+						v:InsaneStats_MarkForUpdate()
+					end
+				elseif v:IsPlayer() then
+					isAlly = v:Team() == ply:Team()
+				end
+
+				if isAlly then
+					local allyPos = v:WorldSpaceCenter()
+					local distSqr = allyPos:DistToSqr(viewPoint)
+					if distSqr < minDistSqr then
+						local alphaRatio = math.Remap(distSqr, minDistSqr, opaqueDistSqr, 0, 1)^4
+						alphaRatio = math.min(alphaRatio, 1)
+						table.insert(allyValues, {
+							name = v:IsPlayer() and v:Nick() or v:InsaneStats_GetPrintName(),
+							hp = v:InsaneStats_GetHealth(),
+							mhp = v:InsaneStats_GetMaxHealth(),
+							ar = v:InsaneStats_GetArmor(),
+							mar = v:InsaneStats_GetMaxArmor(),
+							alpha = alphaRatio,
+							ent = v,
+							pos = allyPos:ToScreen(),
+							color = v:IsPlayer() and team.GetColor(v:Team()) or color_white
+						})
+					end
+				end
+			end
+		end
+		cam.End3D()
+
+		if citizenCounts[1] ~= 0 or citizenCounts[2] ~= 0 or citizenCounts[3] ~= 0 then
+			local x = InsaneStats:GetConVarValue("hud_ally_x") * ScrW()
+			local y = InsaneStats:GetConVarValue("hud_ally_y") * ScrH()
+
+			draw.SimpleTextOutlined(
+				"Allies:", "InsaneStats.Big", x, y,
+				color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
+				outlineThickness, color_black
+			)
+			y = y + InsaneStats.FONT_BIG + outlineThickness
+
+			for i,v in ipairs(citizenCounts) do
+				if v ~= 0 then
+					InsaneStats:DrawMaterialOutlined(
+						InsaneStats:GetIconMaterial(citizenIcons[i][1]),
+						x, y,
+						InsaneStats.FONT_BIG, InsaneStats.FONT_BIG,
+						citizenIcons[i][2], outlineThickness, color_black
+					)
+
+					draw.SimpleTextOutlined(
+						InsaneStats:FormatNumber(v), "InsaneStats.Big",
+						x + InsaneStats.FONT_BIG + outlineThickness, y,
+						color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
+						outlineThickness, color_black
+					)
+
+					y = y + InsaneStats.FONT_BIG + outlineThickness
+				end
+			end
+		end
+
+		local barW = InsaneStats.FONT_SMALL * 4
+		local barH = InsaneStats.FONT_SMALL / 2
+
+		for i,v in ipairs(allyValues) do
+			if v.pos.visible and IsValid(v.ent) then
+				surface.SetAlphaMultiplier(v.alpha)
+				local baseX = v.pos.x
+				local baseY = v.pos.y
+
+				draw.SimpleTextOutlined(
+					v.name, "InsaneStats.Small",
+					baseX, baseY - outlineThickness,
+					v.color, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM,
+					outlineThickness, color_black
+				)
+
+				if v.mhp > 0 then
+					-- calculate properties for health and armor display
+					local health = v.hp
+					local ent = v.ent
+					citizenSlowHealths[ent] = citizenSlowHealths[ent] or {}
+					citizenSlowHealths[ent].hp = InsaneStats:TransitionUINumber(citizenSlowHealths[ent].hp or health, health)
+					local barData = InsaneStats:CalculateMultibar(citizenSlowHealths[ent].hp, v.mhp, 120)
+					local healthBars = barData.bars
+					local barFrac = barData.frac
+					local currentBarColor = barData.color
+					local nextBarColor = barData.nextColor
+					
+					local barX = baseX - barW / 2
+					local barY = baseY
+					
+					local currentHealthBarWidth = math.floor(barFrac > 0 and barW * barFrac or -outlineThickness)
+					
+					surface.SetDrawColor(0,0,0)
+					surface.DrawRect(barX-outlineThickness, barY-outlineThickness, barW+outlineThickness*2, barH+outlineThickness*2)
+					surface.SetDrawColor(nextBarColor.r, nextBarColor.g, nextBarColor.b, nextBarColor.a)
+					surface.DrawRect(barX, barY, barW, barH)
+					surface.SetDrawColor(currentBarColor.r, currentBarColor.g, currentBarColor.b, currentBarColor.a)
+					surface.DrawRect(barX, barY, currentHealthBarWidth, barH)
+					surface.SetDrawColor(0,0,0)
+					surface.DrawRect(barX+currentHealthBarWidth, barY, outlineThickness, barH)
+					
+					-- armor
+					if v.ar > 0 then
+						barY = barY + barH + outlineThickness
+						
+						local armor = v.ar
+						citizenSlowHealths[ent].ar = InsaneStats:TransitionUINumber(citizenSlowHealths[ent].ar or armor, armor)
+						local barData = InsaneStats:CalculateMultibar(citizenSlowHealths[ent].ar, v.mar, 180)
+						local armorBars = barData.bars
+						local barFrac = barData.frac
+						local currentBarColor = barData.color
+						local nextBarColor = barData.nextColor
+						
+						local currentArmorBarWidth = math.floor(barFrac > 0 and barW * barFrac or -outlineThickness)
+					
+						surface.SetDrawColor(0,0,0)
+						surface.DrawRect(barX-outlineThickness, barY-outlineThickness, barW+outlineThickness*2, barH+outlineThickness*2)
+						surface.SetDrawColor(nextBarColor.r, nextBarColor.g, nextBarColor.b, nextBarColor.a)
+						surface.DrawRect(barX, barY, barW, barH)
+						surface.SetDrawColor(currentBarColor.r, currentBarColor.g, currentBarColor.b, currentBarColor.a)
+						surface.DrawRect(barX, barY, currentArmorBarWidth, barH)
+						surface.SetDrawColor(0,0,0)
+						surface.DrawRect(barX+currentArmorBarWidth, barY, outlineThickness, barH)
+					end
+				end
+				surface.SetAlphaMultiplier(1)
+			end
+		end
+	end
+end)
+
+hook.Add("HUDShouldDraw", "InsaneStats", function(name)
+	if InsaneStats:GetConVarValue("hud_ally_enabled") and name == "CHudSquadStatus" then return false end
+end)

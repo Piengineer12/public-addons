@@ -354,7 +354,9 @@ local function CreateSkillHeaders(parent)
 		local ply = LocalPlayer()
 		local texts = {}
 		local skillPoints, totalSkillPoints = ply:InsaneStats_GetSkillPoints(), ply:InsaneStats_GetTotalSkillPoints()
+		totalSkillPoints = math.min(totalSkillPoints, InsaneStats:GetMaxSkillPoints())
 		local uberSkillPoints, totalUberSkillPoints = ply:InsaneStats_GetUberSkillPoints(), ply:InsaneStats_GetTotalUberSkillPoints()
+		totalUberSkillPoints = math.min(totalUberSkillPoints, InsaneStats:GetMaxUberSkillPoints())
 		local allSkillsMaxed = totalSkillPoints - skillPoints >= InsaneStats:GetMaxSkillPoints()
 		local allSkillsUberMaxed = totalUberSkillPoints - uberSkillPoints >= InsaneStats:GetMaxUberSkillPoints()
 
@@ -463,12 +465,19 @@ hook.Add("InitPostEntity", "InsaneStatsSkills", function()
 	net.SendToServer()
 end)
 
-local oldTotalSkillPoints = -1
+local oldTotalSkillPoints, oldTotalUberSkillPoints = -1, -1
 hook.Add("HUDPaint", "InsaneStatsSkills", function()
 	local ply = LocalPlayer()
 	if InsaneStats:GetConVarValue("skills_enabled") and InsaneStats:GetConVarValue("hud_skills_enabled")
 	and IsValid(ply) then
-		local totalSkillPoints = ply:InsaneStats_GetTotalSkillPoints()
+		local totalSkillPoints = math.min(
+			ply:InsaneStats_GetTotalSkillPoints(),
+			InsaneStats:GetMaxSkillPoints()
+		)
+		local totalUberSkillPoints = math.min(
+			ply:InsaneStats_GetTotalUberSkillPoints(),
+			InsaneStats:GetMaxUberSkillPoints()
+		)
 		if totalSkillPoints ~= oldTotalSkillPoints then
 			if oldTotalSkillPoints >= 0 then
 				local diff = totalSkillPoints - oldTotalSkillPoints
@@ -486,6 +495,23 @@ hook.Add("HUDPaint", "InsaneStatsSkills", function()
 			end
 			oldTotalSkillPoints = totalSkillPoints
 		end
+		if totalUberSkillPoints ~= oldTotalUberSkillPoints then
+			if oldTotalUberSkillPoints >= 0 then
+				local diff = totalUberSkillPoints - oldTotalUberSkillPoints
+				if diff > 0 then
+					chat.AddText(string.format(
+						"You have gained %s über skill point(s)! Open the Insane Stats Skills menu to spend them.",
+						InsaneStats:FormatNumber(diff)
+					))
+				else
+					chat.AddText(string.format(
+						"You have lost %s über skill point(s)!",
+						InsaneStats:FormatNumber(-diff)
+					))
+				end
+			end
+			oldTotalUberSkillPoints = totalUberSkillPoints
+		end
 		if ply:IsSuitEquipped() then
 			local iconSkills = {}
 			for k,v in SortedPairs(ply:InsaneStats_GetSkills(), true) do
@@ -496,18 +522,17 @@ hook.Add("HUDPaint", "InsaneStatsSkills", function()
 
 			local baseX = InsaneStats:GetConVarValue("hud_skills_x") * ScrW()
 			local baseY = InsaneStats:GetConVarValue("hud_skills_y") * ScrH()
-			local skillSize = InsaneStats.FONT_BIG * 2
+			local skillSize = InsaneStats.FONT_SMALL * 3
 			local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
 			local totalIconSkills = #iconSkills
+			local skillsPerRow = InsaneStats:GetConVarValue("hud_skills_per_row")
+			skillsPerRow = skillsPerRow < 1 and 65536 or skillsPerRow
 
 			for i,v in ipairs(iconSkills) do
 				local skillInfo = InsaneStats:GetSkillInfo(v)
 				local skillState = ply:InsaneStats_GetSkillState(v, true)
 				local skillStacks = ply:InsaneStats_GetSkillStacks(v, true)
 				local skillColor = skillState == 0 and color_white or skillState > 0 and color_aqua or color_gray
-
-				local skillsPerRow = InsaneStats:GetConVarValue("hud_skills_per_row")
-				skillsPerRow = skillsPerRow < 1 and 65536 or skillsPerRow
 
 				-- what row number is this skill in? (0-indexed)
 				local rowY = math.ceil(i / skillsPerRow) - 1
@@ -529,7 +554,7 @@ hook.Add("HUDPaint", "InsaneStatsSkills", function()
 				if skillStacks ~= 0 then
 					local stackText = string.format("%.1f", skillStacks)
 					draw.SimpleTextOutlined(
-						stackText, "InsaneStats.Medium",
+						stackText, "InsaneStats.Small",
 						anchorX + skillSize/2, anchorY, color_white,
 						TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM,
 						outlineThickness, color_black

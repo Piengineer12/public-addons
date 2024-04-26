@@ -20,6 +20,15 @@ function InsaneStats:Load()
 	return util.JSONToTable(file.Read(saveFileName) or "") or {}
 end
 
+function InsaneStats:WildcardMatches(wildcard, subject)
+	if wildcard == '*' then return true end
+	local searchStr = wildcard:lower():PatternSafe():gsub('(%%.)', {
+		['%*'] = '.*',
+		['%?'] = '.'
+	})
+	return (subject:lower():match('^'..searchStr..'$'))
+end
+
 hook.Add("OnEntityCreated", "InsaneStats", function(ent)
 	timer.Simple(0, function()
 		if (IsValid(ent) and not ent:IsPlayer()) then
@@ -55,23 +64,7 @@ hook.Add("LambdaOnKilled", "InsaneStats", function(victim, dmginfo)
 	hook.Run("InsaneStatsEntityKilled", victim, attacker, inflictor)
 end)
 
--- AcceptInput: see MISC section
-
-hook.Add("InsaneStatsEntityCreated", "InsaneStats", function(ent)
-	if ent:IsNPC() then
-		ent:Fire("AddOutput", "OnDeath !activator:InsaneStats_OnNPCKilled")
-		if ent:GetClass()=="npc_helicopter" then
-			ent:Fire("AddOutput", "OnShotDown !activator:InsaneStats_OnNPCKilled")
-		elseif ent:GetClass()=="npc_turret_floor" then
-			ent:Fire("AddOutput", "OnTipped !self:InsaneStats_OnNPCKilled")
-		end
-	elseif ent:GetClass()=="prop_vehicle_apc" then
-		ent:Fire("AddOutput", "OnDeath !activator:InsaneStats_OnNPCKilled")
-		if IsValid(ent:GetDriver()) then
-			ent:Fire("AddOutput","OnDeath "..ent:GetDriver():GetName()..":Kill")
-		end
-	end
-end)
+-- AcceptInput and InsaneStatsEntityCreated: see MISC section
 
 local needCorrectiveDeathClasses = {
 	npc_combine_camera=true,
@@ -126,10 +119,17 @@ local pendingGameTexts = {}
 hook.Add("AcceptInput", "InsaneStats", function(ent, input, activator, caller, value)
 	input = input:lower()
 	data = data or ""
+	local class = ent:GetClass()
 	if input == "insanestats_onnpckilled" then
 		hook.Run("InsaneStatsEntityKilled", caller, activator, activator)
+	elseif input == "insanestats_onjoinedplayersquad" then
+		ent.insaneStats_CitizenFlags = bit.bor(ent.insaneStats_CitizenFlags or 0, 4)
+		ent:InsaneStats_MarkForUpdate(256)
+	elseif input == "insanestats_onleftplayersquad" then
+		ent.insaneStats_CitizenFlags = bit.band(ent.insaneStats_CitizenFlags or 0, bit.bnot(4))
+		ent:InsaneStats_MarkForUpdate(256)
 	elseif input == "display" then
-		if ent:GetClass() == "game_text" and InsaneStats:GetConVarValue("gametext_tochat")
+		if class == "game_text" and InsaneStats:GetConVarValue("gametext_tochat")
 		and not (InsaneStats:GetConVarValue("gametext_tochat_once") and ent.insaneStats_DisplayedInChat) then
 			local keyValues = ent:GetKeyValues()
 			local xPos = tonumber(keyValues.x)
@@ -147,10 +147,51 @@ hook.Add("AcceptInput", "InsaneStats", function(ent, input, activator, caller, v
 		ent.insaneStats_FlashlightDisabled = true
 	elseif input == "enableflashlight" and ent:IsPlayer() then
 		ent.insaneStats_FlashlightDisabled = nil
-	elseif input == "modifyspeed" and ent:GetClass() == "player_speedmod"
+	elseif input == "modifyspeed" and class == "player_speedmod"
 	and InsaneStats:GetConVarValue("flashlight_disable_fix_modifyspeed") then
 		for i,v in ipairs(player.GetAll()) do
 			v.insaneStats_FlashlightDisabled = tonumber(value) ~= 1 or nil
+		end
+	elseif class == "npc_citizen" then
+		if input == "setmedicon" then
+			ent.insaneStats_CitizenFlags = bit.bor(ent.insaneStats_CitizenFlags or 0, 1)
+			ent:InsaneStats_MarkForUpdate(256)
+		elseif input == "setmedicoff" then
+			ent.insaneStats_CitizenFlags = bit.band(ent.insaneStats_CitizenFlags or 0, bit.bnot(1))
+			ent:InsaneStats_MarkForUpdate(256)
+		elseif input == "setammoresupplieron" then
+			ent.insaneStats_CitizenFlags = bit.bor(ent.insaneStats_CitizenFlags or 0, 2)
+			ent:InsaneStats_MarkForUpdate(256)
+		elseif input == "setammoresupplieroff" then
+			ent.insaneStats_CitizenFlags = bit.band(ent.insaneStats_CitizenFlags or 0, bit.bnot(2))
+			ent:InsaneStats_MarkForUpdate(256)
+		end
+	end
+end)
+
+hook.Add("InsaneStatsEntityCreated", "InsaneStats", function(ent)
+	if ent:IsNPC() then
+		ent:Fire("AddOutput", "OnDeath !activator:InsaneStats_OnNPCKilled")
+		if ent:GetClass()=="npc_helicopter" then
+			ent:Fire("AddOutput", "OnShotDown !activator:InsaneStats_OnNPCKilled")
+		elseif ent:GetClass()=="npc_turret_floor" then
+			ent:Fire("AddOutput", "OnTipped !self:InsaneStats_OnNPCKilled")
+		elseif ent:GetClass()=="npc_citizen" then
+			ent.insaneStats_CitizenFlags = 0
+			if ent:HasSpawnFlags(SF_CITIZEN_MEDIC) then
+				ent.insaneStats_CitizenFlags = bit.bor(ent.insaneStats_CitizenFlags, 1)
+			end
+			if ent:HasSpawnFlags(SF_CITIZEN_AMMORESUPPLIER) then
+				ent.insaneStats_CitizenFlags = bit.bor(ent.insaneStats_CitizenFlags, 2)
+			end
+			ent:Fire("AddOutput", "OnJoinedPlayerSquad !self:InsaneStats_OnJoinedPlayerSquad")
+			ent:Fire("AddOutput", "OnLeftPlayerSquad !self:InsaneStats_OnLeftPlayerSquad")
+			ent:InsaneStats_MarkForUpdate(256)
+		end
+	elseif ent:GetClass()=="prop_vehicle_apc" then
+		ent:Fire("AddOutput", "OnDeath !activator:InsaneStats_OnNPCKilled")
+		if IsValid(ent:GetDriver()) then
+			ent:Fire("AddOutput","OnDeath "..ent:GetDriver():GetName()..":Kill")
 		end
 	end
 end)
@@ -266,14 +307,7 @@ end)
 
 hook.Add("PlayerSelectSpawn", "InsaneStats", function(ply, transition)
 	if InsaneStats:GetConVarValue("spawn_master") and not transition then
-		local spawnPoints = ents.FindByClass("info_player_coop")
-		for i, v in ipairs(spawnPoints) do
-			if not v.insaneStats_Disabled then
-				return v
-			end
-		end
-		
-		spawnPoints = ents.FindByClass("info_player_start")
+		local spawnPoints = ents.FindByClass("info_player_start")
 		for i, v in ipairs(spawnPoints) do
 			if v:HasSpawnFlags(1) and hook.Run("IsSpawnpointSuitable", ply, v, true) then
 				return v
@@ -284,6 +318,13 @@ hook.Add("PlayerSelectSpawn", "InsaneStats", function(ply, transition)
 				if hook.Run("IsSpawnpointSuitable", ply, v, true) then
 					return v
 				end
+			end
+		end
+		
+		spawnPoints = ents.FindByClass("info_player_coop")
+		for i, v in ipairs(spawnPoints) do
+			if v:IsInWorld() and not v.insaneStats_Disabled then
+				return v
 			end
 		end
 	end
