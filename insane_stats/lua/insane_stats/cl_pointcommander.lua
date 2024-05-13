@@ -15,7 +15,7 @@ InsaneStats:RegisterClientConVar("hud_pointcmder_y", "insanestats_hud_pointcmder
 
 hook.Add("HUDPaint", "InsaneStatsPointCommand", function()
     local timerInfo = InsaneStats.PointCommanderTimer
-    if timerInfo and InsaneStats:GetConVarValue("hud_pointcmder_enabled") then
+    if timerInfo and InsaneStats:GetConVarValue("hud_pointcmder_enabled") and InsaneStats:ShouldDrawHUD() then
         local timeRemaining = timerInfo.expiry - CurTime()
         if timeRemaining > -5 then
             local color = color_white

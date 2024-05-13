@@ -469,7 +469,7 @@ local oldTotalSkillPoints, oldTotalUberSkillPoints = -1, -1
 hook.Add("HUDPaint", "InsaneStatsSkills", function()
 	local ply = LocalPlayer()
 	if InsaneStats:GetConVarValue("skills_enabled") and InsaneStats:GetConVarValue("hud_skills_enabled")
-	and IsValid(ply) then
+	and IsValid(ply) and InsaneStats:ShouldDrawHUD() then
 		local totalSkillPoints = math.min(
 			ply:InsaneStats_GetTotalSkillPoints(),
 			InsaneStats:GetMaxSkillPoints()
@@ -552,7 +552,7 @@ hook.Add("HUDPaint", "InsaneStatsSkills", function()
 					skillSize, skillSize, skillColor, outlineThickness, color_black
 				)
 				if skillStacks ~= 0 then
-					local stackText = string.format("%.1f", skillStacks)
+					local stackText = math.abs(skillStacks) >= 1000 and InsaneStats:FormatNumber(skillStacks) or string.format("%.1f", skillStacks)
 					draw.SimpleTextOutlined(
 						stackText, "InsaneStats.Small",
 						anchorX + skillSize/2, anchorY, color_white,

@@ -48,14 +48,15 @@ local function GetIconForEntity(ent)
 end
 
 hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
-	if InsaneStats:GetConVarValue("hud_wpass2_attributes") then
-		if markedEntityInfo.refreshedTime + 0.5 > CurTime() then
+	if InsaneStats:GetConVarValue("hud_wpass2_attributes") and InsaneStats:ShouldDrawHUD() then
+		--if markedEntityInfo.refreshedTime + 0.5 > CurTime() then
+		if (markedEntityInfo.index or 0) ~= 0 then
 			-- if the entity is valid, update markedEntityInfo
 			local ent = Entity(markedEntityInfo.index)
 			if (IsValid(ent) and not ent:IsDormant()) then
 				-- figure out where the head is positioned
 				local pos
-				for i=0, ent:GetHitboxSetCount()-1 do
+				for i=0, (ent:GetHitboxSetCount() or 0)-1 do
 					for j=0, ent:GetHitBoxCount(i)-1 do
 						if ent:GetHitBoxHitGroup(j, i) == HITGROUP_HEAD then
 							local bone = ent:GetHitBoxBone(j, i)
@@ -125,6 +126,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 				)
 			end
 		end
+
 		local ply = LocalPlayer()
 		local revealRadius = ply:InsaneStats_GetAttributeValue("reveal") - 1
 		+ ply:InsaneStats_GetSkillValues("map_sense")

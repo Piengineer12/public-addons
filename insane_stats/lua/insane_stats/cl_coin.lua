@@ -66,7 +66,7 @@ local function DangerousPaint()
 end
 
 hook.Add("HUDPaint", "InsaneStatsCoins", function()
-	if InsaneStats:GetConVarValue("hud_coins_enabled") then
+	if InsaneStats:GetConVarValue("hud_coins_enabled") and InsaneStats:ShouldDrawHUD() then
 		local ply = LocalPlayer()
 		if ply:IsSuitEquipped() then
 			local coins = ply:InsaneStats_GetCoins()

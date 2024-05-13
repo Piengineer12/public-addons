@@ -318,15 +318,15 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 				
 				local wepMul = InsaneStats:GetConVarValue("xp_weapon_mul")
 				for k,v in pairs(data.receivers) do
-					local tempExtraXP = (k:IsPlayer() or k:GetOwner():IsPlayer()) and 0 or extraXP-- * v
+					local tempExtraXP = k:IsPlayer() and 0 or extraXP-- * v
 					local tempDropMul = shouldDropMul[k] and xpDropMul or 0
 					local xp = xpToGive * v
 					if k:IsWeapon() then xp = xp * wepMul end
 					if xp+tempExtraXP < -k:InsaneStats_GetXP() then
 						xp = -k:InsaneStats_GetXP() - tempExtraXP
 					end
-					--print("xp, extraXP, tempExtraXP, tempDropMul")
-					--print(xp, extraXP, tempExtraXP, tempDropMul)
+					--print("k, xp, extraXP, tempExtraXP, tempDropMul")
+					--print(k, xp, extraXP, tempExtraXP, tempDropMul)
 					--print(k, xp, xpToGive, v, victim:InsaneStats_GetDropXP(), tempExtraXP)
 					k:InsaneStats_AddXP(xp+tempExtraXP, xp*tempDropMul)
 					k:InsaneStats_AddBatteryXP(xp)
@@ -586,7 +586,7 @@ local function DoSetHealth(ent, health)
 	if IsValid(ent) then
 		ent:SetHealth(health)
 		
-		if ent:InsaneStats_GetMaxHealth() < health then
+		if ent:InsaneStats_GetMaxHealth() < health and not ent:IsPlayer() then
 			ent:SetMaxHealth(health)
 		end
 	end

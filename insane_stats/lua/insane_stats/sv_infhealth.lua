@@ -194,6 +194,7 @@ AccessorFunc(InsaneStats, "currentAbsorbedDamage", "AbsorbedDamage")
 
 local armorBypassingDamage = bit.bor(DMG_FALL, DMG_DROWN, DMG_POISON, DMG_RADIATION)
 hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo, ...)
+	local developer = GetConVar("developer"):GetInt() > 0
 	if not dLibbed then
 		InsaneStats:SetDamage(nil)
 	end
@@ -287,6 +288,9 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 					end
 					vic.insaneStats_HitAtHalfHealth = healthRatio <= 0.5
 					if vic.insaneStats_HitAtHalfHealth and vic.insaneStats_PreventLethalDamage then
+						if developer then
+							InsaneStats:Log("Applying invincibility to "..tostring(vic).."!")
+						end
 						vic:InsaneStats_ApplyStatusEffect("invincible", 1, 10)
 						timer.Simple(5, function()
 							if IsValid(vic) then

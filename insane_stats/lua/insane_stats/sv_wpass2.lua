@@ -595,6 +595,9 @@ function ENTITY:InsaneStats_IsValidEnemy(ent)
 			return true
 		end
 	end
+
+	-- if in a map named "phys_cratastrophy", all crates are enemies lol
+	if ent:GetModel() == "models/props_junk/wood_crate001a.mdl" then return true end
 	
 	return false
 end
@@ -925,7 +928,7 @@ SaveDataFile = function()
 	end
 end
 
-local function GetPlayerWPASS2SaveData(ply, shouldSave, shouldSaveBattery, oldData)
+local function GetPlayerWPASS2SaveData(ply, forced, shouldSave, shouldSaveBattery, oldData)
 	local steamID = ply:SteamID()
 	if steamID then
 		local plyWPASS2Data = {}
@@ -980,7 +983,7 @@ local function GetPlayerWPASS2SaveData(ply, shouldSave, shouldSaveBattery, oldDa
 
 				local health, maxHealth = ply:InsaneStats_GetHealth(), ply:InsaneStats_GetMaxHealth()
 				local armor, maxArmor = ply:InsaneStats_GetArmor(), ply:InsaneStats_GetMaxArmor()
-				if ply:Alive() then
+				if not forced then
 					if health > 0 then
 						plyWPASS2Data.healthArmorAndSuitStats.health = health
 					end
@@ -1011,12 +1014,16 @@ SaveData = function(ply, forced)
 		local shouldSave = InsaneStats:GetConVarValue("wpass2_modifiers_player_save_death")
 		local shouldSaveBattery = InsaneStats:GetConVarValueDefaulted("wpass2_modifiers_player_save_death_battery", "wpass2_modifiers_player_save_death")
 		if shouldSave > 0 or shouldSaveBattery > 0 then
-			playerLoadoutData[steamID] = GetPlayerWPASS2SaveData(ply, shouldSave, shouldSaveBattery, playerLoadoutData[steamID])
+			playerLoadoutData[steamID] = GetPlayerWPASS2SaveData(ply, forced, shouldSave, shouldSaveBattery, playerLoadoutData[steamID])
 		else
 			playerLoadoutData[steamID] = nil
 		end
 		
 		saveRequested = true
+
+		if GetConVar("developer"):GetInt() > 0 then
+			InsaneStats:Log(string.format("Save data requested for %s, forced = %s", tostring(ply), tostring(forced)))
+		end
 	end
 end
 
@@ -1027,7 +1034,9 @@ end
 
 hook.Add("DoPlayerDeath", "InsaneStatsWPASS", ForceSaveData)
 hook.Add("PlayerSilentDeath", "InsaneStatsWPASS", ForceSaveData)
-hook.Add("PlayerDisconnected", "InsaneStatsWPASS", ForceSaveData)
+hook.Add("PlayerDisconnected", "InsaneStatsWPASS", function(ply)
+	SaveData(ply)
+end)
 hook.Add("ShutDown", "InsaneStatsWPASS", function()
 	for k,v in pairs(player.GetAll()) do
 		SaveData(v)

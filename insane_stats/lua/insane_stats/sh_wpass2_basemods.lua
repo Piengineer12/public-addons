@@ -3083,6 +3083,9 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 		if game.SinglePlayer() then
 			speedMul = speedMul * (1 + ent:InsaneStats_GetSkillValues("panic") / 100 * healthFraction)
 		end
+		if ent:InsaneStats_HasSkill("blast_proof_suit") then
+			speedMul = speedMul * 0.75
+		end
 		
 		data.speed = data.speed * speedMul
 		data.sprintSpeed = data.sprintSpeed * ent:InsaneStats_GetAttributeValue("sprint_speed")

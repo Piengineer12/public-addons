@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 ]]
 
 InsaneStats = {
-	VERSION = "1.5.3",
-	VERSION_DATE = "2024-04-26"
+	VERSION = "1.5.4",
+	VERSION_DATE = "2024-05-13"
 }
 
 function InsaneStats:Log(msg)

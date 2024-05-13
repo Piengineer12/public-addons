@@ -255,19 +255,23 @@ local ammoCrateTypes = {
 	9, -- smg alt
 }
 hook.Add("PlayerUse", "InsaneStats", function(ply, ent)
-	if InsaneStats:GetConVarValue("ammocrate_maxammo") then
-		if ent:GetClass() == "item_ammo_crate" then
-			local crateType = tonumber(ent:GetKeyValues().AmmoType)
-			local ammoType = ammoCrateTypes[crateType+1]
-			timer.Simple(0.8, function()
-				if IsValid(ply) and (IsValid(ent) and ent:GetSequence() ~= 0) then
+	if ent:GetClass() == "item_ammo_crate" then
+		local crateType = tonumber(ent:GetKeyValues().AmmoType)
+		local ammoType = ammoCrateTypes[crateType+1]
+		timer.Simple(0.8, function()
+			if IsValid(ply) and IsValid(ent) then
+				if InsaneStats:GetConVarValue("ammocrate_maxammo") then
 					ply:GiveAmmo(9999, ammoType)
 				end
-			end)
-		elseif ent:GetClass() == "prop_vehicle_jeep" then
-			if ply:GetEyeTrace().HitGroup == 5 then
+				hook.Run("InsaneStatsAmmoCrateInteracted", ply, ent)
+			end
+		end)
+	elseif ent:GetClass() == "prop_vehicle_jeep" then
+		if ply:GetEyeTrace().HitGroup == 5 then
+			if InsaneStats:GetConVarValue("ammocrate_maxammo") then
 				ply:GiveAmmo(9999, 4)
 			end
+			hook.Run("InsaneStatsAmmoCrateInteracted", ply, ent)
 		end
 	end
 end)

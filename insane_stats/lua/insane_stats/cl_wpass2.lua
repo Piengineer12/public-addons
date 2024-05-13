@@ -165,7 +165,7 @@ local panelDisplayDieTime = 0
 local mouseOverDieTime = 0
 local panelDisplayChangeTime = 0
 local mouseOverChangeTime = 0
-local oldLevel, olderLevel = -1, -1
+local oldXP, oldLevel, olderLevel = 0, 1, 1
 local oldStatusEffects = {}
 local color_gray = Color(127, 127, 127)
 local color_light_red = Color(255, 127, 127)
@@ -431,7 +431,8 @@ end)
 local lastLookedAtWep2
 local lastLookedAtWepEntIndex
 hook.Add("HUDPaint", "InsaneStatsWPASS", function()
-	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
+	if (InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled"))
+	and InsaneStats:ShouldDrawHUD() then
 		local ply = LocalPlayer()
 		local realTime = RealTime()
 		local scrW = ScrW()
@@ -470,14 +471,20 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 			end
 			
 			if IsValid(wep) then
-				if equippedWep ~= wep:EntIndex() or oldLevel ~= wep:InsaneStats_GetLevel() then
-					oldLevel = wep:InsaneStats_GetLevel()
+				local level = wep:InsaneStats_GetLevel()
+				if oldXP ~= wep:InsaneStats_GetXP() then
+					if oldXP == 0 then
+						olderLevel = level
+					end
+					oldXP = wep:InsaneStats_GetXP()
+				end
+
+				if equippedWep ~= wep:EntIndex() or oldLevel ~= level then
+					oldLevel = level
 					if equippedWep ~= wep:EntIndex() then
 						equippedWep = wep:EntIndex()
 						panelDisplayChangeTime = realTime
-						olderLevel = oldLevel
-					--[[elseif panelDisplayDieTime <= realTime then
-						olderLevel = oldLevel]]
+						olderLevel = level
 					end
 					panelDisplayDieTime = realTime + InsaneStats:GetConVarValue("hud_wpass2_hold") + 1
 				end
@@ -493,10 +500,10 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 							wep,
 							RealTime() - panelDisplayChangeTime,
 							math.min(1, panelDisplayDieTime - realTime),
-							{levelDiff = wep:InsaneStats_GetLevel() - olderLevel}
+							{levelDiff = level - olderLevel}
 						)
 					else
-						olderLevel = oldLevel
+						olderLevel = level
 					end
 				else
 					wep:InsaneStats_MarkForUpdate()

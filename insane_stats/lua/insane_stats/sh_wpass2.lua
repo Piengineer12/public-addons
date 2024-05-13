@@ -717,6 +717,10 @@ local function DoExpiryEffect(ent, statName)
 end
 
 function ENTITY:InsaneStats_ApplyStatusEffect(id, level, duration, data)
+	-- debris cannot get status effects, as it very frequently causes net buffer overflow
+	-- FIXME: is there a better solution?
+	if self:GetCollisionGroup() == COLLISION_GROUP_DEBRIS and self:GetClass() == "prop_physics" then return end
+
 	EntityInitStatusEffects(self)
 	local effectTable = self.insaneStats_StatusEffects[id]
 	local changeOccured = false

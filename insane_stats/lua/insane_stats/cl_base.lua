@@ -176,6 +176,10 @@ function InsaneStats:DrawMaterialOutlined(material, x, y, w, h, color, outlineTh
 	return surface.DrawTexturedRect(x, y, w, h)
 end
 
+function InsaneStats:ShouldDrawHUD()
+	return GetConVar("cl_drawhud"):GetBool() and GetConVar("hidehud"):GetInt() < 1
+end
+
 InsaneStats:SetDefaultConVarCategory("Miscellaneous")
 
 InsaneStats:RegisterClientConVar("hud_scale", "insanestats_hud_scale", "1", {
@@ -280,9 +284,10 @@ local citizenIcons = {
 	{"run", colors.light_blue}
 }
 hook.Add("HUDPaint", "InsaneStats", function()
-	if InsaneStats:GetConVarValue("hud_ally_enabled") then
+	local ply = LocalPlayer()
+	local hasSuit = ply:IsSuitEquipped()
+	if InsaneStats:GetConVarValue("hud_ally_enabled") and InsaneStats:ShouldDrawHUD() and hasSuit then
 		local citizenCounts = {0, 0, 0}
-		local ply = LocalPlayer()
 		local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
 		
 		for i,v in ipairs(citizens) do

@@ -110,16 +110,6 @@ local skills = {
 		pos = {0, 2},
 		minpts = 5
 	},
-	four_parallel_universes_ahead = {
-		name = "Four Parallel Universes Ahead",
-		desc = "Damage taken is reduced based on velocity. At normal running velocity, damage taken is reduced by %.0f%%.",
-		values = function(level)
-			return level * -8
-		end,
-		img = "dodging",
-		pos = {-1, 1},
-		minpts = 5
-	},
 	dodger = {
 		name = "Dodger",
 		desc = "%+.0f%% dodge chance. Note that disintegrating damage can't be dodged.",
@@ -127,6 +117,20 @@ local skills = {
 			return level * 5
 		end,
 		img = "journey",
+		pos = {-1, 1},
+		minpts = 5
+	},
+	love_and_tolerate = {
+		name = "Love And Tolerate",
+		desc = "Whenever damage would be taken, gain %+.1f stack(s) of Love And Tolerate. Each stack gives 1%% more defence, but stacks decay at a rate of -0.1%%/s.",
+		values = function(level)
+			return level/5
+		end,
+		stackTick = function(state, current, time, ent)
+			local nextStacks = current * .999 ^ time
+			return nextStacks <= 0 and 0 or 1, nextStacks
+		end,
+		img = "arrows-shield",
 		pos = {-2, 0},
 		minpts = 5
 	},
@@ -156,13 +160,13 @@ local skills = {
 		pos = {1, -2},
 		minpts = 5
 	},
-	productivity = {
-		name = "Productivity",
-		desc = "%+.0f%% item pickups",
+	reuse = {
+		name = "Reuse",
+		desc = "%+.0f%% chance to not consume ammo",
 		values = function(level)
-			return level * 20
+			return level * 8
 		end,
-		img = "cubeforce",
+		img = "crystal-bars",
 		pos = {2, -1},
 		minpts = 5
 	},
@@ -261,7 +265,7 @@ local skills = {
 		name = "Looting",
 		desc = "On kill, there is a %+.0f%% chance for a random item to be spawned.",
 		values = function(level)
-			return level * 10
+			return level * 5
 		end,
 		img = "cogsplosion",
 		pos = {3, -1},
@@ -271,7 +275,7 @@ local skills = {
 		name = "Fortune",
 		desc = "%+.0f%% chance for a random item when a prop is broken",
 		values = function(level)
-			return level * 10
+			return level * 5
 		end,
 		img = "diamond-hard",
 		pos = {3, 1},
@@ -377,7 +381,7 @@ local skills = {
 
 	-- distance 5
 	brilliant_behemoth = {
-		name = "Brilliant Behemoth",
+		name = "Michael Bay Simulator",
 		desc = "While %s is not held, all hits against entities cause explosions with %u Hu radii! Note that these explosions hurt ALL entities in range.",
 		values = function(level)
 			local slowWalkKey = "the Slow Walk key"
@@ -409,13 +413,13 @@ local skills = {
 		pos = {2, -3},
 		minpts = 5
 	},
-	reuse = {
-		name = "Reuse",
-		desc = "%+.0f%% chance to not consume ammo",
+	productivity = {
+		name = "Productivity",
+		desc = "%+.0f%% chance to duplicate items. On kill, add %+.0f%% ammo into the current weapon's clips.",
 		values = function(level)
-			return level * 8
+			return level * 10, level * 5
 		end,
-		img = "crystal-bars",
+		img = "cubeforce",
 		pos = {3, -2},
 		minpts = 5
 	},
@@ -458,7 +462,7 @@ local skills = {
 		name = "Ain't Got Time For This",
 		desc = "While %s is held, gain %+.1f stack(s) of Ain't Got Time For This per second. \z
 		Stacks are gained 1%% faster per stack, but stack gains are divided by game speed. \z
-		Each stack increases defence and game speed by 1%%, but all stacks are lost when %s is released.\n\z
+		Each stack increases attack damage, defence and game speed by 1%%, but all stacks are lost when %s is released.\n\z
 		(This skill is completely different in multiplayer.)",
 		values = function(level)
 			local crouchKey = "the Crouch key"
@@ -681,17 +685,13 @@ local skills = {
 		pos = {-2, 4},
 		minpts = 5
 	},
-	love_and_tolerate = {
-		name = "Love And Tolerate",
-		desc = "Whenever damage would be taken, gain %+.1f stack(s) of Love And Tolerate. Each stack gives 1%% more defence, but stacks decay at a rate of -0.1%%/s.",
+	four_parallel_universes_ahead = {
+		name = "Four Parallel Universes Ahead",
+		desc = "Damage taken is reduced based on velocity. At normal running velocity, damage taken is reduced by %.0f%%.",
 		values = function(level)
-			return level/5
+			return level * -8
 		end,
-		stackTick = function(state, current, time, ent)
-			local nextStacks = current * .999 ^ time
-			return nextStacks <= 0 and 0 or 1, nextStacks
-		end,
-		img = "arrows-shield",
+		img = "dodging",
 		pos = {-3, 3},
 		minpts = 5
 	},
@@ -718,10 +718,10 @@ local skills = {
 	more_bullet_per_bullet = {
 		name = "More Bullet Per Bullet",
 		desc = "Reserve ammo above %u%% is converted into More Bullet Per Bullet stacks. \z
-		Each stack increases defence and damage dealt by 1%%, but stacks are capped to a maximum of +%u \z
-		and decay at a rate of -0.1%%/s.",
+		Each stack increases defence and damage dealt by 1%%, but stacks decay at a rate of -0.1%%/s. \z
+		Additionally, interacting with an Ammo Crate causes all stacks to be removed.",
 		values = function(level)
-			return 100 - level * 5, level * 200
+			return 100 - level * 5
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = current * .999 ^ time
@@ -1120,13 +1120,9 @@ local skills = {
 	},
 	blast_proof_suit = {
 		name = "Blast-Proof Suit",
-		desc = "%+.0f%% explosive damage taken!%s",
+		desc = "Move -25%% slower, but take -100%% self-explosion damage! Also, take %+.0f%% explosive damage from other sources and deal %+.0f%% explosive damage.",
 		values = function(level)
-			if level <= 5 then
-				return level * -20, ""
-			else
-				return -100, " Taking explosive damage also restores +1% of max health."
-			end
+			return math.max(level * -12, -100), level * 12
 		end,
 		img = "robot-golem",
 		pos = {-4, -4},
@@ -1229,13 +1225,22 @@ hook.Add("InsaneStatsLoadWPASS", "InsaneStatsSkillsDefault", function(currentMod
 	table.Merge(currentStatusEffects, statusEffects)
 end)
 
+--[[local cachedTotals = {}
+local lastCache = 0
+local function RewriteFriendlyFireSkills()
+end]]
+
 hook.Add("InsaneStatsGetSkillTier", "InsaneStatsSkillsDefault", function(ent, skill)
 	if SERVER and skill ~= "friendly_fire_off" then
 		local highestLevel = ent:InsaneStats_GetSkills()[skill] or 0
-		for k,v in pairs(InsaneStats:GetEntitiesWithSkills()) do
-			if not (k:IsPlayer() and k:KeyDown(IN_WALK)) then
-				local theirSkills = k:InsaneStats_GetSkills()
-				if (theirSkills.friendly_fire_off or 0) > 1 and k:InsaneStats_IsValidAlly(ent) then
+		-- for k,v in pairs(InsaneStats:GetEntitiesWithSkills()) do
+		-- FIXME: below only works because non-player entities can't get the friendly_fire_off skill
+		-- otherwise the line above needs to be used, with caching for maps containing 1000s of allies
+		for i,v in ipairs(player.GetAll()) do 
+			--if not (k:IsPlayer() and k:KeyDown(IN_WALK)) then
+			if not v:KeyDown(IN_WALK) then
+				local theirSkills = v:InsaneStats_GetSkills()
+				if (theirSkills.friendly_fire_off or 0) > 1 and v:InsaneStats_IsValidAlly(ent) then
 					highestLevel = math.max(highestLevel, theirSkills[skill] or 0)
 					InsaneStats:SetEntityAsContainingSkills(ent)
 				end
