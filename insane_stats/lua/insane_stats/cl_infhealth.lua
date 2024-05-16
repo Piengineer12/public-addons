@@ -222,8 +222,8 @@ hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 	if InsaneStats:ShouldDrawHUD() then
 		local scrW = ScrW()
 		local scrH = ScrH()
-		local hasSuit = ply:IsSuitEquipped()
 		local ply = LocalPlayer()
+		local hasSuit = ply:IsSuitEquipped()
 		
 		if InsaneStats:GetConVarValue("hud_damage_enabled") and hasSuit then
 			cam.Start3D()

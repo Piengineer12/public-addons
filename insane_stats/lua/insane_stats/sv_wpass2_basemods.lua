@@ -1527,7 +1527,8 @@ local function SpawnRandomItems(items, pos)
 		for i,v in ipairs(ents.GetAll()) do
 			local class = v:GetClass()
 			if possibleItems[class] then
-				if not v:CreatedByMap() and not IsValid(v:GetOwner()) then
+				if not v:CreatedByMap() and not IsValid(v:GetOwner())
+				and not v:InsaneStats_GetEntityData("item_teleported") then
 					table.insert(toDistribute, v)
 				end
 			end
@@ -1536,6 +1537,7 @@ local function SpawnRandomItems(items, pos)
 		if #toDistribute > 128 then
 			-- distribute items randomly
 			for i,v in ipairs(toDistribute) do
+				v:InsaneStats_SetEntityData("item_teleported", true)
 				v:SetPos(plys[math.random(#plys)]:WorldSpaceCenter())
 			end
 		end
@@ -2009,7 +2011,8 @@ local function AttemptDupeEntity(ply, item)
 				-- do not duplicate if too many duplicates are within PVS
 				local duplicates = {}
 				for i,v in ipairs(ents.FindInPVS(item:WorldSpaceCenter())) do
-					if v:GetClass() == class and v.insaneStats_Duplicated then
+					if v:GetClass() == class and v.insaneStats_Duplicated
+					and not v:InsaneStats_GetEntityData("item_teleported") then
 						table.insert(duplicates, v)
 					end
 				end
@@ -2046,6 +2049,7 @@ local function AttemptDupeEntity(ply, item)
 					end
 				else
 					for i,v in ipairs(duplicates) do
+						v:InsaneStats_SetEntityData("item_teleported", true)
 						v:SetPos(ply:WorldSpaceCenter())
 						v.insaneStats_PreventMagnet = 100
 					end

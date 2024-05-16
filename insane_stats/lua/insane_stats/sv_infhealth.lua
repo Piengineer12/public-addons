@@ -276,6 +276,10 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 				if (vic:GetClass() == "npc_helicopter"
 				or vic.insaneStats_PreventLethalDamage)
 				and not vic.insaneStats_HitAtHalfHealth or stunned then
+					if developer then
+						InsaneStats:Log("Prevented lethal damage to "..tostring(vic).."!")
+					end
+
 					-- if damage exceeds health * 0.75, nerf damage received
 					-- we have to do this otherwise the helicopter might remain in a dead-not-dead state
 					local maxDamage = vic:InsaneStats_GetRawHealth() * 0.75
@@ -285,19 +289,6 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 							vic:InsaneStats_ClearStatusEffect("stunned")
 							vic:InsaneStats_ApplyStatusEffect("invincible", 1, 0.25)
 						end
-					end
-					vic.insaneStats_HitAtHalfHealth = healthRatio <= 0.5
-					if vic.insaneStats_HitAtHalfHealth and vic.insaneStats_PreventLethalDamage then
-						if developer then
-							InsaneStats:Log("Applying invincibility to "..tostring(vic).."!")
-						end
-						vic:InsaneStats_ApplyStatusEffect("invincible", 1, 10)
-						timer.Simple(5, function()
-							if IsValid(vic) then
-								vic.insaneStats_HitAtHalfHealth = vic:InsaneStats_GetHealth()
-								/ vic:InsaneStats_GetMaxHealth() <= 0.5
-							end
-						end)
 					end
 				end
 			end
@@ -430,6 +421,10 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 			ent:InsaneStats_SetCurrentArmorAdd(ent:InsaneStats_GetMaxArmor() / startingArmor)
 			ent:SetArmor(ent:InsaneStats_GetMaxArmor())
 		end
+
+		if ent:GetClass() == "npc_helicopter" then
+			ent:Fire("AddOutput", "OnHalfHealth !self:InsaneStats_OnHalfHealth")
+		end
 	end
 	
 	if not ent.insaneStats_SpawnModified then
@@ -461,5 +456,31 @@ end)
 hook.Add("EntityKeyValue", "InsaneStatsUnlimitedHealth", function(ent, key, value)
 	if key == "OnHalfHealth" then
 		ent.insaneStats_PreventLethalDamage = true
+	end
+end)
+
+hook.Add("AcceptInput", "InsaneStatsUnlimitedHealth", function(ent, input, activator, caller, data)
+	if input == "InsaneStats_OnHalfHealth" then
+		local developer = GetConVar("developer"):GetInt() > 0
+
+		ent.insaneStats_HitAtHalfHealth = true
+		if developer then
+			InsaneStats:Log(tostring(ent).." was hit at half health!")
+		end
+		
+		if ent.insaneStats_PreventLethalDamage then
+			if developer then
+				InsaneStats:Log("Applying invincibility to "..tostring(ent).."!")
+			end
+			ent:InsaneStats_ApplyStatusEffect("invincible", 1, 10)
+		end
+
+		timer.Simple(5, function()
+			if IsValid(ent) then
+				ent.insaneStats_HitAtHalfHealth = ent:InsaneStats_GetHealth() / ent:InsaneStats_GetMaxHealth() <= 0.5
+			end
+		end)
+
+		return true
 	end
 end)
