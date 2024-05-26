@@ -330,14 +330,14 @@ function InsaneStats:ScaleLevelToTotalValue(value, mul, start, multiplicative)
 		-- value = -start/mul*(1-(mul+1)^(level-1))
 		-- log(value/start*mul+1)/log((mul+1))+1 = level
 		
-		return math.log(value/start*mul+1, mul+1)+1
+		return math.log(math.max(value/start*mul+1, 0), mul+1)+1
 	else
 		--[[
 		if c = a*(x-1+(x^2-3*x+2)*b/2)
 		then x = (sqrt(a (b - 2)^2 + 8 b c) + sqrt(a) (3 b - 2))/(2 sqrt(a) b) and a b!=0, courtesy of WolframAlpha
 		]]
 		
-		local part = math.sqrt(start*(mul - 2)^2 + 8*mul*value)
+		local part = math.sqrt(math.max(start*(mul - 2)^2 + 8*mul*value, 0))
 		local sqrtStart = math.sqrt(start)
 		
 		return (part + sqrtStart*(3*mul - 2))/(2*sqrtStart*mul)

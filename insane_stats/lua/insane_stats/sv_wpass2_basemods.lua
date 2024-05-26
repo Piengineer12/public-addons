@@ -545,6 +545,11 @@ end
 
 local totalDamageTicks = 0
 local storedScaleCVars
+local neverReflectDamageClasses = {
+	-- reflecting stalker attacks will result in INSTANT CTD
+	npc_stalker = true,
+	trigger_hurt = true
+}
 hook.Add("EntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo)
 	if (InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled")) and IsValid(vic) then
 		totalDamageTicks = (totalDamageTicks or 0) + 1
@@ -643,8 +648,7 @@ hook.Add("EntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo)
 			dmginfo:SetDamage(oldDamage)
 			dmginfo:SetAttacker(oldAttacker)]]
 
-			-- reflecting stalker attacks will result in INSTANT CTD
-			if attacker:GetClass() ~= "npc_stalker" then
+			if not neverReflectDamageClasses[attacker:GetClass()] then
 				attacker:TakeDamage(40, vic)
 			end
 			table.remove(damageTiers)
@@ -1015,7 +1019,7 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 				if vic:InsaneStats_GetAttributeValue("retaliation10_damage") ~= 1 then
 					if vic:InsaneStats_GetStatusEffectLevel("retaliation10_buildup") < 9 then
 						vic:InsaneStats_ApplyStatusEffect("retaliation10_buildup", 1, 5, {amplify = true})
-					elseif attacker:GetClass() ~= "npc_stalker" then
+					elseif not neverReflectDamageClasses[attacker:GetClass()] then
 						-- reflecting stalker attacks will result in INSTANT CTD
 						vic:InsaneStats_ClearStatusEffect("retaliation10_buildup")
 						
@@ -1639,6 +1643,9 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsSkills", function(victim, at
 			end
 			if v:InsaneStats_HasSkill("hunting_spirit") then
 				v:InsaneStats_SetSkillData("hunting_spirit", 1, 10)
+			end
+			if v:InsaneStats_HasSkill("skip_the_scenery") then
+				v:InsaneStats_SetSkillData("skip_the_scenery", -1, 10)
 			end
 			if v:InsaneStats_HasSkill("increase_the_pressure") then
 				v:InsaneStats_SetSkillData(

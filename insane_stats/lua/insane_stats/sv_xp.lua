@@ -132,6 +132,11 @@ function ENT:InsaneStats_ApplyLevel(level)
 		end
 		if newHealth == math.huge then
 			currentHealthFrac = 1
+		elseif not (newHealth >= -math.huge) then
+			print(
+				startingHealth, InsaneStats:GetConVarValue("xp_other_health")/100,
+				level, false, InsaneStats:GetConVarValue("xp_other_health_add")/100
+			)
 		end
 		self:SetMaxHealth(newHealth)
 		self:SetHealth(currentHealthFrac * newHealth)

@@ -3307,6 +3307,8 @@ hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data
 		local penetrationPower = attacker:InsaneStats_GetAttributeValue("penetrate") - 1
 		+ attacker:InsaneStats_GetSkillValues("silver_bullets", 2)
 		if penetrationPower > 0 and penetrations < 1000 then
+			-- FIXME: in some cases, bullet penetration will incorrectly pierce
+			-- hollow objects as if they were completely solid
 			local oldCallback = data.Callback
 			local newBullet = {
 				Force = data.Force,
