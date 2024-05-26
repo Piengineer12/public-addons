@@ -1317,6 +1317,12 @@ ISAWC.ConLootRestock = CreateConVar("isawc_container_lootrestocktime", "-1", FCV
 "Amount of time it takes for containers to restock their loot.\
 A negative value means that containers will never restock their loot.")
 
+ISAWC.ConSlowdownMassMaxSpeed = CreateConVar("isawc_player_massslowdown_maxspeed", "1", FCVAR_REPLICATED,
+"Multiplier of player speed when carrying maximum mass.")
+
+ISAWC.ConSlowdownMinMass = CreateConVar("isawc_player_massslowdown_percent", "0.5", FCVAR_REPLICATED,
+"Players carrying over this fraction of their max carrying mass will start to be slowed down depending on their carried mass.")
+
 --[[ISAWC.ConPickupViewModel = CreateConVar("isawc_pickup_weapon_viewmodel", "models/weapons/v_pistol.mdl", FCVAR_REPLICATED,
 "View model used by the Pickup SWEP.\
 A server restart is required for this to take effect.")
@@ -2552,6 +2558,20 @@ ISAWC.ServerOptionsInfo = {
 				type = "number",
 				min = 1,
 				max = 600
+			},
+			{
+				name = "Maximum Mass Speed",
+				convar = ISAWC.ConSlowdownMassMaxSpeed,
+				type = "number",
+				min = 0,
+				max = 1
+			},
+			{
+				name = "Slowdown Minimum Mass Fraction",
+				convar = ISAWC.ConSlowdownMinMass,
+				type = "number",
+				min = 0,
+				max = 1
 			},
 			{
 				name = "Drop Inventory On Death",
@@ -5638,6 +5658,30 @@ ISAWC.ReadAmmoItemStamps = function(self)
 	end
 end
 
+ISAWC.MassSlowdownCheck = function(self,ply,massFraction)
+	local oldSlowdownSpeedMul = ply.ISAWC_SlowdownMul or 1
+	local newSlowdownSpeedMul = math.Clamp(
+		math.Remap(
+			massFraction,
+			self.ConSlowdownMinMass:GetFloat(),
+			1,
+			1,
+			self.ConSlowdownMassMaxSpeed:GetFloat()
+		),
+		1e-6,
+		1
+	)
+
+	local diffSpeedMul = newSlowdownSpeedMul / oldSlowdownSpeedMul
+	ply:SetLadderClimbSpeed(ply:GetLadderClimbSpeed() * diffSpeedMul)
+	ply:SetMaxSpeed(ply:GetMaxSpeed() * diffSpeedMul)
+	ply:SetRunSpeed(ply:GetRunSpeed() * diffSpeedMul)
+	ply:SetWalkSpeed(ply:GetWalkSpeed() * diffSpeedMul)
+	ply:SetSlowWalkSpeed(ply:GetSlowWalkSpeed() * diffSpeedMul)
+
+	ply.ISAWC_SlowdownMul = newSlowdownSpeedMul
+end
+
 ISAWC.SendInventory = function(self,ply)
 	self:StartNetMessage("inventory")
 	--[[local data = util.Compress(util.TableToJSON(self:GetClientInventory(ply)))
@@ -5655,6 +5699,8 @@ ISAWC.SendInventory = function(self,ply)
 	end
 	self:WriteAmmoItemStamps(ply)
 	net.Send(ply)
+
+	self:MassSlowdownCheck(ply, stats[1] / stats[2])
 end
 
 ISAWC.SendInventory2 = function(self,ply,container)
@@ -5675,16 +5721,19 @@ ISAWC.SendInventory2 = function(self,ply,container)
 	for i=5,6 do
 		net.WriteUInt(stats[i],16)
 	end
-	stats = self:GetClientStats(container,ply)
+	local stats2 = self:GetClientStats(container,ply)
 	for i=1,4 do
-		net.WriteFloat(stats[i])
+		net.WriteFloat(stats2[i])
 	end
 	for i=5,6 do
-		net.WriteUInt(stats[i],16)
+		net.WriteUInt(stats2[i],16)
 	end
 	self:WriteAmmoItemStamps(ply)
 	net.WriteBool(container:GetIsPublic())
 	net.Send(ply)
+
+	self:MassSlowdownCheck(ply, stats[1] / stats[2])
+
 	ISAWC:UpdateContainerInventories(container)
 	ISAWC:SaveContainerInventory(container)
 end
@@ -5959,7 +6008,7 @@ ISAWC.SaveInventory = function(self,ply)
 			end
 		end
 		self:SQL("COMMIT;")
-	elseif (isentity(ply) and ply:IsPlayer()) then
+	elseif ply:IsPlayer() then
 		steamid = steamid or ply:SteamID() or ""
 		if steamid ~= "" and self.ConDoSave:GetInt() > 0 then
 			local inv = ply.ISAWC_Inventory

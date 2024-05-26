@@ -63,7 +63,7 @@ concommand.Add("insanestats_xp_player_level_set", function(ply, cmd, args, argSt
 			if plyStr ~= "" then
 				-- scan for player
 				local foundPlayer = false
-				for k,v in pairs(player.GetAll()) do
+				for i,v in player.Iterator() do
 					if v:Nick() == plyStr then
 						ply = v
 						foundPlayer = true
@@ -89,7 +89,7 @@ end, function(cmd, argStr)
 	local suggestions = {}
 	argStr = argStr:Trim()
 	
-	for k,v in pairs(player.GetAll()) do
+	for i,v in player.Iterator() do
 		if string.StartsWith(v:Nick():Trim(), argStr) then
 			table.insert(suggestions, cmd.." \""..v:Nick().."\"")
 		end
@@ -398,11 +398,10 @@ function InsaneStats:DetermineEntitySpawnedXP(ent)
 
 	-- get base level
 	local level = self:GetConVarValue("xp_other_level_start")
-	local allPlayers = player.GetAll()
-	local playerCount = math.max(#allPlayers, 1)
+	local playerCount = math.max(player.GetCount(), 1)
 	local hasPlayer = false
 	
-	for k,v in pairs(allPlayers) do
+	for i,v in player.Iterator() do
 		if v:InsaneStats_GetEntityData("xp") then
 			hasPlayer = true break
 		end
@@ -414,7 +413,7 @@ function InsaneStats:DetermineEntitySpawnedXP(ent)
 			if typ == 1 then
 				-- get average level
 				local totalLevel = 0
-				for k,v in pairs(allPlayers) do
+				for i,v in player.Iterator() do
 					if v:InsaneStats_GetEntityData("xp") then
 						totalLevel = totalLevel + v:InsaneStats_GetLevel()
 					end
@@ -425,7 +424,7 @@ function InsaneStats:DetermineEntitySpawnedXP(ent)
 				-- get geometric average level
 				local totalLevel = 1
 				local inversePlayerCount = 1/playerCount
-				for k,v in pairs(allPlayers) do
+				for i,v in player.Iterator() do
 					if v:InsaneStats_GetEntityData("xp") then
 						totalLevel = totalLevel * v:InsaneStats_GetLevel() ^ inversePlayerCount
 					end
@@ -435,7 +434,7 @@ function InsaneStats:DetermineEntitySpawnedXP(ent)
 			elseif typ == 3 then
 				-- get highest level
 				local highestLevel = 1
-				for k,v in pairs(allPlayers) do
+				for i,v in player.Iterator() do
 					highestLevel = math.max(highestLevel, v:InsaneStats_GetLevel())
 				end
 				
@@ -444,7 +443,7 @@ function InsaneStats:DetermineEntitySpawnedXP(ent)
 				-- get nearest player
 				local closestPlayer = game.GetWorld()
 				local closestSqrDist = math.huge
-				for k,v in pairs(allPlayers) do
+				for i,v in player.Iterator() do
 					local sqrDist = pos:DistToSqr(v:GetPos())
 					if sqrDist < closestSqrDist and v:InsaneStats_GetEntityData("xp") then
 						closestPlayer = v
@@ -692,7 +691,7 @@ hook.Add("AcceptInput", "InsaneStatsXP", function(ent, input, activator, caller,
 		end
 	elseif input == "setplayerhealth" and ent:GetClass() == "logic_playerproxy" then
 		if tonumber(data) then
-			for k,v in pairs(player.GetAll()) do
+			for i,v in player.Iterator() do
 				local healthMul = v:InsaneStats_GetCurrentHealthAdd()
 				local newHealth = healthMul * tonumber(data)
 				v:SetHealth(newHealth)
@@ -828,7 +827,7 @@ hook.Add("InsaneStatsSave", "InsaneStatsXP", function(data)
 	if InsaneStats:GetConVarValue("xp_enabled") and InsaneStats:GetConVarValue("xp_player_save") then
 		data.maps = mapOrder
 		
-		for k,v in pairs(player.GetAll()) do
+		for i,v in player.Iterator() do
 			local steamID = v:SteamID()
 			if steamID then
 				savedPlayerXP[steamID] = v:InsaneStats_GetXP()

@@ -257,7 +257,6 @@ GenerateFonts() -- FIXME: is this really necessary?
 
 local scale, font
 local citizens = {}
-local allEntities = {}
 local citizenSlowHealths = {}
 timer.Create("InsaneStats", 1, 0, function()
 	if scale ~= InsaneStats:GetConVarValue("hud_scale") or font ~= InsaneStats:GetConVarValue("hud_font") then
@@ -267,7 +266,6 @@ timer.Create("InsaneStats", 1, 0, function()
 	end
 
 	citizens = ents.FindByClass("npc_citizen")
-	allEntities = ents.GetAll()
 
 	for k,v in pairs(citizenSlowHealths) do
 		if not IsValid(k) then
@@ -291,7 +289,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 		local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
 		
 		for i,v in ipairs(citizens) do
-			if (IsValid(v) and not v:IsDormant()) then
+			if (IsValid(v) and not v:IsDormant() and v.insaneStats_Disposition ~= 1) then
 				local citizenFlags = v.insaneStats_CitizenFlags
 				if citizenFlags then
 					if bit.band(citizenFlags, 4) ~= 0 then
@@ -314,8 +312,8 @@ hook.Add("HUDPaint", "InsaneStats", function()
 		local opaqueDistSqr = InsaneStats:GetConVarValue("hud_ally_dist_opaque")^2
 		local allyValues = {}
 		cam.Start3D()
-		for i,v in ipairs(allEntities) do
-			if (IsValid(v) and not v:IsDormant() and v ~= ply) then
+		for i,v in ents.Iterator() do
+			if (IsValid(v) and not v:IsDormant()) and v ~= ply then
 				local isAlly = false
 
 				if v:IsNPC() then

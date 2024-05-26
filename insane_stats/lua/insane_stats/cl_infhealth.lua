@@ -69,6 +69,10 @@ hook.Add("InsaneStatsHUDDamageTaken", "InsaneStatsUnlimitedHealth", function(ent
 		local entityDamageNumbers = allDamageNumbers[entIndex]
 		local requireNewAdd = true
 
+		if ply:EntIndex() == entIndex then
+			flags = bit.bor(flags, 4)
+		end
+
 		if next(entityDamageNumbers) then
 			local latestEntDamage = entityDamageNumbers[#entityDamageNumbers]
 			-- check whether the previous damage number should have elapsed
@@ -446,7 +450,7 @@ hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 			end
 
 			local entityDamageNumbers = allDamageNumbers[ply:EntIndex()]
-			if entityDamageNumbers then
+			if entityDamageNumbers and hasSuit then
 				local setPosX = baseX + barW / 2
 				local setPosY = baseY - barH - InsaneStats.FONT_MEDIUM
 

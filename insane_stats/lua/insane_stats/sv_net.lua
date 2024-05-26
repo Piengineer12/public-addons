@@ -190,43 +190,52 @@ local function BroadcastDamageUpdates()
 	net.Broadcast()
 end
 
+-- this coroutine thread is to deal with dispositions
 local npcs = ents.GetAll()
-timer.Create("InsaneStatsNet", 0.5, 0, function()
-	players = player.GetAll()
-	
-	local i = 1
-	while npcs[i] do
-		local ent = npcs[i]
-		
-		if (IsValid(ent) and ent:IsNPC()) then
-			local isAlly, isEnemy = false, false
+local dispositionScanner = coroutine.create(function()
+	while true do
+		local i = 1
+		while npcs[i] do
+			local ent = npcs[i]
 			
-			for i,v in ipairs(players) do
-				if ent:Disposition(v) == D_LI then
-					isAlly = true
-				elseif ent:Disposition(v) == D_HT then
-					isEnemy = true
-				end
-			end
+			if (IsValid(ent) and ent:IsNPC()) then
+				local isAlly, isEnemy = false, false
+				
+				for i,v in player.Iterator() do
+					if IsValid(ent) and IsValid(v) then
+						local disposition = ent:Disposition(v)
+						if disposition == D_LI then
+							isAlly = true
+						elseif disposition == D_HT then
+							isEnemy = true
+						end
+					end
 
-			if ent:GetClass() == "npc_citizen" then
-				if (ent:GetInternalVariable("squadname") == "player_squad")
-				== (bit.band(ent.insaneStats_CitizenFlags or 0, 4) == 0) then
-					ent.insaneStats_CitizenFlags = bit.band(
-						ent.insaneStats_CitizenFlags or 0,
-						bit.bnot(ent:GetInternalVariable("squadname") == "player_squad" and 0 or 4)
-					)
-					ent:InsaneStats_MarkForUpdate(256)
+					if isAlly and isEnemy then break end
+					coroutine.yield()
 				end
+
+				if ent:GetClass() == "npc_citizen" then
+					if (ent:GetInternalVariable("squadname") == "player_squad")
+					== (bit.band(ent.insaneStats_CitizenFlags or 0, 4) == 0) then
+						ent.insaneStats_CitizenFlags = bit.band(
+							ent.insaneStats_CitizenFlags or 0,
+							bit.bnot(ent:GetInternalVariable("squadname") == "player_squad" and 0 or 4)
+						)
+						ent:InsaneStats_MarkForUpdate(256)
+					end
+				end
+				
+				ent:InsaneStats_SetEntityData("is_ally", isAlly)
+				ent:InsaneStats_SetEntityData("is_enemy", isEnemy)
+				
+				i = i + 1
+			else
+				table.remove(npcs, i)
 			end
-			
-			ent:InsaneStats_SetEntityData("is_ally", isAlly)
-			ent:InsaneStats_SetEntityData("is_enemy", isEnemy)
-			
-			i = i + 1
-		else
-			table.remove(npcs, i)
+			coroutine.yield()
 		end
+		coroutine.yield(true)
 	end
 end)
 
@@ -247,6 +256,15 @@ hook.Add("Think", "InsaneStatsNet", function()
 	
 	if next(damageInfosRequireUpdate) then
 		BroadcastDamageUpdates()
+	end
+
+	for i=1,66 do
+		local success, ret = coroutine.resume(dispositionScanner)
+		if success then
+			if ret then break end
+		else
+			error(ret)
+		end
 	end
 end)
 
