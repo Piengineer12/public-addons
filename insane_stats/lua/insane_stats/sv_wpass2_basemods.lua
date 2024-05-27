@@ -3011,8 +3011,8 @@ local markingScanner = coroutine.create(function()
 					elseif (k:IsNPC() and k:Disposition(ent) == D_HT and k:HasEnemyEluded(ent)) then
 						k:UpdateEnemyMemory(ent, ent:GetPos())
 					end
-				elseif IsValid(k.insaneStats_MarkedEntity) then
-					k.insaneStats_MarkedEntity = NULL
+				elseif k.insaneStats_MarkedEntity then
+					k.insaneStats_MarkedEntity = nil
 
 					if k:IsPlayer() then
 						net.Start("insane_stats")
