@@ -494,5 +494,21 @@ net.Receive("insane_stats", function(length, ply)
 			net.WriteUInt(v, 4)
 		end
 		net.Send(ply)
+	elseif func == 7 then
+		local lookPositions = {}
+		for i,v in ipairs(ents.FindByClass("trigger_look")) do
+			local targetEnts = ents.FindByName(v:GetInternalVariable("target"))
+			for j,v2 in ipairs(targetEnts) do
+				table.insert(lookPositions, v2:GetPos())
+			end
+		end
+
+		net.Start("insane_stats", true)
+		net.WriteUInt(9, 8)
+		net.WriteUInt(#lookPositions, 8)
+		for i,v in ipairs(lookPositions) do
+			net.WriteVector(v)
+		end
+		net.Send(ply)
 	end
 end)
