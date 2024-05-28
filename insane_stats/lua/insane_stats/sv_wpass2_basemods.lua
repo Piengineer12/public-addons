@@ -2715,11 +2715,49 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsWPASS2", function(ent)
 		ent:SetRenderMode(10)]]
 	elseif class == "func_breakable_surf" then
 		ent:Fire("AddOutput", "OnBreak !self:InsaneStats_OnBreak::0:-1")
+	elseif class == "trigger_look" then
+		local lookPositions = {}
+		for i,v in ipairs(ents.FindByClass("trigger_look")) do
+			local targetEnts = ents.FindByName(v:GetInternalVariable("target"))
+			for j,v2 in ipairs(targetEnts) do
+				table.insert(lookPositions, v2:GetPos())
+			end
+		end
+
+		net.Start("insane_stats", true)
+		net.WriteUInt(9, 8)
+		net.WriteUInt(#lookPositions, 8)
+		for i,v in ipairs(lookPositions) do
+			net.WriteVector(v)
+		end
+		net.Broadcast()
 	end
 	ent:InsaneStats_ClearAllStatusEffects()
 end)
 
-timer.Create("InsaneStatsWPASS2Look", 5, 0, function()
+hook.Add("EntityRemoved", "InsaneStatsWPASS2", function(ent)
+	local class = ent:GetClass()
+	if class == "trigger_look" then
+		timer.Simple(0, function()
+			local lookPositions = {}
+			for i,v in ipairs(ents.FindByClass("trigger_look")) do
+				local targetEnts = ents.FindByName(v:GetInternalVariable("target"))
+				for j,v2 in ipairs(targetEnts) do
+					table.insert(lookPositions, v2:GetPos())
+				end
+			end
+			net.Start("insane_stats")
+			net.WriteUInt(9, 8)
+			net.WriteUInt(#lookPositions, 8)
+			for i,v in ipairs(lookPositions) do
+				net.WriteVector(v)
+			end
+			net.Broadcast()
+		end)
+	end
+end)
+
+--[[timer.Create("InsaneStatsWPASS2Look", 5, 0, function()
 	local lookPositions = {}
 	for i,v in ipairs(ents.FindByClass("trigger_look")) do
 		local targetEnts = ents.FindByName(v:GetInternalVariable("target"))
@@ -2736,7 +2774,7 @@ timer.Create("InsaneStatsWPASS2Look", 5, 0, function()
 		end
 		net.Broadcast()
 	end
-end)
+end)]]
 
 --[[hook.Add("InsaneStatsEntityShouldBeAlpha", "InsaneStatsWPASS2", function(ent)
 	if InsaneStats:GetConVarValue("skills_enabled") then
