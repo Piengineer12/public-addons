@@ -47,6 +47,8 @@ local function GetIconForEntity(ent)
 	end
 end
 
+local lookPositions
+local nextLookPositionsRequestTime = 0
 hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 	if InsaneStats:GetConVarValue("hud_wpass2_attributes") and InsaneStats:ShouldDrawHUD() then
 		if  markedEntityInfo.refreshedTime + 5 > CurTime() and (markedEntityInfo.index or 0) ~= 0 then
@@ -133,6 +135,13 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 			local toDraw = {}
 			local eyePos = EyePos()
 
+			if not lookPositions and nextLookPositionsRequestTime < CurTime() then
+				nextLookPositionsRequestTime = CurTime() + 5
+				net.Start("insane_stats")
+				net.WriteUInt(7, 8)
+				net.SendToServer()
+			end
+
 			cam.Start3D()
 			for i,v in ipairs(ents.FindInSphere(eyePos, revealRadius)) do
 				local icon = GetIconForEntity(v)
@@ -150,7 +159,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 					end
 				end
 			end
-			for i,v in ipairs(InsaneStats.lookPositions or {}) do
+			for i,v in ipairs(lookPositions or {}) do
 				local dist = v:Distance(eyePos)
 				if dist <= revealRadius then
 					local viewData = v:ToScreen()
@@ -197,4 +206,8 @@ hook.Add("CreateMove", "InsaneStatsWPASS2", function(usercmd)
 		net.WriteBool(isHoldingCtrl)
 		net.SendToServer()
 	end
+end)
+
+hook.Add("InsaneStatsLookPositionsReceived", "InsaneStatsWPASS2", function(positions)
+	lookPositions = positions
 end)
