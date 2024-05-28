@@ -236,10 +236,12 @@ net.Receive("insane_stats", function()
 			end
 		end
 	elseif func == 9 then
-		InsaneStats.lookPositions = {}
+		local lookPositions = {}
 		for i=1, net.ReadUInt(8) do
-			table.insert(InsaneStats.lookPositions, net.ReadVector())
+			table.insert(lookPositions, net.ReadVector())
 		end
+
+		hook.Run("InsaneStatsLookPositionsRecieved", lookPositions)
 	elseif func == 10 then
 		local expiry = net.ReadFloat()
 		local color = net.ReadFloat()
