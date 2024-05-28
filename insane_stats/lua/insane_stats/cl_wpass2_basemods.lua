@@ -208,6 +208,6 @@ hook.Add("CreateMove", "InsaneStatsWPASS2", function(usercmd)
 	end
 end)
 
-hook.Add("InsaneStatsLookPositionsReceived", "InsaneStatsWPASS2", function(positions)
+hook.Add("InsaneStatsLookPositionsRecieved", "InsaneStatsWPASS2", function(positions)
 	lookPositions = positions
 end)
