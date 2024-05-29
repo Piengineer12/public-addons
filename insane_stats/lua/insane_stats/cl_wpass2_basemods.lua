@@ -40,6 +40,7 @@ local function GetIconForEntity(ent)
 	if ent == ply or ent:GetOwner() == ply or ent:GetParent() == ply then return end
 	if ent:GetNWBool("insanestats_vital") then return InsaneStats:GetIconMaterial("ruby") end
 	if ent:GetNWBool("insanestats_use") then return revealIcons.func_button end
+	if ent:GetClass() == "func_breakable_surf" and ent:InsaneStats_GetHealth() <= 0 then return end
 
 	if (ent:GetModel() or "")~="" then
 		local icon = revealIcons[ent:GetClass()]
