@@ -676,7 +676,7 @@ local ammoClasses = {
 timer.Create("InsaneStatsWPASS", 1, 0, function()
 	local ply = LocalPlayer()
 	if InsaneStats:GetConVarValue("hud_wpass2_lootbeams") and (IsValid(ply) and ply:IsSuitEquipped()) then
-		for k,v in pairs(ents.GetAll()) do
+		for i,v in ipairs(ents.GetAll()) do
 			if v:InsaneStats_IsWPASS2Pickup() and not IsValid(v:GetOwner()) and not v:IsDormant() then
 				if v.insaneStats_Modifiers then
 					if not v.insaneStats_WPASS2Name or (v.insaneStats_WPASS2NameLastRefresh or 0) + 5 < RealTime() then

@@ -52,7 +52,7 @@ hook.Add("AcceptInput", "InsaneStatsPointCommand", function(ent, input, activato
 							InsaneStats:Log("Error: "..ret)
 						end
 					else
-						for j, ply in ipairs(player.GetAll()) do
+						for j, ply in player.Iterator() do
 							local success, ret = pcall(ply.ConCommand, ply, command)
 							if not success then
 								InsaneStats:Log("Error: "..ret)
@@ -90,7 +90,7 @@ end)
 
 local function GetWildcardMatchEntities(name, class, model)
 	local inputEntities = {}
-	for j,v2 in ipairs(ents.GetAll()) do
+	for j,v2 in ents.Iterator() do
 		if InsaneStats:WildcardMatches(name, v2:GetName())
 		and InsaneStats:WildcardMatches(class, v2:GetClass())
 		and InsaneStats:WildcardMatches(model, v2:GetModel()) then
@@ -191,11 +191,11 @@ function InsaneStats:DoActions(actions)
 							end
 						end
 					elseif action == InsaneStats.ACTIONS.NO_WEPS then
-						for j,v2 in ipairs(player.GetAll()) do
+						for j,v2 in player.Iterator() do
 							v2:StripWeapons()
 						end
 					elseif action == InsaneStats.ACTIONS.NO_SUIT then
-						for j,v2 in ipairs(player.GetAll()) do
+						for j,v2 in player.Iterator() do
 							v2:RemoveSuit()
 						end
 					elseif action == InsaneStats.ACTIONS.PLAY then
@@ -298,7 +298,7 @@ local function ScanPlayerSpheres()
 			squaredRadius = squaredRadius * squaredRadius
 
 			local satisfied = 0
-			for j,v2 in ipairs(player.GetAll()) do
+			for j,v2 in player.Iterator() do
 				if IsValid(v2) then
 					local squaredDistance = v2:WorldSpaceCenter():DistToSqr(pos)
 					if squaredDistance <= squaredRadius then
@@ -371,7 +371,7 @@ hook.Add("Think", "InsaneStatsPointCommand", function()
 	coroutine.resume(scanThread)
 
 	if killScanData then
-		for i,v in ipairs(ents.GetAll()) do
+		for i,v in ents.Iterator() do
 			local class = v:GetClass()
 			local name = v:GetName()
 			local model = v:GetModel()

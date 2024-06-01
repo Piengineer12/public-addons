@@ -4,9 +4,10 @@ local function SpawnCoins(victim, value)
 	local denomDist = InsaneStats:GetConVarValue("coins_denomination_mul")
 	local coinDrop = InsaneStats:GetConVarValue("coins_drop_count")
 	local coinMax = InsaneStats:GetConVarValue("coins_drop_max") - coinDrop
+	local plys
 	for i=1, coinDrop do
 		if #coins > coinMax then
-			local plys = player.GetAll()
+			plys = plys or player.GetAll()
 			local randomPlayer = plys[math.random(#plys)]
 			if IsValid(randomPlayer) then
 				table.remove(coins, math.random(#coins)):Pickup(randomPlayer)
@@ -101,7 +102,7 @@ end)
 local savedPlayerCoins
 hook.Add("InsaneStatsSave", "InsaneStatsCoins", function(data)
 	if InsaneStats:GetConVarValue("coins_enabled") and InsaneStats:GetConVarValue("coins_player_save") and savedPlayerCoins then
-		for k,v in pairs(player.GetAll()) do
+		for k,v in player.Iterator() do
 			local steamID = v:SteamID()
 			if steamID and v:InsaneStats_GetEntityData("coins_loaded") then
 				savedPlayerCoins[steamID] = v:InsaneStats_GetCoins()

@@ -38,14 +38,6 @@ hook.Add("OnEntityCreated", "InsaneStats", function(ent)
 	end)
 end)
 
---[[hook.Add("Saved", "InsaneStats", function(ent)
-	timer.Simple(0, function()
-		for i,v in ipairs(ents.GetAll()) do
-			hook.Run("InsaneStatsTransitionCompat", v)
-		end
-	end)
-end)]]
-
 hook.Add("entity_killed", "InsaneStats", function(data)
 	local victim = Entity(data.entindex_killed or 0)
 	local attacker = Entity(data.entindex_attacker or 0)
@@ -149,7 +141,7 @@ hook.Add("AcceptInput", "InsaneStats", function(ent, input, activator, caller, v
 		ent.insaneStats_FlashlightDisabled = nil
 	elseif input == "modifyspeed" and class == "player_speedmod"
 	and InsaneStats:GetConVarValue("flashlight_disable_fix_modifyspeed") then
-		for i,v in ipairs(player.GetAll()) do
+		for i,v in player.Iterator() do
 			v.insaneStats_FlashlightDisabled = tonumber(value) ~= 1 or nil
 		end
 	elseif class == "npc_citizen" then
@@ -197,8 +189,8 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStats", function(ent)
 end)
 
 function InsaneStats:PerformSave()
-	-- do not save within the first minute, as this can cause data loss
-	if CurTime() > 60 then
+	-- do not save within the first 20 seconds, as this can cause data loss
+	if CurTime() > 20 then
 		local data = self:Load()
 		hook.Run("InsaneStatsSave", data)
 		self:Save(data)
@@ -311,25 +303,46 @@ end)
 
 hook.Add("PlayerSelectSpawn", "InsaneStats", function(ply, transition)
 	if InsaneStats:GetConVarValue("spawn_master") and not transition then
-		local spawnPoints = ents.FindByClass("info_player_start")
+		local developer = GetConVar("developer"):GetInt() > 0
+		local spawnPoints = ents.FindByClass("info_player_deathmatch")
 		for i, v in ipairs(spawnPoints) do
-			if v:HasSpawnFlags(1) and hook.Run("IsSpawnpointSuitable", ply, v, true) then
+			if (v:IsInWorld() and hook.Run("IsSpawnpointSuitable", ply, v, true)) then
+				if developer then
+					InsaneStats:Log("Spawning "..tostring(ply).." at "..tostring(v).."!")
+				end
 				return v
 			end
 		end
-		for i, v in ipairs(spawnPoints) do
-			if v:IsInWorld() then
-				if hook.Run("IsSpawnpointSuitable", ply, v, true) then
-					return v
-				end
-			end
-		end
-		
+
 		spawnPoints = ents.FindByClass("info_player_coop")
 		for i, v in ipairs(spawnPoints) do
-			if v:IsInWorld() and not v.insaneStats_Disabled then
+			if not v.insaneStats_Disabled and (v:IsInWorld() and hook.Run("IsSpawnpointSuitable", ply, v, true)) then
+				if developer then
+					InsaneStats:Log("Spawning "..tostring(ply).." at "..tostring(v).."!")
+				end
 				return v
 			end
+		end
+
+		spawnPoints = ents.FindByClass("info_player_start")
+		for i, v in ipairs(spawnPoints) do
+			if v:HasSpawnFlags(1) and (v:IsInWorld() and hook.Run("IsSpawnpointSuitable", ply, v, true)) then
+				if developer then
+					InsaneStats:Log("Spawning "..tostring(ply).." at "..tostring(v).."!")
+				end
+				return v
+			end
+		end
+		for i, v in ipairs(spawnPoints) do
+			if (v:IsInWorld() and hook.Run("IsSpawnpointSuitable", ply, v, true)) then
+				if developer then
+					InsaneStats:Log("Spawning "..tostring(ply).." at "..tostring(v).."!")
+				end
+				return v
+			end
+		end
+		if developer then
+			InsaneStats:Log("Could not find valid spawn point for "..tostring(ply).."!")
 		end
 	end
 end)

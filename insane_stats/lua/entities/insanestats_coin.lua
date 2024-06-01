@@ -90,7 +90,7 @@ function ENT:Initialize()
 			physobj:Wake()
 		end
 
-		self:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
+		self:SetCollisionGroup(COLLISION_GROUP_WEAPON)
 		self:SetTrigger(true)
 		self:SetMaterial("models/shiny")
 		self:AddEffects(EF_ITEM_BLINK)

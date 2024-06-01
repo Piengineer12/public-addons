@@ -379,6 +379,16 @@ local modifiers = {
 		weight = 0.5,
 		max = 10
 	},
+	penetrate = {
+		prefix = "Penetrative",
+		suffix = "Penetrating",
+		modifiers = {
+			penetrate = 1.1,
+			nonbullet_damage = 1.1
+		},
+		weight = 0.5,
+		max = 10
+	},
 	
 	-- damage, half weight doubled cost
 	heavy = {
@@ -1824,12 +1834,12 @@ local attributes = {
 		mul = 10,
 	},
 	kill1s_xp = {
-		display = "%s coins and XP gain for +1s after kill (stacks above 1s)",
-		mul = 10
+		display = "%s coins and XP gain for +1s after kill, scaled by square root of duration",
+		mul = 4
 	},
 	kill1s_xp2 = {
-		display = "%s coins and XP gain for +1s from props (stacks above 1s)",
-		mul = 10
+		display = "%s coins and XP gain for +1s from props, scaled by square root of duration",
+		mul = 4
 	},
 	killstack_damage = {
 		display = "%s damage dealt per kill, decays over time",
@@ -2125,6 +2135,11 @@ local attributes = {
 	prop_supplychance = {
 		display = "%s chance for random item from props",
 		--mul = 0.5
+	},
+	penetrate = {
+		display = "%s Hu bullet penetration",
+		mul = 80,
+		nopercent = true
 	},
 	
 	speed_dilation = {
@@ -3191,7 +3206,7 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 						ply:SetLaggedMovementValue(newMovementValue)
 					elseif SERVER then
 						local skillTier = ply:InsaneStats_GetSkillTier("just_breathe")
-						for i,v in pairs(ents.GetAll()) do
+						for i,v in ents.Iterator() do
 							if ply:InsaneStats_IsValidAlly(v) then
 								v:InsaneStats_ApplyStatusEffect("charge", skillTier, 10)
 							end
@@ -3261,13 +3276,22 @@ hook.Add("InsaneStatsLoadWPASS", "InsaneStatsSharedWPASS2", function(currentModi
 	table.Merge(currentStatusEffects, statusEffects)
 end)
 
+local penetrations = 0
+local shouldAddBullets = true
+local commonTraceData = {
+	mask = MASK_SHOT
+}
 hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data)
 	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
-		local newNum = data.Num * attacker:InsaneStats_GetAttributeValue("bullets")
-		* (1 + attacker:InsaneStats_GetSkillValues("silver_bullets", 2) / 100)
+		if shouldAddBullets then
+			local newNum = data.Num * attacker:InsaneStats_GetAttributeValue("bullets")
+			if data.AmmoType == "Pistol" or data.AmmoType == "357" then
+				newNum = newNum * (1 + attacker:InsaneStats_GetSkillValues("one_with_the_gun", 3) / 100)
+			end
 
-		data.Num = ((math.random() < newNum % 1) and math.ceil or math.floor)(newNum)
-		if data.Num <= 0 then return false end
+			data.Num = ((math.random() < newNum % 1) and math.ceil or math.floor)(newNum)
+			if data.Num <= 0 then return false end
+		end
 
 		local spreadMult = attacker:InsaneStats_GetAttributeValue("spread")
 
@@ -3278,14 +3302,103 @@ hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data
 		end
 		
 		data.Spread:Mul(spreadMult)
+
+		local developer = GetConVar("developer"):GetInt() > 0
+		local penetrationPower = attacker:InsaneStats_GetAttributeValue("penetrate") - 1
+		+ attacker:InsaneStats_GetSkillValues("silver_bullets", 2)
+		if penetrationPower > 0 and penetrations < 100 then
+			-- FIXME: in some cases, bullet penetration will incorrectly pierce
+			-- hollow objects as if they were completely solid
+			local oldCallback = data.Callback
+			local newBullet = {
+				Force = data.Force,
+				Distance = data.Distance,
+				HullSize = data.HullSize,
+				Num = 1,
+				Tracer = data.Tracer,
+				AmmoType = data.AmmoType,
+				TracerName = data.TracerName,
+				Dir = data.Dir
+			}
+			data.Callback = function(attacker, trace, dmginfo, ...)
+				if oldCallback then
+					oldCallback(attacker, trace, dmginfo, ...)
+				end
+
+				if trace.Hit then
+					-- make a new trace that is in the entity
+					local push = 1
+					commonTraceData.start = trace.HitPos + data.Dir * push
+					commonTraceData.endpos = data.Dir * penetrationPower
+					commonTraceData.endpos:Add(commonTraceData.start)
+					if trace.HitNonWorld then
+						commonTraceData.filter = trace.Entity
+						--commonTraceData.ignoreworld = false
+					else
+						commonTraceData.filter = nil
+						--commonTraceData.ignoreworld = true
+					end
+					--commonTraceData.ignoreworld = true
+					if developer then
+						debugoverlay.Cross(commonTraceData.start, 5, 10, color_red, true)
+						debugoverlay.Cross(commonTraceData.endpos, 6, 10, color_green, true)
+					end
+					local lastTraceResults = util.TraceLine(commonTraceData)
+
+					if lastTraceResults.Hit or util.IsInWorld(lastTraceResults.HitPos) then
+						if developer then
+							debugoverlay.Cross(lastTraceResults.HitPos, 7, 10, color_yellow, true)
+							debugoverlay.Text(
+								lastTraceResults.HitPos,
+								tostring(lastTraceResults.Entity)..", "..lastTraceResults.FractionLeftSolid,
+								10
+							)
+						end
+
+						local wallThickness
+						if lastTraceResults.FractionLeftSolid > 0 then
+							wallThickness = push + penetrationPower * lastTraceResults.FractionLeftSolid
+						else
+							-- determine thickness of the penetrated object by making a reverse trace
+							wallThickness = push + penetrationPower * lastTraceResults.Fraction
+							-- wallThickness is currently the length of the original penetration trace
+							commonTraceData.start = lastTraceResults.HitPos
+							commonTraceData.endpos = trace.HitPos
+							commonTraceData.filter = nil
+							--commonTraceData.ignoreworld = false
+							--commonTraceData.ignoreworld = false
+							--debugoverlay.Line(commonTraceData.start, commonTraceData.endpos, 5, color_red, true)
+							lastTraceResults = util.TraceLine(commonTraceData)
+							wallThickness = wallThickness * (1 - lastTraceResults.Fraction)
+						end
+
+						if wallThickness > push and wallThickness < penetrationPower then
+							local powerMult = 1 - wallThickness / penetrationPower
+							-- create a new bullet that doesn't travel as far and deals less damage
+							newBullet.Force = newBullet.Force * powerMult
+							newBullet.Distance = newBullet.Distance * powerMult
+							newBullet.Damage = dmginfo:GetDamage() * powerMult
+							newBullet.Src = trace.HitPos + data.Dir * (wallThickness + push)
+							--debugoverlay.Line(trace.HitPos, newBullet.Src, 5, color_aqua, true)
+							debugoverlay.Cross(newBullet.Src, 8, 10, color_white, true)
+
+							shouldAddBullets = false
+							attacker:FireBullets(newBullet, true)
+							shouldAddBullets = true
+						end
+					end
+				end
+			end
+		end
 	end
 end)
 
-if SERVER then
-	hook.Add("Think", "InsaneStatsSharedWPASS2", function()
+hook.Add("Think", "InsaneStatsSharedWPASS2", function()
+	penetrations = 0
+	if SERVER then
 		canPlayPoisonSound = true
 		canPlayFreezeSound = true
 		canPlayBleedSound = true
 		canPlayShockSound = true
-	end)
-end
+	end
+end)

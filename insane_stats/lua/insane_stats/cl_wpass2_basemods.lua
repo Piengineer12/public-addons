@@ -40,6 +40,7 @@ local function GetIconForEntity(ent)
 	if ent == ply or ent:GetOwner() == ply or ent:GetParent() == ply then return end
 	if ent:GetNWBool("insanestats_vital") then return InsaneStats:GetIconMaterial("ruby") end
 	if ent:GetNWBool("insanestats_use") then return revealIcons.func_button end
+	if ent:GetClass() == "func_breakable_surf" and ent:InsaneStats_GetHealth() <= 0 then return end
 
 	if (ent:GetModel() or "")~="" then
 		local icon = revealIcons[ent:GetClass()]
@@ -47,10 +48,11 @@ local function GetIconForEntity(ent)
 	end
 end
 
+local lookPositions
+local nextLookPositionsRequestTime = 0
 hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 	if InsaneStats:GetConVarValue("hud_wpass2_attributes") and InsaneStats:ShouldDrawHUD() then
-		--if markedEntityInfo.refreshedTime + 0.5 > CurTime() then
-		if (markedEntityInfo.index or 0) ~= 0 then
+		if markedEntityInfo.refreshedTime + 2 > CurTime() and (markedEntityInfo.index or 0) ~= 0 then
 			-- if the entity is valid, update markedEntityInfo
 			local ent = Entity(markedEntityInfo.index)
 			if (IsValid(ent) and not ent:IsDormant()) then
@@ -134,6 +136,13 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 			local toDraw = {}
 			local eyePos = EyePos()
 
+			if not lookPositions and nextLookPositionsRequestTime < CurTime() then
+				nextLookPositionsRequestTime = CurTime() + 5
+				net.Start("insane_stats")
+				net.WriteUInt(7, 8)
+				net.SendToServer()
+			end
+
 			cam.Start3D()
 			for i,v in ipairs(ents.FindInSphere(eyePos, revealRadius)) do
 				local icon = GetIconForEntity(v)
@@ -151,7 +160,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 					end
 				end
 			end
-			for i,v in ipairs(InsaneStats.lookPositions or {}) do
+			for i,v in ipairs(lookPositions or {}) do
 				local dist = v:Distance(eyePos)
 				if dist <= revealRadius then
 					local viewData = v:ToScreen()
@@ -198,4 +207,8 @@ hook.Add("CreateMove", "InsaneStatsWPASS2", function(usercmd)
 		net.WriteBool(isHoldingCtrl)
 		net.SendToServer()
 	end
+end)
+
+hook.Add("InsaneStatsLookPositionsRecieved", "InsaneStatsWPASS2", function(positions)
+	lookPositions = positions
 end)

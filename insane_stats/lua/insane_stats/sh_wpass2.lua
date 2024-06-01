@@ -483,7 +483,7 @@ hook.Add("Initialize", "InsaneStatsSharedWPASS", function()
 end)
 
 hook.Add("InitPostEntity", "InsaneStatsSharedWPASS", function()
-	for i,v in ipairs(ents.GetAll()) do
+	for i,v in ents.Iterator() do
 		for k,v2 in pairs(v.insaneStats_StatusEffects or {}) do
 			entitiesByStatusEffect[k] = entitiesByStatusEffect[k] or {}
 			entitiesByStatusEffect[k][v] = v2

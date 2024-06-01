@@ -460,7 +460,7 @@ local skills = {
 	},
 	aint_got_time_for_this = game.SinglePlayer() and {
 		name = "Ain't Got Time For This",
-		desc = "While %s is held, gain %+.1f stack(s) of Ain't Got Time For This per second. \z
+		desc = "While %s is held, gain +%u stack(s) of Ain't Got Time For This per second. \z
 		Stacks are gained 1%% faster per stack, but stack gains are divided by game speed. \z
 		Each stack increases attack damage, defence and game speed by 1%%, but all stacks are lost when %s is released.\n\z
 		(This skill is completely different in multiplayer.)",
@@ -593,9 +593,9 @@ local skills = {
 	-- distance 6
 	one_with_the_gun = {
 		name = "One With The G.U.N.",
-		desc = "Pistols and revolvers deal %+.0f%% damage and have %+.0f%% bullet spread.",
+		desc = "Pistols and revolvers deal %+.0f%% damage, have %+.0f%% bullet spread and fire %+.0f%% more bullets.",
 		values = function(level)
-			return level * 20, math.max(level * -20, -100)
+			return level * 15, math.max(level * -15, -100), level * 15
 		end,
 		img = "crossed-pistols",
 		pos = {2, -4},
@@ -733,9 +733,9 @@ local skills = {
 	},
 	silver_bullets = {
 		name = "Silver Bullets",
-		desc = "Fired bullets deal %+.0f%% damage, have a %+.0f%% chance to be doubled and have %+.0f%% spread.",
+		desc = "Fired bullets deal +%u%% damage, penetrate +%u Hu and have %i%% spread.",
 		values = function(level)
-			return level * 5, level * 5, level * -5
+			return level * 5, level * 10, level * -5
 		end,
 		img = "supersonic-bullet",
 		pos = {-2, -4},
@@ -769,13 +769,16 @@ local skills = {
 	},
 	multi_killer = {
 		name = "Multi Killer",
-		desc = "For every NPC killed or prop broken within 1 second, gain up to %+.0f%% more coins and XP! "
-		..(game.SinglePlayer() and "Time also takes longer to pass," or "Damage dealt is also increased")
-		.." by the square root of the amount.\n(This skill is slightly different in "
-		..(game.SinglePlayer() and "multiplayer" or "singleplayer")
-		..".)",
+		desc = "On kill or prop broken, gain %+.1f stacks of Multi Killer. \z
+		Coins and XP gained are multiplied by 1 plus the square root of the number of stacks, \z
+		but stacks decay at a rate of %i/s!",
 		values = function(level)
-			return level * 50
+			return level/5, level/-5
+		end,
+		stackTick = function(state, current, time, ent)
+			local decayRate = ent:InsaneStats_GetSkillValues("multi_killer", 2)
+			local nextStacks = math.max(current + decayRate * time, 0)
+			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
 		img = "double-shot",
 		pos = {4, -3},
@@ -1150,11 +1153,6 @@ local statusEffects = {
 		typ = 1,
 		img = "skull-signet"
 	},
-	multi_killer = {
-		name = "Multi Killer",
-		typ = 1,
-		img = "double-shot"
-	},
 
 	skill_damage_up = {
 		name = "Damage Up",
@@ -1231,12 +1229,13 @@ local function RewriteFriendlyFireSkills()
 end]]
 
 hook.Add("InsaneStatsGetSkillTier", "InsaneStatsSkillsDefault", function(ent, skill)
-	if SERVER and skill ~= "friendly_fire_off" then
+	-- FIXME: make this work for players, by also networking other players' skills
+	if SERVER and skill ~= "friendly_fire_off" and not ent:IsPlayer() then
 		local highestLevel = ent:InsaneStats_GetSkills()[skill] or 0
 		-- for k,v in pairs(InsaneStats:GetEntitiesWithSkills()) do
 		-- FIXME: below only works because non-player entities can't get the friendly_fire_off skill
 		-- otherwise the line above needs to be used, with caching for maps containing 1000s of allies
-		for i,v in ipairs(player.GetAll()) do 
+		for i,v in player.Iterator() do 
 			--if not (k:IsPlayer() and k:KeyDown(IN_WALK)) then
 			if not v:KeyDown(IN_WALK) then
 				local theirSkills = v:InsaneStats_GetSkills()

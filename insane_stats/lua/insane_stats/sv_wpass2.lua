@@ -20,8 +20,10 @@ concommand.Add("insanestats_wpass2_statuseffect", function(ply, cmd, args, argSt
 			if target == "" then
 				targets = IsValid(ply) and {ply} or player.GetAll()
 			else
+				-- don't know if it's safe to modify the table returned by ents.FindByName
+				-- better to be safe than sorry
 				targets = {}
-				for k,v in pairs(ents.GetAll()) do
+				for i,v in ents.Iterator() do
 					if v:GetName() == target then
 						table.insert(targets, v)
 					end
@@ -43,7 +45,7 @@ end, function(cmd, argStr)
 		local suggestions = {}
 		playerInput = playerInput:lower():Trim()
 		
-		for k,v in pairs(ents.GetAll()) do
+		for i,v in ents.Iterator() do
 			local entityName = v:GetName():Trim()
 			if entityName ~= "" and entityName:lower():StartsWith(playerInput) then
 				table.insert(suggestions, "insanestats_wpass2_statuseffect "..internalName.." "..level.." "..duration.." \""..entityName.."\"")
@@ -86,7 +88,7 @@ concommand.Add("insanestats_wpass2_statuseffect_clear", function(ply, cmd, args,
 				targets = IsValid(ply) and {ply} or player.GetAll()
 			else
 				targets = {}
-				for k,v in pairs(ents.GetAll()) do
+				for i,v in ents.Iterator() do
 					if v:GetName() == target then
 						table.insert(targets, v)
 					end
@@ -108,7 +110,7 @@ end, function(cmd, argStr)
 		local suggestions = {}
 		playerInput = playerInput:lower():Trim()
 		
-		for k,v in pairs(ents.GetAll()) do
+		for i,v in ents.Iterator() do
 			local entityName = v:GetName():Trim()
 			if entityName ~= "" and entityName:lower():StartsWith(playerInput) then
 				table.insert(suggestions, "insanestats_wpass2_statuseffect_clear "..internalName.." \""..entityName.."\"")
@@ -180,7 +182,7 @@ local function ApplyWPASS2StartTier(ent)
 		probability = InsaneStats:GetConVarValueDefaulted(isNotWep and "wpass2_chance_player_battery", "wpass2_chance_player")
 	elseif ent:IsNPC() then
 		local isAlly, isEnemy = false, false
-		for k,v in pairs(player.GetAll()) do
+		for k,v in player.Iterator() do
 			if v:InsaneStats_IsValidAlly(ent) then
 				isAlly = true
 			end
@@ -459,7 +461,7 @@ timer.Create("InsaneStatsWPASS", 5, 0, function()
 	end
 	
 	if saveThinkCooldown < RealTime() then
-		for k,v in pairs(player.GetAll()) do
+		for i,v in player.Iterator() do
 			SaveData(v)
 		end
 		saveThinkCooldown = RealTime() + 10
@@ -495,8 +497,9 @@ function ENTITY:InsaneStats_TimeSinceCombat()
 end
 
 function ENTITY:InsaneStats_AddHealthNerfed(health)
-	if self:InsaneStats_GetHealth() < math.huge and self:InsaneStats_GetHealth() > 0 then
-		local unnerfedHealthRestored = math.Clamp(self:InsaneStats_GetMaxHealth() - self:InsaneStats_GetHealth(), 0, health)
+	if self:InsaneStats_GetHealth() < math.huge and self:InsaneStats_GetHealth() > 0 
+	and self:InsaneStats_GetMaxHealth() > 0 then
+		--[[local unnerfedHealthRestored = math.Clamp(self:InsaneStats_GetMaxHealth() - self:InsaneStats_GetHealth(), 0, health)
 		health = health - unnerfedHealthRestored
 		if unnerfedHealthRestored > 0 then
 			self:SetHealth(self:InsaneStats_GetHealth() + unnerfedHealthRestored)
@@ -513,12 +516,23 @@ function ENTITY:InsaneStats_AddHealthNerfed(health)
 				health = health * nerfMul
 				self:SetHealth(self:InsaneStats_GetHealth() + health)
 			end
-		end
-		
-		local healthAdded = unnerfedHealthRestored + health
-		if healthAdded ~= 0 then
-			self:InsaneStats_DamageNumber(self, -healthAdded, DMG_DROWNRECOVER)
+		end]]
 
+		local maxHealth = self:InsaneStats_GetMaxHealth()
+		local oldRatio = self:InsaneStats_GetHealth() / maxHealth
+		if oldRatio > 1 then
+			oldRatio = oldRatio * oldRatio
+		end
+
+		local newRatio = oldRatio + health / maxHealth
+		if newRatio > 1 then
+			newRatio = math.sqrt(newRatio)
+		end
+		local healthAdded = newRatio * maxHealth - self:InsaneStats_GetHealth()
+		
+		if healthAdded ~= 0 then
+			self:SetHealth(newRatio * maxHealth)
+			self:InsaneStats_DamageNumber(self, -healthAdded, DMG_DROWNRECOVER)
 			hook.Run("InsaneStatsWPASS2AddHealth", self)
 		end
 	end
@@ -527,7 +541,7 @@ end
 function ENTITY:InsaneStats_AddArmorNerfed(armor)
 	if self:InsaneStats_GetArmor() < math.huge and self:InsaneStats_GetHealth() > 0
 	and self:InsaneStats_GetMaxArmor() > 0 then
-		local unnerfedArmorRestored = math.Clamp(self:InsaneStats_GetMaxArmor() - self:InsaneStats_GetArmor(), 0, armor)
+		--[[local unnerfedArmorRestored = math.Clamp(self:InsaneStats_GetMaxArmor() - self:InsaneStats_GetArmor(), 0, armor)
 		armor = armor - unnerfedArmorRestored
 		if unnerfedArmorRestored > 0 then
 			self:SetArmor(self:InsaneStats_GetArmor() + unnerfedArmorRestored)
@@ -544,10 +558,22 @@ function ENTITY:InsaneStats_AddArmorNerfed(armor)
 				armor = armor * nerfMul
 				self:SetArmor(self:InsaneStats_GetArmor() + armor)
 			end
+		end]]
+
+		local maxArmor = self:InsaneStats_GetMaxArmor()
+		local oldRatio = self:InsaneStats_GetArmor() / maxArmor
+		if oldRatio > 1 then
+			oldRatio = oldRatio * oldRatio
 		end
+
+		local newRatio = oldRatio + armor / maxArmor
+		if newRatio > 1 then
+			newRatio = math.sqrt(newRatio)
+		end
+		local armorAdded = newRatio * maxArmor - self:InsaneStats_GetArmor()
 		
-		local armorAdded = unnerfedArmorRestored + armor
 		if armorAdded ~= 0 then
+			self:SetArmor(newRatio * maxArmor)
 			self:InsaneStats_DamageNumber(self, -armorAdded, DMG_DROWN)
 		end
 	end
@@ -570,7 +596,7 @@ function ENTITY:InsaneStats_IsMob()
 end
 
 function ENTITY:InsaneStats_IsValidEnemy(ent)
-	if not (IsValid(ent) and ent:GetClass() ~= "npc_enemyfinder") then return false end
+	if not IsValid(self) or not (IsValid(ent) and ent:GetClass() ~= "npc_enemyfinder") then return false end
 	if ent:InsaneStats_GetHealth() <= 0 or ent.insaneStats_IsDead then return false end
 	
 	if self:IsPlayer() and ent:GetClass() == "npc_antlion_grub" then return true end
@@ -597,7 +623,7 @@ function ENTITY:InsaneStats_IsValidEnemy(ent)
 	end
 
 	-- if in a map named "phys_cratastrophy", all crates are enemies lol
-	if ent:GetModel() == "models/props_junk/wood_crate001a.mdl" then return true end
+	if game.GetMap() == "phys_cratastrophy" and ent:GetModel() == "models/props_junk/wood_crate001a.mdl" then return true end
 	
 	return false
 end
@@ -1032,13 +1058,19 @@ local function ForceSaveData(ply)
 	ply.insaneStats_WPASS2DataLoaded = false
 end
 
-hook.Add("DoPlayerDeath", "InsaneStatsWPASS", ForceSaveData)
-hook.Add("PlayerSilentDeath", "InsaneStatsWPASS", ForceSaveData)
+hook.Add("Saved", "InsaneStatsWPASS", function()
+	for i,v in player.Iterator() do
+		SaveData(v)
+	end
+	SaveDataFile()
+end)
+hook.Add("DoPlayerDeath", "InsaneStatsWPASS", ForceSaveData, -1)
+hook.Add("PlayerSilentDeath", "InsaneStatsWPASS", ForceSaveData, -1)
 hook.Add("PlayerDisconnected", "InsaneStatsWPASS", function(ply)
 	SaveData(ply)
 end)
 hook.Add("ShutDown", "InsaneStatsWPASS", function()
-	for k,v in pairs(player.GetAll()) do
+	for i,v in player.Iterator() do
 		SaveData(v)
 	end
 	SaveDataFile()

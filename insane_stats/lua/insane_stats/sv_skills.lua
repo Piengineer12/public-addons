@@ -23,7 +23,7 @@ AccessorFunc(InsaneStats, "SkillDataToNetwork", "SkillDataToNetwork")
 
 hook.Add("InsaneStatsSave", "InsaneStatsSkills", function(data)
 	if InsaneStats:GetConVarValue("skills_enabled") and InsaneStats:GetConVarValue("skills_save") and savedPlayerSkills then
-		for i,v in ipairs(player.GetAll()) do
+		for i,v in player.Iterator() do
 			local steamID = v:SteamID()
             local skills = v:InsaneStats_GetSkills()
 			if steamID and skills then
