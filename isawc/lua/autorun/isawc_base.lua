@@ -10,9 +10,9 @@ Links above are confirmed working as of 2022-04-16. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "5.6.3"
-ISAWC._VERSIONNUMBER = 50603
-ISAWC._VERSIONDATE = "2023-09-10"
+ISAWC._VERSION = "5.6.4"
+ISAWC._VERSIONNUMBER = 50604
+ISAWC._VERSIONDATE = "2024-06-13"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -1317,6 +1317,12 @@ ISAWC.ConLootRestock = CreateConVar("isawc_container_lootrestocktime", "-1", FCV
 "Amount of time it takes for containers to restock their loot.\
 A negative value means that containers will never restock their loot.")
 
+ISAWC.ConSlowdownMassMaxSpeed = CreateConVar("isawc_player_massslowdown_maxspeed", "1", FCVAR_REPLICATED,
+"Multiplier of player speed when carrying maximum mass.")
+
+ISAWC.ConSlowdownMinMass = CreateConVar("isawc_player_massslowdown_percent", "0.5", FCVAR_REPLICATED,
+"Players carrying over this fraction of their max carrying mass will start to be slowed down depending on their carried mass.")
+
 --[[ISAWC.ConPickupViewModel = CreateConVar("isawc_pickup_weapon_viewmodel", "models/weapons/v_pistol.mdl", FCVAR_REPLICATED,
 "View model used by the Pickup SWEP.\
 A server restart is required for this to take effect.")
@@ -1328,8 +1334,8 @@ A server restart is required for this to take effect.")]]
 local function BasicAutoComplete(cmd, argStr)
 	local possibilities = {}
 	local namesearch = argStr:Trim():lower()
-	for k,v in pairs(player.GetAll()) do
-		if string.StartWith(v:Nick():lower(), namesearch) then
+	for k,v in player.Iterator() do
+		if (IsValid(v) and string.StartWith(v:Nick():lower(), namesearch)) then
 			table.insert(possibilities, cmd .. " " .. v:Nick())
 		end
 	end
@@ -1393,8 +1399,8 @@ if SERVER then
 				ISAWC:Log("Access denied.")
 			else
 				ISAWC:SQL("BEGIN; DELETE FROM \"isawc_container_data\";")
-				for k,v in pairs(ents.GetAll()) do
-					if (IsValid(v) and v.Base=="isawc_container_base") then
+				for i,v in ents.Iterator() do
+					if v.Base=="isawc_container_base" then
 						ISAWC:SaveContainerInventory(v)
 					end
 				end
@@ -1409,14 +1415,14 @@ if SERVER then
 			if (IsValid(ply) and not ply:IsAdmin()) then
 				ISAWC:Log("Access denied. If you wish to delete your own items, and the server has enabled item delection, please use the option within the inventory GUI.")
 			elseif argStr=="*" then
-				for k,v in pairs(player.GetAll()) do
+				for i,v in player.Iterator() do
 					v.ISAWC_Inventory = {}
 					-- TODO: ISAWC_Inventory init problem?
 				end
 				ISAWC:Log("You have deleted everyone's inventory.")
 			elseif next(args) then
 				local success = false
-				for k,v in pairs(player.GetAll()) do
+				for i,v in player.Iterator() do
 					if v:Nick() == argStr then
 						success = true
 						v.ISAWC_Inventory = {}
@@ -1501,7 +1507,7 @@ if SERVER then
 				ISAWC:Log("Access denied.")
 			elseif next(args) then
 				local success = false
-				for k,v in pairs(player.GetAll()) do
+				for i,v in player.Iterator() do
 					if v:Nick() == argStr then
 						success = true
 						if ply == v then
@@ -1536,7 +1542,7 @@ if SERVER then
 				ISAWC:Log("Access denied.")
 			elseif next(args) then
 				local success = false
-				for k,v in pairs(player.GetAll()) do
+				for i,v in player.Iterator() do
 					if v:Nick() == argStr then
 						success = true
 						if ply == v then
@@ -2552,6 +2558,20 @@ ISAWC.ServerOptionsInfo = {
 				type = "number",
 				min = 1,
 				max = 600
+			},
+			{
+				name = "Maximum Mass Speed",
+				convar = ISAWC.ConSlowdownMassMaxSpeed,
+				type = "number",
+				min = 0,
+				max = 1
+			},
+			{
+				name = "Slowdown Minimum Mass Fraction",
+				convar = ISAWC.ConSlowdownMinMass,
+				type = "number",
+				min = 0,
+				max = 1
 			},
 			{
 				name = "Drop Inventory On Death",
@@ -5638,6 +5658,30 @@ ISAWC.ReadAmmoItemStamps = function(self)
 	end
 end
 
+ISAWC.MassSlowdownCheck = function(self,ply,massFraction)
+	local oldSlowdownSpeedMul = ply.ISAWC_SlowdownMul or 1
+	local newSlowdownSpeedMul = math.Clamp(
+		math.Remap(
+			massFraction,
+			self.ConSlowdownMinMass:GetFloat(),
+			1,
+			1,
+			self.ConSlowdownMassMaxSpeed:GetFloat()
+		),
+		1e-6,
+		1
+	)
+
+	local diffSpeedMul = newSlowdownSpeedMul / oldSlowdownSpeedMul
+	ply:SetLadderClimbSpeed(ply:GetLadderClimbSpeed() * diffSpeedMul)
+	ply:SetMaxSpeed(ply:GetMaxSpeed() * diffSpeedMul)
+	ply:SetRunSpeed(ply:GetRunSpeed() * diffSpeedMul)
+	ply:SetWalkSpeed(ply:GetWalkSpeed() * diffSpeedMul)
+	ply:SetSlowWalkSpeed(ply:GetSlowWalkSpeed() * diffSpeedMul)
+
+	ply.ISAWC_SlowdownMul = newSlowdownSpeedMul
+end
+
 ISAWC.SendInventory = function(self,ply)
 	self:StartNetMessage("inventory")
 	--[[local data = util.Compress(util.TableToJSON(self:GetClientInventory(ply)))
@@ -5655,6 +5699,8 @@ ISAWC.SendInventory = function(self,ply)
 	end
 	self:WriteAmmoItemStamps(ply)
 	net.Send(ply)
+
+	self:MassSlowdownCheck(ply, stats[1] / stats[2])
 end
 
 ISAWC.SendInventory2 = function(self,ply,container)
@@ -5675,16 +5721,19 @@ ISAWC.SendInventory2 = function(self,ply,container)
 	for i=5,6 do
 		net.WriteUInt(stats[i],16)
 	end
-	stats = self:GetClientStats(container,ply)
+	local stats2 = self:GetClientStats(container,ply)
 	for i=1,4 do
-		net.WriteFloat(stats[i])
+		net.WriteFloat(stats2[i])
 	end
 	for i=5,6 do
-		net.WriteUInt(stats[i],16)
+		net.WriteUInt(stats2[i],16)
 	end
 	self:WriteAmmoItemStamps(ply)
 	net.WriteBool(container:GetIsPublic())
 	net.Send(ply)
+
+	self:MassSlowdownCheck(ply, stats[1] / stats[2])
+
 	ISAWC:UpdateContainerInventories(container)
 	ISAWC:SaveContainerInventory(container)
 end
@@ -5959,7 +6008,7 @@ ISAWC.SaveInventory = function(self,ply)
 			end
 		end
 		self:SQL("COMMIT;")
-	elseif (isentity(ply) and ply:IsPlayer()) then
+	elseif ply:IsPlayer() then
 		steamid = steamid or ply:SteamID() or ""
 		if steamid ~= "" and self.ConDoSave:GetInt() > 0 then
 			local inv = ply.ISAWC_Inventory
@@ -6024,7 +6073,7 @@ end
 ISAWC.UpdateContainerInventories = function(self,container)
 	local endername = container:GetEnderInvName()
 	if (endername or "")~="" then
-		for k,v in pairs(ents.GetAll()) do
+		for i,v in ents.Iterator() do
 			if v~=container and (v.Base=="isawc_container_base" and v:GetEnderInvName()==endername) then
 				v.ISAWC_Inventory = container.ISAWC_Inventory
 				v.ISAWC_PlayerLocalizedInventories = container.ISAWC_PlayerLocalizedInventories
@@ -6363,7 +6412,7 @@ ISAWC.Initialize = function()
 			
 			ISAWC:SQL("BEGIN;")
 			for k,v in pairs(defaultItemStampNames) do
-				self:CreateItemStamp(v, defaultItemStampData[k])
+				ISAWC:CreateItemStamp(v, defaultItemStampData[k])
 			end
 			ISAWC:SQL("COMMIT;")
 		end
@@ -6928,7 +6977,7 @@ ISAWC.IsMessageType = function(self,messageType,messageTypeString)
 end
 
 if SERVER then
-	for k,v in pairs(player.GetAll()) do
+	for i,v in player.Iterator() do
 		ISAWC:SendInventory(v)
 		ISAWC.AmmoItemStampListLastUpdate = {}
 	end
@@ -8133,8 +8182,7 @@ local invcooldown = 0
 local nextsave = 0
 local nextAltSaveCheck = 0
 local clientTicks = 0
-local allPlayers = player.GetAll()
-for k,v in pairs(allPlayers) do
+for k,v in player.Iterator() do
 	if v.ISAWC_AttachedCollisionInterface then
 		v:RemoveCallback("PhysicsCollide", v.ISAWC_AttachedCollisionInterface)
 		v.ISAWC_AttachedCollisionInterface = v:AddCallback("PhysicsCollide", ISAWC.PlayerCollisionCallback)
@@ -8150,7 +8198,7 @@ ISAWC.Tick = function()
 		end
 		if ISAWC.ConPlayerMagnet:GetFloat() > 0 then
 			ISAWC:SetSuppressNoPickup(true)
-			for k,v in pairs(allPlayers) do
+			for k,v in player.Iterator() do
 				if (IsValid(v) and tobool(v:GetInfo("isawc_player_magnet_enabled"))) then
 					if not v.MagnetScale or (v.ISAWC_LastMagnetScaleCalc or 0) + 1 < CurTime() then
 						v.ISAWC_LastMagnetScaleCalc = CurTime()
@@ -8168,7 +8216,6 @@ ISAWC.Tick = function()
 		-- the following is needed to make sure the stashed props don't just walk off the map!
 		if nextAltSaveCheck < RealTime() then
 			nextAltSaveCheck = RealTime() + 2
-			allPlayers = player.GetAll()
 			for k,v in pairs(ISAWC.StoredInAltSaveProps) do
 				if IsValid(k) and not k:IsPlayer() then
 					k:SetPos(Vector(16000,16000,16000))

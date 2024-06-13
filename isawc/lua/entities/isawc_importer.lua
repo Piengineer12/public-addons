@@ -56,7 +56,7 @@ end
 
 function ENT:GetContainer()
 	if not IsValid(self:GetStorageEntity()) and self:GetFileID()~="" and SERVER then
-		for k,v in pairs(ents.GetAll()) do
+		for i,v in ents.Iterator() do
 			if (v.Base == "isawc_container_base" and v:GetFileID() == self:GetFileID()) then
 				self:SetStorageEntity(v) break
 			end

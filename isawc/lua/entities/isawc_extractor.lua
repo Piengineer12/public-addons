@@ -403,9 +403,9 @@ function ENT:SpawnProp(forcedSpawn)
 		if IsValid(self:GetOwner()) then
 			spawnPlayer = self:GetOwner()
 		else
-			local plys, ourPos = player.GetAll(), self:GetPos()
+			local ourPos = self:GetPos()
 			local bestDistance = math.huge
-			for i, ply in ipairs(plys) do
+			for i, ply in player.Iterator() do
 				local distance = ply:GetPos():DistToSqr(ourPos)
 				if distance < bestDistance then
 					spawnPlayer = ply
@@ -591,7 +591,7 @@ function ENT:Think()
 	end
 	if self.NextCacheUpdate < CurTime() then
 		table.Empty(self.ISAWC_CachedEntities)
-		for k,v in pairs(ents.GetAll()) do
+		for i,v in ents.Iterator() do
 			if v.Base == "isawc_container_base" then
 				table.insert(self.ISAWC_CachedEntities, v)
 			end
@@ -637,7 +637,7 @@ hook.Add("PlayerChangedTeam", "ISAWC", function(ply, old, new)
 			if accountID==v:GetOwnerAccountID() then
 				for i=1,32 do
 					local container = v:GetContainer(i)
-					if (container.Base == "isawc_container_base" and not container:PlayerPermitted(ply)) then
+					if (IsValid(container) and container.Base == "isawc_container_base" and not container:PlayerPermitted(ply)) then
 						v:UnlinkEntity(container)
 					end
 				end

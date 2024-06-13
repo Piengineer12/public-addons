@@ -126,7 +126,7 @@ function ENT:CheckAndCopyFromEnderContainer()
 		local invNeedsLoad = table.IsEmpty(self.ISAWC_Inventory)
 		local inv2NeedsLoad = table.IsEmpty(self.ISAWC_PlayerLocalizedInventories)
 		if invNeedsLoad or inv2NeedsLoad then
-			for k,v in pairs(ents.GetAll()) do
+			for i,v in ents.Iterator() do
 				if (IsValid(v) and v.Base=="isawc_container_base" and v:GetEnderInvName()==endername) then
 					if invNeedsLoad and not table.IsEmpty(v.ISAWC_Inventory) then
 						self.ISAWC_Inventory = v.ISAWC_Inventory break
@@ -377,7 +377,7 @@ function ENT:Think()
 		end
 		if self:GetFileID()=="" and SERVER then
 			local container_ents = {}
-			for k,v in pairs(ents.GetAll()) do
+			for i,v in ents.Iterator() do
 				if v.Base == "isawc_container_base" then
 					container_ents[v:GetFileID()] = v
 				end
