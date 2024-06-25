@@ -3050,6 +3050,14 @@ hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 
 		-- SKILLS
 
+		if attacker:IsPlayer() and attacker:InsaneStats_GetSkillStacks("stabilization") > 0 then
+			timer.Simple(0, function()
+				if IsValid(attacker) then
+					attacker:ViewPunchReset()
+				end
+			end)
+		end
+
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetSkillValues("pew_pew_pew")/100)
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetSkillStacks("increase_the_pressure")/100)
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetStatusEffectLevel("skill_firerate_up")/100)
@@ -3095,11 +3103,11 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 		if ent:InsaneStats_GetSkillState("skip_the_scenery") == 1 then
 			speedMul = speedMul * (1 + ent:InsaneStats_GetSkillValues("skip_the_scenery") / 100)
 		end
-		if game.SinglePlayer() then
-			speedMul = speedMul * (1 + ent:InsaneStats_GetSkillValues("panic") / 100 * healthFraction)
-		end
 		if ent:InsaneStats_HasSkill("blast_proof_suit") then
 			speedMul = speedMul * 0.75
+		end
+		if game.SinglePlayer() then
+			speedMul = speedMul * (1 + ent:InsaneStats_GetSkillValues("panic") / 100 * healthFraction)
 		end
 		
 		data.speed = data.speed * speedMul
@@ -3144,7 +3152,7 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 			movedata:SetButtons(newbuttons)
 		end
 		if movedata:KeyPressed(IN_WALK) then
-			if (ply.insaneStats_LastAltPress or 0) + 1 > CurTime() and (ply.insaneStats_LastAltPress or 0) < CurTime() then
+			if (ply.insaneStats_LastAltPress or 0) + 0.5 > CurTime() and (ply.insaneStats_LastAltPress or 0) < CurTime() then
 				ply.insaneStats_LastAltPress = 0
 				
 				local duration = ply:InsaneStats_GetAttributeValue("alt_invisible") - 1
@@ -3295,7 +3303,7 @@ hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data
 
 		local spreadMult = attacker:InsaneStats_GetAttributeValue("spread")
 
-		spreadMult = spreadMult * (1 + attacker:InsaneStats_GetSkillValues("silver_bullets", 3) / 100)
+		spreadMult = spreadMult * (1 + attacker:InsaneStats_GetSkillValues("stabilization") / 100)
 		spreadMult = spreadMult / (1 + attacker:InsaneStats_GetStatusEffectLevel("skill_accuracy_up") / 100)
 		if data.AmmoType == "Pistol" or data.AmmoType == "357" then
 			spreadMult = spreadMult * (1 + attacker:InsaneStats_GetSkillValues("one_with_the_gun", 2) / 100)
@@ -3305,7 +3313,9 @@ hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data
 
 		local developer = GetConVar("developer"):GetInt() > 0
 		local penetrationPower = attacker:InsaneStats_GetAttributeValue("penetrate") - 1
-		+ attacker:InsaneStats_GetSkillValues("silver_bullets", 2)
+		if attacker:InsaneStats_GetSkillState("silver_bullets") == 1 then
+			penetrationPower = penetrationPower + attacker:InsaneStats_GetSkillValues("silver_bullets", 2)
+		end
 		if penetrationPower > 0 and penetrations < 100 then
 			-- FIXME: in some cases, bullet penetration will incorrectly pierce
 			-- hollow objects as if they were completely solid

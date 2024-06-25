@@ -229,6 +229,17 @@ hook.Add("InsaneStatsScaleXP", "InsaneStatsXP", function(data)
 		false,
 		InsaneStats:GetConVarValue("xp_drop_add_add")/100
 	) + data.victim:InsaneStats_GetDropXP()
+
+	local attacker = data.attacker
+	local inflictor = data.inflictor
+	if attacker:IsPlayer() then
+		local shareFactor = InsaneStats:GetConVarValue("xp_player_share") / 100
+		for i,v in ipairs(team.GetPlayers(attacker:Team())) do
+			if v ~= attacker and v ~= inflictor then
+				data.receivers[v] = (data.receivers[v] or 0) + shareFactor
+			end
+		end
+	end
 end)
 
 local function ProcessKillEvent(victim, attacker, inflictor)
@@ -251,6 +262,9 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 		end
 		
 		inflictor = IsValid(inflictor) and inflictor or attacker
+		if GetConVar("developer"):GetInt() > 0 then
+			InsaneStats:Log(string.format("%s killed %s with %s", tostring(attacker), tostring(victim), tostring(inflictor)))
+		end
 		
 		-- we WANT this to be called multiple times, in case the victim gained XP after being revived
 		if InsaneStats:GetConVarValue("xp_enabled") then
@@ -321,6 +335,10 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 					end
 				end
 				
+				if GetConVar("developer"):GetInt() > 0 then
+					InsaneStats:Log(string.format("Distributing %g XP to the following entities:", xpToGive))
+					PrintTable(data.receivers)
+				end
 				local wepMul = InsaneStats:GetConVarValue("xp_weapon_mul")
 				for k,v in pairs(data.receivers) do
 					local tempExtraXP = k:IsPlayer() and 0 or extraXP-- * v
@@ -379,8 +397,6 @@ local needCorrectiveDeathClasses = {
 hook.Add("InsaneStatsEntityKilled", "InsaneStatsXP", function(victim, attacker, inflictor)
 	ProcessKillEvent(victim, attacker, inflictor)
 
-	--print(victim, attacker, inflictor, victim.insaneStats_LastAttacker)
-	--print(IsValid(attacker), attacker ~= victim, IsValid(victim.insaneStats_LastAttacker))
 	if InsaneStats:GetConVarValue("xp_enabled") then
 		local wep = victim.GetActiveWeapon and victim:GetActiveWeapon()
 		if victim:IsNPC() and (IsValid(wep) and wep:GetClass() == "weapon_smg1") then
@@ -505,6 +521,11 @@ function InsaneStats:DetermineDamageMul(vic, dmginfo)
 		elseif (not IsValid(inflictor) or inflictor == attacker) and (attacker.GetActiveWeapon and IsValid(attacker:GetActiveWeapon())) then
 			inflictor = attacker:GetActiveWeapon()
 		end
+
+		--[[if attacker:GetClass() == "func_tankairboatgun" then
+			local controller = attacker:GetInternalVariable("m_hController")
+			if IsValid(controller) then attacker = controller end
+		end]]
 		
 		if IsValid(inflictor) then
 			local inflictorFlags = self:GetConVarValue("xp_damagemode")
@@ -763,22 +784,21 @@ end)
 end)]]
 
 hook.Add("EntityTakeDamage", "InsaneStatsXP", function(vic, dmginfo)
+	if (IsValid(attacker) and attacker:GetClass() ~= "entityflame") and attacker ~= vic then
+		vic.insaneStats_LastAttacker = attacker
+	end
+
 	-- striders will make a desperate attempt at deleting their target when they fail to
 	-- it makes sense for map logic, but what if it's the player?
 	local attacker = dmginfo:GetAttacker()
+	local inflictor = dmginfo:GetInflictor()
 	if vic:IsPlayer() and dmginfo:GetDamageType() == 0
 	and (IsValid(attacker) and attacker:GetClass() == "npc_strider") then
 		InsaneStats:Log("@NASTYGRAM I REFUSE!")
 		return true
 	end
-	
-	if InsaneStats:GetConVarValue("xp_enabled") then
-		if (IsValid(attacker) and attacker:GetClass() ~= "entityflame") and attacker ~= vic then
-			vic.insaneStats_LastAttacker = attacker
-		end
 		
-		if not vic:InsaneStats_GetEntityData("level") then return true end
-	end
+	if InsaneStats:GetConVarValue("xp_enabled") and not vic:InsaneStats_GetEntityData("level") then return true end
 end)
 
 hook.Add("OnPlayerPhysicsPickup", "InsaneStatsXP", function(ply, ent)

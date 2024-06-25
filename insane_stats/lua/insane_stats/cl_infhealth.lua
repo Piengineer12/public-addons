@@ -27,12 +27,16 @@ InsaneStats:RegisterClientConVar("hud_hp_enabled", "insanestats_hud_hp_enabled",
 	type = InsaneStats.BOOL
 })
 InsaneStats:RegisterClientConVar("hud_hp_x", "insanestats_hud_hp_x", "0.01", {
-	display = "Health and Armor Meters X", desc = "Horizontal position of DPS meter.",
+	display = "Health and Armor Meters X", desc = "Horizontal position of health meter.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
 InsaneStats:RegisterClientConVar("hud_hp_y", "insanestats_hud_hp_y", "0.98", {
-	display = "Health and Armor Meters Y", desc = "Vertical position of DPS meter.",
+	display = "Health and Armor Meters Y", desc = "Vertical position of health meter.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
+})
+InsaneStats:RegisterClientConVar("hud_hp_w", "insanestats_hud_hp_w", "16", {
+	display = "Health and Armor Meters Width", desc = "Horizontal width of health meter.",
+	type = InsaneStats.FLOAT, min = 0, max = 100
 })
 
 local color_gray = InsaneStats:GetColor("gray")
@@ -348,8 +352,8 @@ hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 		if InsaneStats:GetConVarValue("hud_hp_enabled") then
 			local baseX = scrW * InsaneStats:GetConVarValue("hud_hp_x")
 			local baseY = scrH * InsaneStats:GetConVarValue("hud_hp_y")
-			local barW = InsaneStats.FONT_MEDIUM * 16
-			local barH = InsaneStats.FONT_SMALL
+			local barW = InsaneStats.FONT_MEDIUM * InsaneStats:GetConVarValue("hud_hp_w")
+			local barH = InsaneStats.FONT_MEDIUM / 2
 			local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
 			
 			-- armor bar

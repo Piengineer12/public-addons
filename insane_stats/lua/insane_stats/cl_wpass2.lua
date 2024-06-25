@@ -18,7 +18,7 @@ InsaneStats:RegisterClientConVar("hud_wpass2_width", "insanestats_hud_wpass2_wid
 	display = "Weapon Panel Width", desc = "Maximum width of weapon panels.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
-InsaneStats:RegisterClientConVar("hud_wpass2_height", "insanestats_hud_wpass2_height", "0.19", {
+InsaneStats:RegisterClientConVar("hud_wpass2_height", "insanestats_hud_wpass2_height", "0.14", {
 	display = "Weapon Panel Height", desc = "Maximum height of weapon panels.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
@@ -47,7 +47,7 @@ InsaneStats:RegisterClientConVar("hud_wpass2_hovered_x", "insanestats_hud_wpass2
 	display = "Hovered Weapon Panel X", desc = "Horizontal position of hovered weapon panel.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
-InsaneStats:RegisterClientConVar("hud_wpass2_hovered_y", "insanestats_hud_wpass2_hovered_y", "0.5", {
+InsaneStats:RegisterClientConVar("hud_wpass2_hovered_y", "insanestats_hud_wpass2_hovered_y", "0.55", {
 	display = "Hovered Weapon Panel Y", desc = "Vertical position of hovered weapon panel.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
@@ -394,7 +394,8 @@ local function GetLookedAtWep(pos)
 	local bestDistance = 1024
 	for k,v in pairs(ents.FindInSphere(pos, 32)) do
 		local distanceSquared = pos:DistToSqr(v:GetPos())
-		if v:InsaneStats_IsWPASS2Pickup() and distanceSquared < bestDistance and not IsValid(v:GetOwner()) then
+		if v:InsaneStats_IsWPASS2Pickup() and distanceSquared < bestDistance
+		and not IsValid(v:GetOwner()) and v:GetClass() ~= "weapon_base" then
 			bestEntity = v
 			bestDistance = distanceSquared
 		end
@@ -536,6 +537,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 		if (ply.insaneStats_StatusEffects and next(ply.insaneStats_StatusEffects)) then
 			local registeredEffects = InsaneStats:GetAllStatusEffects()
 			local statusEffectOrder = {}
+			local hasSuit = ply:IsSuitEquipped()
 			for k,v in pairs(ply.insaneStats_StatusEffects) do
 				oldStatusEffects[k] = oldStatusEffects[k] or {expiry = 0, lastChanged = 0}
 				
@@ -599,7 +601,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 					statusEffectColor, outlineThickness, Color(0, 0, 0, statusEffectColor.a)
 				)
 				
-				if #statusEffectOrder > statusesPerColumn then
+				if #statusEffectOrder > statusesPerColumn or not hasSuit then
 					local smallText
 					if statusEffectData.level ~= 1 then
 						smallText = InsaneStats:FormatNumber(statusEffectData.level, {decimals = 0})
@@ -674,8 +676,7 @@ local ammoClasses = {
 	item_rpg_round = true,
 }
 timer.Create("InsaneStatsWPASS", 1, 0, function()
-	local ply = LocalPlayer()
-	if InsaneStats:GetConVarValue("hud_wpass2_lootbeams") and (IsValid(ply) and ply:IsSuitEquipped()) then
+	if InsaneStats:GetConVarValue("hud_wpass2_lootbeams") then
 		for i,v in ipairs(ents.GetAll()) do
 			if v:InsaneStats_IsWPASS2Pickup() and not IsValid(v:GetOwner()) and not v:IsDormant() then
 				if v.insaneStats_Modifiers then

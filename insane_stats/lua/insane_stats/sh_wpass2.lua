@@ -296,6 +296,16 @@ timer.Create("InsaneStatsSharedWPASS", 5, 0, function()
 	PerformHookOverrides("PlayerCanPickupWeapon")
 	PerformHookOverrides("PlayerCanPickupItem")
 
+	if SERVER then
+		for i,v in ipairs(ents.FindByClass("weapon_base")) do
+			if v.insaneStats_IsProxyWeapon then
+				v:SetMoveType(MOVETYPE_NONE)
+				v:SetNotSolid(true)
+				v:SetNoDraw(true)
+			end
+		end
+	end
+
 	-- -- these ones too, since we want to change the argument value
 	-- PerformHookOverrides("ScaleNPCDamage")
 	-- PerformHookOverrides("ScalePlayerDamage")
@@ -603,6 +613,7 @@ function ENTITY:InsaneStats_GetAttributes()
 	return self:InsaneStats_GetEntityData("attributes") or {}
 end
 
+local storePos = Vector(16000, 16000, 16000)
 function ENTITY:InsaneStats_GetAttributeValue(attribute)
 	if InsaneStats:GetConVarValue("wpass2_enabled") and IsValid(self) then
 		local totalMul = 1
@@ -653,9 +664,10 @@ function ENTITY:InsaneStats_GetAttributeValue(attribute)
 				if shouldGive then
 					wep = ents.Create("weapon_base")
 					wep:SetKeyValue("spawnflags", 3)
+					wep:SetPos(storePos)
 					wep:Spawn()
 					wep:SetMoveType(MOVETYPE_NONE)
-					wep:PhysicsDestroy()
+					wep:SetNotSolid(true)
 					wep:SetNoDraw(true)
 					wep.insaneStats_IsProxyWeapon = true
 					wep.insaneStats_ProxyWeaponTo = self

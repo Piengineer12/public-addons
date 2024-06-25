@@ -367,3 +367,26 @@ hook.Add("Initialize", "InsaneStatsUnlimitedHealth", function()
 		end
 	end
 end)
+
+local statusEffects = {
+	-- these status effects are required for maps to not break
+	pheonix = {
+		name = "Pheonix's Intervention",
+		typ = 1,
+		img = "condor-emblem",
+		apply = SERVER and function(ent, level, duration, attacker)
+			ent.insaneStats_PreventOverdamage = true
+		end
+	},
+	undying = {
+		name = "Undying",
+		typ = 1,
+		img = "magic-palm",
+		apply = SERVER and function(ent, level, duration, attacker)
+			ent.insaneStats_PreventOverdamage = true
+		end
+	}
+}
+hook.Add("InsaneStatsLoadWPASS", "InsaneStatsUnlimitedHealth", function(currentModifiers, currentAttributes, currentStatusEffects)
+	table.Merge(currentStatusEffects, statusEffects)
+end)

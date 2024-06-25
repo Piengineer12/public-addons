@@ -83,11 +83,13 @@ function InsaneStats:GetSkillNameByPosition(x, y)
 end
 
 function InsaneStats:GetMaxSkillPoints()
-	return 341
+	-- FIXME: this should not be hardcoded! ideally a proper counting function should be used
+	return 381
 end
 
 function InsaneStats:GetMaxUberSkillPoints()
-	return 81
+	-- FIXME: see above fixme
+	return 89
 end
 
 local ENTITY = FindMetaTable("Entity")

@@ -215,7 +215,7 @@ local dispositionScanner = coroutine.create(function()
 					coroutine.yield()
 				end
 
-				if ent:GetClass() == "npc_citizen" then
+				if (IsValid(ent) and ent:GetClass() == "npc_citizen") then
 					if (ent:GetInternalVariable("squadname") == "player_squad")
 					== (bit.band(ent.insaneStats_CitizenFlags or 0, 4) == 0) then
 						ent.insaneStats_CitizenFlags = bit.band(

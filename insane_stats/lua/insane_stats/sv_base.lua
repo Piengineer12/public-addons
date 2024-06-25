@@ -9,6 +9,10 @@ function InsaneStats:Save(data)
 		file.CreateDir("insane_stats")
 	end
 	local saveFileName = "insane_stats/"..currentSaveFile..".json"
+	if GetConVar("developer"):GetInt() > 1 then
+		InsaneStats:Log("Saved data:")
+		InsaneStats:Log(PrintTable(data))
+	end
 	file.Write(saveFileName, util.TableToJSON(data))
 end
 
@@ -114,6 +118,8 @@ hook.Add("AcceptInput", "InsaneStats", function(ent, input, activator, caller, v
 	local class = ent:GetClass()
 	if input == "insanestats_onnpckilled" then
 		hook.Run("InsaneStatsEntityKilled", caller, activator, activator)
+	elseif input == "deactivate" and class == "func_tank_combine_cannon" then
+		hook.Run("InsaneStatsEntityKilled", ent, activator, activator)
 	elseif input == "insanestats_onjoinedplayersquad" then
 		ent.insaneStats_CitizenFlags = bit.bor(ent.insaneStats_CitizenFlags or 0, 4)
 		ent:InsaneStats_MarkForUpdate(256)
@@ -306,7 +312,7 @@ hook.Add("PlayerSelectSpawn", "InsaneStats", function(ply, transition)
 		local developer = GetConVar("developer"):GetInt() > 0
 		local spawnPoints = ents.FindByClass("info_player_deathmatch")
 		for i, v in ipairs(spawnPoints) do
-			if (v:IsInWorld() and hook.Run("IsSpawnpointSuitable", ply, v, true)) then
+			if hook.Run("IsSpawnpointSuitable", ply, v, true) then
 				if developer then
 					InsaneStats:Log("Spawning "..tostring(ply).." at "..tostring(v).."!")
 				end
@@ -316,7 +322,7 @@ hook.Add("PlayerSelectSpawn", "InsaneStats", function(ply, transition)
 
 		spawnPoints = ents.FindByClass("info_player_coop")
 		for i, v in ipairs(spawnPoints) do
-			if not v.insaneStats_Disabled and (v:IsInWorld() and hook.Run("IsSpawnpointSuitable", ply, v, true)) then
+			if not v.insaneStats_Disabled and hook.Run("IsSpawnpointSuitable", ply, v, true) then
 				if developer then
 					InsaneStats:Log("Spawning "..tostring(ply).." at "..tostring(v).."!")
 				end
@@ -326,7 +332,7 @@ hook.Add("PlayerSelectSpawn", "InsaneStats", function(ply, transition)
 
 		spawnPoints = ents.FindByClass("info_player_start")
 		for i, v in ipairs(spawnPoints) do
-			if v:HasSpawnFlags(1) and (v:IsInWorld() and hook.Run("IsSpawnpointSuitable", ply, v, true)) then
+			if v:HasSpawnFlags(1) and hook.Run("IsSpawnpointSuitable", ply, v, true) then
 				if developer then
 					InsaneStats:Log("Spawning "..tostring(ply).." at "..tostring(v).."!")
 				end
@@ -334,7 +340,7 @@ hook.Add("PlayerSelectSpawn", "InsaneStats", function(ply, transition)
 			end
 		end
 		for i, v in ipairs(spawnPoints) do
-			if (v:IsInWorld() and hook.Run("IsSpawnpointSuitable", ply, v, true)) then
+			if hook.Run("IsSpawnpointSuitable", ply, v, true) then
 				if developer then
 					InsaneStats:Log("Spawning "..tostring(ply).." at "..tostring(v).."!")
 				end

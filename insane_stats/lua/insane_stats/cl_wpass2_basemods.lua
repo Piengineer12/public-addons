@@ -52,7 +52,9 @@ local lookPositions
 local nextLookPositionsRequestTime = 0
 hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 	if InsaneStats:GetConVarValue("hud_wpass2_attributes") and InsaneStats:ShouldDrawHUD() then
+		local ply = LocalPlayer()
 		if markedEntityInfo.refreshedTime + 2 > CurTime() and (markedEntityInfo.index or 0) ~= 0 then
+			ply:InsaneStats_SetSkillData("alert", 1, 0)
 			-- if the entity is valid, update markedEntityInfo
 			local ent = Entity(markedEntityInfo.index)
 			if (IsValid(ent) and not ent:IsDormant()) then
@@ -127,6 +129,8 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 					color_black
 				)
 			end
+		else
+			ply:InsaneStats_SetSkillData("alert", 0, 0)
 		end
 
 		local ply = LocalPlayer()

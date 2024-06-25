@@ -80,7 +80,7 @@ timer.Create("InsaneStatsUnlimitedHealth", 0.5, 0, function()
 		
 		if etdHooks and doHealthOverride then
 			for k,v in pairs(etdHooks) do
-				if tostring(InsaneStats.NOP) ~= tostring(v) and k ~= "InsaneStatsUnlimitedHealth" then
+				if tostring(InsaneStats.NOP) ~= tostring(v) and k ~= "InsaneStatsUnlimitedHealth" and isstring(k) then
 					hook.Add("NonInsaneStatsEntityTakeDamage", k, v)
 					hook.Add("EntityTakeDamage", k, InsaneStats.NOP)
 				end
@@ -274,29 +274,29 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 				
 				local stunned = vic:InsaneStats_GetStatusEffectLevel("stunned") > 0
 				local healthRatio = vic:InsaneStats_GetHealth() / vic:InsaneStats_GetMaxHealth()
-				if vic:GetClass() == "npc_helicopter" or vic.insaneStats_PreventLethalDamage then
-					if (vic.insaneStats_HitAtHalfHealth or 0) < 1 or stunned then
-						if developer then
-							InsaneStats:Log("Prevented lethal damage to "..tostring(vic).."!")
-						end
+				if (vic:InsaneStats_GetStatusEffectLevel("pheonix") > 0
+				or vic:InsaneStats_GetStatusEffectLevel("undying") > 0
+				or stunned) and not dmginfo:IsDamageType(DMG_DISSOLVE) then
+					if developer then
+						InsaneStats:Log("Prevented lethal damage to "..tostring(vic).."!")
+					end
 
-						-- if damage exceeds health * 0.75, nerf damage received
-						-- we have to do this otherwise the helicopter might remain in a dead-not-dead state
-						local maxDamage = vic:InsaneStats_GetRawHealth() * 0.75
-						if dmginfo:InsaneStats_GetRawDamage() > maxDamage then
-							dmginfo:InsaneStats_SetRawDamage(maxDamage)
-							if stunned then
-								vic:InsaneStats_ClearStatusEffect("stunned")
-								vic:InsaneStats_ApplyStatusEffect("invincible", 1, 0.25)
-							end
+					-- if damage exceeds health * 0.75, nerf damage received
+					-- we have to do this otherwise the helicopter might remain in a dead-not-dead state
+					local maxDamage = vic:InsaneStats_GetRawHealth() * 0.75
+					if dmginfo:InsaneStats_GetRawDamage() > maxDamage then
+						dmginfo:InsaneStats_SetRawDamage(maxDamage)
+						if stunned then
+							vic:InsaneStats_ClearStatusEffect("stunned")
+							vic:InsaneStats_ApplyStatusEffect("invincible", 1, 0.25)
 						end
-					else
-						-- make sure to not let the helicopter's health go too low since it also causes issues
-						-- again, single floating-point arithmetic makes this more difficult
-						local maxDamage = vic:InsaneStats_GetRawHealth() * (1 + 2 ^ -24)
-						if dmginfo:InsaneStats_GetRawDamage() > maxDamage then
-							dmginfo:InsaneStats_SetRawDamage(maxDamage)
-						end
+					end
+				elseif vic.insaneStats_PreventOverdamage then
+					-- make sure to not let the helicopter's health go too low since it also causes issues
+					-- again, single floating-point arithmetic makes this more difficult
+					local maxDamage = vic:InsaneStats_GetRawHealth() * (1 + 2 ^ -24)
+					if dmginfo:InsaneStats_GetRawDamage() > maxDamage then
+						dmginfo:InsaneStats_SetRawDamage(maxDamage)
 					end
 				end
 			end
@@ -306,7 +306,10 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 	local rawDamage = InsaneStats:GetConVarValue("infhealth_enabled")
 		and dmginfo:InsaneStats_GetRawDamage()
 		or dmginfo:GetDamage()
-	if rawDamage >= vic:InsaneStats_GetRawHealth() then
+	local rawHealth = InsaneStats:GetConVarValue("infhealth_enabled")
+		and vic:InsaneStats_GetRawHealth()
+		or vic:Health()
+	if rawDamage >= rawHealth then
 		local ret = hook.Run("InsaneStatsPreDeath", vic, dmginfo)
 		if ret then return ret end
 	end
@@ -322,7 +325,7 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 			InsaneStats:Log(
 				string.format(
 					"PreEntityTakeDamage: entity = %s, damage = %i, health = %i",
-					tostring(vic), dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth()
+					tostring(vic), rawDamage, rawHealth
 				)
 			)
 		end
@@ -331,7 +334,7 @@ end)
 
 hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo, notImmune, ...)
 	local richDeveloper = GetConVar("developer"):GetInt() > 1
-	if richDeveloper then
+	if richDeveloper and InsaneStats:GetConVarValue("infhealth_enabled") then
 		local attacker = dmginfo:GetAttacker()
 		if attacker:IsPlayer() then
 			InsaneStats:Log(
@@ -437,9 +440,17 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 	hook.Run("NonInsaneStatsPostEntityTakeDamage", vic, dmginfo, notImmune, ...)
 end)
 
+local multipleDamageClasses = {
+	npc_antlionguard = true,
+	npc_helicopter = true,
+	npc_strider = true,
+	npc_hunter = true,
+	npc_combinegunship = true
+}
 hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 	entities[ent] = true
 	
+	local class = ent:GetClass()
 	if InsaneStats:GetConVarValue("infhealth_enabled") then
 		if (ent:IsNPC() or ent:IsNextBot())
 		and math.random() * 100 < InsaneStats:GetConVarValue("infhealth_armor_chance")
@@ -452,14 +463,30 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 			ent:SetArmor(ent:InsaneStats_GetMaxArmor())
 		end
 
-		if ent:GetClass() == "npc_helicopter" then
-			ent:Fire("AddOutput", "OnHalfHealth !self:InsaneStats_OnHalfHealth")
-		end
+		timer.Simple(0, function()
+			if IsValid(ent) then
+				if ent.insaneStats_TempOnHalfHealth then
+					ent.insaneStats_TempOnHalfHealth = nil
+					ent:InsaneStats_ApplyStatusEffect("pheonix", 10, math.huge)
+					ent:Fire("AddOutput", "OnHalfHealth !self:InsaneStats_OnHalfHealth")
+				elseif class == "npc_helicopter" then
+					ent.insaneStats_TempOnHalfHealth = nil
+					ent:InsaneStats_ApplyStatusEffect("pheonix", 1, math.huge)
+					ent:Fire("AddOutput", "OnHalfHealth !self:InsaneStats_OnHalfHealth")
+				end
+				if ent.insaneStats_TempOnDamaged then
+					ent.insaneStats_TempOnDamaged = nil
+					if multipleDamageClasses[class] then
+						ent:InsaneStats_ApplyStatusEffect("undying", 10, math.huge)
+						ent:Fire("AddOutput", "OnDamaged !self:InsaneStats_OnDamaged")
+					end
+				end
+			end
+		end)
 	end
 	
 	if not ent.insaneStats_SpawnModified then
 		ent.insaneStats_SpawnModified = true
-		local class = ent:GetClass()
 		if class == "npc_strider" and InsaneStats:GetConVarValue("infhealth_enabled") then
 			ent:SetHealth(ent:InsaneStats_GetHealth()*2.5)
 			ent:SetMaxHealth(ent:InsaneStats_GetMaxHealth()*2.5)
@@ -485,7 +512,9 @@ end)
 
 hook.Add("EntityKeyValue", "InsaneStatsUnlimitedHealth", function(ent, key, value)
 	if key == "OnHalfHealth" then
-		ent.insaneStats_PreventLethalDamage = true
+		ent.insaneStats_TempOnHalfHealth = true
+	elseif key == "OnDamaged" then
+		ent.insaneStats_TempOnDamaged = true
 	end
 end)
 
@@ -493,11 +522,13 @@ hook.Add("AcceptInput", "InsaneStatsUnlimitedHealth", function(ent, input, activ
 	if input == "InsaneStats_OnHalfHealth" then
 		local developer = GetConVar("developer"):GetInt() > 0
 		
-		if ent.insaneStats_PreventLethalDamage and (ent.insaneStats_HitAtHalfHealth or 0) == 0 then
+		local pheonixLevel = ent:InsaneStats_GetStatusEffectLevel("pheonix")
+		if pheonixLevel > 0 then
 			if developer then
 				InsaneStats:Log("Applying invincibility to "..tostring(ent).."!")
 			end
-			ent:InsaneStats_ApplyStatusEffect("invincible", 1, 10)
+			ent:InsaneStats_ApplyStatusEffect("invincible", 1, pheonixLevel)
+			ent:InsaneStats_ClearStatusEffect("pheonix")
 		end
 
 		ent.insaneStats_HitAtHalfHealth = (ent.insaneStats_HitAtHalfHealth or 0) + 1
@@ -510,10 +541,41 @@ hook.Add("AcceptInput", "InsaneStatsUnlimitedHealth", function(ent, input, activ
 				if ent:InsaneStats_GetHealth() / ent:InsaneStats_GetMaxHealth() > 0.9375 then
 					ent.insaneStats_HitAtHalfHealth = 0
 					InsaneStats:Log(tostring(ent).." is no longer hit at half health!")
+
+					ent:InsaneStats_ApplyStatusEffect("pheonix", pheonixLevel, math.huge)
 				end
 			end
 		end)
 
+		return true
+	elseif input == "InsaneStats_OnDamaged" then
+		local developer = GetConVar("developer"):GetInt() > 0
+		local undyingLevel = ent:InsaneStats_GetStatusEffectLevel("undying")
+
+		if undyingLevel > 0 then
+			timer.Simple(0, function()
+				if IsValid(ent) then
+					if developer then
+						InsaneStats:Log("Applying invincibility to "..tostring(ent).."!")
+					end
+					ent:InsaneStats_ApplyStatusEffect("invincible", 1, 1)
+
+					undyingLevel = undyingLevel - 1
+					local duration = ent:InsaneStats_GetStatusEffectDuration("undying")
+	
+					ent:InsaneStats_ClearStatusEffect("undying")
+	
+					if undyingLevel > 0 then
+						ent:InsaneStats_ApplyStatusEffect(
+							"undying",
+							undyingLevel,
+							duration
+						)
+					end
+				end
+			end)
+		end
+		
 		return true
 	end
 end)

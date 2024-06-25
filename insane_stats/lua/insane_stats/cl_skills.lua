@@ -12,9 +12,13 @@ InsaneStats:RegisterClientConVar("hud_skills_y", "insanestats_hud_skills_y", "0.
 	display = "Skill Statuses Y", desc = "Vertical position of skill status indicators.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
-InsaneStats:RegisterClientConVar("hud_skills_per_row", "insanestats_hud_skills_per_row", "10", {
-	display = "Skill Statuses Per Row", desc = "Number of skill statuses per row. If set to -1, all skill status indicators will be in a single row.",
-	type = InsaneStats.INT, min = -1, max = 100
+InsaneStats:RegisterClientConVar("hud_skills_size", "insanestats_hud_skills_size", "3", {
+	display = "Skill Statuses Size", desc = "Size of skill status indicators.",
+	type = InsaneStats.FLOAT, min = 0, max = 10
+})
+InsaneStats:RegisterClientConVar("hud_skills_per_row", "insanestats_hud_skills_per_row", "0", {
+	display = "Skill Statuses Per Row", desc = "Number of skill statuses per row. If set to 0, all skill status indicators will be in a single row.",
+	type = InsaneStats.INT, min = 0, max = 100
 })
 
 concommand.Add("insanestats_skills_menu", function()
@@ -36,9 +40,9 @@ local color_aqua = InsaneStats:GetColor("aqua")
 local function CreateSkillButton(parent, skillName)
 	local skillInfo = InsaneStats:GetSkillInfo(skillName)
 	local outlineWidth = InsaneStats:GetConVarValue("hud_outline")
-	local buttonSize = InsaneStats.FONT_BIG * 3 + outlineWidth * 2
+	local buttonSize = InsaneStats.FONT_BIG * 2.5 + outlineWidth * 2
 	local buttonDistance = 1.5
-	local buttonOffset = buttonSize * buttonDistance * 4
+	local buttonOffset = buttonSize * buttonDistance * 5
 	local Button = vgui.Create("DButton", parent)
 	local buttonX, buttonY = skillInfo.pos[1] * buttonDistance * buttonSize + buttonOffset, skillInfo.pos[2] * 1.5 * buttonSize + buttonOffset
 	Button:SetPos(buttonX, buttonY)
@@ -196,10 +200,10 @@ local function CreateSkillPanel()
 
     -- move the canvas to the center
 	local outlineWidth = InsaneStats:GetConVarValue("hud_outline")
-	local buttonSize = InsaneStats.FONT_BIG * 3 + outlineWidth * 2
+	local buttonSize = InsaneStats.FONT_BIG * 2.5 + outlineWidth * 2
     Panel.pnlCanvas:SetPos(
-		buttonSize * -6.5 + ScrW()/4,
-		buttonSize * -6.5 + ScrH()/3 - 19 - InsaneStats.FONT_MEDIUM - outlineWidth
+		buttonSize * -8 + ScrW()/4,
+		buttonSize * -8 + ScrH()/3 - 19 - InsaneStats.FONT_MEDIUM - outlineWidth
 	)
 
     return Panel
@@ -277,12 +281,12 @@ local function CreateSkillHeaders(parent)
 			outlineThickness, color_black
 		)
 
-		if ply:InsaneStats_GetUberSkillPoints() > 0 then
+		if ply:InsaneStats_GetUberSkillPoints() ~= 0 then
 			local skillPoints = ply:InsaneStats_GetUberSkillPoints()
 			local text = InsaneStats:FormatNumber(skillPoints)
 			x = x + draw.SimpleTextOutlined(
 				text, "InsaneStats.Medium", x, outlineThickness,
-				color_aqua,
+				skillPoints > 0 and color_aqua or color_white,
 				TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
 				outlineThickness, color_black
 			)
@@ -522,7 +526,7 @@ hook.Add("HUDPaint", "InsaneStatsSkills", function()
 
 			local baseX = InsaneStats:GetConVarValue("hud_skills_x") * ScrW()
 			local baseY = InsaneStats:GetConVarValue("hud_skills_y") * ScrH()
-			local skillSize = InsaneStats.FONT_SMALL * 3
+			local skillSize = InsaneStats.FONT_SMALL * InsaneStats:GetConVarValue("hud_skills_size")
 			local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
 			local totalIconSkills = #iconSkills
 			local skillsPerRow = InsaneStats:GetConVarValue("hud_skills_per_row")

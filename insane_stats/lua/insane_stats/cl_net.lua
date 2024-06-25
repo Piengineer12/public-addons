@@ -258,5 +258,11 @@ net.Receive("insane_stats", function()
 		end
 
 		chat.AddText(unpack(toAddChat))
+	elseif func == 12 then
+		local ent = net.ReadEntity()
+		local deploySpeed = net.ReadFloat()
+		if IsValid(ent) then
+			ent:SetDeploySpeed(deploySpeed)
+		end
 	end
 end)

@@ -12,6 +12,10 @@ InsaneStats:RegisterClientConVar("hud_coins_y", "insanestats_hud_coins_y", "0.02
 	display = "Coin Display Y", desc = "Vertical position of coin display.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
+InsaneStats:RegisterClientConVar("hud_coins_simplified", "insanestats_hud_coins_simplified", "0", {
+	display = "Compact Coin Counter", desc = "Makes the coin counter use a simplified display like in Insane Stats Coin Shops.",
+	type = InsaneStats.BOOL
+})
 
 local color_black_ui = Color(0, 0, 0, 223)
 local color_red = InsaneStats:GetColor("red")
@@ -42,7 +46,12 @@ local function DangerousPaint()
 
 	x = x + InsaneStats.FONT_BIG + outlineThickness
 
-	local text = string.Comma(math.floor(coins))
+	local text = math.floor(coins)
+	if InsaneStats:GetConVarValue("hud_coins_simplified") then
+		text = InsaneStats:FormatNumber(text)
+	else
+		text = string.Comma(text)
+	end
 	draw.SimpleTextOutlined(
 		text, "InsaneStats.Big", x, y, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
 		outlineThickness, color_black
@@ -53,11 +62,13 @@ local function DangerousPaint()
 
 		local change = coins - slowCoins
 		local textColor = change > 0 and color_green or change < 0 and color_red or color_white
-		text = string.format(
-			"%s%s",
-			change < 0 and "" or "+",
-			string.Comma(math.floor(change))
-		)
+
+		text = math.floor(change)
+		if InsaneStats:GetConVarValue("hud_coins_simplified") then
+			text = InsaneStats:FormatNumber(text, {plus = true})
+		else
+			text = (change < 0 and "" or "+")..string.Comma(text)
+		end
 		draw.SimpleTextOutlined(
 			text, "InsaneStats.Big", x, y, textColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
 			outlineThickness, color_black
@@ -139,9 +150,11 @@ local function CreateWeaponryPanel(parent, shopEntity, weaponsSold)
 	for i,v in ipairs(weaponsSold) do
 		local weaponClass = InsaneStats.ShopItemsAutomaticPrice[v]
 		if weaponClass then
+			local weaponTable = weapons.Get(weaponClass) or {}
+			local weaponName = weaponTable.PrintName and language.GetPhrase(weaponTable.PrintName) or language.GetPhrase(weaponClass)
 			WeaponList:AddLine(
 				v,
-				language.GetPhrase(weaponClass),
+				weaponName,
 				weaponClass,
 				InsaneStats:FormatNumber(
 					math.ceil(

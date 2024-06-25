@@ -30,6 +30,7 @@ local function SpawnCoins(victim, value)
 			value = value - denomDist^valueExponent
 		end
 	end
+	hook.Run("InsaneStatsCoinsSpawned", victim, value)
 end
 
 hook.Add("InsaneStatsEntityKilledPostXP", "InsaneStatsCoins", function(victim, attacker, inflictor)

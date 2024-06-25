@@ -16,22 +16,10 @@ InsaneStats:RegisterClientConVar("hud_xp_y", "insanestats_hud_xp_y", "0.98", {
 	display = "XP Bar Y", desc = "Vertical position of XP bar.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
---[[InsaneStats:RegisterClientConVar("hud_xp_w", "insanestats_hud_xp_w", "200", {
+InsaneStats:RegisterClientConVar("hud_xp_w", "insanestats_hud_xp_w", "24", {
 	display = "XP Bar Width", desc = "Width of XP bar.",
-	type = InsaneStats.FLOAT, min = 0, max = 1000
+	type = InsaneStats.FLOAT, min = 0, max = 100
 })
-InsaneStats:RegisterClientConVar("hud_xp_h", "insanestats_hud_xp_h", "8", {
-	display = "XP Bar Height", desc = "Height of XP bar.",
-	type = InsaneStats.FLOAT, min = 0, max = 1000
-})
-InsaneStats:RegisterClientConVar("hud_xp_font_level", "insanestats_hud_xp_font_level", "8", {
-	display = "Level Font Size", desc = "Size of XP bar level font.",
-	type = InsaneStats.INT, min = 0, max = 100
-})
-InsaneStats:RegisterClientConVar("hud_xp_font", "insanestats_hud_xp_font", "8", {
-	display = "XP Font Size", desc = "Size of XP font.",
-	type = InsaneStats.INT, min = 0, max = 100
-})]]
 InsaneStats:RegisterClientConVar("hud_xp_gained_x", "insanestats_hud_xp_gain_x", "0", {
 	display = "XP Gained Offset X", desc = "Horizontal offset of XP gain display.",
 	type = InsaneStats.FLOAT, min = -1, max = 1
@@ -40,10 +28,6 @@ InsaneStats:RegisterClientConVar("hud_xp_gained_y", "insanestats_hud_xp_gain_y",
 	display = "XP Gained Offset Y", desc = "Vertical offset of XP gain display.",
 	type = InsaneStats.FLOAT, min = -1, max = 1
 })
---[[InsaneStats:RegisterClientConVar("hud_xp_gained_font", "insanestats_hud_xp_gained_font", "8", {
-	display = "XP Gained Font Size", desc = "Size of XP gained font.",
-	type = InsaneStats.INT, min = 0, max = 100
-})]]
 
 InsaneStats:RegisterClientConVar("hud_target_enabled", "insanestats_hud_target_enabled", "1", {
 	display = "Target Info", desc = "Enables the target info HUD.",
@@ -179,7 +163,7 @@ end
 function InsaneStats:GetXPBarHue(level)
 	if level == math.huge then
 		return RealTime()*120 % 360
-	elseif math.abs(level) > 9007199254740992 then
+	elseif math.abs(level) > 35184372088832 then
 		-- return a random number seeded with the level
 		return math.floor(util.SharedRandom("InsaneStatsLevelHue"..string.format("%.11e", level), 0, 72))*5
 	else
@@ -198,12 +182,12 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 		local level = ply:InsaneStats_GetLevel()
 
 		if InsaneStats:GetConVarValue("xp_enabled") and InsaneStats:GetConVarValue("hud_xp_enabled") then
-			local barHeight = InsaneStats.FONT_SMALL
-			local barWidth = InsaneStats.FONT_MEDIUM * 24
+			local barHeight = InsaneStats.FONT_MEDIUM / 2
+			local barWidth = InsaneStats.FONT_MEDIUM * InsaneStats:GetConVarValue("hud_xp_w")
 			local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
 			
 			local barX = (scrW - barWidth) * InsaneStats:GetConVarValue("hud_xp_x")
-			local barY = scrH * InsaneStats:GetConVarValue("hud_xp_y") - InsaneStats.FONT_MEDIUM + 2
+			local barY = scrH * InsaneStats:GetConVarValue("hud_xp_y") - barHeight
 			local maxSaturation = 0.75
 			
 			local xp = math.floor(ply:InsaneStats_GetXP())
