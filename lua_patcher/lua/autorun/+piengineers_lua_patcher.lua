@@ -11,8 +11,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 -- The ~ at the name of the other Lua file is important so that it loads before most other Lua files on Linux
 if LUA_PATCHER_VERSION then return end
 
-LUA_PATCHER_VERSION = "2.2.0"
-LUA_PATCHER_VERSION_DATE = "2024-07-06"
+LUA_PATCHER_VERSION = "2.3.0"
+LUA_PATCHER_VERSION_DATE = "2024-09-11"
 LUA_REPAIR_VERSION = LUA_PATCHER_VERSION
 LUA_REPAIR_VERSION_DATE = LUA_PATCHER_VERSION_DATE
 
@@ -42,23 +42,24 @@ end
 local function FixAllErrors()
 	if LUA_PATCHER_FIXED then return end
 	Log("Loading Lua Patcher by Piengineer12, version "..LUA_PATCHER_VERSION.." ("..LUA_PATCHER_VERSION_DATE..")")
+
+	local NIL = getmetatable(nil) or {}
+	local NUMBER = getmetatable(0) or {}
+	local STRING = getmetatable("") or {}
+	local VECTOR = FindMetaTable("Vector")
+	local ENTITY = FindMetaTable("Entity")
+	local WEAPON = FindMetaTable("Weapon")
+	local NPC = FindMetaTable("NPC")
+	local PLAYER = FindMetaTable("Player")
+	local CLUAEMITTER = FindMetaTable("CLuaEmitter")
+	local NULL_META = getmetatable(NULL) or {}
+	local PHYSOBJ = FindMetaTable("PhysObj")
+	local CTAKEDAMAGEINFO = FindMetaTable("CTakeDamageInfo")
+	local PHYSCOLLIDE = FindMetaTable("PhysCollide")
+	local AUDIOCHANNEL = FindMetaTable("IGModAudioChannel")
 	
 	Log("Patching primitives...")
 	do
-		local NIL = getmetatable(nil) or {}
-		local NUMBER = getmetatable(0) or {}
-		local STRING = getmetatable("") or {}
-		local VECTOR = FindMetaTable("Vector")
-		local ENTITY = FindMetaTable("Entity")
-		local WEAPON = FindMetaTable("Weapon")
-		local NPC = FindMetaTable("NPC")
-		local PLAYER = FindMetaTable("Player")
-		local CLUAEMITTER = FindMetaTable("CLuaEmitter")
-		local NULL_META = getmetatable(NULL) or {}
-		local PHYSOBJ = FindMetaTable("PhysObj")
-		local CTAKEDAMAGEINFO = FindMetaTable("CTakeDamageInfo")
-		local PHYSCOLLIDE = FindMetaTable("PhysCollide")
-		local AUDIOCHANNEL = FindMetaTable("IGModAudioChannel")
 		local newNilMeta = {
 			__add = function(a,b)
 				LogError("Some code attempted to add with nil.")
@@ -126,6 +127,9 @@ local function FixAllErrors()
 		pairs = function(tab, ...)
 			if not tab then
 				LogError("Some code attempted to iterate over nothing.")
+			elseif isnumber(tab) then
+				tab = {}
+				LogError("Some code attempted to iterate over a number.")
 			end
 			tab = tab or {}
 			return oldPairs(tab, ...)
@@ -254,6 +258,13 @@ local function FixAllErrors()
 			if not IsValid(ent) then
 				return ent.__tostring(ent, ...)
 			else return oldGC(ent, ...)
+			end
+		end
+		local oldSetPos = ENTITY.SetPos
+		ENTITY.SetPos = function(ent, ...)
+			if not IsValid(ent) then
+				LogError("Some code attempted to set the position of a NULL entity.")
+			else return oldSetPos(ent, ...)
 			end
 		end
 		local oldPos = ENTITY.GetPos
@@ -427,11 +438,29 @@ local function FixAllErrors()
 				return oldEnemy(ent, ...)
 			end
 		end
+		local oldSelectWeapon = NPC.SelectWeapon
+		NPC.SelectWeapon = function(ent, class, ...)
+			if not class then
+				class = ""
+				LogError("Some code did not specify which weapon an NPC should hold.")
+			end
+
+			return oldSelectWeapon(ent, class, ...)
+		end
 		
 		local oldGetCurrentCommand = PLAYER.GetCurrentCommand
 		PLAYER.GetCurrentCommand = function(ply, ...)
 			if ply == GetPredictionPlayer() then return oldGetCurrentCommand(ply, ...)
 			else LogError("Some code attempted to call Player:GetCurrentCommand() on a player with no commands currently being processed.") end
+		end
+		local oldPlayerSelectWeapon = PLAYER.SelectWeapon
+		PLAYER.SelectWeapon = function(ent, class, ...)
+			if not class then
+				class = ""
+				LogError("Some code did not specify which weapon a player should hold.")
+			end
+
+			return oldPlayerSelectWeapon(ent, class, ...)
 		end
 		
 		local oldWake = PHYSOBJ.Wake
