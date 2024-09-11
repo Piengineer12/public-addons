@@ -84,7 +84,7 @@ local function BroadcastEntityUpdates()
 		if bit.band(v, 8) ~= 0 then
 			net.WriteDouble(k:InsaneStats_GetBatteryXP())
 			net.WriteBool(k.insaneStats_ModifierChangeReason == 1)
-			net.WriteUInt(k.insaneStats_Tier, 16)
+			net.WriteInt(k.insaneStats_Tier, 16)
 			local modifiers = k.insaneStats_Modifiers or {}
 			net.WriteUInt(table.Count(modifiers), 16)
 			for k2,v2 in pairs(modifiers) do
@@ -131,7 +131,17 @@ local function BroadcastEntityUpdates()
 			net.WriteUInt(k:InsaneStats_GetLastCoinTier() + 1, 8)
 		end
 
-		-- bitflag 128 was removed
+		if bit.band(v, 128) ~= 0 then
+			net.WriteUInt(table.Count(k:InsaneStats_GetSkills()), 8)
+			for k2,v2 in pairs(k:InsaneStats_GetSkills()) do
+				net.WriteUInt(InsaneStats:GetSkillID(k2), 8)
+				net.WriteUInt(v2, 4)
+			end
+			net.WriteUInt(table.Count(k:InsaneStats_GetSealedSkills()), 8)
+			for k2,v2 in pairs(k:InsaneStats_GetSealedSkills()) do
+				net.WriteUInt(InsaneStats:GetSkillID(k2), 8)
+			end
+		end
 		
 		if bit.band(v, 256) ~= 0 then
 			net.WriteUInt(k.insaneStats_CitizenFlags, 4)
@@ -389,6 +399,7 @@ net.Receive("insane_stats", function(length, ply)
 		ply:InsaneStats_AttemptEquipItem(ply:GetUseEntity())
 	elseif func == 4 then
 		ply.insaneStats_HoldingCtrl = net.ReadBool()
+		hook.Run("InsaneStatsCtrlStateChanged", ply, ply.insaneStats_HoldingCtrl)
 	elseif func == 5 then
 		local shopEntity = net.ReadEntity()
 		if (IsValid(shopEntity) and shopEntity:GetClass() == "insanestats_shop"
@@ -418,10 +429,11 @@ net.Receive("insane_stats", function(length, ply)
 				local ent = net.ReadEntity()
 				if (IsValid(ent) and ent:GetOwner() == ply) or ent == ply then
 					local tier = ent.insaneStats_Tier or 0
-					local price = InsaneStats:GetReforgeCost(tier)
-					if ply:InsaneStats_GetCoins() >= price and tier > 0 then
+					local reforgeBlacklist = ply:InsaneStats_GetReforgeBlacklist()
+					local price = InsaneStats:GetReforgeCost(ent, reforgeBlacklist)
+					if ply:InsaneStats_GetCoins() >= price and tier ~= 0 then
 						ent.insaneStats_Modifiers = {}
-						InsaneStats:ApplyWPASS2Modifiers(ent)
+						InsaneStats:ApplyWPASS2Modifiers(ent, reforgeBlacklist)
 						ent.insaneStats_ModifierChangeReason = 2
 						ply:InsaneStats_RemoveCoins(price)
 					end
@@ -430,14 +442,18 @@ net.Receive("insane_stats", function(length, ply)
 				local price = InsaneStats:GetRespecCost(ply)
 				if ply:InsaneStats_GetCoins() >= InsaneStats:GetRespecCost(ply) then
 					ply:InsaneStats_SetSkills({})
-
-					net.Start("insane_stats")
-					net.WriteUInt(7, 8)
-					net.WriteUInt(0, 8)
-					net.Send(ply)
-
+					ply:InsaneStats_SetSealedSkills({})
 					ply:InsaneStats_RemoveCoins(price)
+					
+					ply:InsaneStats_MarkForUpdate(128)
 				end
+			elseif subFunc == 5 then
+				-- update the user's modifier blacklist
+				local modifierBlacklist = {}
+				for i=1, net.ReadUInt(16) do
+					modifierBlacklist[net.ReadString()] = true
+				end
+				ply:InsaneStats_SetReforgeBlacklist(modifierBlacklist)
 			end
 		end
 	elseif func == 6 then
@@ -445,6 +461,8 @@ net.Receive("insane_stats", function(length, ply)
 			operations:
 			0: add 1
 			1: add max
+			2: seal
+			3: disable (admin only)
 			4: use skill ID for extended operation codes
 		]]
 		local operation = net.ReadUInt(4)
@@ -470,30 +488,58 @@ net.Receive("insane_stats", function(length, ply)
 				
 				ply:InsaneStats_SetSkillTier(skillName, currentTier + spend)
 			end
+		elseif operation == 2 and ply:InsaneStats_CanSealSkills() then
+			local skillID = net.ReadUInt(8) + 1
+			local skillName = InsaneStats:GetSkillName(skillID)
+			if skillName and (ply:InsaneStats_IsSkillSealed(skillName) or not hook.Run("InsaneStatsCannotSealSkill", skillName)) then
+				ply:InsaneStats_SealSkill(skillName)
+			end
+		elseif operation == 3 and ply:InsaneStats_CanDisableSkills() then
+			local skillID = net.ReadUInt(8) + 1
+			local skillName = InsaneStats:GetSkillName(skillID)
+			if skillName then
+				local newState = not InsaneStats:IsSkillDisabled(skillName)
+				InsaneStats:DisableSkill(skillName, newState or nil)
+
+				for i,v in ents.Iterator() do
+					v:InsaneStats_MarkForUpdate(128)
+				end
+
+				net.Start("insane_stats")
+				net.WriteUInt(7, 8)
+				net.WriteBool(false)
+				net.WriteUInt(skillID, 8)
+				net.WriteBool(newState)
+				net.Broadcast()
+			end
 		elseif operation == 4 then
 			local suboperation = net.ReadUInt(8)
-			if suboperation == 1 then
+			if suboperation == 0 then
+				for i,v in ents.Iterator() do
+					v:InsaneStats_MarkForUpdate(128)
+				end
+
+				local skills = InsaneStats:GetDisabledSkills()
+				net.Start("insane_stats")
+				net.WriteUInt(7, 8)
+				net.WriteBool(true)
+				net.WriteUInt(table.Count(skills), 8)
+				for k2,v2 in pairs(skills) do
+					net.WriteUInt(InsaneStats:GetSkillID(k2), 8)
+				end
+				net.Send(ply)
+			elseif suboperation == 1 then
 				ply:InsaneStats_MaxAllSkills(false)
 			elseif suboperation == 2 then
 				ply:InsaneStats_MaxAllSkills(true)
 			elseif suboperation == 3 and bit.band(InsaneStats:GetConVarValue("skills_allow_reset"), 1) ~= 0 then
 				ply:InsaneStats_SetSkills({})
-
-				net.Start("insane_stats")
-				net.WriteUInt(7, 8)
-				net.WriteUInt(0, 8)
-				net.Send(ply)
+				ply:InsaneStats_SetSealedSkills({})
 			end
 		end
 		
-		net.Start("insane_stats")
-		net.WriteUInt(7, 8)
-		net.WriteUInt(table.Count(ply:InsaneStats_GetSkills()), 8)
-		for k,v in pairs(ply:InsaneStats_GetSkills()) do
-			net.WriteUInt(InsaneStats:GetSkillID(k), 8)
-			net.WriteUInt(v, 4)
-		end
-		net.Send(ply)
+		-- send to players
+		ply:InsaneStats_MarkForUpdate(128)
 	elseif func == 7 then
 		local lookPositions = {}
 		for i,v in ipairs(ents.FindByClass("trigger_look")) do

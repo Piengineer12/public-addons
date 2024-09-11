@@ -22,7 +22,7 @@ hook.Add("HUDPaint", "InsaneStatsPointCommand", function()
             local formattedTime = "0.00"
             local x = InsaneStats:GetConVarValue("hud_pointcmder_x") * ScrW()
             local y = InsaneStats:GetConVarValue("hud_pointcmder_y") * ScrH()
-            local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
+            local outlineThickness = InsaneStats:GetOutlineThickness()
 
             if timeRemaining > 0 then
                 local hue = timerInfo.color * 60 + 60
@@ -51,10 +51,9 @@ hook.Add("HUDPaint", "InsaneStatsPointCommand", function()
             
             for i=1, #formattedTime do
                 local size = surface.GetTextSize(zeroedFormattedTime[i])
-                draw.SimpleTextOutlined(
-                    formattedTime[i], "InsaneStats.Big", drawX + size/2, y,
-                    color_transparent, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP,
-                    outlineThickness, color_black
+                InsaneStats:DrawTextOutlined(
+                    formattedTime[i], 3, drawX + size/2, y,
+                    color_transparent, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP
                 )
 
                 drawX = drawX + size

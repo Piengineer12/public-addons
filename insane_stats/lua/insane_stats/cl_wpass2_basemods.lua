@@ -22,11 +22,12 @@ local revealIcons = {
 	func_rot_button = InsaneStats:GetIconMaterial("cursor"),
 	momentary_rot_button = InsaneStats:GetIconMaterial("cursor"),
 	func_breakable = InsaneStats:GetIconMaterial("asterisk_yellow"),
-	func_breakable_surf = InsaneStats:GetIconMaterial("asterisk_orange"),
+	func_breakable_surf = InsaneStats:GetIconMaterial("asterisk_yellow"),
 	func_door = InsaneStats:GetIconMaterial("door"),
 	func_door_rotating = InsaneStats:GetIconMaterial("door"),
 	prop_door_rotating = InsaneStats:GetIconMaterial("door"),
 	npc_grenade_frag = InsaneStats:GetIconMaterial("exclamation"),
+	item_item_crate = InsaneStats:GetIconMaterial("package"),
 
 	trigger_hurt = InsaneStats:GetIconMaterial("error"),
 	trigger_push = InsaneStats:GetIconMaterial("weather_clouds"),
@@ -46,6 +47,7 @@ local function GetIconForEntity(ent)
 		local icon = revealIcons[ent:GetClass()]
 		if icon then return icon end
 	end
+	if ent:GetNWBool("insanestats_break") then return InsaneStats:GetIconMaterial("asterisk_orange") end
 end
 
 local lookPositions
@@ -117,16 +119,14 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 			end
 			
 			for i,v in ipairs(texts) do
-				draw.SimpleTextOutlined(
+				InsaneStats:DrawTextOutlined(
 					v,
-					"InsaneStats.Small",
+					1,
 					textPosX,
 					textPosY + InsaneStats.FONT_SMALL * (i - 1),
 					color_yellow,
 					TEXT_ALIGN_CENTER,
-					TEXT_ALIGN_TOP,
-					InsaneStats:GetConVarValue("hud_outline"),
-					color_black
+					TEXT_ALIGN_TOP
 				)
 			end
 		else
@@ -135,7 +135,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 
 		local ply = LocalPlayer()
 		local revealRadius = ply:InsaneStats_GetAttributeValue("reveal") - 1
-		+ ply:InsaneStats_GetSkillValues("map_sense")
+		+ ply:InsaneStats_GetEffectiveSkillValues("map_sense")
 		if revealRadius > 0 then
 			local toDraw = {}
 			local eyePos = EyePos()

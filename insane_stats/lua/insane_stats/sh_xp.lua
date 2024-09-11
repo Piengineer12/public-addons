@@ -51,7 +51,7 @@ InsaneStats:RegisterConVar("xp_drop_add_mode", "insanestats_xp_drop_add_mode", "
 		-1 causes this ConVar to use the value of insanestats_xp_mode.",
 	type = InsaneStats.INT, min = -1, max = 1
 })
-InsaneStats:RegisterConVar("xp_drop_add_add", "insanestats_xp_drop_add_add", "0.1", {
+InsaneStats:RegisterConVar("xp_drop_add_add", "insanestats_xp_drop_add_add", "0", {
 	display = "Drop Growth", desc = "Additional % of additional % experience dropped per level. \z
 		Note that this value also influences experience % added when non-players kill other non-players. \z
 		This is only applied if \"insanestats_xp_drop_add_mode\" is 0.",
@@ -451,7 +451,7 @@ end
 
 function ENT:InsaneStats_SetXP(xp, dropValue)
 	if isstring(xp) then
-		InsaneStats:Log("XP for "..tostring(self).." attempted to be set to a string value \""..xp.."\"!")
+		InsaneStats:Log("XP for %s attempted to be set to a string value \"%s\"!", tostring(self), xp)
 		InsaneStats:Log("This is a bug, report this if you see this message!")
 		debug.Trace()
 		xp = tonumber(xp) or math.huge

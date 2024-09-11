@@ -13,6 +13,13 @@ function ENT:InsaneStats_MarkForUpdate()
 	end
 end
 
+local rechargerClasses = {
+	func_healthcharger = true,
+	item_healthcharger = true,
+	func_recharge = true,
+	item_suitcharger = true
+}
+
 net.Receive("insane_stats", function()
 	local func = net.ReadUInt(8)
 	if func == 1 then
@@ -26,7 +33,7 @@ net.Receive("insane_stats", function()
 			local batteryXP, modifierChangeReason, tier
 			local modifiers, statusEffects, coins
 			local lastCoinTier--, wpLevel, wpDangerous
-			local citizenFlags
+			local citizenFlags, skills, sealedSkills
 			
 			if bit.band(flags, 1) ~= 0 then
 				health = net.ReadDouble()
@@ -48,7 +55,7 @@ net.Receive("insane_stats", function()
 			if bit.band(flags, 8) ~= 0 then
 				batteryXP = net.ReadDouble()
 				modifierChangeReason = net.ReadBool()
-				tier = net.ReadUInt(16)
+				tier = net.ReadInt(16)
 				
 				modifiers = {}
 				for i=1, net.ReadUInt(16) do
@@ -57,7 +64,7 @@ net.Receive("insane_stats", function()
 					
 					if key == "" then
 						InsaneStats:Log("Received an empty string for modifier, is the network toasted?")
-						InsaneStats:Log("This occured while processing entity "..entIndex..".")
+						InsaneStats:Log("This occured while processing entity %u.", entIndex)
 					else
 						modifiers[key] = value
 					end
@@ -78,8 +85,8 @@ net.Receive("insane_stats", function()
 					if idStr then
 						statusEffects[idStr] = {level = level, expiry = expiry}
 					else
-						InsaneStats:Log("Received unknown status effect ID "..id..", is the network toasted?")
-						InsaneStats:Log("This occured while processing entity "..entIndex..".")
+						InsaneStats:Log("Received unknown status effect ID %u, is the network toasted?", id)
+						InsaneStats:Log("This occured while processing entity %u.", entIndex)
 					end
 				end
 			end
@@ -93,10 +100,17 @@ net.Receive("insane_stats", function()
 				lastCoinTier = net.ReadUInt(8)
 			end
 			
-			--[[if bit.band(flags, 128) ~= 0 then
-				wpLevel = net.ReadInt(32)
-				wpDangerous = net.ReadBool()
-			end]]
+			if bit.band(flags, 128) ~= 0 then
+				skills, sealedSkills = {}, {}
+				for i=1, net.ReadUInt(8) do
+					local skillName = InsaneStats:GetSkillName(net.ReadUInt(8))
+					skills[skillName] = net.ReadUInt(4)
+				end
+				for i=1, net.ReadUInt(8) do
+					local skillName = InsaneStats:GetSkillName(net.ReadUInt(8))
+					sealedSkills[skillName] = true
+				end
+			end
 
 			if bit.band(flags, 256) ~= 0 then
 				citizenFlags = net.ReadUInt(4)
@@ -155,10 +169,10 @@ net.Receive("insane_stats", function()
 					ent:InsaneStats_SetLastCoinTier(lastCoinTier - 1)
 				end
 
-				--[[if wpLevel then
-					ent.worldProgression_Level = wpLevel
-					ent.worldProgression_Dangerous = wpDangerous
-				end]]
+				if skills then
+					ent:InsaneStats_SetSkills(skills)
+					ent:InsaneStats_SetSealedSkills(sealedSkills)
+				end
 
 				if citizenFlags then
 					ent.insaneStats_CitizenFlags = citizenFlags
@@ -205,14 +219,26 @@ net.Receive("insane_stats", function()
 		for i=1, net.ReadUInt(16) do
 			table.insert(soldWeapons, net.ReadUInt(16))
 		end
-		InsaneStats:CreateShopMenu(ent, soldWeapons)
-	elseif func == 7 then
-		local skills = {}
-		for i=1, net.ReadUInt(8) do
-			local skillName = InsaneStats:GetSkillName(net.ReadUInt(8))
-			skills[skillName] = net.ReadUInt(4)
+		local modifierBlacklist = {}
+		for i=1, net.ReadUInt(16) do
+			modifierBlacklist[net.ReadString()] = true
 		end
-		LocalPlayer():InsaneStats_SetSkills(skills)
+		InsaneStats:CreateShopMenu(ent, soldWeapons, modifierBlacklist)
+	elseif func == 7 then
+		if net.ReadBool() then
+			-- disabled skill set
+			local skills = {}
+			for i=1, net.ReadUInt(8) do
+				local skillName = InsaneStats:GetSkillName(net.ReadUInt(8))
+				skills[skillName] = true
+			end
+			InsaneStats:SetDisabledSkills(skills)
+		else
+			-- disabled single skill
+			local skillName = InsaneStats:GetSkillName(net.ReadUInt(8))
+			local newState = net.ReadBool() or nil
+			InsaneStats:DisableSkill(skillName, newState)
+		end
 	elseif func == 8 then
 		local ply = LocalPlayer()
 		ply.insaneStats_SkillData = ply.insaneStats_SkillData or {}
@@ -230,8 +256,8 @@ net.Receive("insane_stats", function()
 				if idStr then
 					ply.insaneStats_SkillData[idStr] = {state = state, stacks = stacks, updateTime = updateTime}
 				else
-					InsaneStats:Log("Received unknown skill ID "..id..", is the network toasted?")
-					InsaneStats:Log("This occured while processing entity "..ply..".")
+					InsaneStats:Log("Received unknown skill ID %u, is the network toasted?", id)
+					InsaneStats:Log("This occured while processing entity %s.", tostring(ply))
 				end
 			end
 		end
@@ -260,9 +286,19 @@ net.Receive("insane_stats", function()
 		chat.AddText(unpack(toAddChat))
 	elseif func == 12 then
 		local ent = net.ReadEntity()
-		local deploySpeed = net.ReadFloat()
 		if IsValid(ent) then
-			ent:SetDeploySpeed(deploySpeed)
+			if ent:IsWeapon() then
+				ent:SetDeploySpeed(net.ReadFloat())
+			elseif rechargerClasses[ent:GetClass()] then
+				ent:SetNoDraw(true)
+				ent.insaneStats_NoTargetID = true
+			end
 		end
+	end
+end)
+
+hook.Add("NotifyShouldTransmit", "InsaneStatsNet", function(ent, shouldtransmit)
+	if ent.insaneStats_NoTargetID and shouldtransmit then
+		ent:SetNoDraw(true)
 	end
 end)

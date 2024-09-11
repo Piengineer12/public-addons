@@ -24,7 +24,7 @@ concommand.Add("insanestats_xp_other_level_maps_remove", function(ply, cmd, args
 		while v do
 			if InsaneStats:WildcardMatches(argStr, v) then
 				table.remove(mapOrder, i)
-				InsaneStats:Log("Removed map "..v..".")
+				InsaneStats:Log("Removed map %s.", v)
 				success = true
 			else
 				i = i + 1
@@ -39,13 +39,13 @@ concommand.Add("insanestats_xp_other_level_maps_remove", function(ply, cmd, args
 			local toRemove = math.min(#mapOrder, tonumber(argStr) or 0)
 			for i=1, toRemove do
 				local value = table.remove(mapOrder)
-				InsaneStats:Log("Removed map "..value..".")
+				InsaneStats:Log("Removed map %s.", value)
 			end
 			InsaneStats:Log("Run the command insanestats_save to save the current map list!")
 		elseif argStr == "" then
 			InsaneStats:Log("Removes a map from the map record list. If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. * wildcards are allowed. Note that a map restart is required for the map number to be updated.")
 		else
-			InsaneStats:Log("Could not find map "..argStr..".")
+			InsaneStats:Log("Could not find map %s.", argStr)
 		end
 	end
 end, nil, "Removes maps from the recorded maps list. * and ? wildcards are allowed. \z
@@ -72,7 +72,7 @@ concommand.Add("insanestats_xp_player_level_set", function(ply, cmd, args, argSt
 				end
 				
 				if not foundPlayer then
-					InsaneStats:Log("Could not find player \""..plyStr.."\".")
+					InsaneStats:Log("Could not find player \"%s\".", plyStr)
 					return
 				end
 			end
@@ -81,7 +81,7 @@ concommand.Add("insanestats_xp_player_level_set", function(ply, cmd, args, argSt
 			if level then
 				ply:InsaneStats_SetXP(InsaneStats:GetXPRequiredToLevel(level))
 			else
-				InsaneStats:Log("\""..levelStr.."\" is not a valid number.")
+				InsaneStats:Log("\"%s\" is not a valid number.", levelStr)
 			end
 		end
 	end
@@ -134,7 +134,7 @@ function ENT:InsaneStats_ApplyLevel(level)
 			currentHealthFrac = 1
 		elseif not (newHealth >= -math.huge) then
 			print(
-				startingHealth, InsaneStats:GetConVarValue("xp_other_health")/100,
+				self:InsaneStats_GetMaxHealth(), currentHealthAdd, InsaneStats:GetConVarValue("xp_other_health")/100,
 				level, false, InsaneStats:GetConVarValue("xp_other_health_add")/100
 			)
 		end
@@ -174,6 +174,11 @@ function ENT:InsaneStats_ApplyLevel(level)
 			end
 			if newArmor == math.huge then
 				currentArmorFrac = 1
+			elseif not (newArmor >= -math.huge) then
+				print(
+					self:InsaneStats_GetMaxArmor(), currentArmorAdd, InsaneStats:GetConVarValue("xp_other_armor")/100,
+					level, false, InsaneStats:GetConVarValue("xp_other_armor_add")/100
+				)
 			end
 			self:SetMaxArmor(newArmor)
 			self:SetArmor(currentArmorFrac * newArmor)
@@ -198,7 +203,9 @@ function ENT:InsaneStats_SetCurrentHealthAdd(mul)
 end
 
 function ENT:InsaneStats_GetCurrentHealthAdd()
-	return self:InsaneStats_GetEntityData("xp_health_mul") or 1
+	local currentAdd = self:InsaneStats_GetEntityData("xp_health_mul") or 1
+	if not (currentAdd > 0) then currentAdd = 1 end
+	return currentAdd
 end
 
 function ENT:InsaneStats_SetCurrentArmorAdd(mul)
@@ -207,7 +214,9 @@ function ENT:InsaneStats_SetCurrentArmorAdd(mul)
 end
 
 function ENT:InsaneStats_GetCurrentArmorAdd()
-	return self:InsaneStats_GetEntityData("xp_armor_mul") or 1
+	local currentAdd = self:InsaneStats_GetEntityData("xp_armor_mul") or 1
+	if not (currentAdd > 0) then currentAdd = 1 end
+	return currentAdd
 end
 
 function ENT:InsaneStats_SetDropXP(xp)
@@ -262,8 +271,8 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 		end
 		
 		inflictor = IsValid(inflictor) and inflictor or attacker
-		if GetConVar("developer"):GetInt() > 0 then
-			InsaneStats:Log(string.format("%s killed %s with %s", tostring(attacker), tostring(victim), tostring(inflictor)))
+		if InsaneStats:IsDebugLevel(2) then
+			InsaneStats:Log("%s killed %s with %s", tostring(attacker), tostring(victim), tostring(inflictor))
 		end
 		
 		-- we WANT this to be called multiple times, in case the victim gained XP after being revived
@@ -335,8 +344,8 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 					end
 				end
 				
-				if GetConVar("developer"):GetInt() > 0 then
-					InsaneStats:Log(string.format("Distributing %g XP to the following entities:", xpToGive))
+				if InsaneStats:IsDebugLevel(2) then
+					InsaneStats:Log("Distributing %g XP to the following entities:", xpToGive)
 					PrintTable(data.receivers)
 				end
 				local wepMul = InsaneStats:GetConVarValue("xp_weapon_mul")
@@ -614,6 +623,10 @@ local function DoSetHealth(ent, health)
 		if ent:InsaneStats_GetMaxHealth() < health and not ent:IsPlayer() then
 			ent:SetMaxHealth(health)
 		end
+
+		if health <= 0 then
+			ent:TakeDamage(0)
+		end
 	end
 end
 hook.Add("AcceptInput", "InsaneStatsXP", function(ent, input, activator, caller, data)
@@ -878,8 +891,8 @@ hook.Add("PlayerCanPickupItem", "InsaneStatsXP", function(ply, item)
 	local ret = hook.Run("InsaneStatsPlayerCanPickupItem", ply, item)
 	if ret == false then return false end
 
-	hook.Run("InsaneStatsPlayerPickedUpItem", ply, item)
-	if InsaneStats:GetConVarValue("xp_enabled") and not item.insaneStats_NoCustomItemProcessing then
+	local doCustomHandling = InsaneStats:GetConVarValue("xp_enabled") and not item.insaneStats_NoCustomItemProcessing
+	if doCustomHandling then
 		local class = item:GetClass()
 		if class == "item_healthvial" then
 			if ply:InsaneStats_GetHealth() < ply:InsaneStats_GetMaxHealth() then
@@ -889,6 +902,8 @@ hook.Add("PlayerCanPickupItem", "InsaneStatsXP", function(ply, item)
 				)
 				ply:SetHealth(newHealth)
 				ply:EmitSound("HealthVial.Touch")
+
+				hook.Run("InsaneStatsPlayerPickedUpItem", ply, item)
 				item:Remove()
 			
 				net.Start("insane_stats")
@@ -906,6 +921,8 @@ hook.Add("PlayerCanPickupItem", "InsaneStatsXP", function(ply, item)
 				)
 				ply:SetHealth(newHealth)
 				ply:EmitSound("HealthKit.Touch")
+
+				hook.Run("InsaneStatsPlayerPickedUpItem", ply, item)
 				item:Remove()
 			
 				net.Start("insane_stats")
@@ -934,6 +951,8 @@ hook.Add("PlayerCanPickupItem", "InsaneStatsXP", function(ply, item)
 				)
 				ply:SetHealth(newHealth)
 				ply:EmitSound("HealthKit.Touch")
+
+				hook.Run("InsaneStatsPlayerPickedUpItem", ply, item)
 				item:Remove()
 				
 				net.Start("insane_stats")
@@ -947,10 +966,14 @@ hook.Add("PlayerCanPickupItem", "InsaneStatsXP", function(ply, item)
 			local ignoreWPASS2Pickup = (item.insaneStats_DisableWPASS2Pickup or 0) > RealTime()
 			
 			if ply:InsaneStats_GetArmor() < ply:InsaneStats_GetMaxArmor() and not ignoreWPASS2Pickup then
+				hook.Run("InsaneStatsPlayerPickedUpItem", ply, item)
+
 				item.insaneStats_Modifiers = nil
 				ply:InsaneStats_EquipBattery(item)
 				return false
 			end
 		end
+	else
+		hook.Run("InsaneStatsPlayerPickedUpItem", ply, item)
 	end
 end)

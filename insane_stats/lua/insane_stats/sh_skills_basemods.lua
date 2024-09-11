@@ -1,6 +1,7 @@
 --[[SKILL IDEAS:
-gravity / stomp ability
-enemy takes more damage per crit
+augment mantreads with gravity / stomp ability
+
+auto-reload for holstered weapons, boosts max stacks of keep it fresh skill
 ]]
 
 local skills = {
@@ -161,17 +162,19 @@ local skills = {
 		values = function(level)
 			return level * 10
 		end,
-		img = "arrow-scope",
+		img = "dead-eye",
 		pos = {1, -2},
 		minpts = 5
 	},
-	reuse = {
-		name = "Reuse",
-		desc = "%+.0f%% chance to not consume ammo",
+	skill_sealer = {
+		name = "Skill Sealer",
+		desc = "Enables skill sealing in the skill menu. \z
+		Sealed skills will have all their effects replaced with %+.1f%% coins and XP gain per level. \z
+		This skill cannot be sealed, and all seals are removed when skills are reset.",
 		values = function(level)
-			return level * 8
+			return level/2
 		end,
-		img = "crystal-bars",
+		img = "cycle",
 		pos = {2, -1},
 		minpts = 5
 	},
@@ -288,7 +291,7 @@ local skills = {
 	},
 	why_is_it_called_kiting = {
 		name = "Why is it Called Kiting?",
-		desc = "Damage dealt is increased based on velocity. At normal running velocity, damage dealt is increased by %+.0f%%.",
+		desc = "Damage dealt is increased based on speed. At normal running speed, damage dealt is increased by %+.0f%%.",
 		values = function(level)
 			return level * 10
 		end,
@@ -400,25 +403,23 @@ local skills = {
 		minpts = 10,
 		max = 1
 	},
-	anti_coward_rounds = {
-		name = "Anti-Coward Rounds",
-		desc = "%+.0f%% damage dealt against props\n\z
-		%+.0f%% damage dealt against shielded entities\n\z
-		%+.0f%% damage dealt against armored entities",
+	youre_approaching_me = {
+		name = "You're Approaching Me?",
+		desc = "%+.0f%% damage dealt against entities within 512 Hu",
 		values = function(level)
-			return level * 10, level * 10, level * 10
+			return level * 10
 		end,
-		img = "cracked-disc",
+		img = "boxing-glove",
 		pos = {2, -3},
 		minpts = 5
 	},
-	productivity = {
-		name = "Productivity",
-		desc = "%+.0f%% chance to duplicate items. On kill, add %+.0f%% ammo into the current weapon's clips.",
+	reuse = {
+		name = "Reuse",
+		desc = "%+.0f%% chance to not consume ammo",
 		values = function(level)
-			return level * 10, level * 5
+			return level * 8
 		end,
-		img = "cubeforce",
+		img = "crystal-bars",
 		pos = {3, -2},
 		minpts = 5
 	},
@@ -461,7 +462,6 @@ local skills = {
 	aint_got_time_for_this = game.SinglePlayer() and {
 		name = "Ain't Got Time For This",
 		desc = "While %s is held, gain +%u stack(s) of Ain't Got Time For This per second. \z
-		Stacks are gained 1%% faster per stack, but stack gains are divided by game speed. \z
 		Each stack increases attack damage, defence and game speed by 1%%, but all stacks are lost when %s is released.\n\z
 		(This skill is completely different in multiplayer.)",
 		values = function(level)
@@ -475,10 +475,10 @@ local skills = {
 			return crouchKey, level, crouchKey
 		end,
 		stackTick = function(state, current, time, ent)
-			local add = (state == 1 and time or 0)
-			/ game.GetTimeScale()
-			* ent:InsaneStats_GetSkillValues("aint_got_time_for_this", 2)
-			* (1 + current/100)
+			local add = (state == 1 and time or 0) * ent:InsaneStats_GetEffectiveSkillValues("aint_got_time_for_this", 2)
+			if ent:InsaneStats_EffectivelyHasSkill("just_breathe") and ent:InsaneStats_GetSkillState("just_breathe") == 1 then
+				add = add * (1 + ent:InsaneStats_GetEffectiveSkillValues("just_breathe", 4) / 100)
+			end
 			return state, current + add
 		end,
 		img = "clockwork",
@@ -519,7 +519,7 @@ local skills = {
 	},
 	super_cold = game.SinglePlayer() and {
 		name = "Super Cold",
-		desc = "While not in a vehicle, game speed is reduced based on velocity. At normal running velocity, time takes %+.0f%% longer to pass.\n\z
+		desc = "While not in a vehicle, game speed is reduced based on speed. At normal running speed, time takes %+.0f%% longer to pass.\n\z
 		(This skill is completely different in multiplayer.)",
 		values = function(level)
 			return level * 10
@@ -567,7 +567,7 @@ local skills = {
 	},
 	overheal = {
 		name = "Overheal",
-		desc = "On kill, restore %+.0f%% of max health. Health gained this way can exceed max health, but with diminishing returns.",
+		desc = "On kill, restore %+i%% of max health. Health gained this way can exceed max health, but with diminishing returns.",
 		values = function(level)
 			return level
 		end,
@@ -575,17 +575,13 @@ local skills = {
 		pos = {-3, -2},
 		minpts = 5
 	},
-	increase_the_pressure = {
-		name = "Increase the Pressure",
-		desc = "On kill, gain %+.1f stack(s) of Increase the Pressure. Each stack increases most weapons' fire rate by 1%%, but stacks decay at a rate of -0.1%%/s.",
+	you_cant_run = {
+		name = "You Can't Run",
+		desc = "%+.0f%% damage dealt against entities further than 512 Hu",
 		values = function(level)
-			return level/5
+			return level * 10
 		end,
-		stackTick = function(state, current, time, ent)
-			local nextStacks = current * .999 ^ time
-			return nextStacks <= 0 and 0 or 1, nextStacks
-		end,
-		img = "hydra-shot",
+		img = "arrow-dunk",
 		pos = {-2, -3},
 		minpts = 5
 	},
@@ -619,13 +615,15 @@ local skills = {
 		name = "Infusion",
 		desc = "On kill, gain +%s max health.",
 		values = function(level, ent)
+			local scaleType = ent:IsPlayer() and "player" or "other"
+			local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and ent:InsaneStats_GetLevel() or 1
 			local val = InsaneStats:ScaleValueToLevelQuadratic(
 				level/50,
-				InsaneStats:GetConVarValue("xp_player_health")/100,
-				InsaneStats:GetConVarValue("xp_enabled") and ent:InsaneStats_GetLevel() or 1,
-				"xp_player_health_mode",
+				InsaneStats:GetConVarValue("xp_"..scaleType.."_health")/100,
+				effectiveLevel,
+				"xp_"..scaleType.."_health_mode",
 				false,
-				InsaneStats:GetConVarValue("xp_player_health_add")/100
+				InsaneStats:GetConVarValue("xp_"..scaleType.."_health_add")/100
 			)
 			return CLIENT and InsaneStats:FormatNumber(val), val
 		end,
@@ -640,7 +638,6 @@ local skills = {
 			local scaleType = ent:IsPlayer() and "player" or "other"
 			local baseMult = ent:IsPlayer() and 1 or InsaneStats:GetConVarValue("infhealth_armor_mul")
 			local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and ent:InsaneStats_GetLevel() or 1
-
 			local val = InsaneStats:ScaleValueToLevelQuadratic(
 				level/50*baseMult,
 				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
@@ -657,7 +654,7 @@ local skills = {
 	},
 	jazz_feet = {
 		name = "Jazz Feet",
-		desc = "Gain more coins and XP based on current velocity. At normal running velocity, coins and XP gain is increased by %+.0f%%.",
+		desc = "Gain more coins and XP based on speed. At normal running speed, coins and XP gain is increased by %+.0f%%.",
 		values = function(level)
 			return level * 10
 		end,
@@ -679,7 +676,7 @@ local skills = {
 		name = "Bloodletter's Pact",
 		desc = "Health above %.1f%% is converted into shield. Shield gained this way can exceed max shield, but with diminishing returns.",
 		values = function(level, ent)
-			return 100 - level * 2 * (1 + ent:InsaneStats_GetSkillValues("bloodletters_revelation", 2) / 100)
+			return 100 - level * 2 * (1 + ent:InsaneStats_GetEffectiveSkillValues("bloodletters_revelation", 2) / 100)
 		end,
 		img = "bleeding-heart",
 		pos = {-2, 4},
@@ -687,9 +684,9 @@ local skills = {
 	},
 	four_parallel_universes_ahead = {
 		name = "Four Parallel Universes Ahead",
-		desc = "Damage taken is reduced based on velocity. At normal running velocity, damage taken is reduced by %.0f%%.",
+		desc = "Defence is increased based on speed. At normal running speed, defence is increased by %i%%.",
 		values = function(level)
-			return level * -8
+			return level * 10
 		end,
 		img = "dodging",
 		pos = {-3, 3},
@@ -705,8 +702,8 @@ local skills = {
 		pos = {-4, 2},
 		minpts = 5
 	},
-	overcharge = {
-		name = "Overcharge",
+	overshield = {
+		name = "Overshield",
 		desc = "On kill, restore %+.0f%% of max shield. Shield gained this way can exceed max shield, but with diminishing returns.",
 		values = function(level)
 			return level
@@ -731,17 +728,17 @@ local skills = {
 		pos = {-3, -3},
 		minpts = 5
 	},
-	stabilization = {
-		name = "Stabilization",
-		desc = "Bullets have %+i%% spread. On kill, all recoil from firing weapons is negated for +%u seconds.",
+	increase_the_pressure = {
+		name = "Increase the Pressure",
+		desc = "On kill, gain %+.1f stack(s) of Increase the Pressure. Each stack increases most weapons' fire rate by 1%%, but stacks decay at a rate of -0.1%%/s.",
 		values = function(level)
-			return level * -10, level * 2
+			return level/5
 		end,
 		stackTick = function(state, current, time, ent)
-			local nextStacks = math.max(current - time, 0)
+			local nextStacks = current * .999 ^ time
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
-		img = "on-target",
+		img = "hydra-shot",
 		pos = {-2, -4},
 		minpts = 5
 	},
@@ -800,7 +797,7 @@ local skills = {
 			return level/5, level/-5
 		end,
 		stackTick = function(state, current, time, ent)
-			local decayRate = ent:InsaneStats_GetSkillValues("multi_killer", 2)
+			local decayRate = ent:InsaneStats_GetEffectiveSkillValues("multi_killer", 2)
 			local nextStacks = math.max(current + decayRate * time, 0)
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
@@ -810,12 +807,12 @@ local skills = {
 	},
 	keep_it_fresh = {
 		name = "Keep It Fresh",
-		desc = "On kill, set the number of Keep It Fresh stacks to 50 \z
+		desc = "On kill, set the number of Keep It Fresh stacks to %u \z
 		unless the kill was done with the same weapon as the last kill, \z
 		in which case the number of stacks is reduced by %i instead. \z
 		Each stack gives 1%% more coins and XP, and stacks cannot go below zero.",
-		values = function(level)
-			return math.min(level*5 - 30, 0)
+		values = function(level, ent)
+			return ent:InsaneStats_GetEffectiveSkillValues("the_fourth_dimension", 2) + 50, math.min(level*5 - 30, 0)
 		end,
 		stackTick = function(state, current, time, ent)
 			return current > 0 and 1 or 0, current
@@ -851,13 +848,13 @@ local skills = {
 		minpts = 10,
 		max = 1
 	},
-	feel_the_energy = {
-		name = "Feel The Energy",
-		desc = "Having more shield increases coins and XP gained. At 100%% shield, coins and XP gain is increased by %+.0f%%.",
+	keep_it_ready = {
+		name = "Keep It Ready",
+		desc = "Gain more coins and XP based on the square root of the percentage of ammo left in the current weapon's clip. At 100%% ammo, coins and XP gain is increased by +%u%%!",
 		values = function(level)
-			return level * 20
+			return level * 10
 		end,
-		img = "triple-yin",
+		img = "knapsack",
 		pos = {5, 2},
 		minpts = 5
 	},
@@ -905,7 +902,7 @@ local skills = {
 	},
 	you_all_get_a_car = {
 		name = "You All Get A Car",
-		desc = "While %s is not held, share up to level %u of most skills with all non-player allies. Also, weapon switch speed is increased by %+i%%.",
+		desc = "While %s is not held, share up to level %+i of most skills with all allies. Also, weapon switch speed is increased by %+i%%.",
 		values = function(level, ent)
 			local slowWalkKey = "the Slow Walk key"
 			if CLIENT then
@@ -933,7 +930,8 @@ local skills = {
 	},
 	just_breathe = game.SinglePlayer() and {
 		name = "Just Breathe",
-		desc = "Double tap %s to reduce game speed by %i%% and increase movement rate by +%u%% for 10 seconds! 60 seconds cooldown.\n\z
+		desc = "Double tap %s to reduce game speed by %+i%% and increase movement rate by %+i%% for 10 seconds! \z
+		While this skill is active, Ain't Got Time For This stacks are gained %+i%% faster. 60 seconds cooldown.\n\z
 		(This skill is completely different in multiplayer.)",
 		values = function(level)
 			local slowWalkKey = "the Slow Walk key"
@@ -943,7 +941,7 @@ local skills = {
 					slowWalkKey = keyName:upper()
 				end
 			end
-			return slowWalkKey, -25 - level * 25, -100 + level * 200
+			return slowWalkKey, -25 - level * 25, -100 + level * 200, -100 + level * 200
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = math.max(current - time, 0)
@@ -992,21 +990,21 @@ local skills = {
 		pos = {-2, 5},
 		minpts = 5
 	},
-	bloodletters_revelation = {
-		name = "Bloodletter's Revelation",
-		desc = "Gain up to %+.0f%% movement speed at high health. The Bloodletter's Pact skill is also %+.0f%% more effective.",
+	glass = {
+		name = "Glass",
+		desc = "%+i%% damage dealt\n%+i%% damage taken\n%+i%% coins and XP gain",
 		values = function(level)
-			return level * 8, level * 20
+			return level * 5, level * 5, level * 5
 		end,
-		img = "dripping-goo",
+		img = "martini",
 		pos = {-3, 4},
 		minpts = 5
 	},
 	starlight = {
 		name = "Starlight",
-		desc = "On kill, gain %+.0f stacks of Starlight. Each stack increases defence by 1%% but also causes glowing by 4 Hu. Stacks have a maximum limit of 1,000 and decay at a rate of 1/s.",
+		desc = "On kill or prop broken, gain %+.0f stacks of Starlight. Each stack increases defence by 1%% but also causes glowing by 4 Hu. Stacks have a maximum limit of 1,000 and decay at a rate of 1/s.",
 		values = function(level)
-			return level * 2
+			return level
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = math.max(current - time, 0)
@@ -1088,16 +1086,6 @@ local skills = {
 		minpts = 10,
 		max = 1
 	},
-	--[[suit_up = {
-		name = "Suit Up",
-		desc = "Take %+i%% damage if either WPASS2 is disabled or the equipped Armor Battery is Tier 0, otherwise gain %+i%% defence per tier.",
-		values = function(level)
-			return level*-5, level*2
-		end,
-		img = "mail-shirt",
-		pos = {-5, -2},
-		minpts = 5
-	},]]
 	impenetrable_shield = {
 		name = "Impenetrable Shield",
 		desc = "Shield blocks 100%% of damage instead of 80%%, and damage taken is reduced by %+.0f%% while shielded.",
@@ -1118,25 +1106,25 @@ local skills = {
 		pos = {-4, -3},
 		minpts = 5
 	},
-	shield_shell_shots = {
-		name = "Shield Shell Shots",
-		desc = "While at 100%% shield or above, all BASE damage dealt is increased by %s, but results in %.1f%% of shield loss!",
-		values = function(level, ent)
-			local value = 40 * InsaneStats:DetermineDamageMulPure(
-				ent, game.GetWorld()
-			)
-			return CLIENT and InsaneStats:FormatNumber(value), math.min(level/2.5 - 2.4, 0)
+	stabilization = {
+		name = "Stabilization",
+		desc = "Bullets have %+i%% spread. On kill, all recoil from firing weapons is negated for +%u seconds.",
+		values = function(level)
+			return level * -10, level * 2
 		end,
-		img = "shield-bounces",
+		stackTick = function(state, current, time, ent)
+			local nextStacks = math.max(current - time, 0)
+			return nextStacks <= 0 and 0 or 1, nextStacks
+		end,
+		img = "on-target",
 		pos = {-3, -4},
 		minpts = 5
 	},
 	scattershot = {
 		name = "Scattershot",
 		desc = "Gain %+.1f stack(s) of Scattershot per second, up to 100 stacks. \z
-		While holding a shotgun, each stack grants a 1%% chance on hit \z
-		to deal additional %s BASE damage to each visible entity within 1024 Hu of the victim. \z
-		1 stack is lost for every instance of damage dealt this way.",
+		While holding a shotgun, an additional %s BASE damage is dealt to each visible entity \z
+		within 1024 Hu of the victim. 1 stack is lost for every instance of damage dealt this way.",
 		values = function(level, ent)
 			local value = 8 * InsaneStats:DetermineDamageMulPure(
 				ent, game.GetWorld()
@@ -1144,7 +1132,7 @@ local skills = {
 			return level/5, CLIENT and InsaneStats:FormatNumber(value)
 		end,
 		stackTick = function(state, current, time, ent)
-			local newStacks = math.min(current + time * ent:InsaneStats_GetSkillValues("scattershot", 1), 100)
+			local newStacks = math.min(current + time * ent:InsaneStats_GetEffectiveSkillValues("scattershot", 1), 100)
 			return newStacks > 0 and 1 or 0, newStacks
 		end,
 		img = "divert",
@@ -1167,7 +1155,7 @@ local skills = {
 		max = 1
 	},
 
-	-- distance 8+
+	-- distance 8
 	killing_spree = {
 		name = "Killing Spree",
 		desc = "On kill, gain %s of Killing Spree for 1 minute. \z
@@ -1185,6 +1173,16 @@ local skills = {
 		minpts = 2,
 		max = 1
 	},
+	hateful = {
+		name = "Hateful",
+		desc = "On crit, add +%u stack(s) of Hurtful Defence Down to the victim for 10 seconds, increasing damage taken by 1%% per stack!",
+		values = function(level)
+			return level
+		end,
+		img = "skull-crack",
+		pos = {3, -5},
+		minpts = 5
+	},
 	aimbot = {
 		name = "Aimbot",
 		desc = "Fired bullets have %+i%% chance of being redirected to enemy critical hit spots! \z
@@ -1195,6 +1193,19 @@ local skills = {
 		end,
 		img = "microscope-lens",
 		pos = {4, -4},
+		minpts = 5
+	},
+	sick_combo = {
+		name = "Sick Combo",
+		desc = "On kill, gain 1 stack of Sick Combo and extend its duration by +%.1f second(s). \z
+		Picking up any item will also extend the duration by half the amount. \z
+		Each stack gives 10%% more coins and XP, but stacks are limited to the number of skill points gained in total \z
+		and duration is limited to a maximum of +%u seconds!",
+		values = function(level)
+			return level/2, level * 6
+		end,
+		img = "poker-hand",
+		pos = {5, -3},
 		minpts = 5
 	},
 	when_the_sigma_grind_aint_enough = {
@@ -1208,14 +1219,64 @@ local skills = {
 		minpts = 2,
 		max = 1
 	},
+	feel_the_energy = {
+		name = "Feel The Energy",
+		desc = "Having more shield increases coins and XP gained. At 100%% shield, coins and XP gain is increased by %+.0f%%.",
+		values = function(level)
+			return level * 20
+		end,
+		img = "triple-yin",
+		pos = {5, 3},
+		minpts = 5
+	},
 	mantreads = {
 		name = "Mantreads",
-		desc = "Negate all fall damage! All fall damage that would be received is instead doubled +%u time(s), then dealt to all other entities within 256 Hu.",
+		desc = "Negate all fall damage! All fall damage that would be received is instead doubled +%u time(s), \z
+		then dealt to all other entities within 256 Hu. \z
+		Additionally, stomping can be done by holding %s for 1 second in mid-air, which on impact \z
+		deals the maximum amount of fall damage.",
 		values = function(level)
-			return level
+			local crouchKey = "the Crouch key"
+			if CLIENT then
+				local keyName = input.LookupBinding("+duck")
+				if keyName then
+					crouchKey = keyName:upper()
+				end
+			end
+			return level, crouchKey
+		end,
+		stackTick = function(state, current, time, ent)
+			local shouldIncrease = ent:IsPlayer() and ent:KeyDown(IN_DUCK) and not ent:OnGround()
+			local newStacks = shouldIncrease and math.Clamp(current + time, 0, 1) or 0
+			return newStacks >= 1 and 1 or 0, newStacks
 		end,
 		img = "quake-stomp",
 		pos = {4, 4},
+		minpts = 5
+	},
+	hacked_shield = {
+		name = "Hacked Shield",
+		desc = "Shield gain reduction when shield is above 100%% is a factor of ^%.2f instead of ^0.50, \z
+		but getting hit PERMANENTLY reduces maximum shield by %.2f%%! This skill cannot reduce max shield below %s. \z
+		Also, gain +%u%% dodge chance against non-disintegrating damage, \z
+		but this chance is divided by shield %% when shield is above 100%%.",
+		values = function(level, ent)
+			local scaleType = ent:IsPlayer() and "player" or "other"
+			local baseMult = ent:IsPlayer() and 1 or InsaneStats:GetConVarValue("infhealth_armor_mul")
+			local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and ent:InsaneStats_GetLevel() or 1
+			local val = InsaneStats:ScaleValueToLevelQuadratic(
+				baseMult,
+				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
+				effectiveLevel,
+				"xp_"..scaleType.."_armor_mode",
+				false,
+				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor_add")/100
+			)
+
+			return 0.5 + level/20, level/-50, CLIENT and InsaneStats:FormatNumber(val), level*5, val
+		end,
+		img = "circuitry",
+		pos = {3, 5},
 		minpts = 5
 	},
 	celebration = {
@@ -1228,10 +1289,22 @@ local skills = {
 				return ""
 			end
 		end,
-		img = "celebration-fire",
+		img = "rally-the-troops",
 		pos = {0, 4},
 		minpts = 2,
 		max = 1
+	},
+	the_fourth_dimension = {
+		name = "The Fourth Dimension",
+		desc = "Weapons are instantly reloaded %u second(s) after they are fired, \z
+		regardless of whether they are the active weapon or not! \z
+		Additionally, the number of stacks set on kill for the Keep It Fresh skill is increased by +%u.",
+		values = function(level)
+			return math.max(6 - level, 0), level * 10
+		end,
+		img = "moebius-triangle",
+		pos = {-3, 5},
+		minpts = 5
 	},
 	fall_to_rise_up = {
 		name = "Fall to Rise Up",
@@ -1241,6 +1314,32 @@ local skills = {
 		end,
 		img = "heart-tower",
 		pos = {-4, 4},
+		minpts = 5
+	},
+	bastion_of_flesh = {
+		name = "Bastion of Flesh",
+		desc = "+%u%% of max shield gained from skills and modifiers is converted into max health instead. \z
+		On kill, %+.2f%% of max shield is converted into max health. \z
+		Max shield converted by this skill restores health by %u times the amount converted! \z
+		Health gained this way can exceed max health, but with diminishing returns! \z
+		This skill cannot reduce max armor below %s.",
+		values = function(level, ent)
+			local scaleType = ent:IsPlayer() and "player" or "other"
+			local baseMult = ent:IsPlayer() and 1 or InsaneStats:GetConVarValue("infhealth_armor_mul")
+			local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and ent:InsaneStats_GetLevel() or 1
+			local val = InsaneStats:ScaleValueToLevelQuadratic(
+				baseMult,
+				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
+				effectiveLevel,
+				"xp_"..scaleType.."_armor_mode",
+				false,
+				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor_add")/100
+			)
+
+			return level*10, level/50, 20, CLIENT and InsaneStats:FormatNumber(val), val
+		end,
+		img = "back-forth",
+		pos = {-5, 3},
 		minpts = 5
 	},
 	rock_solid = {
@@ -1259,6 +1358,17 @@ local skills = {
 		minpts = 2,
 		max = 1
 	},
+	suit_up = {
+		name = "Suit Up",
+		desc = "Take %+i%% damage if either WPASS2 is disabled or the equipped Armor Battery is Tier 0, \z
+		otherwise gain %+i%% defence per tier of the equipped Armor Battery!",
+		values = function(level)
+			return level*-5, level*3
+		end,
+		img = "mail-shirt",
+		pos = {-5, -3},
+		minpts = 5
+	},
 	blast_proof_suit = {
 		name = "Blast-Proof Suit",
 		desc = "Move -25%% slower, but take -100%% self-explosion damage! Also, take %+.0f%% explosive damage from other sources.",
@@ -1268,6 +1378,117 @@ local skills = {
 		img = "robot-golem",
 		pos = {-4, -4},
 		minpts = 5
+	},
+	its_high_noon = {
+		name = "It's High Noon",
+		desc = "Most weapons fire faster based on the percentage of ammo left in the current weapon's clip. At 100%% ammo, fire rate is increased by +%u%%!",
+		values = function(level)
+			return level * 10
+		end,
+		img = "lightning-trio",
+		pos = {-3, -5},
+		minpts = 5
+	},
+
+	-- distance 9
+	anti_coward_rounds = {
+		name = "Anti-Coward Rounds",
+		desc = "%+.0f%% damage dealt against props\n\z
+		%+.0f%% damage dealt against shielded entities\n\z
+		%+.0f%% damage dealt against armored entities",
+		values = function(level)
+			return level * 10, level * 10, level * 10
+		end,
+		img = "cracked-disc",
+		pos = {1, -5},
+		minpts = 6
+	},
+	slow_spiral = {
+		name = "Slow Spiral",
+		desc = "All skill stacks decay over time %i%% slower. \z
+		Coins and XP gained is also increased by +%s%%, \z
+		but this percentage is divided by the number of skill points gained in total \z
+		(%+.1f%% at current total skill points).",
+		values = function(level, ent)
+			return level * -8, CLIENT and InsaneStats:FormatNumber(1000 * level), 1000 * level / math.max(ent:InsaneStats_GetTotalSkillPoints(), 1)
+		end,
+		img = "gold-shell",
+		pos = {5, -1},
+		minpts = 6
+	},
+	productivity = {
+		name = "Productivity",
+		desc = "%+.0f%% chance to duplicate items. On kill, add %+.0f%% ammo into the current weapon's clips.",
+		values = function(level)
+			return level * 10, level * 5
+		end,
+		img = "cubeforce",
+		pos = {5, 1},
+		minpts = 6
+	},
+	beyond_240_kmph = {
+		name = "Beyond 240 km/h",
+		desc = "Speed-based skills and modifiers now use effective speed, \z
+		which is calculated as being %+i%% higher than actual speed! \z
+		For all skills and modifiers that do not dilate time, \z
+		an additional %+i%% of normal running speed is always added to effective speed!",
+		values = function(level)
+			return level * 15, level * 5
+		end,
+		img = "afterburn",
+		pos = {1, 5},
+		minpts = 6
+	},
+	bloodletters_revelation = {
+		name = "Bloodletter's Revelation",
+		desc = "Gain up to %+.0f%% movement speed at high health. The Bloodletter's Pact skill is also %+.0f%% more effective.",
+		values = function(level)
+			return level * 8, level * 20
+		end,
+		img = "dripping-goo",
+		pos = {-1, 5},
+		minpts = 6
+	},
+	until_the_last_bit = {
+		name = "Until The Last Bit",
+		desc = "Health Kits and Health Vials restore an additional %+i%% and %+i%% of max health, respectively! \z
+		Armor Batteries also restore an additional %+i%% of max shield!",
+		values = function(level)
+			return level*5, level*2, level*3
+		end,
+		img = "dripping-honey",
+		pos = {-5, 1},
+		minpts = 6
+	},
+	vitality_to_go = {
+		name = "Vitality To Go",
+		desc = "Health and Suit Chargers can be PERMANENTLY destroyed from explosive attacks. \z
+		Health and Suit Chargers destroyed this way give Vitality To Go stacks \z
+		based on %+i%% of the maximum amount of health and shield that would have been given by them. \z
+		Each stack gives 1%%/s health and shield regeneration, and stacks do not decay over time! \z
+		Health and shield gained this way can exceed max health and max shield, but with diminishing returns!",
+		values = function(level)
+			return level
+		end,
+		stackTick = function(state, current, time, ent)
+			return current > 0 and 1 or 0, current
+		end,
+		img = "chalice-drops",
+		pos = {-5, -1},
+		minpts = 6
+	},
+	shield_shell_shots = {
+		name = "Shield Shell Shots",
+		desc = "While at 100%% shield or above, all BASE damage dealt is increased by %s, but results in %.1f%% of shield loss!",
+		values = function(level, ent)
+			local value = 40 * InsaneStats:DetermineDamageMulPure(
+				ent, game.GetWorld()
+			)
+			return CLIENT and InsaneStats:FormatNumber(value), math.min(level/2.5 - 2.4, 0)
+		end,
+		img = "shield-bounces",
+		pos = {-1, -5},
+		minpts = 6
 	}
 }
 
@@ -1290,6 +1511,11 @@ local statusEffects = {
 		name = "Killing Spree",
 		typ = 1,
 		img = "skull-signet"
+	},
+	sick_combo = {
+		name = "Sick Combo",
+		typ = 1,
+		img = "poker-hand"
 	},
 
 	skill_damage_up = {
@@ -1361,29 +1587,41 @@ hook.Add("InsaneStatsLoadWPASS", "InsaneStatsSkillsDefault", function(currentMod
 	table.Merge(currentStatusEffects, statusEffects)
 end)
 
---[[local cachedTotals = {}
-local lastCache = 0
-local function RewriteFriendlyFireSkills()
-end]]
-
 hook.Add("InsaneStatsGetSkillTier", "InsaneStatsSkillsDefault", function(ent, skill)
-	-- FIXME: make this work for players, by also networking other players' skills
-	if SERVER and skill ~= "you_all_get_a_car" and not ent:IsPlayer() then
-		local highestLevel = ent:InsaneStats_GetSkills()[skill] or 0
+	if skill ~= "you_all_get_a_car" and not ent:InsaneStats_IsSkillSealed(skill) and not InsaneStats:IsSkillDisabled(skill) then
+		local highestLevel = ent:InsaneStats_GetSkillTier(skill)
 		-- for k,v in pairs(InsaneStats:GetEntitiesWithSkills()) do
 		-- FIXME: below only works because non-player entities can't get the you_all_get_a_car skill
 		-- otherwise the line above needs to be used, with caching for maps containing 1000s of allies
-		for i,v in player.Iterator() do 
+		for i,v in player.Iterator() do
 			--if not (k:IsPlayer() and k:KeyDown(IN_WALK)) then
 			if not v:KeyDown(IN_WALK) then
 				local theirSkills = v:InsaneStats_GetSkills()
-				local maxSkillLevel = theirSkills.you_all_get_a_car or 0
-				if maxSkillLevel > 0 and v:InsaneStats_IsValidAlly(ent) then
-					highestLevel = math.max(highestLevel, math.min(theirSkills[skill] or 0, maxSkillLevel))
-					InsaneStats:SetEntityAsContainingSkills(ent)
+				local maxSkillLevel = v:InsaneStats_GetEffectiveSkillTier("you_all_get_a_car")
+				local isAlly = SERVER and v:InsaneStats_IsValidAlly(ent) or ent:IsPlayer() and ent:Team() == v:Team()
+				if maxSkillLevel > 0 and isAlly then
+					highestLevel = math.max(highestLevel, math.min(v:InsaneStats_GetSkillTier(skill), maxSkillLevel))
+					if SERVER then
+						InsaneStats:SetEntityAsContainingSkills(ent)
+					end
 				end
 			end
 		end
+		
 		return highestLevel
+	end
+end)
+
+hook.Add("InsaneStatsCannotSealSkill", "InsaneStatsSkillsDefault", function(skill)
+	if skill == "skill_sealer" or InsaneStats:IsSkillDisabled(skill) then return true end
+end)
+
+hook.Add("InsaneStatsSkillDiffTime", "InsaneStatsSkillsDefault", function(data)
+	if data.ent:InsaneStats_EffectivelyHasSkill("slow_spiral") then
+		if data.skill ~= "aint_got_time_for_this" and data.skill ~= "scattershot"
+		and data.ent:InsaneStats_GetSkillData(data.skill).state == 1 or data.skill == "friendly_fire_off"
+		or data.skill == "skip_the_scenery" then
+			data.diffTime = data.diffTime * (1 + data.ent:InsaneStats_GetEffectiveSkillValues("slow_spiral") / 100)
+		end
 	end
 end)

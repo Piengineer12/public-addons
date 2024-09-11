@@ -31,7 +31,7 @@ local function DangerousPaint()
 	local lastCoinTier = ply:InsaneStats_GetLastCoinTier()
 	local x = 8
 	local y = 8
-	local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
+	local outlineThickness = InsaneStats:GetOutlineThickness()
 
 	InsaneStats:DrawMaterialOutlined(
 		InsaneStats:GetIconMaterial(
@@ -39,9 +39,7 @@ local function DangerousPaint()
 		),
 		x, y,
 		InsaneStats.FONT_BIG, InsaneStats.FONT_BIG,
-		InsaneStats:GetCoinColor(lastCoinTier),
-		outlineThickness,
-		color_black
+		InsaneStats:GetCoinColor(lastCoinTier)
 	)
 
 	x = x + InsaneStats.FONT_BIG + outlineThickness
@@ -52,10 +50,7 @@ local function DangerousPaint()
 	else
 		text = string.Comma(text)
 	end
-	draw.SimpleTextOutlined(
-		text, "InsaneStats.Big", x, y, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
-		outlineThickness, color_black
-	)
+	InsaneStats:DrawTextOutlined(text, 3, x, y, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
 
 	if slowCoins ~= coins then
 		y = y + InsaneStats.FONT_BIG
@@ -69,10 +64,7 @@ local function DangerousPaint()
 		else
 			text = (change < 0 and "" or "+")..string.Comma(text)
 		end
-		draw.SimpleTextOutlined(
-			text, "InsaneStats.Big", x, y, textColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
-			outlineThickness, color_black
-		)
+		InsaneStats:DrawTextOutlined(text, 3, x, y, textColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
 	end
 end
 
@@ -256,13 +248,6 @@ local function CreateReforgePanel(parent, shopEntity)
 	Panel:Dock(FILL)
 	Panel.Paint = nil
 
-	local WPASS2Label = vgui.Create("DLabel", Panel)
-	WPASS2Label:SetWrap(true)
-	WPASS2Label:SetAutoStretchVertical(true)
-	WPASS2Label:SetFont("InsaneStats.Big")
-	WPASS2Label:SetText("WPASS2 Weapon / Armor Battery Reforging")
-	WPASS2Label:Dock(TOP)
-
 	local wpass2Enabled = InsaneStats:GetConVarValue("wpass2_enabled")
 
 	local SelectLabel = vgui.Create("DLabel", Panel)
@@ -281,7 +266,7 @@ local function CreateReforgePanel(parent, shopEntity)
 		Selector:Dock(TOP)
 		Selector:AddChoice("#item_battery", ply)
 		for i,v in ipairs(ply:GetWeapons()) do
-			if (v.insaneStats_Tier or 0) > 0 then
+			if (v.insaneStats_Tier or 0) ~= 0 then
 				Selector:AddChoice(InsaneStats:GetWeaponName(v), v)
 			end
 		end
@@ -291,7 +276,7 @@ local function CreateReforgePanel(parent, shopEntity)
 		TierLabel:SetWrap(true)
 		TierLabel:SetAutoStretchVertical(true)
 		TierLabel:SetFont("InsaneStats.Medium")
-		TierLabel:SetText("")
+		TierLabel:SetText("\nSelect an item to view reforge cost.")
 		TierLabel:Dock(TOP)
 
 		local ReforgeButton = vgui.Create("DButton", Panel)
@@ -299,10 +284,12 @@ local function CreateReforgePanel(parent, shopEntity)
 		ReforgeButton:SetText("REFORGE")
 		ReforgeButton:SizeToContentsY(4)
 		ReforgeButton:Dock(TOP)
-		ReforgeButton:Hide()
+		ReforgeButton:SetEnabled(false)
 		function ReforgeButton:DoClick()
-			local tier = selectedEntity.insaneStats_Tier or 0
-			if ply:InsaneStats_GetCoins() >= InsaneStats:GetReforgeCost(tier) then
+			if ply:InsaneStats_GetCoins() >= InsaneStats:GetReforgeCost(
+				selectedEntity,
+				ply:InsaneStats_GetReforgeBlacklist()
+			) then
 				net.Start("insane_stats")
 				net.WriteUInt(5, 8)
 				net.WriteEntity(shopEntity)
@@ -322,13 +309,13 @@ local function CreateReforgePanel(parent, shopEntity)
 
 		local ModifierList = vgui.Create("DListView", Panel)
 		--ModifierList:SetTall(ScrH()/3)
-		ModifierList:SetMultiSelect(false)
-		ModifierList:SetTall(InsaneStats.FONT_BIG * 12)
+		ModifierList:SetTall(InsaneStats.FONT_MEDIUM * 10)
 		ModifierList:Dock(TOP)
 		local column = ModifierList:AddColumn("Modifier Name")
 		-- column.Header:SetFont("InsaneStats.Medium")
 		-- column.Header:SizeToContentsY(4)
 		column = ModifierList:AddColumn("Internal Name")
+		column = ModifierList:AddColumn("Curse?")
 		column = ModifierList:AddColumn("Stacks")
 		-- column.Header:SetFont("InsaneStats.Medium")
 		-- column.Header:SizeToContentsY(4)
@@ -345,10 +332,25 @@ local function CreateReforgePanel(parent, shopEntity)
 			local text = "\nTier: "..tier..", "
 			--TierLabel:SetText("\nTier: "..tier)
 
-			if tier > 0 then
-				local cost = InsaneStats:GetReforgeCost(tier)
+			if tier ~= 0 then
+				local oldSystemCost = InsaneStats:ScaleValueToLevelPure(
+					InsaneStats:GetConVarValue("coins_reforge_cost"),
+					InsaneStats:GetConVarValue("coins_reforge_cost_add")/100,
+					math.abs(tier),
+					true
+				)
+				
+				local cost = InsaneStats:GetReforgeCost(value, ply:InsaneStats_GetReforgeBlacklist())
 				--CostLabel:SetText("Reforge Cost: "..InsaneStats:FormatNumber(math.ceil(cost)))
 				text = text.."Reforge Cost: "..InsaneStats:FormatNumber(math.ceil(cost))
+				if oldSystemCost ~= cost then
+					local value = (cost / oldSystemCost - 1) * 100
+					text = string.format(
+						"%s (%s%% from blacklisted modifiers)",
+						text,
+						InsaneStats:FormatNumber(math.ceil(value), {plus = true})
+					)
+				end
 			else
 				--CostLabel:SetText("Cannot be rerolled")
 				text = text.."Cannot be rerolled"
@@ -362,72 +364,145 @@ local function CreateReforgePanel(parent, shopEntity)
 				local modifierName = modifiers[k] and (modifiers[k].suffix or modifiers[k].prefix) or k
 				local modifierMax = modifiers[k] and modifiers[k].max or "∞"
 				local modifierWeight = modifiers[k] and modifiers[k].weight or 1
-				ModifierList:AddLine(modifierName, k, v, modifierMax, modifierWeight)
+				local modifierCost = modifiers[k] and modifiers[k].cost or 1
+				local modifierIsWep = modifiers[k] and bit.band(modifiers[k].flags or 0, InsaneStats.WPASS2_FLAGS.ARMOR) == 0
+				if modifierCost < 0 then
+					modifierWeight = modifierWeight * InsaneStats:GetConVarValueDefaulted(
+						not modifierIsWep and "wpass2_modifiers_negativeweight_battery",
+						"wpass2_modifiers_negativeweight"
+					)
+				end
+				ModifierList:AddLine(modifierName, k, modifierCost < 0 and "✓" or "", v, modifierMax, modifierWeight)
 			end
 			selectedEntity = value
-			ReforgeButton:Show()
+			ReforgeButton:SetEnabled(true)
 			ModifierList:SortByColumn(1)
 		end
 
 		function Selector:Think()
 			self:CheckConVarChanges()
-			local text, ent = self:GetSelected()
 			local newModifiers = selectedEntity and selectedEntity.insaneStats_Modifiers
 			if newModifiers ~= currentModifiers then
 				currentModifiers = newModifiers
+				local text, ent = self:GetSelected()
 				self:OnSelect(0, text, ent)
 			end
 		end
-	end
 
-	local SkillsLabel = vgui.Create("DLabel", Panel)
-	SkillsLabel:SetWrap(true)
-	SkillsLabel:SetAutoStretchVertical(true)
-	SkillsLabel:SetFont("InsaneStats.Big")
-	SkillsLabel:SetText("\nSkills Respec")
-	SkillsLabel:Dock(TOP)
+		local AttributesLabel = vgui.Create("DLabel", Panel)
+		AttributesLabel:SetWrap(true)
+		AttributesLabel:SetAutoStretchVertical(true)
+		AttributesLabel:SetFont("InsaneStats.Medium")
+		AttributesLabel:SetText("Attributes of Selected Modifiers:\nNo modifiers selected.")
+		AttributesLabel:Dock(TOP)
 
-	local skillsEnabled = InsaneStats:GetConVarValue("skills_enabled")
-	and bit.band(InsaneStats:GetConVarValue("skills_allow_reset"), 2) ~= 0
+		function ModifierList:OnRowSelected(rowIndex, rowPanel)
+			local modifiers = {}
+			for i,v in ipairs(self:GetSelected()) do
+				local modifier, tier = v:GetValue(2), v:GetValue(4)
+				modifiers[modifier] = tier
+			end
+			local attributes = InsaneStats:DetermineWPASS2Attributes(modifiers)
 
-	local RespecLabel = vgui.Create("DLabel", Panel)
-	RespecLabel:SetWrap(true)
-	RespecLabel:SetAutoStretchVertical(true)
-	RespecLabel:SetFont("InsaneStats.Medium")
-	RespecLabel:Dock(TOP)
+			local displayText = "Attributes of Selected Modifiers:"
+			for i,v in ipairs(InsaneStats:GetAttributeOrder(attributes)) do
+				local attributeText = InsaneStats:GetAttributeText(v, attributes[v])
+				displayText = displayText..'\n'..attributeText
+			end
 
-	local currentText = ""
-	local oldThink = RespecLabel.Think
-	function RespecLabel:Think()
-		local cost = InsaneStats:GetRespecCost(ply)
-		if skillsEnabled then
-			currentText = "Respec Cost: "..InsaneStats:FormatNumber(math.ceil(cost))
-		elseif InsaneStats:GetConVarValue("skills_enabled") then
-			currentText = "Skill respec via Insane Stats Coin Shops is disabled."
-		else
-			currentText = "This feature requires Skills to be enabled."
+			AttributesLabel:SetText(displayText)
 		end
 
-		if self:GetText() ~= currentText then
-			self:SetText(currentText)
+		local BlacklistTitle = vgui.Create("DLabel", Panel)
+		BlacklistTitle:SetWrap(true)
+		BlacklistTitle:SetAutoStretchVertical(true)
+		BlacklistTitle:SetFont("InsaneStats.Big")
+		BlacklistTitle:SetText("\nReforge Modifier Blacklist")
+		BlacklistTitle:Dock(TOP)
+
+		local BlacklistLabel = vgui.Create("DLabel", Panel)
+		BlacklistLabel:SetWrap(true)
+		BlacklistLabel:SetAutoStretchVertical(true)
+		BlacklistLabel:SetFont("InsaneStats.Medium")
+		BlacklistLabel:SetText("Modifiers can be blacklisted by double-clicking on the modifiers above. \z
+		Modifiers can be removed from the blacklist by doing the same on the modifiers below.\
+		Blacklisted modifiers will never appear on a reforged item, \z
+		but each blacklisted modifier will increase the reforge cost!")
+		BlacklistLabel:Dock(TOP)
+
+		local BlacklistModifierList = vgui.Create("DListView", Panel)
+		BlacklistModifierList:SetTall(InsaneStats.FONT_MEDIUM * 10)
+		BlacklistModifierList:Dock(TOP)
+		BlacklistModifierList:AddColumn("Modifier Name")
+		BlacklistModifierList:AddColumn("Internal Name")
+		BlacklistModifierList:AddColumn("Curse?")
+		BlacklistModifierList:AddColumn("Max Stacks")
+		BlacklistModifierList:AddColumn("Relative Weight")
+		function BlacklistModifierList:AddModifierLine(modifier)
+			local modifierName = modifiers[modifier] and (modifiers[modifier].suffix or modifiers[modifier].prefix) or modifier
+			local modifierMax = modifiers[modifier] and modifiers[modifier].max or "∞"
+			local modifierWeight = modifiers[modifier] and modifiers[modifier].weight or 1
+			local modifierCost = modifiers[modifier] and modifiers[modifier].cost or 1
+			local modifierIsWep = modifiers[modifier] and bit.band(modifiers[modifier].flags or 0, InsaneStats.WPASS2_FLAGS.ARMOR) == 0
+			if modifierCost < 0 then
+				modifierWeight = modifierWeight * InsaneStats:GetConVarValueDefaulted(
+					not modifierIsWep and "wpass2_modifiers_negativeweight_battery",
+					"wpass2_modifiers_negativeweight"
+				)
+			end
+			self:AddLine(modifierName, modifier, modifierCost < 0 and "✓" or "", modifierMax, modifierWeight)
+			self:SortByColumn(1)
 		end
 
-		oldThink(self)
-	end
+		for k,v in pairs(ply:InsaneStats_GetReforgeBlacklist()) do
+			BlacklistModifierList:AddModifierLine(k)
+		end
 
-	if skillsEnabled then
-		local RespecButton = vgui.Create("DButton", Panel)
-		RespecButton:SetFont("InsaneStats.Medium")
-		RespecButton:SetText("RESPEC")
-		RespecButton:Dock(TOP)
-		function RespecButton:DoClick()
-			if ply:InsaneStats_GetCoins() >= InsaneStats:GetRespecCost(ply) then
+		function ModifierList:DoDoubleClick(rowIndex, rowPanel)
+			local modifierBlacklist = ply:InsaneStats_GetReforgeBlacklist()
+			local modifier = rowPanel:GetValue(2)
+			if not modifierBlacklist[modifier] then
+				BlacklistModifierList:AddModifierLine(modifier)
+	
+				local modifierBlacklist = ply:InsaneStats_GetReforgeBlacklist()
+				modifierBlacklist[modifier] = true
+				ply:InsaneStats_SetReforgeBlacklist(modifierBlacklist)
+	
+				local text, ent = Selector:GetSelected()
+				Selector:OnSelect(0, text, ent)
+	
 				net.Start("insane_stats")
 				net.WriteUInt(5, 8)
 				net.WriteEntity(shopEntity)
-				net.WriteUInt(4, 4)
+				net.WriteUInt(5, 4)
+				net.WriteUInt(table.Count(modifierBlacklist), 16)
+				for k, v in pairs(modifierBlacklist) do
+					net.WriteString(k)
+				end
 				net.SendToServer()
 			end
+		end
+
+		function BlacklistModifierList:DoDoubleClick(rowIndex, rowPanel)
+			local modifier = rowPanel:GetValue(2)
+			self:RemoveLine(rowIndex)
+
+			local modifierBlacklist = ply:InsaneStats_GetReforgeBlacklist()
+			modifierBlacklist[modifier] = nil
+			ply:InsaneStats_SetReforgeBlacklist(modifierBlacklist)
+
+			local text, ent = Selector:GetSelected()
+			Selector:OnSelect(0, text, ent)
+
+			net.Start("insane_stats")
+			net.WriteUInt(5, 8)
+			net.WriteEntity(shopEntity)
+			net.WriteUInt(5, 4)
+			net.WriteUInt(table.Count(modifierBlacklist), 16)
+			for k, v in pairs(modifierBlacklist) do
+				net.WriteString(k)
+			end
+			net.SendToServer()
 		end
 	end
 
@@ -512,7 +587,70 @@ local function CreateItemsPanel(parent, shopEntity)
 	return Panel
 end
 
-function InsaneStats:CreateShopMenu(shopEntity, weaponsSold)
+local function CreateRespecPanel(parent, shopEntity)
+	local ply = LocalPlayer()
+
+	local Panel = vgui.Create("DScrollPanel", parent)
+	Panel:Dock(FILL)
+	Panel.Paint = nil
+
+	local SkillsLabel = vgui.Create("DLabel", Panel)
+	SkillsLabel:SetWrap(true)
+	SkillsLabel:SetAutoStretchVertical(true)
+	SkillsLabel:SetFont("InsaneStats.Big")
+	SkillsLabel:SetText("Skills Respec")
+	SkillsLabel:Dock(TOP)
+
+	local skillsEnabled = InsaneStats:GetConVarValue("skills_enabled")
+	and bit.band(InsaneStats:GetConVarValue("skills_allow_reset"), 2) ~= 0
+
+	local RespecLabel = vgui.Create("DLabel", Panel)
+	RespecLabel:SetWrap(true)
+	RespecLabel:SetAutoStretchVertical(true)
+	RespecLabel:SetFont("InsaneStats.Medium")
+	RespecLabel:Dock(TOP)
+
+	local currentText = ""
+	local oldThink = RespecLabel.Think
+	function RespecLabel:Think()
+		local cost = InsaneStats:GetRespecCost(ply)
+		if skillsEnabled then
+			currentText = "Respec Cost: "..InsaneStats:FormatNumber(math.ceil(cost))
+		elseif InsaneStats:GetConVarValue("skills_enabled") then
+			currentText = "Skill respec via Insane Stats Coin Shops is disabled."
+		else
+			currentText = "This feature requires Skills to be enabled."
+		end
+
+		if self:GetText() ~= currentText then
+			self:SetText(currentText)
+		end
+
+		oldThink(self)
+	end
+
+	if skillsEnabled then
+		local RespecButton = vgui.Create("DButton", Panel)
+		RespecButton:SetFont("InsaneStats.Medium")
+		RespecButton:SetText("RESPEC")
+		RespecButton:Dock(TOP)
+		function RespecButton:DoClick()
+			if ply:InsaneStats_GetCoins() >= InsaneStats:GetRespecCost(ply) then
+				net.Start("insane_stats")
+				net.WriteUInt(5, 8)
+				net.WriteEntity(shopEntity)
+				net.WriteUInt(4, 4)
+				net.SendToServer()
+			end
+		end
+	end
+
+	return Panel
+end
+
+function InsaneStats:CreateShopMenu(shopEntity, weaponsSold, modifierBlacklist)
+	LocalPlayer():InsaneStats_SetReforgeBlacklist(modifierBlacklist)
+
 	local Main = vgui.Create("DFrame")
 	Main:SetSize(ScrW()/1.5, ScrH()/1.5)
 	Main:SetSizable(true)
@@ -529,12 +667,11 @@ function InsaneStats:CreateShopMenu(shopEntity, weaponsSold)
 	CoinDisplay:Dock(TOP)
 	function CoinDisplay:Paint(w, h)
 		local ply = LocalPlayer()
-		local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
+		local outlineThickness = InsaneStats:GetOutlineThickness()
 		local x = outlineThickness
-		x = x + draw.SimpleTextOutlined(
-			"You have ", "InsaneStats.Big", x, outlineThickness,
-			color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
-			outlineThickness, color_black
+		x = x + InsaneStats:DrawTextOutlined(
+			"You have ", 3, x, outlineThickness,
+			color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
 		)
 		x = x + outlineThickness
 		
@@ -544,17 +681,14 @@ function InsaneStats:CreateShopMenu(shopEntity, weaponsSold)
 			),
 			x, outlineThickness,
 			InsaneStats.FONT_BIG, InsaneStats.FONT_BIG,
-			InsaneStats:GetCoinColor(ply:InsaneStats_GetLastCoinTier()),
-			outlineThickness,
-			color_black
+			InsaneStats:GetCoinColor(ply:InsaneStats_GetLastCoinTier())
 		)
 		x = x + InsaneStats.FONT_BIG + outlineThickness
 
 		local text = InsaneStats:FormatNumber(math.floor(ply:InsaneStats_GetCoins()))
-		draw.SimpleTextOutlined(
-			text, "InsaneStats.Big", x, outlineThickness,
-			color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
-			outlineThickness, color_black
+		InsaneStats:DrawTextOutlined(
+			text, 3, x, outlineThickness,
+			color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
 		)
 	end
 
@@ -562,5 +696,6 @@ function InsaneStats:CreateShopMenu(shopEntity, weaponsSold)
 	Categories:Dock(FILL)
 	Categories:AddSheet("Weapons", CreateWeaponryPanel(Categories, shopEntity, weaponsSold), "icon16/gun.png")
 	Categories:AddSheet("Items", CreateItemsPanel(Categories, shopEntity), "icon16/bricks.png")
-	Categories:AddSheet("Others", CreateReforgePanel(Categories, shopEntity), "icon16/database_gear.png")
+	Categories:AddSheet("Reforging", CreateReforgePanel(Categories, shopEntity), "icon16/wand.png")
+	Categories:AddSheet("Others", CreateRespecPanel(Categories, shopEntity), "icon16/database_gear.png")
 end

@@ -13,6 +13,7 @@ hook.Add("AcceptInput", "InsaneStatsPointCommand", function(ent, input, activato
 		) then
 			for i, command in ipairs(string.Explode(";", value:lower())) do
 				local mainCommand, restCommand = string.match(command, "^%s*(%S+)%s*(.*)$")
+				local developer = InsaneStats:IsDebugLevel(1)
 
 				if mainCommand == "disconnect" or mainCommand == "startupmenu"
 				or mainCommand == "quit" or mainCommand == "exit" or mainCommand == "killserver"
@@ -38,24 +39,32 @@ hook.Add("AcceptInput", "InsaneStatsPointCommand", function(ent, input, activato
 						local retValue = InsaneStats:CheckEvents(InsaneStats.EVENTS.CHANGE, restCommand)
 						if retValue then return retValue end
 					end
-				elseif mainCommand == "cl_playermodel" then
-					InsaneStats:Log("Command \""..command.."\" from \""..tostring(ent).."\" was blocked!")
+				elseif mainCommand == "cl_forwardspeed" or mainCommand == "cl_sidespeed" or mainCommand == "cl_backspeed" then
+					if (tonumber(restCommand) or 0) >= 320 then
+						restCommand = "10000"
+					end
+				elseif mainCommand == "cl_playermodel" or mainCommand and IsConCommandBlocked(mainCommand) then
+					if developer then
+						InsaneStats:Log("Command \"%s\" from \"%s\" was blocked!", command, tostring(ent))
+					end
 					mainCommand = nil
 				end
 
-				if mainCommand and not IsConCommandBlocked(mainCommand) then
+				if mainCommand then
 					command = mainCommand..' '..restCommand
-					InsaneStats:Log("Running command \""..command.."\" from \""..tostring(ent).."\"...")
+					if developer then
+						InsaneStats:Log("Running command \"%s\" from \"%s\"...", command, tostring(ent))
+					end
 					if class == "point_servercommand" then
 						local success, ret = pcall(game.ConsoleCommand, command.."\n")
 						if not success then
-							InsaneStats:Log("Error: "..ret)
+							InsaneStats:Log("Error: %s", ret)
 						end
 					else
 						for j, ply in player.Iterator() do
 							local success, ret = pcall(ply.ConCommand, ply, command)
 							if not success then
-								InsaneStats:Log("Error: "..ret)
+								InsaneStats:Log("Error: %s", ret)
 							end
 						end
 					end
@@ -80,10 +89,10 @@ hook.Add("AcceptInput", "InsaneStatsPointCommand", function(ent, input, activato
 
 		local times = inputNumberOfTimes[name][input]
 		if inputReports < 0 or times <= inputReports then
-			InsaneStats:Log(string.format(
+			InsaneStats:Log(
 				"Entity \"%s\" received input \"%s\" for the %u%s time!",
 				name, input, times, STNDRD(times)
-			))
+			)
 		end
 	end
 end)
@@ -102,7 +111,7 @@ local function GetWildcardMatchEntities(name, class, model)
 end
 
 function InsaneStats:DoActions(actions)
-	if GetConVar("developer"):GetInt() > 0 then
+	if InsaneStats:IsDebugLevel(2) then
 		InsaneStats:Log("Insane Stats Actions Fired:")
 		PrintTable(actions)
 	end

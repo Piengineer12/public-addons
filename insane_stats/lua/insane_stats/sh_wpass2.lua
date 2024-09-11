@@ -17,10 +17,10 @@ InsaneStats:RegisterConVar("wpass2_enabled", "insanestats_wpass2_enabled", "1", 
 	type = InsaneStats.BOOL
 })
 InsaneStats:RegisterConVar("wpass2_dropship_invincible", "insanestats_wpass2_dropship_invincible", "1", {
-	display = "Invincible Dropship Containers", desc = "All Combine dropship containers are invincible. This has been known to break maps if disabled!",
+	display = "Invincible Dropship Containers", desc = "Combine dropship containers can't be damaged. This has been known to break maps if disabled!",
 	type = InsaneStats.BOOL
 })
-InsaneStats:RegisterConVar("wpass2_modifiers_player_save", "insanestats_wpass2_modifiers_player_save", "0", {
+InsaneStats:RegisterConVar("wpass2_modifiers_player_save", "insanestats_wpass2_modifiers_player_save", "2", {
 	display = "Save Player Modifiers Across Maps", desc = "If 1, modifiers on player weapons / armor batteries will be saved across maps. \z
 	Consequently, all weapons and ammo are also perserved across maps. \z
 	Health, armor and suit status are perserved if armor batteries are perserved.\n\z
@@ -33,7 +33,7 @@ InsaneStats:RegisterConVar("wpass2_modifiers_player_save_battery", "insanestats_
 	display = "Save Player Battery Modifiers Across Maps", desc = "If 0 or above, overrides insanestats_wpass2_modifiers_player_save for armor batteries.",
 	type = InsaneStats.INT, min = -1, max = 2
 })
-InsaneStats:RegisterConVar("wpass2_modifiers_player_save_death", "insanestats_wpass2_modifiers_player_save_death", "0", {
+InsaneStats:RegisterConVar("wpass2_modifiers_player_save_death", "insanestats_wpass2_modifiers_player_save_death", "2", {
 	display = "Save Player Modifiers Across Deaths", desc = "If 1, modifiers on player weapons / armor batteries will be saved across deaths. \z
 	Consequently, all weapons and ammo are also perserved across deaths.\n\z
 	In addition, disconnected players will also have their loadouts perserved as long as they rejoin in the same session.\n\z
@@ -56,6 +56,14 @@ InsaneStats:RegisterConVar("wpass2_modifiers_blacklist", "insanestats_wpass2_mod
 	Note that you must specify the internal name of modifiers, not the display name. You can find the internal name \z
 	of item modifiers in the Insane Stats Coin Shop's item reforge menu.",
 	type = InsaneStats.STRING
+})
+InsaneStats:RegisterConVar("wpass2_modifiers_negativeweight", "insanestats_wpass2_modifiers_negativeweight", "0.25", {
+	display = "Negative Modifier Weight Multiplier", desc = "Weight multiplier for negative modifiers.",
+	type = InsaneStats.FLOAT, min = 0, max = 10
+})
+InsaneStats:RegisterConVar("wpass2_modifiers_negativeweight_battery", "insanestats_wpass2_modifiers_negativeweight_battery", "-1", {
+	display = "Negative Battery Modifier Weight Multiplier", desc = "If 0 or above, overrides insanestats_wpass2_modifiers_negativeweight for armor batteries.",
+	type = InsaneStats.FLOAT, min = -1, max = 10
 })
 InsaneStats:RegisterConVar("wpass2_autopickup", "insanestats_wpass2_autopickup", "1", {
 	display = "Auto Pickup Mode", desc = "Determines whether weapons / armor batteries will be automatically picked up for ammo / armor.\n\z
@@ -128,11 +136,11 @@ InsaneStats:RegisterConVar("wpass2_tier_start_battery", "insanestats_wpass2_tier
 })
 InsaneStats:RegisterConVar("wpass2_tier_max", "insanestats_wpass2_tier_max", "999", {
 	display = "Maximum Tier", desc = "Maximum possible weapon / armor battery tier.",
-	type = InsaneStats.INT, min = 0, max = 10000
+	type = InsaneStats.INT, min = -10000, max = 10000
 })
-InsaneStats:RegisterConVar("wpass2_tier_max_battery", "insanestats_wpass2_tier_max_battery", "-1", {
-	display = "Battery Maximum Tier", desc = "If 0 or above, overrides insanestats_wpass2_tier_max for armor batteries.",
-	type = InsaneStats.INT, min = -1, max = 10000
+InsaneStats:RegisterConVar("wpass2_tier_min", "insanestats_wpass2_tier_min", "-8", {
+	display = "Minimum Tier", desc = "Minimum possible weapon / armor battery tier.",
+	type = InsaneStats.INT, min = -10000, max = 10000
 })
 InsaneStats:RegisterConVar("wpass2_tier_upchance", "insanestats_wpass2_tier_upchance", "50", {
 	display = "Tier Up Chance", desc = "% chance for a weapon / armor battery to have its tier increased by 1. This is rolled for continuously until the roll fails.",
@@ -142,11 +150,19 @@ InsaneStats:RegisterConVar("wpass2_tier_upchance_battery", "insanestats_wpass2_t
 	display = "Battery Tier Up Chance", desc = "If 0 or above, overrides insanestats_wpass2_tier_upchance for armor batteries.",
 	type = InsaneStats.FLOAT, min = -1, max = 100
 })
-InsaneStats:RegisterConVar("wpass2_tier_newmodifiercost", "insanestats_wpass2_tier_newmodifiercost", "2", {
+InsaneStats:RegisterConVar("wpass2_tier_downchance", "insanestats_wpass2_tier_downchance", "37.5", {
+	display = "Tier Down Chance", desc = "% chance for a weapon / armor battery to have its tier decreased by 1. This is rolled for continuously until the roll fails.",
+	type = InsaneStats.FLOAT, min = 0, max = 100
+})
+InsaneStats:RegisterConVar("wpass2_tier_downchance_battery", "insanestats_wpass2_tier_downchance_battery", "-1", {
+	display = "Battery Tier Down Chance", desc = "If 0 or above, overrides insanestats_wpass2_tier_downchance for armor batteries.",
+	type = InsaneStats.FLOAT, min = -1, max = 100
+})
+InsaneStats:RegisterConVar("wpass2_tier_newmodifiercost", "insanestats_wpass2_tier_newmodifier_cost", "2", {
 	display = "New Modifier Cost", desc = "Number of tiers before another weapon / armor battery modifier is attached. Tier 1 weapons / armor batteries will always have one modifier.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
-InsaneStats:RegisterConVar("wpass2_tier_newmodifiercost_battery", "insanestats_wpass2_tier_newmodifiercost_battery", "-1", {
+InsaneStats:RegisterConVar("wpass2_tier_newmodifiercost_battery", "insanestats_wpass2_tier_newmodifier_cost_battery", "-1", {
 	display = "New Battery Modifier Cost", desc = "If 0 or above, overrides insanestats_wpass2_tier_newmodifiercost for armor batteries.",
 	type = InsaneStats.FLOAT, min = -1, max = 100
 })
@@ -191,7 +207,7 @@ InsaneStats:RegisterConVar("wpass2_tier_xp_level_add_mode", "insanestats_wpass2_
 
 InsaneStats:SetDefaultConVarCategory("WPASS2 - Chances")
 
-InsaneStats:RegisterConVar("wpass2_chance_unowned", "insanestats_wpass2_chance_unowned", "20", {
+InsaneStats:RegisterConVar("wpass2_chance_unowned", "insanestats_wpass2_chance_unowned", "25", {
 	display = "Unowned Chance", desc = "Chance for an unowned weapon / armor battery to be above tier 0, creating at least a tier 1 weapon / armor battery. \z
 		Note that Sprint needs to be held in order for weapons / armor batteries above tier 0 to be picked up normally.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
@@ -216,7 +232,7 @@ InsaneStats:RegisterConVar("wpass2_chance_player_drop_battery", "insanestats_wpa
 	display = "Player Battery Drop Chance", desc = "If 0 or above, overrides insanestats_wpass2_chance_player_drop for armor batteries.",
 	type = InsaneStats.FLOAT, min = -1, max = 100
 })
-InsaneStats:RegisterConVar("wpass2_chance_other", "insanestats_wpass2_chance_other", "20", {
+InsaneStats:RegisterConVar("wpass2_chance_other", "insanestats_wpass2_chance_other", "25", {
 	display = "Non-player Chance", desc = "Chance for an NPC owned weapon / armor battery to be above tier 0.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
@@ -400,14 +416,41 @@ local function CheckOverrideWeapons()
 	end
 end
 
-hook.Add("EntityFireBullets", "InsaneStats", function(...)
+local function JoinBulletCallbacks(funcs)
+	return function(...)
+		local effects, damage = true, true
+		for i,v in ipairs(funcs) do
+			local tab = v(...)
+			if tab then
+				effects = effects and tab.effects
+				damage = damage and tab.damage
+			end
+		end
+
+		if not (effects and damage) then
+			local tab = {}
+			if not effects then tab.effects = false end
+			if not damage then tab.damage = false end
+			return tab
+		end
+	end
+end
+
+hook.Add("EntityFireBullets", "InsaneStats", function(ent, data, ...)
 	if doWeaponOverride and doEFBOverride then
 		-- run the others first, but in a more roundabout way
 		local nonInsaneStatsHooks = hook.GetTable().NonInsaneStatsEntityFireBullets or {}
+		local bulletCallbacks = {}
 		for k,v in pairs(nonInsaneStatsHooks) do
-			local ret = v(...)
+			local ret = v(ent, data, ...)
+			if data.Callback then
+				table.insert(bulletCallbacks, data.Callback)
+				data.Callback = nil
+			end
 			if ret == false then return false end
 		end
+
+		data.Callback = JoinBulletCallbacks(bulletCallbacks)
 	end
 end)
 hook.Add("PlayerCanPickupWeapon", "InsaneStats", function(...)
@@ -540,23 +583,23 @@ function InsaneStats:GetStatusEffectInfo(id)
 	return registeredEffects[id]
 end
 
-function InsaneStats:ApplyWPASS2Attributes(wep)
+function InsaneStats:DetermineWPASS2Attributes(currentModifiers)
 	local wepAttributes = {}
-	for k,v in pairs(wep.insaneStats_Modifiers or {}) do
+	for k,v in pairs(currentModifiers or {}) do
 		for k2,v2 in pairs(modifiers[k] and modifiers[k].modifiers or {}) do
-			local startValue = attributes[k2].start or 1
+			local startValue = wepAttributes[k2] or attributes[k2].start or 1
 			if attributes[k2].mode == 1 then
-				wepAttributes[k2] = 1 - (1-(wepAttributes[k2] or startValue)) * v2 ^ v
+				wepAttributes[k2] = 1 - (1-startValue) * v2 ^ v
 			elseif attributes[k2].mode == 2 then
-				wepAttributes[k2] = 2 - (wepAttributes[k2] or startValue) * v2 ^ v
+				wepAttributes[k2] = 2 - startValue * v2 ^ v
 			elseif attributes[k2].mode == 3 then
-				wepAttributes[k2] = (wepAttributes[k2] or startValue) + v2 * v
+				wepAttributes[k2] = startValue + v2 * v
 			elseif attributes[k2].mode == 4 then
 				local mulValue = attributes[k2].mul or 1
-				wepAttributes[k2] = mulValue * ((wepAttributes[k2] or startValue) * v2 ^ v - 1)
+				wepAttributes[k2] = mulValue * (startValue * v2 ^ v - 1)
 			else
 				local mulValue = attributes[k2].mul or 1
-				wepAttributes[k2] = mulValue * ((wepAttributes[k2] or startValue) * v2 ^ v - 1) + 1
+				wepAttributes[k2] = mulValue * (startValue * v2 ^ v - 1) + 1
 			end
 		end
 	end
@@ -566,7 +609,12 @@ function InsaneStats:ApplyWPASS2Attributes(wep)
 			wepAttributes[k] = nil
 		end
 	end
-	
+
+	return wepAttributes
+end
+
+function InsaneStats:ApplyWPASS2Attributes(wep)
+	local wepAttributes = self:DetermineWPASS2Attributes(wep.insaneStats_Modifiers)
 	wep:InsaneStats_SetAttributes(wepAttributes)
 	hook.Run("InsaneStatsWPASS2AttributesChanged", wep)
 end
@@ -586,11 +634,62 @@ function InsaneStats:GetEntitiesByStatusEffect(id)
 	return entities
 end
 
+function InsaneStats:GetModifierProbabilities(wep)
+	-- the resulting probabilities are used for determining reforge cost when modifiers are blacklisted
+	-- by the client, so the client needs to know what modifiers can even be applied!
+	local modifiers = self:GetAllModifiers()
+	local inclusiveFlags = 0
+	local isWep = wep:IsWeapon()
+	if not isWep then
+		inclusiveFlags = bit.bor(inclusiveFlags, self.WPASS2_FLAGS.ARMOR)
+	elseif wep:IsScripted() then
+		inclusiveFlags = bit.bor(inclusiveFlags, self.WPASS2_FLAGS.SCRIPTED_ONLY)
+	end
+	if self:GetConVarValue("xp_enabled") then
+		inclusiveFlags = bit.bor(inclusiveFlags, self.WPASS2_FLAGS.XP)
+	end
+	if game.SinglePlayer() then
+		inclusiveFlags = bit.bor(inclusiveFlags, self.WPASS2_FLAGS.SP_ONLY)
+	end
+	if GetConVar("gmod_suit"):GetBool() then
+		inclusiveFlags = bit.bor(inclusiveFlags, self.WPASS2_FLAGS.SUIT_POWER)
+	end
+	if self:GetConVarValue("infhealth_knockback") then
+		inclusiveFlags = bit.bor(inclusiveFlags, self.WPASS2_FLAGS.KNOCKBACK)
+	end
+	
+	local modifierProbabilities = {}
+	local blacklistedModifiers = {}
+	for w in string.gmatch(InsaneStats:GetConVarValue("wpass2_modifiers_blacklist"), "%S+") do
+		blacklistedModifiers[w] = true
+	end
+
+	for k,v in pairs(modifiers) do
+		if not (
+			blacklistedModifiers[k]
+			or v.flags and bit.band(inclusiveFlags, v.flags) ~= v.flags
+			or (v.cost or 1) >= 0 and (wep.insaneStats_Tier or 0) < 0
+		) then
+			-- if a modifier DOES NOT have bitflag 1 and inclusiveFlags DOES,
+			-- do not consider it, and vice versa
+			if bit.band(v.flags or 0, 1) == bit.band(inclusiveFlags, 1) then
+				local weight = v.weight or 1
+				if (v.cost or 1) < 0 then
+					weight = weight * InsaneStats:GetConVarValueDefaulted(not isWep and "wpass2_modifiers_negativeweight_battery", "wpass2_modifiers_negativeweight")
+				end
+				modifierProbabilities[k] = weight
+			end
+		end
+	end
+
+	return modifierProbabilities
+end
+
 local ENTITY = FindMetaTable("Entity")
 
 function ENTITY:InsaneStats_SetBatteryXP(xp)
 	if isstring(xp) then
-		InsaneStats:Log("Battery XP for "..tostring(self).." attempted to be set to a string value \""..xp.."\"!")
+		InsaneStats:Log("Battery XP for %s attempted to be set to a string value \"%s\"!", tostring(self), xp)
 		InsaneStats:Log("This is a bug, report this if you see this message!")
 		debug.Trace()
 		xp = tonumber(xp) or math.huge

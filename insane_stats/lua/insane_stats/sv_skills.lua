@@ -1,4 +1,4 @@
-local savedPlayerSkills
+local savedPlayerSkills, savedPlayerSealedSkills
 local skillEntities = {}
 for k,v in pairs(ents.GetAll()) do
 	if v.insaneStats_Skills then
@@ -28,15 +28,20 @@ hook.Add("InsaneStatsSave", "InsaneStatsSkills", function(data)
             local skills = v:InsaneStats_GetSkills()
 			if steamID and skills then
 				savedPlayerSkills[steamID] = skills
+				savedPlayerSealedSkills[steamID] = v:InsaneStats_GetSealedSkills()
 			end
 		end
 		data.playerSkills = savedPlayerSkills
+		data.playerSealedSkills = savedPlayerSealedSkills
+		data.disabledSkills = InsaneStats:GetDisabledSkills()
 	end
 end)
 
 local function ReloadSkills()
 	local fileContent = InsaneStats:Load()
 	savedPlayerSkills = fileContent.playerSkills or {}
+	savedPlayerSealedSkills = fileContent.playerSealedSkills or {}
+	InsaneStats:SetDisabledSkills(fileContent.disabledSkills)
 end
 
 ReloadSkills()
@@ -48,11 +53,14 @@ end)
 hook.Add("PlayerSpawn", "InsaneStatsSkills", function(ply, fromTransition)
 	if fromTransition then
 		ply:InsaneStats_SetSkills(nil)
+		ply:InsaneStats_SetSealedSkills(nil)
 	end
 	
 	if not ply.insaneStats_Skills and InsaneStats:GetConVarValue("skills_save") then
 		local skills = savedPlayerSkills[ply:SteamID()] or {}
 		ply:InsaneStats_SetSkills(skills)
+		skills = savedPlayerSealedSkills[ply:SteamID()] or {}
+		ply:InsaneStats_SetSealedSkills(skills)
 	end
 end)
 

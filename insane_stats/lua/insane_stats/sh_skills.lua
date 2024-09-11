@@ -42,18 +42,44 @@ InsaneStats:RegisterConVar("skills_level_add_minimum", "insanestats_skills_level
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
 
+-- I really don't like that these are hardcoded
+-- but I can't think of a better way
+InsaneStats.SealedInfo = {
+	name = "[SEALED]",
+	desc = "%+.1f%% coins and XP gain. \z
+	(Unseal this skill to restore normal behavior.)",
+	values = function(level, ent)
+		return level * ent:InsaneStats_GetEffectiveSkillValues("skill_sealer")
+	end,
+	img = "interdiction"
+}
+InsaneStats.DisabledInfo = {
+	name = "[DISABLED]",
+	desc = "%+i skill point(s)%s",
+	desc_uber = " and +1 über skill point",
+	img = "padlock"
+}
+
 AccessorFunc(InsaneStats, "AllSkills", "AllSkills")
 InsaneStats:SetAllSkills({})
 
 local skillNames = {}
 local skillPositions = {}
+local maxSkillPoints = 0
+local maxUberSkillPoints = 0
 local function MapSkillsToIDs()
+	maxSkillPoints = 0
+	maxUberSkillPoints = 0
+
 	for k,v in SortedPairs(InsaneStats:GetAllSkills()) do
 		v.id = table.insert(skillNames, k)
 
 		local x, y = v.pos[1], v.pos[2]
 		skillPositions[x] = skillPositions[x] or {}
 		skillPositions[x][y] = k
+
+		maxUberSkillPoints = maxUberSkillPoints + 1
+		maxSkillPoints = maxSkillPoints + (v.max or 5)
 	end
 end
 
@@ -83,13 +109,11 @@ function InsaneStats:GetSkillNameByPosition(x, y)
 end
 
 function InsaneStats:GetMaxSkillPoints()
-	-- FIXME: this should not be hardcoded! ideally a proper counting function should be used
-	return 381
+	return maxSkillPoints
 end
 
 function InsaneStats:GetMaxUberSkillPoints()
-	-- FIXME: see above fixme
-	return 89
+	return maxUberSkillPoints
 end
 
 local ENTITY = FindMetaTable("Entity")
@@ -106,8 +130,8 @@ function ENTITY:InsaneStats_SetSkillTier(skill, level)
 end
 
 function ENTITY:InsaneStats_MaxAllSkills(uber)
-	if self:InsaneStats_GetTotalSkillPoints() > 340 then
-		uber = uber and self:InsaneStats_GetTotalUberSkillPoints() > 80
+	if self:InsaneStats_GetTotalSkillPoints() >= InsaneStats:GetMaxSkillPoints() then
+		uber = uber and self:InsaneStats_GetTotalUberSkillPoints() >= InsaneStats:GetMaxUberSkillPoints()
 
 		for k,v in pairs(InsaneStats:GetAllSkills()) do
 			self.insaneStats_Skills[k] = math.max((v.max or 5) * (uber and 2 or 1), self.insaneStats_Skills[k] or 0)
@@ -126,28 +150,11 @@ function ENTITY:InsaneStats_GetSkills()
 	return skills
 end
 
-function ENTITY:InsaneStats_HasSkill(skill)
-	return self:InsaneStats_GetSkillTier(skill) > 0
-end
-
 function ENTITY:InsaneStats_GetSkillTier(skill)
 	if InsaneStats:GetConVarValue("skills_enabled") then
-		local val = hook.Run("InsaneStatsGetSkillTier", self, skill)
-		if val then
-			return val
-		else
-			return self:InsaneStats_GetSkills()[skill] or 0
-		end
+		return self:InsaneStats_GetSkills()[skill] or 0
 	else
 		return 0
-	end
-end
-
-function ENTITY:InsaneStats_GetSkillValues(skill, index)
-	if index then
-		return select(index, self:InsaneStats_GetSkillValues(skill))
-	else
-		return InsaneStats:GetSkillInfo(skill).values(self:InsaneStats_GetSkillTier(skill), self)
 	end
 end
 
@@ -168,6 +175,11 @@ function ENTITY:InsaneStats_GetTotalSkillPoints()
 		points = points + math.min(addPoints, maxAddPoints)
 	end
 
+	for k,v in pairs(InsaneStats:GetDisabledSkills()) do
+		local skillInfo = InsaneStats:GetSkillInfo(k)
+		points = points + math.min(self:InsaneStats_GetSkillTier(k), skillInfo.max or 5)
+	end
+
 	return math.max(math.floor(points), 0)
 end
 
@@ -182,10 +194,18 @@ function ENTITY:InsaneStats_GetSkillPoints()
 end
 
 function ENTITY:InsaneStats_GetTotalUberSkillPoints()
-	if self:InsaneStats_GetSkillTier("when_the_sigma_grind_aint_enough") > 0 then
-		local levels = self:InsaneStats_GetSkillValues("when_the_sigma_grind_aint_enough")
+	if self:InsaneStats_EffectivelyHasSkill("when_the_sigma_grind_aint_enough") then
+		local levels = self:InsaneStats_GetEffectiveSkillValues("when_the_sigma_grind_aint_enough")
+		local points = math.floor(self:InsaneStats_GetTotalSkillPoints() / levels)
 
-		return math.floor(self:InsaneStats_GetTotalSkillPoints() / levels)
+		for k,v in pairs(InsaneStats:GetDisabledSkills()) do
+			local skillInfo = InsaneStats:GetSkillInfo(k)
+			if self:InsaneStats_GetSkillTier(k) > (skillInfo.max or 5) then
+				points = points + 1
+			end
+		end
+
+		return points
 	else
 		return 0
 	end
@@ -218,6 +238,111 @@ function ENTITY:InsaneStats_GetNextSkillPointLevel()
 	)
 	local levelMin = math.max(startLevel + points * InsaneStats:GetConVarValue("skills_level_add_minimum"))
 	return math.ceil(math.max(level, levelMin))
+end
+
+-- skill sealing and disabling
+function ENTITY:InsaneStats_CanSealSkills()
+	return self:InsaneStats_EffectivelyHasSkill("skill_sealer")
+end
+function ENTITY:InsaneStats_SetSealedSkills(skills)
+	self.insaneStats_SealedSkills = skills
+	hook.Run("InsaneStatsSkillsChanged", self)
+end
+-- FIXME: this should explicitly specify on whether the skill should be sealed or unsealed
+-- as the sealed state could become unsynchronized if packets get dropped
+function ENTITY:InsaneStats_SealSkill(skill)
+	self.insaneStats_SealedSkills = self.insaneStats_SealedSkills or {}
+	if self.insaneStats_SealedSkills[skill] then
+		self.insaneStats_SealedSkills[skill] = nil
+	else
+		self.insaneStats_SealedSkills[skill] = true
+	end
+	hook.Run("InsaneStatsSkillsChanged", self)
+end
+function ENTITY:InsaneStats_GetSealedSkills()
+	local skills = self.insaneStats_SealedSkills or {}
+	for k,v in pairs(skills) do
+		if not InsaneStats:GetSkillInfo(k) then
+			skills[k] = nil
+		end
+	end
+	return skills
+end
+function ENTITY:InsaneStats_IsSkillSealed(skill)
+	self.insaneStats_SealedSkills = self.insaneStats_SealedSkills or {}
+	return self.insaneStats_SealedSkills[skill]
+end
+
+function ENTITY:InsaneStats_CanDisableSkills()
+	return self:IsAdmin()
+end
+function InsaneStats:SetDisabledSkills(skills)
+	self.DisabledSkills = skills
+
+	for i,v in ents.Iterator() do
+		hook.Run("InsaneStatsSkillsChanged", v)
+	end
+end
+function InsaneStats:GetDisabledSkills()
+	self.DisabledSkills = self.DisabledSkills or {}
+	return self.DisabledSkills
+end
+function InsaneStats:DisableSkill(skill, bool)
+	self.DisabledSkills = self.DisabledSkills or {}
+	self.DisabledSkills[skill] = bool or nil
+
+	for i,v in ents.Iterator() do
+		if v:InsaneStats_IsSkillSealed(skill) then
+			v:InsaneStats_SealSkill(skill)
+		end
+		hook.Run("InsaneStatsSkillsChanged", v)
+	end
+end
+function InsaneStats:IsSkillDisabled(skill)
+	self.DisabledSkills = self.DisabledSkills or {}
+	return self.DisabledSkills[skill]
+end
+
+-- effective skill stats
+function ENTITY:InsaneStats_EffectivelyHasSkill(skill)
+	return self:InsaneStats_GetEffectiveSkillTier(skill) > 0
+end
+
+local cachedTotals = {}
+local lastCache = math.floor(engine.TickCount() / 10)
+function ENTITY:InsaneStats_GetEffectiveSkillTier(skill)
+	if InsaneStats:GetConVarValue("skills_enabled") then
+		local tickCount = math.floor(engine.TickCount() / 10)
+		if tickCount ~= lastCache then
+			cachedTotals = {}
+			lastCache = tickCount
+		end
+
+		cachedTotals[self] = cachedTotals[self] or {}
+		if cachedTotals[self][skill] then return cachedTotals[self][skill] end
+
+		local val = hook.Run("InsaneStatsGetSkillTier", self, skill)
+		if val then
+			cachedTotals[self][skill] = val
+		elseif not (self:InsaneStats_IsSkillSealed(skill) or InsaneStats:IsSkillDisabled(skill)) then
+			cachedTotals[self][skill] = self:InsaneStats_GetSkills()[skill] or 0
+		else
+			cachedTotals[self][skill] = 0
+		end
+
+		return cachedTotals[self][skill]
+	end
+	
+	return 0
+end
+
+function ENTITY:InsaneStats_GetEffectiveSkillValues(skill, index)
+	if index then
+		return select(index, self:InsaneStats_GetEffectiveSkillValues(skill))
+	else
+		local skillInfo = InsaneStats:GetSkillInfo(skill)
+		return skillInfo.values(self:InsaneStats_GetEffectiveSkillTier(skill), self)
+	end
 end
 
 -- skill states and stacks
@@ -259,35 +384,45 @@ function ENTITY:InsaneStats_ClearSkillData()
 end
 
 function ENTITY:InsaneStats_GetSkillStacks(skill, skipUpdate)
-	local skillInfo = InsaneStats:GetSkillInfo(skill)
-	if skillInfo.stackTick and not skipUpdate then
-		local skillData = self:InsaneStats_GetSkillData(skill)
-		local diffTime = math.max(CurTime() - (skillData.updateTime or CurTime()), 0)
-		local newState, newStacks = skillInfo.stackTick(skillData.state or -2, skillData.stacks or 0, diffTime, self)
-		
-		local skillData = self:InsaneStats_GetSkillData(skill)
-		skillData.state = newState
-		skillData.stacks = newStacks
-		skillData.updateTime = CurTime()
-		return newStacks
-	else
-		return self:InsaneStats_GetSkillData(skill).stacks or 0
+	if self:InsaneStats_EffectivelyHasSkill(skill) then
+		local skillInfo = InsaneStats:GetSkillInfo(skill)
+		if skillInfo.stackTick and not skipUpdate then
+			local skillData = self:InsaneStats_GetSkillData(skill)
+			local diffTime = math.max(CurTime() - (skillData.updateTime or CurTime()), 0)
+			local diffTimeData = {diffTime = diffTime, ent = self, skill = skill}
+			hook.Run("InsaneStatsSkillDiffTime", diffTimeData)
+			local newState, newStacks = skillInfo.stackTick(skillData.state or -2, skillData.stacks or 0, diffTimeData.diffTime, self)
+			
+			local skillData = self:InsaneStats_GetSkillData(skill)
+			skillData.state = newState
+			skillData.stacks = newStacks
+			skillData.updateTime = CurTime()
+			return newStacks
+		else
+			return self:InsaneStats_GetSkillData(skill).stacks or 0
+		end
+	else return 0
 	end
 end
 
 function ENTITY:InsaneStats_GetSkillState(skill, skipUpdate)
-	local skillInfo = InsaneStats:GetSkillInfo(skill)
-	if skillInfo.stackTick and not skipUpdate then
-		local skillData = self:InsaneStats_GetSkillData(skill)
-		local diffTime = math.max(CurTime() - (skillData.updateTime or CurTime()), 0)
-		local newState, newStacks = skillInfo.stackTick(skillData.state or -2, skillData.stacks or 0, diffTime, self)
-		
-		local skillData = self:InsaneStats_GetSkillData(skill)
-		skillData.state = newState
-		skillData.stacks = newStacks
-		skillData.updateTime = CurTime()
-		return newState
-	else
-		return self:InsaneStats_GetSkillData(skill).state or -2
+	if self:InsaneStats_EffectivelyHasSkill(skill) then
+		local skillInfo = InsaneStats:GetSkillInfo(skill)
+		if skillInfo.stackTick and not skipUpdate then
+			local skillData = self:InsaneStats_GetSkillData(skill)
+			local diffTime = math.max(CurTime() - (skillData.updateTime or CurTime()), 0)
+			local diffTimeData = {diffTime = diffTime, ent = self, skill = skill}
+			hook.Run("InsaneStatsSkillDiffTime", diffTimeData)
+			local newState, newStacks = skillInfo.stackTick(skillData.state or -2, skillData.stacks or 0, diffTimeData.diffTime, self)
+			
+			local skillData = self:InsaneStats_GetSkillData(skill)
+			skillData.state = newState
+			skillData.stacks = newStacks
+			skillData.updateTime = CurTime()
+			return newState
+		else
+			return self:InsaneStats_GetSkillData(skill).state or -2
+		end
+	else return -2
 	end
 end

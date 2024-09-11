@@ -135,8 +135,8 @@ local function OverrideHealth()
 		if SERVER then
 			self:InsaneStats_MarkForUpdate(1)
 		end
-		if SERVER and self:IsPlayer() and GetConVar("developer"):GetInt() > 1 then
-			InsaneStats:Log(tostring(self).." max health set to "..newHealth)
+		if SERVER and self:IsPlayer() and InsaneStats:IsDebugLevel(1) then
+			InsaneStats:Log("%s max health set to %f", tostring(self), newHealth)
 			debug.Trace()
 		end
 	end

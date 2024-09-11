@@ -142,36 +142,63 @@ InsaneStats.ShopItemsAutomaticPrice = {
 	"gmod_tool"
 }
 
-function InsaneStats:GetReforgeCost(tier)
-	return InsaneStats:ScaleValueToLevelPure(
-		InsaneStats:GetConVarValue("coins_reforge_cost"),
-		InsaneStats:GetConVarValue("coins_reforge_cost_add")/100,
-		tier,
+function InsaneStats:GetReforgeCost(wep, blacklisted)
+	-- the old system simply used the formula mult^tier where mult is the tier multiplier
+	-- so if mult = 1.1, reforging tier 1 would cost 1x, tier 2 costing 1.1x, tier 3 costing 1.21x, etc.
+	-- the new system is (mult/p)^tier, where p is the probability that the reforge will not add a blacklisted modifier
+	blacklisted = blacklisted or {}
+	local modifierProbabilities = self:GetModifierProbabilities(wep)
+
+	local totalWeight = 0
+	local blacklistedWeight = 0
+
+	for k,v in pairs(modifierProbabilities) do
+		totalWeight = totalWeight + v
+
+		if blacklisted[k] then
+			blacklistedWeight = blacklistedWeight + v
+		end
+	end
+
+	local selectableWeightFraction = 1 - blacklistedWeight / totalWeight
+	local scaling = (1 + self:GetConVarValue("coins_reforge_cost_add")/100) / selectableWeightFraction - 1
+
+	if InsaneStats:IsDebugLevel(1) then
+		InsaneStats:Log(
+			"Reforge of %s: Total Weight = %f, Blacklisted Weight = %f, Selectable Fraction = %f",
+			tostring(wep), totalWeight, blacklistedWeight, selectableWeightFraction
+		)
+	end
+
+	return self:ScaleValueToLevelPure(
+		self:GetConVarValue("coins_reforge_cost"),
+		scaling,
+		math.abs(wep.insaneStats_Tier or 0),
 		true
 	)
 end
 
 function InsaneStats:GetItemCost(index, ply)
-	local itemInfo = InsaneStats.ShopItems[index]
+	local itemInfo = self.ShopItems[index]
 	local cost = itemInfo[2]
-	if InsaneStats:GetConVarValue("xp_enabled") and cost then
-		cost = InsaneStats:ScaleValueToLevelQuadratic(
+	if self:GetConVarValue("xp_enabled") and cost then
+		cost = self:ScaleValueToLevelQuadratic(
 			cost,
-			InsaneStats:GetConVarValue("coins_level_add")/100,
+			self:GetConVarValue("coins_level_add")/100,
 			ply:InsaneStats_GetLevel(),
 			"coins_level_add_mode",
 			false,
-			InsaneStats:GetConVarValue("coins_level_add_add")/100
+			self:GetConVarValue("coins_level_add_add")/100
 		)
 	end
 	return cost
 end
 
 function InsaneStats:GetWeaponCost(index)
-	local maxIndex = #InsaneStats.ShopItemsAutomaticPrice
-	local minPrice = InsaneStats:GetConVarValue("coins_weapon_price_start")
-	local maxPrice = InsaneStats:GetConVarValue("coins_weapon_price_end")
-	local geometric = minPrice > 0 and maxPrice > 0 and InsaneStats:GetConVarValue("coins_weapon_price_geometric")
+	local maxIndex = #self.ShopItemsAutomaticPrice
+	local minPrice = self:GetConVarValue("coins_weapon_price_start")
+	local maxPrice = self:GetConVarValue("coins_weapon_price_end")
+	local geometric = minPrice > 0 and maxPrice > 0 and self:GetConVarValue("coins_weapon_price_geometric")
 
 	if geometric then
 		return math.exp(math.Remap(index, 1, maxIndex, math.log(minPrice), math.log(maxPrice)))
@@ -181,9 +208,9 @@ function InsaneStats:GetWeaponCost(index)
 end
 
 function InsaneStats:GetRespecCost(ent)
-	return InsaneStats:ScaleValueToLevelPure(
-		InsaneStats:GetConVarValue("coins_respec_cost"),
-		InsaneStats:GetConVarValue("coins_respec_cost_add")/100,
+	return self:ScaleValueToLevelPure(
+		self:GetConVarValue("coins_respec_cost"),
+		self:GetConVarValue("coins_respec_cost_add")/100,
 		ent:InsaneStats_GetTotalSkillPoints() - ent:InsaneStats_GetSkillPoints()
 		+ ent:InsaneStats_GetTotalUberSkillPoints() - ent:InsaneStats_GetUberSkillPoints(),
 		true
@@ -246,6 +273,16 @@ end
 
 function ENT:InsaneStats_GetLastCoinTier()
 	return self.insaneStats_LastCoinTier or 254
+end
+
+local PLAYER = FindMetaTable("Player")
+
+function PLAYER:InsaneStats_SetReforgeBlacklist(blacklist)
+	self.insaneStats_ReforgeBlacklist = blacklist
+end
+
+function PLAYER:InsaneStats_GetReforgeBlacklist()
+	return self.insaneStats_ReforgeBlacklist or {}
 end
 
 hook.Add("InsaneStatsTransitionCompat", "InsaneStatsCoinsShared", function(ent)

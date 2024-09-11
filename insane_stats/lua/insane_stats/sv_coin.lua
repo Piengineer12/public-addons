@@ -100,22 +100,28 @@ hook.Add("InsaneStatsPropBroke", "InsaneStatsCoins", function(victim, attacker)
 	SpawnCoins(victim, value)
 end)
 
-local savedPlayerCoins
+local savedPlayerCoins, savedPlayerReforgeBlacklist
 hook.Add("InsaneStatsSave", "InsaneStatsCoins", function(data)
 	if InsaneStats:GetConVarValue("coins_enabled") and InsaneStats:GetConVarValue("coins_player_save") and savedPlayerCoins then
 		for k,v in player.Iterator() do
 			local steamID = v:SteamID()
-			if steamID and v:InsaneStats_GetEntityData("coins_loaded") then
-				savedPlayerCoins[steamID] = v:InsaneStats_GetCoins()
+			if steamID then
+				if v:InsaneStats_GetEntityData("coins_loaded") then
+					savedPlayerCoins[steamID] = v:InsaneStats_GetCoins()
+				elseif v.insaneStats_ReforgeBlacklist then
+					savedPlayerReforgeBlacklist[steamID] = v:InsaneStats_GetReforgeBlacklist()
+				end
 			end
 		end
 		data.playerCoins = savedPlayerCoins
+		data.playerReforgeBlacklist = savedPlayerReforgeBlacklist
 	end
 end)
 
 local function ReloadCoins()
 	local fileContent = InsaneStats:Load()
 	savedPlayerCoins = fileContent.playerCoins or {}
+	savedPlayerReforgeBlacklist = fileContent.playerReforgeBlacklist or {}
 end
 
 ReloadCoins()
@@ -133,6 +139,10 @@ hook.Add("PlayerSpawn", "InsaneStatsCoins", function(ply, fromTransition)
 		local coins = InsaneStats:GetConVarValue("coins_player_save") and savedPlayerCoins[ply:SteamID()]
 		if coins then
 			ply:InsaneStats_SetCoins(coins)
+		end
+		local modifierBlacklist = savedPlayerReforgeBlacklist[ply:SteamID()]
+		if modifierBlacklist then
+			ply:InsaneStats_SetReforgeBlacklist(modifierBlacklist)
 		end
 		
 		ply:InsaneStats_SetEntityData("coins_loaded", true)

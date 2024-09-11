@@ -28,7 +28,7 @@ concommand.Add("insanestats_skills_reset", function()
 	net.Start("insane_stats")
 	net.WriteUInt(6, 8)
 	net.WriteUInt(4, 4)
-	net.WriteUInt(3, 4)
+	net.WriteUInt(3, 8)
 	net.SendToServer()
 end, nil, "If manual skill respecs are enabled, this ConCommand respecs all skills.")
 
@@ -38,8 +38,9 @@ local color_green = InsaneStats:GetColor("green")
 local color_aqua = InsaneStats:GetColor("aqua")
 
 local function CreateSkillButton(parent, skillName)
+	local ply = LocalPlayer()
 	local skillInfo = InsaneStats:GetSkillInfo(skillName)
-	local outlineWidth = InsaneStats:GetConVarValue("hud_outline")
+	local outlineWidth = InsaneStats:GetOutlineThickness()
 	local buttonSize = InsaneStats.FONT_BIG * 2.5 + outlineWidth * 2
 	local buttonDistance = 1.5
 	local buttonOffset = buttonSize * buttonDistance * 5
@@ -56,49 +57,73 @@ local function CreateSkillButton(parent, skillName)
 		parent:InsaneStats_SkillHovered(skillName)
 	end
 	function Button:DoClick()
-		local ply = LocalPlayer()
-		local currentTier = ply:InsaneStats_GetSkillTier(skillName)
-		local max = skillInfo.max or 5
-		if ply:InsaneStats_GetSkillPoints() >= 1 and currentTier < max
-		or ply:InsaneStats_GetUberSkillPoints() >= 1 and currentTier >= max and currentTier < max * 2 then
+		if (input.IsKeyDown(KEY_LALT) or input.IsKeyDown(KEY_RALT)) and ply:InsaneStats_CanSealSkills() and not hook.Run("InsaneStatsCannotSealSkill", skillName) then
+			ply:InsaneStats_SealSkill(skillName)
+
 			net.Start("insane_stats")
 			net.WriteUInt(6, 8)
-			net.WriteUInt(0, 4)
+			net.WriteUInt(2, 4)
 			net.WriteUInt(InsaneStats:GetSkillID(skillName) - 1, 8)
 			net.SendToServer()
-			-- update immediately on client's end
-			if currentTier < max then
-				ply:InsaneStats_SetSkillTier(skillName, currentTier + 1)
-			else
-				ply:InsaneStats_SetSkillTier(skillName, currentTier * 2)
-			end
+
 			parent:InsaneStats_SkillHovered(skillName)
-			parent:Refresh()
+		else
+			local currentTier = ply:InsaneStats_GetSkillTier(skillName)
+			local max = skillInfo.max or 5
+			if ply:InsaneStats_GetSkillPoints() >= 1 and currentTier < max
+			or ply:InsaneStats_GetUberSkillPoints() >= 1 and currentTier >= max and currentTier < max * 2 then
+				net.Start("insane_stats")
+				net.WriteUInt(6, 8)
+				net.WriteUInt(0, 4)
+				net.WriteUInt(InsaneStats:GetSkillID(skillName) - 1, 8)
+				net.SendToServer()
+				-- update immediately on client's end
+				if currentTier < max then
+					ply:InsaneStats_SetSkillTier(skillName, currentTier + 1)
+				else
+					ply:InsaneStats_SetSkillTier(skillName, currentTier * 2)
+				end
+				parent:InsaneStats_SkillHovered(skillName)
+				parent:Refresh()
+			end
 		end
 	end
 	Button.DoDoubleClick = Button.DoClick
 	function Button:DoRightClick()
-		local ply = LocalPlayer()
-		local currentTier = ply:InsaneStats_GetSkillTier(skillName)
-		local max = skillInfo.max or 5
-		if ply:InsaneStats_GetSkillPoints() >= 1 and currentTier < max then
+		if (input.IsKeyDown(KEY_LALT) or input.IsKeyDown(KEY_RALT)) and ply:InsaneStats_CanDisableSkills() then
+			InsaneStats:DisableSkill(skillName, not InsaneStats:IsSkillDisabled(skillName))
+
 			net.Start("insane_stats")
 			net.WriteUInt(6, 8)
-			net.WriteUInt(1, 4)
+			net.WriteUInt(3, 4)
 			net.WriteUInt(InsaneStats:GetSkillID(skillName) - 1, 8)
 			net.SendToServer()
-			-- update immediately on client's end
-			local spend = math.min(ply:InsaneStats_GetSkillPoints(), max - currentTier)
-			ply:InsaneStats_SetSkillTier(skillName, currentTier + spend)
 
 			parent:InsaneStats_SkillHovered(skillName)
-			parent:Refresh()
 		else
-			self:DoClick()
+			local currentTier = ply:InsaneStats_GetSkillTier(skillName)
+			local max = skillInfo.max or 5
+			if ply:InsaneStats_GetSkillPoints() >= 1 and currentTier < max then
+				net.Start("insane_stats")
+				net.WriteUInt(6, 8)
+				net.WriteUInt(1, 4)
+				net.WriteUInt(InsaneStats:GetSkillID(skillName) - 1, 8)
+				net.SendToServer()
+				-- update immediately on client's end
+				local spend = math.min(ply:InsaneStats_GetSkillPoints(), max - currentTier)
+				ply:InsaneStats_SetSkillTier(skillName, currentTier + spend)
+
+				parent:InsaneStats_SkillHovered(skillName)
+				parent:Refresh()
+			else
+				self:DoClick()
+			end
 		end
 	end
 	function Button:Paint(w, h)
-		local tier = LocalPlayer():InsaneStats_GetSkillTier(skillName)
+		local disabled = InsaneStats:IsSkillDisabled(skillName)
+		local sealed = ply:InsaneStats_IsSkillSealed(skillName)
+		local tier = ply:InsaneStats_GetSkillTier(skillName)
 		local max = skillInfo.max or 5
 		local enabled = self:IsEnabled()
 		local color = tier > max and color_aqua
@@ -106,39 +131,39 @@ local function CreateSkillButton(parent, skillName)
 			or tier > 0 and color_yellow
 			or enabled and color_white
 			or color_gray
+		local icon = disabled and InsaneStats.DisabledInfo.img
+		or sealed and InsaneStats.SealedInfo.img
+		or skillInfo.img
 		InsaneStats:DrawMaterialOutlined(
-			InsaneStats:GetIconMaterial(skillInfo.img),
+			InsaneStats:GetIconMaterial(icon),
 			outlineWidth, outlineWidth,
 			w - outlineWidth * 2, h - outlineWidth * 2,
-			color, outlineWidth, color_black
+			color
 		)
 
-		draw.SimpleTextOutlined(
+		InsaneStats:DrawTextOutlined(
 			string.format("%u/%u", tier, max),
-			"InsaneStats.Small",
+			1,
 			w-outlineWidth,
 			h-outlineWidth,
 			color,
-			TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM,
-			outlineWidth, color_black
+			TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM
 		)
 		if not enabled then
 			local colorArg = 127 + self.insaneStats_Adjacent / ((skillInfo.minpts or 0) - 1) * 128
-			draw.SimpleTextOutlined(
+			InsaneStats:DrawTextOutlined(
 				string.format("%u/%u", self.insaneStats_Adjacent, skillInfo.minpts or 0),
-				"InsaneStats.Big",
+				3,
 				w/2,
 				h/2,
 				Color(colorArg, colorArg, colorArg),
-				TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER,
-				outlineWidth, color_black
+				TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER
 			)
 		end
 	end
 	function Button:Refresh()
 		local requiredAdjacent = skillInfo.minpts or 0
 		local adjacent = 0
-		local ply = LocalPlayer()
 
 		local x, y = skillInfo.pos[1], skillInfo.pos[2]
 		local offsets = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}}
@@ -199,7 +224,7 @@ local function CreateSkillPanel()
 	end
 
     -- move the canvas to the center
-	local outlineWidth = InsaneStats:GetConVarValue("hud_outline")
+	local outlineWidth = InsaneStats:GetOutlineThickness()
 	local buttonSize = InsaneStats.FONT_BIG * 2.5 + outlineWidth * 2
     Panel.pnlCanvas:SetPos(
 		buttonSize * -8 + ScrW()/4,
@@ -233,23 +258,39 @@ local function CreateSkillInfoPanel()
 			local ply = LocalPlayer()
 			local skillInfo = InsaneStats:GetSkillInfo(currentSkill)
 			local currentTier = ply:InsaneStats_GetSkillTier(currentSkill)
+			local isDisabled = InsaneStats:IsSkillDisabled(currentSkill)
+			local isSealed = ply:InsaneStats_IsSkillSealed(currentSkill)
+			local skillDesc = isDisabled and InsaneStats.DisabledInfo.desc
+			or isSealed and InsaneStats.SealedInfo.desc
+			or skillInfo.desc
+			local skillValues = isDisabled and function(currentTier, ply)
+				local maxTier = skillInfo.max or 5
+				local uberText = currentTier > maxTier and InsaneStats.DisabledInfo.desc_uber or ""
+				return math.min(currentTier, maxTier), uberText
+			end or isSealed and InsaneStats.SealedInfo.values
+			or skillInfo.values
+
 			Panel:SetText("")
 
 			Panel:InsertColorChange(255, 255, 0, 255)
-			Panel:AppendText(skillInfo.name)
+			Panel:AppendText(
+				isDisabled and InsaneStats.DisabledInfo.name
+				or isSealed and InsaneStats.SealedInfo.name
+				or skillInfo.name
+			)
 
 			if currentTier > 0 then
-				local tierDescription = string.format(skillInfo.desc, skillInfo.values(currentTier, ply))
+				local tierDescription = string.format(skillDesc, skillValues(currentTier, ply))
 				Panel:InsertColorChange(255, 255, 255, 255)
 				Panel:AppendText("\n"..tierDescription)
 			end
 
 			if currentTier < (skillInfo.max or 5) then
-				local nextTierDescription = string.format(skillInfo.desc, skillInfo.values(currentTier+1, ply))
+				local nextTierDescription = string.format(skillDesc, skillValues(currentTier+1, ply))
 				Panel:InsertColorChange(255, 255, 0, 255)
 				Panel:AppendText("\n\nNext Tier:\n"..nextTierDescription)
 			elseif currentTier < (skillInfo.max or 5) * 2 and ply:InsaneStats_GetUberSkillPoints() > 0 then
-				local nextTierDescription = string.format(skillInfo.desc, skillInfo.values(currentTier*2, ply))
+				local nextTierDescription = string.format(skillDesc, skillValues(currentTier*2, ply))
 				Panel:InsertColorChange(0, 255, 255, 255)
 				Panel:AppendText("\n\nNext Tier:\n"..nextTierDescription)
 			end
@@ -267,82 +308,74 @@ end
 
 local function CreateSkillHeaders(parent)
 	local Header = vgui.Create("DPanel", parent)
-	Header:SetTall(InsaneStats.FONT_MEDIUM + InsaneStats:GetConVarValue("hud_outline")*2)
+	Header:SetTall(InsaneStats.FONT_MEDIUM + InsaneStats:GetOutlineThickness()*2)
 	Header:SetZPos(1)
 	Header:Dock(TOP)
 	function Header:Paint(w, h)
 		-- You have X über skill point(s) and Y skill point(s) remaining - next at Level Z
 		local ply = LocalPlayer()
-		local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
+		local outlineThickness = InsaneStats:GetOutlineThickness()
 		local x = outlineThickness
-		x = x + draw.SimpleTextOutlined(
-			"You have ", "InsaneStats.Medium", x, outlineThickness,
-			color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
-			outlineThickness, color_black
+		x = x + InsaneStats:DrawTextOutlined(
+			"You have ", 2, x, outlineThickness,
+			color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
 		)
 
 		if ply:InsaneStats_GetUberSkillPoints() ~= 0 then
 			local skillPoints = ply:InsaneStats_GetUberSkillPoints()
 			local text = InsaneStats:FormatNumber(skillPoints)
-			x = x + draw.SimpleTextOutlined(
-				text, "InsaneStats.Medium", x, outlineThickness,
+			x = x + InsaneStats:DrawTextOutlined(
+				text, 2, x, outlineThickness,
 				skillPoints > 0 and color_aqua or color_white,
-				TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
-				outlineThickness, color_black
+				TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
 			)
 	
-			x = x + draw.SimpleTextOutlined(
-				" über skill point(s) and ", "InsaneStats.Medium", x, outlineThickness,
-				color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
-				outlineThickness, color_black
+			x = x + InsaneStats:DrawTextOutlined(
+				" über skill point(s) and ", 2, x, outlineThickness,
+				color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
 			)
 		end
 
 		local skillPoints = ply:InsaneStats_GetSkillPoints()
 		local text = InsaneStats:FormatNumber(skillPoints)
-		x = x + draw.SimpleTextOutlined(
-			text, "InsaneStats.Medium", x, outlineThickness,
+		x = x + InsaneStats:DrawTextOutlined(
+			text, 2, x, outlineThickness,
 			skillPoints > 0 and color_yellow or color_white,
-			TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
-			outlineThickness, color_black
+			TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
 		)
 
-		x = x + draw.SimpleTextOutlined(
+		x = x + InsaneStats:DrawTextOutlined(
 			string.format(
 				" skill point(s) remaining",
 				ply:InsaneStats_GetTotalSkillPoints()
 			),
-			"InsaneStats.Medium", x, outlineThickness,
-			color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
-			outlineThickness, color_black
+			2, x, outlineThickness,
+			color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
 		)
 
 		if skillPoints < ply:InsaneStats_GetTotalSkillPoints() then
-			x = x + draw.SimpleTextOutlined(
+			x = x + InsaneStats:DrawTextOutlined(
 				string.format(
 					" (%u total)",
 					ply:InsaneStats_GetTotalSkillPoints()
 				),
-				"InsaneStats.Medium", x, outlineThickness,
-				color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
-				outlineThickness, color_black
+				2, x, outlineThickness,
+				color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
 			)
 		end
 
 		if InsaneStats:GetConVarValue("xp_enabled") and skillPoints < math.huge then
-			x = x + draw.SimpleTextOutlined(
-				" - next at ", "InsaneStats.Medium", x, outlineThickness,
-				color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
-				outlineThickness, color_black
+			x = x + InsaneStats:DrawTextOutlined(
+				" - next at ", 2, x, outlineThickness,
+				color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
 			)
 			
 			local nextLevel = ply:InsaneStats_GetNextSkillPointLevel()
 			text = "Level "..InsaneStats:FormatNumber(nextLevel)
-			x = x + draw.SimpleTextOutlined(
-				text, "InsaneStats.Medium", x, outlineThickness,
+			x = x + InsaneStats:DrawTextOutlined(
+				text, 2, x, outlineThickness,
 				HSVToColor(InsaneStats:GetXPBarHue(nextLevel), 0.75, 1),
-				TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
-				outlineThickness, color_black
+				TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
 			)
 		end
 	end
@@ -375,6 +408,12 @@ local function CreateSkillHeaders(parent)
 		end
 		if totalUberSkillPoints >= InsaneStats:GetMaxUberSkillPoints() and not allSkillsUberMaxed then
 			table.insert(texts, "Press Ctrl + Shift + Space to assign max skill points and über skill points to all skills.")
+		end
+		if ply:InsaneStats_CanSealSkills() then
+			table.insert(texts, "Hold Alt before left-clicking a skill to seal / unseal the skill.")
+		end
+		if ply:InsaneStats_CanDisableSkills() then
+			table.insert(texts, "Hold Alt before right-clicking a skill to disable / enable the skill for the whole server (admin only).")
 		end
 		if totalSkillPoints > skillPoints and bit.band(InsaneStats:GetConVarValue("skills_allow_reset"), 1) ~= 0 then
 			table.insert(texts, "Press Ctrl + Delete to respec.")
@@ -424,6 +463,7 @@ function InsaneStats:CreateSkillMenu(frame)
 					SkillPanel:Refresh()
 				elseif key == KEY_DELETE and bit.band(InsaneStats:GetConVarValue("skills_allow_reset"), 1) ~= 0 then
 					LocalPlayer():InsaneStats_SetSkills({})
+					LocalPlayer():InsaneStats_SetSealedSkills({})
 
 					net.Start("insane_stats")
 					net.WriteUInt(6, 8)
@@ -459,6 +499,14 @@ function InsaneStats:CreateSkillMenu(frame)
 		HeaderLabel:SetTextColor(color_gray)
 		HeaderLabel:SetText("Insane Stats Skills must be enabled for this to function.")
 	end
+end
+
+if IsValid(LocalPlayer()) then
+	net.Start("insane_stats")
+	net.WriteUInt(6, 8)
+	net.WriteUInt(4, 4)
+	net.WriteUInt(0, 8)
+	net.SendToServer()
 end
 
 hook.Add("InitPostEntity", "InsaneStatsSkills", function()
@@ -518,7 +566,7 @@ hook.Add("HUDPaint", "InsaneStatsSkills", function()
 		end
 		if ply:IsSuitEquipped() then
 			local iconSkills = {}
-			for k,v in SortedPairs(ply:InsaneStats_GetSkills(), true) do
+			for k,v in SortedPairs(InsaneStats:GetAllSkills(), true) do
 				if ply:InsaneStats_GetSkillState(k) ~= -2 then
 					table.insert(iconSkills, k)
 				end
@@ -527,7 +575,7 @@ hook.Add("HUDPaint", "InsaneStatsSkills", function()
 			local baseX = InsaneStats:GetConVarValue("hud_skills_x") * ScrW()
 			local baseY = InsaneStats:GetConVarValue("hud_skills_y") * ScrH()
 			local skillSize = InsaneStats.FONT_SMALL * InsaneStats:GetConVarValue("hud_skills_size")
-			local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
+			local outlineThickness = InsaneStats:GetOutlineThickness()
 			local totalIconSkills = #iconSkills
 			local skillsPerRow = InsaneStats:GetConVarValue("hud_skills_per_row")
 			skillsPerRow = skillsPerRow < 1 and 65536 or skillsPerRow
@@ -553,15 +601,14 @@ hook.Add("HUDPaint", "InsaneStatsSkills", function()
 				InsaneStats:DrawMaterialOutlined(
 					InsaneStats:GetIconMaterial(skillInfo.img),
 					anchorX - skillSize/2, anchorY - skillSize,
-					skillSize, skillSize, skillColor, outlineThickness, color_black
+					skillSize, skillSize, skillColor
 				)
 				if skillStacks ~= 0 then
 					local stackText = math.abs(skillStacks) >= 1000 and InsaneStats:FormatNumber(skillStacks) or string.format("%.1f", skillStacks)
-					draw.SimpleTextOutlined(
-						stackText, "InsaneStats.Small",
+					InsaneStats:DrawTextOutlined(
+						stackText, 1,
 						anchorX + skillSize/2, anchorY, color_white,
-						TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM,
-						outlineThickness, color_black
+						TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM
 					)
 				end
 			end

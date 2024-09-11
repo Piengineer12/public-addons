@@ -9,9 +9,9 @@ function InsaneStats:Save(data)
 		file.CreateDir("insane_stats")
 	end
 	local saveFileName = "insane_stats/"..currentSaveFile..".json"
-	if GetConVar("developer"):GetInt() > 1 then
+	if InsaneStats:IsDebugLevel(3) then
 		InsaneStats:Log("Saved data:")
-		InsaneStats:Log(PrintTable(data))
+		PrintTable(data)
 	end
 	file.Write(saveFileName, util.TableToJSON(data))
 end
@@ -112,6 +112,7 @@ hook.Add("EntityKeyValue", "InsaneStats", function(ent, key, value)
 end)
 
 local pendingGameTexts = {}
+local activeCamera = NULL
 hook.Add("AcceptInput", "InsaneStats", function(ent, input, activator, caller, value)
 	input = input:lower()
 	data = data or ""
@@ -132,6 +133,10 @@ hook.Add("AcceptInput", "InsaneStats", function(ent, input, activator, caller, v
 			local keyValues = ent:GetKeyValues()
 			local xPos = tonumber(keyValues.x)
 			local yPos = tonumber(keyValues.y)
+			local color = ent.insaneStats_TextColor
+			if not IsColor(color) then -- oh come on
+				color = Color(color.r, color.g, color.b, color.a)
+			end
 			
 			table.insert(pendingGameTexts, {
 				order = (xPos < 0 and 0.5 or xPos) + (yPos < 0 and 0.5 or yPos),
@@ -149,6 +154,15 @@ hook.Add("AcceptInput", "InsaneStats", function(ent, input, activator, caller, v
 	and InsaneStats:GetConVarValue("flashlight_disable_fix_modifyspeed") then
 		for i,v in player.Iterator() do
 			v.insaneStats_FlashlightDisabled = tonumber(value) ~= 1 or nil
+		end
+	elseif class == "point_viewcontrol" and InsaneStats:GetConVarValue("camera_no_kill") then
+		if input == "kill" then
+			ent:Fire("Disable")
+			return true
+		elseif input == "disable" and ent ~= activeCamera then
+			return true
+		elseif input == "enable" then
+			activeCamera = ent
 		end
 	elseif class == "npc_citizen" then
 		if input == "setmedicon" then
@@ -220,6 +234,9 @@ hook.Add("Think", "InsaneStats", function()
 
 	if next(pendingGameTexts) then
 		for k,v in SortedPairsByMemberValue(pendingGameTexts, "order") do
+			if not IsColor(v.c) then
+				v.c = Color(v.c.r, v.c.g, v.c.b, v.c.a)
+			end
 			net.Start("insane_stats")
 			net.WriteUInt(5, 8)
 			net.WriteString(v.t)
@@ -309,12 +326,12 @@ end)
 
 hook.Add("PlayerSelectSpawn", "InsaneStats", function(ply, transition)
 	if InsaneStats:GetConVarValue("spawn_master") and not transition then
-		local developer = GetConVar("developer"):GetInt() > 0
+		local developer = InsaneStats:IsDebugLevel(1)
 		local spawnPoints = ents.FindByClass("info_player_deathmatch")
 		for i, v in ipairs(spawnPoints) do
 			if hook.Run("IsSpawnpointSuitable", ply, v, true) then
 				if developer then
-					InsaneStats:Log("Spawning "..tostring(ply).." at "..tostring(v).."!")
+					InsaneStats:Log("Spawning %s at %s!", tostring(ply), tostring(v))
 				end
 				return v
 			end
@@ -324,7 +341,7 @@ hook.Add("PlayerSelectSpawn", "InsaneStats", function(ply, transition)
 		for i, v in ipairs(spawnPoints) do
 			if not v.insaneStats_Disabled and hook.Run("IsSpawnpointSuitable", ply, v, true) then
 				if developer then
-					InsaneStats:Log("Spawning "..tostring(ply).." at "..tostring(v).."!")
+					InsaneStats:Log("Spawning %s at %s!", tostring(ply), tostring(v))
 				end
 				return v
 			end
@@ -334,7 +351,7 @@ hook.Add("PlayerSelectSpawn", "InsaneStats", function(ply, transition)
 		for i, v in ipairs(spawnPoints) do
 			if v:HasSpawnFlags(1) and hook.Run("IsSpawnpointSuitable", ply, v, true) then
 				if developer then
-					InsaneStats:Log("Spawning "..tostring(ply).." at "..tostring(v).."!")
+					InsaneStats:Log("Spawning %s at %s!", tostring(ply), tostring(v))
 				end
 				return v
 			end
@@ -342,13 +359,13 @@ hook.Add("PlayerSelectSpawn", "InsaneStats", function(ply, transition)
 		for i, v in ipairs(spawnPoints) do
 			if hook.Run("IsSpawnpointSuitable", ply, v, true) then
 				if developer then
-					InsaneStats:Log("Spawning "..tostring(ply).." at "..tostring(v).."!")
+					InsaneStats:Log("Spawning %s at %s!", tostring(ply), tostring(v))
 				end
 				return v
 			end
 		end
 		if developer then
-			InsaneStats:Log("Could not find valid spawn point for "..tostring(ply).."!")
+			InsaneStats:Log("Could not find valid spawn point for %s!", tostring(ply))
 		end
 	end
 end)

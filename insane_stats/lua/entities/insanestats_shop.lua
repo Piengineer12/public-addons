@@ -47,12 +47,18 @@ function ENT:Use(activator, caller)
 		if not self.insaneStats_WeaponIndexes then
 			self.insaneStats_WeaponIndexes = self:SelectSoldWeapons()
 		end
+		local modifierBlacklist = activator:InsaneStats_GetReforgeBlacklist()
+		
 		net.Start("insane_stats", true)
 		net.WriteUInt(6, 8)
 		net.WriteEntity(self)
 		net.WriteUInt(#self.insaneStats_WeaponIndexes, 16)
 		for i, v in ipairs(self.insaneStats_WeaponIndexes) do
 			net.WriteUInt(v, 16)
+		end
+		net.WriteUInt(table.Count(modifierBlacklist), 16)
+		for k, v in pairs(modifierBlacklist) do
+			net.WriteString(k)
 		end
 		net.Send(activator)
 	end

@@ -151,6 +151,10 @@ function InsaneStats:CalculateRoot8(num)
 	end
 end
 
+function InsaneStats:IsDebugLevel(num)
+	return self:GetConVarValue("debug") >= num
+end
+
 -- MISC
 
 InsaneStats:SetDefaultConVarCategory("Miscellaneous")
@@ -160,16 +164,11 @@ InsaneStats:RegisterConVar("save_file", "insanestats_save_file", "default", {
 	Note that ConVar values are not saved this way, and changes to this ConVar only take effect after a map change.",
 	type = InsaneStats.STRING
 })
-InsaneStats:RegisterConVar("gametext_tochat", "insanestats_gametext_tochat", "0", {
-	display = "game_text To Chat", desc = "Activated game_texts will also send their texts to chat.",
-	type = InsaneStats.BOOL
-})
-InsaneStats:RegisterConVar("gametext_tochat_once", "insanestats_gametext_tochat_once", "0", {
-	display = "Chat Only Once", desc = "Activated game_texts will only send their texts to chat once.",
-	type = InsaneStats.BOOL
-})
-InsaneStats:RegisterConVar("ammocrate_maxammo", "insanestats_ammocrate_maxammo", "0", {
-	display = "Ammo Crates Give 9999", desc = "Ammo crates always give 9999 ammo, limited only by the gmod_maxammo ConVar.",
+InsaneStats:RegisterConVar("spawn_master", "insanestats_spawn_master", "0", {
+	display = "Spawn At First Spawn Position", desc = "Players will always spawn at the first spawn position within the map, \z
+	instead of a random spawn position. \z
+	Additionally, master info_player_starts will always take priority over other info_player_starts.\n\z
+	Useful for maps that have made the above assumptions, such as campaign maps.",
 	type = InsaneStats.BOOL
 })
 InsaneStats:RegisterConVar("transition_delay", "insanestats_transition_delay", "1", {
@@ -177,11 +176,13 @@ InsaneStats:RegisterConVar("transition_delay", "insanestats_transition_delay", "
 	Useful for maps where both trigger_changelevels are at the same place.",
 	type = InsaneStats.BOOL
 })
-InsaneStats:RegisterConVar("spawn_master", "insanestats_spawn_master", "0", {
-	display = "Spawn At First Spawn Position", desc = "Players will always spawn at the first spawn position within the map, \z
-	instead of a random spawn position. \z
-	Additionally, master info_player_starts will always take priority over other info_player_starts.\n\z
-	Useful for maps that have made the above assumptions, such as campaign maps.",
+InsaneStats:RegisterConVar("ammocrate_maxammo", "insanestats_ammocrate_maxammo", "0", {
+	display = "Ammo Crates Give 9999", desc = "Ammo crates always give 9999 ammo, limited only by the gmod_maxammo ConVar.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterConVar("camera_no_kill", "insanestats_camera_no_kill", "1", {
+	display = "No Camera Killing", desc = "point_viewcontrols will not be removed when the Kill input is sent to them.\n\z
+	Fixes certain cameras not working in some older campaign maps.",
 	type = InsaneStats.BOOL
 })
 InsaneStats:RegisterConVar("flashlight_disable_fix", "insanestats_flashlight_disable_fix", "0", {
@@ -192,4 +193,16 @@ InsaneStats:RegisterConVar("flashlight_disable_fix_modifyspeed", "insanestats_fl
 	display = "ModifySpeed on player_speedmod Disables Flashlight", desc = "In HL2, the ModifySpeed input on a player_speedmod entity would disable the player's flashlight. \z
 	You can reenable this behaviour via this ConVar.",
 	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterConVar("gametext_tochat", "insanestats_gametext_tochat", "0", {
+	display = "game_text To Chat", desc = "Activated game_texts will also send their texts to chat.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterConVar("gametext_tochat_once", "insanestats_gametext_tochat_once", "0", {
+	display = "Chat Only Once", desc = "Activated game_texts will only send their texts to chat once.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterConVar("debug", "insanestats_debug", "0", {
+	display = "Debug Level", desc = "Causes Insane Stats to display messages used for debugging. Higher numbers cause more messages to be displayed.",
+	type = InsaneStats.INT, min = 0, max = 3
 })

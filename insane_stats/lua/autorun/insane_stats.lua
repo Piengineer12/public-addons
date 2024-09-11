@@ -6,11 +6,12 @@ Donate:			https://ko-fi.com/piengineer12
 ]]
 
 InsaneStats = {
-	VERSION = "1.7.0",
-	VERSION_DATE = "2024-06-25"
+	VERSION = "1.8.0",
+	VERSION_DATE = "2024-09-11"
 }
 
-function InsaneStats:Log(msg)
+function InsaneStats:Log(msg, ...)
+	msg = msg:format(...)
 	MsgC(
 		Color(0, 255, 255),
 		SERVER and "[Insane Stats Server] " or "[Insane Stats Client] ",
@@ -21,10 +22,8 @@ function InsaneStats:Log(msg)
 end
 
 InsaneStats:Log(
-	string.format(
-		"Loading Insane Stats version %s (%s) by Piengineer12",
-		InsaneStats.VERSION, InsaneStats.VERSION_DATE
-	)
+	"Loading Insane Stats version %s (%s) by Piengineer12",
+	InsaneStats.VERSION, InsaneStats.VERSION_DATE
 )
 
 local clientFiles = {

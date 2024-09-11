@@ -60,6 +60,10 @@ InsaneStats:RegisterClientConVar("hud_statuseffects_y", "insanestats_hud_statuse
 	display = "Status Effects Y", desc = "Vertical position of status effects.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
+InsaneStats:RegisterClientConVar("hud_statuseffects_size", "insanestats_hud_statuseffects_size", "3", {
+	display = "Status Effects Size", desc = "Size of status effects.",
+	type = InsaneStats.FLOAT, min = 0, max = 10
+})
 InsaneStats:RegisterClientConVar("hud_statuseffects_per_column", "insanestats_hud_statuseffects_per_column", "10", {
 	display = "Status Effects Per Column", desc = "Having more than this number of status effects \z
 	causes the display to be compressed. If set to -1, no display compression occurs.",
@@ -94,9 +98,13 @@ end, nil,
 	})
 end)]]
 
+local rarityOffset = 5
 local rarityNames = {
+	"Worthless",
+	"Garbage",
+	"Trash",
 	"Junk",
-	"Common",
+	"Common", -- this position - rarityOffset should be 0
 	"Uncommon",
 	"Rare",
 	"Epic",
@@ -167,13 +175,12 @@ local panelDisplayChangeTime = 0
 local mouseOverChangeTime = 0
 local oldXP, oldLevel, olderLevel = 0, 1, 1
 local oldStatusEffects = {}
-local color_gray = Color(127, 127, 127)
-local color_light_red = Color(255, 127, 127)
-local color_light_yellow = Color(255, 255, 127)
-local color_light_green = Color(127, 255, 127)
-local color_light_aqua = Color(127, 255, 255)
-local color_light_blue = Color(127, 127, 255)
-local color_light_magenta = Color(255, 127, 255)
+local color_light_red = InsaneStats:GetColor("light_red")
+local color_light_yellow = InsaneStats:GetColor("light_yellow")
+local color_light_green = InsaneStats:GetColor("light_green")
+local color_light_aqua = InsaneStats:GetColor("light_aqua")
+local color_light_blue = InsaneStats:GetColor("light_blue")
+local color_light_magenta = InsaneStats:GetColor("light_magenta")
 local baseHues = {120, 240, 270, 0, 30, 60, 90, 210, 180, 300}
 
 local function CreateName(wep)
@@ -204,18 +211,26 @@ local function CreateName(wep)
 				end
 			end
 		else
-			InsaneStats:Log("Couldn't recognize modifier with ID \""..v.."\"!")
+			InsaneStats:Log("Couldn't recognize modifier with ID \"%s\"!", v)
 		end
 	end
 	
 	local rarityDivide = InsaneStats:GetConVarValueDefaulted(not isWep and "wpass2_tier_raritycost_battery", "wpass2_tier_raritycost")
 	local rarityTier = math.floor(wep.insaneStats_Tier/rarityDivide)
-	rarityTier = math.min(rarityTier, #rarityNames-2)
-	name = rarityNames[rarityTier+2] .. ' ' .. name
+	rarityTier = math.Clamp(rarityTier, 1-rarityOffset, #rarityNames-rarityOffset)
+	name = rarityNames[rarityTier+rarityOffset] .. ' ' .. name
 	
+	wep.insaneStats_AttributeOrder = InsaneStats:GetAttributeOrder(wep:InsaneStats_GetAttributes())
+	wep.insaneStats_Rarity = rarityTier
+	wep.insaneStats_WPASS2Name = name
+	wep.insaneStats_WPASS2NameLastRefresh = RealTime()
+	wep.insaneStats_BatteryLevel = math.floor(InsaneStats:GetLevelByXPRequired(wep:InsaneStats_GetBatteryXP()))
+end
+
+function InsaneStats:GetAttributeOrder(attributes)
 	local attribOrder = {}
 	local attribOrderValues = {}
-	for k,v in pairs(wep:InsaneStats_GetAttributes()) do
+	for k,v in pairs(attributes or {}) do
 		v = math.abs(v-1)
 		--[[if v < 1 then
 			v = 1/v
@@ -226,17 +241,15 @@ local function CreateName(wep)
 	for k,v in SortedPairsByValue(attribOrderValues, true) do
 		table.insert(attribOrder, k)
 	end
-	
-	wep.insaneStats_AttributeOrder = attribOrder
-	wep.insaneStats_Rarity = rarityTier
-	wep.insaneStats_WPASS2Name = name
-	wep.insaneStats_WPASS2NameLastRefresh = RealTime()
-	wep.insaneStats_BatteryLevel = math.floor(InsaneStats:GetLevelByXPRequired(wep:InsaneStats_GetBatteryXP()))
+
+	return attribOrder
 end
 
 function InsaneStats:GetRarityColor(tier)
 	local realTime = RealTime()
-	if tier < 0 then return color_gray
+	if tier < 0 then
+		local l = 255 / (1-tier)
+		return Color(l, l, l)
 	elseif tier == 0 then return color_white
 	elseif tier > 60 then return HSVToColor(realTime * 120 % 360, 1, 1)
 	else
@@ -263,6 +276,20 @@ function InsaneStats:GetRarityColor(tier)
 	end
 end
 
+function InsaneStats:GetAttributeText(attribute, value)
+	local attribInfo = InsaneStats:GetAllAttributes()[attribute]
+	local decimals = 1
+	if value > 0 and value < 0.01 then
+		decimals = math.floor(-math.log10(value))
+	end
+	local numberDisplay = InsaneStats:FormatNumber(
+		(value-1) * (attribInfo.nopercent and 1 or 100),
+		{plus = not attribInfo.noplus, decimals = decimals}
+	)..(attribInfo.nopercent and "" or "%")
+
+	return string.format(attribInfo.display, numberDisplay)
+end
+
 local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, extra)
 	local attributes = InsaneStats:GetAllAttributes()
 	local textOffsetX, textOffsetY = 0, 0
@@ -271,13 +298,16 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 	local maxY = panelY + maxH
 	local rarityColor = InsaneStats:GetRarityColor(wep.insaneStats_Rarity)
 	local typeText = wep:IsWeapon() and " Weapon" or " Battery"
-	local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
+	local outlineThickness = InsaneStats:GetOutlineThickness()
 	extra = extra or {}
 	
 	surface.SetAlphaMultiplier(alphaMod)
 	local name = wep:IsWeapon() and InsaneStats:GetWeaponName(wep) or language.GetPhrase("item_battery")
 	local titleText = (extra.dropped and "Hovered " or "Current ")..name..":"
-	textOffsetX, textOffsetY = draw.SimpleTextOutlined(titleText, "InsaneStats.Medium", panelX+outlineThickness, panelY+outlineThickness, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, outlineThickness, color_black)
+	textOffsetX, textOffsetY = InsaneStats:DrawTextOutlined(
+		titleText, 2, panelX+outlineThickness, panelY+outlineThickness,
+		color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
+	)
 	panelY = panelY + textOffsetY
 	
 	surface.SetFont("InsaneStats.Medium")
@@ -290,7 +320,10 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 	
 	render.SetScissorRect(panelX, panelY, panelX+maxW, panelY+InsaneStats.FONT_MEDIUM+outlineThickness*2, true)
 	
-	textOffsetX, textOffsetY = draw.SimpleTextOutlined(wep.insaneStats_WPASS2Name, "InsaneStats.Medium", panelX-nameScrollAmt+outlineThickness, panelY+outlineThickness, rarityColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, outlineThickness, color_black)
+	textOffsetX, textOffsetY = InsaneStats:DrawTextOutlined(
+		wep.insaneStats_WPASS2Name, 2, panelX-nameScrollAmt+outlineThickness, panelY+outlineThickness,
+		rarityColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
+	)
 	panelY = panelY + textOffsetY
 	
 	render.SetScissorRect(0, 0, 0, 0, false)
@@ -303,7 +336,10 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 			tierDisplay = "Tier "..wep.insaneStats_Tier..", Level "..InsaneStats:FormatNumber(wep:InsaneStats_GetLevel())..typeText
 		end
 	end
-	textOffsetX, textOffsetY = draw.SimpleTextOutlined(tierDisplay, "InsaneStats.Medium", panelX+outlineThickness, panelY+outlineThickness, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, outlineThickness, color_black)
+	textOffsetX, textOffsetY = InsaneStats:DrawTextOutlined(
+		tierDisplay, 2, panelX+outlineThickness, panelY+outlineThickness,
+		color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
+	)
 	
 	local levelDiff = extra.levelDiff
 	if (levelDiff and levelDiff ~= 0) then
@@ -317,7 +353,10 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 		if levelDiff ~= 1 then
 			levelUpText = levelUpText .. " x" .. InsaneStats:FormatNumber(levelDiff)
 		end
-		draw.SimpleTextOutlined(levelUpText, "InsaneStats.Medium", panelX+maxW-outlineThickness, panelY+outlineThickness, color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, outlineThickness, color_black)
+		InsaneStats:DrawTextOutlined(
+			levelUpText, 2, panelX+maxW-outlineThickness, panelY+outlineThickness,
+			color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP
+		)
 	end
 	
 	panelY = panelY + textOffsetY
@@ -358,25 +397,21 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 				if not attribInfo then error(v) end
 				
 				local displayColor = (attribValue < 1 == tobool(attribInfo.invert)) and color_light_blue or color_light_red
+				local attribDisplay = InsaneStats:GetAttributeText(v, attribValue)
 				
-				local decimals = 1
-				if attribValue > 0 and attribValue < 0.01 then
-					decimals = math.floor(-math.log10(attribValue))
-				end
-				local numberDisplay = InsaneStats:FormatNumber((attribValue-1)*(attribInfo.nopercent and 1 or 100), {plus = not attribInfo.noplus, decimals = decimals})
-					..(attribInfo.nopercent and "" or "%")
-				--[[if attribValue >= 10001 then
-					numberDisplay = InsaneStats:FormatNumber((attribValue-1)*100) .. " %"
-				end]]
-				local attribDisplay = string.format(attribInfo.display, numberDisplay)
-				
-				textOffsetX, textOffsetY = draw.SimpleTextOutlined(attribDisplay, "InsaneStats.Small", panelX+outlineThickness, textY+outlineThickness, displayColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, outlineThickness, color_black)
+				textOffsetX, textOffsetY = InsaneStats:DrawTextOutlined(
+					attribDisplay, 1, panelX+outlineThickness, textY+outlineThickness,
+					displayColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
+				)
 			end
 		end
 		
 		render.SetScissorRect(0, 0, 0, 0, false)
 	elseif next(wep.insaneStats_AttributeOrder) then
-		draw.SimpleTextOutlined("(H.E.V. suit required for details)", "InsaneStats.Small", panelX+outlineThickness, panelY, color_light_yellow, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, outlineThickness, color_black)
+		InsaneStats:DrawTextOutlined(
+			"(H.E.V. suit required for details)", 1, panelX+outlineThickness, panelY,
+			color_light_yellow, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
+		)
 	end
 	surface.SetAlphaMultiplier(1)
 end
@@ -438,7 +473,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 		local realTime = RealTime()
 		local scrW = ScrW()
 		local scrH = ScrH()
-		local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
+		local outlineThickness = InsaneStats:GetOutlineThickness()
 
 		if InsaneStats:GetConVarValue("wpass2_enabled") then
 			local wep = ply:KeyDown(IN_WALK) and ply or ply:GetActiveWeapon()
@@ -562,7 +597,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 				end
 			end)
 			
-			local iconSize = InsaneStats.FONT_SMALL * 3
+			local iconSize = InsaneStats.FONT_SMALL * InsaneStats:GetConVarValue("hud_statuseffects_size")
 			local baseX = scrW * InsaneStats:GetConVarValue("hud_statuseffects_x")
 			local baseY = scrH * InsaneStats:GetConVarValue("hud_statuseffects_y")
 
@@ -598,7 +633,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 				InsaneStats:DrawMaterialOutlined(
 					InsaneStats:GetIconMaterial(statusEffectInfo.img),
 					anchorX, anchorY - iconSize/2, iconSize, iconSize,
-					statusEffectColor, outlineThickness, Color(0, 0, 0, statusEffectColor.a)
+					statusEffectColor
 				)
 				
 				if #statusEffectOrder > statusesPerColumn or not hasSuit then
@@ -611,43 +646,28 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 					end
 
 					if smallText then
-						draw.SimpleTextOutlined(smallText,
-							"InsaneStats.Small", anchorX + iconSize, anchorY + iconSize / 2, statusEffectColor,
-							TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black
+						InsaneStats:DrawTextOutlined(
+							smallText, 1, anchorX + iconSize, anchorY + iconSize / 2,
+							statusEffectColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM
 						)
 					end
-
-					--[[anchorY = anchorY + iconSize / 2
-					local duration = math.ceil(statusEffectData.expiry - CurTime())
-					draw.SimpleTextOutlined(InsaneStats:FormatNumber(duration, {decimals = 0}).."s",
-						"InsaneStats.Small", anchorX + iconSize, anchorY, statusEffectColor,
-						TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black
-					)
-
-					anchorY = anchorY - InsaneStats.FONT_SMALL - outlineThickness
-					draw.SimpleTextOutlined(InsaneStats:FormatNumber(statusEffectData.level, {decimals = 0}),
-						"InsaneStats.Small", anchorX + iconSize, anchorY, statusEffectColor,
-						TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black
-					)]]
 				else
 					local title = statusEffectInfo.name
 					if statusEffectData.level ~= 1 then
 						title = title .. " " .. InsaneStats:FormatNumber(statusEffectData.level)
 					end
 					anchorX = anchorX+iconSize+outlineThickness
-					draw.SimpleTextOutlined(
-						title, "InsaneStats.Small",
+					InsaneStats:DrawTextOutlined(
+						title, 1,
 						anchorX, anchorY - outlineThickness / 2,
-						statusEffectColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM,
-						outlineThickness, color_black
+						statusEffectColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM
 					)
 
 					local durationText = InsaneStats:FormatNumber(statusEffectData.expiry - CurTime(), {decimals = 1}) .. (statusEffectData.expiry == math.huge and "" or "s")
-					draw.SimpleTextOutlined(
-						durationText, "InsaneStats.Small",
+					InsaneStats:DrawTextOutlined(
+						durationText, 1,
 						anchorX, anchorY + outlineThickness / 2,
-						statusEffectColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP,
-						outlineThickness, color_black
+						statusEffectColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
 					)
 				end
 			end

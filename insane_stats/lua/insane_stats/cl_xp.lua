@@ -54,36 +54,11 @@ local xpDisplayExpiryTimestamp = 0
 local xpFlashDisplayExpiryTimestamp = 0
 local nextEntityUpdateTimestamp = 0
 local lookEntityInfo = {}
-local color_gray = InsaneStats:GetColor("gray")
 local color_light_red = InsaneStats:GetColor("light_red")
 local color_light_yellow = InsaneStats:GetColor("light_yellow")
 local color_light_green = InsaneStats:GetColor("light_green")
 local color_light_aqua = InsaneStats:GetColor("light_aqua")
 local color_light_magenta = InsaneStats:GetColor("light_magenta")
-
-function InsaneStats:CalculateMultibar(x, mx, startHue)
-	-- data: bars, frac, color, nextColor
-	local data = {}
-	local currentHue = startHue
-	if x == math.huge then
-		data.bars = math.huge
-		data.frac = 1
-		currentHue = RealTime()*120
-	else
-		data.bars = math.max(math.ceil(x / mx), 1)
-		data.frac = x / mx - data.bars + 1
-		currentHue = currentHue + (data.bars-1)*30
-	end
-	
-	data.color = HSVToColor(currentHue % 360, 0.75, 1)
-	if data.bars > 1 then
-		data.nextColor = HSVToColor((currentHue - 30) % 360, 0.75, 1)
-	else
-		data.nextColor = color_gray
-	end
-	
-	return data
-end
 
 local statusEffectColors = {
 	[-2] = color_light_magenta,
@@ -184,7 +159,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 		if InsaneStats:GetConVarValue("xp_enabled") and InsaneStats:GetConVarValue("hud_xp_enabled") then
 			local barHeight = InsaneStats.FONT_MEDIUM / 2
 			local barWidth = InsaneStats.FONT_MEDIUM * InsaneStats:GetConVarValue("hud_xp_w")
-			local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
+			local outlineThickness = InsaneStats:GetOutlineThickness()
 			
 			local barX = (scrW - barWidth) * InsaneStats:GetConVarValue("hud_xp_x")
 			local barY = scrH * InsaneStats:GetConVarValue("hud_xp_y") - barHeight
@@ -244,17 +219,14 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 				barBGColor = HSVToColor(levelHue, saturation, 0.5)
 			end
 			
-			surface.SetDrawColor(0,0,0)
-			surface.DrawRect(barX-outlineThickness, barY-outlineThickness, barWidth+outlineThickness*2, barHeight+outlineThickness*2)
-			surface.SetDrawColor(barBGColor.r, barBGColor.g, barBGColor.b)
-			surface.DrawRect(barX, barY, barWidth, barHeight)
-			surface.SetDrawColor(barFGColor.r, barFGColor.g, barFGColor.b)
-			surface.DrawRect(barX, barY, barWidth * ply:InsaneStats_GetLevelFraction(), barHeight)
+			InsaneStats:DrawRectOutlined(
+				barX, barY, barWidth, barHeight,
+				ply:InsaneStats_GetLevelFraction(), barFGColor, barBGColor
+			)
 			
-			draw.SimpleTextOutlined(
-				"Level ".. InsaneStats:FormatNumber(level), "InsaneStats.Medium", barX, barY-outlineThickness,
-				fgColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM,
-				outlineThickness, color_black
+			InsaneStats:DrawTextOutlined(
+				"Level ".. InsaneStats:FormatNumber(level), 2, barX, barY-outlineThickness,
+				fgColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM
 			)
 			if levelDisplayExpiryDuration < 0 then
 				local previousLevelXP = math.floor(InsaneStats:GetConVarValue("hud_xp_cumulative") and 0 or InsaneStats:GetXPRequiredToLevel(level))
@@ -275,7 +247,10 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 					local xpString = InsaneStats:FormatNumber(currentXP)
 					local requiredXp = InsaneStats:FormatNumber(nextXP)
 					local experienceText = xpString .. " / " .. requiredXp
-					draw.SimpleTextOutlined(experienceText, "InsaneStats.Medium", barX+barWidth, barY-outlineThickness, fgColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, outlineThickness, color_black)
+					InsaneStats:DrawTextOutlined(
+						experienceText, 2, barX+barWidth, barY-outlineThickness,
+						fgColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM
+					)
 				end
 			else
 				local color = HSVToColor(levelHue, (math.cos(levelDisplayExpiryDuration*math.pi)+1)/2*maxSaturation, 1)
@@ -291,7 +266,10 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 				if levelDiff ~= 1 then
 					levelUpText = levelUpText .. " x" .. InsaneStats:FormatNumber(levelDiff)
 				end
-				draw.SimpleTextOutlined(levelUpText, "InsaneStats.Medium", barX+barWidth, barY-outlineThickness, color, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, outlineThickness, color_black)
+				InsaneStats:DrawTextOutlined(
+					levelUpText, 2, barX+barWidth, barY-outlineThickness,
+					color, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM
+				)
 			end
 			
 			if xpDisplayExpiryDuration > 0 then
@@ -304,22 +282,29 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 				textX = textX + offset * scrW * InsaneStats:GetConVarValue("hud_xp_gained_x")
 				textY = textY + offset * scrH * InsaneStats:GetConVarValue("hud_xp_gained_y")
 				
-				local outlineLum = 0
+				local outlineLum = InsaneStats:GetConVarValue("hud_outline_colormul") * 255 / 100
 				if xpDisplayExpiryDuration > 0.75 then
-					outlineLum = math.Remap(xpDisplayExpiryDuration, 1, 0.75, 255, 0)
+					outlineLum = math.Remap(
+						xpDisplayExpiryDuration, 1, 0.75,
+						255, InsaneStats:GetConVarValue("hud_outline_colormul") * 255 / 100
+					)
 				end
 				
 				local outlineColor = Color(outlineLum, outlineLum, outlineLum)
 				local experienceText = InsaneStats:FormatNumber(xp - oldXPDelayed) .. " xp"
 				
-				draw.SimpleTextOutlined(experienceText, "InsaneStats.Medium", textX, textY, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, outlineThickness, outlineColor)
+				InsaneStats:DrawTextOutlined(
+					experienceText, 2, textX, textY,
+					color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER,
+					{outlineColor = outlineColor}
+				)
 			end
 		end
 		
 		if InsaneStats:GetConVarValue("hud_target_enabled") and hasSuit then
-			local outlineThickness = InsaneStats:GetConVarValue("hud_outline")
+			local outlineThickness = InsaneStats:GetOutlineThickness()
 			local lookEntity = ply:GetEyeTrace().Entity
-			if IsValid(lookEntity) then
+			if IsValid(lookEntity) and not lookEntity.insaneStats_NoTargetID then
 				UpdateLookEntityInfo(lookEntity)
 			end
 			
@@ -406,49 +391,53 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 						local levelColor = HSVToColor(levelColorHue % 360, 1, 1)
 						
 						-- now actually draw the text
-						--surface.DrawRect(infoX, infoY, 36, 36)
-						infoX = infoX + draw.SimpleTextOutlined(theirLevelString, "InsaneStats.Big", infoX, infoY, levelColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, outlineThickness, color_black)
+						infoX = infoX + InsaneStats:DrawTextOutlined(
+							theirLevelString, 3, infoX, infoY,
+							levelColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
+						)
 						infoX = infoX + outlineThickness
 					end
 					
 					-- health bar
 					if lookEntityInfo.maxHealth > 0 then
-						draw.SimpleTextOutlined(lookEntityInfo.name, "InsaneStats.Medium", infoX, infoY, nameColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, outlineThickness, color_black)
+						InsaneStats:DrawTextOutlined(
+							lookEntityInfo.name, 2, infoX, infoY,
+							nameColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
+						)
 						
 						-- calculate properties for health and armor display
 						local health = IsValid(lookEntityInfo.ent) and lookEntityInfo.health or 0
 						lookEntityInfo.slowHealth = InsaneStats:TransitionUINumber(lookEntityInfo.slowHealth or health, health)
 						local barData = InsaneStats:CalculateMultibar(lookEntityInfo.slowHealth, math.min(lookEntityInfo.maxHealth, ourAttack), lookEntityInfo.startingHue)
 						local healthBars = barData.bars
-						local barFrac = barData.frac
 						local currentBarColor = barData.color
-						local nextBarColor = barData.nextColor
 						
 						local barX = infoX
 						local barY = infoY + InsaneStats.FONT_MEDIUM + outlineThickness
 						local barW = healthBarWidth
 						
 						if healthBars > 1 then
-							draw.SimpleTextOutlined("x"..InsaneStats:FormatNumber(healthBars), "InsaneStats.Medium", infoX + healthBarWidth, infoY, currentBarColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, outlineThickness, color_black)
+							InsaneStats:DrawTextOutlined(
+								"x"..InsaneStats:FormatNumber(healthBars), 2,
+								infoX + healthBarWidth, infoY, currentBarColor,
+								TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP
+							)
 						end
 						
-						local currentHealthBarWidth = math.floor(barFrac > 0 and barW * barFrac or -outlineThickness)
-						
-						surface.SetDrawColor(0,0,0)
-						surface.DrawRect(barX-outlineThickness, barY-outlineThickness, barW+outlineThickness*2, barH+outlineThickness*2)
-						surface.SetDrawColor(nextBarColor.r, nextBarColor.g, nextBarColor.b, nextBarColor.a)
-						surface.DrawRect(barX, barY, barW, barH)
-						surface.SetDrawColor(currentBarColor.r, currentBarColor.g, currentBarColor.b, currentBarColor.a)
-						surface.DrawRect(barX, barY, currentHealthBarWidth, barH)
-						surface.SetDrawColor(0,0,0)
-						surface.DrawRect(barX+currentHealthBarWidth, barY, outlineThickness, barH)
+						InsaneStats:DrawRectOutlined(
+							barX, barY, barW, barH,
+							barData.frac, currentBarColor, barData.nextColor
+						)
 						
 						-- armor
 						if lookEntityInfo.armor > 0 then
 							--print(lookEntityInfo.armor)
 							infoY = infoY + InsaneStats.FONT_MEDIUM + barH + outlineThickness * 2
 							-- FIXME: ugly code duplication!!!
-							draw.SimpleTextOutlined("Shield", "InsaneStats.Medium", infoX, infoY, nameColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, outlineThickness, color_black)
+							InsaneStats:DrawTextOutlined(
+								"Shield", 2, infoX, infoY,
+								nameColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
+							)
 							
 							local armorBarWidthPercent = math.min(lookEntityInfo.maxArmor / ourAttack, 1)
 							if lookEntityInfo.maxArmor == ourAttack then
@@ -459,31 +448,30 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 							lookEntityInfo.slowArmor = InsaneStats:TransitionUINumber(lookEntityInfo.slowArmor or armor, armor)
 							local barData = InsaneStats:CalculateMultibar(lookEntityInfo.slowArmor, math.min(lookEntityInfo.maxArmor, ourAttack), 180)
 							local armorBars = barData.bars
-							local barFrac = barData.frac
 							local currentBarColor = barData.color
-							local nextBarColor = barData.nextColor
 							
 							local barX = infoX
 							local barY = infoY + InsaneStats.FONT_MEDIUM + outlineThickness
 							local barW = armorBarWidth
 							
 							if armorBars > 1 then
-								draw.SimpleTextOutlined("x"..InsaneStats:FormatNumber(armorBars), "InsaneStats.Medium", infoX + armorBarWidth, infoY, currentBarColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP, outlineThickness, color_black)
+								InsaneStats:DrawTextOutlined(
+									"x"..InsaneStats:FormatNumber(armorBars), 2,
+									infoX + armorBarWidth, infoY, currentBarColor,
+									TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP
+								)
 							end
-							
-							local currentArmorBarWidth = math.floor(barFrac > 0 and barW * barFrac or -outlineThickness)
 						
-							surface.SetDrawColor(0,0,0)
-							surface.DrawRect(barX-outlineThickness, barY-outlineThickness, barW+outlineThickness*2, barH+outlineThickness*2)
-							surface.SetDrawColor(nextBarColor.r, nextBarColor.g, nextBarColor.b, nextBarColor.a)
-							surface.DrawRect(barX, barY, barW, barH)
-							surface.SetDrawColor(currentBarColor.r, currentBarColor.g, currentBarColor.b, currentBarColor.a)
-							surface.DrawRect(barX, barY, currentArmorBarWidth, barH)
-							surface.SetDrawColor(0,0,0)
-							surface.DrawRect(barX+currentArmorBarWidth, barY, outlineThickness, barH)
+							InsaneStats:DrawRectOutlined(
+								barX, barY, barW, barH,
+								barData.frac, currentBarColor, barData.nextColor
+							)
 						end
 					else
-						draw.SimpleTextOutlined(lookEntityInfo.name, "InsaneStats.Medium", infoX, infoY + InsaneStats.FONT_BIG / 2, nameColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER, outlineThickness, color_black)
+						InsaneStats:DrawTextOutlined(
+							lookEntityInfo.name, 2, infoX, infoY + InsaneStats.FONT_BIG / 2,
+							nameColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER
+						)
 					end
 					
 					-- status effects
@@ -523,8 +511,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 								InsaneStats:GetIconMaterial(statusEffectInfo.img),
 								currentX, currentY,
 								iconSize, iconSize,
-								statusEffectColor,
-								2, color_black
+								statusEffectColor
 							)
 							
 							local smallText
@@ -536,9 +523,9 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 							end
 
 							if smallText then
-								draw.SimpleTextOutlined(smallText,
-									"InsaneStats.Small", currentX + iconSize - 2, currentY + iconSize - 2, statusEffectColor,
-									TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM, 2, color_black
+								InsaneStats:DrawTextOutlined(
+									smallText, 1, currentX + iconSize - 2, currentY + iconSize - 2,
+									statusEffectColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM
 								)
 							end
 						end

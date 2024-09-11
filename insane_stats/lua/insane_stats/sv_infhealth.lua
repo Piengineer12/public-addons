@@ -7,16 +7,11 @@ local entityClassesArmorNotSensible = {
 	[CLASS_ANTLION] = true,
 	[CLASS_BARNACLE] = true,
 	[CLASS_HEADCRAB] = true,
-	[CLASS_ZOMBIE] = true,
-	[CLASS_MISSILE] = true,
-	[CLASS_FLARE] = true,
 	[CLASS_EARTH_FAUNA] = true,
 	[CLASS_ALIEN_MONSTER] = true,
 	[CLASS_ALIEN_PREY] = true,
 	[CLASS_ALIEN_PREDATOR] = true,
-	[CLASS_INSECT] = true,
-	[CLASS_PLAYER_BIOWEAPON] = true,
-	[CLASS_ALIEN_BIOWEAPON] = true
+	[CLASS_INSECT] = true
 }
 function ENT:InsaneStats_ArmorSensible()
 	if self:IsNPC() then
@@ -194,8 +189,6 @@ AccessorFunc(InsaneStats, "currentAbsorbedDamage", "AbsorbedDamage")
 
 local armorBypassingDamage = bit.bor(DMG_FALL, DMG_DROWN, DMG_POISON, DMG_RADIATION)
 hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo, ...)
-	local developer = GetConVar("developer"):GetInt() > 0
-	local richDeveloper = GetConVar("developer"):GetInt() > 1
 	if not dLibbed then
 		InsaneStats:SetDamage(nil)
 	end
@@ -277,8 +270,8 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 				if (vic:InsaneStats_GetStatusEffectLevel("pheonix") > 0
 				or vic:InsaneStats_GetStatusEffectLevel("undying") > 0
 				or stunned) and not dmginfo:IsDamageType(DMG_DISSOLVE) then
-					if developer then
-						InsaneStats:Log("Prevented lethal damage to "..tostring(vic).."!")
+					if InsaneStats:IsDebugLevel(1) then
+						InsaneStats:Log("Prevented lethal damage to %s!", tostring(vic))
 					end
 
 					-- if damage exceeds health * 0.75, nerf damage received
@@ -319,29 +312,24 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 	vic:InsaneStats_SetEntityData("armor", vic:InsaneStats_GetArmor())
 	vic:InsaneStats_SetEntityData("old_velocity", vic:GetVelocity())
 
-	if richDeveloper then
+	if InsaneStats:IsDebugLevel(3) then
 		local attacker = dmginfo:GetAttacker()
 		if attacker:IsPlayer() then
 			InsaneStats:Log(
-				string.format(
-					"PreEntityTakeDamage: entity = %s, damage = %i, health = %i",
-					tostring(vic), rawDamage, rawHealth
-				)
+				"PreEntityTakeDamage: entity = %s, damage = %i, health = %i",
+				tostring(vic), rawDamage, rawHealth
 			)
 		end
 	end
 end)
 
 hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo, notImmune, ...)
-	local richDeveloper = GetConVar("developer"):GetInt() > 1
-	if richDeveloper and InsaneStats:GetConVarValue("infhealth_enabled") then
+	if InsaneStats:IsDebugLevel(3) and InsaneStats:GetConVarValue("infhealth_enabled") then
 		local attacker = dmginfo:GetAttacker()
 		if attacker:IsPlayer() then
 			InsaneStats:Log(
-				string.format(
-					"PostEntityTakeDamage: entity = %s, damage = %i, health = %i",
-					tostring(vic), dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth()
-				)
+				"PostEntityTakeDamage: entity = %s, damage = %i, health = %i",
+				tostring(vic), dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth()
 			)
 		end
 	end
@@ -445,7 +433,8 @@ local multipleDamageClasses = {
 	npc_helicopter = true,
 	npc_strider = true,
 	npc_hunter = true,
-	npc_combinegunship = true
+	npc_combinegunship = true,
+	prop_dropship_container = true
 }
 hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 	entities[ent] = true
@@ -480,6 +469,9 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 						ent:InsaneStats_ApplyStatusEffect("undying", 10, math.huge)
 						ent:Fire("AddOutput", "OnDamaged !self:InsaneStats_OnDamaged")
 					end
+				elseif class == "prop_dropship_container" then
+					ent:InsaneStats_ApplyStatusEffect("undying", 10, math.huge)
+					ent:Fire("AddOutput", "OnDamaged !self:InsaneStats_OnDamaged")
 				end
 			end
 		end)
@@ -520,12 +512,12 @@ end)
 
 hook.Add("AcceptInput", "InsaneStatsUnlimitedHealth", function(ent, input, activator, caller, data)
 	if input == "InsaneStats_OnHalfHealth" then
-		local developer = GetConVar("developer"):GetInt() > 0
+		local developer = InsaneStats:IsDebugLevel(1)
 		
 		local pheonixLevel = ent:InsaneStats_GetStatusEffectLevel("pheonix")
 		if pheonixLevel > 0 then
 			if developer then
-				InsaneStats:Log("Applying invincibility to "..tostring(ent).."!")
+				InsaneStats:Log("Applying invincibility to %s!", tostring(ent))
 			end
 			ent:InsaneStats_ApplyStatusEffect("invincible", 1, pheonixLevel)
 			ent:InsaneStats_ClearStatusEffect("pheonix")
@@ -533,14 +525,19 @@ hook.Add("AcceptInput", "InsaneStatsUnlimitedHealth", function(ent, input, activ
 
 		ent.insaneStats_HitAtHalfHealth = (ent.insaneStats_HitAtHalfHealth or 0) + 1
 		if developer then
-			InsaneStats:Log(tostring(ent).." was hit at half health "..ent.insaneStats_HitAtHalfHealth.." time(s)!")
+			InsaneStats:Log(
+				"%s was hit at half health %i time(s)!",
+				tostring(ent), ent.insaneStats_HitAtHalfHealth
+			)
 		end
 
 		timer.Simple(1, function()
 			if IsValid(ent) then
 				if ent:InsaneStats_GetHealth() / ent:InsaneStats_GetMaxHealth() > 0.9375 then
 					ent.insaneStats_HitAtHalfHealth = 0
-					InsaneStats:Log(tostring(ent).." is no longer hit at half health!")
+					if developer then
+						InsaneStats:Log("%s is no longer hit at half health!", tostring(ent))
+					end
 
 					ent:InsaneStats_ApplyStatusEffect("pheonix", pheonixLevel, math.huge)
 				end
@@ -549,14 +546,13 @@ hook.Add("AcceptInput", "InsaneStatsUnlimitedHealth", function(ent, input, activ
 
 		return true
 	elseif input == "InsaneStats_OnDamaged" then
-		local developer = GetConVar("developer"):GetInt() > 0
 		local undyingLevel = ent:InsaneStats_GetStatusEffectLevel("undying")
 
 		if undyingLevel > 0 then
 			timer.Simple(0, function()
 				if IsValid(ent) then
-					if developer then
-						InsaneStats:Log("Applying invincibility to "..tostring(ent).."!")
+					if InsaneStats:IsDebugLevel(1) then
+						InsaneStats:Log("Applying invincibility to %s!", tostring(ent))
 					end
 					ent:InsaneStats_ApplyStatusEffect("invincible", 1, 1)
 

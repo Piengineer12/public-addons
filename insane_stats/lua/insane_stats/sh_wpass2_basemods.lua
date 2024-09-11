@@ -1,956 +1,1564 @@
 local modifiers = {
-	-- damage
-	strong = {
-		prefix = "Strong",
-		suffix = "Strength",
-		modifiers = {
-			damage = 1.1
-		}
-	},
-	rapid = {
-		prefix = "Rapid",
-		suffix = "Rapidity",
-		modifiers = {
-			firerate = 1.1
+	{-- damage
+		strong = {
+			prefix = "Strong",
+			suffix = "Strength",
+			modifiers = {
+				damage = 1.1
+			}
 		},
-		max = 10
-	},
-	split = {
-		prefix = "Splitting",
-		modifiers = {
-			bullets = 1.1,
-			nonbullet_damage = 1.1
+		rapid = {
+			prefix = "Rapid",
+			suffix = "Rapidity",
+			modifiers = {
+				firerate = 1.1
+			},
+			max = 10
 		},
-		max = 10
-	},
-	adept = {
-		prefix = "Adept",
-		suffix = "Adeptivity",
-		modifiers = {
-			spread = 1/1.21,
-			nonbullet_damage = 1.1
+		split = {
+			prefix = "Splitting",
+			modifiers = {
+				bullets = 1.1,
+				nonbullet_damage = 1.1
+			},
+			max = 10
 		},
-		max = 10
-	},
-	explode = {
-		prefix = "Explosive",
-		suffix = "Explosions",
-		modifiers = {
-			explode = 1.1
+		adept = {
+			prefix = "Adept",
+			suffix = "Adeptivity",
+			modifiers = {
+				spread = 1/1.21,
+				nonbullet_damage = 1.1
+			},
+			max = 10
 		},
-		weight = 1,
-		max = 7
-	},
-	earth = {
-		prefix = "Earthen",
-		suffix = "Earth",
-		modifiers = {
-			poison = 1.1
+		explode = {
+			prefix = "Explosive",
+			suffix = "Explosions",
+			modifiers = {
+				explode = 1.1
+			},
+			weight = 1,
+			max = 7
 		},
-		weight = 1,
-		max = 7
-	},
-	fire = {
-		prefix = "Firey",
-		suffix = "Fire",
-		modifiers = {
-			fire = 1.1
+		earth = {
+			prefix = "Earthen",
+			suffix = "Earth",
+			modifiers = {
+				poison = 1.1
+			},
+			weight = 1,
+			max = 7
 		},
-		weight = 1,
-		max = 7
-	},
-	water = {
-		prefix = "Watery",
-		suffix = "Water",
-		modifiers = {
-			freeze = 1.1
+		fire = {
+			prefix = "Firey",
+			suffix = "Fire",
+			modifiers = {
+				fire = 1.1
+			},
+			weight = 1,
+			max = 7
 		},
-		weight = 1,
-		max = 7
-	},
-	air = {
-		prefix = "Airy",
-		suffix = "Air",
-		modifiers = {
-			shock = 1.1
+		water = {
+			prefix = "Watery",
+			suffix = "Water",
+			modifiers = {
+				freeze = 1.1
+			},
+			weight = 1,
+			max = 7
 		},
-		weight = 1,
-		max = 7
-	},
-	blood = {
-		prefix = "Bloody",
-		suffix = "Blood",
-		modifiers = {
-			bleed = 1.1
+		air = {
+			prefix = "Airy",
+			suffix = "Air",
+			modifiers = {
+				shock = 1.1
+			},
+			weight = 1,
+			max = 7
 		},
-		weight = 1,
-		max = 7
-	},
-	arc = {
-		prefix = "Arcing",
-		modifiers = {
-			arc_chance = 1/1.1
-		}
-	},
-	luck = {
-		prefix = "Lucky",
-		suffix = "Luck",
-		modifiers = {
-			crit_chance = 1.1
+		blood = {
+			prefix = "Bloody",
+			suffix = "Blood",
+			modifiers = {
+				bleed = 1.1
+			},
+			weight = 1,
+			max = 7
 		},
-		max = 7
-	},
-	perserve = {
-		prefix = "Perserving",
-		modifiers = {
-			ammo_savechance = 1/1.21,
-			melee_damage = 1.1
+		arc = {
+			prefix = "Arcing",
+			modifiers = {
+				arc_chance = 1/1.1
+			}
 		},
-		max = 10
-	},
-	hold = {
-		prefix = "Holding",
-		modifiers = {
-			clip = 1.21,
-			lastammo_damage = 1.1
+		luck = {
+			prefix = "Lucky",
+			suffix = "Luck",
+			modifiers = {
+				crit_chance = 1.1
+			},
+			max = 7
 		},
-		weight = 1,
-		max = 10,
-		flags = InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY
-	},
-	
-	-- damage, half weight
-	ranged = {
-		prefix = "Ranged",
-		suffix = "Range",
-		modifiers = {
-			longrange_damage = 1.21,
-			melee_damage = 1.1
+		perserve = {
+			prefix = "Perserving",
+			modifiers = {
+				ammo_savechance = 1/1.21,
+				melee_damage = 1.1
+			},
+			max = 10
 		},
-		weight = 0.5
-	},
-	derange = {
-		prefix = "Deranged",
-		suffix = "Derangement",
-		modifiers = {
-			shortrange_damage = 1.21,
-			melee_damage = 1/1.1
+		hold = {
+			prefix = "Holding",
+			modifiers = {
+				clip = 1.21,
+				lastammo_damage = 1.1
+			},
+			weight = 1,
+			max = 10,
+			flags = InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY
 		},
-		weight = 0.5
-	},
-	anger = {
-		prefix = "Angry",
-		suffix = "Anger",
-		modifiers = {
-			lowhealth_damage = 1.1
-		},
-		weight = 0.5
-	},
-	death = {
-		prefix = "Deadly",
-		suffix = "Death",
-		modifiers = {
-			lowhealth_victim_damage = 1.1
-		},
-		weight = 0.5
-	},
-	keen = {
-		prefix = "Keen",
-		suffix = "Keenness",
-		modifiers = {
-			high90health_victim_damage = 1.1
-		},
-		weight = 0.5
-	},
-	execution = {
-		prefix = "Executing",
-		suffix = "Execution",
-		modifiers = {
-			lowxhealth_victim_doubledamage = 1.1
-		},
-		weight = 0.5,
-		max = 7
-	},
-	doom = {
-		prefix = "Dooming",
-		suffix = "Doom",
-		modifiers = {
-			repeat1s_damage = 1.1
-		},
-		weight = 0.5
-	},
-	murderous = {
-		prefix = "Murderous",
-		suffix = "Murder",
-		modifiers = {
-			kill5s_damage = 1.1
-		},
-		weight = 0.5
-	},
-	frenzy = {
-		prefix = "Frenzied",
-		suffix = "Frenzying",
-		modifiers = {
-			kill5s_firerate = 1.1
-		},
-		weight = 0.5,
-		max = 10
-	},
-	kinetic = {
-		prefix = "Kinetic",
-		suffix = "Kinesis",
-		modifiers = {
-			speed_damage = 1.1
-		},
-		weight = 0.5
-	},
-	--[[amplify = {
-		prefix = "Amplifying",
-		modifiers = {
-			amp_armorloss = 1/1.1,
-			amp_damage = 1.21
-		},
-		weight = 0.5,
-	},]]
-	energetic = {
-		prefix = "Energetic",
-		suffix = "Energy",
-		modifiers = {
-			armor_damage = 1.1,
-		},
-		weight = 0.5,
-	},
-	unpleasant = {
-		prefix = "Unpleasant",
-		suffix = "Unpleasantness",
-		modifiers = {
-			hit1s_damage = 1.1,
-		},
-		weight = 0.5
-	},
-	hurt = {
-		prefix = "Hurtful",
-		suffix = "Hurt",
-		modifiers = {
-			perhit_victim_damagetaken = 1.1
-		},
-		weight = 0.5,
-	},
-	godly = {
-		prefix = "Godly",
-		suffix = "Godliness",
-		modifiers = {
-			hit100_damagepulse = 1.1
-		},
-		weight = 0.5,
-	},
-	--[[menace = {
-		prefix = "Menacing",
-		modifiers = {
-			kill_victim_damage = 1/1.1
-			kill_victim_firerate = 1/1.1
-		},
-		weight = 0.5,
-		max = 10
-	},]]
-	savage = {
-		prefix = "Savage",
-		suffix = "Savageness",
-		modifiers = {
-			lowhealth_firerate = 1.1,
-		},
-		weight = 0.5,
-		max = 10
-	},
-	gatling = {
-		prefix = "Gatling",
-		modifiers = {
-			critstack_firerate = 1.1,
-		},
-		weight = 0.5,
-		max = 10
-	},
-	wound = {
-		prefix = "Wounding",
-		modifiers = {
-			victim_damagetaken = 1.1
-		},
-		weight = 0.5
-	},
-	empower = {
-		prefix = "Empowering",
-		modifiers = {
-			killstack_damage = 1.1
-		},
-		weight = 0.5
-	},
-	nimble = {
-		prefix = "Nimble",
-		suffix = "Nimbility",
-		modifiers = {
-			killstack_firerate = 1.1
-		},
-		weight = 0.5,
-		max = 10
-	},
-	ruthless = {
-		prefix = "Ruthless",
-		suffix = "Ruthlessness",
-		modifiers = {
-			hit3_damage = 1.1
-		},
-		weight = 0.5
-	},
-	wild = {
-		prefix = "Wild",
-		suffix = "Wilderness",
-		modifiers = {
-			kill_clipsteal = 1.1,
-			melee_damage = 1.1
-		},
-		weight = 0.5,
-		max = 10
-	},
-	unreal = {
-		prefix = "Unreal",
-		suffix = "Unreality",
-		modifiers = {
-			aimbot = 1.1,
-			nonbullet_damage = 1.1
-		},
-		weight = 0.5,
-		max = 7
-	},
-	intense = {
-		prefix = "Intense",
-		suffix = "Intensity",
-		modifiers = {
-			critstack_damage = 1.1
-		},
-		weight = 0.5
-	},
-	celestial = {
-		prefix = "Celestial",
-		suffix = "Celestiality",
-		modifiers = {
-			kill5s_damageaura = 1.1
-		},
-		weight = 0.5
-	},
-	violent = {
-		prefix = "Violent",
-		suffix = "Violence",
-		modifiers = {
-			armored_victim_damage = 1.21,
-			--nonliving_damage = 1.21
-		},
-		weight = 0.5
-	},
-	shoddy = {
-		prefix = "Shoddy",
-		suffix = "Shoddiness",
-		modifiers = {
-			unarmored_victim_damage = 1.21
-		},
-		weight = 0.5
-	},
-	terrible = {
-		prefix = "Terrible",
-		suffix = "Terribleness",
-		modifiers = {
-			back_damage = 1.21
-		},
-		weight = 0.5
-	},
-	taboo = {
-		prefix = "Taboo",
-		suffix = "Tabooness",
-		modifiers = {
-			front_damage = 1.21
-		},
-		weight = 0.5
-	},
-	pressure = {
-		prefix = "Pressurized",
-		suffix = "Pressure",
-		modifiers = {
-			clip_firerate = 1.1
-		},
-		weight = 0.5,
-		max = 10
-	},
-	penetrate = {
-		prefix = "Penetrative",
-		suffix = "Penetrating",
-		modifiers = {
-			penetrate = 1.1,
-			nonbullet_damage = 1.1
-		},
-		weight = 0.5,
-		max = 10
 	},
 	
-	-- damage, half weight doubled cost
-	heavy = {
-		prefix = "Heavy",
-		suffix = "Heaviness",
-		modifiers = {
-			speed = 1/1.1,
-			damage = 1.331,
+	{-- damage, half weight
+		ranged = {
+			prefix = "Ranged",
+			suffix = "Range",
+			modifiers = {
+				longrange_damage = 1.21,
+				melee_damage = 1.1
+			},
+			weight = 0.5
 		},
-		weight = 0.5,
-		max = 5,
-		cost = 2
-	},
-	sniper = {
-		prefix = "Sniping",
-		modifiers = {
-			firerate = 1/1.1,
-			spread = 1/1.21,
-			nonbullet_damage = 1.1,
-			longrange_damage = 1.21,
-			melee_damage = 1.21
+		derange = {
+			prefix = "Deranged",
+			suffix = "Derangement",
+			modifiers = {
+				shortrange_damage = 1.21,
+				melee_damage = 1/1.1
+			},
+			weight = 0.5
 		},
-		weight = 0.5,
-		max = 10,
-		cost = 2
-	},
-	shotgun = {
-		prefix = "Shotgunning",
-		modifiers = {
-			spread = 1.21,
-			bullets = 1.331,
-			shortrange_nonbullet_damage = 1.21,
+		anger = {
+			prefix = "Angry",
+			suffix = "Anger",
+			modifiers = {
+				lowhealth_damage = 1.1
+			},
+			weight = 0.5
 		},
-		weight = 0.5,
-		max = 5,
-		cost = 2
-	},
-	weak = {
-		prefix = "Weak",
-		suffix = "Weakness",
-		modifiers = {
-			knockback = 1/1.4641,
-			damage = 1.331
+		death = {
+			prefix = "Deadly",
+			suffix = "Death",
+			modifiers = {
+				lowhealth_victim_damage = 1.1
+			},
+			weight = 0.5
 		},
-		flags = InsaneStats.WPASS2_FLAGS.KNOCKBACK,
-		weight = 0.5,
-		max = 5,
-		cost = 2
-	},
-	dull = {
-		prefix = "Dull",
-		suffix = "Dullness",
-		modifiers = {
-			damage = 1/1.1,
-			firerate = 1.331
+		keen = {
+			prefix = "Keen",
+			suffix = "Keenness",
+			modifiers = {
+				high90health_victim_damage = 1.1
+			},
+			weight = 0.5
 		},
-		weight = 0.5,
-		max = 5,
-		cost = 2
-	},
-	annoy = {
-		prefix = "Annoying",
-		suffix = "Annoyance",
-		modifiers = {
-			damage = 1/1.1,
-			knockback = 1.4641,
-			firerate = 1.21
+		execution = {
+			prefix = "Executing",
+			suffix = "Execution",
+			modifiers = {
+				lowxhealth_victim_doubledamage = 1.1
+			},
+			weight = 0.5,
+			max = 7
 		},
-		flags = InsaneStats.WPASS2_FLAGS.KNOCKBACK,
-		weight = 0.5,
-		max = 5,
-		cost = 2
-	},
-	curse = {
-		prefix = "Cursed",
-		suffix = "Curses",
-		modifiers = {
-			bullets = 1/1.1,
-			nonbullet_damage = 1/1.1,
-			--nonbullet_misschance = 1/1.1,
-			damage = 1.331
+		doom = {
+			prefix = "Dooming",
+			suffix = "Doom",
+			modifiers = {
+				repeat1s_damage = 1.1
+			},
+			weight = 0.5
 		},
-		weight = 0.5,
-		max = 5,
-		cost = 2
-	},
-	power = {
-		prefix = "Powerful",
-		suffix = "Power",
-		modifiers = {
-			firerate = 1/1.1,
-			damage = 1.331
+		murderous = {
+			prefix = "Murderous",
+			suffix = "Murder",
+			modifiers = {
+				kill5s_damage = 1.1
+			},
+			weight = 0.5
 		},
-		weight = 0.5,
-		max = 10,
-		cost = 2
-	},
-	zealous = {
-		prefix = "Zealous",
-		suffix = "Zealousness",
-		modifiers = {
-			spread = 1.21,
-			nonbullet_damage = 1/1.1,
-			damage = 1.331
+		frenzy = {
+			prefix = "Frenzied",
+			suffix = "Frenzying",
+			modifiers = {
+				kill5s_firerate = 1.1
+			},
+			weight = 0.5,
+			max = 10
 		},
-		weight = 0.5,
-		max = 10,
-		cost = 2
-	},
-	broken = {
-		prefix = "Broken",
-		suffix = "Breaking",
-		modifiers = {
-			damage = 1.21,
-			random_damage = -0.2
+		kinetic = {
+			prefix = "Kinetic",
+			suffix = "Kinesis",
+			modifiers = {
+				speed_damage = 1.1
+			},
+			weight = 0.5
 		},
-		weight = 0.5,
-		max = 5,
-		cost = 2
-	},
-	sluggish = {
-		prefix = "Sluggish",
-		suffix = "Sluggishness",
-		modifiers = {
-			firerate = 1/1.1,
-			kill5s_damage = 1.331
+		energetic = {
+			prefix = "Energetic",
+			suffix = "Energy",
+			modifiers = {
+				armor_damage = 1.1,
+			},
+			weight = 0.5,
 		},
-		weight = 0.5,
-		max = 5,
-		cost = 2
-	},
-	lazy = {
-		prefix = "Lazy",
-		suffix = "Laziness",
-		modifiers = {
-			damage = 1/1.1,
-			kill5s_firerate = 1.331,
+		unpleasant = {
+			prefix = "Unpleasant",
+			suffix = "Unpleasantness",
+			modifiers = {
+				hit1s_damage = 1.1,
+			},
+			weight = 0.5
 		},
-		weight = 0.5,
-		max = 5,
-		cost = 2
-	},
-	shame = {
-		prefix = "Shameful",
-		suffix = "Shame",
-		modifiers = {
-			damage = 1.331,
-			kill5s_ally_damage = 1/1.1
+		hurt = {
+			prefix = "Hurtful",
+			suffix = "Hurt",
+			modifiers = {
+				perhit_victim_damagetaken = 1.1
+			},
+			weight = 0.5,
 		},
-		weight = 0.5,
-		max = 2,
-		cost = 2
-	},
-	danger = {
-		prefix = "Dangerous",
-		suffix = "Danger",
-		modifiers = {
-			damage = 1.331,
-			hit100_self_damage = 1.1
+		godly = {
+			prefix = "Godly",
+			suffix = "Godliness",
+			modifiers = {
+				hit100_damagepulse = 1.1
+			},
+			weight = 0.5,
 		},
-		weight = 0.5,
-		cost = 2
-	},
-	awkward = {
-		prefix = "Awkward",
-		suffix = "Awkwardness",
-		modifiers = {
-			damage = 1/1.1,
-			spread = 1/1.771561,
-			nonbullet_damage = 1.331
+		savage = {
+			prefix = "Savage",
+			suffix = "Savageness",
+			modifiers = {
+				lowhealth_firerate = 1.1,
+			},
+			weight = 0.5,
+			max = 10
 		},
-		weight = 0.5,
-		max = 5,
-		cost = 2
-	},
-	
-	-- damage inaccessible
-	frostfire = {
-		prefix = "Frostfirey",
-		suffix = "Frostfire",
-		modifiers = {
-			frostfire = 1.1^(1/3),
-			fire_damage = 1.1^(1/3),
-			freeze_damage = 1.1^(1/3),
+		gatling = {
+			prefix = "Gatling",
+			modifiers = {
+				critstack_firerate = 1.1,
+			},
+			weight = 0.5,
+			max = 10
 		},
-		merge = {
-			"fire", "water"
+		wound = {
+			prefix = "Wounding",
+			modifiers = {
+				victim_damagetaken = 1.1
+			},
+			weight = 0.5
 		},
-		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY),
-		max = 21
-	},
-	electroblast = {
-		prefix = "Electroblasting",
-		modifiers = {
-			electroblast = 1.1^(1/3),
-			shock_damage = 1.1^(1/3),
-			explode_damage = 1.1^(1/3),
+		empower = {
+			prefix = "Empowering",
+			modifiers = {
+				killstack_damage = 1.1
+			},
+			weight = 0.5
 		},
-		merge = {
-			"explode", "air"
+		nimble = {
+			prefix = "Nimble",
+			suffix = "Nimbility",
+			modifiers = {
+				killstack_firerate = 1.1
+			},
+			weight = 0.5,
+			max = 10
 		},
-		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY),
-		max = 21
-	},
-	hemotoxic = {
-		prefix = "Hemotoxic",
-		suffix = "Hemotoxicity",
-		modifiers = {
-			hemotoxic = 1.1^(1/3),
-			poison_damage = 1.1^(1/3),
-			bleed_damage = 1.1^(1/3),
+		ruthless = {
+			prefix = "Ruthless",
+			suffix = "Ruthlessness",
+			modifiers = {
+				hit3_damage = 1.1
+			},
+			weight = 0.5
 		},
-		merge = {
-			"earth", "blood"
+		wild = {
+			prefix = "Wild",
+			suffix = "Wilderness",
+			modifiers = {
+				kill_clipsteal = 1.1,
+				melee_damage = 1.1
+			},
+			weight = 0.5,
+			max = 10
 		},
-		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY),
-		max = 21
-	},
-	cosmicurse = {
-		prefix = "Judgemental",
-		suffix = "Judgement",
-		modifiers = {
-			cosmicurse = 1.1
+		unreal = {
+			prefix = "Unreal",
+			suffix = "Unreality",
+			modifiers = {
+				aimbot = 1.1,
+				nonbullet_damage = 1.1
+			},
+			weight = 0.5,
+			max = 7
 		},
-		merge = {
-			"frostfire", "electroblast", "hemotoxic", "doom"
+		celestial = {
+			prefix = "Celestial",
+			suffix = "Celestiality",
+			modifiers = {
+				kill5s_damageaura = 1.1
+			},
+			weight = 0.5
 		},
-		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY),
-	},
-	
-	-- damage utility, doubled weight
-	force = {
-		prefix = "Forceful",
-		suffix = "Forcefulness",
-		modifiers = {
-			knockback = 1.4641
+		violent = {
+			prefix = "Violent",
+			suffix = "Violence",
+			modifiers = {
+				armored_victim_damage = 1.21,
+				--nonliving_damage = 1.21
+			},
+			weight = 0.5
 		},
-		flags = InsaneStats.WPASS2_FLAGS.KNOCKBACK,
-		weight = 2,
-		max = 5
-	},
-	inspire = {
-		prefix = "Inspiring",
-		suffix = "Inspiration",
-		modifiers = {
-			xp = 1.1
+		shoddy = {
+			prefix = "Shoddy",
+			suffix = "Shoddiness",
+			modifiers = {
+				unarmored_victim_damage = 1.21
+			},
+			weight = 0.5
 		},
-		weight = 2,
-		flags = InsaneStats.WPASS2_FLAGS.XP
-	},
-	chaining = {
-		prefix = "Chaining",
-		modifiers = {
-			kill5s_xp = 1.1
+		terrible = {
+			prefix = "Terrible",
+			suffix = "Terribleness",
+			modifiers = {
+				back_damage = 1.21
+			},
+			weight = 0.5
 		},
-		weight = 2,
-		flags = InsaneStats.WPASS2_FLAGS.XP
-	},
-	heal = {
-		prefix = "Healing",
-		modifiers = {
-			kill_lifesteal = 1.21
+		taboo = {
+			prefix = "Taboo",
+			suffix = "Tabooness",
+			modifiers = {
+				front_damage = 1.21
+			},
+			weight = 0.5
 		},
-		max = 10,
-		weight = 2
-	},
-	charge = {
-		prefix = "Charging",
-		modifiers = {
-			kill_armorsteal = 1.21,
-			armor_full = 1.1,
-			armor_full2 = 1.1
+		pressure = {
+			prefix = "Pressurized",
+			suffix = "Pressure",
+			modifiers = {
+				clip_firerate = 1.1
+			},
+			weight = 0.5,
+			max = 10
 		},
-		weight = 2
+		penetrate = {
+			prefix = "Penetrative",
+			suffix = "Penetrating",
+			modifiers = {
+				penetrate = 1.1,
+				nonbullet_damage = 1.1
+			},
+			weight = 0.5,
+			max = 10
+		},
+		power = {
+			prefix = "Powerful",
+			suffix = "Power",
+			modifiers = {
+				highlevel_damage = 1.1
+			},
+			weight = 0.5,
+			flags = InsaneStats.WPASS2_FLAGS.XP
+		},
 	},
 	
-	-- damage utility
-	bolster = {
-		prefix = "Bolstering",
-		modifiers = {
-			kill5s_damagetaken = 1/1.1
+	{-- damage, half weight doubled cost
+		sniper = {
+			prefix = "Sniping",
+			modifiers = {
+				firerate = 1/1.1,
+				spread = 1/1.21,
+				nonbullet_damage = 1.1,
+				longrange_damage = 1.21,
+				melee_damage = 1.21
+			},
+			weight = 0.5,
+			max = 10,
+			cost = 2
 		},
-		max = 7
-	},
-	rejuvenate = {
-		prefix = "Rejuvenating",
-		suffix = "Rejuvenation",
-		modifiers = {
-			kill5s_regen = 1.21
+		shotgun = {
+			prefix = "Shotgunning",
+			modifiers = {
+				spread = 1.21,
+				bullets = 1.331,
+				shortrange_nonbullet_damage = 1.21,
+			},
+			weight = 0.5,
+			max = 5,
+			cost = 2
 		},
-		max = 10,
-		weight = 1
 	},
-	build = {
-		prefix = "Building",
-		modifiers = {
-			kill5s_armorregen = 1.21,
-			armor_full = 1.1,
-			armor_full2 = 1.1
+
+	{-- damage, negative cost
+		broken = {
+			prefix = "Broken",
+			suffix = "Breaking",
+			modifiers = {
+				damage = 1/1.1,
+				random_damage = -0.2
+			},
+			max = 5,
+			cost = -1
 		},
-		weight = 1
-	},
-	lethargic = {
-		prefix = "Lethargic",
-		suffix = "Lethargy",
-		modifiers = {
-			victim_speed = 1/1.1
+		dull = {
+			prefix = "Dull",
+			suffix = "Dullness",
+			modifiers = {
+				damage = 1/1.1
+			},
+			cost = -1
 		},
-		max = 5
-	},
-	demon = {
-		prefix = "Demonic",
-		suffix = "Demons",
-		modifiers = {
-			victim_damage = 1/1.1
+		slow = {
+			prefix = "Slow",
+			suffix = "Slowness",
+			modifiers = {
+				firerate = 1/1.1
+			},
+			max = 10,
+			cost = -1
 		},
-		max = 10,
-		weight = 1
-	},
-	intimidate = {
-		prefix = "Intimidating",
-		suffix = "Intimidation",
-		modifiers = {
-			victim_firerate = 1/1.1
+		curse = {
+			prefix = "Cursed",
+			suffix = "Curses",
+			modifiers = {
+				bullets = 1/1.1,
+				nonbullet_damage = 1/1.1
+			},
+			max = 10,
+			cost = -1
 		},
-		max = 10
-	},
-	manic = {
-		prefix = "Manic",
-		suffix = "Mania",
-		modifiers = {
-			killstack_xp = 1.1
+		zealous = {
+			prefix = "Zealous",
+			suffix = "Zealousness",
+			modifiers = {
+				spread = 1.21,
+				nonbullet_damage = 1/1.1
+			},
+			max = 10,
+			cost = -1
 		},
-		flags = InsaneStats.WPASS2_FLAGS.XP,
-		weight = 1
-	},
-	practical = {
-		prefix = "Practical",
-		suffix = "Practicality",
-		modifiers = {
-			prop_xp = 1.1
+		small = {
+			prefix = "Small",
+			suffix = "Smallness",
+			modifiers = {
+				clip = 1/1.21,
+				lastammo_damage = 1/1.1
+			},
+			cost = -1,
+			max = 10,
+			flags = InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY
 		},
-		max = 10,
-		flags = InsaneStats.WPASS2_FLAGS.XP
 	},
-	glimmer = {
-		prefix = "Glimmering",
-		modifiers = {
-			armor_xp = 1.1,
+
+	{-- damage, half weight negative cost
+		shame = {
+			prefix = "Shameful",
+			suffix = "Shame",
+			modifiers = {
+				kill5s_ally_damage = 1/1.1
+			},
+			weight = 0.5,
+			max = 2,
+			cost = -1
 		},
-		weight = 1
-	},
-	resist = {
-		prefix = "Resisting",
-		modifiers = {
-			killstack_defence = 1.1
+		lazy = {
+			prefix = "Lazy",
+			suffix = "Laziness",
+			modifiers = {
+				highhealth_firerate = 1/1.1,
+			},
+			weight = 0.5,
+			max = 10,
+			cost = -1
 		},
-		weight = 1
-	},
-	supply = {
-		prefix = "Supplying",
-		modifiers = {
-			kill_supplychance = 1.21
+		demotivate = {
+			prefix = "Demotivating",
+			suffix = "Demotivation",
+			modifiers = {
+				kill5s_damage = 1/1.1
+			},
+			weight = 0.5,
+			cost = -1,
+			max = 7
 		},
-		max = 3
-	},
-	scavenge = {
-		prefix = "Scavenging",
-		modifiers = {
-			prop_supplychance = 1.21
+		annoy = {
+			prefix = "Annoying",
+			suffix = "Annoyance",
+			modifiers = {
+				kill5s_firerate = 1/1.1
+			},
+			weight = 0.5,
+			cost = -1,
+			max = 7
 		},
-		max = 3
-	},
-	empathy = {
-		prefix = "Empathetic",
-		suffix = "Empathy",
-		modifiers = {
-			ally_damage = 0
+		danger = {
+			prefix = "Dangerous",
+			suffix = "Danger",
+			modifiers = {
+				hit100_self_damage = 1.1
+			},
+			weight = 0.5,
+			cost = -1
 		},
-		max = 1
+		sluggish = {
+			prefix = "Sluggish",
+			suffix = "Sluggishness",
+			modifiers = {
+				lowlevel_damage = 1/1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.XP,
+			weight = 0.5,
+			max = 7,
+			cost = -1
+		},
 	},
-	surge = {
-		prefix = "Surgical",
-		suffix = "Surging",
-		modifiers = {
-			clip_xp = 1.1
-		}
+
+	{-- damage inaccessible
+		frostfire = {
+			prefix = "Frostfirey",
+			suffix = "Frostfire",
+			modifiers = {
+				frostfire = 1.1^(1/3),
+				fire_damage = 1.1^(1/3),
+				freeze_damage = 1.1^(1/3),
+			},
+			merge = {
+				"fire", "water"
+			},
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY),
+			max = 21
+		},
+		electroblast = {
+			prefix = "Electroblasting",
+			modifiers = {
+				electroblast = 1.1^(1/3),
+				shock_damage = 1.1^(1/3),
+				explode_damage = 1.1^(1/3),
+			},
+			merge = {
+				"explode", "air"
+			},
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY),
+			max = 21
+		},
+		hemotoxic = {
+			prefix = "Hemotoxic",
+			suffix = "Hemotoxicity",
+			modifiers = {
+				hemotoxic = 1.1^(1/3),
+				poison_damage = 1.1^(1/3),
+				bleed_damage = 1.1^(1/3),
+			},
+			merge = {
+				"earth", "blood"
+			},
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY),
+			max = 21
+		},
+		cosmicurse = {
+			prefix = "Judgemental",
+			suffix = "Judgement",
+			modifiers = {
+				cosmicurse = 1.1
+			},
+			merge = {
+				"frostfire", "electroblast", "hemotoxic", "doom"
+			},
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY),
+		},
 	},
 	
-	-- damage utility doubled cost
-	conscious = {
-		prefix = "Conscious",
-		suffix = "Consciousness",
-		modifiers = {
-			xp = 1.331,
-			ally_xp = -1
+	{-- damage utility, doubled weight
+		force = {
+			prefix = "Forceful",
+			suffix = "Forcefulness",
+			modifiers = {
+				knockback = 1.4641
+			},
+			flags = InsaneStats.WPASS2_FLAGS.KNOCKBACK,
+			weight = 2,
+			max = 5
 		},
-		cost = 2,
-		flags = InsaneStats.WPASS2_FLAGS.XP
-	},
-	starlight = {
-		prefix = "Starlit",
-		suffix = "Starlight",
-		modifiers = {
-			starlight = 1.1,
-			starlight_defence = 1.1,
-			starlight_glow = 1.1
+		inspire = {
+			prefix = "Inspiring",
+			suffix = "Inspiration",
+			modifiers = {
+				xp = 1.1
+			},
+			weight = 2,
+			flags = InsaneStats.WPASS2_FLAGS.XP
 		},
-		cost = 2,
-		max = 4
-	},
-	
-	-- utility
-	quick = {
-		prefix = "Quick",
-		suffix = "Quickness",
-		modifiers = {
-			speed = 1.1
+		chaining = {
+			prefix = "Chaining",
+			modifiers = {
+				kill5s_xp = 1.1
+			},
+			weight = 2,
+			flags = InsaneStats.WPASS2_FLAGS.XP
 		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		max = 10
-	},
-	copy = {
-		prefix = "Copycat",
-		suffix = "Copying",
-		modifiers = {
-			copying = 1.21
+		heal = {
+			prefix = "Healing",
+			modifiers = {
+				kill_lifesteal = 1.21
+			},
+			max = 10,
+			weight = 2
 		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		max = 10
-	},
-	precise = {
-		prefix = "Precise",
-		suffix = "Precision",
-		modifiers = {
-			crit_damage = 1.1
+		charge = {
+			prefix = "Charging",
+			modifiers = {
+				kill_armorsteal = 1.21,
+				armor_full = 1.1,
+				armor_full2 = 1.1
+			},
+			weight = 2
 		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR
-	},
-	brisk = {
-		prefix = "Brisk",
-		suffix = "Brisking",
-		modifiers = {
-			speed_dilation = 1.1
-		},
-		max = 5,
-		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SP_ONLY),
-	},
-	auxiliary = {
-		prefix = "Auxiliary",
-		suffix = "Capacity",
-		modifiers = {
-			aux_drain = 1/1.1
-		},
-		max = 8,
-		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SUIT_POWER),
 	},
 	
-	-- utility, half weight
-	sprint = {
-		prefix = "Sprinting",
-		modifiers = {
-			sprint_speed = 1.1
+	{-- damage utility
+		bolster = {
+			prefix = "Bolstering",
+			modifiers = {
+				kill5s_damagetaken = 1/1.1
+			},
+			max = 7
 		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		max = 5
-	},
-	buckle = {
-		prefix = "Buckling",
-		modifiers = {
-			speed_defence = 1.1
+		rejuvenate = {
+			prefix = "Rejuvenating",
+			suffix = "Rejuvenation",
+			modifiers = {
+				kill5s_regen = 1.21
+			},
+			max = 10,
+			weight = 1
 		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5
-	},
-	nasty = {
-		prefix = "Nasty",
-		suffix = "Nastiness",
-		modifiers = {
-			alt_damage = 1.1
+		build = {
+			prefix = "Building",
+			modifiers = {
+				kill5s_armorregen = 1.21,
+				armor_full = 1.1,
+				armor_full2 = 1.1
+			},
+			weight = 1
 		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5
-	},
-	haste = {
-		prefix = "Hasty",
-		suffix = "Hastiness",
-		modifiers = {
-			alt_firerate = 1.1
+		lethargic = {
+			prefix = "Lethargic",
+			suffix = "Lethargy",
+			modifiers = {
+				victim_speed = 1/1.1
+			},
+			max = 5
 		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		max = 10
-	},
-	respite = {
-		prefix = "Respiteful",
-		suffix = "Respite",
-		modifiers = {
-			alt_damagetaken = 1/1.1
+		demon = {
+			prefix = "Demonic",
+			suffix = "Demons",
+			modifiers = {
+				victim_damage = 1/1.1
+			},
+			max = 10,
+			weight = 1
 		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		max = 1
-	},
-	adrenaline = {
-		prefix = "Adrenal",
-		suffix = "Adrenaline",
-		modifiers = {
-			alt_gamespeed = 1/1.1
+		intimidate = {
+			prefix = "Intimidating",
+			suffix = "Intimidation",
+			modifiers = {
+				victim_firerate = 1/1.1
+			},
+			max = 10
 		},
-		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SP_ONLY),
-		weight = 0.5,
-		max = 1
-	},
-	agile = {
-		prefix = "Agile",
-		suffix = "Agility",
-		modifiers = {
-			alt_speed = 1.1
+		manic = {
+			prefix = "Manic",
+			suffix = "Mania",
+			modifiers = {
+				killstack_xp = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.XP,
+			weight = 1
 		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		max = 3
-	},
-	acknowledge = {
-		prefix = "Acknowledging",
-		suffix = "Acknowledgement",
-		modifiers = {
-			else_xp = 1.1
+		practical = {
+			prefix = "Practical",
+			suffix = "Practicality",
+			modifiers = {
+				prop_xp = 1.1
+			},
+			max = 10,
+			flags = InsaneStats.WPASS2_FLAGS.XP
 		},
-		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP),
-		weight = 0.5,
-		max = 10
-	},
-	cloaking = {
-		prefix = "Cloaking",
-		modifiers = {
-			alt_invisible = 1.1
+		glimmer = {
+			prefix = "Glimmering",
+			modifiers = {
+				armor_xp = 1.1,
+			},
+			weight = 1
 		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		max = 2
-	},
-	spike = {
-		prefix = "Spiked",
-		suffix = "Spikyness",
-		modifiers = {
-			retaliation10_damage = 1.1
+		resist = {
+			prefix = "Resisting",
+			modifiers = {
+				killstack_defence = 1.1
+			},
+			weight = 1
 		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-	},
-	arcane = {
-		prefix = "Arcane",
-		suffix = "Arcanity",
-		modifiers = {
-			toggle_damage = 1.1
+		supply = {
+			prefix = "Supplying",
+			modifiers = {
+				kill_supplychance = 1.21
+			},
+			max = 3
 		},
-		weight = 0.5,
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR
+		scavenge = {
+			prefix = "Scavenging",
+			modifiers = {
+				prop_supplychance = 1.21
+			},
+			max = 3
+		},
+		empathy = {
+			prefix = "Empathetic",
+			suffix = "Empathy",
+			modifiers = {
+				ally_damage = 0
+			},
+			max = 1
+		},
+		surge = {
+			prefix = "Surgical",
+			suffix = "Surging",
+			modifiers = {
+				clip_xp = 1.1
+			}
+		},
 	},
+	
+	{-- damage utility doubled cost
+		starlight = {
+			prefix = "Starlit",
+			suffix = "Starlight",
+			modifiers = {
+				starlight = 1.1,
+				starlight_defence = 1.1,
+				starlight_glow = 1.1
+			},
+			cost = 2,
+			max = 4
+		},
+	},
+	
+	{-- damage utility, doubled weight negative cost
+		weak = {
+			prefix = "Weak",
+			suffix = "Weakness",
+			modifiers = {
+				knockback = 1/1.4641
+			},
+			flags = InsaneStats.WPASS2_FLAGS.KNOCKBACK,
+			weight = 2,
+			max = 5,
+			cost = -1
+		},
+		heavy = {
+			prefix = "Heavy",
+			suffix = "Heaviness",
+			modifiers = {
+				speed = 1/1.1
+			},
+			weight = 2,
+			max = 5,
+			cost = -1
+		},
+		conscious = {
+			prefix = "Conscious",
+			suffix = "Consciousness",
+			modifiers = {
+				ally_xp = -1
+			},
+			weight = 2,
+			cost = -1,
+			flags = InsaneStats.WPASS2_FLAGS.XP
+		},
+	},
+	
+	{-- damage utility, negative cost
+		aggravate = {
+			prefix = "Aggravating",
+			suffix = "Aggravation",
+			modifiers = {
+				kill5s_damagetaken = 1.1
+			},
+			cost = -1
+		},
+	},
+	
+	{-- utility
+		quick = {
+			prefix = "Quick",
+			suffix = "Quickness",
+			modifiers = {
+				speed = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			max = 10
+		},
+		copy = {
+			prefix = "Copycat",
+			suffix = "Copying",
+			modifiers = {
+				copying = 1.21
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			max = 10
+		},
+		precise = {
+			prefix = "Precise",
+			suffix = "Precision",
+			modifiers = {
+				crit_damage = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR
+		},
+		brisk = {
+			prefix = "Brisk",
+			suffix = "Brisking",
+			modifiers = {
+				speed_dilation = 1.1
+			},
+			max = 5,
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SP_ONLY),
+		},
+		auxiliary = {
+			prefix = "Auxiliary",
+			suffix = "Capacity",
+			modifiers = {
+				aux_drain = 1/1.1
+			},
+			max = 8,
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SUIT_POWER),
+		},
+	},
+	
+	{-- utility, half weight
+		sprint = {
+			prefix = "Sprinting",
+			modifiers = {
+				sprint_speed = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			max = 5
+		},
+		buckle = {
+			prefix = "Buckling",
+			modifiers = {
+				speed_defence = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5
+		},
+		nasty = {
+			prefix = "Nasty",
+			suffix = "Nastiness",
+			modifiers = {
+				alt_damage = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5
+		},
+		haste = {
+			prefix = "Hasty",
+			suffix = "Hastiness",
+			modifiers = {
+				alt_firerate = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			max = 10
+		},
+		respite = {
+			prefix = "Respiteful",
+			suffix = "Respite",
+			modifiers = {
+				alt_damagetaken = 1/1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			max = 1
+		},
+		adrenaline = {
+			prefix = "Adrenal",
+			suffix = "Adrenaline",
+			modifiers = {
+				alt_gamespeed = 1/1.1
+			},
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SP_ONLY),
+			weight = 0.5,
+			max = 1
+		},
+		agile = {
+			prefix = "Agile",
+			suffix = "Agility",
+			modifiers = {
+				alt_speed = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			max = 3
+		},
+		acknowledge = {
+			prefix = "Acknowledging",
+			suffix = "Acknowledgement",
+			modifiers = {
+				else_xp = 1.1
+			},
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP),
+			weight = 0.5,
+			max = 10
+		},
+		cloaking = {
+			prefix = "Cloaking",
+			modifiers = {
+				alt_invisible = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			max = 2
+		},
+		spike = {
+			prefix = "Spiked",
+			suffix = "Spikyness",
+			modifiers = {
+				retaliation10_damage = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+		},
+		arcane = {
+			prefix = "Arcane",
+			suffix = "Arcanity",
+			modifiers = {
+				toggle_damage = 1.1
+			},
+			weight = 0.5,
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR
+		},
+		staunch = {
+			prefix = "Staunch",
+			suffix = "Staunchiness",
+			modifiers = {
+				crit_xp = 1.1
+			},
+			weight = 0.5,
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP)
+		},
+		master = {
+			prefix = "Masterful",
+			suffix = "Mastery",
+			modifiers = {
+				kill1s_xp = 1.1,
+				kill1s_xp2 = 1.1
+				--simul_xp = 1.1
+			},
+			weight = 0.5,
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP)
+		},
+		fury = {
+			prefix = "Furious",
+			suffix = "Fury",
+			modifiers = {
+				hittaken_damage = 1.1
+			},
+			weight = 0.5,
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR
+		},
+		rash = {
+			prefix = "Rash",
+			suffix = "Rashness",
+			modifiers = {
+				mark = 1.1,
+				killstackmarked_damage = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5
+		},
+		detect = {
+			prefix = "Detective",
+			suffix = "Detection",
+			modifiers = {
+				reveal = 1.4641
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			max = 5
+		},
+		attract = {
+			prefix = "Attractive",
+			suffix = "Attractiveness",
+			modifiers = {
+				magnet = 1.4641
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			max = 5
+		},
+		intense = {
+			prefix = "Intense",
+			suffix = "Intensity",
+			modifiers = {
+				critstack_damage = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5
+		},
+	},
+	
+	{-- utility, half weight doubled cost
+		volatile = {
+			prefix = "Volatile",
+			suffix = "Volatility",
+			modifiers = {
+				explode_damage = 1.1,
+				explode_damagetaken = 1/1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			cost = 2,
+			max = 2
+		},
+		pyro = {
+			prefix = "Pyrogenic",
+			suffix = "Pyromancy",
+			modifiers = {
+				fire_damage = 1.1,
+				fire_damagetaken = 1/1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			cost = 2,
+			max = 2
+		},
+		cryo = {
+			prefix = "Cryogenic",
+			suffix = "Cryomancy",
+			modifiers = {
+				freeze_damage = 1.1,
+				freeze_damagetaken = 1/1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			cost = 2,
+			max = 2
+		},
+		geo = {
+			prefix = "Geologic",
+			suffix = "Geomancy",
+			modifiers = {
+				poison_damage = 1.1,
+				poison_damagetaken = 1/1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			cost = 2,
+			max = 2
+		},
+		electro = {
+			prefix = "Electronic",
+			suffix = "Electromancy",
+			modifiers = {
+				shock_damage = 1.1,
+				shock_damagetaken = 1/1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			cost = 2,
+			max = 2
+		},
+		jagged = {
+			prefix = "Jagged",
+			suffix = "Jaggedness",
+			modifiers = {
+				bleed_damage = 1.1,
+				bleed_damagetaken = 1/1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			cost = 2,
+			max = 2
+		},
+		jump = {
+			prefix = "Jumpy",
+			suffix = "Jumping",
+			modifiers = {
+				jumps = 1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			cost = 2,
+			max = 10
+		},
+		fleeting = {
+			prefix = "Fleeting",
+			modifiers = {
+				ctrl_gamespeed = 1.1,
+				ctrl_defence = 1.1
+			},
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SP_ONLY),
+			weight = 0.5,
+			cost = 2,
+			max = 1
+		},
+		sight = {
+			prefix = "Sighted",
+			suffix = "Sight",
+			modifiers = {
+				mark = 1.1,
+				mark_damage = 1.1,
+				mark_damagetaken = 1/1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			cost = 2,
+			max = 7
+		},
+		fester = {
+			prefix = "Festering",
+			modifiers = {
+				ammo_convert = 1/1.1,
+				death_promise_damage = 1.1
+			},
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR),
+			weight = 0.5,
+			cost = 2,
+			max = 10
+		},
+	},
+
+	{-- utility, negative cost
+		massive = {
+			prefix = "Massive",
+			suffix = "Massiveness",
+			modifiers = {
+				speed = 1/1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			cost = -1,
+			max = 10
+		},
+		sloppy = {
+			prefix = "Sloppy",
+			suffix = "Sloppiness",
+			modifiers = {
+				crit_damage = 1/1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			cost = -1,
+			max = 7
+		},
+	},
+
+	{-- utility, half weight negative cost
+		point = {
+			prefix = "Pointy",
+			suffix = "Pointiness",
+			modifiers = {
+				sprint_speed = 1/1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			cost = -1,
+			max = 5
+		},
+		mundane = {
+			prefix = "Mundane",
+			suffix = "Mundanity",
+			modifiers = {
+				toggle_damage = 1/1.1
+			},
+			weight = 0.5,
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			cost = -1
+		},
+	},
+	
+	{-- defensive
+		defend = {
+			prefix = "Defensive",
+			suffix = "Defending",
+			modifiers = {
+				damagetaken = 1/1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR
+		},
+		large = {
+			prefix = "Large",
+			suffix = "Largeness",
+			modifiers = {
+				knockbacktaken = 1/1.4641,
+				self_knockbacktaken = 1.4641,
+			},
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.KNOCKBACK),
+			max = 5
+		},
+		bulk = {
+			prefix = "Bulky",
+			suffix = "Bulkiness",
+			modifiers = {
+				crit_damagetaken = 1/1.1
+			},
+			max = 7,
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR
+		},
+		health = {
+			prefix = "Healthy",
+			suffix = "Health",
+			modifiers = {
+				health = 1.21
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			max = 10
+		},
+		armor = {
+			prefix = "Armored",
+			suffix = "Armoring",
+			modifiers = {
+				armor = 1.21
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			max = 10
+		},
+	},
+	
+	{-- defensive, half weight
+		dodge = {
+			prefix = "Dodgy",
+			suffix = "Dodging",
+			modifiers = {
+				dodge = 1/1.1,
+				dissolvewarning = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			max = 5
+		},
+		dampening = {
+			prefix = "Dampening",
+			modifiers = {
+				longrange_damagetaken = 1/1.21
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5
+		},
+		menace = {
+			prefix = "Menacing",
+			modifiers = {
+				shortrange_damagetaken = 1/1.21
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5
+		},
+		hard = {
+			prefix = "Hard",
+			suffix = "Hardness",
+			modifiers = {
+				mark = 1.1,
+				killstackmarked_defence = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5
+		},
+		caution = {
+			prefix = "Cautious",
+			suffix = "Caution",
+			modifiers = {
+				noncombat_damagetaken = 1/1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			max = 2
+		},
+		intrepid = {
+			prefix = "Intrepid",
+			suffix = "Intrepidity",
+			modifiers = {
+				lowhealth_damagetaken = 1/1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			max = 2,
+			weight = 0.5
+		},
+		bloodletting = {
+			prefix = "Bloodletting",
+			modifiers = {
+				bloodletting = 1.02,
+				armor_full = 1.1,
+				armor_full2 = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			max = 25
+		},
+		glutton = {
+			prefix = "Gluttony",
+			modifiers = {
+				armor_fullpickup = 1.1,
+				charger_fullpickup = 1.1,
+				armor_full = 1.1,
+				armor_full2 = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			max = 7
+		},
+		ward = {
+			prefix = "Warding",
+			modifiers = {
+				hittakenstack_defence = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5
+		},
+		revital = {
+			prefix = "Revitalizing",
+			suffix = "Revitalization",
+			modifiers = {
+				hittaken_regen = 1.21
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			max = 10,
+			weight = 0.5
+		},
+		shield = {
+			prefix = "Shielding",
+			modifiers = {
+				hittaken_armorregen = 1.21,
+				armor_full = 1.1,
+				armor_full2 = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5
+		},
+		sharp = {
+			prefix = "Sharp",
+			suffix = "Sharpness",
+			modifiers = {
+				hittaken_invincible = 1.1,
+				hittaken_invincible_meleebreak = 1.1,
+				dissolvewarning = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			max = 2
+		},
+		ignorant = {
+			prefix = "Ignorant",
+			suffix = "Ignorance",
+			modifiers = {
+				bullet_damagetaken = 1/1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			max = 7
+		},
+		brave = {
+			prefix = "Brave",
+			suffix = "Bravery",
+			modifiers = {
+				highlevel_damagetaken = 1/1.1,
+			},
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP),
+			weight = 0.5,
+			max = 7
+		},
+		mystic = {
+			prefix = "Mystic",
+			suffix = "Mysticality",
+			modifiers = {
+				hittaken1s_damagetaken = 1/1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			max = 7
+		},
+		bloodbath = {
+			prefix = "Bloodbathing",
+			modifiers = {
+				crit_lifesteal = 1.21
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			max = 10,
+			weight = 0.5
+		},
+		sap = {
+			prefix = "Sapping",
+			modifiers = {
+				crit_armorsteal = 1.21,
+				armor_full = 1.1,
+				armor_full2 = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5
+		},
+		awful = {
+			prefix = "Awful",
+			suffix = "Awfulness",
+			modifiers = {
+				back_damagetaken = 1/1.21,
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			max = 2,
+		},
+		inept = {
+			prefix = "Inept",
+			suffix = "Ineptivity",
+			modifiers = {
+				front_damagetaken = 1/1.21,
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			max = 2,
+		},
+	},
+	
+	{-- defensive, half weight doubled cost
+		guard = {
+			prefix = "Guarding",
+			modifiers = {
+				armor_trueblock = 2
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			cost = 2,
+			max = 1
+		},
+	},
+	
+	{-- defensive, negative cost
+		tiny = {
+			prefix = "Tiny",
+			suffix = "Tinyness",
+			modifiers = {
+				knockbacktaken = 1.4641,
+				self_knockbacktaken = 1/1.4641
+			},
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.KNOCKBACK),
+			cost = -1,
+			max = 5
+		},
+		unhappy = {
+			prefix = "Unhappy",
+			suffix = "Unhappiness",
+			modifiers = {
+				damagetaken = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			cost = -1
+		},
+		light = {
+			prefix = "Light",
+			suffix = "Lightness",
+			modifiers = {
+				crit_damagetaken = 1.1
+			},
+			cost = -1,
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR
+		},
+		damaged = {
+			prefix = "Damaged",
+			suffix = "Damagedness",
+			modifiers = {
+				armor = 1/1.21
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			cost = -1,
+			max = 10
+		},
+		glass = {
+			prefix = "Glass",
+			modifiers = {
+				health = 1/1.21
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			cost = -1,
+			max = 10
+		},
+	},
+	
+	{-- defensive, half weight negative cost
+		myopia = {
+			prefix = "Myopic",
+			suffix = "Myopia",
+			modifiers = {
+				longrange_damagetaken = 1.21
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			cost = -1,
+			weight = 0.5
+		},
+		hypermetropia = {
+			prefix = "Hypermetropic",
+			suffix = "Hypermetropia",
+			modifiers = {
+				shortrange_damagetaken = 1.21
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			cost = -1,
+			weight = 0.5
+		},
+		fear = {
+			prefix = "Fearful",
+			suffix = "Fear",
+			modifiers = {
+				lowhealth_damagetaken = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			cost = -1,
+			weight = 0.5
+		},
+		boast = {
+			prefix = "Boastful",
+			suffix = "Boastfulness",
+			modifiers = {
+				bullet_damagetaken = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			cost = -1,
+			weight = 0.5,
+		},
+		fragile = {
+			prefix = "Fragile",
+			suffix = "Fragility",
+			modifiers = {
+				perhittaken_damagetaken = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			cost = -1,
+			weight = 0.5,
+		},
+		awkward = {
+			prefix = "Awkward",
+			suffix = "Awkwardness",
+			modifiers = {
+				lowlevel_damagetaken = 1.1
+			},
+			weight = 0.5,
+			cost = -1,
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP)
+		},
+	},
+
+	--[[ retired
 	point = {
 		prefix = "Pointy",
 		suffix = "Pointiness",
@@ -960,484 +1568,24 @@ local modifiers = {
 		weight = 0.5,
 		flags = InsaneStats.WPASS2_FLAGS.ARMOR
 	},
-	staunch = {
-		prefix = "Staunch",
-		suffix = "Staunchiness",
+	amplify = {
+		prefix = "Amplifying",
 		modifiers = {
-			crit_xp = 1.1
+			amp_armorloss = 1/1.1,
+			amp_damage = 1.21
 		},
 		weight = 0.5,
-		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP)
 	},
-	master = {
-		prefix = "Masterful",
-		suffix = "Mastery",
-		modifiers = {
-			kill1s_xp = 1.1,
-			kill1s_xp2 = 1.1
-			--simul_xp = 1.1
-		},
-		weight = 0.5,
-		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP)
-	},
-	fury = {
-		prefix = "Furious",
-		suffix = "Fury",
-		modifiers = {
-			hittaken_damage = 1.1
-		},
-		weight = 0.5,
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR
-	},
-	rash = {
-		prefix = "Rash",
-		suffix = "Rashness",
-		modifiers = {
-			mark = 1.1,
-			killstackmarked_damage = 1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5
-	},
-	detect = {
-		prefix = "Detective",
-		suffix = "Detection",
-		modifiers = {
-			reveal = 1.4641
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		max = 5
-	},
-	attract = {
-		prefix = "Attractive",
-		suffix = "Attractiveness",
-		modifiers = {
-			magnet = 1.4641
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		max = 5
-	},
-	
-	-- utility, half weight doubled cost
-	volatile = {
-		prefix = "Volatile",
-		suffix = "Volatility",
-		modifiers = {
-			explode_damage = 1.1,
-			explode_damagetaken = 1/1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		cost = 2,
-		max = 2
-	},
-	pyro = {
-		prefix = "Pyrogenic",
-		suffix = "Pyromancy",
-		modifiers = {
-			fire_damage = 1.1,
-			fire_damagetaken = 1/1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		cost = 2,
-		max = 2
-	},
-	cryo = {
-		prefix = "Cryogenic",
-		suffix = "Cryomancy",
-		modifiers = {
-			freeze_damage = 1.1,
-			freeze_damagetaken = 1/1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		cost = 2,
-		max = 2
-	},
-	geo = {
-		prefix = "Geologic",
-		suffix = "Geomancy",
-		modifiers = {
-			poison_damage = 1.1,
-			poison_damagetaken = 1/1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		cost = 2,
-		max = 2
-	},
-	electro = {
-		prefix = "Electronic",
-		suffix = "Electromancy",
-		modifiers = {
-			shock_damage = 1.1,
-			shock_damagetaken = 1/1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		cost = 2,
-		max = 2
-	},
-	jagged = {
-		prefix = "Jagged",
-		suffix = "Jaggedness",
-		modifiers = {
-			bleed_damage = 1.1,
-			bleed_damagetaken = 1/1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		cost = 2,
-		max = 2
-	},
-	light = {
-		prefix = "Light",
-		suffix = "Lightness",
-		modifiers = {
-			damagetaken = 1.1,
-			speed = 1.331
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		cost = 2,
-		max = 2
-	},
-	jump = {
-		prefix = "Jumpy",
-		suffix = "Jumping",
-		modifiers = {
-			jumps = 1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		cost = 2,
-		max = 10
-	},
-	supreme = {
-		prefix = "Supreme",
-		suffix = "Supremacy",
-		modifiers = {
-			highlevel_damage = 1.331,
-			lowlevel_damagetaken = 1.1
-		},
-		weight = 0.5,
-		cost = 2,
-		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP)
-	},
-	damaged = {
-		prefix = "Damaged",
-		suffix = "Damagedness",
-		modifiers = {
-			damage = 1.331,
-			damagetaken = 1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		cost = 2
-	},
-	sight = {
-		prefix = "Sighted",
-		suffix = "Sight",
-		modifiers = {
-			mark = 1.1,
-			mark_damage = 1.1,
-			mark_damagetaken = 1/1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		cost = 2,
-		max = 7
-	},
-	glass = {
-		prefix = "Glass",
-		modifiers = {
-			health = 1/1.1,
-			armor = 1/1.1,
-			damage = 1.331
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		cost = 2,
-		max = 10
-	},
-	fleeting = {
-		prefix = "Fleeting",
-		modifiers = {
-			ctrl_gamespeed = 1.1,
-			ctrl_defence = 1.1
-		},
-		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SP_ONLY),
-		weight = 0.5,
-		cost = 2,
-		max = 1
-	},
-	fester = {
-		prefix = "Festering",
-		modifiers = {
-			ammo_convert = 1/1.1,
-			death_promise_damage = 1.1
-		},
-		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR),
-		weight = 0.5,
-		cost = 2,
-		max = 10
-	},
-	
-	-- defensive
-	defend = {
-		prefix = "Defensive",
-		suffix = "Defending",
-		modifiers = {
-			damagetaken = 1/1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR
-	},
-	immove = {
-		prefix = "Immovable",
-		suffix = "Immoving",
-		modifiers = {
-			knockbacktaken = 1/1.4641,
-			self_knockbacktaken = 1.4641,
-		},
-		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.KNOCKBACK),
-		max = 5
-	},
-	bulk = {
-		prefix = "Bulky",
-		suffix = "Bulkiness",
-		modifiers = {
-			crit_damagetaken = 1/1.1
-		},
-		max = 7,
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR
-	},
-	health = {
-		prefix = "Healthy",
-		suffix = "Health",
-		modifiers = {
-			health = 1.21
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		max = 10
-	},
-	armor = {
-		prefix = "Armored",
-		suffix = "Armoring",
-		modifiers = {
-			armor = 1.21
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		max = 10
-	},
-	
-	-- defensive, half weight
-	dodge = {
-		prefix = "Dodgy",
-		suffix = "Dodging",
-		modifiers = {
-			dodge = 1/1.1,
-			dissolvewarning = 1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		max = 5
-	},
-	dampening = {
-		prefix = "Dampening",
-		modifiers = {
-			longrange_damagetaken = 1/1.21
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5
-	},
-	menace = {
+	menace2 = {
 		prefix = "Menacing",
 		modifiers = {
-			shortrange_damagetaken = 1/1.21
+			kill_victim_damage = 1/1.1
+			kill_victim_firerate = 1/1.1
 		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5
-	},
-	hard = {
-		prefix = "Hard",
-		suffix = "Hardness",
-		modifiers = {
-			mark = 1.1,
-			killstackmarked_defence = 1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5
-	},
-	caution = {
-		prefix = "Cautious",
-		suffix = "Caution",
-		modifiers = {
-			noncombat_damagetaken = 1/1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 		weight = 0.5,
-		max = 2
+		max = 10
 	},
-	intrepid = {
-		prefix = "Intrepid",
-		suffix = "Intrepidity",
-		modifiers = {
-			lowhealth_damagetaken = 1/1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		max = 2,
-		weight = 0.5
-	},
-	bloodletting = {
-		prefix = "Bloodletting",
-		modifiers = {
-			bloodletting = 1.02,
-			armor_full = 1.1,
-			armor_full2 = 1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		max = 25
-	},
-	glutton = {
-		prefix = "Gluttony",
-		modifiers = {
-			armor_fullpickup = 1.1,
-			charger_fullpickup = 1.1,
-			armor_full = 1.1,
-			armor_full2 = 1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		max = 7
-	},
-	ward = {
-		prefix = "Warding",
-		modifiers = {
-			hittakenstack_defence = 1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5
-	},
-	revital = {
-		prefix = "Revitalizing",
-		suffix = "Revitalization",
-		modifiers = {
-			hittaken_regen = 1.21
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		max = 10,
-		weight = 0.5
-	},
-	shield = {
-		prefix = "Shielding",
-		modifiers = {
-			hittaken_armorregen = 1.21,
-			armor_full = 1.1,
-			armor_full2 = 1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5
-	},
-	sharp = {
-		prefix = "Sharp",
-		suffix = "Sharpness",
-		modifiers = {
-			hittaken_invincible = 1.1,
-			hittaken_invincible_meleebreak = 1.1,
-			dissolvewarning = 1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		max = 2
-	},
-	ignorant = {
-		prefix = "Ignorant",
-		suffix = "Ignorance",
-		modifiers = {
-			bullet_damagetaken = 1/1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		max = 7
-	},
-	brave = {
-		prefix = "Brave",
-		suffix = "Bravery",
-		modifiers = {
-			highlevel_damagetaken = 1/1.331,
-			lowlevel_damage = 1/1.1
-		},
-		flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP),
-		weight = 0.5,
-		max = 2
-	},
-	mystic = {
-		prefix = "Mystic",
-		suffix = "Mysticality",
-		modifiers = {
-			hittaken1s_damagetaken = 1/1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		max = 7
-	},
-	bloodbath = {
-		prefix = "Bloodbathing",
-		modifiers = {
-			crit_lifesteal = 1.21
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		max = 10,
-		weight = 0.5
-	},
-	sap = {
-		prefix = "Sapping",
-		modifiers = {
-			crit_armorsteal = 1.21,
-			armor_full = 1.1,
-			armor_full2 = 1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5
-	},
-	awful = {
-		prefix = "Awful",
-		suffix = "Awfulness",
-		modifiers = {
-			back_damagetaken = 1/1.21,
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		max = 2,
-	},
-	inept = {
-		prefix = "Inept",
-		suffix = "Ineptivity",
-		modifiers = {
-			front_damagetaken = 1/1.21,
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		max = 2,
-	},
-	
-	-- defensive, half weight double cost
-	unhappy = {
-		prefix = "Unhappy",
-		suffix = "Unhappiness",
-		modifiers = {
-			damage = 1/1.1,
-			damagetaken = 1/1.331
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		cost = 2
-	},
-	--[[warm = {
+	warm = {
 		prefix = "Warming",
 		modifiers = {
 			combat5s_dodge = 1/1.331
@@ -1446,92 +1594,8 @@ local modifiers = {
 		weight = 0.5,
 		cost = 2,
 		max = 10
-	},]]
-	slow = {
-		prefix = "Slow",
-		suffix = "Slowing",
-		modifiers = {
-			firerate = 1/1.1,
-			damagetaken = 1/1.331
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		cost = 2,
-		max = 10
 	},
-	aggravate = {
-		prefix = "Aggravating",
-		suffix = "Aggravation",
-		modifiers = {
-			speed = 1/1.1,
-			damagetaken = 1/1.331,
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		cost = 2,
-		max = 5
-	},
-	guard = {
-		prefix = "Guarding",
-		modifiers = {
-			armor_trueblock = 2
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		cost = 2,
-		max = 1
-	},
-	tiny = {
-		prefix = "Tiny",
-		suffix = "Tinyness",
-		modifiers = {
-			armor = 1/1.1,
-			health = 1.331
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		cost = 2,
-		max = 10
-	},
-	small = {
-		prefix = "Small",
-		suffix = "Smallness",
-		modifiers = {
-			armor = 1/1.1,
-			health = 1.1,
-			speed = 1.1,
-			firerate = 1.1
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		cost = 2,
-		max = 5
-	},
-	large = {
-		prefix = "Large",
-		suffix = "Largeness",
-		modifiers = {
-			health = 1/1.1,
-			armor = 1.1,
-			damagetaken = 1/1.21
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		cost = 2,
-		max = 10
-	},
-	massive = {
-		prefix = "Massive",
-		suffix = "Massiveness",
-		modifiers = {
-			health = 1/1.1,
-			armor = 1.331,
-		},
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-		weight = 0.5,
-		cost = 2,
-		max = 10
-	},
+	]]
 }
 
 local attributes = {
@@ -1565,14 +1629,18 @@ local attributes = {
 		display = "Up to %s fire rate at low health",
 		mul = 5
 	},
+	highhealth_firerate = {
+		display = "Up to %s fire rate at high health",
+		mul = 1.25
+	},
 	lowhealth_victim_damage = {
 		display = "Up to %s damage dealt vs. low health",
 		mul = 2
 	},
-	lowhealth_victim_melee_damage = {
+	--[[lowhealth_victim_melee_damage = {
 		display = "Up to %s melee damage dealt vs. low health",
 		mul = 5
-	},
+	},]]
 	high90health_victim_damage = {
 		display = "%s damage dealt vs. above 90%% health",
 		mul = 5
@@ -1795,6 +1863,28 @@ local attributes = {
 		mul = 30,
 		invert = true
 	},
+	kill_lifesteal = {
+		display = "%s healing on kill",
+		mul = 0.125
+	},
+	kill_armorsteal = {
+		display = "%s armor recharged on kill",
+		mul = 0.125
+	},
+	kill_clipsteal = {
+		display = "%s clip refilled on kill"
+	},
+	kill_supplychance = {
+		display = "%s chance for random item on kill",
+	},
+	--[[kill_victim_damage = {
+		display = "%s damage dealt by nearby enemies on kill",
+		invert = true
+	},
+	kill_victim_firerate = {
+		display = "%s fire rate of nearby enemies on kill",
+		invert = true
+	},]]
 	kill5s_damage = {
 		display = "%s damage dealt for +5s after kill",
 		mul = 2
@@ -1926,6 +2016,15 @@ local attributes = {
 		display = "%s defence per hit taken, decays over time",
 		mul = 0.1
 	},
+	perhit_victim_damagetaken = {
+		display = "%s victim damage taken per hit for 5s",
+		mul = 0.1
+	},
+	perhittaken_damagetaken = {
+		display = "%s damage taken per hit taken for 5s",
+		mul = 0.1,
+		invert = true
+	},
 	dissolvewarning = {
 		display = "Dissolving damage taken ignores invincibility and cannot miss",
 		mul = 60,
@@ -1980,7 +2079,7 @@ local attributes = {
 		mul = 2
 	},
 	clip_xp = {
-		display = "%s XP gain, scaled by clip %%",
+		display = "%s XP gain, scaled by square root of clip %%",
 		mul = 2
 	},
 	explode = {
@@ -2102,32 +2201,6 @@ local attributes = {
 	crit_armorsteal = {
 		display = "%s armor recharged on crit",
 		mul = 0.125
-	},
-	kill_lifesteal = {
-		display = "%s healing on kill",
-		mul = 0.125
-	},
-	kill_armorsteal = {
-		display = "%s armor recharged on kill",
-		mul = 0.125
-	},
-	kill_clipsteal = {
-		display = "%s clip refilled on kill"
-	},
-	kill_supplychance = {
-		display = "%s chance for random item on kill",
-	},
-	--[[kill_victim_damage = {
-		display = "%s damage dealt by nearby enemies on kill",
-		invert = true
-	},
-	kill_victim_firerate = {
-		display = "%s fire rate of nearby enemies on kill",
-		invert = true
-	},]]
-	perhit_victim_damagetaken = {
-		display = "%s victim damage taken per hit",
-		mul = 0.1
 	},
 	aimbot = {
 		display = "%s bullet aimbot chance"
@@ -2562,7 +2635,7 @@ local statusEffects = {
 		img = "dread-skull"
 	},
 	perhit_defence_down = {
-		name = "Ruthless Defence Down",
+		name = "Hurtful Defence Down",
 		typ = -1,
 		img = "skull-crack"
 	},
@@ -2705,9 +2778,11 @@ local statusEffects = {
 		typ = 1,
 		img = "pointy-sword",
 		expiry = SERVER and function(ent, level, attacker)
-			if ent:InsaneStats_GetAttributeValue("toggle_damage") ~= 1 then
-				local stacks = (ent:InsaneStats_GetAttributeValue("toggle_damage")-1)*100
-				ent:InsaneStats_ApplyStatusEffect("arcane_defence_up", stacks, 5)
+			local value = ent:InsaneStats_GetAttributeValue("toggle_damage")
+			if value > 1 then
+				ent:InsaneStats_ApplyStatusEffect("arcane_defence_up", value * 100 - 100, 5)
+			elseif value < 1 then
+				ent:InsaneStats_ApplyStatusEffect("mundane_defence_down", 100 / value - 100, 5)
 			end
 		end
 	},
@@ -2716,9 +2791,37 @@ local statusEffects = {
 		typ = 1,
 		img = "checked-shield",
 		expiry = SERVER and function(ent, level, attacker)
-			if ent:InsaneStats_GetAttributeValue("toggle_damage") ~= 1 then
-				local stacks = (ent:InsaneStats_GetAttributeValue("toggle_damage")-1)*100
+			local stacks = (ent:InsaneStats_GetAttributeValue("toggle_damage")-1)*100
+			if stacks > 0 then
 				ent:InsaneStats_ApplyStatusEffect("arcane_damage_up", stacks, 5)
+			elseif stacks < 0 then
+				ent:InsaneStats_ApplyStatusEffect("mundane_damage_down", -stacks, 5)
+			end
+		end
+	},
+	mundane_damage_down = {
+		name = "Mundane Damage Down",
+		typ = -1,
+		img = "shattered-sword",
+		expiry = SERVER and function(ent, level, attacker)
+			local value = ent:InsaneStats_GetAttributeValue("toggle_damage")
+			if value > 1 then
+				ent:InsaneStats_ApplyStatusEffect("arcane_defence_up", value * 100 - 100, 5)
+			elseif value < 1 then
+				ent:InsaneStats_ApplyStatusEffect("mundane_defence_down", 100 / value - 100, 5)
+			end
+		end
+	},
+	mundane_defence_down = {
+		name = "Mundane Defence Down",
+		typ = -1,
+		img = "cracked-shield",
+		expiry = SERVER and function(ent, level, attacker)
+			local stacks = (ent:InsaneStats_GetAttributeValue("toggle_damage")-1)*100
+			if stacks > 0 then
+				ent:InsaneStats_ApplyStatusEffect("arcane_damage_up", stacks, 5)
+			elseif stacks < 0 then
+				ent:InsaneStats_ApplyStatusEffect("mundane_damage_down", -stacks, 5)
 			end
 		end
 	},
@@ -3015,7 +3118,7 @@ end)
 
 hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 	local attacker = data.attacker
-	if IsValid(attacker) then
+	if IsValid(attacker) and data.next > CurTime() then
 		--local combatFraction = SERVER and math.Clamp(attacker:InsaneStats_GetCombatTime()/5, 0, 1) or 0
 		local wep = data.wep
 		local totalMul = attacker:InsaneStats_GetAttributeValue("firerate")
@@ -3035,18 +3138,21 @@ hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 					totalMul = totalMul * attacker:InsaneStats_GetAttributeValue("lastammo_firerate")
 				end]]
 			end
+
+			wep:InsaneStats_SetEntityData("last_fired_t4d", CurTime())
 		end
 
 		local healthFraction = 1-math.Clamp(attacker:InsaneStats_GetHealth() / attacker:InsaneStats_GetMaxHealth(), 0, 1)
 		--totalMul = totalMul * (1 + (attacker:InsaneStats_GetAttributeValue("combat5s_firerate") - 1) * combatFraction)
 		totalMul = totalMul * (1 + (attacker:InsaneStats_GetAttributeValue("lowhealth_firerate") - 1) * healthFraction)
+		totalMul = totalMul * (1 + (attacker:InsaneStats_GetAttributeValue("highhealth_firerate") - 1) * (1 - healthFraction))
 		
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetStatusEffectLevel("firerate_up")/100)
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetStatusEffectLevel("alt_firerate_up")/100)
 		--totalMul = totalMul * (1 + attacker:InsaneStats_GetStatusEffectLevel("hit10s_firerate_up")/100)
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetStatusEffectLevel("stack_firerate_up")/100)
 		totalMul = totalMul * (1 - attacker:InsaneStats_GetStatusEffectLevel("firerate_down")/100)
-		totalMul = totalMul * (1 - attacker:InsaneStats_GetStatusEffectLevel("menacing_firerate_down")/100)
+		--totalMul = totalMul * (1 - attacker:InsaneStats_GetStatusEffectLevel("menacing_firerate_down")/100)
 
 		-- SKILLS
 
@@ -3058,9 +3164,23 @@ hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 			end)
 		end
 
-		totalMul = totalMul * (1 + attacker:InsaneStats_GetSkillValues("pew_pew_pew")/100)
+		totalMul = totalMul * (1 + attacker:InsaneStats_GetEffectiveSkillValues("pew_pew_pew")/100)
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetSkillStacks("increase_the_pressure")/100)
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetStatusEffectLevel("skill_firerate_up")/100)
+	
+		if IsValid(wep) then
+			if wep.Clip1 then
+				local clip1 = wep:Clip1()
+				local maxClip1 = wep:GetMaxClip1()
+				local clip1Fraction = clip1 / maxClip1
+				if maxClip1 <= 0 then
+					clip1Fraction = 1
+				end
+				totalMul = totalMul * (1 + attacker:InsaneStats_GetEffectiveSkillValues("its_high_noon")/100 * clip1Fraction)
+			end
+
+			wep:InsaneStats_SetEntityData("last_fired_t4d", CurTime())
+		end
 		
 		data.next = (data.next - CurTime()) / totalMul + CurTime()
 	end
@@ -3092,27 +3212,27 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 
 		-- SKILLS
 
-		speedMul = speedMul * (1 + ent:InsaneStats_GetSkillValues("quintessence", 3) / 100)
-		* (1 + ent:InsaneStats_GetSkillValues("speed") / 100)
-		* (1 + ent:InsaneStats_GetSkillValues("bloodletters_revelation") / 100 * (1 - healthFraction))
-		--* (1 + ent:InsaneStats_GetSkillValues("super_cold") / 100 * ent:InsaneStats_GetSkillStacks("super_cold"))
+		speedMul = speedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("quintessence", 3) / 100)
+		* (1 + ent:InsaneStats_GetEffectiveSkillValues("speed") / 100)
+		* (1 + ent:InsaneStats_GetEffectiveSkillValues("bloodletters_revelation") / 100 * (1 - healthFraction))
+		--* (1 + ent:InsaneStats_GetEffectiveSkillValues("super_cold") / 100 * ent:InsaneStats_GetSkillStacks("super_cold"))
 
 		if ent:InsaneStats_GetSkillStacks("hunting_spirit") > 0 then
-			speedMul = speedMul * (1 + ent:InsaneStats_GetSkillValues("hunting_spirit") / 100)
+			speedMul = speedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("hunting_spirit") / 100)
 		end
 		if ent:InsaneStats_GetSkillState("skip_the_scenery") == 1 then
-			speedMul = speedMul * (1 + ent:InsaneStats_GetSkillValues("skip_the_scenery") / 100)
+			speedMul = speedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("skip_the_scenery") / 100)
 		end
-		if ent:InsaneStats_HasSkill("blast_proof_suit") then
+		if ent:InsaneStats_EffectivelyHasSkill("blast_proof_suit") then
 			speedMul = speedMul * 0.75
 		end
 		if game.SinglePlayer() then
-			speedMul = speedMul * (1 + ent:InsaneStats_GetSkillValues("panic") / 100 * healthFraction)
+			speedMul = speedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("panic") / 100 * healthFraction)
 		end
 		
 		data.speed = data.speed * speedMul
 		data.sprintSpeed = data.sprintSpeed * ent:InsaneStats_GetAttributeValue("sprint_speed")
-		data.sprintSpeed = data.sprintSpeed * (1 + ent:InsaneStats_GetSkillValues("zoomer") / 100)
+		data.sprintSpeed = data.sprintSpeed * (1 + ent:InsaneStats_GetEffectiveSkillValues("zoomer") / 100)
 		--data.crouchedSpeed = data.crouchedSpeed * ent:InsaneStats_GetAttributeValue("crouch_speed")
 	end
 end)
@@ -3122,7 +3242,7 @@ hook.Add("EntityEmitSound","InsaneStatsSharedWPASS2",function(sound)
 		local ent = sound.Entity
 		if (IsValid(ent) and (
 			ent:InsaneStats_GetAttributeValue("alt_invisible") ~= 1
-			or ent:InsaneStats_HasSkill("sneak_100")
+			or ent:InsaneStats_EffectivelyHasSkill("sneak_100")
 		) and ent:GetNoDraw()) then
 			return false
 		end
@@ -3197,7 +3317,7 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 
 				if ply:InsaneStats_GetSkillState("sneak_100") == 0
 				and not ply:GetNoDraw()
-				and ply:InsaneStats_HasSkill("sneak_100") then
+				and ply:InsaneStats_EffectivelyHasSkill("sneak_100") then
 					ply:AddFlags(FL_NOTARGET)
 					ply:RemoveFlags(FL_AIMTARGET)
 					ply:AddEffects(bit.bor(EF_NOSHADOW, EF_NODRAW, EF_NORECEIVESHADOW))
@@ -3205,15 +3325,15 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 				end
 
 				if ply:InsaneStats_GetSkillState("just_breathe") == 0
-				and ply:InsaneStats_HasSkill("just_breathe") then
+				and ply:InsaneStats_EffectivelyHasSkill("just_breathe") then
 					if game.SinglePlayer() then
-						local newMovementValue = 1 + ply:InsaneStats_GetSkillValues("just_breathe", 3) / 100
+						local newMovementValue = 1 + ply:InsaneStats_GetEffectiveSkillValues("just_breathe", 3) / 100
 						if not InsaneStats:GetConVarValue("wpass2_attributes_player_constant_speed") then
 							newMovementValue = newMovementValue * ply:GetLaggedMovementValue()
 						end
 						ply:SetLaggedMovementValue(newMovementValue)
 					elseif SERVER then
-						local skillTier = ply:InsaneStats_GetSkillTier("just_breathe")
+						local skillTier = ply:InsaneStats_GetEffectiveSkillTier("just_breathe")
 						for i,v in ents.Iterator() do
 							if ply:InsaneStats_IsValidAlly(v) then
 								v:InsaneStats_ApplyStatusEffect("charge", skillTier, 10)
@@ -3229,12 +3349,12 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 		end
 		if ply:OnGround() then
 			ply:InsaneStats_ClearStatusEffect("air_jumped")
-			if ply:InsaneStats_GetSkillState("jumper") ~= 0 and ply:InsaneStats_HasSkill("jumper") then
-				ply:InsaneStats_SetSkillData("jumper", 0, ply:InsaneStats_GetSkillValues("jumper"))
+			if ply:InsaneStats_GetSkillState("jumper") ~= 0 and ply:InsaneStats_EffectivelyHasSkill("jumper") then
+				ply:InsaneStats_SetSkillData("jumper", 0, ply:InsaneStats_GetEffectiveSkillValues("jumper"))
 			end
 		else
-			if ply:InsaneStats_GetSkillState("jumper") == 0 and ply:InsaneStats_HasSkill("jumper") then
-				ply:InsaneStats_SetSkillData("jumper", 1, ply:InsaneStats_GetSkillValues("jumper"))
+			if ply:InsaneStats_GetSkillState("jumper") == 0 and ply:InsaneStats_EffectivelyHasSkill("jumper") then
+				ply:InsaneStats_SetSkillData("jumper", 1, ply:InsaneStats_GetEffectiveSkillValues("jumper"))
 			end
 			if movedata:KeyPressed(IN_JUMP) then
 				local canWPASS2Jump = ply:InsaneStats_GetStatusEffectLevel("air_jumped") + 1 < ply:InsaneStats_GetAttributeValue("jumps")
@@ -3278,12 +3398,6 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 	end
 end)
 
-hook.Add("InsaneStatsLoadWPASS", "InsaneStatsSharedWPASS2", function(currentModifiers, currentAttributes, currentStatusEffects)
-	table.Merge(currentModifiers, modifiers)
-	table.Merge(currentAttributes, attributes)
-	table.Merge(currentStatusEffects, statusEffects)
-end)
-
 local penetrations = 0
 local shouldAddBullets = true
 local commonTraceData = {
@@ -3294,7 +3408,7 @@ hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data
 		if shouldAddBullets then
 			local newNum = data.Num * attacker:InsaneStats_GetAttributeValue("bullets")
 			if data.AmmoType == "Pistol" or data.AmmoType == "357" then
-				newNum = newNum * (1 + attacker:InsaneStats_GetSkillValues("one_with_the_gun", 3) / 100)
+				newNum = newNum * (1 + attacker:InsaneStats_GetEffectiveSkillValues("one_with_the_gun", 3) / 100)
 			end
 
 			data.Num = ((math.random() < newNum % 1) and math.ceil or math.floor)(newNum)
@@ -3303,18 +3417,18 @@ hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data
 
 		local spreadMult = attacker:InsaneStats_GetAttributeValue("spread")
 
-		spreadMult = spreadMult * (1 + attacker:InsaneStats_GetSkillValues("stabilization") / 100)
+		spreadMult = spreadMult * (1 + attacker:InsaneStats_GetEffectiveSkillValues("stabilization") / 100)
 		spreadMult = spreadMult / (1 + attacker:InsaneStats_GetStatusEffectLevel("skill_accuracy_up") / 100)
 		if data.AmmoType == "Pistol" or data.AmmoType == "357" then
-			spreadMult = spreadMult * (1 + attacker:InsaneStats_GetSkillValues("one_with_the_gun", 2) / 100)
+			spreadMult = spreadMult * (1 + attacker:InsaneStats_GetEffectiveSkillValues("one_with_the_gun", 2) / 100)
 		end
 		
 		data.Spread:Mul(spreadMult)
 
-		local developer = GetConVar("developer"):GetInt() > 0
+		local developer = InsaneStats:IsDebugLevel(1)
 		local penetrationPower = attacker:InsaneStats_GetAttributeValue("penetrate") - 1
 		if attacker:InsaneStats_GetSkillState("silver_bullets") == 1 then
-			penetrationPower = penetrationPower + attacker:InsaneStats_GetSkillValues("silver_bullets", 2)
+			penetrationPower = penetrationPower + attacker:InsaneStats_GetEffectiveSkillValues("silver_bullets", 2)
 		end
 		if penetrationPower > 0 and penetrations < 100 then
 			-- FIXME: in some cases, bullet penetration will incorrectly pierce
@@ -3410,5 +3524,23 @@ hook.Add("Think", "InsaneStatsSharedWPASS2", function()
 		canPlayFreezeSound = true
 		canPlayBleedSound = true
 		canPlayShockSound = true
+	end
+end)
+
+hook.Add("InsaneStatsLoadWPASS", "InsaneStatsSharedWPASS2", function(currentModifiers, currentAttributes, currentStatusEffects)
+	for i,v in ipairs(modifiers) do
+		table.Merge(currentModifiers, v)
+	end
+	table.Merge(currentAttributes, attributes)
+	table.Merge(currentStatusEffects, statusEffects)
+end)
+
+hook.Add("InsaneStatsEffectiveSpeed", "InsaneStatsSharedWPASS2", function(data)
+	local ent = data.ent
+	if ent:InsaneStats_EffectivelyHasSkill("beyond_240_kmph") then
+		local mult, add = ent:InsaneStats_GetEffectiveSkillValues("beyond_240_kmph")
+		mult = (1 + mult / 100)
+		add = add * 4
+		data.speed = (data.speed + add) * mult
 	end
 end)
