@@ -11,7 +11,7 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 -- The ~ at the name of the other Lua file is important so that it loads before most other Lua files on Linux
 if LUA_PATCHER_VERSION then return end
 
-LUA_PATCHER_VERSION = "2.3.0"
+LUA_PATCHER_VERSION = "2.3.1"
 LUA_PATCHER_VERSION_DATE = "2024-09-11"
 LUA_REPAIR_VERSION = LUA_PATCHER_VERSION
 LUA_REPAIR_VERSION_DATE = LUA_PATCHER_VERSION_DATE
@@ -265,6 +265,13 @@ local function FixAllErrors()
 			if not IsValid(ent) then
 				LogError("Some code attempted to set the position of a NULL entity.")
 			else return oldSetPos(ent, ...)
+			end
+		end
+		local oldSetAngles = ENTITY.SetAngles
+		ENTITY.SetAngles = function(ent, ...)
+			if not IsValid(ent) then
+				LogError("Some code attempted to set the angles of a NULL entity.")
+			else return oldSetAngles(ent, ...)
 			end
 		end
 		local oldPos = ENTITY.GetPos
