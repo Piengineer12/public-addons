@@ -143,7 +143,7 @@ local function CreateWeaponryPanel(parent, shopEntity, weaponsSold)
 		local weaponClass = InsaneStats.ShopItemsAutomaticPrice[v]
 		if weaponClass then
 			local weaponTable = weapons.Get(weaponClass) or {}
-			local weaponName = weaponTable.PrintName and language.GetPhrase(weaponTable.PrintName) or language.GetPhrase(weaponClass)
+			local weaponName = language.GetPhrase(weaponTable.PrintName ~= "" and weaponTable.PrintName or weaponClass)
 			WeaponList:AddLine(
 				v,
 				weaponName,
@@ -582,6 +582,8 @@ local function CreateItemsPanel(parent, shopEntity)
 			currentItem = i
 			BuyButton:SetEnabled(true)
 		end
+
+		Item.DoDoubleClick = Item.DoClick
 	end
 
 	return Panel

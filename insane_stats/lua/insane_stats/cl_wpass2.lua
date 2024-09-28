@@ -227,6 +227,22 @@ local function CreateName(wep)
 	wep.insaneStats_BatteryLevel = math.floor(InsaneStats:GetLevelByXPRequired(wep:InsaneStats_GetBatteryXP()))
 end
 
+function InsaneStats:GetWPASS2Rarity(wep)
+	if not wep.insaneStats_WPASS2Name or (wep.insaneStats_WPASS2NameLastRefresh or 0) + 5 < RealTime() then
+		CreateName(wep)
+	end
+
+	return wep.insaneStats_Rarity
+end
+
+function InsaneStats:GetWPASS2Name(wep)
+	if not wep.insaneStats_WPASS2Name or (wep.insaneStats_WPASS2NameLastRefresh or 0) + 5 < RealTime() then
+		CreateName(wep)
+	end
+
+	return wep.insaneStats_WPASS2Name
+end
+
 function InsaneStats:GetAttributeOrder(attributes)
 	local attribOrder = {}
 	local attribOrderValues = {}
@@ -296,7 +312,7 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 	local maxW = ScrW() * InsaneStats:GetConVarValue("hud_wpass2_width")
 	local maxH = ScrH() * InsaneStats:GetConVarValue("hud_wpass2_height")
 	local maxY = panelY + maxH
-	local rarityColor = InsaneStats:GetRarityColor(wep.insaneStats_Rarity)
+	local rarityColor = InsaneStats:GetRarityColor(InsaneStats:GetWPASS2Rarity(wep))
 	local typeText = wep:IsWeapon() and " Weapon" or " Battery"
 	local outlineThickness = InsaneStats:GetOutlineThickness()
 	extra = extra or {}
@@ -311,7 +327,7 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 	panelY = panelY + textOffsetY
 	
 	surface.SetFont("InsaneStats.Medium")
-	local nameExtraW = surface.GetTextSize(wep.insaneStats_WPASS2Name) - maxW + outlineThickness*2
+	local nameExtraW = surface.GetTextSize(InsaneStats:GetWPASS2Name(wep)) - maxW + outlineThickness*2
 	local nameScrollFactor = 1
 	if nameExtraW > 0 then
 		nameScrollFactor = (math.cos(changeDuration/2)+1)/2
@@ -321,7 +337,7 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 	render.SetScissorRect(panelX, panelY, panelX+maxW, panelY+InsaneStats.FONT_MEDIUM+outlineThickness*2, true)
 	
 	textOffsetX, textOffsetY = InsaneStats:DrawTextOutlined(
-		wep.insaneStats_WPASS2Name, 2, panelX-nameScrollAmt+outlineThickness, panelY+outlineThickness,
+		InsaneStats:GetWPASS2Name(wep), 2, panelX-nameScrollAmt+outlineThickness, panelY+outlineThickness,
 		rarityColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
 	)
 	panelY = panelY + textOffsetY
@@ -362,7 +378,7 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 	panelY = panelY + textOffsetY
 
 	if LocalPlayer():IsSuitEquipped() then
-		if not wep.insaneStats_AttributeOrder then error(wep.insaneStats_WPASS2Name, type(wep.insaneStats_WPASS2Name)) end
+		if not wep.insaneStats_AttributeOrder then error(InsaneStats:GetWPASS2Name(wep), type(InsaneStats:GetWPASS2Name(wep))) end
 		
 		local attribY1 = panelY + 2
 		local attribY2 = maxY
@@ -526,9 +542,6 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 				end
 				
 				if wep.insaneStats_Modifiers then
-					if not wep.insaneStats_WPASS2Name or (wep.insaneStats_WPASS2NameLastRefresh or 0) + 5 < RealTime() then
-						CreateName(wep)
-					end
 					if panelDisplayDieTime > realTime then
 						DrawWeaponPanel(
 							scrW*InsaneStats:GetConVarValue("hud_wpass2_current_x"),
@@ -548,9 +561,6 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 			
 			if IsValid(lastLookedAtWep2) then
 				if lastLookedAtWep2.insaneStats_Modifiers then
-					if not lastLookedAtWep2.insaneStats_WPASS2Name or (wep.insaneStats_WPASS2NameLastRefresh or 0) + 5 < RealTime() then
-						CreateName(lastLookedAtWep2)
-					end
 					if mouseOverDieTime > realTime then
 						DrawWeaponPanel(
 							scrW*InsaneStats:GetConVarValue("hud_wpass2_hovered_x"),
@@ -700,10 +710,6 @@ timer.Create("InsaneStatsWPASS", 1, 0, function()
 		for i,v in ipairs(ents.GetAll()) do
 			if v:InsaneStats_IsWPASS2Pickup() and not IsValid(v:GetOwner()) and not v:IsDormant() then
 				if v.insaneStats_Modifiers then
-					if not v.insaneStats_WPASS2Name or (v.insaneStats_WPASS2NameLastRefresh or 0) + 5 < RealTime() then
-						CreateName(v)
-					end
-					
 					local effData = EffectData()
 					effData:SetEntity(v)
 					util.Effect("insane_stats_tier", effData)

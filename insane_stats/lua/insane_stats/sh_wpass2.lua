@@ -54,7 +54,9 @@ InsaneStats:RegisterConVar("wpass2_modifiers_other_create", "insanestats_wpass2_
 InsaneStats:RegisterConVar("wpass2_modifiers_blacklist", "insanestats_wpass2_modifiers_blacklist", "", {
 	display = "Modifier Blacklist", desc = "Modifiers in this list will never appear on weapons nor armor batteries.\n\z
 	Note that you must specify the internal name of modifiers, not the display name. You can find the internal name \z
-	of item modifiers in the Insane Stats Coin Shop's item reforge menu.",
+	of item modifiers in the Insane Stats Coin Shop's item reforge menu.\n\z
+	You can also specify \"!curse\", which will cause unlisted negative modifiers to be blacklisted \z
+	and listed negative modifiers to NOT be blacklisted.",
 	type = InsaneStats.STRING
 })
 InsaneStats:RegisterConVar("wpass2_modifiers_negativeweight", "insanestats_wpass2_modifiers_negativeweight", "0.25", {
@@ -441,6 +443,12 @@ hook.Add("EntityFireBullets", "InsaneStats", function(ent, data, ...)
 		-- run the others first, but in a more roundabout way
 		local nonInsaneStatsHooks = hook.GetTable().NonInsaneStatsEntityFireBullets or {}
 		local bulletCallbacks = {}
+		
+		if data.Callback then
+			table.insert(bulletCallbacks, data.Callback)
+			data.Callback = nil
+		end
+
 		for k,v in pairs(nonInsaneStatsHooks) do
 			local ret = v(ent, data, ...)
 			if data.Callback then
@@ -660,25 +668,41 @@ function InsaneStats:GetModifierProbabilities(wep)
 	
 	local modifierProbabilities = {}
 	local blacklistedModifiers = {}
+	local invertNegative = false
 	for w in string.gmatch(InsaneStats:GetConVarValue("wpass2_modifiers_blacklist"), "%S+") do
 		blacklistedModifiers[w] = true
+		if w == "!curse" then
+			invertNegative = not invertNegative
+		end
 	end
 
+	local data = {
+		negativeWeightMul = InsaneStats:GetConVarValueDefaulted(
+			not isWep and "wpass2_modifiers_negativeweight_battery",
+			"wpass2_modifiers_negativeweight"
+		),
+		wep = wep,
+		ent = wep:GetOwner()
+	}
+	hook.Run("InsaneStatsGetModifierProbabilities", data)
+
 	for k,v in pairs(modifiers) do
-		if not (
-			blacklistedModifiers[k]
-			or v.flags and bit.band(inclusiveFlags, v.flags) ~= v.flags
-			or (v.cost or 1) >= 0 and (wep.insaneStats_Tier or 0) < 0
-		) then
-			-- if a modifier DOES NOT have bitflag 1 and inclusiveFlags DOES,
-			-- do not consider it, and vice versa
-			if bit.band(v.flags or 0, 1) == bit.band(inclusiveFlags, 1) then
-				local weight = v.weight or 1
-				if (v.cost or 1) < 0 then
-					weight = weight * InsaneStats:GetConVarValueDefaulted(not isWep and "wpass2_modifiers_negativeweight_battery", "wpass2_modifiers_negativeweight")
-				end
-				modifierProbabilities[k] = weight
+		local isNegative = (v.cost or 1) < 0
+		local flags = v.flags or 0
+
+		local matchesBlacklist = (not blacklistedModifiers[k]) ~= (isNegative and invertNegative)
+		local matchesFlags = bit.band(inclusiveFlags, flags) == flags
+		local matchesTier = isNegative or (wep.insaneStats_Tier or 0) >= 0
+		-- if a modifier DOES NOT have bitflag WPASS2_FLAGS.ARMOR and inclusiveFlags DOES,
+		-- do not consider it, and vice versa
+		local matchesArmorFlags = bit.band(flags, self.WPASS2_FLAGS.ARMOR) == bit.band(inclusiveFlags, self.WPASS2_FLAGS.ARMOR)
+
+		if matchesBlacklist and matchesFlags and matchesTier and matchesArmorFlags then
+			local weight = v.weight or 1
+			if isNegative then
+				weight = weight * data.negativeWeightMul
 			end
+			modifierProbabilities[k] = weight
 		end
 	end
 

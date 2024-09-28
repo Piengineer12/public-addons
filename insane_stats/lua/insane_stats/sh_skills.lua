@@ -183,14 +183,21 @@ function ENTITY:InsaneStats_GetTotalSkillPoints()
 	return math.max(math.floor(points), 0)
 end
 
-function ENTITY:InsaneStats_GetSkillPoints()
+function ENTITY:InsaneStats_GetSpentSkillPoints()
 	local invested = 0
 	for k,v in pairs(self:InsaneStats_GetSkills()) do
 		local max = InsaneStats:GetSkillInfo(k).max or 5
 		invested = invested + math.min(max, v)
 	end
 
-	return math.min(self:InsaneStats_GetTotalSkillPoints(), InsaneStats:GetMaxSkillPoints()) - invested
+	return invested
+end
+
+function ENTITY:InsaneStats_GetSkillPoints()
+	return math.min(
+		self:InsaneStats_GetTotalSkillPoints(),
+		InsaneStats:GetMaxSkillPoints()
+	) - self:InsaneStats_GetSpentSkillPoints()
 end
 
 function ENTITY:InsaneStats_GetTotalUberSkillPoints()
@@ -211,7 +218,7 @@ function ENTITY:InsaneStats_GetTotalUberSkillPoints()
 	end
 end
 
-function ENTITY:InsaneStats_GetUberSkillPoints()
+function ENTITY:InsaneStats_GetSpentUberSkillPoints()
 	local invested = 0
 	for k,v in pairs(self:InsaneStats_GetSkills()) do
 		local max = InsaneStats:GetSkillInfo(k).max or 5
@@ -220,10 +227,14 @@ function ENTITY:InsaneStats_GetUberSkillPoints()
 		end
 	end
 
+	return invested
+end
+
+function ENTITY:InsaneStats_GetUberSkillPoints()
 	return math.min(
 		self:InsaneStats_GetTotalUberSkillPoints(),
 		InsaneStats:GetMaxUberSkillPoints()
-	) - invested
+	) - self:InsaneStats_GetSpentUberSkillPoints()
 end
 
 function ENTITY:InsaneStats_GetNextSkillPointLevel()
@@ -280,7 +291,9 @@ function InsaneStats:SetDisabledSkills(skills)
 	self.DisabledSkills = skills
 
 	for i,v in ents.Iterator() do
-		hook.Run("InsaneStatsSkillsChanged", v)
+		if v.insaneStats_Skills then
+			hook.Run("InsaneStatsSkillsChanged", v)
+		end
 	end
 end
 function InsaneStats:GetDisabledSkills()
@@ -292,10 +305,12 @@ function InsaneStats:DisableSkill(skill, bool)
 	self.DisabledSkills[skill] = bool or nil
 
 	for i,v in ents.Iterator() do
-		if v:InsaneStats_IsSkillSealed(skill) then
-			v:InsaneStats_SealSkill(skill)
+		if v.insaneStats_Skills then
+			if v:InsaneStats_IsSkillSealed(skill) then
+				v:InsaneStats_SealSkill(skill)
+				hook.Run("InsaneStatsSkillsChanged", v)
+			end
 		end
-		hook.Run("InsaneStatsSkillsChanged", v)
 	end
 end
 function InsaneStats:IsSkillDisabled(skill)
@@ -426,3 +441,7 @@ function ENTITY:InsaneStats_GetSkillState(skill, skipUpdate)
 	else return -2
 	end
 end
+
+hook.Add("InsaneStatsSkillsChanged", "InsaneStatsSkillsShared", function(ent)
+	cachedTotals[ent] = nil
+end)

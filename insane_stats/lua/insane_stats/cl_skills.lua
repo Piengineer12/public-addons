@@ -67,6 +67,7 @@ local function CreateSkillButton(parent, skillName)
 			net.SendToServer()
 
 			parent:InsaneStats_SkillHovered(skillName)
+			parent:Refresh()
 		else
 			local currentTier = ply:InsaneStats_GetSkillTier(skillName)
 			local max = skillInfo.max or 5
@@ -100,6 +101,7 @@ local function CreateSkillButton(parent, skillName)
 			net.SendToServer()
 
 			parent:InsaneStats_SkillHovered(skillName)
+			parent:Refresh()
 		else
 			local currentTier = ply:InsaneStats_GetSkillTier(skillName)
 			local max = skillInfo.max or 5
@@ -152,7 +154,7 @@ local function CreateSkillButton(parent, skillName)
 		if not enabled then
 			local colorArg = 127 + self.insaneStats_Adjacent / ((skillInfo.minpts or 0) - 1) * 128
 			InsaneStats:DrawTextOutlined(
-				string.format("%u/%u", self.insaneStats_Adjacent, skillInfo.minpts or 0),
+				string.format("%i/%i", self.insaneStats_Adjacent, skillInfo.minpts or 0),
 				3,
 				w/2,
 				h/2,
@@ -163,7 +165,7 @@ local function CreateSkillButton(parent, skillName)
 	end
 	function Button:Refresh()
 		local requiredAdjacent = skillInfo.minpts or 0
-		local adjacent = 0
+		local adjacent = -ply:InsaneStats_GetEffectiveSkillValues("master_of_air", 3)
 
 		local x, y = skillInfo.pos[1], skillInfo.pos[2]
 		local offsets = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}}

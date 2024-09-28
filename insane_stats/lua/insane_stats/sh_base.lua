@@ -155,6 +155,12 @@ function InsaneStats:IsDebugLevel(num)
 	return self:GetConVarValue("debug") >= num
 end
 
+local ENTITY = FindMetaTable("Entity")
+
+function ENTITY:InsaneStats_IsMob()
+	return IsValid(self) and (self:IsPlayer() or self:IsNPC() or self:IsNextBot() or self:GetClass()=="prop_vehicle_apc")
+end
+
 -- MISC
 
 InsaneStats:SetDefaultConVarCategory("Miscellaneous")

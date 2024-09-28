@@ -25,6 +25,10 @@ InsaneStats:RegisterClientConVar("hud_dps_simplified", "insanestats_hud_dps_simp
 	display = "Compact DPS", desc = "Makes the DPS meter use a simplified display like damage numbers.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterClientConVar("hud_dps_mobsonly", "insanestats_hud_dps_mobsonly", "0", {
+	display = "Only Mob DPS", desc = "Only damage against mobs are counted for DPS calculations.",
+	type = InsaneStats.BOOL
+})
 
 InsaneStats:RegisterClientConVar("hud_hp_enabled", "insanestats_hud_hp_enabled", "1", {
 	display = "Health and Armor Meters", desc = "Shows the health meter. For the target info HUD, see the hud_target_enabled ConVar.",
@@ -77,7 +81,8 @@ hook.Add("InsaneStatsHUDDamageTaken", "InsaneStatsUnlimitedHealth", function(ent
 		local entityDamageNumbers = allDamageNumbers[entIndex]
 		local requireNewAdd = true
 
-		if ply:EntIndex() == entIndex then
+		local isSelf = ply:EntIndex() == entIndex
+		if isSelf then
 			flags = bit.bor(flags, 4)
 		end
 
@@ -97,7 +102,7 @@ hook.Add("InsaneStatsHUDDamageTaken", "InsaneStatsUnlimitedHealth", function(ent
 		end
 		
 		if requireNewAdd and (ply:IsLineOfSightClear(position) or attacker == ply)
-		and (ply:EntIndex() ~= entIndex or damage > 0) then
+		and (not isSelf or damage > 0) then
 			table.insert(entityDamageNumbers, {
 				damage = damage,
 				types = types,
@@ -108,7 +113,9 @@ hook.Add("InsaneStatsHUDDamageTaken", "InsaneStatsUnlimitedHealth", function(ent
 			})
 		end
 		
-		if attacker == ply and Entity(entIndex) ~= ply and not missed and damage > 0 then
+		local entIsMob = Entity(entIndex):InsaneStats_IsMob()
+		if attacker == ply and not isSelf and not missed and damage > 0
+		and (entIsMob or not InsaneStats:GetConVarValue("hud_dps_mobsonly")) then
 			shouldUpdateDPS = true
 			table.insert(ourDamages, {
 				damage = damage,

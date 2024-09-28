@@ -2,11 +2,30 @@ local mapOrder = {}
 local mapNumber = 0
 concommand.Add("insanestats_xp_other_level_maps_show", function(ply, cmd, args, argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
-		print("These are the recorded maps:")
-		PrintTable(mapOrder)
-		print("You are on map #"..mapNumber..".")
+		if argStr == "unrecorded" then
+			local recordedMaps = {}
+			for i,v in ipairs(mapOrder) do
+				recordedMaps[v] = true
+			end
+	
+			local unrecordedMaps = {}
+			for i,v in ipairs(file.Find("maps/*.bsp", "GAME")) do
+				local mapName = v:StripExtension()
+				if not recordedMaps[mapName] then
+					table.insert(unrecordedMaps, mapName)
+				end
+			end
+	
+			print("These are the unrecorded maps:")
+			PrintTable(unrecordedMaps)
+		else
+			print("These are the recorded maps:")
+			PrintTable(mapOrder)
+			print("You are on map #"..mapNumber..".")
+		end
 	end
-end, nil, "Shows all maps that are currently factored into level scaling.")
+end, nil, "Shows all maps that are currently factored into level scaling. \z
+Passing in \"unrecorded\" will show all maps that are NOT currently factored.")
 concommand.Add("insanestats_xp_other_level_maps_reset", function(ply, cmd, args, argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
 		mapOrder = {}
@@ -43,13 +62,57 @@ concommand.Add("insanestats_xp_other_level_maps_remove", function(ply, cmd, args
 			end
 			InsaneStats:Log("Run the command insanestats_save to save the current map list!")
 		elseif argStr == "" then
-			InsaneStats:Log("Removes a map from the map record list. If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. * wildcards are allowed. Note that a map restart is required for the map number to be updated.")
+			InsaneStats:Log("Removes maps from the recorded maps list. * and ? wildcards are allowed. \z
+			If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. \z
+			Note that a map restart is required for the map number to be updated.")
 		else
 			InsaneStats:Log("Could not find map %s.", argStr)
 		end
 	end
 end, nil, "Removes maps from the recorded maps list. * and ? wildcards are allowed. \z
 If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. \z
+Note that a map restart is required for the map number to be updated.")
+concommand.Add("insanestats_xp_other_level_maps_add", function(ply, cmd, args, argStr)
+	if (not IsValid(ply) or ply:IsAdmin()) then
+		if argStr:find("[%*%?]") then
+			-- use a search pattern
+			local recordedMaps = {}
+			for i,v in ipairs(mapOrder) do
+				recordedMaps[v] = true
+			end
+
+			local success = false
+			for i,v in ipairs(file.Find("maps/*.bsp", "GAME")) do
+				local mapName = v:StripExtension()
+				if not recordedMaps[mapName] and InsaneStats:WildcardMatches(argStr, mapName) then
+					table.insert(mapOrder, mapName)
+					InsaneStats:Log("Added map %s.", mapName)
+					success = true
+				end
+			end
+
+			if success then
+				return InsaneStats:Log("Run the command insanestats_save to save the current map list!")
+			end
+			
+			if argStr == "" then
+				InsaneStats:Log("Adds maps to the recorded maps list. * and ? wildcards are allowed. \z
+				Note that a map restart is required for the map number to be updated.")
+			else
+				InsaneStats:Log("Could not find map %s.", argStr)
+			end
+		elseif table.HasValue(mapOrder, argStr) then
+			InsaneStats:Log("%s is already in the recorded maps list.", argStr)
+		elseif mapOrder == "" then
+			InsaneStats:Log("Adds maps to the recorded maps list. * and ? wildcards are allowed. \z
+			Note that a map restart is required for the map number to be updated.")
+		else
+			table.insert(mapOrder, argStr)
+			InsaneStats:Log("Added map %s.", argStr)
+			InsaneStats:Log("Run the command insanestats_save to save the current map list!")
+		end
+	end
+end, nil, "Adds maps to the recorded maps list. * and ? wildcards are allowed. \z
 Note that a map restart is required for the map number to be updated.")
 
 concommand.Add("insanestats_xp_player_level_set", function(ply, cmd, args, argStr)
@@ -549,6 +612,10 @@ function InsaneStats:DetermineDamageMul(vic, dmginfo)
 	else
 		return 1
 	end
+end
+
+function InsaneStats:GetRecordedMaps()
+	return mapOrder
 end
 
 local toUpdateLevelEntities = {}

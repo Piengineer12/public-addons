@@ -84,7 +84,7 @@ local function BroadcastEntityUpdates()
 		if bit.band(v, 8) ~= 0 then
 			net.WriteDouble(k:InsaneStats_GetBatteryXP())
 			net.WriteBool(k.insaneStats_ModifierChangeReason == 1)
-			net.WriteInt(k.insaneStats_Tier, 16)
+			net.WriteInt(k.insaneStats_Tier or 1, 16)
 			local modifiers = k.insaneStats_Modifiers or {}
 			net.WriteUInt(table.Count(modifiers), 16)
 			for k2,v2 in pairs(modifiers) do
@@ -432,6 +432,7 @@ net.Receive("insane_stats", function(length, ply)
 					local reforgeBlacklist = ply:InsaneStats_GetReforgeBlacklist()
 					local price = InsaneStats:GetReforgeCost(ent, reforgeBlacklist)
 					if ply:InsaneStats_GetCoins() >= price and tier ~= 0 then
+						hook.Run("InsaneStatsPreReforge", ent, ply)
 						ent.insaneStats_Modifiers = {}
 						InsaneStats:ApplyWPASS2Modifiers(ent, reforgeBlacklist)
 						ent.insaneStats_ModifierChangeReason = 2

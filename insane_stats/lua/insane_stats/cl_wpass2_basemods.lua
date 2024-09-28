@@ -1,5 +1,8 @@
 local markedEntityInfo = {refreshedTime = -999}
+local highlightedEntities = {}
 local color_yellow = InsaneStats:GetColor("yellow")
+local color_aqua = InsaneStats:GetColor("aqua")
+local color_magenta = InsaneStats:GetColor("magenta")
 local color_black_translucent = InsaneStats:GetColor("black_translucent")
 local color_white_translucent = InsaneStats:GetColor("white_translucent")
 
@@ -14,6 +17,16 @@ hook.Add("InsaneStatsWPASS2EntityMarked", "InsaneStatsWPASS2", function(entIndex
 		mar = maxArmor,
 		refreshedTime = CurTime()
 	}
+end)
+
+hook.Add("InsaneStatsWPASS2EntitiesHighlighted", "InsaneStatsWPASS2", function(highlights)
+	for i,v in ipairs(highlights) do
+		highlightedEntities[v.index] = {
+			pos = v.pos,
+			class = v.class,
+			start = v.start
+		}
+	end
 end)
 
 local revealIcons = {
@@ -55,7 +68,10 @@ local nextLookPositionsRequestTime = 0
 hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 	if InsaneStats:GetConVarValue("hud_wpass2_attributes") and InsaneStats:ShouldDrawHUD() then
 		local ply = LocalPlayer()
-		if markedEntityInfo.refreshedTime + 2 > CurTime() and (markedEntityInfo.index or 0) ~= 0 then
+		local curTime = CurTime()
+		local magentaStartExpiryTime = curTime - 60
+		local outlineThickness = InsaneStats:GetOutlineThickness()
+		if markedEntityInfo.refreshedTime + 2 > curTime and (markedEntityInfo.index or 0) ~= 0 then
 			ply:InsaneStats_SetSkillData("alert", 1, 0)
 			-- if the entity is valid, update markedEntityInfo
 			local ent = Entity(markedEntityInfo.index)
@@ -100,8 +116,8 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 			surface.DrawLine(rightX, topY, leftX, bottomY)
 			
 			-- draw the target information
-			local textPosX = (leftX + rightX) / 2
-			local textPosY = bottomY + 2
+			local textPosX = toScreenData.x
+			local textPosY = bottomY + outlineThickness
 			local texts = {
 				language.GetPhrase(markedEntityInfo.class),
 				string.format(
@@ -123,7 +139,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 					v,
 					1,
 					textPosX,
-					textPosY + InsaneStats.FONT_SMALL * (i - 1),
+					textPosY + (InsaneStats.FONT_SMALL + outlineThickness) * (i - 1),
 					color_yellow,
 					TEXT_ALIGN_CENTER,
 					TEXT_ALIGN_TOP
@@ -133,15 +149,14 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 			ply:InsaneStats_SetSkillData("alert", 0, 0)
 		end
 
-		local ply = LocalPlayer()
 		local revealRadius = ply:InsaneStats_GetAttributeValue("reveal") - 1
 		+ ply:InsaneStats_GetEffectiveSkillValues("map_sense")
 		if revealRadius > 0 then
 			local toDraw = {}
 			local eyePos = EyePos()
 
-			if not lookPositions and nextLookPositionsRequestTime < CurTime() then
-				nextLookPositionsRequestTime = CurTime() + 5
+			if not lookPositions and nextLookPositionsRequestTime < curTime then
+				nextLookPositionsRequestTime = curTime + 5
 				net.Start("insane_stats")
 				net.WriteUInt(7, 8)
 				net.SendToServer()
@@ -194,6 +209,61 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 				surface.SetMaterial(v.icon)
 				surface.DrawTexturedRect(v.x-8, v.y-8, 16, 16)
 				surface.SetAlphaMultiplier(1)
+			end
+		end
+
+		if next(highlightedEntities) then
+			local screenData = {}
+
+			cam.Start3D()
+			for k,v in pairs(highlightedEntities) do
+				-- if the entity is valid
+				local sqrDistToHide = 16384
+				local ent = Entity(k)
+				if (IsValid(ent) and not ent:IsDormant()) then
+					sqrDistToHide = math.max(sqrDistToHide, ent:BoundingRadius()^2)
+				end
+				
+				local distSqr = v.pos:DistToSqr(ply:WorldSpaceCenter())
+				if distSqr < sqrDistToHide or v.start > 0 and v.start < magentaStartExpiryTime then
+					highlightedEntities[k] = nil
+				else
+					-- get the entity position in 2D space
+					screenData[k] = v.pos:ToScreen()
+				end
+			end
+			cam.End3D()
+
+			for k,v in pairs(highlightedEntities) do
+				local expires = v.start > 0
+				local toScreenData = screenData[k]
+				--if toScreenData.visible then
+				toScreenData.x = math.Clamp(toScreenData.x, 0, ScrW())
+				toScreenData.y = math.Clamp(toScreenData.y, 0, ScrH())
+				
+				-- draw the target indicator
+				if expires then
+					local alpha = 1 - (curTime - v.start) / 60
+					surface.SetAlphaMultiplier(alpha)
+					surface.DrawCircle(toScreenData.x, toScreenData.y, InsaneStats.FONT_SMALL, 255, 0, 255)
+				else
+					surface.DrawCircle(toScreenData.x, toScreenData.y, InsaneStats.FONT_SMALL, 0, 255, 255)
+				end
+				
+				-- draw the target information
+				local textPosX = toScreenData.x
+				local textPosY = toScreenData.y + InsaneStats.FONT_SMALL + outlineThickness
+				
+				InsaneStats:DrawTextOutlined(
+					language.GetPhrase(v.class), 1,
+					textPosX, textPosY,
+					expires and color_magenta or color_aqua,
+					TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP
+				)
+
+				if expires then
+					surface.SetAlphaMultiplier(1)
+				end
 			end
 		end
 	end

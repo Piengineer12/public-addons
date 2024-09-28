@@ -511,7 +511,8 @@ hook.Add("EntityKeyValue", "InsaneStatsUnlimitedHealth", function(ent, key, valu
 end)
 
 hook.Add("AcceptInput", "InsaneStatsUnlimitedHealth", function(ent, input, activator, caller, data)
-	if input == "InsaneStats_OnHalfHealth" then
+	input = input:lower()
+	if input == "insanestats_onhalfhealth" then
 		local developer = InsaneStats:IsDebugLevel(1)
 		
 		local pheonixLevel = ent:InsaneStats_GetStatusEffectLevel("pheonix")
@@ -532,7 +533,7 @@ hook.Add("AcceptInput", "InsaneStatsUnlimitedHealth", function(ent, input, activ
 		end
 
 		timer.Simple(1, function()
-			if IsValid(ent) then
+			if IsValid(ent) and not ent.insaneStats_NoOSP then
 				if ent:InsaneStats_GetHealth() / ent:InsaneStats_GetMaxHealth() > 0.9375 then
 					ent.insaneStats_HitAtHalfHealth = 0
 					if developer then
@@ -545,7 +546,7 @@ hook.Add("AcceptInput", "InsaneStatsUnlimitedHealth", function(ent, input, activ
 		end)
 
 		return true
-	elseif input == "InsaneStats_OnDamaged" then
+	elseif input == "insanestats_ondamaged" then
 		local undyingLevel = ent:InsaneStats_GetStatusEffectLevel("undying")
 
 		if undyingLevel > 0 then
@@ -573,5 +574,9 @@ hook.Add("AcceptInput", "InsaneStatsUnlimitedHealth", function(ent, input, activ
 		end
 		
 		return true
+	elseif input == "selfdestruct" then
+		ent:InsaneStats_ClearStatusEffect("pheonix")
+		ent:InsaneStats_ClearStatusEffect("undying")
+		ent.insaneStats_NoOSP = true
 	end
 end)

@@ -11,8 +11,8 @@ Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 fo
 -- The ~ at the name of the other Lua file is important so that it loads before most other Lua files on Linux
 if LUA_PATCHER_VERSION then return end
 
-LUA_PATCHER_VERSION = "2.3.1"
-LUA_PATCHER_VERSION_DATE = "2024-09-11"
+LUA_PATCHER_VERSION = "2.3.2"
+LUA_PATCHER_VERSION_DATE = "2024-09-13"
 LUA_REPAIR_VERSION = LUA_PATCHER_VERSION
 LUA_REPAIR_VERSION_DATE = LUA_PATCHER_VERSION_DATE
 
@@ -282,7 +282,6 @@ local function FixAllErrors()
 			else return oldPos(ent, ...)
 			end
 		end
-		
 		local oldLookupAttachment = ENTITY.LookupAttachment
 		ENTITY.LookupAttachment = function(ent, ...)
 			if not IsValid(ent) then
@@ -291,6 +290,45 @@ local function FixAllErrors()
 			else return oldLookupAttachment(ent, ...)
 			end
 		end
+		local oldSetColor4Part = ENTITY.SetColor4Part
+		ENTITY.SetColor4Part = function(ent, ...)
+			if not IsValid(ent) then
+				LogError("Some code attempted to set the color of a NULL entity.")
+			else
+				return oldSetColor4Part(ent, ...)
+			end
+		end
+		local oldGetBoneCount = ENTITY.GetBoneCount
+		ENTITY.GetBoneCount = function(ent, ...)
+			if not IsValid(ent) then
+				LogError("Some code attempted to get the number of bones of a NULL entity.")
+				return 0
+			else return oldGetBoneCount(ent, ...)
+			end
+		end
+		local oldSpawn = ENTITY.Spawn
+		ENTITY.Spawn = function(ent, ...)
+			if not IsValid(ent) then
+				LogError("Some code attempted to spawn a NULL entity.")
+			else return oldSpawn(ent, ...)
+			end
+		end
+		local oldActivate = ENTITY.Activate
+		ENTITY.Activate = function(ent, ...)
+			if not IsValid(ent) then
+				LogError("Some code attempted to activate a NULL entity.")
+			else return oldActivate(ent, ...)
+			end
+		end
+		local oldGetPhysicsObject = ENTITY.GetPhysicsObject
+		ENTITY.GetPhysicsObject = function(ent, ...)
+			if not IsValid(ent) then
+				LogError("Some code attempted to get the physics object of a NULL entity.")
+				return nil
+			else return oldGetPhysicsObject(ent, ...)
+			end
+		end
+
 		local oldGetBonePosition = ENTITY.GetBonePosition
 		ENTITY.GetBonePosition = function(ent, boneIndex, ...)
 			if not boneIndex then
@@ -315,7 +353,9 @@ local function FixAllErrors()
 		end
 		local oldPhysicsAttacker = ENTITY.SetPhysicsAttacker
 		ENTITY.SetPhysicsAttacker = function(ent, attacker, ...)
-			if attacker:IsPlayer() then
+			if not IsValid(ent) then
+				LogError("Some code attempted to set the physics attacker of a NULL entity.")
+			elseif attacker:IsPlayer() then
 				if oldPhysicsAttacker then
 					return oldPhysicsAttacker(ent, attacker, ...)
 				end
@@ -343,22 +383,6 @@ local function FixAllErrors()
 					useCol = Color(tonumber(col.r) or 255, tonumber(col.g) or 255, tonumber(col.b) or 255, tonumber(col.a) or 255)
 				end
 				return oldSetColor(ent, useCol, ...)
-			end
-		end
-		local oldSetColor4Part = ENTITY.SetColor4Part
-		ENTITY.SetColor4Part = function(ent, r, g, b, a, ...)
-			if not IsValid(ent) then
-				LogError("Some code attempted to set the color of a NULL entity.")
-			else
-				return oldSetColor4Part(ent, r, g, b, a, ...)
-			end
-		end
-		local oldGetBoneCount = ENTITY.GetBoneCount
-		ENTITY.GetBoneCount = function(ent, ...)
-			if not IsValid(ent) then
-				LogError("Some code attempted to get the number of bones of a NULL entity.")
-				return 0
-			else return oldGetBoneCount(ent, ...)
 			end
 		end
 		local oldEmitSound = ENTITY.EmitSound
@@ -439,7 +463,7 @@ local function FixAllErrors()
 		local oldEnemy = NPC.GetEnemy
 		NPC.GetEnemy = function(ent, ...)
 			if not IsValid(ent) then
-				LogError("Some code attempted to get the enemy of a NULL entity.")
+				LogError("Some code attempted to get the enemy of a NULL NPC.")
 				return nil
 			else
 				return oldEnemy(ent, ...)

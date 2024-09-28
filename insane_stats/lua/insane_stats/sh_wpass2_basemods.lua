@@ -2950,23 +2950,7 @@ local statusEffects = {
 		name = "Agility Movement Rate Up",
 		typ = 2,
 		img = "pentarrows-tornado",
-		apply = SERVER and function(ent, level, attacker)
-			if ent:IsPlayer() then
-				local newMovementValue = 1+level/100
-				if not InsaneStats:GetConVarValue("wpass2_attributes_player_constant_speed") then
-					newMovementValue = newMovementValue * ent:GetLaggedMovementValue()
-				end
-				ent:SetLaggedMovementValue(newMovementValue)
-			end
-		end,
 		expiry = SERVER and function(ent, level, attacker)
-			if ent:IsPlayer() then
-				local newMovementValue = 1
-				if not InsaneStats:GetConVarValue("wpass2_attributes_player_constant_speed") then
-					newMovementValue = ent:GetLaggedMovementValue() / (1+level/100)
-				end
-				ent:SetLaggedMovementValue(newMovementValue)
-			end
 			ent:InsaneStats_ApplyStatusEffect("alt_speed_cooldown", 1, 60)
 		end
 	},
@@ -3167,6 +3151,10 @@ hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetEffectiveSkillValues("pew_pew_pew")/100)
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetSkillStacks("increase_the_pressure")/100)
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetStatusEffectLevel("skill_firerate_up")/100)
+
+		if game.SinglePlayer() then
+			totalMul = totalMul * (1 + attacker:InsaneStats_GetEffectiveSkillValues("spongy", 2)/100)
+		end
 	
 		if IsValid(wep) then
 			if wep.Clip1 then
@@ -3180,6 +3168,15 @@ hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 			end
 
 			wep:InsaneStats_SetEntityData("last_fired_t4d", CurTime())
+
+			if attacker:InsaneStats_EffectivelyHasSkill("its_high_noon") then
+				if wep.Primary then
+					wep.Primary.Automatic = true
+				end
+				if wep.Secondary then
+					wep.Secondary.Automatic = true
+				end
+			end
 		end
 		
 		data.next = (data.next - CurTime()) / totalMul + CurTime()
@@ -3210,12 +3207,15 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 			speedMul = speedMul / 2
 		end
 
+		local laggedSpeedMul = 1 + ent:InsaneStats_GetStatusEffectLevel("alt_speed_up")/100
+
 		-- SKILLS
 
 		speedMul = speedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("quintessence", 3) / 100)
 		* (1 + ent:InsaneStats_GetEffectiveSkillValues("speed") / 100)
 		* (1 + ent:InsaneStats_GetEffectiveSkillValues("bloodletters_revelation") / 100 * (1 - healthFraction))
 		--* (1 + ent:InsaneStats_GetEffectiveSkillValues("super_cold") / 100 * ent:InsaneStats_GetSkillStacks("super_cold"))
+		--* (1 + ent:InsaneStats_GetEffectiveSkillValues("fast_er") / 100)
 
 		if ent:InsaneStats_GetSkillStacks("hunting_spirit") > 0 then
 			speedMul = speedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("hunting_spirit") / 100)
@@ -3226,14 +3226,21 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 		if ent:InsaneStats_EffectivelyHasSkill("blast_proof_suit") then
 			speedMul = speedMul * 0.75
 		end
+		--laggedSpeedMul = laggedSpeedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("fast_er", 2) / 100)
 		if game.SinglePlayer() then
 			speedMul = speedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("panic") / 100 * healthFraction)
+			* (1 + ent:InsaneStats_GetEffectiveSkillValues("spongy", 4)/100)
+
+			if ent:InsaneStats_GetSkillState("just_breathe") == 1 then
+				laggedSpeedMul = laggedSpeedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("just_breathe", 3) / 100)
+			end
 		end
 		
 		data.speed = data.speed * speedMul
 		data.sprintSpeed = data.sprintSpeed * ent:InsaneStats_GetAttributeValue("sprint_speed")
 		data.sprintSpeed = data.sprintSpeed * (1 + ent:InsaneStats_GetEffectiveSkillValues("zoomer") / 100)
 		--data.crouchedSpeed = data.crouchedSpeed * ent:InsaneStats_GetAttributeValue("crouch_speed")
+		data.laggedSpeed = data.laggedSpeed * laggedSpeedMul
 	end
 end)
 
@@ -3326,13 +3333,7 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 
 				if ply:InsaneStats_GetSkillState("just_breathe") == 0
 				and ply:InsaneStats_EffectivelyHasSkill("just_breathe") then
-					if game.SinglePlayer() then
-						local newMovementValue = 1 + ply:InsaneStats_GetEffectiveSkillValues("just_breathe", 3) / 100
-						if not InsaneStats:GetConVarValue("wpass2_attributes_player_constant_speed") then
-							newMovementValue = newMovementValue * ply:GetLaggedMovementValue()
-						end
-						ply:SetLaggedMovementValue(newMovementValue)
-					elseif SERVER then
+					if not game.SinglePlayer() and SERVER then
 						local skillTier = ply:InsaneStats_GetEffectiveSkillTier("just_breathe")
 						for i,v in ents.Iterator() do
 							if ply:InsaneStats_IsValidAlly(v) then

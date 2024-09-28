@@ -16,7 +16,11 @@ function InsaneStats:GetEntitiesWithSkills()
 end
 
 function InsaneStats:SetEntityAsContainingSkills(ent)
-	skillEntities[ent] = true
+	if ent:IsPlayer() or ent:IsNPC() or ent:IsNextBot() then
+		skillEntities[ent] = true
+	else
+		error(string.format("%s cannot be marked as having skills!", tostring(ent)))
+	end
 end
 
 AccessorFunc(InsaneStats, "SkillDataToNetwork", "SkillDataToNetwork")
@@ -65,7 +69,7 @@ hook.Add("PlayerSpawn", "InsaneStatsSkills", function(ply, fromTransition)
 end)
 
 hook.Add("InsaneStatsSkillsChanged", "InsaneStatsSkills", function(ent)
-	skillEntities[ent] = true
+	InsaneStats:SetEntityAsContainingSkills(ent)
 end)
 
 timer.Create("InsaneStatsSkills", 0, 0, function()

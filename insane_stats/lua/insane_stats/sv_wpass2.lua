@@ -219,9 +219,11 @@ local function SelectWeightedRandom(tab)
 	
 	local weightSum = 0
 	for k,v in pairs(tab) do
-		table.insert(possibleSelections, k)
-		weightSum = weightSum + v
-		table.insert(selectionGaps, weightSum)
+		if v > 0 then
+			table.insert(possibleSelections, k)
+			weightSum = weightSum + v
+			table.insert(selectionGaps, weightSum)
+		end
 	end
 	
 	-- generate a random number, then see where it fits
@@ -230,7 +232,7 @@ local function SelectWeightedRandom(tab)
 		if selection < v then return possibleSelections[i] end
 	end
 	
-	error("Failed to choose weighted random choice!")
+	error(string.format("Failed to choose weighted random choice! Sum = %.1f, Selection = %.1f", weightSum, selection))
 end
 
 local function ApplyWPASS2StartTier(ent)
@@ -411,7 +413,7 @@ function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 			local modifierTable = modifiers[k]
 			local cost = modifierTable.cost or 1
 
-			if (cost < 0 or cost <= points)
+			if (cost < 0 or cost <= points) and v > 0
 			and (modifierCount * tiersPerModifier < math.abs(wep.insaneStats_Tier) or applyModifiers[k] and cost >= 0) then
 				currentModifierProbabilities[k] = v
 			end
@@ -422,7 +424,7 @@ function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 				local modifierTable = modifiers[k]
 				local cost = modifierTable.cost or 1
 	
-				if (cost < 0 or cost <= points) then
+				if (cost < 0 or cost <= points) and v > 0 then
 					currentModifierProbabilities[k] = v
 				end
 			end
@@ -687,21 +689,51 @@ function ENTITY:InsaneStats_AddArmorCapped(armor)
 end
 
 function ENTITY:InsaneStats_AddMaxHealth(health)
+	health = math.max(health, 0)
+
+	-- if insaneStats_CurrentHealthAdd is nil, define it
+	-- so that the level system doesn't assume the already level-scaled health to be starting health
+	if (self:InsaneStats_GetEntityData("xp_health_mul") or 1) == 1 then
+		local scaleType = self:IsPlayer() and "player" or "other"
+		local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and self:InsaneStats_GetLevel() or 1
+		local val = InsaneStats:ScaleValueToLevelQuadratic(
+			100,
+			InsaneStats:GetConVarValue("xp_"..scaleType.."_health")/100,
+			effectiveLevel,
+			"xp_"..scaleType.."_health_mode",
+			false,
+			InsaneStats:GetConVarValue("xp_"..scaleType.."_health_add")/100
+		)
+
+		self:InsaneStats_SetCurrentHealthAdd(val)
+	end
+
 	local data = {maxHealth = health, ent = self}
 	hook.Run("InsaneStatsWPASS2AddMaxHealth", data)
-	self:SetMaxHealth(self:InsaneStats_GetMaxHealth() + data.maxHealth)
+	self:SetMaxHealth(math.max(self:InsaneStats_GetMaxHealth() + data.maxHealth, 0))
 end
 
 function ENTITY:InsaneStats_AddMaxArmor(armor)
 	if self.SetMaxArmor then
+		if (self:InsaneStats_GetEntityData("xp_armor_mul") or 1) == 1 then
+			local scaleType = self:IsPlayer() and "player" or "other"
+			local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and self:InsaneStats_GetLevel() or 1
+			local val = InsaneStats:ScaleValueToLevelQuadratic(
+				100,
+				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
+				effectiveLevel,
+				"xp_"..scaleType.."_armor_mode",
+				false,
+				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor_add")/100
+			)
+	
+			self:InsaneStats_SetCurrentArmorAdd(val)
+		end
+
 		local data = {maxArmor = armor, ent = self}
 		hook.Run("InsaneStatsWPASS2AddMaxArmor", data)
-		self:SetMaxArmor(self:InsaneStats_GetMaxArmor() + data.maxArmor)
+		self:SetMaxArmor(math.max(self:InsaneStats_GetMaxArmor() + data.maxArmor, 0))
 	end
-end
-
-function ENTITY:InsaneStats_IsMob()
-	return IsValid(self) and (self:IsPlayer() or self:IsNPC() or self:IsNextBot() or self:GetClass()=="prop_vehicle_apc")
 end
 
 function ENTITY:InsaneStats_IsValidEnemy(ent)
@@ -771,6 +803,9 @@ end
 
 function ENTITY:InsaneStats_GetEffectiveSpeed()
 	local data = {speed = self:GetVelocity():Length(), ent = self}
+	if self:IsPlayer() then
+		data.speed = data.speed * self:GetLaggedMovementValue()
+	end
 	hook.Run("InsaneStatsEffectiveSpeed", data)
 	return data.speed
 end
@@ -910,6 +945,8 @@ function PLAYER:InsaneStats_ShouldAutoPickup(item, speculative)
 		end
 	end
 
+	if item:GetOwner() == self then return true end
+
 	--[[if devEnabled then
 		InsaneStats:Log(string.format(
 			"Auto pickup mode is %s for %s.",
@@ -1015,11 +1052,14 @@ hook.Add("AcceptInput", "InsaneStatsWPASS", function(ent, input, activator, call
 end)
 
 hook.Add("InsaneStatsPlayerCanPickupItem", "InsaneStatsWPASS", function(ply, item)
+	local class = item:GetClass()
 	if InsaneStats:GetConVarValue("wpass2_enabled")
 	and (item.insaneStats_DisableWPASS2Pickup or 0) <= RealTime() 
-	and item:GetClass() == "item_battery"
+	and class == "item_battery"
 	and not ply:InsaneStats_ShouldAutoPickup(item) then
 		return false
+	elseif class == "item_suit" and item:CreatedByMap() then
+		ply:InsaneStats_SetEntityData("do_not_strip_suit", true)
 	end
 
 	toSavePlayers[ply] = true
@@ -1173,7 +1213,7 @@ SaveData = function(ply, forced)
 		
 		saveRequested = true
 
-		if InsaneStats:IsDebugLevel(1) then
+		if InsaneStats:IsDebugLevel(2) then
 			InsaneStats:Log("Save data requested for %s, forced = %s", tostring(ply), tostring(forced))
 		end
 	end
@@ -1377,7 +1417,7 @@ hook.Add("PlayerSpawn", "InsaneStatsWPASS", function(ply, fromTransition)
 								end
 								
 								if ply:IsSuitEquipped() ~= plyWPASS2Data.healthArmorAndSuitStats.suit then
-									if plyWPASS2Data.healthArmorAndSuitStats.suit then
+									if plyWPASS2Data.healthArmorAndSuitStats.suit or ply:InsaneStats_GetEntityData("do_not_strip_suit") then
 										ply:EquipSuit()
 									else
 										ply:RemoveSuit()

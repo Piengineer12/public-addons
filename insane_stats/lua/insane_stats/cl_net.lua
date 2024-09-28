@@ -197,17 +197,33 @@ net.Receive("insane_stats", function()
 			hook.Run("InsaneStatsHUDDamageTaken", entIndex, attacker, damage, types, hitgroup, position, flags)
 		end
 	elseif func == 4 then
-		-- the server will send the entity index, but also the entity position, class, health and armor (if any)
-		-- since we can't see entities outside our PVS
-		local entIndex = net.ReadUInt(16)
-		local pos = net.ReadVector()
-		local class = net.ReadString()
-		local health = net.ReadDouble()
-		local maxHealth = net.ReadDouble()
-		local armor = net.ReadDouble()
-		local maxArmor = net.ReadDouble()
-		
-		hook.Run("InsaneStatsWPASS2EntityMarked", entIndex, pos, class, health, maxHealth, armor, maxArmor)
+		local isForCtrlF = net.ReadBool()
+		if isForCtrlF then
+			local highlights = {}
+			local count = net.ReadUInt(8)
+			for i=1, count do
+				local entIndex = net.ReadUInt(16)
+				local pos = net.ReadVector()
+				local class = net.ReadString()
+				local start = net.ReadBool()
+				start = start and CurTime() or -1
+				table.insert(highlights, {index = entIndex, pos = pos, class = class, start = start})
+			end
+
+			hook.Run("InsaneStatsWPASS2EntitiesHighlighted", highlights)
+		else
+			-- the server will send the entity index, but also the entity position, class, health and armor (if any)
+			-- since we can't see entities outside our PVS
+			local entIndex = net.ReadUInt(16)
+			local pos = net.ReadVector()
+			local class = net.ReadString()
+			local health = net.ReadDouble()
+			local maxHealth = net.ReadDouble()
+			local armor = net.ReadDouble()
+			local maxArmor = net.ReadDouble()
+			
+			hook.Run("InsaneStatsWPASS2EntityMarked", entIndex, pos, class, health, maxHealth, armor, maxArmor)
+		end
 	elseif func == 5 then
 		local text = net.ReadString()
 		local color = net.ReadColor()

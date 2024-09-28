@@ -13,7 +13,8 @@ InsaneStats:RegisterConVar("sndfix_maponly", "insanestats_sndfix_maponly", "0", 
 	type = InsaneStats.BOOL
 })
 InsaneStats:RegisterConVar("sndfix_pause", "insanestats_sndfix_pause", "1", {
-	display = "Pause Sounds on Pause", desc = "Sounds are paused when the game is paused. Note that soundscapes and sounds invoked from Lua won't be paused.",
+	display = "Pause Sounds on Pause", desc = "Sounds are paused when the game is paused. \z
+	Note that soundscapes and sounds invoked from Lua won't be paused. Does nothing in multiplayer.",
 	type = InsaneStats.BOOL
 })
 InsaneStats:RegisterConVar("sndfix_music", "insanestats_sndfix_music", "1", {

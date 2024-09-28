@@ -104,12 +104,13 @@ function EFFECT:GetParticleColor()
 	
 	if self:ShouldDrawBeam() then
 		local class = self.Entity:GetClass()
-		if self.Entity.insaneStats_Rarity then
-			color = InsaneStats:GetRarityColor(self.Entity.insaneStats_Rarity)
-		elseif healthClasses[class] then
+		
+		if healthClasses[class] then
 			color = color_dark_green
 		elseif ammoClasses[class] then
 			color = color_gray
+		elseif self.Entity.insaneStats_Modifiers then
+			color = InsaneStats:GetRarityColor(InsaneStats:GetWPASS2Rarity(self.Entity))
 		end
 	end
 	

@@ -70,10 +70,15 @@ function ENT:Initialize()
 		
 		local scale = modelModified and 2 or 0.25
 		self:SetModelScale(scale * sizeMultiplier)
+		self:SetCollisionGroup(COLLISION_GROUP_WORLD)
+		self:SetTrigger(true)
+		self:SetMaterial("models/shiny")
+		self:AddEffects(EF_ITEM_BLINK)
+		self:SetColor(InsaneStats:GetCoinColor(self:GetValueExponent()))
+		self:DrawShadow(false)
 		
 		if modelModified then
 			self:PhysicsInit(SOLID_VPHYSICS)
-			self:Activate()
 			self:UseTriggerBounds(true, 32 / sizeMultiplier)
 		else
 			self:PhysicsInitSphere(6 * sizeMultiplier, "gmod_bouncy")
@@ -89,13 +94,10 @@ function ENT:Initialize()
 			physobj:SetMass(128)
 			physobj:Wake()
 		end
-
-		self:SetCollisionGroup(COLLISION_GROUP_WORLD)
-		self:SetTrigger(true)
-		self:SetMaterial("models/shiny")
-		self:AddEffects(EF_ITEM_BLINK)
-		self:SetColor(InsaneStats:GetCoinColor(self:GetValueExponent()))
-		self:DrawShadow(false)
+		
+		if modelModified then
+			self:Activate()
+		end
 	end
 end
 

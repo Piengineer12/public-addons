@@ -268,6 +268,33 @@ hook.Add("InsaneStats_CCVCCMRun", "InsaneStatsOptions", function()
 						type = "string"
 					})
 				end
+			elseif k == "Client" then
+				if k2 == "Miscellaneous" then
+					CCVCCM:AddAddonVar("wepsel_slots", {
+						realm = "client",
+						name = "Weapon Selector Weapon Slots",
+						help = "If insanestats_hud_wepsel_alphabetic is 0, this option overwrites the column a weapon \z
+						is displayed in the weapon selection menu.",
+						default = table.Copy(InsaneStats.WeaponSelectorWeaponSlots),
+						typeInfo = {
+							help = "You must specify both the class name and column slot of each weapon.",
+							{
+								name = "Class Name (e.g. weapon_357)",
+								type = "string"
+							},
+							{
+								name = "Slot",
+								type = "number",
+								min = 1,
+								max = 11,
+								interval = 1
+							}
+						},
+						func = function(arg, fullName)
+							InsaneStats.WeaponSelectorWeaponSlots = arg
+						end
+					})
+				end
 			end
 
 			for i,v3 in ipairs(v2) do

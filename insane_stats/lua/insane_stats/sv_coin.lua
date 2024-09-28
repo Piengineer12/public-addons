@@ -102,13 +102,14 @@ end)
 
 local savedPlayerCoins, savedPlayerReforgeBlacklist
 hook.Add("InsaneStatsSave", "InsaneStatsCoins", function(data)
-	if InsaneStats:GetConVarValue("coins_enabled") and InsaneStats:GetConVarValue("coins_player_save") and savedPlayerCoins then
+	if savedPlayerCoins then
 		for k,v in player.Iterator() do
 			local steamID = v:SteamID()
 			if steamID then
-				if v:InsaneStats_GetEntityData("coins_loaded") then
+				if v:InsaneStats_GetEntityData("coins_loaded") and InsaneStats:GetConVarValue("coins_player_save") then
 					savedPlayerCoins[steamID] = v:InsaneStats_GetCoins()
-				elseif v.insaneStats_ReforgeBlacklist then
+				end
+				if v.insaneStats_ReforgeBlacklist then
 					savedPlayerReforgeBlacklist[steamID] = v:InsaneStats_GetReforgeBlacklist()
 				end
 			end

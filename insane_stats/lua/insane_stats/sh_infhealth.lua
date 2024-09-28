@@ -135,7 +135,7 @@ local function OverrideHealth()
 		if SERVER then
 			self:InsaneStats_MarkForUpdate(1)
 		end
-		if SERVER and self:IsPlayer() and InsaneStats:IsDebugLevel(1) then
+		if SERVER and self:IsPlayer() and InsaneStats:IsDebugLevel(2) then
 			InsaneStats:Log("%s max health set to %f", tostring(self), newHealth)
 			debug.Trace()
 		end
@@ -195,6 +195,18 @@ local function OverrideArmor()
 		end
 		if SERVER then
 			self:InsaneStats_MarkForUpdate(1)
+
+			if newArmor > 2147483647 then
+				timer.Simple(0, function()
+					if (IsValid(self) and self:InsaneStats_GetCurrentArmorAdd() == 1) then
+						InsaneStats:Log(
+							"Warning! Max armor on %s set to above 2147483647 without using the XP system!",
+							tostring(self)
+						)
+						debug.Trace()
+					end
+				end)
+			end
 		end
 	end
 	
