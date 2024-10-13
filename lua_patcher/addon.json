@@ -1,9 +1,7 @@
 {
 	"title": "Lua Patcher",
 	"type": "tool",
-	"tags": [
-		"build"
-	],
+	"tags": ["build"],
 	"ignore": [
 		"*.moon",
 		"media/*",
