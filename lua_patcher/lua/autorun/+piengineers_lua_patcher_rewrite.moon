@@ -8,8 +8,8 @@ LUA_PATCHER or= {
     unpatched: {}
 }
 
-LUA_PATCHER.VERSION = "3.0.0"
-LUA_PATCHER.VERSION_DATE = "2024-10-13"
+LUA_PATCHER.VERSION = "3.0.1"
+LUA_PATCHER.VERSION_DATE = "2024-10-14"
 
 local Log, LogError
 
@@ -70,7 +70,9 @@ else
     LogError = (...) -> print debug.traceback "[Lua Patcher] #{string.format ...}", 2
 
 OverwriteTable = (table_name, table_contents, new_table_contents) ->
-    LUA_PATCHER.unpatched[table_name] = {k, table_contents[k] or true for k, v in pairs new_table_contents}
+    LUA_PATCHER.unpatched[table_name] or= {}
+    target_table = LUA_PATCHER.unpatched[table_name]
+    target_table[k] = table_contents[k] or true for k, v in pairs new_table_contents
     table_contents[k] = v for k, v in pairs new_table_contents
 
 RollbackTable = (table_name, table_contents) ->
@@ -298,6 +300,17 @@ PatchLibraries = ->
 				LogError "Some code attempted to parent a panel to a non-panel."
 				parent = nil
 			LUA_PATCHER.unpatched.vgui.Create pnl, parent, ...
+    }
+
+    OverwriteTable "bit", bit, {
+        band: (value, ...) ->
+            unless value
+                LogError "Some code attempted to call bit.band without any arguments."
+            LUA_PATCHER.unpatched.bit.band(value or 0, ...)
+        bor: (value, ...) ->
+            unless value
+                LogError "Some code attempted to call bit.bor without any arguments."
+            LUA_PATCHER.unpatched.bit.bor(value or 0, ...)
     }
 
     OverwriteTable "input", input, {
@@ -891,6 +904,5 @@ if gmod
         return
 
     hook.Add "Initialize", "lua_patcher", ->
-        CheckPatch!
         hook.Add "Think", "lua_patcher", CheckPatch
         return

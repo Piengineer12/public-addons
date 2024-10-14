@@ -6,8 +6,8 @@ LUA_PATCHER = LUA_PATCHER or {
   extra_info = "Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 format.",
   unpatched = { }
 }
-LUA_PATCHER.VERSION = "3.0.0"
-LUA_PATCHER.VERSION_DATE = "2024-10-13"
+LUA_PATCHER.VERSION = "3.0.1"
+LUA_PATCHER.VERSION_DATE = "2024-10-14"
 local Log, LogError
 if gmod then
   local next_report_time = 0
@@ -68,12 +68,10 @@ else
 end
 local OverwriteTable
 OverwriteTable = function(table_name, table_contents, new_table_contents)
-  do
-    local _tbl_0 = { }
-    for k, v in pairs(new_table_contents) do
-      _tbl_0[k] = table_contents[k] or true
-    end
-    LUA_PATCHER.unpatched[table_name] = _tbl_0
+  LUA_PATCHER.unpatched[table_name] = LUA_PATCHER.unpatched[table_name] or { }
+  local target_table = LUA_PATCHER.unpatched[table_name]
+  for k, v in pairs(new_table_contents) do
+    target_table[k] = table_contents[k] or true
   end
   for k, v in pairs(new_table_contents) do
     table_contents[k] = v
@@ -361,6 +359,20 @@ PatchLibraries = function()
         parent = nil
       end
       return LUA_PATCHER.unpatched.vgui.Create(pnl, parent, ...)
+    end
+  })
+  OverwriteTable("bit", bit, {
+    band = function(value, ...)
+      if not (value) then
+        LogError("Some code attempted to call bit.band without any arguments.")
+      end
+      return LUA_PATCHER.unpatched.bit.band(value or 0, ...)
+    end,
+    bor = function(value, ...)
+      if not (value) then
+        LogError("Some code attempted to call bit.bor without any arguments.")
+      end
+      return LUA_PATCHER.unpatched.bit.bor(value or 0, ...)
     end
   })
   OverwriteTable("input", input, {
@@ -1159,7 +1171,6 @@ if gmod then
     end
   end
   return hook.Add("Initialize", "lua_patcher", function()
-    CheckPatch()
     hook.Add("Think", "lua_patcher", CheckPatch)
   end)
 end
