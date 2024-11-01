@@ -1,12 +1,32 @@
 local inputNumberOfTimes = {}
 InsaneStats.PointCommandCustomEvents = {}
+
+concommand.Add("insanestats_pointcmder_timer", function(ply, cmd, args, argStr)
+	if (not IsValid(ply) or ply:IsAdmin()) then
+		if #args < 1 then
+			InsaneStats:Log("Format: insanestats_pointcmder_debugtimer [duration=10] [color=-1]")
+		else
+			local duration, color = args[1], args[2]
+			duration = tonumber(duration) or 10
+			color = tonumber(color) or -1
+
+			net.Start("insane_stats")
+			net.WriteUInt(10, 8)
+			net.WriteFloat(CurTime() + duration)
+			net.WriteFloat(color)
+			net.Broadcast()
+		end
+	end
+end, nil, "Shows a timer to all players.\
+Format: insanestats_pointcmder_debugtimer [duration=10] [color=-1]")
+
 hook.Add("AcceptInput", "InsaneStatsPointCommand", function(ent, input, activator, caller, value)
 	if InsaneStats:GetConVarValue("pointcmder_enabled") then
 		input = input:lower()
 
 		local class = IsValid(ent) and ent:GetClass() or ''
 		local name = IsValid(ent) and ent:GetName() or ''
-		if input == "command" and (
+		if input == "command" and value and (
 			class == "point_servercommand"
 			or class == "point_clientcommand"
 			or class == "point_broadcastclientcommand"

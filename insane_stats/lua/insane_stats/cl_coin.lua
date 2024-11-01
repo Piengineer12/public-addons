@@ -17,7 +17,7 @@ InsaneStats:RegisterClientConVar("hud_coins_simplified", "insanestats_hud_coins_
 	type = InsaneStats.BOOL
 })
 
-local color_black_ui = Color(0, 0, 0, 223)
+local color_black_translucent = InsaneStats:GetColor("black_translucent")
 local color_red = InsaneStats:GetColor("red")
 local color_green = InsaneStats:GetColor("green")
 
@@ -570,7 +570,7 @@ local function CreateItemsPanel(parent, shopEntity)
 				local boxPadding = 2
 				local boxHeight = InsaneStats.FONT_SMALL + boxPadding * 2
 				local y = h - borderSize - boxHeight
-				draw.RoundedBox(4, borderSize, y, w - borderSize * 2, boxHeight, color_black_ui)
+				draw.RoundedBox(4, borderSize, y, w - borderSize * 2, boxHeight, color_black_translucent)
 				y = y + boxPadding
 				draw.SimpleText(name, "InsaneStats.Small", w/2, y, color_white, TEXT_ALIGN_CENTER)
 			end
@@ -661,7 +661,7 @@ function InsaneStats:CreateShopMenu(shopEntity, weaponsSold, modifierBlacklist)
 	Main:SetTitle("Insane Stats Coin Shop")
 	Main.lblTitle:SetFont("InsaneStats.Medium")
 	function Main:Paint(w, h)
-		draw.RoundedBox(4, 0, 0, w, h, color_black_ui)
+		draw.RoundedBox(4, 0, 0, w, h, color_black_translucent)
 	end
 
 	local CoinDisplay = vgui.Create("DPanel", Main)

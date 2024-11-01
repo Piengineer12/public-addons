@@ -4,9 +4,25 @@ InsaneStats:RegisterClientConVar("hud_damage_enabled", "insanestats_hud_damage_e
 	display = "Damage Numbers", desc = "Shows the damage numbers.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterClientConVar("hud_damage_selfonly", "insanestats_hud_damage_selfonly", "0", {
+	display = "Self(-Dealt) Damage Only", desc = "Damage dealt by other entities to other entities are not displayed.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterClientConVar("hud_damage_mobsonly", "insanestats_hud_damage_mobsonly", "0", {
+	display = "Mob Damage Only", desc = "Only damage against mobs are displayed.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterClientConVar("hud_damage_nonzero_health", "insanestats_hud_damage_nonzero_health", "1", {
+	display = "Non-Zero HP Only", desc = "Damage dealt to zero health entities are not displayed.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterClientConVar("hud_damage_noselfhealing", "insanestats_hud_damage_noselfhealing", "1", {
+	display = "Don't Display Self-Heals", desc = "Self-healing numbers are not displayed.",
+	type = InsaneStats.BOOL
+})
 
 InsaneStats:RegisterClientConVar("hud_dps_enabled", "insanestats_hud_dps_enabled", "1", {
-	display = "DPS Meter", desc = "Shows the DPS meter.",
+	display = "DPS Meter", desc = "Shows the DPS meter. Note that all settings that affect damage numbers also affect the DPS meter!",
 	type = InsaneStats.BOOL
 })
 InsaneStats:RegisterClientConVar("hud_dps_x", "insanestats_hud_dps_x", "0.35", {
@@ -23,10 +39,6 @@ InsaneStats:RegisterClientConVar("hud_dps_time", "insanestats_hud_dps_time", "5"
 })
 InsaneStats:RegisterClientConVar("hud_dps_simplified", "insanestats_hud_dps_simplified", "0", {
 	display = "Compact DPS", desc = "Makes the DPS meter use a simplified display like damage numbers.",
-	type = InsaneStats.BOOL
-})
-InsaneStats:RegisterClientConVar("hud_dps_mobsonly", "insanestats_hud_dps_mobsonly", "0", {
-	display = "Only Mob DPS", desc = "Only damage against mobs are counted for DPS calculations.",
 	type = InsaneStats.BOOL
 })
 
@@ -73,6 +85,9 @@ local ourDamages = {}
 -- table fields: damage, types, crit, time, origin, posX, posY
 local allDamageNumbers = {}
 local shouldUpdateDPS = false
+local doNotReportDamageOnTheseClasses = {
+	env_fire = true
+}
 hook.Add("InsaneStatsHUDDamageTaken", "InsaneStatsUnlimitedHealth", function(entIndex, attacker, damage, types, hitgroup, position, flags)
 	local ply = LocalPlayer()
 	if IsValid(ply) then
@@ -101,8 +116,21 @@ hook.Add("InsaneStatsHUDDamageTaken", "InsaneStatsUnlimitedHealth", function(ent
 			end
 		end
 		
+		local ent = Entity(entIndex)
+		local entIsMob = ent:InsaneStats_IsMob()
+		local condition1 = not InsaneStats:GetConVarValue("hud_damage_selfonly")
+			or attacker == ply or ent == ply
+		local condition2 = not InsaneStats:GetConVarValue("hud_damage_mobsonly")
+			or bit.band(flags, 16) ~= 0 or IsValid(ent) and entIsMob
+		local condition3 = not InsaneStats:GetConVarValue("hud_damage_nonzero_health")
+			or bit.band(flags, 8) ~= 0 or IsValid(ent) and ent:InsaneStats_GetHealth() > 0
+		local condition4 = not InsaneStats:GetConVarValue("hud_damage_noselfhealing")
+			or not isSelf or damage > 0
+		local condition5 = not (IsValid(ent) and doNotReportDamageOnTheseClasses[ent:GetClass()])
+		--print(ent, condition1, condition2, condition3, condition4, condition5)
+
 		if requireNewAdd and (ply:IsLineOfSightClear(position) or attacker == ply)
-		and (not isSelf or damage > 0) then
+		and condition1 and condition2 and condition3 and condition4 and condition5 then
 			table.insert(entityDamageNumbers, {
 				damage = damage,
 				types = types,
@@ -113,9 +141,8 @@ hook.Add("InsaneStatsHUDDamageTaken", "InsaneStatsUnlimitedHealth", function(ent
 			})
 		end
 		
-		local entIsMob = Entity(entIndex):InsaneStats_IsMob()
 		if attacker == ply and not isSelf and not missed and damage > 0
-		and (entIsMob or not InsaneStats:GetConVarValue("hud_dps_mobsonly")) then
+		and condition2 and condition3 and condition5 then
 			shouldUpdateDPS = true
 			table.insert(ourDamages, {
 				damage = damage,

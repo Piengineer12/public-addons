@@ -4,7 +4,7 @@ local color_yellow = InsaneStats:GetColor("yellow")
 local color_aqua = InsaneStats:GetColor("aqua")
 local color_magenta = InsaneStats:GetColor("magenta")
 local color_black_translucent = InsaneStats:GetColor("black_translucent")
-local color_white_translucent = InsaneStats:GetColor("white_translucent")
+local color_gray_translucent = InsaneStats:GetColor("gray_translucent")
 
 hook.Add("InsaneStatsWPASS2EntityMarked", "InsaneStatsWPASS2", function(entIndex, pos, class, health, maxHealth, armor, maxArmor)
 	markedEntityInfo = {
@@ -199,11 +199,15 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 			for i,v in ipairs(toDraw) do
 				local alpha = (1-v.dist/revealRadius)^2
 				surface.SetAlphaMultiplier(math.Clamp(alpha, 0, 1))
-				draw.RoundedBox(8, v.x-12, v.y-12, 24, 24, color_black_translucent)
 				if v.progress > 0 then
+					render.SetScissorRect(v.x-12, v.y-12, v.x+12, v.y+12-24*v.progress, true)
+					draw.RoundedBox(8, v.x-12, v.y-12, 24, 24, color_black_translucent)
+					
 					render.SetScissorRect(v.x-12, v.y+12-24*v.progress, v.x+12, v.y+12, true)
-					draw.RoundedBox(8, v.x-12, v.y-12, 24, 24, color_white_translucent)
+					draw.RoundedBox(8, v.x-12, v.y-12, 24, 24, color_gray_translucent)
 					render.SetScissorRect(0, 0, 0, 0, false)
+				else
+					draw.RoundedBox(8, v.x-12, v.y-12, 24, 24, color_black_translucent)
 				end
 				surface.SetDrawColor(255, 255, 255, 255)
 				surface.SetMaterial(v.icon)
@@ -235,20 +239,20 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 			cam.End3D()
 
 			for k,v in pairs(highlightedEntities) do
-				local expires = v.start > 0
+				--local expires = v.start > 0
 				local toScreenData = screenData[k]
 				--if toScreenData.visible then
 				toScreenData.x = math.Clamp(toScreenData.x, 0, ScrW())
 				toScreenData.y = math.Clamp(toScreenData.y, 0, ScrH())
 				
 				-- draw the target indicator
-				if expires then
+				--if expires then
 					local alpha = 1 - (curTime - v.start) / 60
 					surface.SetAlphaMultiplier(alpha)
-					surface.DrawCircle(toScreenData.x, toScreenData.y, InsaneStats.FONT_SMALL, 255, 0, 255)
-				else
 					surface.DrawCircle(toScreenData.x, toScreenData.y, InsaneStats.FONT_SMALL, 0, 255, 255)
-				end
+				--[[else
+					surface.DrawCircle(toScreenData.x, toScreenData.y, InsaneStats.FONT_SMALL, 0, 255, 255)
+				end]]
 				
 				-- draw the target information
 				local textPosX = toScreenData.x
@@ -257,13 +261,13 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 				InsaneStats:DrawTextOutlined(
 					language.GetPhrase(v.class), 1,
 					textPosX, textPosY,
-					expires and color_magenta or color_aqua,
+					--[[expires and color_magenta or]] color_aqua,
 					TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP
 				)
 
-				if expires then
+				--if expires then
 					surface.SetAlphaMultiplier(1)
-				end
+				--end
 			end
 		end
 	end

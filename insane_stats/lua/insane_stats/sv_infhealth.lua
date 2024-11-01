@@ -28,7 +28,8 @@ local doNotKnockbackClasses = {
 	npc_combinegunship = true,
 	npc_helicopter = true,
 	prop_physics = true,
-	npc_sniper = true
+	npc_sniper = true,
+	prop_door_rotating = true
 }
 function ENT:InsaneStats_ApplyKnockback(knockback, additionalVelocity)
 	if IsValid(self:GetPhysicsObject()) and not doNotKnockbackClasses[self:GetClass()]
@@ -215,9 +216,6 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 				if vic:InsaneStats_GetEntityData("armor_blocks_all") then
 					local fullDamage = InsaneStats:GetDamage()
 					local absorbedDamage = math.min(armor, fullDamage)
-					--[[local newArmor = math.max(armor - fullDamage, 0)
-					vic:SetArmor(newArmor)
-					vic:InsaneStats_DamageNumber(dmginfo:GetAttacker(), absorbedDamage, dmginfo:GetDamageType(), vic.insaneStats_LastHitGroup)]]
 					
 					InsaneStats:SetAbsorbedDamage(absorbedDamage)
 					dmginfo:SubtractDamage(absorbedDamage)
@@ -351,6 +349,7 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 		
 		--print(reportedDamage)
 		-- notImmune is set to false when damage == 0, even if vic:InsaneStats_GetEntityData("armor_blocks_all") is present
+		local wasHealthyWhenDamaged = vic:InsaneStats_GetHealth() > 0
 		if (notImmune or rawHealthDamage ~= 0 or vic:InsaneStats_GetEntityData("armor_blocks_all")) and vic:GetClass() ~= "npc_turret_floor" and InsaneStats:GetConVarValue("infhealth_enabled") then
 			local healthDamage = dmginfo:GetDamage()
 			local armorDamage = InsaneStats:GetAbsorbedDamage() or 0
@@ -417,7 +416,7 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 			reportedDamage = 0
 		end
 		--print(vic, dmginfo:GetDamage(), vic:InsaneStats_GetRawHealth(), vic:InsaneStats_GetHealth())
-		vic:InsaneStats_DamageNumber(dmginfo:GetAttacker(), reportedDamage, dmginfo:GetDamageType(), vic.insaneStats_LastHitGroup)
+		vic:InsaneStats_DamageNumber(dmginfo:GetAttacker(), reportedDamage, dmginfo:GetDamageType(), vic.insaneStats_LastHitGroup, wasHealthyWhenDamaged)
 	end
 	
 	if vic.insaneStats_CurrentRawDamage and dmginfo.InsaneStats_SetRawDamage then
@@ -451,6 +450,8 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 			ent:InsaneStats_SetCurrentArmorAdd(ent:InsaneStats_GetMaxArmor() / startingArmor)
 			ent:SetArmor(ent:InsaneStats_GetMaxArmor())
 		end
+
+		ent.insaneStats_PreventOverdamage = ent.insaneStats_PreventOverdamage or multipleDamageClasses[class]
 
 		timer.Simple(0, function()
 			if IsValid(ent) then

@@ -196,7 +196,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 			
 			if xp ~= oldXP then
 				if oldXP > 0 and hasSuit then
-					xpDisplayExpiryTimestamp = curTime + 1
+					xpDisplayExpiryTimestamp = realTime + 2
 				else
 					oldXPDelayed = xp
 				end
@@ -204,13 +204,13 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 				oldXP = xp
 			end
 			
-			if xpDisplayExpiryTimestamp <= curTime and oldXPDelayed ~= xp then
+			if xpDisplayExpiryTimestamp <= realTime and oldXPDelayed ~= xp then
 				oldXPDelayed = xp
 				xpFlashDisplayExpiryTimestamp = realTime + 0.5
 			end
 			
 			local levelDisplayExpiryDuration = levelDisplayExpiryTimestamp - realTime
-			local xpDisplayExpiryDuration = xpDisplayExpiryTimestamp - curTime
+			local xpDisplayExpiryDuration = xpDisplayExpiryTimestamp - realTime
 			local xpFlashDisplayExpiryDuration = xpFlashDisplayExpiryTimestamp - realTime
 			
 			if xpFlashDisplayExpiryDuration > 0 then
@@ -283,9 +283,9 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 				textY = textY + offset * scrH * InsaneStats:GetConVarValue("hud_xp_gained_y")
 				
 				local outlineLum = InsaneStats:GetConVarValue("hud_outline_colormul") * 255 / 100
-				if xpDisplayExpiryDuration > 0.75 then
+				if xpDisplayExpiryDuration > 1.5 then
 					outlineLum = math.Remap(
-						xpDisplayExpiryDuration, 1, 0.75,
+						xpDisplayExpiryDuration, 2, 1.5,
 						255, InsaneStats:GetConVarValue("hud_outline_colormul") * 255 / 100
 					)
 				end
@@ -482,7 +482,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 						local startY = infoY + InsaneStats.FONT_MEDIUM + barH + outlineThickness * 2
 						local statusEffectOrder = {}
 						for k,v in pairs(lookEntityInfo.statusEffects) do
-							if v.expiry > CurTime() and v.level ~= 0 then
+							if v.expiry > curTime and v.level ~= 0 then
 								table.insert(statusEffectOrder, k)
 							end
 						end
@@ -518,7 +518,7 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 							if statusEffectData.level ~= 1 then
 								smallText = InsaneStats:FormatNumber(statusEffectData.level, {decimals = 0})
 							elseif statusEffectData.expiry < math.huge then
-								local duration = math.ceil(statusEffectData.expiry - CurTime())
+								local duration = math.ceil(statusEffectData.expiry - curTime)
 								smallText = InsaneStats:FormatNumber(duration, {decimals = 0}).."s"
 							end
 

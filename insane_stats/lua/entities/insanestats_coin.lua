@@ -70,6 +70,10 @@ function ENT:Initialize()
 		
 		local scale = modelModified and 2 or 0.25
 		self:SetModelScale(scale * sizeMultiplier)
+		if modelModified then
+			self:Activate()
+		end
+
 		self:SetCollisionGroup(COLLISION_GROUP_WORLD)
 		self:SetTrigger(true)
 		self:SetMaterial("models/shiny")
@@ -93,10 +97,6 @@ function ENT:Initialize()
 			physobj:SetDamping(0.5, 0.5)
 			physobj:SetMass(128)
 			physobj:Wake()
-		end
-		
-		if modelModified then
-			self:Activate()
 		end
 	end
 end

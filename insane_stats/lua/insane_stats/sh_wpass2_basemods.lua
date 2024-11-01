@@ -2061,8 +2061,8 @@ local attributes = {
 		display = "%s last clip shot fire rate",
 	},]]
 	ammo_savechance = {
-		display = "%s chance to not consume ammo",
-		mode = 2
+		display = "%s ammo consumption",
+		invert = true
 	},
 	ammo_convert = {
 		display = "Reserve ammo above max %s turned into Corpse Exploder stacks"
@@ -2993,6 +2993,12 @@ local statusEffects = {
 		name = "Stacking Loot Up",
 		typ = 2,
 		img = "cool-spices"
+	},
+
+	no_time_manipulation = {
+		name = "No Time Manipulation",
+		typ = -2,
+		img = "time-trap"
 	},
 }
 

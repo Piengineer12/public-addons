@@ -226,6 +226,7 @@ local function SaveData()
 end
 
 local saveThinkCooldown = 0
+local buggys = ents.FindByClass("prop_vehicle_jeep*")
 hook.Add("Think", "InsaneStats", function()
 	if saveThinkCooldown < RealTime() then
 		InsaneStats:PerformSave()
@@ -250,10 +251,47 @@ hook.Add("Think", "InsaneStats", function()
 		
 		pendingGameTexts = {}
 	end
+
+	for i,v in ipairs(buggys) do
+		if (IsValid(v) and v:GetDriver():IsPlayer()) then
+			local maxAmmo = game.GetAmmoMax(18)
+			-- positive numbers mean that charge is positive and increasing by 10/s
+			-- while negative numbers mean that charge is positive but decreasing by -10/s
+			local charge
+
+			-- if m_flCannonChargeStartTime or m_flCannonTime resets, network it
+			-- m_flCannonChargeStartTime always returns a negated value for some reason
+			local chargingTime = -v:GetInternalVariable("m_flCannonChargeStartTime")
+			local oldChargingTime = v.insaneStats_OldChargingTime or chargingTime
+			local cannonDelay = v:GetInternalVariable("m_flCannonTime")
+			local oldCannonDelay = v.insaneStats_OldCannonDelay or cannonDelay
+			if oldChargingTime > chargingTime then
+				charge = math.min(chargingTime * 10 - maxAmmo, 0)
+			elseif oldCannonDelay < cannonDelay then
+				charge = maxAmmo - math.max(cannonDelay, 0) * 10
+			end
+
+			v.insaneStats_OldChargingTime = chargingTime
+			v.insaneStats_OldCannonDelay = cannonDelay
+
+			if charge then
+				net.Start("insane_stats")
+				net.WriteUInt(12, 8)
+				net.WriteEntity(v)
+				net.WriteFloat(charge)
+				net.WriteFloat(CurTime())
+				net.Send(v:GetDriver())
+			end
+		end
+	end
 end)
 
-hook.Add("PlayerDisconnected", "InsaneStatsWPASS", SaveData)
-hook.Add("ShutDown", "InsaneStatsWPASS", SaveData)
+timer.Create("InsaneStats", 5, 0, function()
+	buggys = ents.FindByClass("prop_vehicle_jeep*")
+end)
+
+hook.Add("PlayerDisconnected", "InsaneStats", SaveData)
+hook.Add("ShutDown", "InsaneStats", SaveData)
 
 local ammoCrateTypes = {
 	-- Valve can't count.

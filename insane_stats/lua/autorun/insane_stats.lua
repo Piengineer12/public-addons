@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 ]]
 
 InsaneStats = {
-	VERSION = "1.8.2",
-	VERSION_DATE = "2024-09-28"
+	VERSION = "1.8.3",
+	VERSION_DATE = "2024-11-01"
 }
 
 function InsaneStats:Log(msg, ...)
@@ -34,6 +34,7 @@ local clientFiles = {
 	"cl_options",
 	"cl_pointcommander",
 	"cl_skills",
+	"cl_wepsel",
 	"cl_wpass2",
 	"cl_wpass2_basemods",
 	"cl_xp"

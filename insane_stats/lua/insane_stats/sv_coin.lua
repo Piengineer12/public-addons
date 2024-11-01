@@ -14,20 +14,32 @@ local function SpawnCoins(victim, value)
 			end
 		end
 		if not (value >= 1) then break end
-		local ent = ents.Create("insanestats_coin")
-		if IsValid(ent) then
-			local valueExponent = math.floor(math.log(value, denomDist))
-			ent:SetValueExponent(bit.tobit(valueExponent))
-			ent:Spawn()
-			local spawnPos = pos + vector_up * 6 * ent:GetSizeMultiplier()
-			ent:SetPos(spawnPos)
-			local physobj = ent:GetPhysicsObject()
-			if IsValid(physobj) then
-				local initialVel = VectorRand(-128, 128)
-				initialVel:Add(physenv.GetGravity() / 4)
-				physobj:SetVelocity(initialVel)
+		local valueExponent = math.floor(math.log(value, denomDist))
+		local toSubtract = denomDist^valueExponent
+		value = value - toSubtract
+		local doNot = hook.Run("InsaneStatsCoinsSpawn", victim, pos, toSubtract, valueExponent)
+		if doNot then
+			if InsaneStats:IsDebugLevel(3) then
+				InsaneStats:Log("Suppressed %g coin drop", toSubtract)
 			end
-			value = value - denomDist^valueExponent
+		else
+			local ent = ents.Create("insanestats_coin")
+			if IsValid(ent) then
+				ent:SetValueExponent(bit.tobit(valueExponent))
+				ent:Spawn()
+				local spawnPos = pos + vector_up * 6 * ent:GetSizeMultiplier()
+				ent:SetPos(spawnPos)
+				local physobj = ent:GetPhysicsObject()
+				if IsValid(physobj) then
+					local initialVel = VectorRand(-128, 128)
+					initialVel:Add(physenv.GetGravity() / 4)
+					physobj:SetVelocity(initialVel)
+				end
+
+				if InsaneStats:IsDebugLevel(3) then
+					InsaneStats:Log("Spawned %s worth %g", tostring(ent), toSubtract)
+				end
+			end
 		end
 	end
 	hook.Run("InsaneStatsCoinsSpawned", victim, value)

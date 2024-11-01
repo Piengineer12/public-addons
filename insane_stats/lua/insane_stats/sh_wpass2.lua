@@ -331,15 +331,23 @@ end)
 
 local WEAPON = FindMetaTable("Weapon")
 local PLAYER = FindMetaTable("Player")
+local playerAmmosToUpdateAdjs = {}
 
 local function OverrideWeapons()
 	if not WEAPON.InsaneStats_SetRawNextPrimaryFire then
 		WEAPON.InsaneStats_SetRawNextPrimaryFire = WEAPON.SetNextPrimaryFire
 		WEAPON.InsaneStats_SetRawNextSecondaryFire = WEAPON.SetNextSecondaryFire
+		WEAPON.InsaneStats_RawClip1 = WEAPON.Clip1
+		WEAPON.InsaneStats_RawClip2 = WEAPON.Clip2
 		WEAPON.InsaneStats_SetRawClip1 = WEAPON.SetClip1
 		WEAPON.InsaneStats_SetRawClip2 = WEAPON.SetClip2
 		
+		PLAYER.InsaneStats_GetRawAmmoCount = PLAYER.GetAmmoCount
+		PLAYER.InsaneStats_GetRawAmmo = PLAYER.GetAmmo
+		PLAYER.InsaneStats_GiveRawAmmo = PLAYER.GiveAmmo
 		PLAYER.InsaneStats_RemoveRawAmmo = PLAYER.RemoveAmmo
+		PLAYER.InsaneStats_RemoveAllRawAmmo = PLAYER.RemoveAllAmmo
+		PLAYER.InsaneStats_StripRawAmmo = PLAYER.StripAmmo
 		PLAYER.InsaneStats_SetRawAmmo = PLAYER.SetAmmo
 	end
 	
@@ -356,33 +364,125 @@ local function OverrideWeapons()
 		
 		return self:InsaneStats_SetRawNextSecondaryFire(data.next)
 	end
+
+	function WEAPON:Clip1()
+		return self:InsaneStats_RawClip1() - (self.insaneStats_Clip1Adj or 0)
+	end
+
+	function WEAPON:Clip2()
+		return self:InsaneStats_RawClip2() - (self.insaneStats_Clip2Adj or 0)
+	end
 	
 	function WEAPON:SetClip1(num)
 		local data = {new = num, old = self.insaneStats_LastClip1 or self:Clip1(), wep = self}
 		hook.Run("InsaneStatsModifyWeaponClip", data)
+		self.insaneStats_Clip1Adj = math.Round(1 - data.new, 3) % 1
+		if SERVER then
+			self:InsaneStats_MarkForUpdate(512)
+		end
 		
-		return self:InsaneStats_SetRawClip1(data.new)
+		return self:InsaneStats_SetRawClip1(math.ceil(data.new))
 	end
 	
 	function WEAPON:SetClip2(num)
 		local data = {new = num, old = self.insaneStats_LastClip2 or self:Clip2(), wep = self}
 		hook.Run("InsaneStatsModifyWeaponClip", data)
+		self.insaneStats_Clip2Adj = math.Round(1 - data.new, 3) % 1
+		if SERVER then
+			self:InsaneStats_MarkForUpdate(512)
+		end
 		
-		return self:InsaneStats_SetRawClip2(data.new)
+		return self:InsaneStats_SetRawClip2(math.ceil(data.new))
+	end
+
+	function PLAYER:GetAmmoCount(ammoType)
+		self.insaneStats_AmmoAdjs = self.insaneStats_AmmoAdjs or {}
+		local ammoTypeNum = isstring(ammoType) and game.GetAmmoID(ammoType) or ammoType
+		return self:InsaneStats_GetRawAmmoCount(ammoType) - (self.insaneStats_AmmoAdjs[ammoTypeNum] or 0)
+	end
+
+	function PLAYER:GetAmmo()
+		self.insaneStats_AmmoAdjs = self.insaneStats_AmmoAdjs or {}
+		local rawData = self:InsaneStats_GetRawAmmo()
+		local returnedData = {}
+		for k,v in pairs(rawData) do
+			returnedData[k] = v - (self.insaneStats_AmmoAdjs[k] or 0)
+		end
+		return returnedData
+	end
+
+	function PLAYER:GiveAmmo(num, ammoType, hidePopup)
+		local data = {num = num, type = ammoType, ply = self}
+		hook.Run("InsaneStatsPlayerAddAmmo", data)
+		
+		ammoType = data.type
+		local ammoTypeNum = isstring(ammoType) and game.GetAmmoID(ammoType) or ammoType
+		local newAmmo = math.Round(self:GetAmmoCount(ammoType) + data.num, 3)
+		local rawAmmo = math.ceil(newAmmo)
+		self.insaneStats_AmmoAdjs[ammoTypeNum] = rawAmmo - newAmmo
+
+		playerAmmosToUpdateAdjs[self] = playerAmmosToUpdateAdjs[self] or {}
+		playerAmmosToUpdateAdjs[self][ammoTypeNum] = true
+		
+		return self:InsaneStats_GiveRawAmmo(
+			rawAmmo
+			- self:InsaneStats_GetRawAmmoCount(ammoType),
+			ammoType, hidePopup
+		)
 	end
 	
 	function PLAYER:RemoveAmmo(num, ammoType)
 		local data = {num = num, type = ammoType, ply = self}
 		hook.Run("InsaneStatsPlayerRemoveAmmo", data)
+
+		ammoType = data.type
+		local ammoTypeNum = isstring(ammoType) and game.GetAmmoID(ammoType) or ammoType
+		local newAmmo = math.Round(self:GetAmmoCount(ammoType) - data.num, 3)
+		local rawAmmo = math.ceil(newAmmo)
+		self.insaneStats_AmmoAdjs[ammoTypeNum] = rawAmmo - newAmmo
 		
-		return self:InsaneStats_RemoveRawAmmo(data.num, data.type)
+		playerAmmosToUpdateAdjs[self] = playerAmmosToUpdateAdjs[self] or {}
+		playerAmmosToUpdateAdjs[self][ammoTypeNum] = true
+		
+		return self:InsaneStats_RemoveRawAmmo(
+			self:InsaneStats_GetRawAmmoCount(ammoType)
+			- rawAmmo,
+			ammoType
+		)
+	end
+	
+	function PLAYER:RemoveAllAmmo()
+		self.insaneStats_AmmoAdjs = nil
+		
+		playerAmmosToUpdateAdjs[self] = playerAmmosToUpdateAdjs[self] or {}
+		playerAmmosToUpdateAdjs[self].clear = true
+
+		return self:InsaneStats_RemoveAllRawAmmo()
+	end
+	
+	function PLAYER:StripAmmo()
+		self.insaneStats_AmmoAdjs = nil
+		
+		playerAmmosToUpdateAdjs[self] = playerAmmosToUpdateAdjs[self] or {}
+		playerAmmosToUpdateAdjs[self].clear = true
+
+		return self:InsaneStats_StripRawAmmo()
 	end
 	
 	function PLAYER:SetAmmo(num, ammoType)
 		local data = {new = num, old = self.insaneStats_OldSetAmmoValue or self:GetAmmoCount(ammoType), type = ammoType, ply = self}
 		hook.Run("InsaneStatsPlayerSetAmmo", data)
+
+		ammoType = data.type
+		local ammoTypeNum = isstring(ammoType) and game.GetAmmoID(ammoType) or ammoType
+		local newAmmo = math.Round(data.new, 3)
+		local rawAmmo = math.ceil(newAmmo)
+		self.insaneStats_AmmoAdjs[ammoTypeNum] = rawAmmo - newAmmo
 		
-		return self:InsaneStats_SetRawAmmo(data.new, data.type)
+		playerAmmosToUpdateAdjs[self] = playerAmmosToUpdateAdjs[self] or {}
+		playerAmmosToUpdateAdjs[self][ammoTypeNum] = true
+		
+		return self:InsaneStats_SetRawAmmo(rawAmmo, ammoType)
 	end
 end
 
@@ -390,18 +490,32 @@ local function DeOverrideWeapons()
 	if WEAPON.InsaneStats_SetRawNextPrimaryFire then
 		WEAPON.SetNextPrimaryFire = WEAPON.InsaneStats_SetRawNextPrimaryFire
 		WEAPON.SetNextSecondaryFire = WEAPON.InsaneStats_SetRawNextSecondaryFire
+		WEAPON.Clip1 = WEAPON.InsaneStats_RawClip1
+		WEAPON.Clip2 = WEAPON.InsaneStats_RawClip2
 		WEAPON.SetClip1 = WEAPON.InsaneStats_SetRawClip1
 		WEAPON.SetClip2 = WEAPON.InsaneStats_SetRawClip2
 		
+		PLAYER.GetAmmoCount = PLAYER.InsaneStats_GetRawAmmoCount
+		PLAYER.GetAmmo = PLAYER.InsaneStats_GetRawAmmo
+		PLAYER.GiveAmmo = PLAYER.InsaneStats_GiveRawAmmo
 		PLAYER.RemoveAmmo = PLAYER.InsaneStats_RemoveRawAmmo
+		PLAYER.RemoveAllAmmo = PLAYER.InsaneStats_RemoveAllRawAmmo
+		PLAYER.StripAmmo = PLAYER.InsaneStats_StripRawAmmo
 		PLAYER.SetAmmo = PLAYER.InsaneStats_SetRawAmmo
 		
 		WEAPON.InsaneStats_SetRawNextPrimaryFire = nil
 		WEAPON.InsaneStats_SetRawNextSecondaryFire = nil
+		WEAPON.InsaneStats_RawClip1 = nil
+		WEAPON.InsaneStats_RawClip2 = nil
 		WEAPON.InsaneStats_SetRawClip1 = nil
 		WEAPON.InsaneStats_SetRawClip2 = nil
 		
+		PLAYER.InsaneStats_GetRawAmmoCount = nil
+		PLAYER.InsaneStats_GetRawAmmo = nil
+		PLAYER.InsaneStats_GiveRawAmmo = nil
 		PLAYER.InsaneStats_RemoveRawAmmo = nil
+		PLAYER.InsaneStats_RemoveAllRawAmmo = nil
+		PLAYER.InsaneStats_StripRawAmmo = nil
 		PLAYER.InsaneStats_SetRawAmmo = nil
 	end
 end
@@ -423,7 +537,7 @@ local function JoinBulletCallbacks(funcs)
 		local effects, damage = true, true
 		for i,v in ipairs(funcs) do
 			local tab = v(...)
-			if tab then
+			if istable(tab) then
 				effects = effects and tab.effects
 				damage = damage and tab.damage
 			end
@@ -1026,5 +1140,34 @@ hook.Add("Think", "InsaneStatsSharedWPASS", function()
 				k.insaneStats_StatusEffects[stat] = nil
 			end
 		end
+	end
+
+	if SERVER then
+		for ply, ammoAdjsToUpdate in pairs(playerAmmosToUpdateAdjs) do
+			net.Start("insane_stats")
+			net.WriteUInt(13, 8)
+			net.WriteBool(ammoAdjsToUpdate.clear or false)
+			if not ammoAdjsToUpdate.clear then
+				local toSend = {}
+				for k,v in pairs(ammoAdjsToUpdate) do
+					table.insert(toSend, {k, ply.insaneStats_AmmoAdjs[k]})
+				end
+				net.WriteUInt(#toSend, 16)
+				for i,v in ipairs(toSend) do
+					net.WriteUInt(v[1], 16)
+					net.WriteDouble(v[2])
+				end
+			end
+			net.Send(ply)
+		end
+	end
+
+	playerAmmosToUpdateAdjs = {}
+end)
+
+hook.Add("PlayerSpawn", "InsaneStatsSharedWPASS", function(ply)
+	playerAmmosToUpdateAdjs[ply] = {}
+	for k,v in pairs(ply.insaneStats_AmmoAdjs or {}) do
+		playerAmmosToUpdateAdjs[ply][k] = true
 	end
 end)

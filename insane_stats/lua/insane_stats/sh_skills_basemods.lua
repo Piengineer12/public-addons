@@ -122,9 +122,11 @@ local skills = {
 	},
 	love_and_tolerate = {
 		name = "Love And Tolerate",
-		desc = "Whenever damage would be taken from a mob, gain %+.1f stack(s) of Love And Tolerate. Each stack gives 1%% more defence, but stacks decay at a rate of -0.1%%/s.",
+		desc = "Whenever damage would be taken from a mob, gain %+.1f stack(s) of Love And Tolerate. \z
+		Each stack gives 1%% more defence, but stacks decay at a rate of -0.1%%/s. \z
+		The Hellish Challenge skill is also +%u%% more effective. ",
 		values = function(level)
-			return level/5
+			return level/5, level * 20
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = current * .999 ^ time
@@ -398,9 +400,9 @@ local skills = {
 	},
 	reuse = {
 		name = "Reuse",
-		desc = "%+.0f%% chance to not consume ammo",
+		desc = "%+.0f%% ammo consumption",
 		values = function(level)
-			return level * 8
+			return level * -8
 		end,
 		img = "crystal-bars",
 		pos = {3, -2},
@@ -524,9 +526,10 @@ local skills = {
 	},
 	overheal = {
 		name = "Overheal",
-		desc = "On kill, restore %+i%% of max health. Health gained this way can exceed max health, but with diminishing returns.",
+		desc = "On kill, restore %+i%% of max health. Health gained this way can exceed max health, \z
+		but with diminishing returns. Also, max health gains from skills and modifiers are increased by +%u%%.",
 		values = function(level)
-			return level
+			return level, level * 5
 		end,
 		img = "shining-heart",
 		pos = {-3, -2},
@@ -663,9 +666,10 @@ local skills = {
 	},
 	overshield = {
 		name = "Overshield",
-		desc = "On kill, restore %+.0f%% of max shield. Shield gained this way can exceed max shield, but with diminishing returns.",
+		desc = "On kill, restore %+.0f%% of max shield. Shield gained this way can exceed max shield, \z
+		but with diminishing returns. Also, max shield gains from skills and modifiers are increased by +%u%%.",
 		values = function(level)
-			return level
+			return level, level * 5
 		end,
 		img = "energise",
 		pos = {-4, -2},
@@ -932,11 +936,11 @@ local skills = {
 	},
 	ctrl_f = {
 		name = "Ctrl+F",
-		desc = "Interacting with a key will show the door it unlocks on the HUD, and vice versa.%s",
+		desc = "Interacting with a key will show the door it unlocks on the HUD, and vice versa, for 60 seconds.%s",
 		values = function(level, ent)
 			if level > 1 then
-				return " Magenta indicators are also shown at the exact points to slot a key in \z
-				and when ANY door / button gets unlocked or moved, but only for a minute."
+				return " Indicators are also shown at the exact points to slot a key in \z
+				and when ANY door / button gets unlocked or moved."
 			else return ""
 			end
 		end,
@@ -1116,11 +1120,11 @@ local skills = {
 	},
 	anger = {
 		name = "Anger",
-		desc = "Taking damage from an NPC doubles all damage dealt for %u seconds! 60 seconds cooldown. \z
+		desc = "Taking damage from an NPC triples all damage dealt for %u seconds! 60 seconds cooldown. \z
 		Also, whenever explosive damage is dealt to an NPC, there is a +%u%% chance to \z
 		create a live grenade at the hit position.",
 		values = function(level)
-			return level * 20, level * 25
+			return level * 10, level * 25
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = math.max(current - time, 0)
@@ -1466,11 +1470,13 @@ local skills = {
 	},
 	hellish_challenge = {
 		name = "Hellish Challenge",
-		desc = "Gain +%u%% attack damage, coins and XP. Whenever damage would be taken from a mob, \z
-		gain %i stack(s) of Hellish Challenge. Each stack increases health and shield gained from skills and modifiers \z
+		desc = "Gain +%u%% attack damage, coins and XP. \z
+		Whenever damage would be taken from a mob, gain %i stack(s) of Hellish Challenge. \z
+		Each stack increases health and shield gained from skills and modifiers by 1%% \z
 		and stacks are passively gained at a rate of +%.1f per second. Stacks are clamped to between -100 and 0.",
 		values = function(level, ent)
-			return level * 10, -level, level/5
+			local amplifier = 1 + ent:InsaneStats_GetEffectiveSkillValues("love_and_tolerate", 2) / 100
+			return level * 10 * amplifier, -level * amplifier, level/5 * amplifier
 		end,
 		stackTick = function(state, current, time, ent)
 			local newStacks = math.Clamp(

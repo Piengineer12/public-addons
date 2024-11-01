@@ -1203,8 +1203,13 @@ SaveData = function(ply, forced)
 	-- if ply.insaneStats_WPASS2DataLoaded is false, do not save as the player is still initializing
 	-- otherwise other addons that set a much lower max health on spawn will do so, then *that* data will be saved
 	if steamID and (ply:Alive() or forced) and ply.insaneStats_WPASS2DataLoaded then
-		local shouldSave = InsaneStats:GetConVarValue("wpass2_modifiers_player_save_death")
-		local shouldSaveBattery = InsaneStats:GetConVarValueDefaulted("wpass2_modifiers_player_save_death_battery", "wpass2_modifiers_player_save_death")
+		local shouldSave = InsaneStats:GetConVarValue(
+			forced and "wpass2_modifiers_player_save_death" or "wpass2_modifiers_player_save"
+		)
+		local shouldSaveBattery = InsaneStats:GetConVarValueDefaulted(
+			forced and "wpass2_modifiers_player_save_death_battery" or "wpass2_modifiers_player_save_battery",
+			forced and "wpass2_modifiers_player_save_death" or "wpass2_modifiers_player_save"
+		)
 		if shouldSave > 0 or shouldSaveBattery > 0 then
 			playerLoadoutData[steamID] = GetPlayerWPASS2SaveData(ply, forced, shouldSave, shouldSaveBattery, playerLoadoutData[steamID])
 		else

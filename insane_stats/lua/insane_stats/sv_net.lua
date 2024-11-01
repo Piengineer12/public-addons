@@ -18,7 +18,7 @@ end
 	end
 end]]
 
-function ENT:InsaneStats_DamageNumber(attacker, damage, types, hitgroup)
+function ENT:InsaneStats_DamageNumber(attacker, damage, types, hitgroup, wasHealthyWhenDamaged)
 	if IsValid(self) then
 		local entIndex = self:EntIndex()
 		
@@ -33,6 +33,12 @@ function ENT:InsaneStats_DamageNumber(attacker, damage, types, hitgroup)
 			currentDamageInfo.flags = bit.bor(currentDamageInfo.flags, 2)
 		elseif damage == "miss" then
 			currentDamageInfo.flags = bit.bor(currentDamageInfo.flags, 1)
+		end
+		if wasHealthyWhenDamaged and self:GetCollisionGroup() ~= COLLISION_GROUP_DEBRIS then
+			currentDamageInfo.flags = bit.bor(currentDamageInfo.flags, 8)
+		end
+		if self:InsaneStats_IsMob() then
+			currentDamageInfo.flags = bit.bor(currentDamageInfo.flags, 16)
 		end
 		currentDamageInfo.types = bit.bor(currentDamageInfo.types, types or 0)
 						
@@ -145,6 +151,11 @@ local function BroadcastEntityUpdates()
 		
 		if bit.band(v, 256) ~= 0 then
 			net.WriteUInt(k.insaneStats_CitizenFlags, 4)
+		end
+
+		if bit.band(v, 512) ~= 0 then
+			net.WriteDouble(k.insaneStats_Clip1Adj or 0)
+			net.WriteDouble(k.insaneStats_Clip2Adj or 0)
 		end
 		
 		--print(k, v)

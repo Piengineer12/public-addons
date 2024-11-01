@@ -100,6 +100,7 @@ hook.Add("EntityEmitSound", "InsaneStatsSoundFixes", function(sound)
 			string.find(sound.SoundName, "song")
 		)]]
 		if InsaneStats:GetConVarValue("sndfix_music") and string.match(sound.SoundName, "^.[%w\\_/]")
+		and sound.SoundName[1] ~= '#'
 		and (string.find(sound.SoundName, "music") or string.find(sound.SoundName, "song")) then
 			sound.SoundName = '#'..sound.SoundName
 			changesMade = true
@@ -143,8 +144,9 @@ hook.Add("EntityKeyValue", "InsaneStatsSoundFixes", function(ent, key, value)
 				--end
 			end
 			
-			if InsaneStats:GetConVarValue("sndfix_music") and string.match(value, "^[%w\\_/][%w\\_/]") and
-			(string.find(value, "music") or string.find(value, "song")) then
+			if InsaneStats:GetConVarValue("sndfix_music") and string.match(value, "^[%w\\_/][%w\\_/]")
+			and newValue[1] ~= '#'
+			and (string.find(value, "music") or string.find(value, "song")) then
 				newValue = '#'..newValue
 			end
 			

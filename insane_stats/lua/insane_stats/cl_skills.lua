@@ -36,6 +36,7 @@ local color_gray = InsaneStats:GetColor("gray")
 local color_yellow = InsaneStats:GetColor("yellow")
 local color_green = InsaneStats:GetColor("green")
 local color_aqua = InsaneStats:GetColor("aqua")
+local color_black_translucent = InsaneStats:GetColor("black_translucent")
 
 local function CreateSkillButton(parent, skillName)
 	local ply = LocalPlayer()
@@ -433,7 +434,6 @@ local function CreateSkillHeaders(parent)
 	end
 end
 
-local color_black_ui = Color(0, 0, 0, 223)
 function InsaneStats:CreateSkillMenu(frame)
 	-- the frame created by the context menu loses focus when the context menu is closed,
 	-- which causes the frame to be uninteractable
@@ -449,7 +449,7 @@ function InsaneStats:CreateSkillMenu(frame)
 	Main:SetTitle("Insane Stats Skills")
 	Main.lblTitle:SetFont("InsaneStats.Medium")
 	function Main:Paint(w, h)
-		draw.RoundedBox(4, 0, 0, w, h, color_black_ui)
+		draw.RoundedBox(4, 0, 0, w, h, color_black_translucent)
 	end
 	if InsaneStats:GetConVarValue("skills_enabled") then
 		function Main:OnKeyCodePressed(key)

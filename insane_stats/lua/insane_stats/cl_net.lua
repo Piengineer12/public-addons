@@ -34,6 +34,7 @@ net.Receive("insane_stats", function()
 			local modifiers, statusEffects, coins
 			local lastCoinTier--, wpLevel, wpDangerous
 			local citizenFlags, skills, sealedSkills
+			local clipAdj1, clipAdj2
 			
 			if bit.band(flags, 1) ~= 0 then
 				health = net.ReadDouble()
@@ -115,6 +116,11 @@ net.Receive("insane_stats", function()
 			if bit.band(flags, 256) ~= 0 then
 				citizenFlags = net.ReadUInt(4)
 			end
+
+			if bit.band(flags, 512) ~= 0 then
+				clipAdj1 = net.ReadDouble()
+				clipAdj2 = net.ReadDouble()
+			end
 			
 			local ent = Entity(entIndex)
 			if IsValid(ent) and entIndex == ent:EntIndex() then
@@ -177,6 +183,11 @@ net.Receive("insane_stats", function()
 				if citizenFlags then
 					ent.insaneStats_CitizenFlags = citizenFlags
 				end
+
+				if clipAdj1 then
+					ent.insaneStats_Clip1Adj = clipAdj1
+					ent.insaneStats_Clip2Adj = clipAdj2
+				end
 				
 				hook.Run("InsaneStatsEntityUpdated", ent, flags)
 			end
@@ -205,8 +216,7 @@ net.Receive("insane_stats", function()
 				local entIndex = net.ReadUInt(16)
 				local pos = net.ReadVector()
 				local class = net.ReadString()
-				local start = net.ReadBool()
-				start = start and CurTime() or -1
+				local start = CurTime()
 				table.insert(highlights, {index = entIndex, pos = pos, class = class, start = start})
 			end
 
@@ -303,11 +313,31 @@ net.Receive("insane_stats", function()
 	elseif func == 12 then
 		local ent = net.ReadEntity()
 		if IsValid(ent) then
+			local class = ent:GetClass()
 			if ent:IsWeapon() then
 				ent:SetDeploySpeed(net.ReadFloat())
-			elseif rechargerClasses[ent:GetClass()] then
+			elseif rechargerClasses[class] then
 				ent:SetNoDraw(true)
 				ent.insaneStats_NoTargetID = true
+			elseif class == "prop_vehicle_jeep" then
+				local charge = net.ReadFloat()
+				local curTime = net.ReadFloat()
+				ent:InsaneStats_SetEntityData("buggy_charge_rate", charge > 0 and 10 or -10)
+				ent:InsaneStats_SetEntityData("buggy_charge", math.abs(charge))
+				ent:InsaneStats_SetEntityData("buggy_charge_updated", curTime)
+			end
+		end
+	elseif func == 13 then
+		local fullDrop = net.ReadBool()
+		local ply = LocalPlayer()
+		if fullDrop then
+			ply.insaneStats_AmmoAdjs = nil
+		else
+			ply.insaneStats_AmmoAdjs = ply.insaneStats_AmmoAdjs or {}
+			for i=1, net.ReadUInt(16) do
+				local ammoType = net.ReadUInt(16)
+				local ammoAdj = net.ReadDouble()
+				ply.insaneStats_AmmoAdjs[ammoType] = ammoAdj
 			end
 		end
 	end

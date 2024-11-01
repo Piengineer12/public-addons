@@ -18,14 +18,40 @@ concommand.Add("insanestats_xp_other_level_maps_show", function(ply, cmd, args, 
 	
 			print("These are the unrecorded maps:")
 			PrintTable(unrecordedMaps)
+		elseif argStr == "nonexistent" then
+			local existentMaps = {}
+			for i,v in ipairs(file.Find("maps/*.bsp", "GAME")) do
+				local mapName = v:StripExtension()
+				existentMaps[mapName] = true
+			end
+
+			local neMapOrder = {}
+			for i,v in ipairs(mapOrder) do
+				if not existentMaps[v] then
+					table.insert(neMapOrder, v)
+				end
+			end
+			print("These are the nonexistent maps:")
+			PrintTable(neMapOrder)
 		else
 			print("These are the recorded maps:")
 			PrintTable(mapOrder)
 			print("You are on map #"..mapNumber..".")
 		end
 	end
-end, nil, "Shows all maps that are currently factored into level scaling. \z
-Passing in \"unrecorded\" will show all maps that are NOT currently factored.")
+end, function(cmd, argStr)
+	local suggestions = {}
+	argStr = argStr:Trim()
+	if ("nonexistent"):find(argStr) then
+		table.insert(suggestions, cmd.." nonexistent")
+	end
+	if ("unrecorded"):find(argStr) then
+		table.insert(suggestions, cmd.." unrecorded")
+	end
+	return suggestions
+end, "Shows all maps that are currently factored into level scaling.\n\z
+Passing in \"unrecorded\" will show all maps that are NOT currently factored, \z
+while \"nonexistent\" will show all maps that are factored but non-existent.")
 concommand.Add("insanestats_xp_other_level_maps_reset", function(ply, cmd, args, argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
 		mapOrder = {}
@@ -345,6 +371,13 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 				local currentHealthAdd = victim:InsaneStats_GetCurrentHealthAdd()
 				local startingHealth = victim:InsaneStats_GetMaxHealth() / currentHealthAdd
 				local startXPToGive = victim.insaneStats_IsDead and 0 or startingHealth * xpMul / 5
+				
+				if InsaneStats:IsDebugLevel(2) then
+					InsaneStats:Log("%s should drop %g XP", tostring(victim), startXPToGive)
+					if victim.insaneStats_IsDead then
+						InsaneStats:Log("because the victim was dead before")
+					end
+				end
 				
 				--print(startXPToGive)
 				-- do not add XP on nan
