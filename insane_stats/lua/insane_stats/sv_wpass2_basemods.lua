@@ -10,7 +10,7 @@ this doesn't happen for any other tier damage
 local isSkillExplosion = false
 
 local entities = {}
-for i,v in ipairs(ents.GetAll()) do
+for i,v in ents.Iterator() do
 	entities[v] = true
 end
 local rapidThinkEntities = {}
@@ -889,6 +889,125 @@ hook.Add("EntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo)
 	end
 end)
 
+local lastPlayersAmmoUpdate = 0
+local cachedPlayersAmmo = {}
+local keyValuesOrder = {
+	"DesiredAmmoAR2",
+	"DesiredAmmoAR2_AltFire",
+	"DesiredAmmoPistol",
+	"DesiredAmmoSMG1",
+	"DesiredAmmo357",
+	"DesiredAmmoCrossbow",
+	"DesiredAmmoBuckshot",
+	"DesiredAmmoRPG_Round",
+	"DesiredAmmoSMG1_Grenade",
+	"DesiredAmmoGrenade"
+}
+local possibleItems = {
+	item_ammo_357 = true,
+	item_ammo_ar2 = true,
+	item_ammo_ar2_altfire = true,
+	item_ammo_crossbow = true,
+	item_ammo_pistol = true,
+	item_ammo_smg1 = true,
+	item_ammo_smg1_grenade = true,
+	item_battery = true,
+	item_box_buckshot = true,
+	item_healthkit = true,
+	item_healthvial = true,
+	item_rpg_round = true,
+	item_dynamic_resupply = true,
+
+	weapon_357 = true,
+	weapon_alyxgun = true,
+	weapon_annabelle = true,
+	weapon_ar2 = true,
+	weapon_crossbow = true,
+	weapon_frag = true,
+	weapon_pistol = true,
+	weapon_rpg = true,
+	weapon_shotgun = true,
+	weapon_smg1 = true,
+	weapon_stunstick = true
+}
+local function SpawnRandomItems(items, pos)
+	if math.random() < items then
+	--[[if math.random() < items%1 then
+		items = math.ceil(items)
+	else
+		items = math.floor(items)
+	end
+	for i=1, items do]]
+		local currentTick = engine.TickCount()
+		local canAnyAmmo = false
+		if lastPlayersAmmoUpdate ~= currentTick then
+			lastPlayersAmmoUpdate = currentTick
+			for i=1,9 do
+				cachedPlayersAmmo[i] = false
+				for j,v in player.Iterator() do
+					if v:GetAmmoCount(i) > 0 then
+						cachedPlayersAmmo[i] = true break
+					end
+				end
+			end
+
+			cachedPlayersAmmo[10] = false
+			for i,v in player.Iterator() do
+				if v:HasWeapon("weapon_grenade") then
+					cachedPlayersAmmo[10] = true break
+				end
+				if v:InsaneStats_EffectivelyHasSkill("looting") or v:InsaneStats_EffectivelyHasSkill("fortune") then
+					canAnyAmmo = true
+				end
+			end
+		end
+
+		local item = ents.Create("item_dynamic_resupply")
+		item:SetKeyValue("DesiredHealth", string.format("%f", math.random()/16+0.9375))
+		item:SetKeyValue("DesiredArmor", string.format("%f", math.random()/16+0.9375))
+		for i,v in ipairs(keyValuesOrder) do
+			item:SetKeyValue(
+				v,
+				(canAnyAmmo or cachedPlayersAmmo[i])
+				and string.format("%f", math.random()/16+0.9375)
+				or "0.0"
+			)
+		end
+		item:SetKeyValue("spawnflags", 8)
+		item:SetPos(pos)
+		item:Spawn()
+
+		local toDistribute = {}
+
+		for i,v in ents.Iterator() do
+			local class = v:GetClass()
+			if possibleItems[class] then
+				if not v:CreatedByMap() and not IsValid(v:GetOwner())
+				and not v:InsaneStats_GetEntityData("item_teleported") then
+					table.insert(toDistribute, v)
+				end
+			end
+		end
+
+		if #toDistribute > 64 then
+			local plys = {}
+			for i,v in player.Iterator() do
+				if v:GetMoveType() == MOVETYPE_WALK then
+					table.insert(plys, v)
+				end
+			end
+			
+			if next(plys) then
+				-- distribute items randomly
+				for i,v in ipairs(toDistribute) do
+					v:InsaneStats_SetEntityData("item_teleported", true)
+					v:SetPos(plys[math.random(#plys)]:WorldSpaceCenter())
+				end
+			end
+		end
+	end
+end
+
 local scatterShotEntities = {}
 local grenadedEntities = {}
 local rechargerClasses = {
@@ -1398,9 +1517,7 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 				end
 
 				if dmginfo:IsExplosionDamage() then
-					attacker:InsaneStats_AddHealthNerfed(
-						attacker:InsaneStats_GetMaxHealth() * attacker:InsaneStats_GetEffectiveSkillValues("kablooey", 2) / 100
-					)
+					SpawnRandomItems(attacker:InsaneStats_GetEffectiveSkillValues("kablooey", 2) / 100, vic:WorldSpaceCenter())
 				end
 			end
 		end
@@ -1732,115 +1849,6 @@ hook.Add("InsaneStatsScaleCoins", "InsaneStatsWPASS2", function(data)
 	end
 end)
 
-local lastPlayersAmmoUpdate = 0
-local cachedPlayersAmmo = {}
-local keyValuesOrder = {
-	"DesiredAmmoAR2",
-	"DesiredAmmoAR2_AltFire",
-	"DesiredAmmoPistol",
-	"DesiredAmmoSMG1",
-	"DesiredAmmo357",
-	"DesiredAmmoCrossbow",
-	"DesiredAmmoBuckshot",
-	"DesiredAmmoRPG_Round",
-	"DesiredAmmoSMG1_Grenade",
-	"DesiredAmmoGrenade"
-}
-local possibleItems = {
-	item_ammo_357 = true,
-	item_ammo_ar2 = true,
-	item_ammo_ar2_altfire = true,
-	item_ammo_crossbow = true,
-	item_ammo_pistol = true,
-	item_ammo_smg1 = true,
-	item_ammo_smg1_grenade = true,
-	item_battery = true,
-	item_box_buckshot = true,
-	item_healthkit = true,
-	item_healthvial = true,
-	item_rpg_round = true,
-
-	weapon_357 = true,
-	weapon_alyxgun = true,
-	weapon_annabelle = true,
-	weapon_ar2 = true,
-	weapon_crossbow = true,
-	weapon_frag = true,
-	weapon_pistol = true,
-	weapon_rpg = true,
-	weapon_shotgun = true,
-	weapon_smg1 = true,
-	weapon_stunstick = true
-}
-local function SpawnRandomItems(items, pos)
-	if math.random() < items then
-	--[[if math.random() < items%1 then
-		items = math.ceil(items)
-	else
-		items = math.floor(items)
-	end
-	for i=1, items do]]
-		local currentTick = engine.TickCount()
-		local canAnyAmmo = false
-		if lastPlayersAmmoUpdate ~= currentTick then
-			lastPlayersAmmoUpdate = currentTick
-			for i=1,9 do
-				cachedPlayersAmmo[i] = false
-				for j,v in player.Iterator() do
-					if v:GetAmmoCount(i) > 0 then
-						cachedPlayersAmmo[i] = true break
-					end
-				end
-			end
-
-			cachedPlayersAmmo[10] = false
-			for i,v in player.Iterator() do
-				if v:HasWeapon("weapon_grenade") then
-					cachedPlayersAmmo[10] = true break
-				end
-				if v:InsaneStats_EffectivelyHasSkill("looting") or v:InsaneStats_EffectivelyHasSkill("fortune") then
-					canAnyAmmo = true
-				end
-			end
-		end
-
-		local item = ents.Create("item_dynamic_resupply")
-		item:SetKeyValue("DesiredHealth", string.format("%f", math.random()/16+0.9375))
-		item:SetKeyValue("DesiredArmor", string.format("%f", math.random()/16+0.9375))
-		for i,v in ipairs(keyValuesOrder) do
-			item:SetKeyValue(
-				v,
-				(canAnyAmmo or cachedPlayersAmmo[i])
-				and string.format("%f", math.random()/16+0.9375)
-				or "0.0"
-			)
-		end
-		item:SetKeyValue("spawnflags", 8)
-		item:SetPos(pos)
-		item:Spawn()
-
-		local toDistribute = {}
-		local plys = player.GetAll()
-		for i,v in ents.Iterator() do
-			local class = v:GetClass()
-			if possibleItems[class] then
-				if not v:CreatedByMap() and not IsValid(v:GetOwner())
-				and not v:InsaneStats_GetEntityData("item_teleported") then
-					table.insert(toDistribute, v)
-				end
-			end
-		end
-
-		if #toDistribute > 64 then
-			-- distribute items randomly
-			for i,v in ipairs(toDistribute) do
-				v:InsaneStats_SetEntityData("item_teleported", true)
-				v:SetPos(plys[math.random(#plys)]:WorldSpaceCenter())
-			end
-		end
-	end
-end
-
 local killingSpreeEffects = {
 	skill_damage_up = 25,
 	skill_crit_damage_up = 50,
@@ -1869,171 +1877,176 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsSkills", function(victim, at
 	if InsaneStats:GetConVarValue("skills_enabled") then
 		local skillAttackers = {}
 		if victim ~= attacker and IsValid(attacker) then
-			for i=0, attacker:InsaneStats_GetEffectiveSkillTier("master_of_fire") do
-				table.insert(skillAttackers, attacker)
-				if (attacker.GetDriver and IsValid(attacker:GetDriver())) then
-					table.insert(skillAttackers, attacker:GetDriver())
-				end
+			skillAttackers[attacker] = (skillAttackers[attacker] or 0)
+			+ attacker:InsaneStats_GetEffectiveSkillTier("master_of_fire") + 1
+
+			if (attacker.GetDriver and IsValid(attacker:GetDriver())) then
+				local driver = attacker:GetDriver()
+				skillAttackers[driver] = (skillAttackers[driver] or 0)
+				+ driver:InsaneStats_GetEffectiveSkillTier("master_of_fire") + 1
 			end
 		end
 		for k,v in pairs(InsaneStats:GetEntitiesWithSkills()) do
-			local triggers = 1 + k:InsaneStats_GetEffectiveSkillTier("master_of_fire")
-			local times = k:InsaneStats_GetEffectiveSkillTier("celebration") * triggers
+			local mofTriggers = 1 + k:InsaneStats_GetEffectiveSkillTier("master_of_fire")
+			local times = k:InsaneStats_GetEffectiveSkillTier("celebration") * mofTriggers
 			if k == attacker then
-				times = times - triggers
+				times = times - mofTriggers
 			end
-			for i=1, times do
-				table.insert(skillAttackers, k)
-			end
+			skillAttackers[k] = (skillAttackers[k] or 0) + times
 		end
 
-		for i,v in ipairs(skillAttackers) do
-			if v:InsaneStats_EffectivelyHasSkill("infusion") then
-				local maxHealth = v:InsaneStats_GetEffectiveSkillValues("infusion", 2)
-				v:InsaneStats_AddMaxHealth(maxHealth)
+		for attacker, triggers in pairs(skillAttackers) do
+			if attacker:InsaneStats_EffectivelyHasSkill("infusion") then
+				local maxHealth = attacker:InsaneStats_GetEffectiveSkillValues("infusion", 2) * triggers
+				attacker:InsaneStats_AddMaxHealth(maxHealth)
 			end
-			if v:InsaneStats_EffectivelyHasSkill("additional_pylons") then
-				local maxArmor = v:InsaneStats_GetEffectiveSkillValues("additional_pylons", 2)
-				v:InsaneStats_AddMaxArmor(maxArmor)
+			if attacker:InsaneStats_EffectivelyHasSkill("additional_pylons") then
+				local maxArmor = attacker:InsaneStats_GetEffectiveSkillValues("additional_pylons", 2) * triggers
+				attacker:InsaneStats_AddMaxArmor(maxArmor)
 			end
-			if v:InsaneStats_EffectivelyHasSkill("bastion_of_flesh") then
-				local skillValues = {v:InsaneStats_GetEffectiveSkillValues("bastion_of_flesh")}
-				local maxHealth = skillValues[2]/100 * v:InsaneStats_GetMaxArmor()
+			if attacker:InsaneStats_EffectivelyHasSkill("bastion_of_flesh") then
+				local skillValues = {attacker:InsaneStats_GetEffectiveSkillValues("bastion_of_flesh")}
+				local maxHealth = (1-(1-skillValues[2]/100)^triggers) * attacker:InsaneStats_GetMaxArmor()
 				local minimumArmor = skillValues[5]
-				local currentMaxArmor = v:InsaneStats_GetMaxArmor()
+				local currentMaxArmor = attacker:InsaneStats_GetMaxArmor()
 				if currentMaxArmor > minimumArmor then
 					if currentMaxArmor - maxHealth < minimumArmor then
 						maxHealth = currentMaxArmor - minimumArmor
 					end
-					v:InsaneStats_AddMaxHealth(maxHealth)
-					v:SetMaxArmor(v:InsaneStats_GetMaxArmor() - maxHealth)
-					v:InsaneStats_AddHealthNerfed(maxHealth * skillValues[3])
+					attacker:InsaneStats_AddMaxHealth(maxHealth)
+					attacker:SetMaxArmor(attacker:InsaneStats_GetMaxArmor() - maxHealth)
+					attacker:InsaneStats_AddHealthNerfed(maxHealth * skillValues[3])
 				end
 			end
 		
-			v:InsaneStats_AddHealthNerfed(
-				v:InsaneStats_GetEffectiveSkillValues("overheal") / 100 * v:InsaneStats_GetMaxHealth()
+			attacker:InsaneStats_AddHealthNerfed(
+				attacker:InsaneStats_GetEffectiveSkillValues("overheal") / 100 * attacker:InsaneStats_GetMaxHealth() * triggers
 			)
 
-			v:InsaneStats_AddArmorNerfed(
-				v:InsaneStats_GetEffectiveSkillValues("overshield") / 100 * v:InsaneStats_GetMaxArmor()
+			attacker:InsaneStats_AddArmorNerfed(
+				attacker:InsaneStats_GetEffectiveSkillValues("overshield") / 100 * attacker:InsaneStats_GetMaxArmor() * triggers
 			)
 			
-			local stacks = v:InsaneStats_GetEffectiveSkillValues("multi_killer")
-			v:InsaneStats_SetSkillData("multi_killer", 1, stacks + v:InsaneStats_GetSkillStacks("multi_killer"))
+			local stacks = attacker:InsaneStats_GetEffectiveSkillValues("multi_killer") * triggers
+			attacker:InsaneStats_SetSkillData("multi_killer", 1, stacks + attacker:InsaneStats_GetSkillStacks("multi_killer"))
 
-			if v:InsaneStats_EffectivelyHasSkill("rip_and_tear") then
-				v:InsaneStats_SetSkillData("rip_and_tear", 1, 10)
+			if attacker:InsaneStats_EffectivelyHasSkill("rip_and_tear") then
+				attacker:InsaneStats_SetSkillData("rip_and_tear", 1, 10)
 			end
-			if v:InsaneStats_EffectivelyHasSkill("back_to_back") then
-				v:InsaneStats_SetSkillData("back_to_back", 1, 10)
+			if attacker:InsaneStats_EffectivelyHasSkill("back_to_back") then
+				attacker:InsaneStats_SetSkillData("back_to_back", 1, 10)
 			end
-			if v:InsaneStats_EffectivelyHasSkill("embolden") then
-				v:InsaneStats_SetSkillData("embolden", 1, 10)
+			if attacker:InsaneStats_EffectivelyHasSkill("embolden") then
+				attacker:InsaneStats_SetSkillData("embolden", 1, 10)
 			end
-			if v:InsaneStats_EffectivelyHasSkill("hunting_spirit") then
-				v:InsaneStats_SetSkillData("hunting_spirit", 1, 10)
+			if attacker:InsaneStats_EffectivelyHasSkill("hunting_spirit") then
+				attacker:InsaneStats_SetSkillData("hunting_spirit", 1, 10)
 			end
-			if v:InsaneStats_EffectivelyHasSkill("skip_the_scenery") then
-				v:InsaneStats_SetSkillData("skip_the_scenery", -1, 10)
+			if attacker:InsaneStats_EffectivelyHasSkill("skip_the_scenery") then
+				attacker:InsaneStats_SetSkillData("skip_the_scenery", -1, 10)
 			end
-			if v:InsaneStats_EffectivelyHasSkill("stabilization") then
-				v:InsaneStats_SetSkillData("stabilization", 1, v:InsaneStats_GetEffectiveSkillValues("stabilization", 2))
+			if attacker:InsaneStats_EffectivelyHasSkill("kill_aura") then
+				attacker:InsaneStats_SetSkillData("kill_aura", 1, 10)
 			end
-			if v:InsaneStats_EffectivelyHasSkill("increase_the_pressure") then
-				v:InsaneStats_SetSkillData(
+			if attacker:InsaneStats_EffectivelyHasSkill("stabilization") then
+				attacker:InsaneStats_SetSkillData("stabilization", 1, attacker:InsaneStats_GetEffectiveSkillValues("stabilization", 2))
+			end
+			if attacker:InsaneStats_EffectivelyHasSkill("increase_the_pressure") then
+				attacker:InsaneStats_SetSkillData(
 					"increase_the_pressure",
 					1,
-					v:InsaneStats_GetSkillStacks("increase_the_pressure")
-					+ v:InsaneStats_GetEffectiveSkillValues("increase_the_pressure")
+					attacker:InsaneStats_GetSkillStacks("increase_the_pressure")
+					+ attacker:InsaneStats_GetEffectiveSkillValues("increase_the_pressure") * triggers
 				)
 			end
-			if v:InsaneStats_EffectivelyHasSkill("reject_humanity") then
-				v:InsaneStats_SetSkillData(
+			if attacker:InsaneStats_EffectivelyHasSkill("reject_humanity") then
+				attacker:InsaneStats_SetSkillData(
 					"reject_humanity",
 					1,
-					v:InsaneStats_GetSkillStacks("reject_humanity")
-					+ v:InsaneStats_GetEffectiveSkillValues("reject_humanity")
+					attacker:InsaneStats_GetSkillStacks("reject_humanity")
+					+ attacker:InsaneStats_GetEffectiveSkillValues("reject_humanity") * triggers
 				)
 			end
-			if v:InsaneStats_EffectivelyHasSkill("mania") then
-				v:InsaneStats_SetSkillData(
+			if attacker:InsaneStats_EffectivelyHasSkill("mania") then
+				attacker:InsaneStats_SetSkillData(
 					"mania",
 					1,
-					v:InsaneStats_GetSkillStacks("mania")
-					+ v:InsaneStats_GetEffectiveSkillValues("mania")
+					attacker:InsaneStats_GetSkillStacks("mania")
+					+ attacker:InsaneStats_GetEffectiveSkillValues("mania") * triggers
 				)
 			end
-			if v:InsaneStats_EffectivelyHasSkill("starlight") then
+			if attacker:InsaneStats_EffectivelyHasSkill("starlight") then
 				local newStacks = math.min(
 					1000,
-					v:InsaneStats_GetSkillStacks("starlight")
-					+ v:InsaneStats_GetEffectiveSkillValues("starlight")
+					attacker:InsaneStats_GetSkillStacks("starlight")
+					+ attacker:InsaneStats_GetEffectiveSkillValues("starlight") * triggers
 				)
-				v:InsaneStats_SetSkillData("starlight", 1, newStacks)
+				attacker:InsaneStats_SetSkillData("starlight", 1, newStacks)
 			end
-			if v:InsaneStats_EffectivelyHasSkill("killing_spree") then
-				v:InsaneStats_ApplyStatusEffect(
+			if attacker:InsaneStats_EffectivelyHasSkill("killing_spree") then
+				attacker:InsaneStats_ApplyStatusEffect(
 					"killing_spree",
-					v:InsaneStats_GetEffectiveSkillTier("killing_spree"),
+					attacker:InsaneStats_GetEffectiveSkillTier("killing_spree") * triggers,
 					60,
 					{amplify = true}
 				)
 
-				local effectsToApply = math.log(v:InsaneStats_GetStatusEffectLevel("killing_spree"), 5)
-				local possibleEffects = table.GetKeys(killingSpreeEffects)
+				local effectsToApply = math.log(attacker:InsaneStats_GetStatusEffectLevel("killing_spree"), 5) * triggers
+				local possibleEffects = {}
+				for k,v in pairs(killingSpreeEffects) do
+					if attacker:InsaneStats_GetStatusEffectDuration(k) < 10 then
+						table.insert(possibleEffects, k)
+					end
+				end
 				for i=1, effectsToApply do
 					if table.IsEmpty(possibleEffects) then break end
 					local effect = table.remove(possibleEffects, math.random(#possibleEffects))
 					local effectLevel = killingSpreeEffects[effect] * effectsToApply
-					v:InsaneStats_ApplyStatusEffect(effect, effectLevel, 10)
+					attacker:InsaneStats_ApplyStatusEffect(effect, effectLevel, 10)
 				end
 			end
-			if v:InsaneStats_EffectivelyHasSkill("sick_combo") then
-				local maxLevel = v:InsaneStats_GetTotalSkillPoints()
-				local level = math.min(v:InsaneStats_GetStatusEffectLevel("sick_combo") + 1, maxLevel)
-				local ad, mx = v:InsaneStats_GetEffectiveSkillValues("sick_combo")
-				local duration = math.min(v:InsaneStats_GetStatusEffectDuration("sick_combo") + ad, mx)
-				v:InsaneStats_ApplyStatusEffect(
+			if attacker:InsaneStats_EffectivelyHasSkill("sick_combo") then
+				local maxLevel = attacker:InsaneStats_GetTotalSkillPoints()
+				local level = math.min(attacker:InsaneStats_GetStatusEffectLevel("sick_combo") + triggers, maxLevel)
+				local ad, mx = attacker:InsaneStats_GetEffectiveSkillValues("sick_combo")
+				local duration = math.min(attacker:InsaneStats_GetStatusEffectDuration("sick_combo") + ad, mx)
+				attacker:InsaneStats_ApplyStatusEffect(
 					"sick_combo",
 					level,
 					duration
 				)
 			end
-			if v:InsaneStats_EffectivelyHasSkill("keep_it_fresh") then
-				local setStacks, decayStacks = v:InsaneStats_GetEffectiveSkillValues("keep_it_fresh")
-				local wep = v.GetActiveWeapon and v:GetActiveWeapon()
-				if wep == v.insaneStats_LastKIFWeapon then
-					local newStacks = math.max(v:InsaneStats_GetSkillStacks("keep_it_fresh") + decayStacks, 0)
-					v:InsaneStats_SetSkillData("keep_it_fresh", newStacks > 0 and 1 or 0, newStacks)
+			if attacker:InsaneStats_EffectivelyHasSkill("keep_it_fresh") then
+				local setStacks, decayStacks = attacker:InsaneStats_GetEffectiveSkillValues("keep_it_fresh")
+				local wep = attacker.GetActiveWeapon and attacker:GetActiveWeapon()
+				if wep == attacker.insaneStats_LastKIFWeapon then
+					local newStacks = math.max(attacker:InsaneStats_GetSkillStacks("keep_it_fresh") + decayStacks * triggers, 0)
+					attacker:InsaneStats_SetSkillData("keep_it_fresh", newStacks > 0 and 1 or 0, newStacks)
 				else
-					v:InsaneStats_SetSkillData("keep_it_fresh", 1, setStacks)
+					attacker:InsaneStats_SetSkillData("keep_it_fresh", 1, setStacks)
 				end
-				v.insaneStats_LastKIFWeapon = wep
+				attacker.insaneStats_LastKIFWeapon = wep
 			end
-			if v:InsaneStats_EffectivelyHasSkill("kill_aura") then
-				v:InsaneStats_SetSkillData("kill_aura", 1, 10)
-			end
-			if v:InsaneStats_EffectivelyHasSkill("synergy_1") or v:InsaneStats_EffectivelyHasSkill("synergy_4") then
+			if attacker:InsaneStats_EffectivelyHasSkill("synergy_1") or attacker:InsaneStats_EffectivelyHasSkill("synergy_4") then
 				local stacks = math.max(
-					v:InsaneStats_GetSkillStacks("synergy_1"),
-					v:InsaneStats_GetSkillStacks("synergy_2"),
-					v:InsaneStats_GetSkillStacks("synergy_3"),
-					v:InsaneStats_GetSkillStacks("synergy_4")
+					attacker:InsaneStats_GetSkillStacks("synergy_1"),
+					attacker:InsaneStats_GetSkillStacks("synergy_2"),
+					attacker:InsaneStats_GetSkillStacks("synergy_3"),
+					attacker:InsaneStats_GetSkillStacks("synergy_4")
 				)
-				local addStacks = v:InsaneStats_GetEffectiveSkillValues("synergy_1")
-				+ v:InsaneStats_GetEffectiveSkillValues("synergy_4")
+				local addStacks = (attacker:InsaneStats_GetEffectiveSkillValues("synergy_1")
+				+ attacker:InsaneStats_GetEffectiveSkillValues("synergy_4")) * triggers
 
-				v:InsaneStats_SetSkillData("synergy_1", 1, stacks + addStacks)
-				v:InsaneStats_SetSkillData("synergy_2", 1, stacks + addStacks)
-				v:InsaneStats_SetSkillData("synergy_3", 1, stacks + addStacks)
-				v:InsaneStats_SetSkillData("synergy_4", 1, stacks + addStacks)
+				attacker:InsaneStats_SetSkillData("synergy_1", 1, stacks + addStacks)
+				attacker:InsaneStats_SetSkillData("synergy_2", 1, stacks + addStacks)
+				attacker:InsaneStats_SetSkillData("synergy_3", 1, stacks + addStacks)
+				attacker:InsaneStats_SetSkillData("synergy_4", 1, stacks + addStacks)
 			end
 
-			if v:InsaneStats_EffectivelyHasSkill("productivity") and v.GetActiveWeapon then
-				local wep = v:GetActiveWeapon()
+			if attacker:InsaneStats_EffectivelyHasSkill("productivity") and attacker.GetActiveWeapon then
+				local wep = attacker:GetActiveWeapon()
 				if IsValid(wep) then
-					local ammoMul = v:InsaneStats_GetEffectiveSkillValues("productivity", 2) / 100
+					local ammoMul = attacker:InsaneStats_GetEffectiveSkillValues("productivity", 2) / 100 * triggers
 					local maxClip1 = wep:GetMaxClip1()
 					local maxClip2 = wep:GetMaxClip2()
 					local ammoType1 = wep:GetPrimaryAmmoType()
@@ -2062,22 +2075,24 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsSkills", function(victim, at
 					if clip1ToAdd > 0 then
 						if maxClip1 > 0 then
 							wep:SetClip1(math.min(wep:Clip1() + clip1ToAdd, 2147483647))
-						elseif v:IsPlayer() then
-							v:GiveAmmo(clip1ToAdd, ammoType1)
+						elseif attacker:IsPlayer() then
+							attacker:GiveAmmo(clip1ToAdd, ammoType1)
 						end
 					end
 					if clip2ToAdd > 0 then
 						if maxClip2 > 0 then
 							wep:SetClip2(math.min(wep:Clip2() + clip2ToAdd, 2147483647))
-						elseif v:IsPlayer() then
-							v:GiveAmmo(clip2ToAdd, ammoType2)
+						elseif attacker:IsPlayer() then
+							attacker:GiveAmmo(clip2ToAdd, ammoType2)
 						end
 					end
 				end
 			end
 
-			if v:IsPlayer() then
-				SpawnRandomItems(v:InsaneStats_GetEffectiveSkillValues("looting") / 100, victim:WorldSpaceCenter())
+			if attacker:IsPlayer() then
+				for i=1, triggers do
+					SpawnRandomItems(attacker:InsaneStats_GetEffectiveSkillValues("looting") / 100, victim:WorldSpaceCenter())
+				end
 			end
 		end
 	end

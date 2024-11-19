@@ -21,7 +21,7 @@ InsaneStats:RegisterClientConVar("hud_damage_noselfhealing", "insanestats_hud_da
 	type = InsaneStats.BOOL
 })
 
-InsaneStats:RegisterClientConVar("hud_dps_enabled", "insanestats_hud_dps_enabled", "1", {
+InsaneStats:RegisterClientConVar("hud_dps_enabled", "insanestats_hud_dps_enabled", "0", {
 	display = "DPS Meter", desc = "Shows the DPS meter. Note that all settings that affect damage numbers also affect the DPS meter!",
 	type = InsaneStats.BOOL
 })
@@ -29,7 +29,7 @@ InsaneStats:RegisterClientConVar("hud_dps_x", "insanestats_hud_dps_x", "0.35", {
 	display = "DPS Meter X", desc = "Horizontal position of DPS meter.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
-InsaneStats:RegisterClientConVar("hud_dps_y", "insanestats_hud_dps_y", "0.94", {
+InsaneStats:RegisterClientConVar("hud_dps_y", "insanestats_hud_dps_y", "0.9", {
 	display = "DPS Meter Y", desc = "Vertical position of DPS meter.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
@@ -57,6 +57,14 @@ InsaneStats:RegisterClientConVar("hud_hp_y", "insanestats_hud_hp_y", "0.98", {
 InsaneStats:RegisterClientConVar("hud_hp_w", "insanestats_hud_hp_w", "16", {
 	display = "Health and Armor Meters Width", desc = "Horizontal width of health meter.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
+})
+InsaneStats:RegisterClientConVar("hud_hp_h", "insanestats_hud_hp_h", "0.25", {
+	display = "Health and Armor Meters Height", desc = "Vertical height of health meter.",
+	type = InsaneStats.FLOAT, min = 0, max = 10
+})
+InsaneStats:RegisterClientConVar("hud_hp_decimals", "insanestats_hud_hp_decimals", "0", {
+	display = "Health and Armor Decimals", desc = "Makes the health meter show up to 3 decimal digits.",
+	type = InsaneStats.BOOL
 })
 
 local color_gray = InsaneStats:GetColor("gray")
@@ -107,10 +115,15 @@ hook.Add("InsaneStatsHUDDamageTaken", "InsaneStatsUnlimitedHealth", function(ent
 			if latestEntDamage.time + 1 > RealTime() then
 				latestEntDamage.damage = latestEntDamage.damage + damage
 				latestEntDamage.types = bit.bor(latestEntDamage.types, types)
-				latestEntDamage.crit = latestEntDamage.crit or hitgroup == 1
 				--latestEntDamage.time = RealTime()
 				--latestEntDamage.origin = position
 				latestEntDamage.flags = flags
+
+				if latestEntDamage.crit < 1 and hitgroup == 1 then
+					latestEntDamage.crit = 1
+				elseif latestEntDamage.crit < 0 and hitgroup <= 3 then
+					latestEntDamage.crit = 0
+				end
 				
 				requireNewAdd = false
 			end
@@ -134,7 +147,7 @@ hook.Add("InsaneStatsHUDDamageTaken", "InsaneStatsUnlimitedHealth", function(ent
 			table.insert(entityDamageNumbers, {
 				damage = damage,
 				types = types,
-				crit = hitgroup == 1,
+				crit = hitgroup == 1 and 1 or hitgroup > 3 and -1 or 0,
 				time = RealTime(),
 				origin = position,
 				flags = flags
@@ -273,10 +286,15 @@ local function DrawDamageNumber(entityDamageInfo)
 	draw.SimpleText(suffixText, "InsaneStats.Medium", textStartX + offsetX, posY, rainbowDrawColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM)
 	
 	-- if crit, draw extra text
-	if entityDamageInfo.crit then
+	if entityDamageInfo.crit > 0 then
 		InsaneStats:DrawTextOutlined(
 			"Critical!", 2, posX, posY - InsaneStats.FONT_MEDIUM,
 			color_red, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM
+		)
+	elseif entityDamageInfo.crit < 0 then
+		InsaneStats:DrawTextOutlined(
+			"Nick!", 2, posX, posY - InsaneStats.FONT_MEDIUM,
+			color_gray, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM
 		)
 	end
 end
@@ -424,8 +442,9 @@ hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 			local baseX = scrW * InsaneStats:GetConVarValue("hud_hp_x")
 			local baseY = scrH * InsaneStats:GetConVarValue("hud_hp_y")
 			local barW = InsaneStats.FONT_MEDIUM * InsaneStats:GetConVarValue("hud_hp_w")
-			local barH = InsaneStats.FONT_MEDIUM / 2
+			local barH = InsaneStats.FONT_MEDIUM * InsaneStats:GetConVarValue("hud_hp_h")
 			local outlineThickness = InsaneStats:GetOutlineThickness()
+			local showDecimals = InsaneStats:GetConVarValue("hud_hp_decimals")
 			
 			-- armor bar
 			local armor = ply:InsaneStats_GetArmor()
@@ -442,7 +461,11 @@ hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 					barData.frac, barColor, barData.nextColor
 				)
 				
-				local text = InsaneStats:FormatNumber(math.Round(slowArmor)).." / "..InsaneStats:FormatNumber(math.Round(maxArmor))
+				local text = string.format(
+					"%s / %s",
+					InsaneStats:FormatNumber(showDecimals and slowArmor or math.Round(slowArmor, 0)),
+					InsaneStats:FormatNumber(showDecimals and maxArmor or math.Round(maxArmor, 0))
+				)
 				local offsetX, offsetY = InsaneStats:DrawTextOutlined(
 					"Shield", 2, baseX, baseY - barH - outlineThickness,
 					color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM
@@ -472,13 +495,21 @@ hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 			local barData = InsaneStats:CalculateMultibar(slowHealth, maxHealth, 120)
 			local bars = barData.bars
 			local barColor = barData.color
+
+			if bars == 1 then
+				barColor = HSVToColor(barData.frac * 120, 0.75, 1)
+			end
 			
 			InsaneStats:DrawRectOutlined(
 				baseX, baseY - barH, barW, barH,
 				barData.frac, barColor, barData.nextColor
 			)
 			
-			local text = InsaneStats:FormatNumber(math.Round(slowHealth)).." / "..InsaneStats:FormatNumber(math.Round(maxHealth))
+			local text = string.format(
+				"%s / %s",
+				InsaneStats:FormatNumber(showDecimals and slowHealth or math.Round(slowHealth, 0)),
+				InsaneStats:FormatNumber(showDecimals and maxHealth or math.Round(maxHealth, 0))
+			)
 			InsaneStats:DrawTextOutlined(
 				"Health", 2, baseX, baseY - barH - outlineThickness,
 				color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM

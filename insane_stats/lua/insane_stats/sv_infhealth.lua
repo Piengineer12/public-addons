@@ -466,7 +466,7 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 				end
 				if ent.insaneStats_TempOnDamaged then
 					ent.insaneStats_TempOnDamaged = nil
-					if multipleDamageClasses[class] then
+					if multipleDamageClasses[class] and (ent:GetInternalVariable("damagefilter") or "") == "" then
 						ent:InsaneStats_ApplyStatusEffect("undying", 10, math.huge)
 						ent:Fire("AddOutput", "OnDamaged !self:InsaneStats_OnDamaged")
 					end

@@ -1,17 +1,43 @@
 local ENT = FindMetaTable("Entity")
-
+local entitiesRequireUpdate = {}
 local nextEntityUpdateTimestamp = 0
+
 function ENT:InsaneStats_MarkForUpdate()
+	entitiesRequireUpdate[self] = true
+end
+
+local function BroadcastEntityUpdates()
 	if nextEntityUpdateTimestamp < RealTime() then
 		nextEntityUpdateTimestamp = RealTime() + 0.1
+
+		local rolledUpEntities = {}
+		local count = 0
+		for k,v in pairs(entitiesRequireUpdate) do
+			if IsValid(k) then
+				table.insert(rolledUpEntities, k)
+				entitiesRequireUpdate[k] = nil
+
+				count = count + 1
+				if count >= 255 then break end
+			end
+		end
 		
-		-- probe the server for status update
+		-- probe the server for status updates
 		net.Start("insane_stats")
 		net.WriteUInt(1, 8)
-		net.WriteEntity(self)
+		net.WriteUInt(count, 8)
+		for i,v in ipairs(rolledUpEntities) do
+			net.WriteEntity(v)
+		end
 		net.SendToServer()
 	end
 end
+
+hook.Add("Think", "InsaneStatsNet", function()
+	if next(entitiesRequireUpdate) then
+		BroadcastEntityUpdates()
+	end
+end)
 
 local rechargerClasses = {
 	func_healthcharger = true,
@@ -105,7 +131,7 @@ net.Receive("insane_stats", function()
 				skills, sealedSkills = {}, {}
 				for i=1, net.ReadUInt(8) do
 					local skillName = InsaneStats:GetSkillName(net.ReadUInt(8))
-					skills[skillName] = net.ReadUInt(4)
+					skills[skillName] = net.ReadUInt(8)
 				end
 				for i=1, net.ReadUInt(8) do
 					local skillName = InsaneStats:GetSkillName(net.ReadUInt(8))

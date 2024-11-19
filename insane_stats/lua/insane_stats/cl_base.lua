@@ -50,10 +50,11 @@ function InsaneStats:GetColor(color)
 end
 
 function InsaneStats:TransitionUINumber(a, b)
-	if a == math.huge or b == math.huge or a == -math.huge or b == -math.huge then
+	local numSpeed = InsaneStats:GetConVarValue("hud_number_speed")
+	if a == math.huge or b == math.huge or a == -math.huge or b == -math.huge or numSpeed <= 0 then
 		return b
 	else
-		return Lerp(1 - 2^(-14*RealFrameTime()), a, b)
+		return Lerp(1 - math.exp(-numSpeed * RealFrameTime()), a, b)
 	end
 end
 
@@ -399,6 +400,10 @@ InsaneStats:RegisterClientConVar("hud_outline_mode", "insanestats_hud_outline_mo
 	display = "Alternative HUD Outlines", desc = "Outlines are rendered as shadows instead.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterClientConVar("hud_number_speed", "insanestats_hud_number_speed", "20", {
+	display = "HUD Number Speed", desc = "Modifies the number update speed. 0 will remove number animations altogether.",
+	type = InsaneStats.FLOAT, min = 0, max = 100
+})
 InsaneStats:RegisterClientConVar("hud_never_simplify", "insanestats_hud_never_simplify", "0", {
 	display = "Don't Simplify Numbers", desc = "Disables numbers beyond 1 million being shown in simplified format. This only affects Insane Stats HUDs and GUIs.",
 	type = InsaneStats.BOOL
@@ -425,6 +430,14 @@ InsaneStats:RegisterClientConVar("hud_ally_y", "insanestats_hud_ally_y", "0.06",
 	display = "Allies Display Y", desc = "Vertical position of allies display.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
+InsaneStats:RegisterClientConVar("hud_ally_w", "insanestats_hud_ally_w", "4", {
+	display = "Allies Display Width", desc = "Horizontal width of allies display.",
+	type = InsaneStats.FLOAT, min = 0, max = 100
+})
+InsaneStats:RegisterClientConVar("hud_ally_h", "insanestats_hud_ally_h", "0.4", {
+	display = "Allies Display Height", desc = "Vertical height of allies display.",
+	type = InsaneStats.FLOAT, min = 0, max = 10
+})
 InsaneStats:RegisterClientConVar("hud_ally_dist_min", "insanestats_hud_ally_dist_min", "512", {
 	display = "Allies Display Distance Minimum", desc = "Minimum distance to see simplified ally status display.",
 	type = InsaneStats.FLOAT, min = 0, max = 4096
@@ -449,6 +462,10 @@ InsaneStats:RegisterClientConVar("hud_ammo_y", "insanestats_hud_ammo_y", "0.98",
 InsaneStats:RegisterClientConVar("hud_ammo_w", "insanestats_hud_ammo_w", "16", {
 	display = "Clip Meters Width", desc = "Horizontal width of ammo meters.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
+})
+InsaneStats:RegisterClientConVar("hud_ammo_h", "insanestats_hud_ammo_h", "0.25", {
+	display = "Clip Meters Height", desc = "Vertical height of ammo meters.",
+	type = InsaneStats.FLOAT, min = 0, max = 10
 })
 
 local ENT = FindMetaTable("Entity")
@@ -618,8 +635,8 @@ hook.Add("HUDPaint", "InsaneStats", function()
 				end
 			end
 
-			local barW = InsaneStats.FONT_SMALL * 4
-			local barH = InsaneStats.FONT_SMALL / 2
+			local barW = InsaneStats.FONT_SMALL * InsaneStats:GetConVarValue("hud_ally_w")
+			local barH = InsaneStats.FONT_SMALL * InsaneStats:GetConVarValue("hud_ally_h")
 
 			for i,v in ipairs(allyValues) do
 				if v.pos.visible and IsValid(v.ent) then
@@ -665,7 +682,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 			local baseX = scrW * InsaneStats:GetConVarValue("hud_ammo_x")
 			local baseY = scrH * InsaneStats:GetConVarValue("hud_ammo_y")
 			local barW = InsaneStats.FONT_MEDIUM * InsaneStats:GetConVarValue("hud_ammo_w")
-			local barH = InsaneStats.FONT_MEDIUM / 2
+			local barH = InsaneStats.FONT_MEDIUM * InsaneStats:GetConVarValue("hud_ammo_h")
 			local ammoMaxOverride = GetConVar("gmod_maxammo"):GetInt()
 			ammoMaxOverride = ammoMaxOverride > 0 and ammoMaxOverride
 
@@ -681,7 +698,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 
 					vehicleAmmoData = {18, maxAmmo, math.Clamp(charge, 0, maxAmmo)}
 				else
-					vehicleAmmoData = {vehicle:GetAmmo()}
+					vehicleAmmoData = {vehicle.GetAmmo and vehicle:GetAmmo() or 0}
 				end
 			end
 			local ammoType3 = vehicleAmmoData[1]
@@ -693,8 +710,8 @@ hook.Add("HUDPaint", "InsaneStats", function()
 				local bars = barData.bars
 				local barColor = barData.color
 
-				if ammo3 < maxAmmo3 then
-					barColor = HSVToColor(ammo3 / maxAmmo3 * 120, 0.75, 1)
+				if bars == 1 then
+					barColor = HSVToColor(barData.frac * 120, 0.75, 1)
 				end
 				
 				InsaneStats:DrawRectOutlined(
@@ -766,8 +783,8 @@ hook.Add("HUDPaint", "InsaneStats", function()
 						local bars = barData.bars
 						local barColor = barData.color
 
-						if clipData[1] <= math.max(clipData[2], 0) then
-							barColor = HSVToColor(clipData[1] / clipData[2] * 120, 0.75, 1)
+						if bars == 1 then
+							barColor = HSVToColor(barData.frac * 120, 0.75, 1)
 						end
 						
 						InsaneStats:DrawRectOutlined(
@@ -820,8 +837,8 @@ hook.Add("HUDPaint", "InsaneStats", function()
 						local bars = barData.bars
 						local barColor = barData.color
 
-						if clipData[1] <= math.max(clipData[2], 0) then
-							barColor = HSVToColor(clipData[1] / clipData[2] * 120, 0.75, 1)
+						if bars == 1 then
+							barColor = HSVToColor(barData.frac * 120, 0.75, 1)
 						end
 						
 						InsaneStats:DrawRectOutlined(

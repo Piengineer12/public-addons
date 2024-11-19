@@ -8,7 +8,7 @@ InsaneStats:RegisterClientConVar("hud_skills_x", "insanestats_hud_skills_x", "0.
 	display = "Skill Statuses X", desc = "Horizontal position of skill status indicators.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
-InsaneStats:RegisterClientConVar("hud_skills_y", "insanestats_hud_skills_y", "0.9", {
+InsaneStats:RegisterClientConVar("hud_skills_y", "insanestats_hud_skills_y", "0.92", {
 	display = "Skill Statuses Y", desc = "Vertical position of skill status indicators.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })

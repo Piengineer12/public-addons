@@ -347,9 +347,9 @@ local skills = {
 	},
 	kablooey = {
 		name = "Kablooey!",
-		desc = "%+.0f%% explosive damage dealt. Explosive hits towards enemies also restores %+.0f%% of max health.",
+		desc = "%+.0f%% explosive damage dealt. Explosive hits towards enemies have a +%u%% chance of spawning a random item.",
 		values = function(level)
-			return level * 10, level
+			return level * 10, level * 2
 		end,
 		img = "explosion-rays",
 		pos = {-2, -2},
@@ -1085,7 +1085,7 @@ local skills = {
 	},
 	desperate_harvest = {
 		name = "Desperate Harvest",
-		desc = "At low health, critical hits restore up to %+.0f%% of health.",
+		desc = "At low health, critical hits restore up to %+.0f%% of max health.",
 		values = function(level)
 			return level
 		end,
@@ -1662,7 +1662,8 @@ local skills = {
 		end,
 		img = "jigsaw-box",
 		pos = {5, -5},
-		minpts = 10
+		minpts = 10,
+		max = 100
 	},
 	master_of_air = {
 		name = "Master of Air",
@@ -1698,7 +1699,8 @@ local skills = {
 		end,
 		img = "jigsaw-box",
 		pos = {5, 5},
-		minpts = 10
+		minpts = 10,
+		max = 100
 	},
 	master_of_water = {
 		name = "Master of Water",
@@ -1738,7 +1740,8 @@ local skills = {
 		end,
 		img = "jigsaw-box",
 		pos = {-5, 5},
-		minpts = 10
+		minpts = 10,
+		max = 100
 	},
 	master_of_earth = {
 		name = "Master of Earth",
@@ -1774,7 +1777,8 @@ local skills = {
 		end,
 		img = "jigsaw-box",
 		pos = {-5, -5},
-		minpts = 10
+		minpts = 10,
+		max = 100
 	},
 }
 

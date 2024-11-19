@@ -201,6 +201,36 @@ concommand.Add("insanestats_wpass2_modifierweightstats", function(ply, cmd, args
 	end
 end, nil, "Calculates some numbers related to modifier counts, weights and percentages.")
 
+
+concommand.Add("insanestats_wpass2_giverandomweapons", function(ply, cmd, args, argStr)
+	if (IsValid(ply) and ply:IsSuperAdmin()) then
+		local percent = tonumber(argStr)
+		if percent then
+			local fraction = math.Clamp(percent / 100, 0, 1)
+			local spawnableWeaponList = {}
+			for i,v in ipairs(weapons.GetList()) do
+				if v.Spawnable then
+					table.insert(spawnableWeaponList, v.ClassName)
+				end
+			end
+			local numberOfWeapons = #spawnableWeaponList
+
+			-- FIXME: this creates a table containing values from 1 to n
+			-- just to sample some % of items from an n-long list, bweh
+			local toShuffle = {}
+			for i=1, numberOfWeapons do
+				table.insert(toShuffle, i)
+			end
+			table.Shuffle(toShuffle)
+			for i=1, math.Round(fraction * numberOfWeapons) do
+				ply:Give(spawnableWeaponList[toShuffle[i]])
+			end
+		else
+			InsaneStats:Log("\"%s\" is not a valid number!", percent)
+		end
+	end
+end, nil, "Gives a random % of all weapons in the game for debugging purposes. SUPERADMINS ONLY.")
+
 hook.Add("InsaneStatsPostLoadWPASS", "InsaneStatsWPASS", function(modifiers, attributes, registeredEffects)
 	InsaneStats.mergeEffectsToCheck = {}
 	for k,v in pairs(modifiers) do

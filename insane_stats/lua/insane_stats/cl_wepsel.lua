@@ -69,6 +69,7 @@ local weaponSelectorChars = {
 	weapon_slam = 'o'
 }
 local color_black_translucent = InsaneStats:GetColor("black_translucent")
+local color_gray = InsaneStats:GetColor("gray")
 local color_gray_translucent = InsaneStats:GetColor("gray_translucent")
 local gapSize = 2
 if IsValid(InsaneStats.WeaponSelectorWindow) then InsaneStats.WeaponSelectorWindow:Close() end
@@ -79,8 +80,8 @@ local function CreateForwarder(objFrom, objTo, funcName)
 	end
 end
 
-local function DrawScrollingText(text, time, x, y, w, color)
-	surface.SetFont("InsaneStats.Medium")
+local function DrawScrollingText(text, time, x, y, w, color, size)
+	surface.SetFont(size == 3 and "InsaneStats.Big" or "InsaneStats.Medium")
 	local nameExtraW = surface.GetTextSize(text) - w
 	local nameScrollFactor = 1
 	if nameExtraW > 0 then
@@ -88,7 +89,7 @@ local function DrawScrollingText(text, time, x, y, w, color)
 	end
 	local nameScrollAmt = Lerp(nameScrollFactor, nameExtraW, 0)
 
-	InsaneStats:DrawTextOutlined(text, 2, x - nameScrollAmt, y, color, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM)
+	InsaneStats:DrawTextOutlined(text, size or 2, x - nameScrollAmt, y, color, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM)
 end
 
 local function CreateWeaponButton(main, parent, wep, name, isSelected)
@@ -135,7 +136,10 @@ local function CreateWeaponButton(main, parent, wep, name, isSelected)
 			if (IsValid(ply) and ply:IsSuitEquipped()) then
 				local ammoMaxOverride = GetConVar("gmod_maxammo"):GetInt()
 				ammoMaxOverride = ammoMaxOverride > 0 and ammoMaxOverride
-				local customAmmoDisplay = wep.CustomAmmoDisplay and wep:CustomAmmoDisplay() or {}
+				local customAmmoDisplay = wep.CustomAmmoDisplay and wep:CustomAmmoDisplay()
+				if not (customAmmoDisplay and customAmmoDisplay.Draw) then
+					customAmmoDisplay = {}
+				end
 				local textY = outlineThickness
 
 				-- primary bar
@@ -215,7 +219,7 @@ local function CreateWeaponButton(main, parent, wep, name, isSelected)
 				DrawScrollingText(
 					table.concat(weaponDetails, ", "), displayTime,
 					textX, textY, maxWidth,
-					color_white, outlineThickness
+					color_white
 				)
 
 				textY = textY - InsaneStats.FONT_MEDIUM - outlineThickness
@@ -225,7 +229,7 @@ local function CreateWeaponButton(main, parent, wep, name, isSelected)
 				DrawScrollingText(
 					InsaneStats:GetWPASS2Name(wep), displayTime,
 					textX, textY, maxWidth,
-					rarityColor, outlineThickness
+					rarityColor
 				)
 
 				textY = textY - InsaneStats.FONT_MEDIUM - outlineThickness
@@ -234,7 +238,7 @@ local function CreateWeaponButton(main, parent, wep, name, isSelected)
 			DrawScrollingText(
 				name, displayTime,
 				textX, textY, maxWidth,
-				color_white, outlineThickness
+				color_white
 			)
 
 			render.SetScissorRect(0, 0, 0, 0, false)
@@ -651,6 +655,273 @@ local function InitWeaponSelectorWindow()
 	end
 end
 
+local mathEnv = {
+	inf = math.huge,
+	pi = math.pi,
+	e = math.exp(1),
+	tau = math.tau,
+	abs = math.abs,
+	acos = math.acos,
+	asin = math.asin,
+	atan = math.atan,
+	ceil = math.ceil,
+	cos = math.cos,
+	cosh = math.cosh,
+	deg = math.deg,
+	exp = math.exp,
+	fact = math.Factorial,
+	floor = math.floor,
+	log = math.log,
+	max = math.max,
+	min = math.min,
+	rad = math.rad,
+	random = math.random,
+	sin = math.sin,
+	sinh = math.sinh,
+	tan = math.tan,
+	tanh = math.tanh
+}
+
+local function InitWeaponSearchWindow()
+	local ply = LocalPlayer()
+
+	local Main = vgui.Create("DFrame")
+	Main:SetSize(ScrW() / 2, InsaneStats.FONT_BIG + 34)
+	Main:Hide()
+	Main:SetTitle("Gimme...")
+	Main.lblTitle:SetFont("InsaneStats.Big")
+	Main:Center()
+	InsaneStats.WeaponSearchWindow = Main
+	function Main:Paint(w, h)
+		draw.RoundedBox(4, 0, 0, w, h, color_black_translucent)
+	end
+	function Main:Begin()
+		for i,v in ipairs(ply:GetWeapons()) do
+			if not v.insaneStats_Modifiers then
+				v:InsaneStats_MarkForUpdate()
+			end
+		end
+	end
+	function Main:InsaneStats_SelectWeapon(wep)
+		self:Close()
+		if IsValid(wep) then
+			input.SelectWeapon(wep)
+			if InsaneStats:IsDebugLevel(2) then
+				InsaneStats:Log("Switching to %s!", tostring(wep))
+			end
+			ply:EmitSound("common/wpn_hudoff.wav", 0, 100, InsaneStats:GetConVarValue("hud_wepsel_volume") / 100)
+		else
+			ply:EmitSound("common/wpn_denyselect.wav", 0, 100, InsaneStats:GetConVarValue("hud_wepsel_volume") / 100)
+		end
+	end
+
+	local SearchBar = vgui.Create("DTextEntry", Main)
+	SearchBar:Dock(TOP)
+	SearchBar:RequestFocus()
+	SearchBar:SetTabbingDisabled(true)
+	SearchBar:SetFont("InsaneStats.Big")
+	SearchBar:SetTall(InsaneStats.FONT_BIG)
+	function SearchBar:GetAutoComplete(inputText)
+		-- calculate search string here, since time is needed for the server to respond with weapon naming
+		if not self.insaneStats_WeaponSearchStrings or inputText == "" then
+			-- search string:
+			-- <wpass2 name> tier:<tier> level:<level>
+			self.insaneStats_WeaponSearchStrings = {}
+			for i,v in ipairs(ply:GetWeapons()) do
+				if v.insaneStats_Modifiers then
+					local wpass2Name = InsaneStats:GetWPASS2Name(v)
+					local tier = v.insaneStats_Tier or 1
+					if wpass2Name then
+						local weaponSearchString = string.lower(string.format(
+							"%s %s tier:%i level:%s",
+							v:GetClass(),
+							wpass2Name,
+							tier,
+							InsaneStats:FormatNumber(v:InsaneStats_GetLevel())
+						))
+
+						-- store the wpass2 name, search string, tier (for coloring) and the weapon entity
+						table.insert(self.insaneStats_WeaponSearchStrings, {
+							name = InsaneStats:GetWeaponName(v),
+							wpass2 = wpass2Name,
+							search = weaponSearchString,
+							tier = tier,
+							wep = v
+						})
+					end
+				else
+					v:InsaneStats_MarkForUpdate()
+				end
+			end
+
+			local wpass2Enabled = InsaneStats:GetConVarValue("wpass2_enabled")
+			if wpass2Enabled then
+				table.sort(self.insaneStats_WeaponSearchStrings, function(a, b)
+					if a.tier ~= b.tier then return a.tier > b.tier
+					else return a.name < b.name
+					end
+				end)
+			else
+				table.SortByMember(self.insaneStats_WeaponSearchStrings, "name", true)
+			end
+		end
+
+		if inputText ~= "" then
+			if inputText[1] == "=" then
+				local compiled = CompileString(
+					"return "..string.sub(inputText, 2),
+					"error",
+					false
+				)
+				if isfunction(compiled) then
+					setfenv(compiled, mathEnv)
+					local success, ret = pcall(compiled)
+					if success then
+						return {{name = "="..tostring(ret), wpass2 = ""}}
+					else
+						return {{name = "=?", wpass2 = ret}}
+					end
+				else
+					return {{name = "=?", wpass2 = compiled}}
+				end
+			else
+				-- inputText is split by spaces, then _ are converted into .
+				inputText = string.PatternSafe(string.lower(inputText))
+				inputText = string.gsub(inputText, "_", ".")
+
+				local matcheses = {}
+				for i,v in ipairs(self.insaneStats_WeaponSearchStrings) do
+					local matches = true
+					for inputArg in string.gmatch(inputText, "(%S+)") do
+						if not string.find(v.search, inputArg) then
+							matches = false break
+						end
+					end
+					if matches then
+						table.insert(matcheses, v)
+						if #matcheses >= 10 then break end
+					end
+				end
+
+				return matcheses
+			end
+		end
+	end
+	function SearchBar:OpenAutoComplete(tab)
+		if table.IsEmpty(tab) then return end
+	
+		self.Menu = DermaMenu()
+		self.HistoryPos = 1
+		function self.Menu:Paint(w, h)
+			draw.RoundedBox(4, 0, 0, w, h, color_black_translucent)
+		end
+	
+		local startDrawTime = RealTime()
+		local wpass2Enabled = InsaneStats:GetConVarValue("wpass2_enabled")
+		for i,v in pairs(tab) do
+			local opt = self.Menu:AddOption("", function()
+				Main:InsaneStats_SelectWeapon(v.wep)
+			end)
+			opt:SetFont("InsaneStats.Big")
+			opt:SetTextInset(0, 0)
+			function opt:Paint(w, h)
+				local outlineThickness = InsaneStats:GetOutlineThickness()
+				local isWep = IsValid(v.wep)
+				local rarityColor = not isWep and color_gray
+				or wpass2Enabled and InsaneStats:GetRarityColor(InsaneStats:GetWPASS2Rarity(v.wep))
+				or HSVToColor(RealTime() * 120 % 360, 0.75, 1)
+
+				if self.Highlight then
+					draw.RoundedBox(4, 0, 0, w, h, rarityColor)
+				elseif self.Hovered then
+					draw.RoundedBox(4, 0, 0, w, h, color_gray_translucent)
+				end
+
+				DrawScrollingText(
+					v.name, RealTime() - startDrawTime,
+					outlineThickness, InsaneStats.FONT_BIG + outlineThickness,
+					w - outlineThickness * 2, color_white, 3
+				)
+				if wpass2Enabled or not isWep then
+					DrawScrollingText(
+						v.wpass2, RealTime() - startDrawTime,
+						outlineThickness, InsaneStats.FONT_BIG + InsaneStats.FONT_MEDIUM + outlineThickness,
+						w - outlineThickness * 2, rarityColor
+					)
+				end
+			end
+			function opt:PerformLayout(w, h)
+				local outlineThickness = InsaneStats:GetOutlineThickness()
+				local isWep = IsValid(v.wep)
+				local ySize = (wpass2Enabled or not isWep)
+				and InsaneStats.FONT_BIG + InsaneStats.FONT_MEDIUM + outlineThickness * 3
+				or InsaneStats.FONT_BIG + outlineThickness * 2
+				self:SetSize(self:GetParent():GetWide(), ySize)
+			
+				if IsValid(self.SubMenuArrow) then
+					self.SubMenuArrow:SetSize(15, 15)
+					self.SubMenuArrow:CenterVertical()
+					self.SubMenuArrow:AlignRight( 4 )
+				end
+			
+				DButton.PerformLayout(self, w, h)
+			end
+
+			if i == 1 then
+				opt.Highlight = true
+			end
+		end
+	
+		local x, y = self:LocalToScreen(0, self:GetTall())
+		self.Menu:SetMinimumWidth(self:GetWide())
+		self.Menu:Open(x, y, true, self)
+		self.Menu:SetPos(x, y)
+		self.Menu:SetMaxHeight( (ScrH() - y) - 10 )
+	end
+	function SearchBar:OnKeyCodeTyped(code)
+		self:OnKeyCode(code)
+	
+		if code == KEY_ENTER --[[and not self:IsMultiline() and self:GetEnterAllowed()]] then
+			if IsValid(self.Menu) then
+				-- simulate click on the first item and delete this menu
+				self.Menu:GetChild(math.max(1, self.HistoryPos)):DoClick()
+				self.Menu:Remove()
+			else
+				Main:InsaneStats_SelectWeapon()
+			end
+	
+			--[[self:FocusNext()
+			self:OnEnter(self:GetText())
+			self.HistoryPos = 0]]
+		end
+	
+		if --[[self.m_bHistory or]] IsValid(self.Menu) then
+			if code == KEY_UP then
+				self.HistoryPos = self.HistoryPos - 1
+				self:UpdateFromHistory()
+			end
+	
+			if code == KEY_DOWN or code == KEY_TAB then
+				self.HistoryPos = self.HistoryPos + 1
+				self:UpdateFromHistory()
+			end
+		end
+	end
+	function SearchBar:UpdateFromMenu()
+		local pos = self.HistoryPos
+		local num = self.Menu:ChildCount()
+	
+		self.Menu:ClearHighlights()
+	
+		if pos < 1 then pos = num end
+		if pos > num then pos = 1 end
+	
+		local item = self.Menu:GetChild(pos)
+		self.Menu:HighlightItem(item)
+		self.HistoryPos = pos
+	end
+end
+
 concommand.Add("+insanestats_wepsel", function()
 	if not IsValid(InsaneStats.WeaponSelectorWindow) then InitWeaponSelectorWindow() end
 	InsaneStats.WeaponSelectorWindow:Show()
@@ -660,4 +931,10 @@ concommand.Add("+insanestats_wepsel", function()
 end)
 concommand.Add("-insanestats_wepsel", function()
 	InsaneStats.WeaponSelectorWindow:Commit()
+end)
+concommand.Add("insanestats_wepsel_gimme", function()
+	if not IsValid(InsaneStats.WeaponSearchWindow) then InitWeaponSearchWindow() end
+	InsaneStats.WeaponSearchWindow:Show()
+	InsaneStats.WeaponSearchWindow:MakePopup()
+	InsaneStats.WeaponSearchWindow:Begin()
 end)
