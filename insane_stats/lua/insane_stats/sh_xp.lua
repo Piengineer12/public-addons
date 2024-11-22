@@ -78,7 +78,7 @@ InsaneStats:RegisterConVar("xp_other_kill", "insanestats_xp_other_yieldmul", "3"
 	display = "Non-player Yield Multiplier", desc = "Multiplier for added experience dropped when a non-player kills another non-player.",
 	type = InsaneStats.FLOAT, min = 0, max = 10
 })
-InsaneStats:RegisterConVar("xp_other_extra", "insanestats_xp_other_extrapercent", "100", {
+InsaneStats:RegisterConVar("xp_other_extra", "insanestats_xp_other_extrapercent", "20", {
 	display = "Non-player Additional XP %", desc = "Experience % added when non-players kill other non-players, scaled by the difference between levels.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })

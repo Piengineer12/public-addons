@@ -453,8 +453,8 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 
 		ent.insaneStats_PreventOverdamage = ent.insaneStats_PreventOverdamage or multipleDamageClasses[class]
 
-		timer.Simple(0, function()
-			if IsValid(ent) then
+		--timer.Simple(0, function()
+			--if IsValid(ent) then
 				if ent.insaneStats_TempOnHalfHealth then
 					ent.insaneStats_TempOnHalfHealth = nil
 					ent:InsaneStats_ApplyStatusEffect("pheonix", 10, math.huge)
@@ -474,8 +474,8 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 					ent:InsaneStats_ApplyStatusEffect("undying", 10, math.huge)
 					ent:Fire("AddOutput", "OnDamaged !self:InsaneStats_OnDamaged")
 				end
-			end
-		end)
+			--end
+		--end)
 	end
 	
 	if not ent.insaneStats_SpawnModified then

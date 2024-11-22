@@ -98,6 +98,16 @@ local ammoClasses = {
 	item_ammo_smg1_grenade = true,
 	item_box_buckshot = true,
 	item_rpg_round = true,
+
+	ammo_357 = true,
+	ammo_9mmbox = true,
+	ammo_buckshot = true,
+	ammo_crossbow = true,
+	ammo_gaussclip = true,
+	ammo_glockclip = true,
+	ammo_mp5clip = true,
+	ammo_mp5grenades = true,
+	ammo_rpgclip = true,
 }
 function EFFECT:GetParticleColor()
 	local color = color_black

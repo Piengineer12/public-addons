@@ -975,7 +975,7 @@ function PLAYER:InsaneStats_ShouldAutoPickup(item, speculative)
 		end
 	end
 
-	if item:GetOwner() == self then return true end
+	if IsValid(item:GetOwner()) then return true end
 
 	--[[if devEnabled then
 		InsaneStats:Log(string.format(
@@ -1535,4 +1535,8 @@ end)
 
 hook.Add("EntityRemoved", "InsaneStatsWPASS", function(ent)
 	SafeRemoveEntity(ent.insaneStats_ProxyWeapon)
+end)
+
+hook.Add("EntityTakeDamage", "InsaneStatsWPASS", function(vic, dmginfo)
+	if InsaneStats:GetConVarValue("wpass2_enabled") and not vic.insaneStats_Tier then return true end
 end)

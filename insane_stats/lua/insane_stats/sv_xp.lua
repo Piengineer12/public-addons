@@ -403,18 +403,18 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 					xpDropMul = InsaneStats:GetConVarValue("xp_other_kill")
 					
 					if xpToGive > 0 then
-						-- give xp % based on NPC level
+						-- give extra xp based on xp required by victim
+						-- to get from current level to next level
+						-- plus xp required to get to current level
 						local level = victim:InsaneStats_GetLevel()
 						local currentXP = InsaneStats:GetXPRequiredToLevel(level)
 						if currentXP ~= math.huge then
-							local levelsBack = InsaneStats:ScaleValueToLevelPure(
-								1,
-								InsaneStats:GetConVarValue("xp_drop_add_add")/100,
-								level,
-								false
-							)
-							local previousXP = InsaneStats:GetXPRequiredToLevel(level-levelsBack)
-							extraXP = (currentXP - previousXP) * InsaneStats:GetConVarValue("xp_other_mul")/100
+							local toLevelUp = currentXP - InsaneStats:GetXPRequiredToLevel(level-1)
+							local victimGiveXP = victim:InsaneStats_GetXP() * InsaneStats:GetConVarValue("xp_other_extra")/100
+							extraXP = toLevelUp + victimGiveXP
+							if InsaneStats:IsDebugLevel(2) then
+								InsaneStats:Log("%s, who needs %g xp to level up received a bonus of %g xp", tostring(attacker), toLevelUp, extraXP)
+							end
 							--print(currentXP, extraXP)
 						else
 							extraXP = math.huge
@@ -505,6 +505,7 @@ hook.Add("InsaneStatsEntityKilled", "InsaneStatsXP", function(victim, attacker, 
 	if InsaneStats:GetConVarValue("xp_enabled") then
 		local wep = victim.GetActiveWeapon and victim:GetActiveWeapon()
 		if victim:IsNPC() and (IsValid(wep) and wep:GetClass() == "weapon_smg1") then
+			-- FIXME: what exactly is affecting the number of bullets in the clip?
 			timer.Simple(0, function()
 				if IsValid(wep) then
 					if wep.InsaneStats_SetRawClip1 then
@@ -910,7 +911,8 @@ hook.Add("EntityTakeDamage", "InsaneStatsXP", function(vic, dmginfo)
 		InsaneStats:Log("@NASTYGRAM I REFUSE!")
 		return true
 	end
-		
+	
+	-- ignore damage dealt to uninitiated entities
 	if InsaneStats:GetConVarValue("xp_enabled") and not vic:InsaneStats_GetEntityData("level") then return true end
 end)
 

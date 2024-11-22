@@ -4,6 +4,10 @@ InsaneStats:RegisterClientConVar("hud_damage_enabled", "insanestats_hud_damage_e
 	display = "Damage Numbers", desc = "Shows the damage numbers.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterClientConVar("hud_damage_decimals", "insanestats_hud_damage_decimals", "0", {
+	display = "Damage Number Decimals", desc = "Maximum number of decimal digits to show for damage numbers below 1,000.",
+	type = InsaneStats.FLOAT, min = 0, max = 3
+})
 InsaneStats:RegisterClientConVar("hud_damage_selfonly", "insanestats_hud_damage_selfonly", "0", {
 	display = "Self(-Dealt) Damage Only", desc = "Damage dealt by other entities to other entities are not displayed.",
 	type = InsaneStats.BOOL
@@ -63,8 +67,8 @@ InsaneStats:RegisterClientConVar("hud_hp_h", "insanestats_hud_hp_h", "0.25", {
 	type = InsaneStats.FLOAT, min = 0, max = 10
 })
 InsaneStats:RegisterClientConVar("hud_hp_decimals", "insanestats_hud_hp_decimals", "0", {
-	display = "Health and Armor Decimals", desc = "Makes the health meter show up to 3 decimal digits.",
-	type = InsaneStats.BOOL
+	display = "Health and Armor Decimals", desc = "Maximum number of decimal digits to show for health meter numbers below 1,000.",
+	type = InsaneStats.FLOAT, min = 0, max = 3
 })
 
 local color_gray = InsaneStats:GetColor("gray")
@@ -222,7 +226,7 @@ local function DrawDamageNumber(entityDamageInfo)
 	end
 	
 	local numberText, suffixText = InsaneStats:FormatNumber(
-		math.floor(math.abs(entityDamageInfo.damage)),
+		math.Round(math.abs(entityDamageInfo.damage), InsaneStats:GetConVarValue("hud_damage_decimals")),
 		{separateSuffix = true, plus = entityDamageInfo.damage < 0}
 	)
 	if bit.band(entityDamageInfo.flags, 3) ~= 0 and entityDamageInfo.damage == 0 then
@@ -444,7 +448,7 @@ hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 			local barW = InsaneStats.FONT_MEDIUM * InsaneStats:GetConVarValue("hud_hp_w")
 			local barH = InsaneStats.FONT_MEDIUM * InsaneStats:GetConVarValue("hud_hp_h")
 			local outlineThickness = InsaneStats:GetOutlineThickness()
-			local showDecimals = InsaneStats:GetConVarValue("hud_hp_decimals")
+			local decimals = InsaneStats:GetConVarValue("hud_hp_decimals")
 			
 			-- armor bar
 			local armor = ply:InsaneStats_GetArmor()
@@ -463,8 +467,8 @@ hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 				
 				local text = string.format(
 					"%s / %s",
-					InsaneStats:FormatNumber(showDecimals and slowArmor or math.Round(slowArmor, 0)),
-					InsaneStats:FormatNumber(showDecimals and maxArmor or math.Round(maxArmor, 0))
+					InsaneStats:FormatNumber(math.Round(slowArmor, decimals)),
+					InsaneStats:FormatNumber(math.Round(maxArmor, decimals))
 				)
 				local offsetX, offsetY = InsaneStats:DrawTextOutlined(
 					"Shield", 2, baseX, baseY - barH - outlineThickness,
@@ -507,8 +511,8 @@ hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 			
 			local text = string.format(
 				"%s / %s",
-				InsaneStats:FormatNumber(showDecimals and slowHealth or math.Round(slowHealth, 0)),
-				InsaneStats:FormatNumber(showDecimals and maxHealth or math.Round(maxHealth, 0))
+				InsaneStats:FormatNumber(math.Round(slowHealth, decimals)),
+				InsaneStats:FormatNumber(math.Round(maxHealth, decimals))
 			)
 			InsaneStats:DrawTextOutlined(
 				"Health", 2, baseX, baseY - barH - outlineThickness,

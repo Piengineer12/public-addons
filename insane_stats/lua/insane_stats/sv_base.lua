@@ -34,7 +34,8 @@ function InsaneStats:WildcardMatches(wildcard, subject)
 end
 
 hook.Add("OnEntityCreated", "InsaneStats", function(ent)
-	timer.Simple(0, function()
+	local delay = InsaneStats:GetConVarValue("spawn_delay")
+	timer.Simple(delay, function()
 		if (IsValid(ent) and not ent:IsPlayer()) then
 			hook.Run("InsaneStatsTransitionCompat", ent)
 			hook.Run("InsaneStatsEntityCreated", ent)
@@ -55,6 +56,18 @@ hook.Add("OnNPCKilled", "InsaneStats", function(victim, attacker, inflictor)
 end)
 
 hook.Add("LambdaOnKilled", "InsaneStats", function(victim, dmginfo)
+	local attacker = dmginfo:GetAttacker()
+	local inflictor = dmginfo:GetInflictor()
+	hook.Run("InsaneStatsEntityKilled", victim, attacker, inflictor)
+end)
+
+hook.Add("OnZombieKilled", "InsaneStats", function(victim, dmginfo)
+	local attacker = dmginfo:GetAttacker()
+	local inflictor = dmginfo:GetInflictor()
+	hook.Run("InsaneStatsEntityKilled", victim, attacker, inflictor)
+end)
+
+hook.Add("OnBossKilled", "InsaneStats", function(victim, dmginfo)
 	local attacker = dmginfo:GetAttacker()
 	local inflictor = dmginfo:GetInflictor()
 	hook.Run("InsaneStatsEntityKilled", victim, attacker, inflictor)
