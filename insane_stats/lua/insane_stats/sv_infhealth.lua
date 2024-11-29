@@ -7,6 +7,8 @@ local entityClassesArmorNotSensible = {
 	[CLASS_ANTLION] = true,
 	[CLASS_BARNACLE] = true,
 	[CLASS_HEADCRAB] = true,
+	[CLASS_STALKER] = true,
+	[CLASS_ZOMBIE] = true,
 	[CLASS_EARTH_FAUNA] = true,
 	[CLASS_ALIEN_MONSTER] = true,
 	[CLASS_ALIEN_PREY] = true,
@@ -204,11 +206,19 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 	InsaneStats:SetAbsorbedDamage(0)
 	
 	if not vic:IsVehicle() then
+		local inflictor = dmginfo:GetInflictor()
+		local attacker = dmginfo:GetAttacker()
 		local multiplier = InsaneStats:DetermineDamageMul(vic, dmginfo)
-		dmginfo:ScaleDamage(multiplier)
 		--print(InsaneStats:GetDamage())
+		dmginfo:ScaleDamage(multiplier)
 		
 		if InsaneStats:GetConVarValue("infhealth_enabled") then
+			local helibomberCondition = IsValid(inflictor) and inflictor:GetClass() == "grenade_helicopter"
+				and IsValid(attacker) and attacker:GetClass() ~= "npc_helicopter"
+			if helibomberCondition then
+				dmginfo:ScaleDamage(1 + attacker:InsaneStats_GetStatusEffectLevel("helibomber") / 100)
+			end
+
 			-- if armor is present and the entity is not a player, reduce raw damage
 			local armor = vic:InsaneStats_GetArmor()
 			if armor > 0 then
@@ -250,47 +260,49 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 				dmginfo:InsaneStats_SetRawDamage(InsaneStats:GetDamage() * math.abs(vic:InsaneStats_GetRawHealth()) / math.abs(vic:InsaneStats_GetHealth()))
 			end
 			
-			if InsaneStats:GetConVarValue("infhealth_enabled") then
-				if dmginfo:IsDamageType(DMG_POISON) and dmginfo:InsaneStats_GetRawDamage() >= vic:InsaneStats_GetRawHealth() and vic:InsaneStats_GetRawHealth() > 0 then
-					-- poison damage should leave the user at 1 health, but the limitations of
-					-- single floating-point arithmetic is making this more difficult than it needs to be
-					--print(vic, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth())
-					local cappedDamage = vic:InsaneStats_GetRawHealth() * 33554431 / 33554432 - 1
-					dmginfo:InsaneStats_SetRawDamage(cappedDamage)
-					dmginfo:SetMaxDamage(cappedDamage)
-					--print(cappedDamage)
-					--vic:InsaneStats_SetRawHealth(dmginfo:InsaneStats_GetRawDamage() + 1)
-					--print(vic, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth())
+			if dmginfo:IsDamageType(DMG_POISON) and dmginfo:InsaneStats_GetRawDamage() >= vic:InsaneStats_GetRawHealth() and vic:InsaneStats_GetRawHealth() > 0 then
+				-- poison damage should leave the user at 1 health, but the limitations of
+				-- single floating-point arithmetic is making this more difficult than it needs to be
+				--print(vic, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth())
+				local cappedDamage = vic:InsaneStats_GetRawHealth() * 33554431 / 33554432 - 1
+				dmginfo:InsaneStats_SetRawDamage(cappedDamage)
+				dmginfo:SetMaxDamage(cappedDamage)
+				--print(cappedDamage)
+				--vic:InsaneStats_SetRawHealth(dmginfo:InsaneStats_GetRawDamage() + 1)
+				--print(vic, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth())
+			end
+			
+			local stunned = vic:InsaneStats_GetStatusEffectLevel("stunned") > 0
+			local healthRatio = vic:InsaneStats_GetHealth() / vic:InsaneStats_GetMaxHealth()
+			if (vic:InsaneStats_GetStatusEffectLevel("pheonix") > 0
+			or vic:InsaneStats_GetStatusEffectLevel("undying") > 0
+			or stunned) and not dmginfo:IsDamageType(DMG_DISSOLVE) then
+				if InsaneStats:IsDebugLevel(1) then
+					InsaneStats:Log("Prevented lethal damage to %s!", tostring(vic))
 				end
-				
-				local stunned = vic:InsaneStats_GetStatusEffectLevel("stunned") > 0
-				local healthRatio = vic:InsaneStats_GetHealth() / vic:InsaneStats_GetMaxHealth()
-				if (vic:InsaneStats_GetStatusEffectLevel("pheonix") > 0
-				or vic:InsaneStats_GetStatusEffectLevel("undying") > 0
-				or stunned) and not dmginfo:IsDamageType(DMG_DISSOLVE) then
-					if InsaneStats:IsDebugLevel(1) then
-						InsaneStats:Log("Prevented lethal damage to %s!", tostring(vic))
-					end
 
-					-- if damage exceeds health * 0.75, nerf damage received
-					-- we have to do this otherwise the helicopter might remain in a dead-not-dead state
-					local maxDamage = vic:InsaneStats_GetRawHealth() * 0.75
-					if dmginfo:InsaneStats_GetRawDamage() > maxDamage then
-						dmginfo:InsaneStats_SetRawDamage(maxDamage)
-						if stunned then
-							vic:InsaneStats_ClearStatusEffect("stunned")
-							vic:InsaneStats_ApplyStatusEffect("invincible", 1, 0.25)
-						end
+				-- if damage exceeds health * 0.75, nerf damage received
+				-- we have to do this otherwise the helicopter might remain in a dead-not-dead state
+				local maxDamage = vic:InsaneStats_GetRawHealth() * 0.75
+				if dmginfo:InsaneStats_GetRawDamage() > maxDamage then
+					dmginfo:InsaneStats_SetRawDamage(maxDamage)
+					if stunned then
+						vic:InsaneStats_ClearStatusEffect("stunned")
+						vic:InsaneStats_ApplyStatusEffect("invincible", 1, 0.25)
 					end
-				elseif vic.insaneStats_PreventOverdamage then
-					-- make sure to not let the helicopter's health go too low since it also causes issues
-					-- again, single floating-point arithmetic makes this more difficult
-					local maxDamage = vic:InsaneStats_GetRawHealth() * (1 + 2 ^ -24)
-					if dmginfo:InsaneStats_GetRawDamage() > maxDamage then
-						dmginfo:InsaneStats_SetRawDamage(maxDamage)
-					end
+				end
+			elseif vic.insaneStats_PreventOverdamage then
+				-- make sure to not let the helicopter's health go too low since it also causes issues
+				-- again, single floating-point arithmetic makes this more difficult
+				local maxDamage = vic:InsaneStats_GetRawHealth() * (1 + 2 ^ -24)
+				if dmginfo:InsaneStats_GetRawDamage() > maxDamage then
+					dmginfo:InsaneStats_SetRawDamage(maxDamage)
 				end
 			end
+
+			--[[if helibomberCondition then
+				attacker:InsaneStats_ApplyStatusEffect("helibomber", 10, 60, {amplify = true})
+			end]]
 		end
 	end
 

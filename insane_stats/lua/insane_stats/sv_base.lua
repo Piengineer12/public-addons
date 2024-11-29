@@ -126,6 +126,7 @@ end)
 
 local pendingGameTexts = {}
 local activeCamera = NULL
+local activeTime = 0
 hook.Add("AcceptInput", "InsaneStats", function(ent, input, activator, caller, value)
 	input = input:lower()
 	data = data or ""
@@ -140,7 +141,7 @@ hook.Add("AcceptInput", "InsaneStats", function(ent, input, activator, caller, v
 	elseif input == "insanestats_onleftplayersquad" then
 		ent.insaneStats_CitizenFlags = bit.band(ent.insaneStats_CitizenFlags or 0, bit.bnot(4))
 		ent:InsaneStats_MarkForUpdate(256)
-	elseif input == "display" then
+	elseif input == "display" or input == "use" then
 		if class == "game_text" and InsaneStats:GetConVarValue("gametext_tochat")
 		and not (InsaneStats:GetConVarValue("gametext_tochat_once") and ent.insaneStats_DisplayedInChat) then
 			local keyValues = ent:GetKeyValues()
@@ -169,13 +170,19 @@ hook.Add("AcceptInput", "InsaneStats", function(ent, input, activator, caller, v
 			v.insaneStats_FlashlightDisabled = tonumber(value) ~= 1 or nil
 		end
 	elseif class == "point_viewcontrol" and InsaneStats:GetConVarValue("camera_no_kill") then
+		-- this is where it gets stupid
+		-- in ep1, the disable input should disable *all* cameras and is how it works by default in gmod
+		-- but certain custom campaigns send the enable input to another camera then disable the previous
+		-- one *right after*, while assuming the second camera would be active
+		-- solution: if a disable input is sent right after an enable input, ignore it
 		if input == "kill" then
 			ent:Fire("Disable")
 			return true
-		elseif input == "disable" and ent ~= activeCamera then
+		elseif input == "disable" and ent ~= activeCamera and activeTime + 0.5 > CurTime() then
 			return true
 		elseif input == "enable" then
 			activeCamera = ent
+			activeTime = CurTime()
 		end
 	elseif class == "npc_citizen" then
 		if input == "setmedicon" then
@@ -194,8 +201,19 @@ hook.Add("AcceptInput", "InsaneStats", function(ent, input, activator, caller, v
 	end
 end)
 
+local crossbowBolts = {}
 hook.Add("InsaneStatsEntityCreated", "InsaneStats", function(ent)
-	if ent:IsNPC() then
+	local class = ent:GetClass()
+	if class == "prop_vehicle_apc" then
+		ent:Fire("AddOutput", "OnDeath !activator:InsaneStats_OnNPCKilled")
+		if IsValid(ent:GetDriver()) then
+			ent:Fire("AddOutput","OnDeath "..ent:GetDriver():GetName()..":Kill")
+		end
+	elseif class == "crossbow_bolt" then
+		ent.insaneStats_FiredBy = ent:GetOwner()
+		crossbowBolts[ent] = true
+		hook.Run("InsaneStatsCrossbowBoltCreated", ent, ent.insaneStats_FiredBy)
+	elseif ent:IsNPC() then
 		ent:Fire("AddOutput", "OnDeath !activator:InsaneStats_OnNPCKilled")
 		if ent:GetClass()=="npc_helicopter" then
 			ent:Fire("AddOutput", "OnShotDown !activator:InsaneStats_OnNPCKilled")
@@ -213,11 +231,13 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStats", function(ent)
 			ent:Fire("AddOutput", "OnLeftPlayerSquad !self:InsaneStats_OnLeftPlayerSquad")
 			ent:InsaneStats_MarkForUpdate(256)
 		end
-	elseif ent:GetClass()=="prop_vehicle_apc" then
-		ent:Fire("AddOutput", "OnDeath !activator:InsaneStats_OnNPCKilled")
-		if IsValid(ent:GetDriver()) then
-			ent:Fire("AddOutput","OnDeath "..ent:GetDriver():GetName()..":Kill")
-		end
+	end
+end)
+
+hook.Add("EntityRemoved", "InsaneStats", function(ent)
+	local class = ent:GetClass()
+	if class == "crossbow_bolt" and not ent.insaneStats_Landed then
+		hook.Run("InsaneStatsCrossbowBoltLanded", ent, ent.insaneStats_FiredBy, false)
 	end
 end)
 
@@ -227,10 +247,6 @@ function InsaneStats:PerformSave()
 		local data = self:Load()
 		hook.Run("InsaneStatsSave", data)
 		self:Save(data)
-		--[[if GetConVar("developer"):GetInt() > 0 then
-			print("Save data:")
-			PrintTable(data)
-		end]]
 	end
 end
 
@@ -295,6 +311,41 @@ hook.Add("Think", "InsaneStats", function()
 				net.WriteFloat(CurTime())
 				net.Send(v:GetDriver())
 			end
+		end
+	end
+
+	for k,v in pairs(crossbowBolts) do
+		if IsValid(k) then
+			if k:GetMoveCollide() == MOVECOLLIDE_DEFAULT and not k.insaneStats_Landed then
+				k.insaneStats_Landed = true
+
+				hook.Run("InsaneStatsCrossbowBoltLanded", k, k:GetOwner(), true)
+			end
+		else
+			crossbowBolts[k] = nil
+		end
+	end
+end)
+
+local createdCrossbowCollisions = {}
+hook.Add("InsaneStatsCrossbowBoltLanded", "InsaneStats", function(bolt, attacker, landed)
+	if landed and bolt:GetCreationTime() + 0.05 < CurTime() and InsaneStats:GetConVarValue("solid_bolts") > 0 then
+		createdCrossbowCollisions[attacker] = createdCrossbowCollisions[attacker] or {}
+		local attackerCreatedCrossbowCollisions = createdCrossbowCollisions[attacker]
+
+		local desiredAng = bolt:GetAngles()
+		desiredAng:RotateAroundAxis(bolt:GetUp(), 90)
+		local collide = ents.Create("prop_physics")
+		collide:SetModel("models/hunter/plates/plate075.mdl")
+		collide:SetPos(bolt:WorldSpaceCenter())
+		collide:SetAngles(desiredAng)
+		collide:SetNoDraw(true)
+		collide:Spawn()
+		collide:SetMoveType(MOVETYPE_NONE)
+
+		table.insert(attackerCreatedCrossbowCollisions, collide)
+		if #attackerCreatedCrossbowCollisions > InsaneStats:GetConVarValue("solid_bolts") then
+			SafeRemoveEntity(table.remove(attackerCreatedCrossbowCollisions, 1))
 		end
 	end
 end)

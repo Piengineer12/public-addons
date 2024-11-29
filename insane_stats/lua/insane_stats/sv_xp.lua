@@ -279,10 +279,6 @@ function ENT:InsaneStats_ApplyLevel(level)
 		end
 		
 		hook.Run("InsaneStatsApplyLevel", self, level)
-		
-		--[[if isPlayer then
-			print(newHealth)
-		end]]
 	end
 end
 
@@ -446,7 +442,7 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 				end
 				local wepMul = InsaneStats:GetConVarValue("xp_weapon_mul")
 				for k,v in pairs(data.receivers) do
-					local tempExtraXP = k:IsPlayer() and 0 or extraXP-- * v
+					local tempExtraXP = (k:IsPlayer() or k:GetOwner():IsPlayer()) and 0 or extraXP-- * v
 					local tempDropMul = shouldDropMul[k] and xpDropMul or 0
 					local xp = xpToGive * v
 					if k:IsWeapon() then xp = xp * wepMul end
@@ -616,6 +612,13 @@ function InsaneStats:DetermineDamageMul(vic, dmginfo)
 	if self:GetConVarValue("xp_enabled") then
 		local attacker = dmginfo:GetAttacker()
 		local inflictor = dmginfo:GetInflictor()
+
+		if InsaneStats:IsDebugLevel(3) then
+			InsaneStats:Log(
+				"Victim is %s, attacker is %s and inflictor is %s",
+				tostring(vic), tostring(attacker), tostring(inflictor)
+			)
+		end
 		
 		if not (IsValid(attacker) and attacker:GetClass()~="entityflame") and IsValid(vic.insaneStats_LastAttacker) then
 			inflictor = attacker
@@ -635,11 +638,18 @@ function InsaneStats:DetermineDamageMul(vic, dmginfo)
 		
 		if IsValid(inflictor) then
 			local inflictorFlags = self:GetConVarValue("xp_damagemode")
-			if bit.band(inflictorFlags, 1) ~= 0 and inflictor:GetClass() == "prop_physics" then
+			if bit.band(inflictorFlags, 1) ~= 0 and (inflictor:GetPhysicsAttacker() == attacker
+		 	or inflictor:GetClass() == "grenade_helicopter") then
 				attacker = inflictor
 			elseif bit.band(inflictorFlags, 2) ~= 0 and inflictor:IsWeapon() then
 				attacker = inflictor
 			end
+		end
+
+		if InsaneStats:IsDebugLevel(3) then
+			InsaneStats:Log(
+				"Levelled damage will be based on %s", tostring(attacker)
+			)
 		end
 		
 		return InsaneStats:DetermineDamageMulPure(attacker, vic)

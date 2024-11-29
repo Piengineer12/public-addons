@@ -130,9 +130,9 @@ local modifiers = {
 			},
 			weight = 0.5
 		},
-		derange = {
-			prefix = "Deranged",
-			suffix = "Derangement",
+		short = {
+			prefix = "Short",
+			suffix = "Shortness",
 			modifiers = {
 				shortrange_damage = 1.21,
 				melee_damage = 1/1.1
@@ -525,6 +525,34 @@ local modifiers = {
 			max = 7,
 			cost = -1
 		},
+		derange = {
+			prefix = "Deranged",
+			suffix = "Derangedness",
+			modifiers = {
+				longrange_damage = 1/1.21,
+				melee_damage = 1/1.1
+			},
+			weight = 0.5,
+			cost = -1
+		},
+		distant = {
+			prefix = "Distant",
+			suffix = "Distance",
+			modifiers = {
+				shortrange_damage = 1/1.21,
+				melee_damage = 1.1
+			},
+			weight = 0.5,
+			cost = -1
+		},
+		reckless = {
+			prefix = "Reckless",
+			modifiers = {
+				killstack_damagetaken = 1.1
+			},
+			weight = 0.5,
+			cost = -1
+		},
 	},
 
 	{-- damage inaccessible
@@ -705,6 +733,14 @@ local modifiers = {
 			},
 			weight = 1
 		},
+		speedster = {
+			prefix = "Speedster",
+			suffix = "Speeding",
+			modifiers = {
+				speed_xp = 1.1,
+			},
+			weight = 1
+		},
 		resist = {
 			prefix = "Resisting",
 			modifiers = {
@@ -715,16 +751,16 @@ local modifiers = {
 		supply = {
 			prefix = "Supplying",
 			modifiers = {
-				kill_supplychance = 1.21
+				kill_supplychance = 1.1
 			},
-			max = 3
+			max = 7
 		},
 		scavenge = {
 			prefix = "Scavenging",
 			modifiers = {
-				prop_supplychance = 1.21
+				prop_supplychance = 1.1
 			},
-			max = 3
+			max = 7
 		},
 		empathy = {
 			prefix = "Empathetic",
@@ -739,6 +775,12 @@ local modifiers = {
 			suffix = "Surging",
 			modifiers = {
 				clip_xp = 1.1
+			}
+		},
+		dare = {
+			prefix = "Daring",
+			modifiers = {
+				lowhealth_xp = 1.1
 			}
 		},
 	},
@@ -1021,6 +1063,16 @@ local modifiers = {
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			weight = 0.5
 		},
+		slip = {
+			prefix = "Slippery",
+			suffix = "Slipperiness",
+			modifiers = {
+				switch_speed = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			max = 5
+		},
 	},
 	
 	{-- utility, half weight doubled cost
@@ -1141,6 +1193,17 @@ local modifiers = {
 			weight = 0.5,
 			cost = 2,
 			max = 10
+		},
+		identify = {
+			prefix = "Identifying",
+			suffix = "Identification",
+			modifiers = {
+				ctrl_f = 2
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			cost = 2,
+			max = 1
 		},
 	},
 
@@ -1297,6 +1360,16 @@ local modifiers = {
 			max = 2,
 			weight = 0.5
 		},
+		laugh = {
+			prefix = "Laughing",
+			suffix = "Laughter",
+			modifiers = {
+				lowhealth_victim_damagetaken = 1/1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			max = 7,
+			weight = 0.5
+		},
 		bloodletting = {
 			prefix = "Bloodletting",
 			modifiers = {
@@ -1364,11 +1437,19 @@ local modifiers = {
 			prefix = "Ignorant",
 			suffix = "Ignorance",
 			modifiers = {
-				bullet_damagetaken = 1/1.1
+				bullet_damagetaken = 1/1.21
 			},
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-			weight = 0.5,
-			max = 7
+			weight = 0.5
+		},
+		metal = {
+			prefix = "Metallic",
+			suffix = "Metal",
+			modifiers = {
+				nonbullet_damagetaken = 1/1.21
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5
 		},
 		brave = {
 			prefix = "Brave",
@@ -1429,6 +1510,15 @@ local modifiers = {
 			weight = 0.5,
 			max = 2,
 		},
+		disconnect = {
+			prefix = "Disconnected",
+			suffix = "Disconnectedness",
+			modifiers = {
+				ping_defence = 1.1,
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5
+		},
 	},
 	
 	{-- defensive, half weight doubled cost
@@ -1445,6 +1535,17 @@ local modifiers = {
 	},
 	
 	{-- defensive, negative cost
+		unreliable = {
+			prefix = "Unreliable",
+			suffix = "Unreliability",
+			modifiers = {
+				damagetaken = 1.1,
+				random_damagetaken = -0.2
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			max = 5,
+			cost = -1
+		},
 		tiny = {
 			prefix = "Tiny",
 			suffix = "Tinyness",
@@ -1530,7 +1631,16 @@ local modifiers = {
 			prefix = "Boastful",
 			suffix = "Boastfulness",
 			modifiers = {
-				bullet_damagetaken = 1.1
+				nonbullet_damagetaken = 1.21
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			cost = -1,
+			weight = 0.5,
+		},
+		paper = {
+			prefix = "Paper",
+			modifiers = {
+				bullet_damagetaken = 1.21
 			},
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			cost = -1,
@@ -1746,7 +1856,10 @@ local attributes = {
 	},
 	bullet_damagetaken = {
 		display = "%s bullet damage taken",
-		mul = 2,
+		invert = true
+	},
+	nonbullet_damagetaken = {
+		display = "%s non-bullet damage taken",
 		invert = true
 	},
 	crit_damagetaken = {
@@ -1772,6 +1885,11 @@ local attributes = {
 		invert = true,
 		mul = 2
 	},
+	lowhealth_victim_damagetaken = {
+		display = "Up to %s damage taken vs. low health",
+		mul = 2,
+		invert = true
+	},
 	lowlevel_damagetaken = {
 		display = "%s damage taken from lower levels",
 		invert = true,
@@ -1795,6 +1913,10 @@ local attributes = {
 	speed_defence = {
 		display = "%s defence, scaled by speed",
 		mul = 2
+	},
+	ping_defence = {
+		display = "%s defence, scaled by ping",
+		mul = 0.02
 	},
 	mark_damagetaken = {
 		display = "%s damage taken from marked entities",
@@ -1846,6 +1968,10 @@ local attributes = {
 		display = "%s laceration and bleed damage taken",
 		mul = 5,
 		invert = true
+	},
+	random_damagetaken = {
+		display = "+/%s random damage taken",
+		mode = 3
 	},
 	
 	-- kills and hits
@@ -1942,6 +2068,11 @@ local attributes = {
 	killstack_defence = {
 		display = "%s defence per kill, decays over time",
 		mul = 0.1
+	},
+	killstack_damagetaken = {
+		display = "%s damage taken per kill, decays over time",
+		mul = 0.1,
+		invert = true
 	},
 	--[[killstack_speed = {
 		display = "%s decaying movement speed per kill",
@@ -2070,6 +2201,10 @@ local attributes = {
 	xp = {
 		display = "%s coins and XP gain",
 	},
+	lowhealth_xp = {
+		display = "Up to %s coins and XP gain at low health",
+		mul = 5
+	},
 	crit_xp = {
 		display = "%s coins and XP gain on crit kills",
 		mul = 2
@@ -2080,6 +2215,21 @@ local attributes = {
 	},
 	clip_xp = {
 		display = "%s XP gain, scaled by square root of clip %%",
+		mul = 2
+	},
+	prop_xp = {
+		display = "%s coins and XP gain from props",
+		mul = 0.5
+	},
+	ally_xp = {
+		display = "%s coins and XP gain from allies",
+		mode = 3
+	},
+	else_xp = {
+		display = "%s XP gain from other's kills",
+	},
+	speed_xp = {
+		display = "%s coins and XP gain, scaled by speed",
 		mul = 2
 	},
 	explode = {
@@ -2186,14 +2336,6 @@ local attributes = {
 		mode = 2,
 		invert = true
 	},]]
-	prop_xp = {
-		display = "%s coins and XP gain from props",
-		mul = 0.5
-	},
-	ally_xp = {
-		display = "%s coins and XP gain from allies",
-		mode = 3
-	},
 	crit_lifesteal = {
 		display = "%s healing on crit",
 		mul = 0.125
@@ -2285,9 +2427,6 @@ local attributes = {
 		invert = true,
 		mode = 4
 	},
-	else_xp = {
-		display = "%s XP gain from other's kills",
-	},
 	alt_invisible = {
 		display = "%ss invisibility after slow walk double tap, 60s cooldown",
 		mul = 60,
@@ -2352,6 +2491,13 @@ local attributes = {
 		mul = 400,
 		nopercent = true
 	},
+	ctrl_f = {
+		display = "Allows identification of locks and unlockers",
+	},
+	switch_speed = {
+		display = "%s weapon switch speed",
+		mul = 5
+	}
 }
 
 local canPlayPoisonSound = true
@@ -2994,6 +3140,11 @@ local statusEffects = {
 		typ = 2,
 		img = "cool-spices"
 	},
+	stack_defence_down = {
+		name = "Stacking Defence Down",
+		typ = -2,
+		img = "cracked-shield"
+	},
 
 	no_time_manipulation = {
 		name = "No Time Manipulation",
@@ -3405,7 +3556,6 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 	end
 end)
 
-local penetrations = 0
 local shouldAddBullets = true
 local commonTraceData = {
 	mask = MASK_SHOT
@@ -3437,7 +3587,7 @@ hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data
 		if attacker:InsaneStats_GetSkillState("silver_bullets") == 1 then
 			penetrationPower = penetrationPower + attacker:InsaneStats_GetEffectiveSkillValues("silver_bullets", 2)
 		end
-		if penetrationPower > 0 and penetrations < 100 then
+		if penetrationPower > 0 then
 			-- FIXME: in some cases, bullet penetration will incorrectly pierce
 			-- hollow objects as if they were completely solid
 			local oldCallback = data.Callback
@@ -3457,19 +3607,21 @@ hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data
 				end
 
 				if trace.Hit then
-					-- make a new trace that is in the entity
-					local push = 1
-					commonTraceData.start = trace.HitPos + data.Dir * push
+					-- make a new trace that is in the entity but ignores it
+					local constPush = 1
+					commonTraceData.start = trace.HitPos + data.Dir * constPush
 					commonTraceData.endpos = data.Dir * penetrationPower
 					commonTraceData.endpos:Add(commonTraceData.start)
 					if trace.HitNonWorld then
+						-- line traces will always hit immediately if the trace started in an entity
+						-- so the hit entity needs to be ignored, but this is the direct cause of the
+						-- FIXME above
 						commonTraceData.filter = trace.Entity
-						--commonTraceData.ignoreworld = false
 					else
+						-- this is so that two walls side-by-side will not be counted
+						-- as if the gap between them is solid
 						commonTraceData.filter = nil
-						--commonTraceData.ignoreworld = true
 					end
-					--commonTraceData.ignoreworld = true
 					if developer then
 						debugoverlay.Cross(commonTraceData.start, 5, 10, color_red, true)
 						debugoverlay.Cross(commonTraceData.endpos, 6, 10, color_green, true)
@@ -3488,28 +3640,30 @@ hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data
 
 						local wallThickness
 						if lastTraceResults.FractionLeftSolid > 0 then
-							wallThickness = push + penetrationPower * lastTraceResults.FractionLeftSolid
+							wallThickness = constPush + penetrationPower * lastTraceResults.FractionLeftSolid
 						else
 							-- determine thickness of the penetrated object by making a reverse trace
-							wallThickness = push + penetrationPower * lastTraceResults.Fraction
+							wallThickness = constPush + penetrationPower * lastTraceResults.Fraction
 							-- wallThickness is currently the length of the original penetration trace
 							commonTraceData.start = lastTraceResults.HitPos
 							commonTraceData.endpos = trace.HitPos
-							commonTraceData.filter = nil
-							--commonTraceData.ignoreworld = false
-							--commonTraceData.ignoreworld = false
+							if lastTraceResults.HitNonWorld then
+								commonTraceData.filter = lastTraceResults.Entity
+							else
+								commonTraceData.filter = nil
+							end
 							--debugoverlay.Line(commonTraceData.start, commonTraceData.endpos, 5, color_red, true)
 							lastTraceResults = util.TraceLine(commonTraceData)
 							wallThickness = wallThickness * (1 - lastTraceResults.Fraction)
 						end
 
-						if wallThickness > push and wallThickness < penetrationPower then
+						if wallThickness > constPush and wallThickness < penetrationPower then
 							local powerMult = 1 - wallThickness / penetrationPower
 							-- create a new bullet that doesn't travel as far and deals less damage
 							newBullet.Force = newBullet.Force * powerMult
 							newBullet.Distance = newBullet.Distance * powerMult
 							newBullet.Damage = dmginfo:GetDamage() * powerMult
-							newBullet.Src = trace.HitPos + data.Dir * (wallThickness + push)
+							newBullet.Src = trace.HitPos + data.Dir * (wallThickness + constPush)
 							--debugoverlay.Line(trace.HitPos, newBullet.Src, 5, color_aqua, true)
 							debugoverlay.Cross(newBullet.Src, 8, 10, color_white, true)
 
@@ -3525,7 +3679,6 @@ hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data
 end)
 
 hook.Add("Think", "InsaneStatsSharedWPASS2", function()
-	penetrations = 0
 	if SERVER then
 		canPlayPoisonSound = true
 		canPlayFreezeSound = true

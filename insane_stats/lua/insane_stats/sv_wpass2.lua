@@ -136,7 +136,7 @@ end, "Clears a status effect from a named entity. If no name is specified, the e
 or from all players when entered through the server console.\
 Format: insanestats_wpass2_statuseffect_clear <internalName> [entity=self]")
 
-concommand.Add("insanestats_wpass2_modifierweightstats", function(ply, cmd, args, argStr)
+concommand.Add("insanestats_wpass2_modifiers_stats", function(ply, cmd, args, argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
 		local modifierWeights = {
 			weapon = {total = 0, negative = 0, totalCount = 0, negativeCount = 0},

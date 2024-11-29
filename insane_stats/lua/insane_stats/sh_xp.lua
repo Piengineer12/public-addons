@@ -457,10 +457,6 @@ function ENT:InsaneStats_SetXP(xp, dropValue)
 		xp = tonumber(xp) or math.huge
 	end
 	assert(xp >= -math.huge, "Something tried to set XP on "..tostring(self).." to nan!")
-	--[[if SERVER and self:GetClass() == "prop_physics" then
-		print(self, xp)
-		debug.Trace()
-	end]]
 	
 	self:InsaneStats_SetEntityData("xp", xp)
 	if xp > 0 then

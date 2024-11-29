@@ -1669,9 +1669,13 @@ local skills = {
 		name = "Master of Air",
 		desc = "Double all shock damage dealt and halve all shock damage taken! \z
 		All attacks have a +%u%% chance to deal shock damage against mobs, and deal +%u%% damage against non-mobs! \z
-		Also, reduce the number of adjacent skill points required to unlock skills by %i!",
+		Also, the number of adjacent skill points required to unlock skills is reduced by %i, \z
+		and the first %s after spawning retriggers kill skills once for each über skill point spent in total!",
 		values = function(level, ent)
-			return level * 25, level * 25, level * -5
+			return level * 25, level * 25, level * -5, level > 1 and "two kills" or "kill"
+		end,
+		stackTick = function(state, current, time, ent)
+			return current > 0 and 0 or -1, current
 		end,
 		img = "winged-emblem",
 		pos = {5, 0},

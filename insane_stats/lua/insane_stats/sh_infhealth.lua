@@ -25,7 +25,7 @@ InsaneStats:RegisterConVar("infhealth_armor_regen", "insanestats_infhealth_armor
 	display = "Armor Regen", desc = "% of NPC armor regenerated per second.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
-InsaneStats:RegisterConVar("infhealth_armor_regen_delay", "insanestats_infhealth_armor_regen_delay", "10", {
+InsaneStats:RegisterConVar("infhealth_armor_regen_delay", "insanestats_infhealth_armor_regen_delay", "20", {
 	display = "Armor Regen Delay", desc = "Amount of time before NPCs are able to regenerate their armor.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
@@ -99,10 +99,6 @@ local function OverrideHealth()
 		if SERVER then
 			self:InsaneStats_MarkForUpdate(1)
 		end
-		--[[if self:IsPlayer() then
-			print(newHealth)
-			debug.Trace()
-		end]]
 	end
 	
 	function ENT:Health()
@@ -397,6 +393,11 @@ local statusEffects = {
 		apply = SERVER and function(ent, level, duration, attacker)
 			ent.insaneStats_PreventOverdamage = true
 		end
+	},
+	helibomber = {
+		name = "Helibomber Damage Up",
+		typ = 1,
+		img = "hypersonic-melon"
 	}
 }
 hook.Add("InsaneStatsLoadWPASS", "InsaneStatsUnlimitedHealth", function(currentModifiers, currentAttributes, currentStatusEffects)

@@ -104,6 +104,9 @@ function InsaneStats:RegisterConVar(name, internal, default, data)
 end
 
 function InsaneStats:GetConVarValue(name)
+	if not self.conVars[name] then
+		InsaneStats:Log("%s is not a valid ConVar!", name)
+	end
 	local valueType = self.conVars[name].type
 	local conVar = self.conVars[name].conVar
 	
@@ -195,6 +198,11 @@ InsaneStats:RegisterConVar("camera_no_kill", "insanestats_camera_no_kill", "1", 
 	display = "No Camera Killing", desc = "point_viewcontrols will not be removed when the Kill input is sent to them.\n\z
 	Fixes certain cameras not working in some older campaign maps.",
 	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterConVar("solid_bolts", "insanestats_solid_bolts", "0", {
+	display = "Solid Crossbow Bolts", desc = "Crossbow bolts that hit a surface become solid, up to this many per player. \z
+	Allows maps such as sp_crossbowplatformer, which makes heavy use of bolt physics, to work in GMod.",
+	type = InsaneStats.INT, min = 0, max = 100
 })
 InsaneStats:RegisterConVar("flashlight_disable_fix", "insanestats_flashlight_disable_fix", "0", {
 	display = "Fix DisableFlashlight", desc = "The DisableFlashlight map input will now actually disable the player's flashlight.",

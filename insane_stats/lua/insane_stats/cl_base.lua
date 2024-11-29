@@ -698,7 +698,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 
 					vehicleAmmoData = {18, maxAmmo, math.Clamp(charge, 0, maxAmmo)}
 				else
-					vehicleAmmoData = {vehicle.GetAmmo and vehicle:GetAmmo() or 0}
+					vehicleAmmoData = vehicle.GetAmmo and {vehicle:GetAmmo()} or {0}
 				end
 			end
 			local ammoType3 = vehicleAmmoData[1]
