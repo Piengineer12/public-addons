@@ -318,9 +318,17 @@ local function OverrideDamage()
 	end
 	
 	function DMGINFO:ScaleDamage(num)
-		InsaneStats:SetDamage(self:GetDamage() * num)
-		self:InsaneStats_ScaleRawDamage(num)
-		self:SetMaxDamage(self:GetMaxDamage() * num)
+		local damage = self:GetDamage()
+		if damage == 0 then
+			-- if num = inf and damage = 0, damage * num = nan, which can cause crashes
+			InsaneStats:SetDamage(0)
+			self:InsaneStats_ScaleRawDamage(0)
+			self:SetMaxDamage(0)
+		else
+			InsaneStats:SetDamage(damage * num)
+			self:InsaneStats_ScaleRawDamage(num)
+			self:SetMaxDamage(self:GetMaxDamage() * num)
+		end
 	end
 	
 	function DMGINFO:GetDamage()

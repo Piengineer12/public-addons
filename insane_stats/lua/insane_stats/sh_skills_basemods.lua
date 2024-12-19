@@ -369,16 +369,18 @@ local skills = {
 	-- distance 5
 	brilliant_behemoth = {
 		name = "Michael Bay Simulator",
-		desc = "While %s is not held, all hits against entities cause explosions with %u Hu radii! Note that these explosions hurt ALL entities in range.",
+		desc = "While %s is not held, all hits against entities cause explosions with %s radii! Note that these explosions hurt ALL entities in range.",
 		values = function(level)
 			local slowWalkKey = "the Slow Walk key"
+			local distance = level * 128
 			if CLIENT then
 				local keyName = input.LookupBinding("+walk")
 				if keyName then
 					slowWalkKey = keyName:upper()
 				end
+				distance = InsaneStats:FormatNumber(distance, {plus = true, distance = true})
 			end
-			return slowWalkKey, level * 128
+			return slowWalkKey, distance
 		end,
 		stackTick = function(state, current, time, ent)
 			return ent:IsPlayer() and ent:KeyDown(IN_WALK) and -1 or 1, current
@@ -390,9 +392,13 @@ local skills = {
 	},
 	youre_approaching_me = {
 		name = "You're Approaching Me?",
-		desc = "%+.0f%% damage dealt against entities within 512 Hu",
+		desc = "%+.0f%% damage dealt against entities within %s",
 		values = function(level)
-			return level * 10
+			local distance = 512
+			if CLIENT then
+				distance = InsaneStats:FormatNumber(distance, {distance = true})
+			end
+			return level * 10, distance
 		end,
 		img = "boxing-glove",
 		pos = {2, -3},
@@ -456,11 +462,15 @@ local skills = {
 		minpts = 5
 	} or {
 		name = "Stick With The Team!",
-		desc = "For each ally within 512 Hu, gain +%u%% coins, XP gain and damage dealt, \z
+		desc = "For each ally within %s, gain +%u%% coins, XP gain and damage dealt, \z
 		as well as %i%% damage taken.\n\z
 		(This skill is completely different in singleplayer.)",
 		values = function(level)
-			return level * 3, level * -3
+			local distance = 512
+			if CLIENT then
+				distance = InsaneStats:FormatNumber(distance, {distance = true})
+			end
+			return distance, level * 3, level * -3
 		end,
 		img = "telepathy",
 		pos = {2, 3},
@@ -490,9 +500,13 @@ local skills = {
 	},
 	map_sense = {
 		name = "Map Sense",
-		desc = "See all buttons, doors and breakable brushes within +%u Hu!",
+		desc = "See all buttons, doors and breakable brushes within %s!",
 		values = function(level)
-			return level * 128
+			local distance = level * 128
+			if CLIENT then
+				distance = InsaneStats:FormatNumber(distance, {plus = true, distance = true})
+			end
+			return distance, level * 128
 		end,
 		img = "world",
 		pos = {-2, 3},
@@ -537,9 +551,13 @@ local skills = {
 	},
 	you_cant_run = {
 		name = "You Can't Run",
-		desc = "%+.0f%% damage dealt against entities further than 512 Hu",
+		desc = "%+.0f%% damage dealt against entities further than %s",
 		values = function(level)
-			return level * 10
+			local distance = 512
+			if CLIENT then
+				distance = InsaneStats:FormatNumber(distance, {distance = true})
+			end
+			return level * 10, distance
 		end,
 		img = "arrow-dunk",
 		pos = {-2, -3},
@@ -716,16 +734,18 @@ local skills = {
 	},
 	silver_bullets = {
 		name = "Silver Bullets",
-		desc = "While %s is not held, gain +%u Hu bullet penetration.",
+		desc = "While %s is not held, gain %s bullet penetration.",
 		values = function(level)
 			local slowWalkKey = "the Slow Walk key"
+			local distance = level * 20
 			if CLIENT then
 				local keyName = input.LookupBinding("+walk")
 				if keyName then
 					slowWalkKey = keyName:upper()
 				end
+				distance = InsaneStats:FormatNumber(distance, {plus = true, distance = true})
 			end
-			return slowWalkKey, level * 20
+			return slowWalkKey, distance
 		end,
 		stackTick = function(state, current, time, ent)
 			return ent:IsPlayer() and ent:KeyDown(IN_WALK) and -1 or 1, current
@@ -862,10 +882,14 @@ local skills = {
 		minpts = 5
 	} or {
 		name = "Stay Behind Me",
-		desc = "All allies within 512 Hu regenerate %+.1f%% of their missing health per second.\n\z
+		desc = "All allies within %s regenerate %+.1f%% of their missing health per second.\n\z
 		(This skill is completely different in singleplayer.)",
 		values = function(level)
-			return level/2.5
+			local distance = 512
+			if CLIENT then
+				distance = InsaneStats:FormatNumber(distance, {distance = true})
+			end
+			return distance, level/2.5
 		end,
 		img = "ghost-ally",
 		pos = {3, 4},
@@ -971,9 +995,13 @@ local skills = {
 	},
 	item_magnet = {
 		name = "Item Magnet",
-		desc = "Items and weapons wtihin +%u Hu are magnetized! Also automatically pick up coins that are furthest from any other player after %u seconds.",
+		desc = "Items and weapons wtihin %s are magnetized! Also automatically pick up coins that are furthest from any other player after %u seconds.",
 		values = function(level, ent)
-			return level * 256, 20 - level * 2
+			local distance = level * 256
+			if CLIENT then
+				distance = InsaneStats:FormatNumber(distance, {plus = true, distance = true})
+			end
+			return distance, 20 - level * 2
 		end,
 		img = "magnet",
 		pos = {-3, 4},
@@ -981,9 +1009,13 @@ local skills = {
 	},
 	starlight = {
 		name = "Starlight",
-		desc = "On kill or prop broken, gain %+.0f stacks of Starlight. Each stack increases defence by 1%% but also causes glowing by 4 Hu. Stacks have a maximum limit of 1,000 and decay at a rate of 1/s.",
+		desc = "On kill or prop broken, gain %+.0f stacks of Starlight. Each stack increases defence by 1%% but also causes glowing by %s. Stacks have a maximum limit of 1,000 and decay at a rate of 1/s.",
 		values = function(level)
-			return level
+			local distance = 4
+			if CLIENT then
+				distance = InsaneStats:FormatNumber(distance, {distance = true})
+			end
+			return level, distance
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = math.max(current - time, 0)
@@ -1121,10 +1153,10 @@ local skills = {
 	anger = {
 		name = "Anger",
 		desc = "Taking damage from an NPC triples all damage dealt for %u seconds! 60 seconds cooldown. \z
-		Also, whenever explosive damage is dealt to an NPC, there is a +%u%% chance to \z
-		create a live grenade at the hit position.",
+		Also, a live grenade is created whenever explosive damage is dealt to an NPC, \z
+		but only once every %u second(s) per NPC.",
 		values = function(level)
-			return level * 10, level * 25
+			return level * 10, 3 - level
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = math.max(current - time, 0)
@@ -1214,19 +1246,22 @@ local skills = {
 	},
 	mantreads = {
 		name = "Mantreads",
-		desc = "Negate all fall damage! All fall damage that would be received is instead doubled +%u time(s), \z
-		then dealt to all other entities within 256 Hu. \z
+		desc = "Negate all fall damage! All fall damage that would be received \z
+		is instead doubled +%u time(s), \z
+		then dealt to all other entities within %s. \z
 		Additionally, stomping can be done by holding %s for 1 second in mid-air, which on impact \z
 		deals the maximum amount of fall damage.",
 		values = function(level)
 			local crouchKey = "the Crouch key"
+			local distance = 256
 			if CLIENT then
 				local keyName = input.LookupBinding("+duck")
 				if keyName then
 					crouchKey = keyName:upper()
 				end
+				distance = InsaneStats:FormatNumber(distance, {distance = true})
 			end
-			return level, crouchKey
+			return level, distance, crouchKey
 		end,
 		stackTick = function(state, current, time, ent)
 			local shouldIncrease = ent:IsPlayer() and ent:KeyDown(IN_DUCK) and not ent:OnGround()
@@ -1395,10 +1430,11 @@ local skills = {
 	},
 	kill_aura = {
 		name = "Kill Aura",
-		desc = "On kill, enemies within 512 Hu take +%s BASE damage per second while %s is not held.",
+		desc = "On kill, enemies within %s take +%s BASE damage per second while %s is not held.",
 		values = function(level, ent)
 			local slowWalkKey = "the Slow Walk key"
 			local damage = level
+			local distance = 512
 
 			if CLIENT then
 				damage = InsaneStats:FormatNumber(level * InsaneStats:DetermineDamageMulPure(
@@ -1409,9 +1445,11 @@ local skills = {
 				if keyName then
 					slowWalkKey = keyName:upper()
 				end
+
+				distance = InsaneStats:FormatNumber(distance, {distance = true})
 			end
 
-			return damage, slowWalkKey, level
+			return distance, damage, slowWalkKey, level
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = math.max(current - time, 0)
@@ -1539,10 +1577,14 @@ local skills = {
 		minpts = 5
 	} or {
 		name = "Motivation",
-		desc = "Gain +%u%% of XP from ally kills. All allies within 512 Hu regenerate health at a rate of %+.1f%%/s.\n\z
+		desc = "Gain +%u%% of XP from ally kills. All allies within %s regenerate health at a rate of %+.1f%%/s.\n\z
 		(This skill is completely different in singleplayer.)",
 		values = function(level)
-			return level * 20, level/5
+			local distance = 512
+			if CLIENT then
+				distance = InsaneStats:FormatNumber(distance, {distance = true})
+			end
+			return level * 20, distance, level/5
 		end,
 		img = "cheerful",
 		pos = {-4, 5},
@@ -1670,12 +1712,9 @@ local skills = {
 		desc = "Double all shock damage dealt and halve all shock damage taken! \z
 		All attacks have a +%u%% chance to deal shock damage against mobs, and deal +%u%% damage against non-mobs! \z
 		Also, the number of adjacent skill points required to unlock skills is reduced by %i, \z
-		and the first %s after spawning retriggers kill skills once for each über skill point spent in total!",
+		and all kill skills are retriggered %s for each über skill point spent in total on the first kill after spawning!",
 		values = function(level, ent)
-			return level * 25, level * 25, level * -5, level > 1 and "two kills" or "kill"
-		end,
-		stackTick = function(state, current, time, ent)
-			return current > 0 and 0 or -1, current
+			return level * 25, level * 25, level * -5, level > 1 and "twice" or "once"
 		end,
 		img = "winged-emblem",
 		pos = {5, 0},
@@ -1814,6 +1853,11 @@ local statusEffects = {
 		name = "Sick Combo",
 		typ = 1,
 		img = "poker-hand"
+	},
+	anger_resist = {
+		name = "Anger Grenade'd Cooldown",
+		typ = 1,
+		img = "time-bomb"
 	},
 
 	skill_damage_up = {

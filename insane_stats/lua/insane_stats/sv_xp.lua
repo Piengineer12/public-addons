@@ -630,11 +630,6 @@ function InsaneStats:DetermineDamageMul(vic, dmginfo)
 		elseif (not IsValid(inflictor) or inflictor == attacker) and (attacker.GetActiveWeapon and IsValid(attacker:GetActiveWeapon())) then
 			inflictor = attacker:GetActiveWeapon()
 		end
-
-		--[[if attacker:GetClass() == "func_tankairboatgun" then
-			local controller = attacker:GetInternalVariable("m_hController")
-			if IsValid(controller) then attacker = controller end
-		end]]
 		
 		if IsValid(inflictor) then
 			local inflictorFlags = self:GetConVarValue("xp_damagemode")

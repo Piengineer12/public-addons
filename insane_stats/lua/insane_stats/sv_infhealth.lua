@@ -209,7 +209,6 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 		local inflictor = dmginfo:GetInflictor()
 		local attacker = dmginfo:GetAttacker()
 		local multiplier = InsaneStats:DetermineDamageMul(vic, dmginfo)
-		--print(InsaneStats:GetDamage())
 		dmginfo:ScaleDamage(multiplier)
 		
 		if InsaneStats:GetConVarValue("infhealth_enabled") then
@@ -229,25 +228,12 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 					
 					InsaneStats:SetAbsorbedDamage(absorbedDamage)
 					dmginfo:SubtractDamage(absorbedDamage)
-					
-					--[[if newArmor == 0 then
-						multiplier = multiplier * (fullDamage - absorbedDamage) / fullDamage
-					else
-						dmginfo:ScaleDamage(multiplier)
-						hook.Run("PostEntityTakeDamage", vic, dmginfo, false)
-						vic:InsaneStats_ApplyKnockback(dmginfo:GetDamageForce())
-						return true
-					end]]
 				elseif not vic:IsPlayer() and bit.band(dmginfo:GetDamageType(), armorBypassingDamage) == 0 then
 					local fullDamage = InsaneStats:GetDamage()
 					local absorbedDamage = math.min(armor, fullDamage/1.25)
 					
 					InsaneStats:SetAbsorbedDamage(absorbedDamage)
 					dmginfo:SubtractDamage(absorbedDamage)
-					
-					--[[if fullDamage ~= 0 then
-						multiplier = multiplier * (fullDamage - absorbedDamage) / fullDamage
-					end]]
 				end
 			end
 			
@@ -264,7 +250,7 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 				-- poison damage should leave the user at 1 health, but the limitations of
 				-- single floating-point arithmetic is making this more difficult than it needs to be
 				--print(vic, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth())
-				local cappedDamage = vic:InsaneStats_GetRawHealth() * 33554431 / 33554432 - 1
+				local cappedDamage = vic:InsaneStats_GetRawHealth() * 16777215 / 16777216 - 1
 				dmginfo:InsaneStats_SetRawDamage(cappedDamage)
 				dmginfo:SetMaxDamage(cappedDamage)
 				--print(cappedDamage)

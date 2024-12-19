@@ -74,7 +74,7 @@ function ENT:Initialize()
 			self:Activate()
 		end
 
-		self:SetCollisionGroup(COLLISION_GROUP_WORLD)
+		self:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
 		self:SetTrigger(true)
 		self:SetMaterial("models/shiny")
 		self:AddEffects(EF_ITEM_BLINK)

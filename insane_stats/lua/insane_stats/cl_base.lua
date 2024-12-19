@@ -61,6 +61,8 @@ end
 local order = {"M", "B", "T", "Q", "Qt", "Sx", "Sp", "Oc", "No", "De"--[[,
 "Un", "Du", "Te", "Qtd", "Qid", "Sed", "Spd", "Ocd", "Nod", "Vig",
 "Unv", "Duv", "Tiv", "Qtv", "Qiv", "Sev", "Spv", "Ocv", "Nov"]]}
+-- 1 unit is 1 inch in playerscale, 0.75 inch in mapscale
+local playerScale_cmPerHu = 2.54
 function InsaneStats:FormatNumber(number, data)
 	data = data or {}
 	local plusStr = data.plus and number > 0 and "+" or ""
@@ -69,6 +71,38 @@ function InsaneStats:FormatNumber(number, data)
 	
 	local numberStr = '?'
 	local suffixStr = ""
+	local distanceStr = ""
+
+	if data.distance then
+		distanceStr = " Hu"
+		local distanceMode = InsaneStats:GetConVarValue("hud_distance_unit")
+		--[[
+		0: Use playerscale m or cm\n\z
+		1: Use playerscale ft or in\n\z
+		2: Use mapscale m or cm\n\z
+		3: Use mapscale ft or in\n\z
+		4: Use Hu
+		]]
+		if distanceMode < 4 then
+			number = bit.band(distanceMode, 2) ~= 0 and number * 0.75 or number
+			if bit.band(distanceMode, 1) ~= 0 then
+				if number < 12 then
+					distanceStr = " in"
+				else
+					number = number / 12
+					distanceStr = " ft"
+				end
+			else
+				number = 2.54 * number
+				if number < 100 then
+					distanceStr = " cm"
+				else
+					number = number / 100
+					distanceStr = " m"
+				end
+			end
+		end
+	end
 	
 	local absNumber = math.abs(number)
 	if absNumber < 1e3 then
@@ -100,9 +134,9 @@ function InsaneStats:FormatNumber(number, data)
 	end
 	
 	if data.separateSuffix then
-		return numberStr, suffixStr
+		return numberStr, suffixStr, distanceStr
 	else
-		return numberStr..suffixStr
+		return numberStr..suffixStr..distanceStr
 	end
 end
 
@@ -416,6 +450,15 @@ InsaneStats:RegisterClientConVar("hud_exponent_format", "insanestats_hud_exponen
 	2: 1.000E36\n\z
 	3: 1.000E+36",
 	type = InsaneStats.INT, min = 0, max = 3
+})
+InsaneStats:RegisterClientConVar("hud_distance_unit", "insanestats_hud_distance_unit", "0", {
+	display = "Distance Format", desc = "Controls how to display distances. \z
+	0: Use playerscale m or cm\n\z
+	1: Use playerscale ft or in\n\z
+	2: Use mapscale m or cm\n\z
+	3: Use mapscale ft or in\n\z
+	4: Use Hu",
+	type = InsaneStats.INT, min = 0, max = 4
 })
 
 InsaneStats:RegisterClientConVar("hud_ally_enabled", "insanestats_hud_ally_enabled", "0", {

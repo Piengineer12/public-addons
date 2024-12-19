@@ -22,6 +22,10 @@ InsaneStats:RegisterClientConVar("hud_wpass2_height", "insanestats_hud_wpass2_he
 	display = "Weapon Panel Height", desc = "Maximum height of weapon panels.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
+InsaneStats:RegisterClientConVar("hud_wpass2_mode", "insanestats_hud_wpass2_mode", "0", {
+	display = "Attribute Display Mode", desc = "Changes how attributes are displayed when there are too many to fit.",
+	type = InsaneStats.BOOL
+})
 InsaneStats:RegisterClientConVar("hud_wpass2_lootbeams", "insanestats_hud_wpass2_lootbeams", "1", {
 	display = "Loot Beams", desc = "Shows loot beams for weapons and armor batteries that have modifiers.",
 	type = InsaneStats.BOOL
@@ -124,26 +128,26 @@ local rarityNames = {
 	"Mythical Galactic",
 	"Mythical Monstrous",
 	"Mythical Aetheric",
-	"Ultimate Common",
-	"Ultimate Uncommon",
-	"Ultimate Rare",
-	"Ultimate Epic",
-	"Ultimate Superior",
-	"Ultimate Legendary",
-	"Ultimate Insane",
-	"Ultimate Galactic",
-	"Ultimate Monstrous",
-	"Ultimate Aetheric",
-	"Ultimate Mythical Common",
-	"Ultimate Mythical Uncommon",
-	"Ultimate Mythical Rare",
-	"Ultimate Mythical Epic",
-	"Ultimate Mythical Superior",
-	"Ultimate Mythical Legendary",
-	"Ultimate Mythical Insane",
-	"Ultimate Mythical Galactic",
-	"Ultimate Mythical Monstrous",
-	"Ultimate Mythical Aetheric",
+	"Transcendent Common",
+	"Transcendent Uncommon",
+	"Transcendent Rare",
+	"Transcendent Epic",
+	"Transcendent Superior",
+	"Transcendent Legendary",
+	"Transcendent Insane",
+	"Transcendent Galactic",
+	"Transcendent Monstrous",
+	"Transcendent Aetheric",
+	"Transcendent Mythical Common",
+	"Transcendent Mythical Uncommon",
+	"Transcendent Mythical Rare",
+	"Transcendent Mythical Epic",
+	"Transcendent Mythical Superior",
+	"Transcendent Mythical Legendary",
+	"Transcendent Mythical Insane",
+	"Transcendent Mythical Galactic",
+	"Transcendent Mythical Monstrous",
+	"Transcendent Mythical Aetheric",
 	"Final Common",
 	"Final Uncommon",
 	"Final Rare",
@@ -164,7 +168,7 @@ local rarityNames = {
 	"Final Mythical Galactic",
 	"Final Mythical Monstrous",
 	"Final Mythical Aetheric",
-	"Final Ultimate",
+	"Final Transcendent",
 	"Rainbow"
 }
 
@@ -300,10 +304,202 @@ function InsaneStats:GetAttributeText(attribute, value)
 	end
 	local numberDisplay = InsaneStats:FormatNumber(
 		(value-1) * (attribInfo.nopercent and 1 or 100),
-		{plus = not attribInfo.noplus, decimals = decimals}
+		{
+			plus = not attribInfo.noplus,
+			decimals = decimals,
+			distance = attribInfo.nopercent == "distance"
+		}
 	)..(attribInfo.nopercent and "" or "%")
 
 	return string.format(attribInfo.display, numberDisplay)
+end
+
+--[[
+drawing the weapon rarity needs to do these:
+	1. do not draw text that would not be visible to save performance especially on long weapon names
+	2. use the correct color for each drawn letter
+in general, all colors symbolic of the rarity must be visible within the maximum rarity text width
+]]
+local function CalculateTriangleWaveValue(t, period, phase, min, max)
+	return max + (min - max) * math.abs((t / period + phase) % 1 * 2 - 1)
+end
+
+function InsaneStats:GetPhasedRarityColor(tier, phase)
+	-- phase ranges from 0 to 1
+	phase = phase or 0
+
+	local realTime = RealTime()
+	if tier < 0 then
+		local l = 255 / (1-tier)
+		return Color(l, l, l)
+	elseif tier == 0 then
+		return color_white
+	elseif tier > 60 then
+		return HSVToColor((realTime * 120 + phase * 360) % 360, 1, 1)
+	else
+		local hue = baseHues[ (tier-1)%10+1 ]
+		local sat = 0.5
+		local val = 1
+		if tier > 40 then
+			if tier > 50 then
+				sat = CalculateTriangleWaveValue(realTime, 1, phase * 2 + 0.5, 0, 1)
+			end
+			local t = (realTime/2+phase)%1
+			hue = (hue + math.ease.InOutCubic(t) * 360) % 360
+		elseif tier > 20 then
+			if tier > 30 then
+				sat = CalculateTriangleWaveValue(realTime, 1, phase * 2, 0, 1)
+			else
+				sat = 1
+			end
+			hue = (hue + CalculateTriangleWaveValue(realTime, 2, phase, -60, 60)) % 360
+		elseif tier > 10 then
+			sat = CalculateTriangleWaveValue(realTime, 1, phase, 0, 1)
+		end
+		
+		return HSVToColor(hue, sat, val)
+	end
+end
+
+local function SubstringBySize(text, startX, endX)
+	--[[
+	there are two binary searches here, this is your only warning
+
+	for sake of example: 'terraformer'
+	if 'terra' is enough to reach startX, save the number 5
+	and if 'terraform' is enough to reach endX, save the number 9
+	
+	for startX:
+	iL, iR = 1, 11
+	iM is 6
+	v < startX is false so iR = 6
+
+	iL, iR = 1, 6
+	iM is 3
+	v < startX is true so iL = 4
+
+	iL, iR = 4, 6
+	iM is 5
+	v < startX is false (it exceeds startX!) so iR = 5
+
+	iL, iR = 4, 5
+	iM is 4
+	v < startX is true so iL = 5
+
+	now that iL < iR is false, return iL (5)
+
+	for endX:
+	iL, iR = 1, 11
+	iM is 6
+	v > endX is false so iL = 7
+
+	iL, iR = 7, 11
+	iM is 9
+	v > endX is true (it exceeds endX!) so iR = 9
+
+	iL, iR = 7, 9
+	iM is 8
+	v > endX is false so iL = 9
+
+	now that iL < iR is false, return iR (9)
+	]]
+
+	local textLength = #text--utf8.len(text)
+	local stringSub = string.sub--utf8.sub
+
+	local iL, iR = 1, textLength
+	while iL < iR do
+		local iM = math.floor((iL + iR) / 2)
+		local substring = stringSub(text, 1, iM)
+		local x = surface.GetTextSize(substring)
+		if x < startX then
+			iL = iM + 1
+		else
+			iR = iM
+		end
+	end
+	local startTextIndex = iL
+
+	iL, iR = 1, textLength
+	while iL < iR do
+		local iM = math.floor((iL + iR) / 2)
+		local substring = stringSub(text, 1, iM)
+		local x = surface.GetTextSize(substring)
+		if x > endX then
+			iR = iM
+		else
+			iL = iM + 1
+		end
+	end
+	local endTextIndex = iR
+
+	return startTextIndex, endTextIndex
+end
+
+function InsaneStats:DrawRarityText(text, size, x, y, w, tier, time, scissorX, scissorY)
+	size = size or 2
+	local outlineThickness = InsaneStats:GetOutlineThickness()
+	local fontName = size == 3 and "InsaneStats.Big" or "InsaneStats.Medium"
+	local stringSub = string.sub--utf8.sub
+	scissorX = (scissorX or 0) + x - outlineThickness
+	scissorY = (scissorY or 0) + y - outlineThickness
+	surface.SetFont(fontName)
+
+	-- how much space is overflowed by the text?
+	local textTotalWidth, textTotalHeight = surface.GetTextSize(text)
+	local nameExtraW = textTotalWidth - w
+	local nameScrollFactor = 1
+	if nameExtraW > 0 then
+		nameScrollFactor = (math.cos(time/2)+1)/2
+	end
+	local nameScrollAmt = Lerp(nameScrollFactor, nameExtraW, 0)
+
+	-- clip text to what's actually worth drawing
+	local startIndex, endIndex = SubstringBySize(
+		text,
+		nameScrollAmt - outlineThickness,
+		nameScrollAmt + w + outlineThickness
+	)
+	local undrawnX = surface.GetTextSize(stringSub(text, 1, startIndex - 1))
+	local offsetX = undrawnX - nameScrollAmt
+	local textX = x + offsetX
+
+	-- clip drawing area
+	render.SetScissorRect(
+		scissorX,
+		scissorY,
+		scissorX + w + outlineThickness * 2,
+		scissorY + textTotalHeight + outlineThickness * 2,
+		true
+	)
+
+	-- draw, the endIndex+4 part is because of the possibility of truncated utf-8 sequences
+	local chars = {}
+	for _, code in utf8.codes(utf8.force(stringSub(text, startIndex, endIndex + 4))) do
+		table.insert(chars, utf8.char(code))
+	end
+	
+	local charData = {}
+	local numberTier = tonumber(tier)
+	for i, v in ipairs(chars) do
+		local phase = (undrawnX + textX) / w
+		local currentData = {
+			x = textX,
+			color = numberTier and InsaneStats:GetPhasedRarityColor(numberTier, phase) or tier
+		}
+		charData[i] = currentData
+		
+		textX = textX + InsaneStats:DrawTextOutlined(
+			v, size, textX, y, currentData.color,
+			TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, {outlineOnly = true}
+		)
+	end
+
+	for i, v in ipairs(chars) do
+		draw.SimpleText(v, fontName, charData[i].x, y, charData[i].color)
+	end
+
+	render.SetScissorRect(0, 0, 0, 0, false)
 end
 
 local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, extra)
@@ -312,37 +508,27 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 	local maxW = ScrW() * InsaneStats:GetConVarValue("hud_wpass2_width")
 	local maxH = ScrH() * InsaneStats:GetConVarValue("hud_wpass2_height")
 	local maxY = panelY + maxH
-	local rarityColor = InsaneStats:GetRarityColor(InsaneStats:GetWPASS2Rarity(wep))
 	local typeText = wep:IsWeapon() and " Weapon" or " Battery"
 	local outlineThickness = InsaneStats:GetOutlineThickness()
 	extra = extra or {}
+	
+	panelY = panelY + outlineThickness
 	
 	surface.SetAlphaMultiplier(alphaMod)
 	local name = wep:IsWeapon() and InsaneStats:GetWeaponName(wep) or language.GetPhrase("item_battery")
 	local titleText = (extra.dropped and "Hovered " or "Current ")..name..":"
 	textOffsetX, textOffsetY = InsaneStats:DrawTextOutlined(
-		titleText, 2, panelX+outlineThickness, panelY+outlineThickness,
+		titleText, 2, panelX+outlineThickness, panelY,
 		color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
 	)
-	panelY = panelY + textOffsetY
-	
-	surface.SetFont("InsaneStats.Medium")
-	local nameExtraW = surface.GetTextSize(InsaneStats:GetWPASS2Name(wep)) - maxW + outlineThickness*2
-	local nameScrollFactor = 1
-	if nameExtraW > 0 then
-		nameScrollFactor = (math.cos(changeDuration/2)+1)/2
-	end
-	local nameScrollAmt = Lerp(nameScrollFactor, nameExtraW, 0)
-	
-	render.SetScissorRect(panelX, panelY, panelX+maxW, panelY+InsaneStats.FONT_MEDIUM+outlineThickness*2, true)
-	
-	textOffsetX, textOffsetY = InsaneStats:DrawTextOutlined(
-		InsaneStats:GetWPASS2Name(wep), 2, panelX-nameScrollAmt+outlineThickness, panelY+outlineThickness,
-		rarityColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
+	panelY = panelY + textOffsetY + outlineThickness
+
+	InsaneStats:DrawRarityText(
+		InsaneStats:GetWPASS2Name(wep), 2,
+		panelX + outlineThickness, panelY, maxW - outlineThickness * 2,
+		InsaneStats:GetWPASS2Rarity(wep), changeDuration
 	)
-	panelY = panelY + textOffsetY
-	
-	render.SetScissorRect(0, 0, 0, 0, false)
+	panelY = panelY + InsaneStats.FONT_MEDIUM + outlineThickness
 	
 	local tierDisplay = "Tier "..wep.insaneStats_Tier..typeText
 	if InsaneStats:GetConVarValue("xp_enabled") then
@@ -353,7 +539,7 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 		end
 	end
 	textOffsetX, textOffsetY = InsaneStats:DrawTextOutlined(
-		tierDisplay, 2, panelX+outlineThickness, panelY+outlineThickness,
+		tierDisplay, 2, panelX+outlineThickness, panelY,
 		color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
 	)
 	
@@ -370,59 +556,86 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 			levelUpText = levelUpText .. " x" .. InsaneStats:FormatNumber(levelDiff)
 		end
 		InsaneStats:DrawTextOutlined(
-			levelUpText, 2, panelX+maxW-outlineThickness, panelY+outlineThickness,
+			levelUpText, 2, panelX+maxW-outlineThickness, panelY,
 			color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP
 		)
 	end
 	
-	panelY = panelY + textOffsetY
+	panelY = panelY + textOffsetY + outlineThickness
 
 	if LocalPlayer():IsSuitEquipped() then
 		if not wep.insaneStats_AttributeOrder then error(InsaneStats:GetWPASS2Name(wep), type(InsaneStats:GetWPASS2Name(wep))) end
 		
-		local attribY1 = panelY + 2
-		local attribY2 = maxY
-		local excessY = math.max(#wep.insaneStats_AttributeOrder * InsaneStats.FONT_SMALL + attribY1 - attribY2 + outlineThickness*2, 0)
-		local holdTime = (attribY2 - attribY1) / InsaneStats.FONT_SMALL / 2
-		local pathDuration = holdTime + excessY / InsaneStats.FONT_SMALL
-		local animDuration = pathDuration * 2
-		local animCurrent = changeDuration % animDuration
-		
-		local offsetY
-		if animCurrent <= pathDuration or excessY == 0 then
-			offsetY = math.min(math.Remap(animCurrent, holdTime, pathDuration, 0, -excessY), 0)
-		else
-			offsetY = math.max(math.Remap(animCurrent, pathDuration + holdTime, animDuration, -excessY, 0), -excessY)
-		end
-		
-		--[[local sf1 = math.max(#wep.insaneStats_AttributeOrder - 4, 4)
-		local sf2 = (changeDuration + sf1) % (sf1 * 2) - sf1
-		local sf3 = math.Clamp(math.abs(sf2) - 2, 0, sf1-4)]]
-		
-		render.SetScissorRect(panelX, panelY+outlineThickness, panelX+maxW, maxY, true)
-		
-		for i,v in ipairs(wep.insaneStats_AttributeOrder) do
-			local textY = panelY + (i-1) * InsaneStats.FONT_SMALL + offsetY
-			-- don't bother if out of range
-			if textY > attribY1-InsaneStats.FONT_SMALL-4 and textY < attribY2+outlineThickness then
-				local attribValue = wep:InsaneStats_GetAttributes()[v]
-				if not attribValue then
-					PrintTable(wep:InsaneStats_GetAttributes())
+		local textH = InsaneStats.FONT_SMALL + outlineThickness
+		if InsaneStats:GetConVarValue("hud_wpass2_mode") then
+			local maxLinesPerPage = math.floor((maxY - panelY) / textH)
+			if maxLinesPerPage > 0 then
+				local pages = math.ceil(#wep.insaneStats_AttributeOrder / maxLinesPerPage)
+				local page0d = math.floor(changeDuration / math.tau % 1 * pages)
+				local startLine = page0d * maxLinesPerPage + 1
+				local endLine = (page0d + 1) * maxLinesPerPage
+				local textY = panelY
+
+				for i=startLine, math.min(endLine, #wep.insaneStats_AttributeOrder) do
+					local attrib = wep.insaneStats_AttributeOrder[i]
+					local attribValue = wep:InsaneStats_GetAttributes()[attrib]
+					if not attribValue then
+						PrintTable(wep:InsaneStats_GetAttributes())
+					end
+					local attribInfo = attributes[attrib]
+					if not attribInfo then error(attrib) end
+					
+					local displayColor = (attribValue < 1 == tobool(attribInfo.invert)) and color_light_blue or color_light_red
+					local attribDisplay = InsaneStats:GetAttributeText(attrib, attribValue)
+					
+					textY = textY + select(2, InsaneStats:DrawTextOutlined(
+						attribDisplay, 1, panelX+outlineThickness, textY,
+						displayColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
+					))
 				end
-				local attribInfo = attributes[v]
-				if not attribInfo then error(v) end
-				
-				local displayColor = (attribValue < 1 == tobool(attribInfo.invert)) and color_light_blue or color_light_red
-				local attribDisplay = InsaneStats:GetAttributeText(v, attribValue)
-				
-				textOffsetX, textOffsetY = InsaneStats:DrawTextOutlined(
-					attribDisplay, 1, panelX+outlineThickness, textY+outlineThickness,
-					displayColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
-				)
 			end
+		else
+			local attribY1 = panelY
+			local attribY2 = maxY
+			local totalY = #wep.insaneStats_AttributeOrder * textH + outlineThickness
+			local excessY = math.max(totalY + attribY1 - attribY2, 0)
+			local holdTime = (attribY2 - attribY1) / textH / 2
+			local pathDuration = holdTime + excessY / textH
+			local animDuration = pathDuration * 2
+			local animCurrent = changeDuration % animDuration
+			
+			local offsetY
+			if animCurrent <= pathDuration or excessY == 0 then
+				offsetY = math.min(math.Remap(animCurrent, holdTime, pathDuration, 0, -excessY), 0)
+			else
+				offsetY = math.max(math.Remap(animCurrent, pathDuration + holdTime, animDuration, -excessY, 0), -excessY)
+			end
+			
+			render.SetScissorRect(panelX, panelY-outlineThickness, panelX+maxW, maxY, true)
+			
+			for i,v in ipairs(wep.insaneStats_AttributeOrder) do
+				local textY = panelY + offsetY + (i-1) * textH
+				-- don't bother if out of range
+				if textY + textH > attribY1 and textY < attribY2 + outlineThickness then
+					local attribValue = wep:InsaneStats_GetAttributes()[v]
+					if not attribValue then
+						PrintTable(wep:InsaneStats_GetAttributes())
+					end
+					local attribInfo = attributes[v]
+					if not attribInfo then error(v) end
+					
+					local displayColor = (attribValue < 1 == tobool(attribInfo.invert)) and color_light_blue or color_light_red
+					local attribDisplay = InsaneStats:GetAttributeText(v, attribValue)
+					
+					textOffsetX, textOffsetY = InsaneStats:DrawTextOutlined(
+						attribDisplay, 1, panelX+outlineThickness, textY,
+						displayColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
+					)
+				end
+			end
+			
+			render.SetScissorRect(0, 0, 0, 0, false)
 		end
-		
-		render.SetScissorRect(0, 0, 0, 0, false)
 	elseif next(wep.insaneStats_AttributeOrder) then
 		InsaneStats:DrawTextOutlined(
 			"(H.E.V. suit required for details)", 1, panelX+outlineThickness, panelY,

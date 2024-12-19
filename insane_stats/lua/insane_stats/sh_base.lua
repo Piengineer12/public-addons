@@ -167,16 +167,16 @@ end
 -- MISC
 
 InsaneStats:SetDefaultConVarCategory("Miscellaneous")
-InsaneStats:RegisterConVar("spawn_delay", "insanestats_spawn_delay", "0", {
-	display = "Insane Stats Spawn Delay", desc = "Delays the effects of Insane Stats to newly spawned entities for this many seconds. \z
-	Note that WPASS2 and the Experience System causes entities to be invincible before the spawn delay elapses.",
-	type = InsaneStats.FLOAT, min = 0, max = 10
-})
 InsaneStats:RegisterConVar("save_file", "insanestats_save_file", "default", {
 	display = "Save File Name", desc = "Data from other modules such as XP and WPASS2 will be saved in \z
 	data/insane_stats/<name>.json.\n\z
 	Note that ConVar values are not saved this way, and changes to this ConVar only take effect after a map change.",
 	type = InsaneStats.STRING
+})
+InsaneStats:RegisterConVar("spawn_delay", "insanestats_spawn_delay", "0", {
+	display = "Insane Stats Spawn Delay", desc = "Delays the effects of Insane Stats to newly spawned entities for this many seconds. \z
+	Note that WPASS2 and the Experience System causes entities to be invincible before the spawn delay elapses.",
+	type = InsaneStats.FLOAT, min = 0, max = 10
 })
 InsaneStats:RegisterConVar("spawn_master", "insanestats_spawn_master", "0", {
 	display = "Spawn At First Spawn Position", desc = "Players will always spawn at the first spawn position within the map, \z

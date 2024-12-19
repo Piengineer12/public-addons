@@ -4,7 +4,8 @@ InsaneStats.WPASS2_FLAGS = {
 	SCRIPTED_ONLY = 4,
 	SP_ONLY = 8,
 	SUIT_POWER = 16,
-	KNOCKBACK = 32
+	KNOCKBACK = 32,
+	MP_ONLY = 64
 	
 	-- non-obvious combinations:
 	-- 5: NEVER
@@ -15,6 +16,21 @@ InsaneStats:SetDefaultConVarCategory("WPASS2 - General")
 InsaneStats:RegisterConVar("wpass2_enabled", "insanestats_wpass2_enabled", "1", {
 	display = "Enable WPASS2", desc = "Enables WPASS2, allowing weapons / armor batteries to gain prefixes and suffixes.",
 	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterConVar("wpass2_autopickup", "insanestats_wpass2_autopickup", "1", {
+	display = "Auto Pickup Mode", desc = "Determines whether weapons / armor batteries will be automatically picked up for ammo / armor.\n\z
+	0: Never auto pickup weapons and armor batteries.\n\z
+	1: Auto pickup weapons and armor batteries that are tier 0.\n\z
+	2: Auto pickup weapons and armor batteries that have lower tiers than current.\n\z
+	3: Auto pickup weapons and armor batteries that have lower tiers than current, and always swap for higher tiers.\n\z
+	4: Auto pickup weapons and armor batteries that have equal or lower tiers than current.\n\z
+	5: Auto pickup weapons and armor batteries that have equal or lower tiers than current, and always swap for higher tiers.\n\z
+	6: Always auto pickup weapons and armor batteries.",
+	type = InsaneStats.INT, min = 0, max = 6
+})
+InsaneStats:RegisterConVar("wpass2_autopickup_battery", "insanestats_wpass2_autopickup_battery", "-1", {
+	display = "Auto Battery Pickup Mode", desc = "If 0 or above, overrides insanestats_wpass2_autopickup for armor batteries.",
+	type = InsaneStats.INT, min = -1, max = 6
 })
 InsaneStats:RegisterConVar("wpass2_dropship_invincible", "insanestats_wpass2_dropship_invincible", "1", {
 	display = "Invincible Dropship Containers", desc = "Combine dropship containers can't be damaged. This has been known to break maps if disabled!",
@@ -67,21 +83,16 @@ InsaneStats:RegisterConVar("wpass2_modifiers_negativeweight_battery", "insanesta
 	display = "Negative Battery Modifier Weight Multiplier", desc = "If 0 or above, overrides insanestats_wpass2_modifiers_negativeweight for armor batteries.",
 	type = InsaneStats.FLOAT, min = -1, max = 10
 })
-InsaneStats:RegisterConVar("wpass2_autopickup", "insanestats_wpass2_autopickup", "1", {
-	display = "Auto Pickup Mode", desc = "Determines whether weapons / armor batteries will be automatically picked up for ammo / armor.\n\z
-	0: Never auto pickup weapons and armor batteries.\n\z
-	1: Auto pickup weapons and armor batteries that are tier 0.\n\z
-	2: Auto pickup weapons and armor batteries that have lower tiers than current.\n\z
-	3: Auto pickup weapons and armor batteries that have lower tiers than current, and always swap for higher tiers.\n\z
-	4: Auto pickup weapons and armor batteries that have equal or lower tiers than current.\n\z
-	5: Auto pickup weapons and armor batteries that have equal or lower tiers than current, and always swap for higher tiers.\n\z
-	6: Always auto pickup weapons and armor batteries.",
-	type = InsaneStats.INT, min = 0, max = 6
+InsaneStats:RegisterConVar("wpass2_modifiers_switched", "insanestats_wpass2_modifiers_switched", "0", {
+	display = "Switched Modifier Weight Multiplier", desc = "If above 0, modifiers meant for armor batteries can be applied to weapons and vice versa, with higher values making this more likely.",
+	type = InsaneStats.FLOAT, min = 0, max = 10
 })
-InsaneStats:RegisterConVar("wpass2_autopickup_battery", "insanestats_wpass2_autopickup_battery", "-1", {
-	display = "Auto Battery Pickup Mode", desc = "If 0 or above, overrides insanestats_wpass2_autopickup for armor batteries.",
-	type = InsaneStats.INT, min = -1, max = 6
+InsaneStats:RegisterConVar("wpass2_modifiers_switched_battery", "insanestats_wpass2_modifiers_switched_battery", "-1", {
+	display = "Switched Battery Modifier Weight Multiplier", desc = "If 0 or above, overrides insanestats_wpass2_modifiers_switched for armor batteries.",
+	type = InsaneStats.FLOAT, min = -1, max = 10
 })
+
+InsaneStats:SetDefaultConVarCategory("WPASS2 - Attribute Effects")
 
 InsaneStats:RegisterConVar("wpass2_attributes_player_constant_speed", "insanestats_wpass2_attributes_player_constant_speed", "0", {
 	display = "Use Precalculated Player Speeds", desc = "Whenever player speeds are changed by WPASS2, non-WPASS2 speed modifiers are removed. \z
@@ -772,6 +783,8 @@ function InsaneStats:GetModifierProbabilities(wep)
 	end
 	if game.SinglePlayer() then
 		inclusiveFlags = bit.bor(inclusiveFlags, self.WPASS2_FLAGS.SP_ONLY)
+	else
+		inclusiveFlags = bit.bor(inclusiveFlags, self.WPASS2_FLAGS.MP_ONLY)
 	end
 	if GetConVar("gmod_suit"):GetBool() then
 		inclusiveFlags = bit.bor(inclusiveFlags, self.WPASS2_FLAGS.SUIT_POWER)
@@ -800,24 +813,36 @@ function InsaneStats:GetModifierProbabilities(wep)
 	}
 	hook.Run("InsaneStatsGetModifierProbabilities", data)
 
+	local switchedWeightMul = InsaneStats:GetConVarValueDefaulted(
+		not isWep and "wpass2_modifiers_switched_battery",
+		"wpass2_modifiers_switched"
+	)
+
 	for k,v in pairs(modifiers) do
 		local isNegative = (v.cost or 1) < 0
 		local flags = v.flags or 0
 
 		local matchesBlacklist = (not blacklistedModifiers[k]) ~= (isNegative and invertNegative)
-		local matchesFlags = bit.band(inclusiveFlags, flags) == flags
+		local matchesFlags = bit.band(bit.bor(inclusiveFlags, 1), flags) == flags
 		local matchesTier = isNegative or (wep.insaneStats_Tier or 0) >= 0
 		-- if a modifier DOES NOT have bitflag WPASS2_FLAGS.ARMOR and inclusiveFlags DOES,
 		-- do not consider it, and vice versa
 		local matchesArmorFlags = bit.band(flags, self.WPASS2_FLAGS.ARMOR) == bit.band(inclusiveFlags, self.WPASS2_FLAGS.ARMOR)
 
-		if matchesBlacklist and matchesFlags and matchesTier and matchesArmorFlags then
+		if matchesBlacklist and matchesFlags and matchesTier then
 			local weight = v.weight or 1
 			if isNegative then
 				weight = weight * data.negativeWeightMul
 			end
+			if not matchesArmorFlags then
+				weight = weight * switchedWeightMul
+			end
 			modifierProbabilities[k] = weight
 		end
+	end
+
+	for k,v in pairs(modifierProbabilities) do
+		if v <= 0 then modifierProbabilities[k] = nil end
 	end
 
 	return modifierProbabilities

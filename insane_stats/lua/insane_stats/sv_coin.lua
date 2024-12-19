@@ -86,30 +86,32 @@ hook.Add("InsaneStatsEntityKilledPostXP", "InsaneStatsCoins", function(victim, a
 end)
 
 hook.Add("InsaneStatsPropBroke", "InsaneStatsCoins", function(victim, attacker)
-	local inflictor = attacker.GetActiveWeapon and attacker:GetActiveWeapon() or attacker
-	local mul = InsaneStats:GetConVarValue("coins_breakable_mul")
-	local currentHealthAdd = victim:InsaneStats_GetCurrentHealthAdd()
-	local startingHealth = victim:InsaneStats_GetMaxHealth() / currentHealthAdd
-	local value = startingHealth * math.random() / 16 * mul
-	if InsaneStats:GetConVarValue("xp_enabled") then
-		value = InsaneStats:ScaleValueToLevelQuadratic(
-			value,
-			InsaneStats:GetConVarValue("coins_level_add")/100,
-			victim:InsaneStats_GetLevel(),
-			"coins_level_add_mode",
-			false,
-			InsaneStats:GetConVarValue("coins_level_add_add")/100
-		)
+	if InsaneStats:GetConVarValue("coins_enabled") then
+		local inflictor = attacker.GetActiveWeapon and attacker:GetActiveWeapon() or attacker
+		local mul = InsaneStats:GetConVarValue("coins_breakable_mul")
+		local currentHealthAdd = victim:InsaneStats_GetCurrentHealthAdd()
+		local startingHealth = victim:InsaneStats_GetMaxHealth() / currentHealthAdd
+		local value = startingHealth * math.random() / 16 * mul
+		if InsaneStats:GetConVarValue("xp_enabled") then
+			value = InsaneStats:ScaleValueToLevelQuadratic(
+				value,
+				InsaneStats:GetConVarValue("coins_level_add")/100,
+				victim:InsaneStats_GetLevel(),
+				"coins_level_add_mode",
+				false,
+				InsaneStats:GetConVarValue("coins_level_add_add")/100
+			)
+		end
+		
+		local data = {victim = victim, attacker = attacker, inflictor = inflictor, coins = value}
+		hook.Run("InsaneStatsScaleCoins", data)
+		value = data.coins
+
+		local extraValue = victim:InsaneStats_GetCoins()
+		value = value + extraValue
+
+		SpawnCoins(victim, value)
 	end
-	
-	local data = {victim = victim, attacker = attacker, inflictor = inflictor, coins = value}
-	hook.Run("InsaneStatsScaleCoins", data)
-	value = data.coins
-
-	local extraValue = victim:InsaneStats_GetCoins()
-	value = value + extraValue
-
-	SpawnCoins(victim, value)
 end)
 
 local savedPlayerCoins, savedPlayerReforgeBlacklist
@@ -141,6 +143,18 @@ ReloadCoins()
 
 hook.Add("InitPostEntity", "InsaneStatsCoins", function()
 	ReloadCoins()
+end)
+
+hook.Add("InsaneStatsEntityCreated", "InsaneStatsCoins", function(ent)
+	if ent:GetClass() == "grenade_ar2" and InsaneStats:GetConVarValue("coins_enabled") then
+		local oldCollisionGroup = ent:GetCollisionGroup()
+		ent:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
+		timer.Simple(1, function()
+			if IsValid(ent) then
+				ent:SetCollisionGroup(oldCollisionGroup)
+			end
+		end)
+	end
 end)
 
 hook.Add("PlayerSpawn", "InsaneStatsCoins", function(ply, fromTransition)

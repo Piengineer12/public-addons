@@ -359,7 +359,8 @@ local function CalculateDamage(vic, attacker, dmginfo)
 
 	-- SKILLS
 
-	local vicSuperColdValue = vic:InsaneStats_GetEffectiveSkillValues("super_cold", 2) or 0
+	local vicSuperColdValue = vic:InsaneStats_GetEffectiveSkillValues("super_cold", 3) or 0
+	local attackerSuperColdValue = attacker:InsaneStats_GetEffectiveSkillValues("super_cold", 2) or 0
 
 	totalMul = totalMul
 	* (1 + attacker:InsaneStats_GetEffectiveSkillValues("quintessence") / 100)
@@ -373,7 +374,7 @@ local function CalculateDamage(vic, attacker, dmginfo)
 	* (1 + attacker:InsaneStats_GetEffectiveSkillValues("rage") / 100 * attackerHealthFraction)
 	* (1 + attacker:InsaneStats_GetEffectiveSkillValues("why_is_it_called_kiting") / 100 * attackerSpeedFraction)
 	* (1 + vic:InsaneStats_GetEffectiveSkillValues("living_on_the_edge") / 100 * victimHealthFraction)
-	* (1 + attacker:InsaneStats_GetEffectiveSkillValues("super_cold") / 100 * attacker:InsaneStats_GetSkillStacks("super_cold"))
+	* (1 + attackerSuperColdValue / 100 * attacker:InsaneStats_GetSkillStacks("super_cold"))
 	* math.max(0, 1 + vicSuperColdValue / 100 * vic:InsaneStats_GetSkillStacks("super_cold"))
 	* (1 + attacker:InsaneStats_GetStatusEffectLevel("charge") / 2)
 	* (1 - vic:InsaneStats_GetStatusEffectLevel("charge") / 2.5)
@@ -774,12 +775,6 @@ hook.Add("EntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo)
 					end
 				end)
 			end
-			
-			--[[dmginfo:SetAttacker(vic)
-			dmginfo:SetDamage(40)
-			oldAttacker:TakeDamageInfo(dmginfo)
-			dmginfo:SetDamage(oldDamage)
-			dmginfo:SetAttacker(oldAttacker)]]
 		end
 
 		if vic:InsaneStats_EffectivelyHasSkill("mantreads") and dmginfo:IsFallDamage() and damageTier < 1.5 then
@@ -1510,13 +1505,17 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 					end
 				end
 
-				if vicIsMob and not grenadedEntities[attacker] and dmginfo:IsExplosionDamage()
-				and math.random() * 100 < attacker:InsaneStats_GetEffectiveSkillValues("anger", 2)
-				and (class ~= "npc_turret_floor" or not vic.insaneStats_IsDead) then
+				if vicIsMob and dmginfo:IsExplosionDamage() and not vic.insaneStats_IsDead
+				and vic:InsaneStats_GetStatusEffectLevel("anger_resist") <= 0
+				and attacker:InsaneStats_EffectivelyHasSkill("anger") then
+					vic:InsaneStats_ApplyStatusEffect(
+						"anger_resist", 1,
+						attacker:InsaneStats_GetEffectiveSkillValues("anger", 2)
+					)
 					--[[local grenadePos = dmginfo:GetDamagePosition()
 					grenadePos = grenadePos:IsZero() and vic:WorldSpaceCenter() or grenadePos]]
-					grenadedEntities[attacker] = vic:GetPos()
-					grenadedEntities[attacker].z = grenadedEntities[attacker].z + vic:OBBMaxs().z
+					grenadedEntities[attacker] = vic:WorldSpaceCenter()
+					--grenadedEntities[attacker].z = grenadedEntities[attacker].z + vic:OBBMaxs().z
 				end
 			end
 
@@ -1575,7 +1574,7 @@ hook.Add("EntityFireBullets", "InsaneStatsWPASS2", function(attacker, data)
 		or math.random() * 100 < attacker:InsaneStats_GetEffectiveSkillValues("aimbot")
 		if shouldAimbot then
 			local bestNPC = NULL
-			local bestCos = 0
+			local bestCos = -2
 			local traceResult = {}
 			local trace = {
 				start = attacker.GetShootPos and attacker:GetShootPos() or data.Src,
@@ -1691,6 +1690,7 @@ local function CalculateXPFromSkills(attacker, victim)
 	local armorInverseFactor = attacker:InsaneStats_GetMaxArmor() > 0
 		and attacker:InsaneStats_GetArmor() / attacker:InsaneStats_GetMaxArmor() or 0
 	local attackerSpeedFraction = attacker:InsaneStats_GetEffectiveSpeed() / 400
+	local attackerSuperColdValue = attacker:InsaneStats_GetEffectiveSkillValues("super_cold", 2) or 0
 
 	local newXP = (1 + attacker:InsaneStats_GetEffectiveSkillValues("quintessence", 4) / 100)
 	* (1 + attacker:InsaneStats_GetEffectiveSkillValues("xp") / 100)
@@ -1698,7 +1698,7 @@ local function CalculateXPFromSkills(attacker, victim)
 	* (1 + attacker:InsaneStats_GetSkillStacks("mania")/100)
 	* (1 + attacker:InsaneStats_GetEffectiveSkillValues("risk_reward") / 100 * healthFactor)
 	* (1 + attacker:InsaneStats_GetEffectiveSkillValues("jazz_feet") / 100 * attackerSpeedFraction)
-	* (1 + attacker:InsaneStats_GetEffectiveSkillValues("super_cold") / 100 * attacker:InsaneStats_GetSkillStacks("super_cold"))
+	* (1 + attackerSuperColdValue / 100 * attacker:InsaneStats_GetSkillStacks("super_cold"))
 	* (1 + attacker:InsaneStats_GetStatusEffectLevel("skill_xp_up") / 100)
 	* (1 + attacker:InsaneStats_GetSkillStacks("keep_it_fresh")/100)
 	* (1 + attacker:InsaneStats_GetEffectiveSkillValues("feel_the_energy")/100 * armorInverseFactor)
@@ -1940,14 +1940,12 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsSkills", function(victim, at
 		for attacker, triggers in pairs(skillAttackers) do
 			triggers = triggers * (1 + attacker:InsaneStats_GetEffectiveSkillTier("master_of_fire"))
 
-			if attacker:InsaneStats_GetSkillStacks("master_of_air") > 0
-			and (attacker:InsaneStats_GetEntityData("master_of_air_lasttrigger") or 0) + 1 < CurTime() then
-				triggers = triggers * (1 + attacker:InsaneStats_GetSpentUberSkillPoints())
-				attacker:InsaneStats_SetSkillData(
-					"master_of_air", -1,
-					attacker:InsaneStats_GetSkillStacks("master_of_air") - 1
+			if attacker:InsaneStats_GetSkillState("master_of_air") ~= -1 then
+				triggers = triggers * (
+					1 + attacker:InsaneStats_GetSpentUberSkillPoints()
+					* attacker:InsaneStats_GetEffectiveSkillTier("master_of_air")
 				)
-				attacker:InsaneStats_SetEntityData("master_of_air_lasttrigger", CurTime())
+				attacker:InsaneStats_SetSkillData("master_of_air", -1, 0)
 			end
 
 			if attacker:InsaneStats_EffectivelyHasSkill("infusion") then
@@ -2486,7 +2484,7 @@ local function AttemptDupeEntity(ply, item)
 						end
 						itemDuplicate.insaneStats_StartTier = 0
 						itemDuplicate:Spawn()
-						itemDuplicate:SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER)
+						itemDuplicate:SetCollisionGroup(COLLISION_GROUP_WORLD)
 					end
 				else
 					for i,v in ipairs(duplicates) do
@@ -2698,12 +2696,12 @@ local function ApplyRegeneration(frameTime)
 
 		if (k:InsaneStats_EffectivelyHasSkill("aint_got_time_for_this")
 		or k:InsaneStats_EffectivelyHasSkill("panic")) and isMultiplayer then
-			local regenAmount = k:InsaneStats_GetEffectiveSkillValues("aint_got_time_for_this", 2)
+			local regenAmount = k:InsaneStats_GetEffectiveSkillValues("aint_got_time_for_this", 3)
 			for i,v2 in ipairs(ents.FindInSphere(k:WorldSpaceCenter(), 512)) do
 				if k:InsaneStats_IsValidAlly(v2) and k ~= v2 then
 					regenAmounts[v2] = (regenAmounts[v2] or 0)
 					+ regenAmount
-					+ k:InsaneStats_GetEffectiveSkillValues("panic")
+					+ k:InsaneStats_GetEffectiveSkillValues("panic", 2)
 					* (
 						v2:InsaneStats_GetMaxHealth() > 0
 						and 1 - v2:InsaneStats_GetHealth() / v2:InsaneStats_GetMaxHealth()
@@ -2917,7 +2915,7 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 
 			for k,v in pairs(InsaneStats:GetEntitiesWithSkills()) do
 				if k:InsaneStats_GetSkillState("kill_aura") == 1 then
-					auras[k] = (auras[k] or 0) + k:InsaneStats_GetEffectiveSkillValues("kill_aura", 3)
+					auras[k] = (auras[k] or 0) + k:InsaneStats_GetEffectiveSkillValues("kill_aura", 4)
 				end
 			end
 
@@ -3130,40 +3128,6 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 			end
 
 			k:InsaneStats_SetEntityData("skill_distance_travelled", distanceTravelled)
-
-			--[[if k:InsaneStats_GetSkillState("kill_aura") == 1 then
-				local damage = k:InsaneStats_GetEffectiveSkillValues("kill_aura", 3) * timerResolution
-				
-				local traceResult = {}
-				local trace = {
-					start = k:WorldSpaceCenter(),
-					filter = {k, k.GetVehicle and k:GetVehicle() or nil},
-					mask = MASK_SHOT,
-					output = traceResult
-				}
-
-				for i,v2 in ipairs(ents.FindInSphere(k:WorldSpaceCenter(), 512)) do
-					if k:InsaneStats_IsValidEnemy(v2) then
-						local damagePos = v2:HeadTarget(k:WorldSpaceCenter()) or v2:WorldSpaceCenter()
-						damagePos = damagePos:IsZero() and v2:WorldSpaceCenter() or damagePos
-						trace.endpos = damagePos
-						util.TraceLine(trace)
-						if not traceResult.Hit or traceResult.Entity == v2 then
-							local dmginfo = DamageInfo()
-							dmginfo:SetAttacker(k)
-							dmginfo:SetInflictor(k)
-							dmginfo:SetBaseDamage(damage)
-							dmginfo:SetDamage(damage)
-							dmginfo:SetMaxDamage(damage)
-							dmginfo:SetDamageForce(vector_origin)
-							dmginfo:SetDamageType(bit.bor(DMG_ENERGYBEAM, DMG_PREVENT_PHYSICS_FORCE))
-							dmginfo:SetReportedPosition(k:WorldSpaceCenter())
-							dmginfo:SetDamagePosition(damagePos)
-							v2:TakeDamageInfo(dmginfo)
-						end
-					end
-				end
-			end]]
 		end
 		
 		timeIndex[6] = SysTime() - tempTimeStart
@@ -3242,14 +3206,10 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsWPASS2", function(ent)
 				parent:Extinguish()
 			end
 		end
-		timer.Simple(1, function()
-			if IsValid(ent) then
-				ent:InsaneStats_SetSkillData(
-					"master_of_air", -1,
-					ent:InsaneStats_GetEffectiveSkillTier("master_of_air")
-				)
-			end
-		end)
+
+		if ent:InsaneStats_IsMob() then
+			ent:InsaneStats_SetSkillData("master_of_air", 0, 0)
+		end
 	end
 	
 	entities[ent] = true
@@ -3452,25 +3412,28 @@ end)
 
 -- there are a set of inputs and outputs that need to be remembered for ctrl_f skill
 local jotRelayerInputs = {
-	trigger = true,			--logic_relay
-	setvaluetest = true,	--logic_branch
-	toggletest = true,		--logic_branch
-	test = true,			--logic_branch
-	add = true,				--math_counter
-	divide = true,			--math_counter
-	multiply = true,		--math_counter
-	setvalue = true,		--math_counter
-	setvaluenofire = true,	--math_counter
-	subtract = true,		--math_counter
-	sethitmax = true,		--math_counter
-	sethitmin = true		--math_counter
+	trigger = true,				--logic_relay
+	setvaluetest = true,		--logic_branch
+	toggletest = true,			--logic_branch
+	test = true,				--logic_branch
+	invalue = true,				--logic_case
+	pickrandom = true,			--logic_case
+	pickrandomshuffle = true,	--logic_case
+	add = true,					--math_counter
+	divide = true,				--math_counter
+	multiply = true,			--math_counter
+	setvalue = true,			--math_counter
+	setvaluenofire = true,		--math_counter
+	subtract = true,			--math_counter
+	sethitmax = true,			--math_counter
+	sethitmin = true			--math_counter
 }
-local jotRelayerOutputs = {
+--[[local jotRelayerOutputs = {
 	ontrigger = true,	--logic_relay
 	ontrue = true,		--logic_branch
 	onfalse = true		--logic_branch
-}
-local jotTriggerOutputs = {
+}]]
+--[[local jotTriggerOutputs = {
 	ontrigger = true,				--trigger_once, trigger_multiple,
 	ontimeout = true,				--trigger_look,
 	nearestentitydistance = true,	--trigger_proximity,
@@ -3480,7 +3443,7 @@ local jotTriggerOutputs = {
 	onendtouchall = true,			--trigger_multiple, trigger_look, trigger_proximity,
 	ontouching = true,				--trigger_multiple, trigger_look, trigger_proximity,
 	onnottouching = true			--trigger_multiple, trigger_look, trigger_proximity
-}
+}]]
 --[[
 how ctrl_f works:
 :: phase 1: entitykeyvalue
@@ -3536,7 +3499,8 @@ hook.Add("EntityKeyValue", "InsaneStatsWPASS2", function(ent, key, value)
 		end
 	end
 end)
-
+InsaneStats.SkillRelayerInputs = jottedRelayerInputs
+InsaneStats.SkillUnlockerInputs = jottedUnlockerInputs
 
 local relayers = {
 	logic_relay = true,
@@ -3549,10 +3513,11 @@ local function MapUnlocks()
 	entitiesRequiredToUnlock = {}
 	entitiesUnlock = {}
 
+	local queuedUnlockerInputs = jottedUnlockerInputs
 	for iterations = 1, 10 do
 		local newJottedUnlockerInputs = {}
 
-		for targetname, unlockingEntities in pairs(jottedUnlockerInputs) do
+		for targetname, unlockingEntities in pairs(queuedUnlockerInputs) do
 			for unlockingEntity, _ in pairs(unlockingEntities) do
 				if IsValid(unlockingEntity) then
 					local class = unlockingEntity:GetClass()
@@ -3603,8 +3568,8 @@ local function MapUnlocks()
 			end
 		end
 
-		jottedUnlockerInputs = newJottedUnlockerInputs
-		if table.IsEmpty(jottedUnlockerInputs) then break end
+		queuedUnlockerInputs = newJottedUnlockerInputs
+		if table.IsEmpty(queuedUnlockerInputs) then break end
 	end
 
 	if InsaneStats:IsDebugLevel(1) then
@@ -3644,11 +3609,6 @@ hook.Add("PlayerSpawn", "InsaneStatsWPASS2", function(ply, fromTransition)
 
 		timer.Simple(1, function()
 			if IsValid(ply) then
-				ply:InsaneStats_SetSkillData(
-					"master_of_air", -1,
-					ply:InsaneStats_GetEffectiveSkillTier("master_of_air")
-				)
-				
 				if ply:InsaneStats_GetStatusEffectLevel("starlight") <= 0
 				and ply:InsaneStats_GetSkillStacks("starlight") <= 0 then
 					for i,v in ipairs(ply:GetChildren()) do
@@ -3661,6 +3621,7 @@ hook.Add("PlayerSpawn", "InsaneStatsWPASS2", function(ply, fromTransition)
 		end)
 
 		ply:InsaneStats_SetSkillData("fight_for_your_life", 0, 0)
+		ply:InsaneStats_SetSkillData("master_of_air", 0, 0)
 	end
 	if IsValid(ply.insaneStats_Starlight) then
 		ply.insaneStats_Starlight:Remove()
@@ -3670,7 +3631,6 @@ end)
 hook.Add("PlayerUse", "InsaneStatsWPASS2", function(ply, ent)
 	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
 		local class = ent:GetClass()
-		local connectedEntities = ent:InsaneStats_GetEntityData("insanestats_vital") or {}
 		if rechargerClasses[class] and (ent.insaneStats_DeadToPlayers and ent.insaneStats_DeadToPlayers[ply]) then
 			return false
 		elseif (class == "item_suitcharger" or class == "func_recharge")
@@ -3693,13 +3653,31 @@ hook.Add("PlayerUse", "InsaneStatsWPASS2", function(ply, ent)
 				
 				ent:SetSaveValue("m_iJuice",0)
 			end
-		elseif (entitiesRequiredToUnlock[ent] or entitiesUnlock[ent] or next(connectedEntities))
+		elseif (entitiesRequiredToUnlock[ent] or entitiesUnlock[ent])
 		and (
 			ply:InsaneStats_EffectivelyHasSkill("ctrl_f")
 			or ply:InsaneStats_GetAttributeValue("ctrl_f") > 1
 		) then
 			local tableToSend = {}
 			local curTime = CurTime()
+
+			if ply:InsaneStats_GetEffectiveSkillTier("ctrl_f") > 1 then
+				local toCheck = {}
+				table.Merge(toCheck, entitiesUnlock[ent] or {})
+				table.Merge(toCheck, entitiesRequiredToUnlock[ent] or {})
+				while next(toCheck) do
+					local nextCheck = {}
+					for k,v in pairs(toCheck) do
+						if IsValid(k) and not tableToSend[k] then
+							tableToSend[k] = 2
+							local kName = k:GetName()
+							table.Merge(nextCheck, jottedUnlockerInputs[kName] or {})
+							table.Merge(nextCheck, jottedRelayerInputs[kName] or {})
+						end
+					end
+					toCheck = nextCheck
+				end
+			end
 
 			for k,v in pairs(entitiesRequiredToUnlock[ent] or {}) do
 				if IsValid(k) then
@@ -3713,16 +3691,6 @@ hook.Add("PlayerUse", "InsaneStatsWPASS2", function(ply, ent)
 					tableToSend[k] = 1
 				else
 					entitiesUnlock[ent][k] = nil
-				end
-			end
-
-			if ply:InsaneStats_GetEffectiveSkillTier("ctrl_f") > 1 then
-				for k,v in pairs(connectedEntities) do
-					if IsValid(k) then
-						tableToSend[k] = 2
-					else
-						connectedEntities[k] = nil
-					end
 				end
 			end
 
@@ -4091,11 +4059,12 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 										local dir = ourPosition - itemPos
 										if not dir:IsZero() then
 											--local len = dir:Length()
-											local mult = 16
+											local mult = 64
 											--dir:Normalize()
 											--dir:Mul(512 + trace.endpos:Distance(trace.start) * 10)
 											dir:Mul(mult)
 											physObj:SetVelocity(dir)
+											v2:SetCollisionGroup(COLLISION_GROUP_WORLD)
 											v2.insaneStats_PreventMagnet = (v2.insaneStats_PreventMagnet or 0) + 0.25
 										end
 									end
@@ -4331,7 +4300,7 @@ end)
 
 hook.Add("PlayerAmmoChanged", "InsaneStatsWPASS2", function(ply, ammoID, oldAmount, newAmount)
 	if ply:InsaneStats_EffectivelyHasSkill("more_bullet_per_bullet") then
-		local newAmount = newAmount - (ply.insaneStats_AmmoAdjs and ply.insaneStats_AmmoAdjs[ammoID] or 0)
+		newAmount = newAmount - (ply.insaneStats_AmmoAdjs and ply.insaneStats_AmmoAdjs[ammoID] or 0)
 		local maxReserve = game.GetAmmoMax(ammoID)
 		local skillValues = {ply:InsaneStats_GetEffectiveSkillValues("more_bullet_per_bullet")}
 		local maxPlayerReserve = maxReserve * skillValues[1] / 100
@@ -4354,16 +4323,17 @@ hook.Add("PlayerAmmoChanged", "InsaneStatsWPASS2", function(ply, ammoID, oldAmou
 			net.Send(ply)
 
 			local ammoFunc = ply.InsaneStats_SetRawAmmo or ply.SetAmmo
-			ply:InsaneStats_SetRawAmmo(math.ceil(maxPlayerReserve), ammoID)
+			newAmount = math.ceil(maxPlayerReserve)
+			ply:InsaneStats_SetRawAmmo(newAmount, ammoID)
 		end
 	end
 	
 	if InsaneStats:GetConVarValue("wpass2_enabled") then
-		local newAmount = newAmount - (ply.insaneStats_AmmoAdjs and ply.insaneStats_AmmoAdjs[ammoID] or 0)
+		newAmount = newAmount - (ply.insaneStats_AmmoAdjs and ply.insaneStats_AmmoAdjs[ammoID] or 0)
 		local maxReserve = game.GetAmmoMax(ammoID)
 		local threshold = ply:InsaneStats_GetAttributeValue("ammo_convert")
 		local maxPlayerReserve = maxReserve*threshold
-		if threshold < 1 and newAmount > maxPlayerReserve then
+		if threshold < 1 and newAmount > maxPlayerReserve and maxReserve > 0 then
 			local stacks = (math.min(newAmount, maxReserve) - maxPlayerReserve) / maxReserve * ply:InsaneStats_GetAttributeValue("death_promise_damage")
 			--timer.Simple(0, function()
 				ply:InsaneStats_ApplyStatusEffect("death_promise", stacks * 10, math.huge, {amplify = true})

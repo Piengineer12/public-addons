@@ -1516,7 +1516,7 @@ local modifiers = {
 			modifiers = {
 				ping_defence = 1.1,
 			},
-			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.MP_ONLY),
 			weight = 0.5
 		},
 	},
@@ -2352,9 +2352,9 @@ local attributes = {
 		--mul = 0.5
 	},
 	penetrate = {
-		display = "%s Hu bullet penetration",
+		display = "%s bullet penetration",
 		mul = 80,
-		nopercent = true
+		nopercent = "distance"
 	},
 	
 	speed_dilation = {
@@ -3371,8 +3371,6 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 		speedMul = speedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("quintessence", 3) / 100)
 		* (1 + ent:InsaneStats_GetEffectiveSkillValues("speed") / 100)
 		* (1 + ent:InsaneStats_GetEffectiveSkillValues("bloodletters_revelation") / 100 * (1 - healthFraction))
-		--* (1 + ent:InsaneStats_GetEffectiveSkillValues("super_cold") / 100 * ent:InsaneStats_GetSkillStacks("super_cold"))
-		--* (1 + ent:InsaneStats_GetEffectiveSkillValues("fast_er") / 100)
 
 		if ent:InsaneStats_GetSkillStacks("hunting_spirit") > 0 then
 			speedMul = speedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("hunting_spirit") / 100)

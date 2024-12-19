@@ -94,13 +94,22 @@ concommand.Add("insanestats_save", function(ply, cmd, args, argStr)
 	if ply:IsAdmin() then
 		local data = InsaneStats:Load()
 		hook.Run("InsaneStatsSave", data)
-		InsaneStats:Save(data)
 
-		InsaneStats:Log("Data saved!")
+		local oldSaveFile = currentSaveFile
+		argStr = string.Trim(argStr)
+		if #argStr ~= 0 then
+			currentSaveFile = argStr
+		end
+		InsaneStats:Save(data)
+		InsaneStats:Log("Data saved to \"%s\"!", currentSaveFile)
+
+		currentSaveFile = oldSaveFile
 	else
 		InsaneStats:Log("This command can only be run by admins!")
 	end
-end, nil, "Saves all Insane Stats data immediately.")
+end, nil, "Saves all Insane Stats data immediately. A save file name can be supplied, \z
+which will cause save data to be written into that save file \z
+instead of the name specified by \"insanestats_save_file\".")
 
 concommand.Add("insanestats_revert_all_convars", function(ply, cmd, args, argStr)
 	if argStr:lower() == "yes" then

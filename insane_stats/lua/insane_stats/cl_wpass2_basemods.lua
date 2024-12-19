@@ -150,7 +150,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 		end
 
 		local revealRadius = ply:InsaneStats_GetAttributeValue("reveal") - 1
-		+ ply:InsaneStats_GetEffectiveSkillValues("map_sense")
+		+ ply:InsaneStats_GetEffectiveSkillValues("map_sense", 2)
 		if revealRadius > 0 then
 			local toDraw = {}
 			local eyePos = EyePos()

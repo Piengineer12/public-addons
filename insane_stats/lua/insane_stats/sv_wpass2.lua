@@ -201,7 +201,6 @@ concommand.Add("insanestats_wpass2_modifiers_stats", function(ply, cmd, args, ar
 	end
 end, nil, "Calculates some numbers related to modifier counts, weights and percentages.")
 
-
 concommand.Add("insanestats_wpass2_giverandomweapons", function(ply, cmd, args, argStr)
 	if (IsValid(ply) and ply:IsSuperAdmin()) then
 		local percent = tonumber(argStr)
@@ -366,11 +365,11 @@ local function ApplyWPASS2Tier(ent)
 		if tierUpMode then
 			local distanceBetweenTiers = startLevel * levelScale / 100
 			local startForTiers = startLevel - distanceBetweenTiers
-			tier = tier + math.max(0, (effectiveLevel - startForTiers) / distanceBetweenTiers)
+			tier = tier + (effectiveLevel - startForTiers) / distanceBetweenTiers
 		else
 			local distanceBetweenTiers = 1 + levelScale / 100
 			local invertedStartForTiers = distanceBetweenTiers / startLevel
-			tier = tier + math.max(0, math.log(effectiveLevel * invertedStartForTiers, distanceBetweenTiers))
+			tier = tier + math.log(effectiveLevel * invertedStartForTiers, distanceBetweenTiers)
 		end
 	end
 	

@@ -53,20 +53,32 @@ local weaponSelectorChars = {
 	weapon_smg1 = 'a',
 	weapon_shotgun = 'b',
 	weapon_crowbar = 'c',
-	weapon_crowbar_hl1 = 'c',
 	weapon_pistol = 'd',
 	weapon_357 = 'e',
-	weapon_357_hl1 = 'e',
 	weapon_crossbow = 'g',
 	weapon_physgun = 'h',
 	weapon_rpg = 'i',
-	weapon_rpg_hl1 = 'i',
 	weapon_bugbait = 'j',
 	weapon_frag = 'k',
 	weapon_ar2 = 'l',
 	weapon_physcannon = 'm',
 	weapon_stunstick = 'n',
-	weapon_slam = 'o'
+	weapon_slam = 'o',
+
+	--[[weapon_satchel = 'T',
+	weapon_mp5_hl1 = 'a',
+	weapon_shotgun_hl1 = 'b',
+	weapon_crowbar_hl1 = 'c',
+	weapon_glock_hl1 = 'd',
+	weapon_357_hl1 = 'e',
+	weapon_crossbow_hl1 = 'g',
+	weapon_gauss = 'h',
+	weapon_rpg_hl1 = 'i',
+	weapon_snark = 'j',
+	weapon_handgrenade = 'k',
+	weapon_hornetgun = 'm',
+	weapon_egon = 'n',
+	weapon_tripmine = 'o',]]
 }
 local color_black_translucent = InsaneStats:GetColor("black_translucent")
 local color_gray = InsaneStats:GetColor("gray")
@@ -110,8 +122,8 @@ local function CreateWeaponButton(main, parent, wep, name, isSelected)
 				self.insaneStats_Selected and color_gray_translucent or color_black_translucent
 			)
 			local hasModifiers = InsaneStats:GetConVarValue("wpass2_enabled") and wep.insaneStats_Modifiers
-			local rarityColor = hasModifiers and InsaneStats:GetRarityColor(InsaneStats:GetWPASS2Rarity(wep))
-			or color_white
+			local tier = hasModifiers and InsaneStats:GetWPASS2Rarity(wep) or 0
+			local rarityColor = InsaneStats:GetPhasedRarityColor(tier)
 			
 			if wep.DrawWeaponSelection then
 				local x, y = self:LocalToScreen()
@@ -120,7 +132,7 @@ local function CreateWeaponButton(main, parent, wep, name, isSelected)
 				local class = wep:GetClass():lower()
 				local char = weaponSelectorChars[class] or 'V'
 				local weaponColor = tintMode > 0 and hasModifiers
-				and InsaneStats:GetRarityColor(InsaneStats:GetWPASS2Rarity(wep))
+				and InsaneStats:GetPhasedRarityColor(InsaneStats:GetWPASS2Rarity(wep))
 				or string.ToColor(InsaneStats:GetConVarValue("hud_wepsel_wep_color"))
 				draw.SimpleText(
 					char, "InsaneStats.WeaponIcons", w/2, h/2, weaponColor,
@@ -191,7 +203,7 @@ local function CreateWeaponButton(main, parent, wep, name, isSelected)
 
 			local weaponDetails = {}
 			local textX = gapSize+outlineThickness
-			local textY = h-gapSize-outlineThickness
+			local textY = h-gapSize-InsaneStats.FONT_MEDIUM-outlineThickness*2
 			local maxWidth = w-gapSize*2-outlineThickness*2
 			local displayTime = RealTime() - main.insaneStats_OpenTime
 
@@ -207,41 +219,32 @@ local function CreateWeaponButton(main, parent, wep, name, isSelected)
 			end
 			
 			local panelPosX, panelPosY = self:LocalToScreen()
-			render.SetScissorRect(
-				panelPosX + gapSize,
-				panelPosY,
-				panelPosX + w - gapSize,
-				panelPosY + h,
-				true
-			)
 
 			if next(weaponDetails) then
-				DrawScrollingText(
-					table.concat(weaponDetails, ", "), displayTime,
+				InsaneStats:DrawRarityText(
+					table.concat(weaponDetails, ", "), 2,
 					textX, textY, maxWidth,
-					color_white
+					color_white, displayTime, panelPosX, panelPosY
 				)
 
 				textY = textY - InsaneStats.FONT_MEDIUM - outlineThickness
 			end
 
 			if hasModifiers then
-				DrawScrollingText(
-					InsaneStats:GetWPASS2Name(wep), displayTime,
+				InsaneStats:DrawRarityText(
+					InsaneStats:GetWPASS2Name(wep), 2,
 					textX, textY, maxWidth,
-					rarityColor
+					tier, displayTime, panelPosX, panelPosY
 				)
 
 				textY = textY - InsaneStats.FONT_MEDIUM - outlineThickness
 			end
 
-			DrawScrollingText(
-				name, displayTime,
+			InsaneStats:DrawRarityText(
+				name, 2,
 				textX, textY, maxWidth,
-				color_white
+				color_white, displayTime, panelPosX, panelPosY
 			)
-
-			render.SetScissorRect(0, 0, 0, 0, false)
 		else
 			main:Refresh()
 		end
@@ -827,9 +830,10 @@ local function InitWeaponSearchWindow()
 			function opt:Paint(w, h)
 				local outlineThickness = InsaneStats:GetOutlineThickness()
 				local isWep = IsValid(v.wep)
-				local rarityColor = not isWep and color_gray
-				or wpass2Enabled and InsaneStats:GetRarityColor(InsaneStats:GetWPASS2Rarity(v.wep))
+				local tier = isWep and InsaneStats:GetWPASS2Rarity(v.wep) or -1
+				local rarityColor = (not isWep or wpass2Enabled) and InsaneStats:GetPhasedRarityColor(tier)
 				or HSVToColor(RealTime() * 120 % 360, 0.75, 1)
+				local displayTime = RealTime() - startDrawTime
 
 				if self.Highlight then
 					draw.RoundedBox(4, 0, 0, w, h, rarityColor)
@@ -837,16 +841,19 @@ local function InitWeaponSearchWindow()
 					draw.RoundedBox(4, 0, 0, w, h, color_gray_translucent)
 				end
 
-				DrawScrollingText(
-					v.name, RealTime() - startDrawTime,
-					outlineThickness, InsaneStats.FONT_BIG + outlineThickness,
-					w - outlineThickness * 2, color_white, 3
+				local panelPosX, panelPosY = self:LocalToScreen()
+				InsaneStats:DrawRarityText(
+					v.name, 3,
+					outlineThickness, outlineThickness, w - outlineThickness * 2,
+					color_white, displayTime,
+					panelPosX, panelPosY
 				)
 				if wpass2Enabled or not isWep then
-					DrawScrollingText(
-						v.wpass2, RealTime() - startDrawTime,
-						outlineThickness, InsaneStats.FONT_BIG + InsaneStats.FONT_MEDIUM + outlineThickness,
-						w - outlineThickness * 2, rarityColor
+					InsaneStats:DrawRarityText(
+						v.wpass2, 2,
+						outlineThickness, InsaneStats.FONT_BIG + outlineThickness, w - outlineThickness * 2,
+						tier, displayTime,
+						panelPosX, panelPosY
 					)
 				end
 			end

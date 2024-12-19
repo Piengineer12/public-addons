@@ -120,7 +120,7 @@ function EFFECT:GetParticleColor()
 		elseif ammoClasses[class] then
 			color = color_gray
 		elseif self.Entity.insaneStats_Modifiers then
-			color = InsaneStats:GetRarityColor(InsaneStats:GetWPASS2Rarity(self.Entity))
+			color = InsaneStats:GetPhasedRarityColor(InsaneStats:GetWPASS2Rarity(self.Entity))
 		end
 	end
 	

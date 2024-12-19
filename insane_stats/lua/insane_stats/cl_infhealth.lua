@@ -26,8 +26,12 @@ InsaneStats:RegisterClientConVar("hud_damage_noselfhealing", "insanestats_hud_da
 })
 
 InsaneStats:RegisterClientConVar("hud_dps_enabled", "insanestats_hud_dps_enabled", "0", {
-	display = "DPS Meter", desc = "Shows the DPS meter. Note that all settings that affect damage numbers also affect the DPS meter!",
+	display = "DPS Meter", desc = "Shows the DPS meter. Note that all settings that affect damage number visibility also affect the DPS meter!",
 	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterClientConVar("hud_dps_decimals", "insanestats_hud_dps_decimals", "0", {
+	display = "DPS Meter Decimals", desc = "Maximum number of decimal digits to show for DPS numbers below 1,000.",
+	type = InsaneStats.FLOAT, min = 0, max = 3
 })
 InsaneStats:RegisterClientConVar("hud_dps_x", "insanestats_hud_dps_x", "0.35", {
 	display = "DPS Meter X", desc = "Horizontal position of DPS meter.",
@@ -96,7 +100,6 @@ end
 local ourDamages = {}
 -- table fields: damage, types, crit, time, origin, posX, posY
 local allDamageNumbers = {}
-local shouldUpdateDPS = false
 local doNotReportDamageOnTheseClasses = {
 	env_fire = true
 }
@@ -160,11 +163,16 @@ hook.Add("InsaneStatsHUDDamageTaken", "InsaneStatsUnlimitedHealth", function(ent
 		
 		if attacker == ply and not isSelf and not missed and damage > 0
 		and condition2 and condition3 and condition5 then
-			shouldUpdateDPS = true
-			table.insert(ourDamages, {
-				damage = damage,
-				time = RealTime()
-			})
+			local latestEntry = ourDamages[#ourDamages]
+			local curTime = CurTime()
+			if (latestEntry and latestEntry.time == curTime) then
+				latestEntry.damage = latestEntry.damage + damage
+			else
+				table.insert(ourDamages, {
+					damage = damage,
+					time = curTime
+				})
+			end
 		end
 	end
 end)
@@ -305,8 +313,8 @@ end
 
 --local dps = 1
 local slowDamage = 0
-local totalDamage = 0
 local slowDPS = 0
+local totalDetimedDamage = 0
 local totalDPS = 0
 local slowArmor = 0
 local slowHealth = 0
@@ -366,78 +374,89 @@ hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 		end
 		
 		if InsaneStats:GetConVarValue("hud_dps_enabled") and hasSuit then
+			--[[
+			what if three 20 damage events happen over 6 seconds but only 5 seconds are counted?
+			that causes these possibilities:
+			[][][
+			][][]
+			causing the dps meter to be always wrong, either reporting 12 or 8 dps
+			
+			if only 4 seconds are counted, it can result in these:
+			][][
+			[][]
+
+			my fix is that instead of dividing over 5 to get dps,
+			compute the difference of time between the first and last instance of damage counted,
+			then multiply that time difference by 1+1/(i-1), where i is the number of instances
+			
+			this results in three events being divided over 6 seconds / two events over 4 seconds
+			which is significantly more accurate, at least for automatic non-reloading weapons
+			]]
 			local outlineThickness = InsaneStats:GetOutlineThickness()
-			local discardTime = RealTime() - InsaneStats:GetConVarValue("hud_dps_time")
-			if shouldUpdateDPS then
-				totalDamage = 0
-				local totalLatestDamage = 0
-				--local entriesToDelete = 0
-				local minTime = RealTime()
-				local maxTime = 0
-				
-				for k,v in pairs(ourDamages) do
-					totalDamage = totalDamage + v.damage
-					
-					if v.time > discardTime then
-						totalLatestDamage = totalLatestDamage + v.damage
-						minTime = math.min(minTime, v.time)
-						maxTime = math.max(maxTime, v.time)
+			local curTime = CurTime()
+			local discardTime = curTime - InsaneStats:GetConVarValue("hud_dps_time")
+
+			-- remove expired entries in the ourDamages table
+			if next(ourDamages) then
+				while ourDamages[1].time < discardTime do
+					local instance = table.remove(ourDamages, 1)
+					if next(ourDamages) then
+						totalDetimedDamage = totalDetimedDamage + instance.damage
+					else
+						totalDetimedDamage = 0
+						slowDamage = 0
+						slowDPS = 0
+						break
 					end
-					--[[else
-						entriesToDelete = entriesToDelete + 1
-					end]]
 				end
-				
-				--[[if entriesToDelete ~= 0 then
-					for i,v in ipairs(ourDamages) do
-						ourDamages[i] = ourDamages[i+entriesToDelete]
-					end
-				end]]
+			end
+
+			if next(ourDamages) then
+				local totalLatestDamage = 0
+				for i,v in ipairs(ourDamages) do
+					totalLatestDamage = totalLatestDamage + v.damage
+				end
+
+				local totalDamage = totalDetimedDamage + totalLatestDamage
+				local minTime = ourDamages[1].time
+				local maxTime = ourDamages[#ourDamages].time
 				
 				local entryFactor = #ourDamages > 1 and 1+1/(#ourDamages - 1) or 1
 				local timeDifference = math.max((maxTime - minTime) * entryFactor, 1)
-				totalDPS = totalLatestDamage / timeDifference
-				shouldUpdateDPS = false
-			end
-			
-			if next(ourDamages) then
+				local totalDPS = totalLatestDamage / timeDifference
+				
 				local life = ourDamages[#ourDamages].time - discardTime
 				surface.SetAlphaMultiplier(life)
 				
-				if life > 0 then
-					local simplify = InsaneStats:GetConVarValue("hud_dps_simplified")
-					--dps = (dps - desiredDPS)/16384^RealFrameTime() + desiredDPS
-					--dps = desiredDPS
-					slowDamage = InsaneStats:TransitionUINumber(slowDamage, totalDamage)
-					slowDPS = InsaneStats:TransitionUINumber(slowDPS, totalDPS)
+				local simplify = InsaneStats:GetConVarValue("hud_dps_simplified")
+				slowDamage = InsaneStats:TransitionUINumber(slowDamage, totalDamage)
+				slowDPS = InsaneStats:TransitionUINumber(slowDPS, totalDPS)
 
-					local text
-					if simplify then
-						text = string.format(
-							"Total Damage: %s (%s/s)",
-							InsaneStats:FormatNumber(math.floor(slowDamage)),
-							InsaneStats:FormatNumber(math.floor(slowDPS), {plus = true})
-						)
-					else
-						text = string.format(
-							"Total Damage: %s (%s%s/s)",
-							string.Comma(math.floor(slowDamage)),
-							slowDPS > 0 and "+" or "",
-							string.Comma(math.floor(slowDPS))
-						)
-					end
-					
-					local x = scrW * InsaneStats:GetConVarValue("hud_dps_x")
-					local y = scrH * InsaneStats:GetConVarValue("hud_dps_y")
-					InsaneStats:DrawTextOutlined(
-						text, 3, x, y,
-						color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM
+				local text
+				local decimals = InsaneStats:GetConVarValue("hud_dps_decimals")
+				if simplify then
+					--math.Round(math.abs(entityDamageInfo.damage), )
+					text = string.format(
+						"Total Damage: %s (%s/s)",
+						InsaneStats:FormatNumber(math.Round(slowDamage, decimals)),
+						InsaneStats:FormatNumber(math.Round(slowDPS, decimals), {plus = true})
 					)
 				else
-					ourDamages = {}
-					slowDamage = 0
-					slowDPS = 0
+					text = string.format(
+						"Total Damage: %s (%s%s/s)",
+						string.Comma(math.Round(slowDamage, decimals)),
+						slowDPS > 0 and "+" or "",
+						string.Comma(math.Round(slowDPS, decimals))
+					)
 				end
+				
+				local x = scrW * InsaneStats:GetConVarValue("hud_dps_x")
+				local y = scrH * InsaneStats:GetConVarValue("hud_dps_y")
+				InsaneStats:DrawTextOutlined(
+					text, 3, x, y,
+					color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM
+				)
+
 				surface.SetAlphaMultiplier(1)
 			end
 		end
