@@ -49,6 +49,10 @@ hook.Add("entity_killed", "InsaneStats", function(data)
 	local inflictor = Entity(data.entindex_inflictor or 0)
 	
 	hook.Run("InsaneStatsEntityKilled", victim, attacker, inflictor)
+
+	--[[if IsValid(victim.insaneStats_Handler) then
+		victim.insaneStats_Handler:TriggerOutput("OnDeath", attacker)
+	end]]
 end)
 
 hook.Add("OnNPCKilled", "InsaneStats", function(victim, attacker, inflictor)
@@ -124,14 +128,70 @@ concommand.Add("insanestats_revert_all_convars", function(ply, cmd, args, argStr
 	end
 end, nil, "Reverts all server-side Insane Stats ConVars. You must pass the argument \"yes\" for this command to work.")
 
+local hlsAliases = {
+	npc_gargantua = "monster_gargantua",
+	npc_alien_grunt = "monster_alien_grunt",
+	npc_houndeye = "monster_houndeye",
+	npc_bullsquid = "monster_bullchicken",
+}
+--[[local npcMakerPreventCrashOn = {
+	npc_combinegunship = true
+}
+local keyValuesOnCrashableEntities = {}
+local targetnamesToPreventCrashes = {}]]
 -- For some reason "color" isn't included under game_text:GetKeyValues(). Why?
 hook.Add("EntityKeyValue", "InsaneStats", function(ent, key, value)
-	if ent:GetClass() == "game_text" and key == "color" then
+	key = key:lower()
+	local class = ent:GetClass()
+	if class == "game_text" and key == "color" then
 		ent.insaneStats_TextColor = string.ToColor(value.." 255")
-	elseif ent:GetClass() == "info_player_coop" and key == "StartDisabled" then
+	elseif class == "info_player_coop" and key == "startdisabled" then
 		ent.insaneStats_Disabled = tobool(value)
+	elseif (key == "classname" or key == "npctype") and hlsAliases[value]
+	and InsaneStats:GetConVarValue("gargantua_is_monster") then
+		local replaceClass = hlsAliases[value]
+		if InsaneStats:IsDebugLevel(1) then
+			InsaneStats:Log("Changing class of %s to %s!", tostring(ent), replaceClass)
+		end
+		return replaceClass
+	--[[elseif key == "templatename" then
+		targetnamesToPreventCrashes[value] = true
+	elseif key == "spawnflags" and npcMakerPreventCrashOn[class]
+	and bit.band(tonumber(value), 2048) ~= 0 then
+		ent:SetKeyValue("classname", "npc_helicopter")
+		keyValuesOnCrashableEntities[ent] = keyValuesOnCrashableEntities[ent] or {}
+		table.insert(keyValuesOnCrashableEntities[ent], {key, value})
+
+		if key == "targetname" then
+			keyValuesOnCrashableEntities[value] = keyValuesOnCrashableEntities[ent]
+		end]]
+	elseif class == "logic_choreographed_scene" and key ~= "oncanceled" then
+		ent.insaneStats_ChoreographedOutputs = ent.insaneStats_ChoreographedOutputs or {}
+
+		local rawData = string.Explode("\x1B", value)
+		if #rawData < 2 then
+			rawData = string.Explode(",", value)
+		end
+
+		if #rawData > 1 then
+			local initialDelay = tonumber(rawData[4]) or 0
+			if key == "oncompletion" then
+				initialDelay = initialDelay + 2
+			elseif key ~= "onstart" then
+				initialDelay = initialDelay + 1
+			end
+			table.insert(ent.insaneStats_ChoreographedOutputs, {
+				entities = rawData[1] or "",
+				input = rawData[2] or "",
+				param = rawData[3] or "",
+				delay = initialDelay,
+				times = tonumber(rawData[5]) or -1
+			})
+		end
 	end
 end)
+--InsaneStats.KeyValuesOnCrashableEntities = keyValuesOnCrashableEntities
+--InsaneStats.TargetnamesToPreventCrashes = targetnamesToPreventCrashes
 
 local pendingGameTexts = {}
 local activeCamera = NULL
@@ -142,6 +202,35 @@ hook.Add("AcceptInput", "InsaneStats", function(ent, input, activator, caller, v
 	local class = ent:GetClass()
 	if input == "insanestats_onnpckilled" then
 		hook.Run("InsaneStatsEntityKilled", caller, activator, activator)
+	--[[elseif input == "insanestats_onnpctemplatemade" and IsValid(activator) then
+		local name = activator:GetName()
+		if targetnamesToPreventCrashes[name] and keyValuesOnCrashableEntities[name] then
+			local replacementEnt = ents.Create(activator:GetClass())
+			replacementEnt:SetPos(activator:GetPos())
+			replacementEnt:SetAngles(activator:GetAngles())
+			for i,v in ipairs(keyValuesOnCrashableEntities[name]) do
+				if v[1] == "spawnflags" then
+					replacementEnt:SetKeyValue(
+						"spawnflags",
+						string.format(
+							"%i",
+							bit.band(
+								tonumber(v[2]),
+								bit.bnot(2048)
+							)
+						)
+					)
+				else
+					replacementEnt:SetKeyValue(v[1], v[2])
+				end
+			end
+			replacementEnt:Spawn()
+			replacementEnt:Activate()
+			if InsaneStats:IsDebugLevel(1) then
+				InsaneStats:Log("Replaced %s named %s with %s!", tostring(activator), name, tostring(replacementEnt))
+			end
+			SafeRemoveEntityDelayed(activator, 0)
+		end]]
 	elseif input == "deactivate" and class == "func_tank_combine_cannon" then
 		hook.Run("InsaneStatsEntityKilled", ent, activator, activator)
 	elseif input == "insanestats_onjoinedplayersquad" then
@@ -177,6 +266,41 @@ hook.Add("AcceptInput", "InsaneStats", function(ent, input, activator, caller, v
 	and InsaneStats:GetConVarValue("flashlight_disable_fix_modifyspeed") then
 		for i,v in player.Iterator() do
 			v.insaneStats_FlashlightDisabled = tonumber(value) ~= 1 or nil
+		end
+	elseif input == "start" and class == "logic_choreographed_scene"
+	and InsaneStats:GetConVarValue("skip_missing_scenes") then
+		-- see if the scene even exists
+		local sceneFile = ent:GetInternalVariable("SceneFile")
+		if file.Exists(sceneFile, "GAME") then
+			ent.insaneStats_ChoreographedOutputs = nil
+		else
+			local outputs = ent.insaneStats_ChoreographedOutputs or {}
+			for i,v in ipairs(outputs) do
+				local entities = v.entities
+				local times = v.times
+
+				if times ~= 0 then
+					local entitiesToFire = {}
+				
+					if entities == "!activator" then
+						entitiesToFire = {attacker}
+					elseif entities == "!self" then
+						entitiesToFire = {ent}
+					elseif entities == "!player" then
+						entitiesToFire = player.GetAll()
+					else
+						entitiesToFire = ents.FindByName(entities)
+					end
+				
+					for _, ent in ipairs(entitiesToFire) do
+						ent:Fire(v.input, v.param, v.delay, attacker, ent)
+					end
+				
+					if times > 0 then
+						v.times = times - 1
+					end
+				end
+			end
 		end
 	elseif class == "point_viewcontrol" and InsaneStats:GetConVarValue("camera_no_kill") then
 		-- this is where it gets stupid
@@ -222,13 +346,15 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStats", function(ent)
 		ent.insaneStats_FiredBy = ent:GetOwner()
 		crossbowBolts[ent] = true
 		hook.Run("InsaneStatsCrossbowBoltCreated", ent, ent.insaneStats_FiredBy)
+	elseif class == "npc_template_maker" then
+		ent:Fire("AddOutput", "OnSpawnNPC !activator:InsaneStats_OnNPCTemplateMade")
 	elseif ent:IsNPC() then
 		ent:Fire("AddOutput", "OnDeath !activator:InsaneStats_OnNPCKilled")
-		if ent:GetClass()=="npc_helicopter" then
+		if class=="npc_helicopter" then
 			ent:Fire("AddOutput", "OnShotDown !activator:InsaneStats_OnNPCKilled")
-		elseif ent:GetClass()=="npc_turret_floor" then
+		elseif class=="npc_turret_floor" then
 			ent:Fire("AddOutput", "OnTipped !self:InsaneStats_OnNPCKilled")
-		elseif ent:GetClass()=="npc_citizen" then
+		elseif class=="npc_citizen" then
 			ent.insaneStats_CitizenFlags = 0
 			if ent:HasSpawnFlags(SF_CITIZEN_MEDIC) then
 				ent.insaneStats_CitizenFlags = bit.bor(ent.insaneStats_CitizenFlags, 1)
@@ -239,6 +365,8 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStats", function(ent)
 			ent:Fire("AddOutput", "OnJoinedPlayerSquad !self:InsaneStats_OnJoinedPlayerSquad")
 			ent:Fire("AddOutput", "OnLeftPlayerSquad !self:InsaneStats_OnLeftPlayerSquad")
 			ent:InsaneStats_MarkForUpdate(256)
+		elseif class=="npc_combinedropship" and InsaneStats:GetConVarValue("nonsolid_combine_dropship") then
+			ent:SetCollisionGroup(COLLISION_GROUP_WORLD)
 		end
 	end
 end)
@@ -414,9 +542,54 @@ hook.Add("PlayerSwitchFlashlight", "InsaneStats", function(ply, newState)
 	end
 end)
 
+local function aliasHLSEnts(forced)
+	-- the class of entities can't really be changed in Lua
+	-- solution: register an extremely barebones entity with the sole purpose
+	-- of spawning the actual entity with the right keyvalues
+	for k,v in pairs(hlsAliases) do
+		if not scripted_ents.GetStored(k) or forced then
+			local entTable = {Type = "point", Base = "base_point"}
+			function entTable:KeyValue(k2,v2)
+				self.insaneStats_KVs = self.insaneStats_KVs or {}
+				if k2:lower() ~= "classname" then
+					table.insert(self.insaneStats_KVs, {k2, v2})
+				end
+				--[[self:AddOutputFromAcceptInput(k2,v2)
+
+				if k2:lower() == "ondeath" then
+					self.insaneStats_MustHandleDeath = true
+				end]]
+			end
+			function entTable:Initialize()
+				local actualEnt = ents.Create(v)
+				actualEnt:SetPos(self:GetPos())
+				for i,v2 in ipairs(self.insaneStats_KVs or {}) do
+					actualEnt:SetKeyValue(v2[1], v2[2])
+				end
+				actualEnt:Spawn()
+				actualEnt:Activate()
+				--[[if self.insaneStats_MustHandleDeath then
+					actualEnt.insaneStats_Handler = self
+				else]]
+					self:Remove()
+				--end
+			end
+			scripted_ents.Register(entTable, k)
+		end
+	end
+end
+
 hook.Add("Initialize", "InsaneStats", function()
 	currentSaveFile = InsaneStats:GetConVarValue("save_file")
+
+	if InsaneStats:GetConVarValue("gargantua_is_monster") then
+		aliasHLSEnts()
+	end
 end)
+
+if InsaneStats:GetConVarValue("gargantua_is_monster") and player.GetCount() > 0 then
+	aliasHLSEnts(true)
+end
 
 hook.Add("InitPostEntity", "InsaneStats", function()
 	if InsaneStats:GetConVarValue("transition_delay") then

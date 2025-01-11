@@ -203,13 +203,42 @@ local function CheckWeaponsAndItems()
 	return missing
 end
 
+local function CheckUnrecordedWeapons()
+	local missing = {}
+	local weaponsList = {}
+	for i,v in ipairs(InsaneStats.ShopItemsAutomaticPrice) do
+		weaponsList[v] = true
+	end
+	for i,v in ipairs(InsaneStats.ShopItems) do
+		weaponsList[v[1]] = true
+	end
+	for i,v in ipairs(weapons.GetList()) do
+		local class = v.ClassName
+		if not weaponsList[class] and v.Spawnable then
+			missing[class] = true
+		end
+	end
+
+	return missing
+end
+
 concommand.Add("insanestats_coins_check", function(ply, cmd, args, argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
-		local results = CheckWeaponsAndItems()
-		if next(results) then
-			InsaneStats:Log("The following shop weapons / items are either invalid or are in C++:")
-			for k,v in SortedPairs(results) do
-				InsaneStats:Log(k)
+		if argStr == "unrecorded" then
+			local results = CheckUnrecordedWeapons()
+			if next(results) then
+				InsaneStats:Log("The following weapons are not in the shop:")
+				for k,v in SortedPairs(results) do
+					InsaneStats:Log(k)
+				end
+			end
+		else
+			local results = CheckWeaponsAndItems()
+			if next(results) then
+				InsaneStats:Log("The following shop weapons / items are either invalid or are in C++:")
+				for k,v in SortedPairs(results) do
+					InsaneStats:Log(k)
+				end
 			end
 		end
 	end

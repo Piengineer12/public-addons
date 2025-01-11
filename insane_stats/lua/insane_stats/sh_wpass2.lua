@@ -661,6 +661,13 @@ local function MapStatusEffectNamesToIDs()
 	--PrintTable(effectNamesToIDs)
 end
 
+hook.Add("InsaneStatsLoadWPASS", "InsaneStatsSharedWPASS", function(modifiers, attributes, registeredEffects)
+	attributes.reverse_xp = {
+		display = "%s coins and XP yielded on death",
+		invert = true
+	}
+end)
+
 hook.Add("Initialize", "InsaneStatsSharedWPASS", function()
 	modifiers, attributes, registeredEffects = {}, {}, {}
 	hook.Run("InsaneStatsLoadWPASS", modifiers, attributes, registeredEffects)
@@ -723,23 +730,30 @@ function InsaneStats:DetermineWPASS2Attributes(currentModifiers)
 			local startValue = wepAttributes[k2] or attributes[k2].start or 1
 			if attributes[k2].mode == 1 then
 				wepAttributes[k2] = 1 - (1-startValue) * v2 ^ v
-			elseif attributes[k2].mode == 2 then
-				wepAttributes[k2] = 2 - startValue * v2 ^ v
 			elseif attributes[k2].mode == 3 then
 				wepAttributes[k2] = startValue + v2 * v
-			elseif attributes[k2].mode == 4 then
-				local mulValue = attributes[k2].mul or 1
-				wepAttributes[k2] = mulValue * (startValue * v2 ^ v - 1)
 			else
-				local mulValue = attributes[k2].mul or 1
-				wepAttributes[k2] = mulValue * (startValue * v2 ^ v - 1) + 1
+				wepAttributes[k2] = startValue * v2 ^ v
 			end
 		end
 	end
 	
 	for k,v in pairs(wepAttributes) do
+		local startValue = attributes[k].start or 1
+		if attributes[k].mode == 2 then
+			v = 2 - v
+		elseif attributes[k].mode == 4 then
+			local mulValue = attributes[k].mul or 1
+			v = mulValue * (v - 1)
+		else
+			local mulValue = attributes[k].mul or 1
+			v = mulValue * (v - 1) + 1
+		end
+
 		if v == 1 then -- remove
 			wepAttributes[k] = nil
+		else
+			wepAttributes[k] = v
 		end
 	end
 
@@ -748,6 +762,10 @@ end
 
 function InsaneStats:ApplyWPASS2Attributes(wep)
 	local wepAttributes = self:DetermineWPASS2Attributes(wep.insaneStats_Modifiers)
+	local tier = wep.insaneStats_Tier or 0
+	if tier ~= 0 then
+		wepAttributes.reverse_xp = 1.1 ^ (tier / 2)
+	end
 	wep:InsaneStats_SetAttributes(wepAttributes)
 	hook.Run("InsaneStatsWPASS2AttributesChanged", wep)
 end

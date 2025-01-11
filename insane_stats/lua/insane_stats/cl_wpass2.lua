@@ -9,6 +9,13 @@ InsaneStats:RegisterClientConVar("wpass2_autopickup_battery_override", "insanest
 	display = "Auto Battery Pickup Mode Override", desc = "If 0 or above, overrides insanestats_wpass2_autopickup_battery for yourself.",
 	type = InsaneStats.INT, min = -1, max = 6, userinfo = true
 })
+InsaneStats:RegisterClientConVar("wpass2_equip_highest_tier", "insanestats_wpass2_equip_highest_tier", "0", {
+	display = "Equip Highest Tiers", desc = "If above 0, causes picked up weapons to be immediately \z
+	deployed if they are at least this many tiers higher than what's currently deployed.\n\z
+	Consider setting cl_autowepswitch to 0 to disable the default weapon switching behavior, \z
+	which does not consider tiers.",
+	type = InsaneStats.INT, min = 0, max = 999, userinfo = true
+})
 
 InsaneStats:RegisterClientConVar("hud_wpass2_hold", "insanestats_hud_wpass2_hold", "10", {
 	display = "Weapon Panel Hold Time", desc = "Amount of time to display weapon information.",
@@ -571,7 +578,7 @@ local function DrawWeaponPanel(panelX, panelY, wep, changeDuration, alphaMod, ex
 			local maxLinesPerPage = math.floor((maxY - panelY) / textH)
 			if maxLinesPerPage > 0 then
 				local pages = math.ceil(#wep.insaneStats_AttributeOrder / maxLinesPerPage)
-				local page0d = math.floor(changeDuration / math.tau % 1 * pages)
+				local page0d = math.floor(changeDuration / math.pi % 1 * pages)
 				local startLine = page0d * maxLinesPerPage + 1
 				local endLine = (page0d + 1) * maxLinesPerPage
 				local textY = panelY

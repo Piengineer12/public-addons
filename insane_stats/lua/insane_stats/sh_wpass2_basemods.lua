@@ -568,6 +568,7 @@ local modifiers = {
 				"fire", "water"
 			},
 			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY),
+			weight = 2,
 			max = 21
 		},
 		electroblast = {
@@ -581,6 +582,7 @@ local modifiers = {
 				"explode", "air"
 			},
 			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY),
+			weight = 2,
 			max = 21
 		},
 		hemotoxic = {
@@ -595,6 +597,7 @@ local modifiers = {
 				"earth", "blood"
 			},
 			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY),
+			weight = 2,
 			max = 21
 		},
 		cosmicurse = {
@@ -606,6 +609,7 @@ local modifiers = {
 			merge = {
 				"frostfire", "electroblast", "hemotoxic", "doom"
 			},
+			weight = 6.5,
 			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY),
 		},
 	},
@@ -1431,7 +1435,7 @@ local modifiers = {
 			},
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			weight = 0.5,
-			max = 2
+			max = 1
 		},
 		ignorant = {
 			prefix = "Ignorant",
@@ -3434,8 +3438,8 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 			movedata:SetButtons(newbuttons)
 		end
 		if movedata:KeyPressed(IN_WALK) then
-			if (ply.insaneStats_LastAltPress or 0) + 0.5 > CurTime() and (ply.insaneStats_LastAltPress or 0) < CurTime() then
-				ply.insaneStats_LastAltPress = 0
+			if (ply:InsaneStats_GetEntityData("last_alt_press") or 0) + 0.5 > RealTime() then
+				ply:InsaneStats_SetEntityData("last_alt_press", 0)
 				
 				local duration = ply:InsaneStats_GetAttributeValue("alt_invisible") - 1
 				if ply:InsaneStats_GetStatusEffectLevel("invisible_cooldown") <= 0 and duration ~= 0 and not ply:GetNoDraw() then
@@ -3500,8 +3504,65 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 					ply:InsaneStats_SetSkillData("just_breathe", 1, 10)
 				end
 			else
-				ply.insaneStats_LastAltPress = CurTime()
+				ply:InsaneStats_SetEntityData("last_alt_press", RealTime())
 			end
+		end
+		if movedata:KeyPressed(IN_DUCK) then
+			if (ply:InsaneStats_GetEntityData("last_duck_press") or 0) + 0.5 > RealTime() then
+				ply:InsaneStats_SetEntityData("last_duck_press", 0)
+				if not ply:OnGround() and ply:InsaneStats_EffectivelyHasSkill("mantreads")
+				and movedata:GetVelocity().z > -3400 then
+					movedata:SetVelocity(vector_up * -10000)
+				end
+			else
+				ply:InsaneStats_SetEntityData("last_duck_press", RealTime())
+			end
+		end
+		local currentWep = ply:GetActiveWeapon()
+		if movedata:KeyDown(IN_ATTACK) and ply:InsaneStats_EffectivelyHasSkill("one_with_the_gun")
+		and (IsValid(currentWep) and currentWep:GetClass() == "weapon_physcannon")
+		and ply:InsaneStats_GetSkillStacks("one_with_the_gun") <= 0 then
+			local cd = 1/ply:InsaneStats_GetEffectiveSkillValues("one_with_the_gun", 5)
+			ply:InsaneStats_SetSkillData("one_with_the_gun", -1, cd)
+
+			ply:FireBullets({
+				Damage = 4,
+				Callback = function(attacker, trace, dmginfo)
+					dmginfo:SetDamageType(DMG_CLUB)
+
+					local outputs = trace.Entity.insaneStats_PhysGunOutputs or {}
+					for i,v in ipairs(outputs) do
+						local entities = v.entities
+						local times = v.times
+
+						if times ~= 0 then
+							local entitiesToFire = {}
+						
+							if entities == "!activator" then
+								entitiesToFire = {attacker}
+							elseif entities == "!self" then
+								entitiesToFire = {trace.Entity}
+							elseif entities == "!player" then
+								entitiesToFire = player.GetAll()
+							else
+								entitiesToFire = ents.FindByName(entities)
+							end
+						
+							for _, ent in ipairs(entitiesToFire) do
+								ent:Fire(v.input, v.param, v.delay, attacker, trace.Entity)
+							end
+						
+							if times > 0 then
+								v.times = times - 1
+							end
+						end
+					end
+				end,
+				AmmoType = "GaussEnergy",
+				TracerName = "GunshipImpact",
+				Dir = ply:GetAimVector(),
+				Src = ply:GetShootPos()
+			})
 		end
 		if ply:OnGround() then
 			ply:InsaneStats_ClearStatusEffect("air_jumped")

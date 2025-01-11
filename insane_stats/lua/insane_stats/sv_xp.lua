@@ -918,7 +918,10 @@ hook.Add("EntityTakeDamage", "InsaneStatsXP", function(vic, dmginfo)
 	end
 	
 	-- ignore damage dealt to uninitiated entities
-	if InsaneStats:GetConVarValue("xp_enabled") and not vic:InsaneStats_GetEntityData("level") then return true end
+	if InsaneStats:GetConVarValue("xp_enabled") and not vic:InsaneStats_GetEntityData("level") then
+		table.insert(toUpdateLevelEntities, vic)
+		return true
+	end
 end)
 
 hook.Add("OnPlayerPhysicsPickup", "InsaneStatsXP", function(ply, ent)

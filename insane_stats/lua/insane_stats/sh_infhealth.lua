@@ -77,9 +77,7 @@ local function OverrideHealth()
 	
 	function ENT:SetHealth(newHealth)
 		newHealth = tonumber(newHealth)
-		if not (newHealth >= -math.huge) then -- nan
-			error("Something tried to set health on "..tostring(self).." to nan!")
-		end
+		assert(newHealth >= -math.huge, "Something tried to set health on "..tostring(self).." to nan!")
 		self:InsaneStats_SetEntityData("health", newHealth)
 		if newHealth > 0 then
 			self.insaneStats_HealthRoot8 = InsaneStats:CalculateRoot8(newHealth)
@@ -107,12 +105,13 @@ local function OverrideHealth()
 	
 	function ENT:SetMaxHealth(newHealth)
 		newHealth = tonumber(newHealth)
-		if not (newHealth >= -math.huge) then -- nan
-			error("Something tried to set max health on "..tostring(self).." to nan!")
-		end
+		assert(newHealth >= -math.huge, "Something tried to set max health on "..tostring(self).." to nan!")
 		self:InsaneStats_SetEntityData("max_health", newHealth)
 		if newHealth > 0 then
 			self.insaneStats_MaxHealthRoot8 = InsaneStats:CalculateRoot8(newHealth)
+		elseif newHealth < 0 then
+			InsaneStats:Log("Max health on %s was set to %g, is this intentional?", tostring(self), newHealth)
+			debug.Trace()
 		end
 		
 		if self.InsaneStats_SetRawMaxHealth then
@@ -132,7 +131,7 @@ local function OverrideHealth()
 			self:InsaneStats_MarkForUpdate(1)
 		end
 		if SERVER and self:IsPlayer() and InsaneStats:IsDebugLevel(2) then
-			InsaneStats:Log("%s max health set to %f", tostring(self), newHealth)
+			InsaneStats:Log("%s max health set to %g", tostring(self), newHealth)
 			debug.Trace()
 		end
 	end
@@ -165,12 +164,13 @@ local function OverrideArmor()
 	end
 	
 	function ENT:SetArmor(newArmor)
-		if not (newArmor >= -math.huge) then -- nan
-			error("Something tried to set armor on "..tostring(self).." to nan!")
-		end
+		assert(newArmor >= -math.huge, "Something tried to set armor on "..tostring(self).." to nan!")
 		self:InsaneStats_SetEntityData("armor", newArmor)
 		if newArmor > 0 then
 			self.insaneStats_ArmorRoot8 = InsaneStats:CalculateRoot8(newArmor)
+		elseif newArmor < 0 then
+			InsaneStats:Log("Armor on %s was set to %g, is this intentional?", tostring(self), newArmor)
+			debug.Trace()
 		end
 		if SERVER then
 			self:InsaneStats_MarkForUpdate(1)
@@ -182,12 +182,13 @@ local function OverrideArmor()
 	end
 
 	function ENT:SetMaxArmor(newArmor)
-		if not (newArmor >= -math.huge) then -- nan
-			error("Something tried to set max armor on "..tostring(self).." to nan!")
-		end
+		assert(newArmor >= -math.huge, "Something tried to set max armor on "..tostring(self).." to nan!")
 		self:InsaneStats_SetEntityData("max_armor", newArmor)
 		if newArmor > 0 then
 			self.insaneStats_MaxArmorRoot8 = InsaneStats:CalculateRoot8(newArmor)
+		elseif newArmor < 0 then
+			InsaneStats:Log("Max armor on %s was set to %g, is this intentional?", tostring(self), newArmor)
+			debug.Trace()
 		end
 		if SERVER then
 			self:InsaneStats_MarkForUpdate(1)
@@ -211,9 +212,7 @@ local function OverrideArmor()
 	end
 	
 	function PLAYER:SetArmor(newArmor)
-		if not (newArmor >= -math.huge) then -- nan
-			error("Something tried to set armor on "..tostring(self).." to nan!")
-		end
+		assert(newArmor >= -math.huge, "Something tried to set armor on "..tostring(self).." to nan!")
 		self:InsaneStats_SetEntityData("armor", newArmor)
 		if newArmor > 0 then
 			self.insaneStats_ArmorRoot8 = InsaneStats:CalculateRoot8(newArmor)
@@ -240,9 +239,7 @@ local function OverrideArmor()
 	end
 	
 	function PLAYER:SetMaxArmor(newArmor)
-		if not (newArmor >= -math.huge) then -- nan
-			error("Something tried to set max armor on "..tostring(self).." to nan!")
-		end
+		assert(newArmor >= -math.huge, "Something tried to set max armor on "..tostring(self).." to nan!")
 		self:InsaneStats_SetEntityData("max_armor", newArmor)
 		if newArmor > 0 then
 			self.insaneStats_MaxArmorRoot8 = InsaneStats:CalculateRoot8(newArmor)
@@ -303,18 +300,33 @@ local function OverrideDamage()
 	function DMGINFO:SetDamage(num)
 		InsaneStats:SetDamage(num)
 		self:InsaneStats_SetRawDamage(num)
+
+		--[[if not (self:InsaneStats_GetRawDamage() >= -math.huge) then
+			self:InsaneStats_SetRawDamage(0)
+			error("Something tried to set damage to nan!")
+		end]]
 	end
 	
 	function DMGINFO:AddDamage(num)
 		InsaneStats:SetDamage(self:GetDamage() + num)
 		self:InsaneStats_AddRawDamage(num)
-		self:SetMaxDamage(self:GetMaxDamage() + num)
+		self:SetMaxDamage(math.min(self:GetMaxDamage() + num, math.huge))
+
+		--[[if not (self:InsaneStats_GetRawDamage() >= -math.huge) then
+			self:InsaneStats_SetRawDamage(0)
+			error("Something tried to set damage to nan!")
+		end]]
 	end
 	
 	function DMGINFO:SubtractDamage(num)
 		InsaneStats:SetDamage(self:GetDamage() - num)
 		self:InsaneStats_SubtractRawDamage(num)
-		self:SetMaxDamage(self:GetMaxDamage() - num)
+		self:SetMaxDamage(math.min(self:GetMaxDamage() - num, math.huge))
+
+		--[[if not (self:InsaneStats_GetRawDamage() >= -math.huge) then
+			self:InsaneStats_SetRawDamage(0)
+			error("Something tried to set damage to nan!")
+		end]]
 	end
 	
 	function DMGINFO:ScaleDamage(num)
@@ -327,8 +339,13 @@ local function OverrideDamage()
 		else
 			InsaneStats:SetDamage(damage * num)
 			self:InsaneStats_ScaleRawDamage(num)
-			self:SetMaxDamage(self:GetMaxDamage() * num)
+			self:SetMaxDamage(math.min(self:GetMaxDamage() * num, math.huge))
 		end
+
+		--[[if not (self:InsaneStats_GetRawDamage() >= -math.huge) then
+			self:InsaneStats_SetRawDamage(0)
+			error("Something tried to set damage to nan!")
+		end]]
 	end
 	
 	function DMGINFO:GetDamage()

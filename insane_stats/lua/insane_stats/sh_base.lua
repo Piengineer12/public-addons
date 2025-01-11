@@ -164,6 +164,14 @@ function ENTITY:InsaneStats_IsMob()
 	return IsValid(self) and (self:IsPlayer() or self:IsNPC() or self:IsNextBot() or self:GetClass()=="prop_vehicle_apc")
 end
 
+function ENTITY:InsaneStats_IsBig()
+	if IsValid(self) then
+		local bounds = {self:GetCollisionBounds()}
+		bounds = bounds[2] - bounds[1]
+		return bounds[1] > 29 and bounds[2] > 29 and bounds[3] > 71
+	end
+end
+
 -- MISC
 
 InsaneStats:SetDefaultConVarCategory("Miscellaneous")
@@ -194,9 +202,24 @@ InsaneStats:RegisterConVar("ammocrate_maxammo", "insanestats_ammocrate_maxammo",
 	display = "Ammo Crates Give 9999", desc = "Ammo crates always give 9999 ammo, limited only by the gmod_maxammo ConVar.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterConVar("gargantua_is_monster", "insanestats_gargantua_is_monster", "0", {
+	display = "Correct Gargantua Class Name", desc = "Redirects most npc_gargantua references to monster_gargantua. \z
+	Fixes at least a few Synergy maps from not working at all in GMod.",
+	type = InsaneStats.BOOL
+})
 InsaneStats:RegisterConVar("camera_no_kill", "insanestats_camera_no_kill", "1", {
 	display = "No Camera Killing", desc = "point_viewcontrols will not be removed when the Kill input is sent to them.\n\z
 	Fixes certain cameras not working in some older campaign maps.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterConVar("skip_missing_scenes", "insanestats_skip_missing_scenes", "1", {
+	display = "Skip Missing Scenes", desc = "Causes logic_choreographed_scenes to fire all outputs \z
+	if the required VCD is missing. Technically fixes maps with broken scenes.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterConVar("nonsolid_combine_dropship", "insanestats_nonsolid_combine_dropship", "1", {
+	display = "Non-Solid Combine Dropships", desc = "Causes npc_combinedropships to be non-solid. \z
+	Prevents combine dropships that travel to the same location from getting stuck against each other.",
 	type = InsaneStats.BOOL
 })
 InsaneStats:RegisterConVar("solid_bolts", "insanestats_solid_bolts", "0", {

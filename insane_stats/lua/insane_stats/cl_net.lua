@@ -242,8 +242,11 @@ net.Receive("insane_stats", function()
 				local entIndex = net.ReadUInt(16)
 				local pos = net.ReadVector()
 				local class = net.ReadString()
+				local indicator = net.ReadUInt(2)
 				local start = CurTime()
-				table.insert(highlights, {index = entIndex, pos = pos, class = class, start = start})
+				table.insert(highlights, {
+					index = entIndex, pos = pos, class = class, start = start, indicator = indicator
+				})
 			end
 
 			hook.Run("InsaneStatsWPASS2EntitiesHighlighted", highlights)
@@ -365,6 +368,11 @@ net.Receive("insane_stats", function()
 				local ammoAdj = net.ReadDouble()
 				ply.insaneStats_AmmoAdjs[ammoType] = ammoAdj
 			end
+		end
+	elseif func == 14 then
+		local toSwitchTo = net.ReadEntity()
+		if IsValid(toSwitchTo) then
+			input.SelectWeapon(toSwitchTo)
 		end
 	end
 end)

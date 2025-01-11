@@ -711,9 +711,26 @@ local skills = {
 	},
 	one_with_the_gun = {
 		name = "One With The G.U.N.",
-		desc = "Pistols and revolvers deal %+i%% damage, have %+i%% bullet spread and fire %+i%% more bullets.",
-		values = function(level)
-			return level * 10, level * -10, level * 10
+		desc = "Pistols and revolvers deal %+i%% damage, have %+i%% bullet spread \z
+		and fire %+i%% more bullets. Additionally, the Gravity Gun fires %s BASE damage bullets \z
+		+%u time(s) per second while %s is held. These bullets deal melee damage.",
+		values = function(level, ent)
+			local value = 4 * InsaneStats:DetermineDamageMulPure(
+				ent, game.GetWorld()
+			)
+			local primaryFireKey = "the Primary Fire key"
+			if CLIENT then
+				local keyName = input.LookupBinding("+attack")
+				if keyName then
+					primaryFireKey = keyName:upper()
+				end
+			end
+			return level * 10, level * -10, level * 10, CLIENT and InsaneStats:FormatNumber(value),
+			level, primaryFireKey
+		end,
+		stackTick = function(state, current, time, ent)
+			local newStacks = math.max(current - time, 0)
+			return newStacks ~= 0 and -1 or 0, newStacks
 		end,
 		img = "crossed-pistols",
 		pos = {-2, -4},
@@ -995,7 +1012,10 @@ local skills = {
 	},
 	item_magnet = {
 		name = "Item Magnet",
-		desc = "Items and weapons wtihin %s are magnetized! Also automatically pick up coins that are furthest from any other player after %u seconds.",
+		desc = "Items and weapons wtihin %s are magnetized, \z
+		with random items created from modifiers / skills within this radius \z
+		being teleported instead of magnetized! \z
+		Also, automatically pick up coins that are furthest from any other player after %u seconds.",
 		values = function(level, ent)
 			local distance = level * 256
 			if CLIENT then
@@ -1009,16 +1029,19 @@ local skills = {
 	},
 	starlight = {
 		name = "Starlight",
-		desc = "On kill or prop broken, gain %+.0f stacks of Starlight. Each stack increases defence by 1%% but also causes glowing by %s. Stacks have a maximum limit of 1,000 and decay at a rate of 1/s.",
+		desc = "On kill or prop broken, gain %+.1f stacks of Starlight. \z
+		Each stack gives 1%% more defence, coins and XP but also causes glowing \z
+		by %s times the square root of the number of stacks. \z
+		Stacks decay at a rate of -0.1%%/s.",
 		values = function(level)
-			local distance = 4
+			local distance = 32
 			if CLIENT then
 				distance = InsaneStats:FormatNumber(distance, {distance = true})
 			end
-			return level, distance
+			return level/5, distance
 		end,
 		stackTick = function(state, current, time, ent)
-			local nextStacks = math.max(current - time, 0)
+			local nextStacks = current * .999 ^ time
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
 		img = "sundial",
@@ -1075,13 +1098,15 @@ local skills = {
 	actually_levelling_up = {
 		name = "Actually Levelling Up",
 		desc = "Levelling up increases max health and max shield by +%s and +%s, respectively, \z
-		per skill point gained in total! Additionally, levelling up also restores 100%% of health and shield! \z
+		per skill point spent in total (+%s and +%s, respectively, at current total spent skill points)! \z
+		Additionally, levelling up also restores +%u%% of health and shield! \z
 		Health and shield gained this way can exceed max health and max shield, \z
 		but with diminishing returns.",
 		values = function(level, ent)
 			local scaleType = ent:IsPlayer() and "player" or "other"
 			local baseMult = ent:IsPlayer() and 1 or InsaneStats:GetConVarValue("infhealth_armor_mul")
 			local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and ent:InsaneStats_GetLevel() or 1
+			local spentSkillPoints = ent:InsaneStats_GetSpentSkillPoints()
 
 			local value1 = InsaneStats:ScaleValueToLevel(
 				level,
@@ -1097,8 +1122,14 @@ local skills = {
 				"xp_"..scaleType.."_armor_mode",
 				false
 			)
+			local value3 = value1 * spentSkillPoints
+			local value4 = value2 * spentSkillPoints
 
-			return CLIENT and InsaneStats:FormatNumber(value1), CLIENT and InsaneStats:FormatNumber(value2), value1, value2
+			return CLIENT and InsaneStats:FormatNumber(value1),
+			CLIENT and InsaneStats:FormatNumber(value2),
+			CLIENT and InsaneStats:FormatNumber(value3),
+			CLIENT and InsaneStats:FormatNumber(value4),
+			level * 100, value3, value4
 		end,
 		img = "deadly-strike",
 		pos = {-4, -1},
@@ -1249,7 +1280,7 @@ local skills = {
 		desc = "Negate all fall damage! All fall damage that would be received \z
 		is instead doubled +%u time(s), \z
 		then dealt to all other entities within %s. \z
-		Additionally, stomping can be done by holding %s for 1 second in mid-air, which on impact \z
+		Additionally, stomping can be done by pressing %s twice in mid-air, which on impact \z
 		deals the maximum amount of fall damage.",
 		values = function(level)
 			local crouchKey = "the Crouch key"
@@ -1262,11 +1293,6 @@ local skills = {
 				distance = InsaneStats:FormatNumber(distance, {distance = true})
 			end
 			return level, distance, crouchKey
-		end,
-		stackTick = function(state, current, time, ent)
-			local shouldIncrease = ent:IsPlayer() and ent:KeyDown(IN_DUCK) and not ent:OnGround()
-			local newStacks = shouldIncrease and math.Clamp(current + time, 0, 1) or 0
-			return newStacks >= 1 and 1 or 0, newStacks
 		end,
 		img = "quake-stomp",
 		pos = {4, 4},
@@ -1389,9 +1415,19 @@ local skills = {
 	},
 	blast_proof_suit = {
 		name = "Blast-Proof Suit",
-		desc = "Move -25%% slower, but take -100%% self-explosion damage! Also, take %+.0f%% explosive damage from other sources.",
+		desc = "Move -25%% slower, but take -100%% self-explosion damage! \z
+		Explosive damage from other sources is reduced by %i%% instead. \z
+		Also, double tapping %s allows picking up props that are up to +%u%% heavier \z
+		than what could be picked up by hand.",
 		values = function(level)
-			return level * -10
+			local useKey = "the Use key"
+			if CLIENT then
+				local keyName = input.LookupBinding("+use")
+				if keyName then
+					useKey = keyName:upper()
+				end
+			end
+			return level * -10, useKey, level * 200
 		end,
 		img = "robot-golem",
 		pos = {-4, -4},
@@ -1477,9 +1513,14 @@ local skills = {
 	upward_spiralling = {
 		name = "Upward Spiralling",
 		desc = "Every spent skill point gives +%.2f%% coins and XP, \z
-		while every spent über skill point adds +%.3f to the value of the percentage.",
+		while every spent über skill point adds +%.3f to the value of the percentage. \z
+		(+%.3f%% coins and XP gain at current total spent skill points and über skill points.)",
 		values = function(level, ent)
-			return level/20, level/200
+			local thirdValue = (
+				level/20 + level/200
+				* ent:InsaneStats_GetSpentUberSkillPoints()
+			) * ent:InsaneStats_GetSpentSkillPoints()
+			return level/20, level/200, thirdValue
 		end,
 		img = "gold-shell",
 		pos = {5, -1},
@@ -1497,10 +1538,10 @@ local skills = {
 	},
 	the_bigger_they_are = {
 		name = "The Bigger They Are",
-		desc = "Gain more coins and XP based on the ratio between the victim's XP and current XP. \z
-		For every power of 2 of this ratio, gain +%u%% more coins and XP.",
+		desc = "Killing a large enemy creates an Item Crate that gives +%u random items when broken. \z
+		Coins and XP gained from such kills are also multiplied by the victim's amount of XP ^%.2f.",
 		values = function(level, ent)
-			return level * 50
+			return level, level / 100
 		end,
 		img = "orb-direction",
 		pos = {5, 4},
@@ -1723,12 +1764,16 @@ local skills = {
 	},
 	synergy_2 = {
 		name = "Synergy (Wet)",
-		desc = "Every 10,000 units travelled or whenever an item is picked up, gain %+.2f stack(s) of Synergy. \z
+		desc = "Every %s travelled or whenever an item is picked up, gain %+.2f stack(s) of Synergy. \z
 		Each stack increases max health gained from skills and modifiers, coins and XP gained by 1%%, \z
 		but stacks decay at a rate of -0.1%%/s regardless of skills. \z
 		Distance travelled is computed by multiplying speed and time passed.",
 		values = function(level)
-			return level/20
+			local distance = 8192
+			if CLIENT then
+				distance = InsaneStats:FormatNumber(distance, {distance = true})
+			end
+			return distance, level/20
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = current * .999 ^ time
@@ -1764,12 +1809,16 @@ local skills = {
 	},
 	synergy_3 = {
 		name = "Synergy (Cold)",
-		desc = "Every 10,000 units travelled or whenever damage would be taken from a mob, gain %+.2f stack(s) of Synergy. \z
+		desc = "Every %s travelled or whenever damage would be taken from a mob, gain %+.2f stack(s) of Synergy. \z
 		Each stack increases max health gained from skills and modifiers, and defence by 1%%, \z
 		but stacks decay at a rate of -0.1%%/s regardless of skills. \z
 		Distance travelled is computed by multiplying speed and time passed.",
 		values = function(level)
-			return level/20
+			local distance = 8192
+			if CLIENT then
+				distance = InsaneStats:FormatNumber(distance, {distance = true})
+			end
+			return distance, level/20
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = current * .999 ^ time
@@ -1790,9 +1839,11 @@ local skills = {
 		name = "Master of Earth",
 		desc = "Double all poison damage dealt and halve all poison damage taken! \z
 		All attacks have a +%u%% chance to deal poison damage against mobs, and deal +%u%% damage against non-mobs! \z
-		Also, breaking a prop has a +%u%% chance to trigger all kill skills!",
+		Also, breaking a prop has a +%u%% chance to trigger all kill skills, except for Item Crates \z
+		which instead are guaranteed to trigger all kill skills%s!",
 		values = function(level, ent)
-			return level * 25, level * 25, level * 25
+			return level * 25, level * 25, level * 25,
+			level > 1 and " twice" or ""
 		end,
 		img = "stone-tablet",
 		pos = {-5, 0},
@@ -1937,7 +1988,7 @@ hook.Add("InsaneStatsGetSkillTier", "InsaneStatsSkillsDefault", function(ent, sk
 		-- otherwise the line above needs to be used, with caching for maps containing 1000s of allies
 		for i,v in player.Iterator() do
 			--if not (k:IsPlayer() and k:KeyDown(IN_WALK)) then
-			if not v:KeyDown(IN_WALK) then
+			if not v:KeyDown(IN_WALK) and v:GetCreationTime() + 10 < CurTime() then
 				local theirSkills = v:InsaneStats_GetSkills()
 				local maxSkillLevel = v:InsaneStats_GetEffectiveSkillTier("you_all_get_a_car")
 				local isAlly = SERVER and v:InsaneStats_IsValidAlly(ent) or ent:IsPlayer() and ent:Team() == v:Team()

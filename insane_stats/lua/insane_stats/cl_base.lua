@@ -356,7 +356,14 @@ function InsaneStats:CalculateMultibar(x, mx, startHue)
 	else
 		data.bars = math.max(math.ceil(x / mx), 1)
 		data.frac = x / mx - data.bars + 1
-		currentHue = currentHue + (data.bars-1)*30
+		if data.bars > 1099511627776 then
+			-- a random number seeded with the level
+			currentHue = math.floor(
+				util.SharedRandom("InsaneStatsMultibarHue"..string.format("%.11e", data.bars), 0, 12)
+			)*30
+		else
+			currentHue = currentHue + (data.bars-1)*30
+		end
 	end
 	
 	data.color = HSVToColor(currentHue % 360, 0.75, 1)
@@ -728,67 +735,6 @@ hook.Add("HUDPaint", "InsaneStats", function()
 			local barH = InsaneStats.FONT_MEDIUM * InsaneStats:GetConVarValue("hud_ammo_h")
 			local ammoMaxOverride = GetConVar("gmod_maxammo"):GetInt()
 			ammoMaxOverride = ammoMaxOverride > 0 and ammoMaxOverride
-
-			-- tertiary bar
-			local vehicle = ply:GetVehicle()
-			local vehicleAmmoData = {0}
-			if IsValid(vehicle) then
-				if vehicle:InsaneStats_GetEntityData("buggy_charge") then
-					local maxAmmo = game.GetAmmoMax(18)
-					local timePassed = CurTime() - vehicle:InsaneStats_GetEntityData("buggy_charge_updated")
-					local charge = vehicle:InsaneStats_GetEntityData("buggy_charge")
-					+ vehicle:InsaneStats_GetEntityData("buggy_charge_rate") * timePassed
-
-					vehicleAmmoData = {18, maxAmmo, math.Clamp(charge, 0, maxAmmo)}
-				else
-					vehicleAmmoData = vehicle.GetAmmo and {vehicle:GetAmmo()} or {0}
-				end
-			end
-			local ammoType3 = vehicleAmmoData[1]
-			if ammoType3 > 0 then
-				local ammo3 = vehicleAmmoData[3]
-				local maxAmmo3 = vehicleAmmoData[2] > 0 and vehicleAmmoData[2] or 100
-				
-				local barData = InsaneStats:CalculateMultibar(ammo3, maxAmmo3, 120)
-				local bars = barData.bars
-				local barColor = barData.color
-
-				if bars == 1 then
-					barColor = HSVToColor(barData.frac * 120, 0.75, 1)
-				end
-				
-				InsaneStats:DrawRectOutlined(
-					baseX - barW, baseY - barH,
-					barW, barH,
-					barData.frac, barColor, barData.nextColor
-				)
-				
-				local ammoName = language.GetPhrase(
-					string.format(
-						"#%s_ammo",
-						game.GetAmmoName(ammoType3)
-					)
-				)
-				local offsetX, offsetY = InsaneStats:DrawTextOutlined(
-					ammoName, 2, baseX - barW, baseY - barH - outlineThickness,
-					color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM
-				)
-				if hasSuit then
-					local textY = baseY - barH - outlineThickness
-					local text = InsaneStats:FormatNumber(math.floor(ammo3)).." / "..InsaneStats:FormatNumber(maxAmmo3)
-					InsaneStats:DrawTextOutlined(
-						text, 2, baseX, baseY - barH - outlineThickness,
-						barColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM
-					)
-				end
-				if bars > 1 then
-					InsaneStats:DrawTextOutlined(
-						InsaneStats:FormatNumber(bars).."x", 2, baseX - barW - outlineThickness, baseY,
-						barColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM
-					)
-				end
-				baseY = baseY - barH - offsetY - outlineThickness * 2
-			end
 			
 			if IsValid(wep) then
 				local customAmmoDisplay = wep.CustomAmmoDisplay and wep:CustomAmmoDisplay() or {}
@@ -910,8 +856,71 @@ hook.Add("HUDPaint", "InsaneStats", function()
 								barColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM
 							)
 						end
+
+						baseY = baseY - barH - offsetY - outlineThickness * 2
 					end
 				--end
+			end
+
+			-- tertiary bar
+			local vehicle = ply:GetVehicle()
+			local vehicleAmmoData = {0}
+			if IsValid(vehicle) then
+				if vehicle:InsaneStats_GetEntityData("buggy_charge") then
+					local maxAmmo = game.GetAmmoMax(18)
+					local timePassed = CurTime() - vehicle:InsaneStats_GetEntityData("buggy_charge_updated")
+					local charge = vehicle:InsaneStats_GetEntityData("buggy_charge")
+					+ vehicle:InsaneStats_GetEntityData("buggy_charge_rate") * timePassed
+
+					vehicleAmmoData = {18, maxAmmo, math.Clamp(charge, 0, maxAmmo)}
+				else
+					vehicleAmmoData = vehicle.GetAmmo and {vehicle:GetAmmo()} or {0}
+				end
+			end
+			local ammoType3 = vehicleAmmoData[1]
+			if ammoType3 > 0 then
+				local ammo3 = vehicleAmmoData[3]
+				local maxAmmo3 = vehicleAmmoData[2] > 0 and vehicleAmmoData[2] or 100
+				
+				local barData = InsaneStats:CalculateMultibar(ammo3, maxAmmo3, 120)
+				local bars = barData.bars
+				local barColor = barData.color
+
+				if bars == 1 then
+					barColor = HSVToColor(barData.frac * 120, 0.75, 1)
+				end
+				
+				InsaneStats:DrawRectOutlined(
+					baseX - barW, baseY - barH,
+					barW, barH,
+					barData.frac, barColor, barData.nextColor
+				)
+				
+				local ammoName = language.GetPhrase(
+					string.format(
+						"#%s_ammo",
+						game.GetAmmoName(ammoType3)
+					)
+				)
+				local offsetX, offsetY = InsaneStats:DrawTextOutlined(
+					ammoName, 2, baseX - barW, baseY - barH - outlineThickness,
+					color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM
+				)
+				if hasSuit then
+					local textY = baseY - barH - outlineThickness
+					local text = InsaneStats:FormatNumber(math.floor(ammo3)).." / "..InsaneStats:FormatNumber(maxAmmo3)
+					InsaneStats:DrawTextOutlined(
+						text, 2, baseX, baseY - barH - outlineThickness,
+						barColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM
+					)
+				end
+				if bars > 1 then
+					InsaneStats:DrawTextOutlined(
+						InsaneStats:FormatNumber(bars).."x", 2, baseX - barW - outlineThickness, baseY,
+						barColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM
+					)
+				end
+				baseY = baseY - barH - offsetY - outlineThickness * 2
 			end
 		end
 	end

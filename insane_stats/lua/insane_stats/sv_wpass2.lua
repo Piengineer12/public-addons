@@ -201,8 +201,123 @@ concommand.Add("insanestats_wpass2_modifiers_stats", function(ply, cmd, args, ar
 	end
 end, nil, "Calculates some numbers related to modifier counts, weights and percentages.")
 
+concommand.Add("insanestats_wpass2_modifiers_add", function(ply, cmd, args, argStr)
+	if (IsValid(ply) and ply:IsAdmin()) then
+		if #args < 1 then
+			InsaneStats:Log("Format: insanestats_wpass2_modifiers_add <\"held\"|\"battery\"> <internalName> [tiers=1] [force]")
+		else
+			local currentWep = NULL
+			if args[1] == "held" then
+				currentWep = ply:GetActiveWeapon()
+				if not IsValid(currentWep) then
+					return InsaneStats:Log("You need to hold a weapon first!")
+				end
+			elseif args[1] == "battery" then
+				currentWep = ply
+			else
+				return InsaneStats:Log("First argument must be \"held\" or \"battery\"!")
+			end
+
+			local modifiers = InsaneStats:GetAllModifiers()
+			local name = args[2]
+			local tiers = args[3] or 1
+			local force = args[4] == "force"
+
+			local tiersTemp = tonumber(tiers)
+			if not tiersTemp then
+				return InsaneStats:Log("\"%s\" is not a valid number!", tiers)
+			end
+			tiers = math.floor(tiersTemp)
+
+			local toApply = {}
+			if name == "***" then
+				for k,v in pairs(modifiers) do
+					toApply[k] = tiers
+				end
+			elseif name == "*" then
+				for k,v in pairs(InsaneStats:GetModifierProbabilities(currentWep)) do
+					toApply[k] = tiers
+				end
+			elseif modifiers[name] then
+				toApply[name] = tiers
+			else
+				return InsaneStats:Log(
+					"\"%s\" is not a valid modifier, make sure to use the modifier's internal name!",
+					name
+				)
+			end
+
+			currentWep.insaneStats_Modifiers = currentWep.insaneStats_Modifiers or {}
+			local wepModifiers = currentWep.insaneStats_Modifiers
+
+			if not force then
+				for k,v in pairs(toApply) do
+					local currentTier = wepModifiers[k] or 0
+					local maxTier = modifiers[k].max or math.huge
+					if currentTier + v > maxTier then
+						toApply[k] = maxTier - currentTier
+					elseif currentTier + v < 0 then
+						toApply[k] = -currentTier
+					end
+				end
+			end
+
+			local tierChange = 0
+			local anyApplied = false
+			for k,v in pairs(toApply) do
+				if v ~= 0 then
+					anyApplied = true
+					tierChange = tierChange + (modifiers[k].cost or 1) * v
+
+					local newModifierTier = (currentWep.insaneStats_Modifiers[k] or 0) + v
+					if newModifierTier == 0 then
+						currentWep.insaneStats_Modifiers[k] = nil
+					else
+						currentWep.insaneStats_Modifiers[k] = newModifierTier
+					end
+				end
+			end
+
+			if anyApplied then
+				currentWep.insaneStats_StartTier = (currentWep.insaneStats_StartTier or 0) + tierChange
+				InsaneStats:ApplyWPASS2Modifiers(currentWep)
+			else
+				InsaneStats:Log("Applied modifiers, but weapon remains unchanged!")
+			end
+		end
+	end
+end, function(cmd, argStr)
+	local _, battery, internalName, tier, force = unpack(string.Explode("%s", argStr, true))
+	if force then
+		return {"insanestats_wpass2_modifiers_add "..battery.." "..internalName.." "..tier.." force"}
+	elseif internalName and not tier then
+		local suggestions = {}
+		internalName = internalName:lower():Trim()
+		
+		for k,v in pairs(InsaneStats:GetAllModifiers()) do
+			if k:lower():StartsWith(internalName) then
+				table.insert(suggestions, "insanestats_wpass2_modifiers_add "..battery.." "..k)
+			end
+		end
+		
+		table.sort(suggestions)
+		return suggestions
+	elseif battery and not internalName then
+		return {
+			"insanestats_wpass2_modifiers_add battery",
+			"insanestats_wpass2_modifiers_add held"
+		}
+	end
+end, "Adds a modifier to the currently held weapon. \z
+Negative tiers will cause modifiers to be removed instead.\
+Specify the word \"force\" after the number of tiers \z
+to make the command ignore minimum and maximum modifier tiers.\
+You can specify * as the modifier name to select all possible modifiers for the current weapon \z
+and *** to select ALL modifiers including impossible modifiers.\
+Format: insanestats_wpass2_modifiers_add  <\"held\"|\"battery\"> <internalName> [tiers=1] [force]")
+
 concommand.Add("insanestats_wpass2_giverandomweapons", function(ply, cmd, args, argStr)
-	if (IsValid(ply) and ply:IsSuperAdmin()) then
+	if (IsValid(ply) and ply:IsAdmin()) then
 		local percent = tonumber(argStr)
 		if percent then
 			local fraction = math.Clamp(percent / 100, 0, 1)
@@ -228,7 +343,7 @@ concommand.Add("insanestats_wpass2_giverandomweapons", function(ply, cmd, args, 
 			InsaneStats:Log("\"%s\" is not a valid number!", percent)
 		end
 	end
-end, nil, "Gives a random % of all weapons in the game for debugging purposes. SUPERADMINS ONLY.")
+end, nil, "Gives a random % of all weapons in the game for debugging purposes.")
 
 hook.Add("InsaneStatsPostLoadWPASS", "InsaneStatsWPASS", function(modifiers, attributes, registeredEffects)
 	InsaneStats.mergeEffectsToCheck = {}
@@ -390,6 +505,99 @@ local function ApplyWPASS2Tier(ent)
 	return true
 end
 
+local function MergeWPASS2Modifiers(applyModifiers, modifierProbabilities, toCheck)
+	local modifiers = InsaneStats:GetAllModifiers()
+	local mergeEffects = InsaneStats.mergeEffectsToCheck
+	local modifierCount = 0
+
+	while next(toCheck) do
+		local appliedModifier = table.remove(toCheck)
+		for k,v in pairs(mergeEffects[appliedModifier]) do
+			local modifierTable = modifiers[v]
+
+			if applyModifiers[v] then
+				-- recursively grab all constituent modifiers
+				-- FIXME: this is inefficient, previous modifiers may already have been checked!
+				local modifiersToMerge = {}
+				local modifiersRequiredToMerge = {}
+				for i,v2 in ipairs(modifierTable.merge) do
+					modifiersRequiredToMerge[v2] = true
+				end
+
+				while next(modifiersRequiredToMerge) do
+					local additionalRequiredToMerge = {}
+
+					for k2,v2 in pairs(modifiersRequiredToMerge) do
+						modifiersToMerge[k2] = true
+						for i,v3 in ipairs(modifiers[k2] and modifiers[k2].merge or {}) do
+							additionalRequiredToMerge[v3] = true
+						end
+					end
+
+					modifiersRequiredToMerge = additionalRequiredToMerge
+				end
+
+				local mergePoints = applyModifiers[v]
+				for k2,v2 in pairs(modifiersToMerge) do
+					if applyModifiers[k2] then
+						mergePoints = mergePoints + applyModifiers[k2]
+
+						modifierCount = modifierCount - 1
+						--maxModifiersLevel = maxModifiersLevel - (modifiers[v2].max or 65536)
+						applyModifiers[k2] = nil
+						modifierProbabilities[k2] = nil
+					end
+				end
+				
+				applyModifiers[v] = mergePoints
+				modifierProbabilities[v] = modifierTable.weight or 1
+			else
+				local mergePoints = 0
+				local modifiersRequiredToMerge = modifierTable.merge
+
+				--[[local mergeInto
+				local toCheckForAlreadyApplied = {v}
+				while toCheckForAlreadyApplied do
+					if applyModifiers[v] then
+						mergeInto = v break
+					elseif mergeEffects[v] then
+						-- ...
+					end
+				end]]
+				
+				for k2,v2 in pairs(modifiersRequiredToMerge) do
+					if applyModifiers[v2] then
+						mergePoints = mergePoints + applyModifiers[v2]
+					else
+						mergePoints = 0 break
+					end
+				end
+				
+				if mergePoints > 0 then
+					applyModifiers[v] = mergePoints
+					modifierCount = modifierCount + 1
+					--maxModifiersLevel = maxModifiersLevel + (modifierTable.max or 65536)
+					
+					modifierProbabilities[v] = modifierTable.weight or 1
+					
+					for k2,v2 in pairs(modifiersRequiredToMerge) do
+						modifierCount = modifierCount - 1
+						--maxModifiersLevel = maxModifiersLevel - (modifiers[v2].max or 65536)
+						applyModifiers[v2] = nil
+						modifierProbabilities[v2] = nil
+					end
+				end
+			end
+
+			if mergeEffects[v] then
+				table.insert(toCheck, 1, v)
+			end
+		end
+	end
+
+	return applyModifiers, modifierProbabilities, modifierCount
+end
+
 local toUpdateModifierEntities = {}
 function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 	if not ApplyWPASS2Tier(wep) then
@@ -406,19 +614,30 @@ function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 			modifierProbabilities[k] = nil
 		end
 	end
+	
+	-- TODO: flags should be ignored if the weapon somehow already has the modifier (such as from a merge)
+	-- if a merge occured, the constituent modifiers cannot appear
+	local appliedModifiers = wep.insaneStats_Modifiers or {}
+	if appliedModifiers then
+	end
 
 	local applyModifiers = wep.insaneStats_Modifiers or {}
 	local modifierCount = 0
 	local tiersPerModifier = self:GetConVarValueDefaulted(not isWep and "wpass2_tier_newmodifiercost_battery", "wpass2_tier_newmodifiercost")
 	local points = wep.insaneStats_Tier
 	local modifiersLeveled = 0
-	local maxModifiersLevel = 0
+	--local maxModifiersLevel = 0
+	local potentiallyMergableModifiers = {}
 
 	for k,v in pairs(applyModifiers) do
 		local modifierTable = modifiers[k]
 		if modifierTable then
+			if self.mergeEffectsToCheck[k] then
+				table.insert(potentiallyMergableModifiers, k)
+			end
+
 			modifierCount = modifierCount + 1
-			maxModifiersLevel = maxModifiersLevel + (modifierTable.max or 65536)
+			--maxModifiersLevel = maxModifiersLevel + (modifierTable.max or 65536)
 
 			modifiersLeveled = modifiersLeveled + v
 			points = points - (modifierTable.cost or 1) * v
@@ -430,7 +649,17 @@ function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 		end
 	end
 
-	if self:IsDebugLevel(2) then
+	local mergeReturn = {MergeWPASS2Modifiers(
+		applyModifiers,
+		modifierProbabilities,
+		potentiallyMergableModifiers
+	)}
+	applyModifiers = mergeReturn[1]
+	modifierProbabilities = mergeReturn[2]
+	modifierCount = modifierCount + mergeReturn[3]
+
+	local wpass2Enabled = InsaneStats:GetConVarValue("wpass2_enabled")
+	if self:IsDebugLevel(2) and wpass2Enabled then
 		InsaneStats:Log("Spending %i points on %s...", points, tostring(wep))
 	end
 	for i=1+modifiersLeveled, 12058+modifiersLeveled do
@@ -459,7 +688,7 @@ function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 			end
 		end
 
-		if self:IsDebugLevel(2) then
+		if self:IsDebugLevel(2) and wpass2Enabled then
 			InsaneStats:Log("Possible choices:")
 			PrintTable(currentModifierProbabilities)
 		end
@@ -467,7 +696,7 @@ function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 		if next(currentModifierProbabilities) then
 			local appliedModifier = SelectWeightedRandom(currentModifierProbabilities)
 
-			if self:IsDebugLevel(2) then
+			if self:IsDebugLevel(2) and wpass2Enabled then
 				InsaneStats:Log("Selected %s!", appliedModifier)
 			end
 			local modifierTable = modifiers[appliedModifier]
@@ -477,7 +706,7 @@ function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 			else
 				applyModifiers[appliedModifier] = 1
 				modifierCount = modifierCount + 1
-				maxModifiersLevel = maxModifiersLevel + (modifierTable.max or 65536)
+				--maxModifiersLevel = maxModifiersLevel + (modifierTable.max or 65536)
 			end
 			
 			points = points - (modifierTable.cost or 1)
@@ -486,44 +715,21 @@ function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 			end
 
 			if self.mergeEffectsToCheck[appliedModifier] then
-				for k,v in pairs(self.mergeEffectsToCheck[appliedModifier]) do
-					local modifierTable = modifiers[v]
-					local modifiersRequiredToMerge = modifierTable.merge
-					local mergePoints = 0
-					
-					for k2,v2 in pairs(modifiersRequiredToMerge) do
-						if applyModifiers[v2] then
-							mergePoints = mergePoints + applyModifiers[v2]
-						else
-							mergePoints = 0 break
-						end
-					end
-					
-					if mergePoints > 0 then
-						if applyModifiers[v] then
-							applyModifiers[v] = applyModifiers[v] + mergePoints
-						else
-							applyModifiers[v] = mergePoints
-							modifierCount = modifierCount + 1
-							maxModifiersLevel = maxModifiersLevel + (modifierTable.max or 65536)
-						end
-						
-						modifierProbabilities[v] = modifierTable.weight or 1
-						
-						for k2,v2 in pairs(modifiersRequiredToMerge) do
-							modifierCount = modifierCount - 1
-							maxModifiersLevel = maxModifiersLevel - (modifiers[v2].max or 65536)
-							applyModifiers[v2] = nil
-							modifierProbabilities[v2] = nil
-						end
-					end
-				end
+				local mergeReturn = {MergeWPASS2Modifiers(
+					applyModifiers,
+					modifierProbabilities,
+					{appliedModifier}
+				)}
+				
+				applyModifiers = mergeReturn[1]
+				modifierProbabilities = mergeReturn[2]
+				modifierCount = modifierCount + mergeReturn[3]
 			end
 		else
 			break--InsaneStats:Log("Couldn't spend %i points to modify %s further!", points, tostring(wep))
 		end
 	end
-	if self:IsDebugLevel(2) then
+	if self:IsDebugLevel(2) and wpass2Enabled then
 		InsaneStats:Log("%i points left!", points)
 	end
 	
@@ -766,10 +972,15 @@ function ENTITY:InsaneStats_AddMaxArmor(armor)
 end
 
 function ENTITY:InsaneStats_IsValidEnemy(ent)
-	if not IsValid(self) or not (IsValid(ent) and ent:GetClass() ~= "npc_enemyfinder") then return false end
-	if (ent:InsaneStats_GetHealth() <= 0 or ent.insaneStats_IsDead) and ent:GetClass() ~= "npc_rollermine" then return false end
+	local class = IsValid(ent) and ent:GetClass()
+	if not IsValid(self) or not (class and class ~= "npc_enemyfinder" and class ~= "monster_hgrunt_dead") then
+		return false
+	end
+	if (ent:InsaneStats_GetHealth() <= 0 or ent.insaneStats_IsDead) and class ~= "npc_rollermine" then
+		return false
+	end
 	
-	if self:IsPlayer() and ent:GetClass() == "npc_antlion_grub" then return true end
+	if self:IsPlayer() and class == "npc_antlion_grub" then return true end
 	
 	-- poll Disposition to figure out if they're enemies
 	if (ent.Disposition and ent:Disposition(self) == D_HT) then return true end
@@ -958,6 +1169,8 @@ function PLAYER:InsaneStats_AttemptEquipItem(ent)
 end
 
 function PLAYER:InsaneStats_ShouldAutoPickup(item, speculative)
+	if IsValid(item:GetOwner()) then return true end
+
 	local devEnabled = InsaneStats:IsDebugLevel(3)
 	local isBattery = item:GetClass() == "item_battery"
 	local autoPickup
@@ -973,8 +1186,6 @@ function PLAYER:InsaneStats_ShouldAutoPickup(item, speculative)
 			autoPickup = InsaneStats:GetConVarValue("wpass2_autopickup")
 		end
 	end
-
-	if IsValid(item:GetOwner()) then return true end
 
 	--[[if devEnabled then
 		InsaneStats:Log(string.format(
@@ -1111,15 +1322,41 @@ hook.Add("PlayerCanPickupWeapon", "InsaneStatsWPASS", function(ply, wep)
 		return false
 	end
 
+	local class = wep:GetClass()
 	if InsaneStats:GetConVarValue("wpass2_enabled")
 	and (wep.insaneStats_DisableWPASS2Pickup or 0) <= RealTime()
-	and ply:HasWeapon(wep:GetClass())
+	and ply:HasWeapon(class)
 	and not ply:InsaneStats_ShouldAutoPickup(wep) then
+		return false
+	end
+
+	if InsaneStats:GetConVarValue("wpass2_enabled")
+	and wep:IsWeapon() and ply:HasWeapon(class)
+	and not wep.insaneStats_Tier then
 		return false
 	end
 	
 	hook.Run("InsaneStatsPlayerCanPickupWeapon", ply, wep)
 	toSavePlayers[ply] = true
+end)
+
+hook.Add("WeaponEquip", "InsaneStatsWPASS", function(wep, ply)
+	timer.Simple(0, function()
+		if wep.insaneStats_Tier and IsValid(ply) then
+			local minTierDifference = ply:GetInfoNum("insanestats_wpass2_equip_highest_tier", 0)
+			local currentlyEquippedTier = ply:GetActiveWeapon().insaneStats_Tier
+			if minTierDifference > 0 and (
+				currentlyEquippedTier
+				and wep.insaneStats_Tier - currentlyEquippedTier >= minTierDifference
+			) then
+				-- tell the client to switch to it
+				net.Start("insane_stats", true)
+				net.WriteUInt(14, 8)
+				net.WriteEntity(wep)
+				net.Send(ply)
+			end
+		end
+	end)
 end)
 
 hook.Add("PlayerUse", "InsaneStatsWPASS", function(ply, ent)
@@ -1529,6 +1766,15 @@ hook.Add("InsaneStatsApplyLevel", "InsaneStatsWPASS", function(ent, level)
 				end
 			end
 		end)
+	end
+end)
+
+hook.Add("InsaneStatsScaleXP", "InsaneStatsWPASS2", function(data)
+	if InsaneStats:GetConVarValue("wpass2_enabled") then
+		local victim = data.victim
+		if IsValid(victim) then
+			data.xp = data.xp * victim:InsaneStats_GetAttributeValue("reverse_xp")
+		end
 	end
 end)
 

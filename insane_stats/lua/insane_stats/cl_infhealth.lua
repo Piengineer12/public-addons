@@ -24,6 +24,18 @@ InsaneStats:RegisterClientConVar("hud_damage_noselfhealing", "insanestats_hud_da
 	display = "Don't Display Self-Heals", desc = "Self-healing numbers are not displayed.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterClientConVar("hud_damage_lifetime", "insanestats_hud_damage_lifetime", "2", {
+	display = "Damage Life Time", desc = "How long damage numbers appear for.",
+	type = InsaneStats.FLOAT, min = 0, max = 10
+})
+InsaneStats:RegisterClientConVar("hud_damage_stacktime", "insanestats_hud_damage_stacktime", "1", {
+	display = "Damage Stack Time", desc = "Successive damage dealt within this time cumulates into a single number.",
+	type = InsaneStats.FLOAT, min = 0, max = 10
+})
+InsaneStats:RegisterClientConVar("hud_damage_stackresetlife", "insanestats_hud_damage_stackresetlife", "0", {
+	display = "Reset Lifetime When Stacking", desc = "Successive damage dealt can be stacked indefinitely.",
+	type = InsaneStats.BOOL
+})
 
 InsaneStats:RegisterClientConVar("hud_dps_enabled", "insanestats_hud_dps_enabled", "0", {
 	display = "DPS Meter", desc = "Shows the DPS meter. Note that all settings that affect damage number visibility also affect the DPS meter!",
@@ -70,7 +82,7 @@ InsaneStats:RegisterClientConVar("hud_hp_h", "insanestats_hud_hp_h", "0.25", {
 	display = "Health and Armor Meters Height", desc = "Vertical height of health meter.",
 	type = InsaneStats.FLOAT, min = 0, max = 10
 })
-InsaneStats:RegisterClientConVar("hud_hp_decimals", "insanestats_hud_hp_decimals", "0", {
+InsaneStats:RegisterClientConVar("hud_hp_decimals", "insanestats_hud_hp_decimals", "1", {
 	display = "Health and Armor Decimals", desc = "Maximum number of decimal digits to show for health meter numbers below 1,000.",
 	type = InsaneStats.FLOAT, min = 0, max = 3
 })
@@ -107,41 +119,18 @@ hook.Add("InsaneStatsHUDDamageTaken", "InsaneStatsUnlimitedHealth", function(ent
 	local ply = LocalPlayer()
 	if IsValid(ply) then
 		allDamageNumbers[entIndex] = allDamageNumbers[entIndex] or {}
-		
 		local entityDamageNumbers = allDamageNumbers[entIndex]
-		local requireNewAdd = true
 
 		local isSelf = ply:EntIndex() == entIndex
 		if isSelf then
 			flags = bit.bor(flags, 4)
 		end
-
-		if next(entityDamageNumbers) then
-			local latestEntDamage = entityDamageNumbers[#entityDamageNumbers]
-			-- check whether the previous damage number should have elapsed
-			if latestEntDamage.time + 1 > RealTime() then
-				latestEntDamage.damage = latestEntDamage.damage + damage
-				latestEntDamage.types = bit.bor(latestEntDamage.types, types)
-				--latestEntDamage.time = RealTime()
-				--latestEntDamage.origin = position
-				latestEntDamage.flags = flags
-
-				if latestEntDamage.crit < 1 and hitgroup == 1 then
-					latestEntDamage.crit = 1
-				elseif latestEntDamage.crit < 0 and hitgroup <= 3 then
-					latestEntDamage.crit = 0
-				end
-				
-				requireNewAdd = false
-			end
-		end
 		
 		local ent = Entity(entIndex)
-		local entIsMob = ent:InsaneStats_IsMob()
 		local condition1 = not InsaneStats:GetConVarValue("hud_damage_selfonly")
 			or attacker == ply or ent == ply
 		local condition2 = not InsaneStats:GetConVarValue("hud_damage_mobsonly")
-			or bit.band(flags, 16) ~= 0 or IsValid(ent) and entIsMob
+			or bit.band(flags, 16) ~= 0 or IsValid(ent) and ent:InsaneStats_IsMob()
 		local condition3 = not InsaneStats:GetConVarValue("hud_damage_nonzero_health")
 			or bit.band(flags, 8) ~= 0 or IsValid(ent) and ent:InsaneStats_GetHealth() > 0
 		local condition4 = not InsaneStats:GetConVarValue("hud_damage_noselfhealing")
@@ -149,16 +138,42 @@ hook.Add("InsaneStatsHUDDamageTaken", "InsaneStatsUnlimitedHealth", function(ent
 		local condition5 = not (IsValid(ent) and doNotReportDamageOnTheseClasses[ent:GetClass()])
 		--print(ent, condition1, condition2, condition3, condition4, condition5)
 
-		if requireNewAdd and (ply:IsLineOfSightClear(position) or attacker == ply)
+		local requireNewAdd = true
+		if (ply:IsLineOfSightClear(position) or attacker == ply)
 		and condition1 and condition2 and condition3 and condition4 and condition5 then
-			table.insert(entityDamageNumbers, {
-				damage = damage,
-				types = types,
-				crit = hitgroup == 1 and 1 or hitgroup > 3 and -1 or 0,
-				time = RealTime(),
-				origin = position,
-				flags = flags
-			})
+			if next(entityDamageNumbers) then
+				local latestEntDamage = entityDamageNumbers[#entityDamageNumbers]
+				-- check whether the previous damage number should have elapsed
+				if latestEntDamage.time + InsaneStats:GetConVarValue("hud_damage_stacktime") > RealTime() then
+					latestEntDamage.damage = latestEntDamage.damage + damage
+					latestEntDamage.types = bit.bor(latestEntDamage.types, types)
+					latestEntDamage.flags = flags
+					latestEntDamage.crit = hitgroup == 1 and 1 or hitgroup > 3 and -1 or 0
+					if InsaneStats:GetConVarValue("hud_damage_stackresetlife") then
+						latestEntDamage.time = RealTime()
+						latestEntDamage.origin = position
+					end
+	
+					--[[if latestEntDamage.crit < 1 and hitgroup == 1 then
+						latestEntDamage.crit = 1
+					elseif latestEntDamage.crit < 0 and hitgroup <= 3 then
+						latestEntDamage.crit = 0
+					end]]
+					
+					requireNewAdd = false
+				end
+			end
+
+			if requireNewAdd then
+				table.insert(entityDamageNumbers, {
+					damage = damage,
+					types = types,
+					crit = hitgroup == 1 and 1 or hitgroup > 3 and -1 or 0,
+					time = RealTime(),
+					origin = position,
+					flags = flags
+				})
+			end
 		end
 		
 		if attacker == ply and not isSelf and not missed and damage > 0
@@ -186,8 +201,9 @@ local function DrawDamageNumber(entityDamageInfo)
 	surface.SetAlphaMultiplier(alpha)
 	
 	local posX = entityDamageInfo.posX
-	-- text floats at a rate of 2em/s
+	-- text floats at a rate of 2em/s divided by stacking time
 	local offsetY = timeExisted * InsaneStats.FONT_MEDIUM * -2
+	/ math.max(InsaneStats:GetConVarValue("hud_damage_stacktime"), 1)
 	local posY = entityDamageInfo.posY + offsetY
 	
 	-- determine outline color
@@ -331,7 +347,8 @@ hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 				local entriesToDelete = 0
 				
 				for k,entityDamageInfo in pairs(entityDamageNumbers) do
-					if entityDamageInfo.time + 2 > RealTime() then
+					if entityDamageInfo.time
+					+ InsaneStats:GetConVarValue("hud_damage_lifetime") > RealTime() then
 						entityDamageInfo.posX = nil
 						entityDamageInfo.posY = nil
 						

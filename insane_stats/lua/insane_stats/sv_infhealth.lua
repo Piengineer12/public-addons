@@ -146,7 +146,9 @@ timer.Create("InsaneStatsUnlimitedHealth", 0.5, 0, function()
 	end
 end)
 
+local totalDamageTicks = 0
 hook.Add("Think", "InsaneStatsUnlimitedHealth", function()
+	totalDamageTicks = 0
 	if InsaneStats:GetConVarValue("infhealth_enabled") and CurTime() > 5 then
 		for k,v in pairs(entities) do
 			if IsValid(k) then
@@ -171,7 +173,7 @@ hook.Add("Think", "InsaneStatsUnlimitedHealth", function()
 					and (k.insaneStats_LastDamageTaken or 0) + InsaneStats:GetConVarValue("infhealth_armor_regen_delay") <= CurTime() then
 						local armorToAdd = k:GetMaxArmor() * InsaneStats:GetConVarValue("infhealth_armor_regen") / 100 * FrameTime()
 						--print(k:InsaneStats_GetArmor(), armorToAdd, k:InsaneStats_GetArmor() + armorToAdd)
-						k:SetArmor(math.min(k:InsaneStats_GetArmor() + armorToAdd, k:GetMaxArmor()))
+						k:SetArmor(math.Clamp(k:InsaneStats_GetArmor() + armorToAdd, 0, k:GetMaxArmor()))
 					end
 				end
 				
@@ -192,13 +194,22 @@ AccessorFunc(InsaneStats, "currentAbsorbedDamage", "AbsorbedDamage")
 
 local armorBypassingDamage = bit.bor(DMG_FALL, DMG_DROWN, DMG_POISON, DMG_RADIATION)
 hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo, ...)
+	totalDamageTicks = totalDamageTicks + 1
+	if totalDamageTicks > 1000 then
+		print("Something caused an infinite loop!")
+		debug.Trace()
+		return true
+	end
+
 	if not dLibbed then
 		InsaneStats:SetDamage(nil)
 	end
 	
 	-- run the others first
 	local shouldNegate = hook.Run("NonInsaneStatsEntityTakeDamage", vic, dmginfo, ...)
-	if shouldNegate then return shouldNegate end
+	if shouldNegate then
+		return shouldNegate
+	end
 	
 	vic.insaneStats_LastDamageTaken = CurTime()
 	vic.insaneStats_OldRawHealth = vic.InsaneStats_GetRawHealth and vic:InsaneStats_GetRawHealth() or vic:Health()
@@ -243,7 +254,14 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 			
 			-- determine the ACTUAL damage to deal
 			if vic:InsaneStats_GetHealth() ~= 0 then
-				dmginfo:InsaneStats_SetRawDamage(InsaneStats:GetDamage() * math.abs(vic:InsaneStats_GetRawHealth()) / math.abs(vic:InsaneStats_GetHealth()))
+				local rawDamage = InsaneStats:GetDamage() * math.abs(vic:InsaneStats_GetRawHealth()) / math.abs(vic:InsaneStats_GetHealth())
+				if InsaneStats:IsDebugLevel(3) then
+					InsaneStats:Log(
+						"%g damage against %g health is actually %g damage against %g health",
+						InsaneStats:GetDamage(), vic:InsaneStats_GetHealth(), rawDamage, vic:InsaneStats_GetRawHealth()
+					)
+				end
+				dmginfo:InsaneStats_SetRawDamage(rawDamage)
 			end
 			
 			if dmginfo:IsDamageType(DMG_POISON) and dmginfo:InsaneStats_GetRawDamage() >= vic:InsaneStats_GetRawHealth() and vic:InsaneStats_GetRawHealth() > 0 then
@@ -301,6 +319,21 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 	if rawDamage >= rawHealth then
 		local ret = hook.Run("InsaneStatsPreDeath", vic, dmginfo)
 		if ret then return ret end
+	elseif not (rawDamage >= -math.huge) then
+		InsaneStats:SetDamage(0)
+		dmginfo:InsaneStats_SetRawDamage(0)
+		error("Something tried to set damage to nan!")
+	elseif rawDamage == 0 then
+		vic:InsaneStats_DamageNumber(
+			attacker,
+			InsaneStats:GetDamage(),
+			dmginfo:GetDamageType(),
+			vic.insaneStats_LastHitGroup,
+			vic:InsaneStats_GetHealth() > 0
+		)
+		-- negate the damage entirely because for some yet unknown reason
+		-- taking 0 damage at high amounts of health causes an instant death
+		return true
 	end
 
 	-- important for next part
@@ -309,25 +342,26 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 	vic:InsaneStats_SetEntityData("old_velocity", vic:GetVelocity())
 
 	if InsaneStats:IsDebugLevel(3) then
-		local attacker = dmginfo:GetAttacker()
-		if attacker:IsPlayer() then
-			InsaneStats:Log(
-				"PreEntityTakeDamage: entity = %s, damage = %i, health = %i",
-				tostring(vic), rawDamage, rawHealth
-			)
-		end
+		InsaneStats:Log(
+			"PreEntityTakeDamage: entity = %s, damage = %g, raw = %g, health = %i",
+			tostring(vic), InsaneStats:GetDamage(), rawDamage, rawHealth
+		)
 	end
 end)
 
 hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo, notImmune, ...)
+	totalDamageTicks = totalDamageTicks + 1
+	if totalDamageTicks > 1000 then
+		print("Something caused an infinite loop!")
+		debug.Trace()
+		return true
+	end
+	
 	if InsaneStats:IsDebugLevel(3) and InsaneStats:GetConVarValue("infhealth_enabled") then
-		local attacker = dmginfo:GetAttacker()
-		if attacker:IsPlayer() then
-			InsaneStats:Log(
-				"PostEntityTakeDamage: entity = %s, damage = %i, health = %i",
-				tostring(vic), dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth()
-			)
-		end
+		InsaneStats:Log(
+			"PostEntityTakeDamage: entity = %s, damage = %g, raw = %g, health = %i",
+			tostring(vic), InsaneStats:GetDamage() or -1, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth()
+		)
 	end
 
 	vic:InsaneStats_SetEntityData("old_velocity", vic:InsaneStats_GetEntityData("old_velocity") or vic:GetVelocity())
@@ -400,8 +434,8 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 			if not (healthDamage < math.huge and newHealth > -math.huge) then
 				newHealth = -math.huge
 			end
-			if not (armorDamage < math.huge and newArmor > -math.huge) then
-				newArmor = -math.huge
+			if not (armorDamage < math.huge and newArmor > 0) then
+				newArmor = 0
 			end
 			
 			--print(newHealth, newArmor)
@@ -504,7 +538,7 @@ end)
 hook.Add("EntityKeyValue", "InsaneStatsUnlimitedHealth", function(ent, key, value)
 	if key == "OnHalfHealth" then
 		ent.insaneStats_TempOnHalfHealth = true
-	elseif key == "OnDamaged" then
+	elseif key == "OnDamaged" or key == "OnStunnedPlayer" then
 		ent.insaneStats_TempOnDamaged = true
 	end
 end)
@@ -549,6 +583,8 @@ hook.Add("AcceptInput", "InsaneStatsUnlimitedHealth", function(ent, input, activ
 		local undyingLevel = ent:InsaneStats_GetStatusEffectLevel("undying")
 
 		if undyingLevel > 0 then
+			local duration = ent:InsaneStats_GetStatusEffectDuration("undying")
+
 			timer.Simple(0, function()
 				if IsValid(ent) then
 					if InsaneStats:IsDebugLevel(1) then
@@ -556,20 +592,27 @@ hook.Add("AcceptInput", "InsaneStatsUnlimitedHealth", function(ent, input, activ
 					end
 					ent:InsaneStats_ApplyStatusEffect("invincible", 1, 1)
 
-					undyingLevel = undyingLevel - 1
-					local duration = ent:InsaneStats_GetStatusEffectDuration("undying")
+					local newUndyingLevel = undyingLevel - 1
 	
 					ent:InsaneStats_ClearStatusEffect("undying")
 	
-					if undyingLevel > 0 then
+					if newUndyingLevel > 0 then
 						ent:InsaneStats_ApplyStatusEffect(
 							"undying",
-							undyingLevel,
+							newUndyingLevel,
 							duration
 						)
 					end
 				end
 			end)
+
+			--[[timer.Simple(1, function()
+				if IsValid(ent) and not ent.insaneStats_NoOSP then
+					if ent:InsaneStats_GetHealth() / ent:InsaneStats_GetMaxHealth() > 0.9375 then
+						ent:InsaneStats_ApplyStatusEffect("undying", undyingLevel, duration)
+					end
+				end
+			end)]]
 		end
 		
 		return true
