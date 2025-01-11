@@ -2,7 +2,7 @@ MsgC(
     Color(0, 255, 255),
     "Collapse Into Baguettes On Death ",
     Color(255, 255, 0),
-    "1.0.0 (2024-12-19) ",
+    "1.0.0 (2024-12-28) ",
     color_white,
     "by Piengineer12\n"
 )

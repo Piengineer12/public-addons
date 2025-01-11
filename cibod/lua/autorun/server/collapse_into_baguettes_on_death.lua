@@ -1,4 +1,4 @@
-MsgC(Color(0, 255, 255), "Collapse Into Baguettes On Death ", Color(255, 255, 0), "1.0.0 (2024-12-19) ", color_white, "by Piengineer12\n")
+MsgC(Color(0, 255, 255), "Collapse Into Baguettes On Death ", Color(255, 255, 0), "1.0.0 (2024-12-28) ", color_white, "by Piengineer12\n")
 local ConVarE = CreateConVar("cibod_enabled", "1", FCVAR_ARCHIVE, "Enables Collapse Into Baguettes On Death.")
 local ConVarF = CreateConVar("cibod_frozen", "0", FCVAR_ARCHIVE, "Baguettes are physically frozen.")
 local ConVarN = CreateConVar("cibod_enabled_npc", "0", FCVAR_ARCHIVE, "Enables CIBOD for NPC deaths. The original NPC corpse will still remain visible unfortunately.")

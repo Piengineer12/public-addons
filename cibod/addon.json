@@ -1,0 +1,10 @@
+{
+	"title": "Collapse Into Baguettes On Death",
+	"type": "effects",
+	"tags": ["cartoon", "comic"],
+	"ignore": [
+		"*.moon",
+		"media/*",
+		"personal/*"
+	]
+}
