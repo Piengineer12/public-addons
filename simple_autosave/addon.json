@@ -6,6 +6,8 @@
 		"build"
 	],
 	"ignore": [
-		"media/*"
+		"*.moon",
+		"media/*",
+		"personal/*"
 	]
 }
