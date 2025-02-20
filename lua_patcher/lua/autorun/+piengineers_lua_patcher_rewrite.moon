@@ -8,8 +8,8 @@ LUA_PATCHER or= {
     unpatched: {}
 }
 
-LUA_PATCHER.VERSION = "3.0.1"
-LUA_PATCHER.VERSION_DATE = "2024-10-14"
+LUA_PATCHER.VERSION = "3.0.2"
+LUA_PATCHER.VERSION_DATE = "2025-02-20"
 
 local Log, LogError
 
@@ -126,9 +126,15 @@ PatchPrimitives = ->
                 (a or 0) <= (b or 0)
             else
                 tostring(a) <= tostring(b)
-        __index: () -> LogError "Some code attempted to index nil."
-        __newindex: () -> LogError "Some code attempted to assign a member value to nil."
-        __call: () -> LogError "Some code attempted to call nil as a function."
+        __index: -> LogError "Some code attempted to index nil."
+        __newindex: -> LogError "Some code attempted to assign a member value to nil."
+        __call: -> LogError "Some code attempted to call nil as a function."
+    }
+	BOOL = getmetatable(true) or {}
+    OverwriteTable "BOOL", BOOL, {
+        __index: -> LogError "Some code attempted to index a boolean."
+        __newindex: -> LogError "Some code attempted to assign a member value to a boolean."
+        __call: -> LogError "Some code attempted to call a boolean as a function."
     }
 	
     OverwriteFunction "pairs", (tab, ...) ->
@@ -187,6 +193,7 @@ PatchPrimitives = ->
 	
     if debug.setmetatable
         debug.setmetatable nil, NIL
+        debug.setmetatable true, BOOL
         debug.setmetatable 0, NUMBER
         debug.setmetatable "", STRING
     else
@@ -195,6 +202,9 @@ PatchPrimitives = ->
 UnpatchPrimitives = ->
 	NIL = getmetatable(nil) or {}
     RollbackTable "NIL", NIL
+
+	BOOL = getmetatable(true) or {}
+    RollbackTable "BOOL", BOOL
 
     RollbackFunction "pairs"
 
@@ -206,6 +216,7 @@ UnpatchPrimitives = ->
 
     if debug.setmetatable
         debug.setmetatable nil, NIL
+        debug.setmetatable true, BOOL
         debug.setmetatable 0, NUMBER
         debug.setmetatable "", STRING
 

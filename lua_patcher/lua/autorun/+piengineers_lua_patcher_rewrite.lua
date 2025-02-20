@@ -6,8 +6,8 @@ LUA_PATCHER = LUA_PATCHER or {
   extra_info = "Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 format.",
   unpatched = { }
 }
-LUA_PATCHER.VERSION = "3.0.1"
-LUA_PATCHER.VERSION_DATE = "2024-10-14"
+LUA_PATCHER.VERSION = "3.0.2"
+LUA_PATCHER.VERSION_DATE = "2025-02-20"
 local Log, LogError
 if gmod then
   local next_report_time = 0
@@ -162,6 +162,18 @@ PatchPrimitives = function()
       return LogError("Some code attempted to call nil as a function.")
     end
   })
+  local BOOL = getmetatable(true) or { }
+  OverwriteTable("BOOL", BOOL, {
+    __index = function()
+      return LogError("Some code attempted to index a boolean.")
+    end,
+    __newindex = function()
+      return LogError("Some code attempted to assign a member value to a boolean.")
+    end,
+    __call = function()
+      return LogError("Some code attempted to call a boolean as a function.")
+    end
+  })
   OverwriteFunction("pairs", function(tab, ...)
     if not tab then
       tab = { }
@@ -228,6 +240,7 @@ PatchPrimitives = function()
   })
   if debug.setmetatable then
     debug.setmetatable(nil, NIL)
+    debug.setmetatable(true, BOOL)
     debug.setmetatable(0, NUMBER)
     return debug.setmetatable("", STRING)
   else
@@ -238,6 +251,8 @@ local UnpatchPrimitives
 UnpatchPrimitives = function()
   local NIL = getmetatable(nil) or { }
   RollbackTable("NIL", NIL)
+  local BOOL = getmetatable(true) or { }
+  RollbackTable("BOOL", BOOL)
   RollbackFunction("pairs")
   local NUMBER = getmetatable(0) or { }
   RollbackTable("NUMBER", NUMBER)
@@ -245,6 +260,7 @@ UnpatchPrimitives = function()
   RollbackTable("STRING", STRING)
   if debug.setmetatable then
     debug.setmetatable(nil, NIL)
+    debug.setmetatable(true, BOOL)
     debug.setmetatable(0, NUMBER)
     return debug.setmetatable("", STRING)
   end
