@@ -1,0 +1,10 @@
+{
+	"title": "Mass Weapon Selector and Searcher",
+	"type": "tool",
+	"tags": [],
+	"ignore": [
+		"*.moon",
+		"media/*",
+		"personal/*"
+	]
+}
