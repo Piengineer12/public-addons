@@ -1,4 +1,6 @@
 info = {
+	version: '1.0.1'
+	version_date: '2025-02-24'
     workshop_page: 'TBD'
     profile_page: 'https://steamcommunity.com/id/Piengineer12'
     github_page: 'https://github.com/Piengineer12/public-addons/tree/master/mwsas'
@@ -29,6 +31,8 @@ class BasicDrawing
 						description, 0, 1
 				when 'int' then CreateClientConVar conVarName, entry.default, true, false,
 						description, entry.min, entry.max
+				when 'bind' then CreateClientConVar conVarName, entry.default, true, true,
+						description
 				else CreateClientConVar conVarName, entry.default, true, false,
 						description
 			@cvars[entry.ref] = :conVar, type: entry.type
@@ -37,7 +41,7 @@ class BasicDrawing
 		entry = @@cvars[ref]
 		if entry then switch entry.type
 			when 'bool' then entry.conVar\GetBool!
-			when 'int' then entry.conVar\GetInt!
+			when 'int', 'bind' then entry.conVar\GetInt!
 			when 'float' then entry.conVar\GetFloat!
 			else entry.conVar\GetString!
 		else
@@ -66,6 +70,8 @@ class BasicDrawing
 					when 'float'
 						decimals = 4 - math.Round math.log10 info.max - info.min
 						panel\NumSlider displayName, cvar, info.min, info.max, decimals
+					when 'bind'
+						panel\KeyBinder displayName, cvar
 					else
 						panel\TextEntry displayName, cvar
 				panel\Help @AssemblePhrase displayName..'.desc'
@@ -73,7 +79,7 @@ class BasicDrawing
 	@AssemblePhrase: (phrase) =>
 		token = phrase..'.1'
 		if token == language.GetPhrase token
-			phrase
+			language.GetPhrase phrase
 		else
 			assembled = {}
 			i = 1
@@ -183,6 +189,7 @@ class WeaponSelector extends BasicDrawing
 	new: =>
 		@weaponData = {}
 		@RegisterCVars 'selector', {
+			{ref: 'selector_bind', type: 'bind', default: '17'}
 			{ref: 'selector_alphabetic', type: 'int', default: '0', min: 0, max: 255}
 			{ref: 'selector_color', type: 'string', default: '255 255 255 255'}
 			{ref: 'selector_nobounce', type: 'bool', default: '0'}
@@ -765,6 +772,7 @@ class WeaponSearcher extends BasicDrawing
 
 	new: =>
 		@RegisterCVars 'searcher', {
+			{ref: 'searcher_bind', type: 'bind', default: '24'}
 			{ref: 'searcher_width', type: 'float', default: '50', min: 0, max: 100}
 			{ref: 'searcher_title_font', type: 'string', default: 'Orbitron Medium'}
 			{ref: 'searcher_bar_font', type: 'string', default: 'Orbitron Medium'}
@@ -1006,3 +1014,15 @@ hook.Add 'AddToolMenuCategories', 'MWS&S', ->
 	return
 
 hook.Add 'PopulateToolMenu', 'MWS&S', BasicDrawing\PopulateToolMenu
+
+unless game.SinglePlayer!
+	hook.Add 'PlayerButtonDown', 'MWS&S', (ply, button) ->
+		if IsFirstTimePredicted! then switch button
+			when selector\GetConVarValue 'selector_bind' then selector\Start!
+			when selector\GetConVarValue 'searcher_bind' then searcher\Start!
+		return
+
+	hook.Add 'PlayerButtonUp', 'MWS&S', (ply, button) ->
+		if IsFirstTimePredicted! and button == selector\GetConVarValue 'selector_bind'
+			selector\End!
+		return

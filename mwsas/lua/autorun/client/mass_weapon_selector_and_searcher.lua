@@ -1,4 +1,6 @@
 local info = {
+  version = '1.0.1',
+  version_date = '2025-02-24',
   workshop_page = 'TBD',
   profile_page = 'https://steamcommunity.com/id/Piengineer12',
   github_page = 'https://github.com/Piengineer12/public-addons/tree/master/mwsas',
@@ -27,7 +29,7 @@ do
         local _exp_0 = entry.type
         if 'bool' == _exp_0 then
           return entry.conVar:GetBool()
-        elseif 'int' == _exp_0 then
+        elseif 'int' == _exp_0 or 'bind' == _exp_0 then
           return entry.conVar:GetInt()
         elseif 'float' == _exp_0 then
           return entry.conVar:GetFloat()
@@ -168,6 +170,8 @@ do
         conVar = CreateClientConVar(conVarName, entry.default, true, false, description, 0, 1)
       elseif 'int' == _exp_0 then
         conVar = CreateClientConVar(conVarName, entry.default, true, false, description, entry.min, entry.max)
+      elseif 'bind' == _exp_0 then
+        conVar = CreateClientConVar(conVarName, entry.default, true, true, description)
       else
         conVar = CreateClientConVar(conVarName, entry.default, true, false, description)
       end
@@ -202,6 +206,8 @@ do
         elseif 'float' == _exp_0 then
           local decimals = 4 - math.Round(math.log10(info.max - info.min))
           panel:NumSlider(displayName, cvar, info.min, info.max, decimals)
+        elseif 'bind' == _exp_0 then
+          panel:KeyBinder(displayName, cvar)
         else
           panel:TextEntry(displayName, cvar)
         end
@@ -212,7 +218,7 @@ do
   self.AssemblePhrase = function(self, phrase)
     local token = phrase .. '.1'
     if token == language.GetPhrase(token) then
-      return phrase
+      return language.GetPhrase(phrase)
     else
       local assembled = { }
       local i = 1
@@ -517,6 +523,11 @@ do
     __init = function(self)
       self.weaponData = { }
       return self:RegisterCVars('selector', {
+        {
+          ref = 'selector_bind',
+          type = 'bind',
+          default = '17'
+        },
         {
           ref = 'selector_alphabetic',
           type = 'int',
@@ -1314,6 +1325,11 @@ do
     __init = function(self)
       return self:RegisterCVars('searcher', {
         {
+          ref = 'searcher_bind',
+          type = 'bind',
+          default = '24'
+        },
+        {
           ref = 'searcher_width',
           type = 'float',
           default = '50',
@@ -1422,10 +1438,27 @@ end)
 hook.Add('AddToolMenuCategories', 'MWS&S', function()
   spawnmenu.AddToolCategory('Utilities', 'MWS&S', '#mwsas')
 end)
-return hook.Add('PopulateToolMenu', 'MWS&S', (function()
+hook.Add('PopulateToolMenu', 'MWS&S', (function()
   local _base_0 = BasicDrawing
   local _fn_0 = _base_0.PopulateToolMenu
   return function(...)
     return _fn_0(_base_0, ...)
   end
 end)())
+if not (game.SinglePlayer()) then
+  hook.Add('PlayerButtonDown', 'MWS&S', function(ply, button)
+    if IsFirstTimePredicted() then
+      local _exp_0 = button
+      if selector:GetConVarValue('selector_bind') == _exp_0 then
+        selector:Start()
+      elseif selector:GetConVarValue('searcher_bind') == _exp_0 then
+        searcher:Start()
+      end
+    end
+  end)
+  return hook.Add('PlayerButtonUp', 'MWS&S', function(ply, button)
+    if IsFirstTimePredicted() and button == selector:GetConVarValue('selector_bind') then
+      selector:End()
+    end
+  end)
+end
