@@ -3311,7 +3311,6 @@ hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetEffectiveSkillValues("pew_pew_pew")/100)
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetSkillStacks("increase_the_pressure")/100)
-		totalMul = totalMul * (1 + attacker:InsaneStats_GetStatusEffectLevel("skill_firerate_up")/100)
 
 		if game.SinglePlayer() then
 			totalMul = totalMul * (1 + attacker:InsaneStats_GetEffectiveSkillValues("spongy", 2)/100)
@@ -3394,12 +3393,15 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 				laggedSpeedMul = laggedSpeedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("just_breathe", 3) / 100)
 			end
 		end
+
+		local hullMul = 1 + ent:InsaneStats_GetEffectiveSkillValues("four_parallel_universes_ahead", 2) / 100
 		
 		data.speed = data.speed * speedMul
 		data.sprintSpeed = data.sprintSpeed * ent:InsaneStats_GetAttributeValue("sprint_speed")
 		data.sprintSpeed = data.sprintSpeed * (1 + ent:InsaneStats_GetEffectiveSkillValues("zoomer") / 100)
 		--data.crouchedSpeed = data.crouchedSpeed * ent:InsaneStats_GetAttributeValue("crouch_speed")
 		data.laggedSpeed = data.laggedSpeed * laggedSpeedMul
+		data.hullSize = data.hullSize * hullMul
 	end
 end)
 
@@ -3428,6 +3430,11 @@ hook.Add("StartCommand", "InsaneStatsSharedWPASS2", function(ply, usercmd)
 	end
 end)
 
+local traceOutput = {}
+local teleportTraceData = {
+	mask = MASK_NPCSOLID,
+	output = traceOutput
+}
 hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd)
 	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
 		if ply:InsaneStats_GetSkillState("fight_for_your_life") == 1 then
@@ -3502,6 +3509,55 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 					end
 
 					ply:InsaneStats_SetSkillData("just_breathe", 1, 10)
+				end
+
+				if ply:InsaneStats_EffectivelyHasSkill("friendly_fire_off") then
+					for i,v in ipairs(ents.FindByClass("npc_citizen")) do
+						--print(v:GetInternalVariable("squadname"), v:GetNPCState())
+						if v:GetInternalVariable("squadname") == "player_squad" and v:GetNPCState() > 0
+						and v:GetNPCState() < 4 then
+							-- get the closest player with the skill, to prevent abuse
+							local closestFFOPlayer
+							local bestDistSqr = math.huge
+							for j,v2 in player.Iterator() do
+								local distSqr = v2:WorldSpaceCenter():DistToSqr(v:WorldSpaceCenter())
+								if v2:InsaneStats_EffectivelyHasSkill("friendly_fire_off") and distSqr < bestDistSqr then
+									closestFFOPlayer = v2
+									bestDistSqr = distSqr
+								end
+							end
+	
+							if closestFFOPlayer == ply then
+								local maxSqrDist = ply:InsaneStats_GetEffectiveSkillValues("friendly_fire_off", 3)
+								maxSqrDist = maxSqrDist * maxSqrDist
+								--print(closestFFOPlayer, ply, bestDistSqr, maxSqrDist)
+								if bestDistSqr > maxSqrDist then
+									local clearPos
+									local plyVel = ply:GetVelocity()
+									local xOffset = plyVel.x < 0 and 48 or -48
+									local yOffset = plyVel.y < 0 and 48 or -48
+
+									teleportTraceData.start = ply:GetPos() + Vector(xOffset, 0, 0)
+									teleportTraceData.endpos = teleportTraceData.start
+									util.TraceEntityHull(teleportTraceData, v)
+									if traceOutput.Hit then
+										teleportTraceData.start = ply:GetPos() + Vector(0, yOffset, 0)
+										teleportTraceData.endpos = teleportTraceData.start
+										util.TraceEntityHull(teleportTraceData, v)
+										if not traceOutput.Hit then
+											clearPos = traceOutput.StartPos
+										end
+									else
+										clearPos = traceOutput.StartPos
+									end
+
+									if clearPos then
+										v:SetPos(clearPos)
+									end
+								end
+							end
+						end
+					end
 				end
 			else
 				ply:InsaneStats_SetEntityData("last_alt_press", RealTime())
@@ -3634,7 +3690,7 @@ hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data
 		local spreadMult = attacker:InsaneStats_GetAttributeValue("spread")
 
 		spreadMult = spreadMult * (1 + attacker:InsaneStats_GetEffectiveSkillValues("stabilization") / 100)
-		spreadMult = spreadMult / (1 + attacker:InsaneStats_GetStatusEffectLevel("skill_accuracy_up") / 100)
+		spreadMult = spreadMult / (1 + attacker:InsaneStats_GetStatusEffectLevel("accuracy_up") / 100)
 		if data.AmmoType == "Pistol" or data.AmmoType == "357" then
 			spreadMult = spreadMult * (1 + attacker:InsaneStats_GetEffectiveSkillValues("one_with_the_gun", 2) / 100)
 		end

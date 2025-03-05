@@ -1,6 +1,11 @@
 --[=[local ConMaxClipOverrideEnabled = CreateConVar("insanestats_adjustablemaxclip", "1", bit.bor(FCVAR_ARCHIVE, FCVAR_REPLICATED),
 [[If enabled, maximum weapon clips can be altered.]])]=]
 
+function InsaneStats:DamageIsPreventable(dmginfo)
+	return not dmginfo:IsDamageType(DMG_DISSOLVE)
+	and not (dmginfo:IsDamageType(DMG_PHYSGUN) and game.GetGlobalState("super_phys_gun") == 1)
+end
+
 local ENT = FindMetaTable("Entity")
 local entityClassesArmorNotSensible = {
 	[CLASS_PLAYER] = true,
@@ -253,16 +258,25 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 			end
 			
 			-- determine the ACTUAL damage to deal
-			if vic:InsaneStats_GetHealth() ~= 0 then
-				local rawDamage = InsaneStats:GetDamage() * math.abs(vic:InsaneStats_GetRawHealth()) / math.abs(vic:InsaneStats_GetHealth())
-				if InsaneStats:IsDebugLevel(3) then
-					InsaneStats:Log(
-						"%g damage against %g health is actually %g damage against %g health",
-						InsaneStats:GetDamage(), vic:InsaneStats_GetHealth(), rawDamage, vic:InsaneStats_GetRawHealth()
-					)
-				end
-				dmginfo:InsaneStats_SetRawDamage(rawDamage)
+			local insaneStatsHealth = math.abs(vic:InsaneStats_GetHealth())
+			local rawHealth = math.abs(vic:InsaneStats_GetRawHealth())
+			local damageMul = rawHealth / insaneStatsHealth
+			if rawHealth == insaneStatsHealth then
+				damageMul = 1
 			end
+
+			local insaneStatsDamage = InsaneStats:GetDamage()
+			local rawDamage = insaneStatsDamage * damageMul
+			if insaneStatsDamage == math.huge then
+				rawDamage = insaneStatsDamage
+			end
+			if InsaneStats:IsDebugLevel(3) then
+				InsaneStats:Log(
+					"%g damage against %g health is actually %g damage against %g health",
+					insaneStatsDamage, insaneStatsHealth, rawDamage, rawHealth
+				)
+			end
+			dmginfo:InsaneStats_SetRawDamage(rawDamage)
 			
 			if dmginfo:IsDamageType(DMG_POISON) and dmginfo:InsaneStats_GetRawDamage() >= vic:InsaneStats_GetRawHealth() and vic:InsaneStats_GetRawHealth() > 0 then
 				-- poison damage should leave the user at 1 health, but the limitations of
@@ -280,7 +294,7 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 			local healthRatio = vic:InsaneStats_GetHealth() / vic:InsaneStats_GetMaxHealth()
 			if (vic:InsaneStats_GetStatusEffectLevel("pheonix") > 0
 			or vic:InsaneStats_GetStatusEffectLevel("undying") > 0
-			or stunned) and not dmginfo:IsDamageType(DMG_DISSOLVE) then
+			or stunned) and InsaneStats:DamageIsPreventable(dmginfo) then
 				if InsaneStats:IsDebugLevel(1) then
 					InsaneStats:Log("Prevented lethal damage to %s!", tostring(vic))
 				end
@@ -289,7 +303,7 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 				-- we have to do this otherwise the helicopter might remain in a dead-not-dead state
 				local maxDamage = vic:InsaneStats_GetRawHealth() * 0.75
 				if dmginfo:InsaneStats_GetRawDamage() > maxDamage then
-					dmginfo:InsaneStats_SetRawDamage(maxDamage)
+					dmginfo:InsaneStats_SetRawDamage(math.max(maxDamage, 0))
 					if stunned then
 						vic:InsaneStats_ClearStatusEffect("stunned")
 						vic:InsaneStats_ApplyStatusEffect("invincible", 1, 0.25)
@@ -300,7 +314,7 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 				-- again, single floating-point arithmetic makes this more difficult
 				local maxDamage = vic:InsaneStats_GetRawHealth() * (1 + 2 ^ -24)
 				if dmginfo:InsaneStats_GetRawDamage() > maxDamage then
-					dmginfo:InsaneStats_SetRawDamage(maxDamage)
+					dmginfo:InsaneStats_SetRawDamage(math.max(maxDamage, 0))
 				end
 			end
 
@@ -341,7 +355,7 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 	vic:InsaneStats_SetEntityData("armor", vic:InsaneStats_GetArmor())
 	vic:InsaneStats_SetEntityData("old_velocity", vic:GetVelocity())
 
-	if InsaneStats:IsDebugLevel(3) then
+	if InsaneStats:IsDebugLevel(4) then
 		InsaneStats:Log(
 			"PreEntityTakeDamage: entity = %s, damage = %g, raw = %g, health = %i",
 			tostring(vic), InsaneStats:GetDamage(), rawDamage, rawHealth
@@ -357,7 +371,7 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 		return true
 	end
 	
-	if InsaneStats:IsDebugLevel(3) and InsaneStats:GetConVarValue("infhealth_enabled") then
+	if InsaneStats:IsDebugLevel(4) and InsaneStats:GetConVarValue("infhealth_enabled") then
 		InsaneStats:Log(
 			"PostEntityTakeDamage: entity = %s, damage = %g, raw = %g, health = %i",
 			tostring(vic), InsaneStats:GetDamage() or -1, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth()
@@ -496,9 +510,11 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 					ent:InsaneStats_ApplyStatusEffect("pheonix", 1, math.huge)
 					ent:Fire("AddOutput", "OnHalfHealth !self:InsaneStats_OnHalfHealth")
 				end
-				if ent.insaneStats_TempOnDamaged then
+				if ent.insaneStats_TempOnDamaged or ent.insaneStats_TempOnStun then
 					ent.insaneStats_TempOnDamaged = nil
-					if multipleDamageClasses[class] and (ent:GetInternalVariable("damagefilter") or "") == "" then
+					if ent.insaneStats_TempOnStun or multipleDamageClasses[class]
+					and (ent:GetInternalVariable("damagefilter") or "") == "" then
+						ent.insaneStats_TempOnStun = nil
 						ent:InsaneStats_ApplyStatusEffect("undying", 10, math.huge)
 						ent:Fire("AddOutput", "OnDamaged !self:InsaneStats_OnDamaged")
 					end
@@ -536,10 +552,13 @@ hook.Add("PlayerSpawn", "InsaneStatsUnlimitedHealth", function(ply, fromTransiti
 end)
 
 hook.Add("EntityKeyValue", "InsaneStatsUnlimitedHealth", function(ent, key, value)
-	if key == "OnHalfHealth" then
+	key = key:lower()
+	if key == "onhalfhealth" then
 		ent.insaneStats_TempOnHalfHealth = true
-	elseif key == "OnDamaged" or key == "OnStunnedPlayer" then
+	elseif key == "ondamaged" then
 		ent.insaneStats_TempOnDamaged = true
+	elseif key == "onstunnedplayer" then
+		ent.insaneStats_TempOnStun = true
 	end
 end)
 

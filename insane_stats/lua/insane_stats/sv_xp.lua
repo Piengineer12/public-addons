@@ -613,7 +613,7 @@ function InsaneStats:DetermineDamageMul(vic, dmginfo)
 		local attacker = dmginfo:GetAttacker()
 		local inflictor = dmginfo:GetInflictor()
 
-		if InsaneStats:IsDebugLevel(3) then
+		if InsaneStats:IsDebugLevel(4) then
 			InsaneStats:Log(
 				"Victim is %s, attacker is %s and inflictor is %s",
 				tostring(vic), tostring(attacker), tostring(inflictor)

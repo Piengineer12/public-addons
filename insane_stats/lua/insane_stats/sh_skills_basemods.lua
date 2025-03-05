@@ -158,7 +158,7 @@ local skills = {
 		values = function(level)
 			return level * 10
 		end,
-		img = "dead-eye",
+		img = "fast-arrow",
 		pos = {1, -2},
 		minpts = 5
 	},
@@ -416,24 +416,28 @@ local skills = {
 	},
 	friendly_fire_off = {
 		name = "Friendly Fire OFF",
-		desc = "While %s is not held, deal -100%% non-dissolving damage against non-player allies!%s",
+		desc = "While %s is not held, deal -100%% non-dissolving damage against non-player allies! \z
+		Also, double tapping %s will cause all squad citizens and rebels that are over %s away to be teleported closer.%s",
 		values = function(level)
 			local slowWalkKey = "the Slow Walk key"
+			local distance = 1024 / level
 			if CLIENT then
 				local keyName = input.LookupBinding("+walk")
 				if keyName then
 					slowWalkKey = keyName:upper()
 				end
+				distance = InsaneStats:FormatNumber(distance, {distance = true})
 			end
 			if level > 1 then
-				return slowWalkKey, " Additionally, gain +100% damage dealt for 10 seconds whenever an enemy hurts any allies!"
+				return slowWalkKey, slowWalkKey, distance,
+				" Additionally, gain +100% damage dealt for 10 seconds whenever an enemy hurts any allies!"
 			else
-				return slowWalkKey, ""
+				return slowWalkKey, slowWalkKey, distance, ""
 			end
 		end,
 		stackTick = function(state, current, time, ent)
 			local newStacks = math.max(current - time, 0)
-			return ent:IsPlayer() and ent:KeyDown(IN_WALK) and -1 or 1, newStacks
+			return ent:IsPlayer() and ent:KeyDown(IN_WALK) and 0 or 1, newStacks
 		end,
 		img = "duality",
 		pos = {3, 0},
@@ -578,7 +582,8 @@ local skills = {
 	},
 	mania = {
 		name = "Mania",
-		desc = "On kill, gain %+.1f stack(s) of Mania. Each stack gives 1%% more coins and XP, but stacks decay at a rate of -0.1%%/s.",
+		desc = "On kill, gain %+.1f stack(s) of Mania. Each stack gives 1%% more coins and XP, \z
+		but stacks decay at a rate of -0.1%%/s.",
 		values = function(level)
 			return level/5
 		end,
@@ -664,9 +669,10 @@ local skills = {
 	},
 	four_parallel_universes_ahead = {
 		name = "Four Parallel Universes Ahead",
-		desc = "Defence is increased based on speed. At normal running speed, defence is increased by %i%%.",
+		desc = "Defence is increased based on speed. At normal running speed, defence is increased by %i%%. \z
+		Hitbox size is also decreased by %i%%.",
 		values = function(level)
-			return level * 10
+			return level * 10, level * -1
 		end,
 		img = "dodging",
 		pos = {-3, 3},
@@ -740,9 +746,10 @@ local skills = {
 	-- distance 7
 	the_red_plague = {
 		name = "The Red Plague",
-		desc = "On hit, inflict Bleeding for %u seconds on the victim, triggering on-hit effects over time!",
+		desc = "On hit, inflict Bleeding for %u seconds on the victim, triggering on-hit effects over time! \z
+		Bleeding does not stack.",
 		values = function(level)
-			return level * 5
+			return level * 8
 		end,
 		img = "droplets",
 		pos = {1, -4},
@@ -751,7 +758,9 @@ local skills = {
 	},
 	silver_bullets = {
 		name = "Silver Bullets",
-		desc = "While %s is not held, gain %s bullet penetration.",
+		desc = "While %s is not held, gain %s bullet penetration \z
+		and extra crowbars can be picked up for +%u stacks of Silver Bullets. \z
+		Each stack gives 1%% more damage dealt against entities above 80%% health.",
 		values = function(level)
 			local slowWalkKey = "the Slow Walk key"
 			local distance = level * 20
@@ -762,7 +771,7 @@ local skills = {
 				end
 				distance = InsaneStats:FormatNumber(distance, {plus = true, distance = true})
 			end
-			return slowWalkKey, distance
+			return slowWalkKey, distance, level * 25
 		end,
 		stackTick = function(state, current, time, ent)
 			return ent:IsPlayer() and ent:KeyDown(IN_WALK) and -1 or 1, current
@@ -787,15 +796,21 @@ local skills = {
 	},
 	multi_killer = {
 		name = "Multi Killer",
-		desc = "On kill or prop broken, gain %+.1f stacks of Multi Killer. \z
-		Coins and XP gained are multiplied by 1 plus the square root of the number of stacks, \z
-		but stacks decay at a rate of %i/s!",
-		values = function(level)
-			return level/5, level/-5
+		desc = "On kill or prop broken, gain +%.1f stacks of Multi Killer. \z
+		Each stack gives 100%% more coins and XP, \z
+		but stacks decay at a rate of %.2f/s plus an additional %.2f%%/s.",
+		values = function(level, ent)
+			local decayMult = 1 + ent:InsaneStats_GetEffectiveSkillValues("sick_combo", 2) / 100
+			return level * 0.2,
+			level * -0.2 * decayMult,
+			-0.1 * decayMult
 		end,
 		stackTick = function(state, current, time, ent)
-			local decayRate = ent:InsaneStats_GetEffectiveSkillValues("multi_killer", 2)
-			local nextStacks = math.max(current + decayRate * time, 0)
+			local constantDecayRate, expDecayRate = ent:InsaneStats_GetEffectiveSkillValues("multi_killer", 2)
+			local f1, f2 = 100 / expDecayRate, 1 + expDecayRate / 100
+			local offset = constantDecayRate * f1
+			local nextStacks = (current + offset) * f2 ^ time - offset
+			nextStacks = math.max(nextStacks, 0)
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
 		img = "double-shot",
@@ -1034,7 +1049,7 @@ local skills = {
 		by %s times the square root of the number of stacks. \z
 		Stacks decay at a rate of -0.1%%/s.",
 		values = function(level)
-			local distance = 32
+			local distance = 64
 			if CLIENT then
 				distance = InsaneStats:FormatNumber(distance, {distance = true})
 			end
@@ -1183,11 +1198,12 @@ local skills = {
 	},
 	anger = {
 		name = "Anger",
-		desc = "Taking damage from an NPC triples all damage dealt for %u seconds! 60 seconds cooldown. \z
-		Also, a live grenade is created whenever explosive damage is dealt to an NPC, \z
-		but only once every %u second(s) per NPC.",
+		desc = "Taking damage increases all damage dealt by +%u%% for 10 seconds! %u seconds cooldown. \z
+		However, dealing explosive damage to an NPC creates a live grenade that explodes after 2 seconds%s, \z
+		at most once per second per NPC.",
 		values = function(level)
-			return level * 10, 3 - level
+			local text2 = " and another that is invincible and explodes after 3 to 5 seconds randomly"
+			return level * 200, 180 - level * 60, level > 1 and text2 or ""
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = math.max(current - time, 0)
@@ -1243,12 +1259,14 @@ local skills = {
 	},
 	sick_combo = {
 		name = "Sick Combo",
-		desc = "On kill, gain 1 stack of Sick Combo and extend its duration by +%.1f second(s). \z
+		desc = "On kill, gain +%.1f stack(s) of Sick Combo and extend its duration by 3 seconds. \z
 		Picking up any item will also extend the duration by half the amount. \z
-		Each stack gives 10%% more coins and XP, but stacks are limited to the number of skill points gained in total \z
-		and duration is limited to a maximum of +%u seconds!",
+		Each stack gives 1%% more Multi Killer stacks, coins and XP, but \z
+		duration is limited to a maximum of 60 seconds! \z
+		Also, Multi Killer stacks decay +%u%% faster.",
+		-- stacks are limited to the number of skill points gained in total and \z
 		values = function(level)
-			return level/2, level * 6
+			return level/5, level * 20
 		end,
 		img = "poker-hand",
 		pos = {5, -3},
@@ -1256,7 +1274,8 @@ local skills = {
 	},
 	when_the_sigma_grind_aint_enough = {
 		name = "When The Sigma Grind Ain't Enough",
-		desc = "Every %u skill points gained, gain a über skill point! Über skill points can double the level of skills, but can only be spent on fully upgraded skills!",
+		desc = "Every %u skill points gained, gain a über skill point! \z
+		Über skill points can double the level of skills, but can only be spent on fully upgraded skills!",
 		values = function(level)
 			return 30 - level*10
 		end,
@@ -1325,13 +1344,24 @@ local skills = {
 	},
 	celebration = {
 		name = "Celebration",
-		desc = "All kill skills are triggered%s by non-player kills from ANY entity!",
+		desc = "All kill skills are triggered%s by non-player kills from ANY entity! \z
+		Also, using a manual crank while holding %s causes it to auto-turn.",
 		values = function(level)
-			if level > 1 then
-				return " twice"
-			else
-				return ""
+			local sprintKey = "the Sprint key"
+			if CLIENT then
+				local keyName = input.LookupBinding("+speed")
+				if keyName then
+					sprintKey = keyName:upper()
+				end
 			end
+			if level > 1 then
+				return " twice", sprintKey
+			else
+				return "", sprintKey
+			end
+		end,
+		stackTick = function(state, current, time, ent)
+			return ent:IsPlayer() and ent:KeyDown(IN_SPEED) and 1 or 0, current
 		end,
 		img = "rally-the-troops",
 		pos = {0, 4},
@@ -1417,17 +1447,20 @@ local skills = {
 		name = "Blast-Proof Suit",
 		desc = "Move -25%% slower, but take -100%% self-explosion damage! \z
 		Explosive damage from other sources is reduced by %i%% instead. \z
-		Also, double tapping %s allows picking up props that are up to +%u%% heavier \z
+		Also, holding %s allows picking up props that are up to +%u%% heavier \z
 		than what could be picked up by hand.",
 		values = function(level)
-			local useKey = "the Use key"
+			local slowWalkKey = "the Slow Walk key"
 			if CLIENT then
-				local keyName = input.LookupBinding("+use")
+				local keyName = input.LookupBinding("+walk")
 				if keyName then
-					useKey = keyName:upper()
+					slowWalkKey = keyName:upper()
 				end
 			end
-			return level * -10, useKey, level * 200
+			return level * -10, slowWalkKey, level * 200
+		end,
+		stackTick = function(state, current, time, ent)
+			return ent:IsPlayer() and ent:KeyDown(IN_WALK) and 1 or 0, current
 		end,
 		img = "robot-golem",
 		pos = {-4, -4},
@@ -1456,7 +1489,8 @@ local skills = {
 	-- distance 9
 	hateful = {
 		name = "Hateful",
-		desc = "On crit, add +%u stack(s) of Hurtful Defence Down to the victim for 10 seconds, increasing damage taken by 1%% per stack!",
+		desc = "On crit, add +%u stack(s) of Hurtful Defence Down to the victim for 10 seconds, \z
+		increasing damage taken by 1%% per stack!",
 		values = function(level)
 			return level
 		end,
@@ -1466,14 +1500,16 @@ local skills = {
 	},
 	kill_aura = {
 		name = "Kill Aura",
-		desc = "On kill, enemies within %s take +%s BASE damage per second while %s is not held.",
+		desc = "On kill, gain %+u stack(s) of Kill Aura. Enemies within %s times the number of stacks \z
+		take %s BASE damage per second while %s is not held, \z
+		but stacks decay at a rate of %.1f/s plus an additional -0.1%%/s.",
 		values = function(level, ent)
 			local slowWalkKey = "the Slow Walk key"
-			local damage = level
-			local distance = 512
+			local damage = 5
+			local distance = 8
 
 			if CLIENT then
-				damage = InsaneStats:FormatNumber(level * InsaneStats:DetermineDamageMulPure(
+				damage = InsaneStats:FormatNumber(damage * InsaneStats:DetermineDamageMulPure(
 					ent, game.GetWorld()
 				))
 
@@ -1485,10 +1521,14 @@ local skills = {
 				distance = InsaneStats:FormatNumber(distance, {distance = true})
 			end
 
-			return distance, damage, slowWalkKey, level
+			return level * 2, distance, damage, slowWalkKey, level / -5
 		end,
 		stackTick = function(state, current, time, ent)
-			local nextStacks = math.max(current - time, 0)
+			local constantDecayRate = ent:InsaneStats_GetEffectiveSkillValues("kill_aura", 5)
+			local f1, f2 = -1000, .999
+			local offset = constantDecayRate * f1
+			local nextStacks = (current + offset) * f2 ^ time - offset
+			nextStacks = math.max(nextStacks, 0)
 
 			return ent:IsPlayer() and ent:KeyDown(IN_WALK) and -1
 			or nextStacks <= 0 and 0
@@ -1753,9 +1793,9 @@ local skills = {
 		desc = "Double all shock damage dealt and halve all shock damage taken! \z
 		All attacks have a +%u%% chance to deal shock damage against mobs, and deal +%u%% damage against non-mobs! \z
 		Also, the number of adjacent skill points required to unlock skills is reduced by %i, \z
-		and all kill skills are retriggered %s for each über skill point spent in total on the first kill after spawning!",
+		and the first kill after spawning retriggers all kill skills once for every %u skill points gained in total!",
 		values = function(level, ent)
-			return level * 25, level * 25, level * -5, level > 1 and "twice" or "once"
+			return level * 25, level * 25, level * -5, 30 - level * 10
 		end,
 		img = "winged-emblem",
 		pos = {5, 0},
@@ -1910,69 +1950,50 @@ local statusEffects = {
 		typ = 1,
 		img = "time-bomb"
 	},
-
-	skill_damage_up = {
-		name = "Damage Up",
-		typ = 1,
-		img = "pointy-sword"
+	kill_skill_triggerer = {
+		name = "Kill Skill Triggerer",
+		typ = -1,
+		img = "triple-skulls"
 	},
-	skill_crit_damage_up = {
+	crit_damage_up = {
 		name = "Critical Damage Up",
 		typ = 1,
 		img = "fast-arrow"
 	},
-	skill_firerate_up = {
-		name = "Fire Rate Up",
-		typ = 1,
-		img = "striking-arrows"
-	},
-	skill_accuracy_up = {
+	accuracy_up = {
 		name = "Accuracy Up",
 		typ = 1,
 		img = "on-target"
 	},
-
-	skill_defence_up = {
-		name = "Defence Up",
-		typ = 1,
-		img = "checked-shield"
-	},
-	skill_regen = {
-		name = "Regeneration",
-		typ = 1,
-		img = "heart-bottle"
-	},
-	skill_armor_regen = {
-		name = "Armor Regeneration",
-		typ = 1,
-		img = "bolt-shield"
-	},
-	skill_absorption = {
+	absorption = {
 		name = "Absorption",
 		typ = 1,
 		img = "rosa-shield"
 	},
-
-	skill_knockback_resistance_up = {
+	knockback_up = {
+		name = "Knockback Up",
+		typ = 1,
+		img = "boxing-glove-surprise"
+	},
+	knockback_resistance_up = {
 		name = "Knockback Resistance Up",
 		typ = 1,
 		img = "breastplate"
 	},
-
-	skill_xp_up = {
-		name = "Loot Up",
-		typ = 1,
-		img = "cool-spices"
-	},
-	skill_crit_xp_up = {
+	crit_xp_up = {
 		name = "Critical Loot Up",
 		typ = 1,
 		img = "william-tell-skull"
 	},
-	skill_ammo_efficiency_up = {
+	ammo_efficiency_up = {
 		name = "Ammo Efficiency Up",
 		typ = 1,
 		img = "crystal-bars"
+	},
+	ammo_stealer = {
+		name = "Ammo Stealer",
+		typ = 1,
+		img = "arrow-cluster"
 	},
 }
 

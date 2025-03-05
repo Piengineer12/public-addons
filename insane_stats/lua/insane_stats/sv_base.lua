@@ -231,8 +231,22 @@ hook.Add("AcceptInput", "InsaneStats", function(ent, input, activator, caller, v
 			end
 			SafeRemoveEntityDelayed(activator, 0)
 		end]]
-	elseif input == "deactivate" and class == "func_tank_combine_cannon" then
-		hook.Run("InsaneStatsEntityKilled", ent, activator, activator)
+	elseif (input == "deactivate" or input == "kill") and class == "func_tank_combine_cannon"
+	and IsValid(activator) then
+		-- find the npc_enemyfinder_combinecannon controlling it
+		local closest = NULL
+		local bestDistance = math.huge
+		local targetPos = ent:GetPos()
+		for i,v in ipairs(ents.FindByClass("npc_enemyfinder_combinecannon")) do
+			local distance = v:GetPos():DistToSqr(targetPos)
+			if distance < bestDistance then
+				closest = v
+				bestDistance = distance
+			end
+		end
+		if IsValid(closest) and bestDistance <= 4096 then
+			hook.Run("InsaneStatsEntityKilled", closest, activator, activator)
+		end
 	elseif input == "insanestats_onjoinedplayersquad" then
 		ent.insaneStats_CitizenFlags = bit.bor(ent.insaneStats_CitizenFlags or 0, 4)
 		ent:InsaneStats_MarkForUpdate(256)
@@ -258,6 +272,13 @@ hook.Add("AcceptInput", "InsaneStats", function(ent, input, activator, caller, v
 			})
 			ent.insaneStats_DisplayedInChat = true
 		end
+	elseif input == "showhudhint" and class == "env_hudhint" and InsaneStats:GetConVarValue("hudhint_tochat") then
+		table.insert(pendingGameTexts, {
+			order = 0,
+			t = ent.insaneStats_Text,
+			c = Color(255, 255, 0),
+			target = not ent:HasSpawnFlags(1) and activator:IsPlayer() and activator
+		})
 	elseif input == "disableflashlight" and ent:IsPlayer() then
 		ent.insaneStats_FlashlightDisabled = true
 	elseif input == "enableflashlight" and ent:IsPlayer() then
@@ -542,54 +563,9 @@ hook.Add("PlayerSwitchFlashlight", "InsaneStats", function(ply, newState)
 	end
 end)
 
-local function aliasHLSEnts(forced)
-	-- the class of entities can't really be changed in Lua
-	-- solution: register an extremely barebones entity with the sole purpose
-	-- of spawning the actual entity with the right keyvalues
-	for k,v in pairs(hlsAliases) do
-		if not scripted_ents.GetStored(k) or forced then
-			local entTable = {Type = "point", Base = "base_point"}
-			function entTable:KeyValue(k2,v2)
-				self.insaneStats_KVs = self.insaneStats_KVs or {}
-				if k2:lower() ~= "classname" then
-					table.insert(self.insaneStats_KVs, {k2, v2})
-				end
-				--[[self:AddOutputFromAcceptInput(k2,v2)
-
-				if k2:lower() == "ondeath" then
-					self.insaneStats_MustHandleDeath = true
-				end]]
-			end
-			function entTable:Initialize()
-				local actualEnt = ents.Create(v)
-				actualEnt:SetPos(self:GetPos())
-				for i,v2 in ipairs(self.insaneStats_KVs or {}) do
-					actualEnt:SetKeyValue(v2[1], v2[2])
-				end
-				actualEnt:Spawn()
-				actualEnt:Activate()
-				--[[if self.insaneStats_MustHandleDeath then
-					actualEnt.insaneStats_Handler = self
-				else]]
-					self:Remove()
-				--end
-			end
-			scripted_ents.Register(entTable, k)
-		end
-	end
-end
-
 hook.Add("Initialize", "InsaneStats", function()
 	currentSaveFile = InsaneStats:GetConVarValue("save_file")
-
-	if InsaneStats:GetConVarValue("gargantua_is_monster") then
-		aliasHLSEnts()
-	end
 end)
-
-if InsaneStats:GetConVarValue("gargantua_is_monster") and player.GetCount() > 0 then
-	aliasHLSEnts(true)
-end
 
 hook.Add("InitPostEntity", "InsaneStats", function()
 	if InsaneStats:GetConVarValue("transition_delay") then
@@ -611,7 +587,17 @@ end)
 hook.Add("PlayerSelectSpawn", "InsaneStats", function(ply, transition)
 	if InsaneStats:GetConVarValue("spawn_master") and not transition then
 		local developer = InsaneStats:IsDebugLevel(1)
-		local spawnPoints = ents.FindByClass("info_player_deathmatch")
+		local spawnPoints = ents.FindByClass("info_player_rebel")
+		for i, v in ipairs(spawnPoints) do
+			if hook.Run("IsSpawnpointSuitable", ply, v, true) then
+				if developer then
+					InsaneStats:Log("Spawning %s at %s!", tostring(ply), tostring(v))
+				end
+				return v
+			end
+		end
+
+		spawnPoints = ents.FindByClass("info_player_deathmatch")
 		for i, v in ipairs(spawnPoints) do
 			if hook.Run("IsSpawnpointSuitable", ply, v, true) then
 				if developer then

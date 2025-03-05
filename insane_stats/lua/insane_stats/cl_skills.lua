@@ -32,6 +32,7 @@ concommand.Add("insanestats_skills_reset", function()
 	net.SendToServer()
 end, nil, "If manual skill respecs are enabled, this ConCommand respecs all skills.")
 
+local color_dark_gray = InsaneStats:GetColor("dark_gray")
 local color_gray = InsaneStats:GetColor("gray")
 local color_yellow = InsaneStats:GetColor("yellow")
 local color_green = InsaneStats:GetColor("green")
@@ -133,7 +134,7 @@ local function CreateSkillButton(parent, skillName)
 			or tier == max and color_green
 			or tier > 0 and color_yellow
 			or enabled and color_white
-			or color_gray
+			or color_dark_gray
 		local icon = disabled and InsaneStats.DisabledInfo.img
 		or sealed and InsaneStats.SealedInfo.img
 		or skillInfo.img
@@ -153,7 +154,7 @@ local function CreateSkillButton(parent, skillName)
 			TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM
 		)
 		if not enabled then
-			local colorArg = 127 + self.insaneStats_Adjacent / ((skillInfo.minpts or 0) - 1) * 128
+			local colorArg = math.Remap(self.insaneStats_Adjacent, 0, (skillInfo.minpts or 0) - 1, 63, 255)
 			InsaneStats:DrawTextOutlined(
 				string.format("%i/%i", self.insaneStats_Adjacent, skillInfo.minpts or 0),
 				3,
@@ -586,7 +587,7 @@ hook.Add("HUDPaint", "InsaneStatsSkills", function()
 				local skillInfo = InsaneStats:GetSkillInfo(v)
 				local skillState = ply:InsaneStats_GetSkillState(v, true)
 				local skillStacks = ply:InsaneStats_GetSkillStacks(v, true)
-				local skillColor = skillState == 0 and color_white or skillState > 0 and color_aqua or color_gray
+				local skillColor = skillState == 0 and color_white or skillState > 0 and color_aqua or color_dark_gray
 
 				-- what row number is this skill in? (0-indexed)
 				local rowY = math.ceil(i / skillsPerRow) - 1
@@ -606,7 +607,10 @@ hook.Add("HUDPaint", "InsaneStatsSkills", function()
 					skillSize, skillSize, skillColor
 				)
 				if skillStacks ~= 0 then
-					local stackText = math.abs(skillStacks) >= 1000 and InsaneStats:FormatNumber(skillStacks) or string.format("%.1f", skillStacks)
+					-- this is to display 6 as 6.0
+					local stackText = math.abs(skillStacks) >= 1000
+					and InsaneStats:FormatNumber(skillStacks, {compress = true})
+					or string.format("%.1f", skillStacks)
 					InsaneStats:DrawTextOutlined(
 						stackText, 1,
 						anchorX + skillSize/2, anchorY, color_white,

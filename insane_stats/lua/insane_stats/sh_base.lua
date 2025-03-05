@@ -244,7 +244,87 @@ InsaneStats:RegisterConVar("gametext_tochat_once", "insanestats_gametext_tochat_
 	display = "Chat Only Once", desc = "Activated game_texts will only send their texts to chat once.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterConVar("hudhint_tochat", "insanestats_hudhint_tochat", "0", {
+	display = "env_hudhint To Chat", desc = "Activated env_hudhints will also send their texts to chat.",
+	type = InsaneStats.BOOL
+})
 InsaneStats:RegisterConVar("debug", "insanestats_debug", "0", {
 	display = "Debug Level", desc = "Causes Insane Stats to display messages used for debugging. Higher numbers cause more messages to be displayed.",
-	type = InsaneStats.INT, min = 0, max = 3
+	type = InsaneStats.INT, min = 0, max = 4
 })
+
+local hlsAliases = {
+	npc_gargantua = "monster_gargantua",
+	npc_alien_grunt = "monster_alien_grunt",
+	npc_houndeye = "monster_houndeye",
+	npc_bullsquid = "monster_bullchicken",
+}
+local function aliasHLSEnts(forced)
+	-- the class of entities can't really be changed in Lua
+	-- solution: register an extremely barebones entity with the sole purpose
+	-- of spawning the actual entity with the right keyvalues
+	for k,v in pairs(hlsAliases) do
+		if not scripted_ents.GetStored(k) or forced then
+			local entTable = {Type = "ai", Base = "base_ai"}
+			function entTable:KeyValue(k2,v2)
+				self.insaneStats_KVs = self.insaneStats_KVs or {}
+				if k2:lower() ~= "classname" then
+					table.insert(self.insaneStats_KVs, {k2, v2})
+				end
+				--[[self:AddOutputFromAcceptInput(k2,v2)
+
+				if k2:lower() == "ondeath" then
+					self.insaneStats_MustHandleDeath = true
+				end]]
+			end
+			function entTable:Initialize()
+				if SERVER then
+					if self:HasSpawnFlags(SF_NPC_TEMPLATE) then
+						self:SetNoDraw(true)
+						self:SetNotSolid(true)
+					else
+						local actualEnt = ents.Create(v)
+						actualEnt:SetPos(self:GetPos())
+						for i,v2 in ipairs(self.insaneStats_KVs or {}) do
+							actualEnt:SetKeyValue(v2[1], v2[2])
+						end
+						actualEnt:Spawn()
+						actualEnt:Activate()
+						self:Remove()
+					end
+				end
+			end
+			scripted_ents.Register(entTable, k)
+		end
+	end
+end
+
+hook.Add("Initialize", "InsaneStatsShared", function()
+	if InsaneStats:GetConVarValue("gargantua_is_monster") then
+		aliasHLSEnts()
+	end
+
+	if InsaneStats:GetConVarValue("hudhint_tochat") and not scripted_ents.GetStored("env_hudhint") then
+		local entTable = {Type = "point", Base = "base_point"}
+		function entTable:KeyValue(k,v)
+			if k:lower() == "message" then
+				self.insaneStats_Text = v
+			end
+		end
+		scripted_ents.Register(entTable, "env_hudhint")
+	end
+end)
+
+if InsaneStats:GetConVarValue("gargantua_is_monster") and player.GetCount() > 0 then
+	aliasHLSEnts(true)
+end
+
+if InsaneStats:GetConVarValue("hudhint_tochat") and player.GetCount() > 0 then
+	local entTable = {Type = "point", Base = "base_point"}
+	function entTable:KeyValue(k,v)
+		if k:lower() == "message" then
+			self.insaneStats_Text = v
+		end
+	end
+	scripted_ents.Register(entTable, "env_hudhint")
+end

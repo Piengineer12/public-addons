@@ -2,6 +2,7 @@
 
 local colors = {
 	black_translucent = Color(0, 0, 0, 239),
+	dark_gray = Color(63, 63, 63),
 	gray = Color(127, 127, 127),
 	gray_translucent = Color(127, 127, 127, 239),
 	light_gray = Color(191, 191, 191),
@@ -58,7 +59,7 @@ function InsaneStats:TransitionUINumber(a, b)
 	end
 end
 
-local order = {"M", "B", "T", "Q", "Qt", "Sx", "Sp", "Oc", "No", "De"--[[,
+local order = {[0]="K", "M", "B", "T", "Q", "Qt", "Sx", "Sp", "Oc", "No", "De"--[[,
 "Un", "Du", "Te", "Qtd", "Qid", "Sed", "Spd", "Ocd", "Nod", "Vig",
 "Unv", "Duv", "Tiv", "Qtv", "Qiv", "Sev", "Spv", "Ocv", "Nov"]]}
 -- 1 unit is 1 inch in playerscale, 0.75 inch in mapscale
@@ -67,9 +68,8 @@ function InsaneStats:FormatNumber(number, data)
 	data = data or {}
 	local plusStr = data.plus and number > 0 and "+" or ""
 	local decimalPlaces = data.decimals or 3
-	local decimalStr = string.format("%u", decimalPlaces)
 	
-	local numberStr = '?'
+	local numberStr = "?"
 	local suffixStr = ""
 	local distanceStr = ""
 
@@ -106,17 +106,29 @@ function InsaneStats:FormatNumber(number, data)
 	
 	local absNumber = math.abs(number)
 	if absNumber < 1e3 then
+		if data.compress then
+			decimalPlaces = math.min(2 - math.floor(math.log10(absNumber)), decimalPlaces)
+		end
+
 		numberStr = plusStr..string.Comma(math.Round(number, decimalPlaces))
-	elseif absNumber < (data.maximumBeforeShortening or 1e6) or InsaneStats:GetConVarValue("hud_never_simplify") then
+	elseif absNumber < (data.maximumBeforeShortening or 1e6) and not data.compress
+	or InsaneStats:GetConVarValue("hud_never_simplify") then
 		numberStr = plusStr..string.Comma(math.floor(number))
 	elseif absNumber < math.huge then
+		local decimalStr = "3"
+
 		local orderNeeded = math.floor(math.log10(absNumber)/3)-1
 		if order[orderNeeded] then
 			number = number / 1e3^(orderNeeded+1)
+
+			if data.compress then
+				decimalStr = string.format("%u", 2 - math.floor(math.log10(math.abs(number))))
+			end
 			
 			numberStr = string.format("%"..plusStr.."."..decimalStr.."f", number)
 			suffixStr = " "..order[orderNeeded]
 		else
+			decimalStr = data.compress and "2" or decimalStr
 			local expStr = bit.band(InsaneStats:GetConVarValue("hud_exponent_format"), 2) == 0 and "e" or "E"
 			local rawStr = string.format("%"..plusStr.."."..decimalStr..expStr, number)
 			numberStr, suffixStr = string.match(rawStr, "^(%A*)("..expStr..".*)$")
@@ -660,7 +672,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 				local y = InsaneStats:GetConVarValue("hud_ally_y") * scrH
 
 				InsaneStats:DrawTextOutlined(
-					"Allies:", 3, x, y,
+					"Squad Members:", 3, x, y,
 					color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
 				)
 				y = y + InsaneStats.FONT_BIG + outlineThickness

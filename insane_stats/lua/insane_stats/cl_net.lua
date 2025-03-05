@@ -264,8 +264,15 @@ net.Receive("insane_stats", function()
 			hook.Run("InsaneStatsWPASS2EntityMarked", entIndex, pos, class, health, maxHealth, armor, maxArmor)
 		end
 	elseif func == 5 then
-		local text = net.ReadString()
+		local text = language.GetPhrase(net.ReadString())
 		local color = net.ReadColor()
+
+		text = string.gsub(text, "%%([^%%]+)%%", function(bind)
+			local keyName = input.LookupBinding(bind)
+			if keyName then return "<"..keyName:upper()..">"
+			else return bind
+			end
+		end)
 		
 		chat.AddText(color, text)
 	elseif func == 6 then

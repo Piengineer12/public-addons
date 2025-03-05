@@ -455,8 +455,8 @@ hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 					--math.Round(math.abs(entityDamageInfo.damage), )
 					text = string.format(
 						"Total Damage: %s (%s/s)",
-						InsaneStats:FormatNumber(math.Round(slowDamage, decimals)),
-						InsaneStats:FormatNumber(math.Round(slowDPS, decimals), {plus = true})
+						InsaneStats:FormatNumber(slowDamage, {decimals = decimals}),
+						InsaneStats:FormatNumber(slowDPS, {decimals = decimals, plus = true})
 					)
 				else
 					text = string.format(
@@ -503,8 +503,8 @@ hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 				
 				local text = string.format(
 					"%s / %s",
-					InsaneStats:FormatNumber(math.Round(slowArmor, decimals)),
-					InsaneStats:FormatNumber(math.Round(maxArmor, decimals))
+					InsaneStats:FormatNumber(slowArmor, {decimals = decimals}),
+					InsaneStats:FormatNumber(maxArmor, {decimals = decimals})
 				)
 				local offsetX, offsetY = InsaneStats:DrawTextOutlined(
 					"Shield", 2, baseX, baseY - barH - outlineThickness,
@@ -547,8 +547,8 @@ hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 			
 			local text = string.format(
 				"%s / %s",
-				InsaneStats:FormatNumber(math.Round(slowHealth, decimals)),
-				InsaneStats:FormatNumber(math.Round(maxHealth, decimals))
+				InsaneStats:FormatNumber(slowHealth, {decimals = decimals}),
+				InsaneStats:FormatNumber(maxHealth, {decimals = decimals})
 			)
 			InsaneStats:DrawTextOutlined(
 				"Health", 2, baseX, baseY - barH - outlineThickness,

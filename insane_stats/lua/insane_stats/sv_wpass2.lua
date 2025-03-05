@@ -1015,6 +1015,9 @@ function ENTITY:InsaneStats_IsValidAlly(ent)
 	
 	-- poll Disposition to figure out if ent is an ally
 	if (ent.Disposition and ent:Disposition(self) == D_LI) then return true end
+
+	-- if it's a citizen, neutrals count as allies as well
+	if (ent:GetClass() == "npc_citizen" and ent:Disposition(self) == D_NU) then return true end
 	
 	-- poll GetRelationship
 	if (ent.GetRelationship and ent:GetRelationship(self) == D_LI) then return true end

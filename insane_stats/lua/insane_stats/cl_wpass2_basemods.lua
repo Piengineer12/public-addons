@@ -174,12 +174,18 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 					local pos = v:WorldSpaceCenter()
 					local viewData = pos:ToScreen()
 					if viewData.visible then
+						local progress = v:GetNW2Float("insanestats_progress")
+						local detonateTime = v:GetNW2Float("insanestats_detonatetime")
+						if detonateTime > 0 then
+							local totalTime = v:GetClass() == "grenade_helicopter" and 5 or 2
+							progress = math.Remap(CurTime(), detonateTime - totalTime, detonateTime, 0, 1)
+						end
 						table.insert(toDraw, {
 							icon = icon,
 							x = viewData.x,
 							y = viewData.y,
 							dist = pos:Distance(eyePos),
-							progress = v:GetNW2Float("insanestats_progress")
+							progress = progress
 						})
 					end
 				end
@@ -255,9 +261,9 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 				local indicator = v.indicator
 				surface.SetAlphaMultiplier(alpha)
 				if indicator == 3 then
-					surface.DrawCircle(toScreenData.x, toScreenData.y, InsaneStats.FONT_SMALL, 0, 255, 0)
-				elseif indicator == 2 then
 					surface.DrawCircle(toScreenData.x, toScreenData.y, InsaneStats.FONT_SMALL, 0, 255, 255)
+				elseif indicator == 2 then
+					surface.DrawCircle(toScreenData.x, toScreenData.y, InsaneStats.FONT_SMALL, 0, 255, 0)
 				elseif indicator == 1 then
 					surface.DrawCircle(toScreenData.x, toScreenData.y, InsaneStats.FONT_SMALL, 255, 0, 255)
 				end
@@ -269,8 +275,8 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 				InsaneStats:DrawTextOutlined(
 					language.GetPhrase(v.class), 1,
 					textPosX, textPosY,
-					indicator == 3 and color_green
-					or indicator == 2 and color_aqua
+					indicator == 3 and color_aqua
+					or indicator == 2 and color_green
 					or indicator == 1 and color_magenta,
 					TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP
 				)

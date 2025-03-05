@@ -198,11 +198,6 @@ hook.Add("AddToolMenuCategories", "InsaneStatsOptions", function()
 	spawnmenu.AddToolCategory("InsaneStats", "Server", "Server")
 end)
 
-hook.Add("AddToolMenuCategories", "InsaneStatsOptions", function()
-	spawnmenu.AddToolCategory("InsaneStats", "Client", "Client")
-	spawnmenu.AddToolCategory("InsaneStats", "Server", "Server")
-end)
-
 hook.Add("PopulateToolMenu", "InsaneStatsOptions", function()
 	local items = InsaneStats:ConstructToolMenuOptionTables()
 	for k,v in pairs(items) do
@@ -269,7 +264,7 @@ hook.Add("InsaneStats_CCVCCMRun", "InsaneStatsOptions", function()
 					})
 				end
 			elseif k == "Client" then
-				if k2 == "Miscellaneous" then
+				if k2 == "Weapon Selector" then
 					CCVCCM:AddAddonVar("wepsel_slots", {
 						realm = "client",
 						name = "Weapon Selector Weapon Slots",

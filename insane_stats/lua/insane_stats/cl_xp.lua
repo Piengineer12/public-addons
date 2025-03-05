@@ -526,10 +526,10 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 							
 							local smallText
 							if statusEffectData.level ~= 1 then
-								smallText = InsaneStats:FormatNumber(statusEffectData.level, {decimals = 0})
+								smallText = InsaneStats:FormatNumber(statusEffectData.level, {compress = true, decimals = 0})
 							elseif statusEffectData.expiry < math.huge then
 								local duration = math.ceil(statusEffectData.expiry - curTime)
-								smallText = InsaneStats:FormatNumber(duration, {decimals = 0}).."s"
+								smallText = InsaneStats:FormatNumber(duration, {compress = true, decimals = 0}).."s"
 							end
 
 							if smallText then
