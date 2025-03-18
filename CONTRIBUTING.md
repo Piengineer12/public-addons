@@ -18,6 +18,8 @@ If you want to make your edits part of my addon, you can make a pull request.
 However, I will take a lot of time to examine whether your code is efficient, robust and clear enough, as well as checking for any kinds of backdoors, adverts and the like,
 so please be patient as it may take up to one month for me to respond to your pull request.
 
+**Important: Some addons are written in MoonScript (.moon files) rather than Lua directly. If .moon and .lua files appear side-by-side, you must add your changes to the .moon file and not the .lua file.**
+
 ## 3. Donating and Spreading the Word
 You can donate to me via [Ko-Fi](https://ko-fi.com/piengineer12). Please note that for now there are no exclusive rewards for donating.
 (If you have a suggestion for a reward, feel free to comment!)

@@ -6,8 +6,8 @@ LUA_PATCHER = LUA_PATCHER or {
   extra_info = "Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 format.",
   unpatched = { }
 }
-LUA_PATCHER.VERSION = "3.0.2"
-LUA_PATCHER.VERSION_DATE = "2025-02-20"
+LUA_PATCHER.VERSION = "3.0.3"
+LUA_PATCHER.VERSION_DATE = "2025-03-18"
 local Log, LogError
 if gmod then
   local next_report_time = 0
@@ -352,9 +352,12 @@ PatchLibraries = function()
       end
     end,
     WriteString = function(str, ...)
-      if not (str) then
+      if not str then
         str = ""
         LogError("Some code attempted to call net.WriteString without providing a string.")
+      elseif isentity(str) then
+        str = tostring(str)
+        LogError("Some code attempted to call net.WriteString with an entity.")
       end
       return LUA_PATCHER.unpatched.net.WriteString(str, ...)
     end
@@ -642,11 +645,11 @@ PatchClasses = function()
   })
   local new_entity_metatable = {
     GetClass = function(self, ...)
-      if IsValid(self) then
+      if "[NULL Entity]" ~= tostring(self) then
         return LUA_PATCHER.unpatched.ENTITY.GetClass(self, ...)
       else
         LogError("Some code attempted to get the class of a NULL entity.")
-        return tostring(self)
+        return "[NULL Entity]"
       end
     end,
     SetPos = function(self, ...)
@@ -770,6 +773,13 @@ PatchClasses = function()
         end
         return LUA_PATCHER.unpatched.ENTITY.SetColor(self, useCol, ...)
       end
+    end,
+    SetSkin = function(self, skin, ...)
+      if not (skin) then
+        skin = 0
+        LogError("Some code attempted to set the skin of an entity with a non-number value.")
+      end
+      return LUA_PATCHER.unpatched.ENTITY.SetSkin(self, skin, ...)
     end,
     EmitSound = function(self, soundName, ...)
       if isstring(soundName) then

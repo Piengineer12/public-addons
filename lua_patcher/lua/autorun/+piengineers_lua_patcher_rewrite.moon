@@ -8,8 +8,8 @@ LUA_PATCHER or= {
     unpatched: {}
 }
 
-LUA_PATCHER.VERSION = "3.0.2"
-LUA_PATCHER.VERSION_DATE = "2025-02-20"
+LUA_PATCHER.VERSION = "3.0.3"
+LUA_PATCHER.VERSION_DATE = "2025-03-18"
 
 local Log, LogError
 
@@ -290,10 +290,14 @@ PatchLibraries = ->
 			else
 				LogError "Caught a net.Start error: %s", retValues[2]
 				LUA_PATCHER.unpatched.net.Start "lua_patcher"
+        
         WriteString: (str, ...) ->
-			unless str
+			if not str
                 str = ""
 				LogError "Some code attempted to call net.WriteString without providing a string."
+            elseif isentity str
+                str = tostring str
+				LogError "Some code attempted to call net.WriteString with an entity."
 			LUA_PATCHER.unpatched.net.WriteString str, ...
     }
 
@@ -439,11 +443,11 @@ PatchClasses = ->
 
     new_entity_metatable = {
         GetClass: (...) =>
-			if IsValid @
+			if "[NULL Entity]" ~= tostring @
                 LUA_PATCHER.unpatched.ENTITY.GetClass @, ...
 			else
 				LogError "Some code attempted to get the class of a NULL entity."
-				tostring @
+				"[NULL Entity]"
         SetPos: (...) =>
 			if IsValid @
                 LUA_PATCHER.unpatched.ENTITY.SetPos @, ...
@@ -520,7 +524,7 @@ PatchClasses = ->
 			unless bodygroups
 				LogError "Some code attempted to call Entity:SetBodyGroups() without valid string."
 			LUA_PATCHER.unpatched.ENTITY.SetBodyGroups @, bodygroups or "", ...
-        SetColor: (col, ...)=>
+        SetColor: (col, ...) =>
 			if not IsValid @
 				LogError "Some code attempted to set the color of a NULL entity."
 			elseif not istable col
@@ -536,6 +540,11 @@ PatchClasses = ->
                         tonumber(col.a) or 255
                     )
 				LUA_PATCHER.unpatched.ENTITY.SetColor @, useCol, ...
+        SetSkin: (skin, ...) =>
+            unless skin
+                skin = 0
+				LogError "Some code attempted to set the skin of an entity with a non-number value."
+			LUA_PATCHER.unpatched.ENTITY.SetSkin @, skin, ...
         EmitSound: (soundName, ...) =>
 			if isstring soundName
 				LUA_PATCHER.unpatched.ENTITY.EmitSound @, soundName, ...
