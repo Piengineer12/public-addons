@@ -6,7 +6,7 @@ LUA_PATCHER = LUA_PATCHER or {
   extra_info = "Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 format.",
   unpatched = { }
 }
-LUA_PATCHER.VERSION = "3.0.4"
+LUA_PATCHER.VERSION = "3.0.6-rc.1"
 LUA_PATCHER.VERSION_DATE = "2025-03-19"
 local Log, LogError
 if gmod then
@@ -645,84 +645,84 @@ PatchClasses = function()
   })
   local new_entity_metatable = {
     GetClass = function(self, ...)
-      if "[NULL Entity]" ~= tostring(self) then
-        return LUA_PATCHER.unpatched.ENTITY.GetClass(self, ...)
-      else
+      if "[NULL Entity]" == tostring(self) then
         LogError("Some code attempted to get the class of a NULL entity.")
         return "[NULL Entity]"
+      else
+        return LUA_PATCHER.unpatched.ENTITY.GetClass(self, ...)
       end
     end,
     SetPos = function(self, ...)
-      if "[NULL Entity]" ~= tostring(self) then
-        return LUA_PATCHER.unpatched.ENTITY.SetPos(self, ...)
-      else
+      if "[NULL Entity]" == tostring(self) then
         return LogError("Some code attempted to set the position of a NULL entity.")
+      else
+        return LUA_PATCHER.unpatched.ENTITY.SetPos(self, ...)
       end
     end,
     GetPos = function(self, ...)
-      if "[NULL Entity]" ~= tostring(self) then
-        return LUA_PATCHER.unpatched.ENTITY.GetPos(self, ...)
-      else
+      if "[NULL Entity]" == tostring(self) then
         LogError("Some code attempted to get the position of a NULL entity.")
         return vector_origin
+      else
+        return LUA_PATCHER.unpatched.ENTITY.GetPos(self, ...)
       end
     end,
     SetAngles = function(self, ...)
-      if "[NULL Entity]" ~= tostring(self) then
-        return LUA_PATCHER.unpatched.ENTITY.SetAngles(self, ...)
-      else
+      if "[NULL Entity]" == tostring(self) then
         return LogError("Some code attempted to set the angles of a NULL entity.")
+      else
+        return LUA_PATCHER.unpatched.ENTITY.SetAngles(self, ...)
       end
     end,
     LookupAttachment = function(self, ...)
-      if "[NULL Entity]" ~= tostring(self) then
-        return LUA_PATCHER.unpatched.ENTITY.LookupAttachment(self, ...)
-      else
+      if "[NULL Entity]" == tostring(self) then
         LogError("Some code attempted to lookup an attachment of a NULL entity.")
         return -1
+      else
+        return LUA_PATCHER.unpatched.ENTITY.LookupAttachment(self, ...)
       end
     end,
     SetColor4Part = function(self, ...)
-      if "[NULL Entity]" ~= tostring(self) then
-        return LUA_PATCHER.unpatched.ENTITY.SetColor4Part(self, ...)
-      else
+      if "[NULL Entity]" == tostring(self) then
         return LogError("Some code attempted to set the color of a NULL entity.")
+      else
+        return LUA_PATCHER.unpatched.ENTITY.SetColor4Part(self, ...)
       end
     end,
     GetBoneCount = function(self, ...)
-      if "[NULL Entity]" ~= tostring(self) then
-        return LUA_PATCHER.unpatched.ENTITY.GetBoneCount(self, ...)
-      else
+      if "[NULL Entity]" == tostring(self) then
         LogError("Some code attempted to get the number of bones of a NULL entity.")
         return 0
+      else
+        return LUA_PATCHER.unpatched.ENTITY.GetBoneCount(self, ...)
       end
     end,
     Spawn = function(self, ...)
-      if "[NULL Entity]" ~= tostring(self) then
-        return LUA_PATCHER.unpatched.ENTITY.Spawn(self, ...)
-      else
+      if "[NULL Entity]" == tostring(self) then
         return LogError("Some code attempted to spawn a NULL entity.")
+      else
+        return LUA_PATCHER.unpatched.ENTITY.Spawn(self, ...)
       end
     end,
     Activate = function(self, ...)
-      if "[NULL Entity]" ~= tostring(self) then
-        return LUA_PATCHER.unpatched.ENTITY.Activate(self, ...)
-      else
+      if "[NULL Entity]" == tostring(self) then
         return LogError("Some code attempted to activate a NULL entity.")
+      else
+        return LUA_PATCHER.unpatched.ENTITY.Activate(self, ...)
       end
     end,
     Remove = function(self, ...)
-      if "[NULL Entity]" ~= tostring(self) then
-        return LUA_PATCHER.unpatched.ENTITY.Remove(self, ...)
-      else
+      if "[NULL Entity]" == tostring(self) then
         return LogError("Some code attempted to remove a NULL entity.")
+      else
+        return LUA_PATCHER.unpatched.ENTITY.Remove(self, ...)
       end
     end,
     GetPhysicsObject = function(self, ...)
-      if "[NULL Entity]" ~= tostring(self) then
-        return LUA_PATCHER.unpatched.ENTITY.GetPhysicsObject(self, ...)
-      else
+      if "[NULL Entity]" == tostring(self) then
         return LogError("Some code attempted to get the physics object of a NULL entity.")
+      else
+        return LUA_PATCHER.unpatched.ENTITY.GetPhysicsObject(self, ...)
       end
     end,
     GetBonePosition = function(self, boneIndex, ...)
@@ -732,7 +732,7 @@ PatchClasses = function()
       return LUA_PATCHER.unpatched.ENTITY.GetBonePosition(self, boneIndex or 0, ...)
     end,
     LookupBone = function(self, name, ...)
-      if not ("[NULL Entity]" ~= tostring(self)) then
+      if "[NULL Entity]" == tostring(self) then
         LogError("Some code attempted to lookup a bone of a NULL entity.")
         return -1
       end
@@ -751,7 +751,7 @@ PatchClasses = function()
       end
     end,
     SetPhysicsAttacker = function(self, attacker, ...)
-      if not ("[NULL Entity]" ~= tostring(self)) then
+      if "[NULL Entity]" == tostring(self) then
         return LogError("Some code attempted to set the physics attacker of a NULL entity.")
       elseif attacker:IsPlayer() then
         if LUA_PATCHER.unpatched.ENTITY.SetPhysicsAttacker then
@@ -768,7 +768,7 @@ PatchClasses = function()
       return LUA_PATCHER.unpatched.ENTITY.SetBodyGroups(self, bodygroups or "", ...)
     end,
     SetColor = function(self, col, ...)
-      if not "[NULL Entity]" ~= tostring(self) then
+      if "[NULL Entity]" == tostring(self) then
         return LogError("Some code attempted to set the color of a NULL entity.")
       elseif not istable(col) then
         return LogError("Some code attempted to set the color of an entity with a non-table value.")
@@ -818,10 +818,10 @@ PatchClasses = function()
       end
     end,
     SetAnimation = function(self, ...)
-      if "[NULL Entity]" ~= tostring(self) then
-        return LUA_PATCHER.unpatched.ENTITY.SetAnimation(self, ...)
-      else
+      if "[NULL Entity]" == tostring(self) then
         return LogError("Some code attempted to set the animation of a NULL entity.")
+      else
+        return LUA_PATCHER.unpatched.ENTITY.SetAnimation(self, ...)
       end
     end
   }
@@ -836,19 +836,19 @@ PatchClasses = function()
   for k, v in pairs(nw_override_table) do
     local set_func_name = "SetNW" .. k
     new_entity_metatable[set_func_name] = function(self, ...)
-      if "[NULL Entity]" ~= tostring(self) then
-        return LUA_PATCHER.unpatched.ENTITY[set_func_name](self, ...)
-      else
+      if "[NULL Entity]" == tostring(self) then
         return LogError("Some code attempted to call " .. tostring(set_func_name) .. " on a NULL entity.")
+      else
+        return LUA_PATCHER.unpatched.ENTITY[set_func_name](self, ...)
       end
     end
     local get_func_name = "GetNW" .. k
     new_entity_metatable[get_func_name] = function(self, ...)
-      if "[NULL Entity]" ~= tostring(self) then
-        return LUA_PATCHER.unpatched.ENTITY[get_func_name](self, ...)
-      else
+      if "[NULL Entity]" == tostring(self) then
         LogError("Some code attempted to call " .. tostring(get_func_name) .. " on a NULL entity.")
         return v
+      else
+        return LUA_PATCHER.unpatched.ENTITY[get_func_name](self, ...)
       end
     end
   end
@@ -961,14 +961,14 @@ PatchClasses = function()
   local CTAKEDAMAGEINFO = FindMetaTable("CTakeDamageInfo")
   OverwriteTable("CTAKEDAMAGEINFO", CTAKEDAMAGEINFO, {
     SetAttacker = function(self, attacker, ...)
-      if not ("[NULL Entity]" ~= tostring(attacker)) then
+      if "[NULL Entity]" == tostring(attacker) then
         LogError("Some code attempted to call CTakeDamageInfo:SetAttacker() with NULL attacker.")
         attacker = game.GetWorld()
       end
       return LUA_PATCHER.unpatched.CTAKEDAMAGEINFO.SetAttacker(self, attacker, ...)
     end,
     SetInflictor = function(self, inflictor, ...)
-      if not ("[NULL Entity]" ~= tostring(inflictor)) then
+      if "[NULL Entity]" == tostring(inflictor) then
         LogError("Some code attempted to call CTakeDamageInfo:SetInflictor() with NULL inflictor.")
         inflictor = game.GetWorld()
       end
