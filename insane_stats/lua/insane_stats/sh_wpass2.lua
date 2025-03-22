@@ -163,7 +163,7 @@ InsaneStats:RegisterConVar("wpass2_tier_upchance_battery", "insanestats_wpass2_t
 	display = "Battery Tier Up Chance", desc = "If 0 or above, overrides insanestats_wpass2_tier_upchance for armor batteries.",
 	type = InsaneStats.FLOAT, min = -1, max = 100
 })
-InsaneStats:RegisterConVar("wpass2_tier_downchance", "insanestats_wpass2_tier_downchance", "37.5", {
+InsaneStats:RegisterConVar("wpass2_tier_downchance", "insanestats_wpass2_tier_downchance", "25", {
 	display = "Tier Down Chance", desc = "% chance for a weapon / armor battery to have its tier decreased by 1. This is rolled for continuously until the roll fails.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
@@ -220,7 +220,7 @@ InsaneStats:RegisterConVar("wpass2_tier_xp_level_add_mode", "insanestats_wpass2_
 
 InsaneStats:SetDefaultConVarCategory("WPASS2 - Chances")
 
-InsaneStats:RegisterConVar("wpass2_chance_unowned", "insanestats_wpass2_chance_unowned", "25", {
+InsaneStats:RegisterConVar("wpass2_chance_unowned", "insanestats_wpass2_chance_unowned", "100", {
 	display = "Unowned Chance", desc = "Chance for an unowned weapon / armor battery to be above tier 0, creating at least a tier 1 weapon / armor battery. \z
 		Note that Sprint needs to be held in order for weapons / armor batteries above tier 0 to be picked up normally.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
@@ -644,7 +644,6 @@ end)]]
 local registeredEffects, modifiers, attributes = {}, {}, {}
 local effectNamesToIDs = {}
 local effectIDsToNames = {}
-local applyEffects = {}
 local expiryEffects = {}
 local entitiesByStatusEffect = {} -- used for optimization purposes
 local function MapStatusEffectNamesToIDs()
@@ -653,7 +652,6 @@ local function MapStatusEffectNamesToIDs()
 	
 	for k,v in SortedPairs(registeredEffects) do
 		effectNamesToIDs[k] = table.insert(effectIDsToNames, k)
-		applyEffects[k] = v.apply
 		expiryEffects[k] = v.expiry
 	end
 	
@@ -740,13 +738,13 @@ function InsaneStats:DetermineWPASS2Attributes(currentModifiers)
 	
 	for k,v in pairs(wepAttributes) do
 		local startValue = attributes[k].start or 1
+		local mulValue = attributes[k].mul or 1
 		if attributes[k].mode == 2 then
-			v = 2 - v
+			v = 1 - mulValue * (v - 1)
 		elseif attributes[k].mode == 4 then
-			local mulValue = attributes[k].mul or 1
 			v = mulValue * (v - 1)
 		else
-			local mulValue = attributes[k].mul or 1
+			-- v = log(1 - 1 / mul) / log(base)
 			v = mulValue * (v - 1) + 1
 		end
 
@@ -1064,9 +1062,15 @@ function ENTITY:InsaneStats_ApplyStatusEffect(id, level, duration, data)
 	end
 	
 	if SERVER and changeOccured then
+		local effectData = registeredEffects[id] or {}
 		effectTable = self.insaneStats_StatusEffects[id]
-		if applyEffects[id] and effectTable then
-			applyEffects[id](self, effectTable.level or 0, effectTable.duration or 0, effectTable.attacker)
+		if effectTable then
+			if effectData.apply then
+				effectData.apply(self, effectTable.level or 0, effectTable.duration or 0, effectTable.attacker)
+			end
+			if effectData.overtime then
+				self:InsaneStats_ApplyDoT(id)
+			end
 		end
 		self.insaneStats_StatusEffectsToNetwork[id] = true
 		self:InsaneStats_MarkForUpdate(16)

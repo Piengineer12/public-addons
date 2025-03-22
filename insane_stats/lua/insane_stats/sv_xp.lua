@@ -193,42 +193,39 @@ function ENT:InsaneStats_ApplyLevel(level)
 	if InsaneStats:GetConVarValue("xp_enabled") and (self:GetModel() or "") ~= "" then
 		local isPlayer = self:IsPlayer()
 		
-		local currentHealthFrac = (self:InsaneStats_GetMaxHealth() <= 0
+		--[[local currentHealthFrac = (self:InsaneStats_GetMaxHealth() <= 0
 			or self:InsaneStats_GetHealth() == math.huge) and 1
-			or self:InsaneStats_GetHealth() / self:InsaneStats_GetMaxHealth()
+			or self:InsaneStats_GetHealth() / self:InsaneStats_GetMaxHealth()]]
+		local currentHealthFrac = self:InsaneStats_GetHealth() / self:InsaneStats_GetMaxHealth()
 		local currentHealthAdd = self:InsaneStats_GetCurrentHealthAdd()
 		local startingHealth = self:InsaneStats_GetMaxHealth() / currentHealthAdd
 		--print(self:InsaneStats_GetMaxHealth(), currentHealthAdd)
 		local newHealth
 		if isPlayer then
-			newHealth = math.floor(InsaneStats:ScaleValueToLevelQuadratic(
+			newHealth = math.floor(InsaneStats:ScaleValueToLevel(
 				startingHealth,
 				InsaneStats:GetConVarValue("xp_player_health")/100,
 				level,
-				"xp_player_health_mode",
-				false,
-				InsaneStats:GetConVarValue("xp_player_health_add")/100
+				"xp_player_health_mode"
 			))
 		else
-			newHealth = math.floor(InsaneStats:ScaleValueToLevelQuadratic(
+			newHealth = math.floor(InsaneStats:ScaleValueToLevel(
 				startingHealth,
 				InsaneStats:GetConVarValue("xp_other_health")/100,
 				level,
-				"xp_other_health_mode",
-				false,
-				InsaneStats:GetConVarValue("xp_other_health_add")/100
+				"xp_other_health_mode"
 			))
 		end
-		if newHealth == math.huge then
-			currentHealthFrac = 1
-		elseif not (newHealth >= -math.huge) then
+		if not (newHealth >= -math.huge) then
 			print(
 				self:InsaneStats_GetMaxHealth(), currentHealthAdd, InsaneStats:GetConVarValue("xp_other_health")/100,
 				level, false, InsaneStats:GetConVarValue("xp_other_health_add")/100
 			)
 		end
 		self:SetMaxHealth(newHealth)
-		self:SetHealth(currentHealthFrac * newHealth)
+		if math.abs(currentHealthFrac) < math.huge then
+			self:SetHealth(currentHealthFrac * newHealth)
+		end
 		if newHealth == math.huge or startingHealth == 0 then
 			self:InsaneStats_SetCurrentHealthAdd(1)
 		else
@@ -242,25 +239,13 @@ function ENT:InsaneStats_ApplyLevel(level)
 			local currentArmorAdd = self:InsaneStats_GetCurrentArmorAdd()
 			local startingArmor = self:InsaneStats_GetMaxArmor() / currentArmorAdd
 			local newArmor
-			if isPlayer then
-				newArmor = math.floor(InsaneStats:ScaleValueToLevelQuadratic(
-					startingArmor,
-					InsaneStats:GetConVarValue("xp_player_armor")/100,
-					level,
-					"xp_player_armor_mode",
-					false,
-					InsaneStats:GetConVarValue("xp_player_armor_add")/100
-				))
-			else
-				newArmor = math.floor(InsaneStats:ScaleValueToLevelQuadratic(
-					startingArmor,
-					InsaneStats:GetConVarValue("xp_other_armor")/100,
-					level,
-					"xp_other_armor_mode",
-					false,
-					InsaneStats:GetConVarValue("xp_other_armor_add")/100
-				))
-			end
+			local scaleType = isPlayer and "player" or "other"
+			newArmor = math.floor(InsaneStats:ScaleValueToLevel(
+				startingArmor,
+				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
+				level,
+				"xp_"..scaleType.."_armor_mode"
+			))
 			if newArmor == math.huge then
 				currentArmorFrac = 1
 			elseif not (newArmor >= -math.huge) then
@@ -276,6 +261,10 @@ function ENT:InsaneStats_ApplyLevel(level)
 			else
 				self:InsaneStats_SetCurrentArmorAdd(newArmor / startingArmor)
 			end
+		end
+
+		if InsaneStats:IsDebugLevel(3) then
+			InsaneStats:Log("%s level updated, health = %g, max health = %g", tostring(self), self:Health(), self:GetMaxHealth())
 		end
 		
 		hook.Run("InsaneStatsApplyLevel", self, level)
@@ -315,13 +304,11 @@ end
 local savedPlayerXP = {}
 
 hook.Add("InsaneStatsScaleXP", "InsaneStatsXP", function(data)
-	data.xp = InsaneStats:ScaleValueToLevelQuadratic(
+	data.xp = InsaneStats:ScaleValueToLevel(
 		data.xp,
 		InsaneStats:GetConVarValue("xp_drop_add")/100,
 		data.victim:InsaneStats_GetLevel(),
-		"xp_drop_add_mode",
-		false,
-		InsaneStats:GetConVarValue("xp_drop_add_add")/100
+		"xp_drop_add_mode"
 	) + data.victim:InsaneStats_GetDropXP()
 
 	local attacker = data.attacker
@@ -366,10 +353,13 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 				local xpMul = InsaneStats:GetConVarValue(victim:IsPlayer() and "xp_player_mul" or "xp_other_mul")
 				local currentHealthAdd = victim:InsaneStats_GetCurrentHealthAdd()
 				local startingHealth = victim:InsaneStats_GetMaxHealth() / currentHealthAdd
-				local startXPToGive = victim.insaneStats_IsDead and 0 or startingHealth * xpMul / 5
+				local currentArmorAdd = victim:InsaneStats_GetCurrentArmorAdd()
+				local startingArmor = victim:InsaneStats_GetMaxArmor() / currentArmorAdd
+				local startXPToGive = victim.insaneStats_IsDead and 0
+				or (startingHealth + startingArmor) * xpMul / 5
 				
 				if InsaneStats:IsDebugLevel(2) then
-					InsaneStats:Log("%s should drop %g XP", tostring(victim), startXPToGive)
+					InsaneStats:Log("%s should drop %g base XP", tostring(victim), startXPToGive)
 					if victim.insaneStats_IsDead then
 						InsaneStats:Log("because the victim was dead before")
 					end
@@ -489,11 +479,6 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 		end
 	end
 end
-
-local needCorrectiveDeathClasses = {
-	npc_combine_camera=true,
-	npc_turret_ceiling=true,
-}
 
 hook.Add("InsaneStatsEntityKilled", "InsaneStatsXP", function(victim, attacker, inflictor)
 	ProcessKillEvent(victim, attacker, inflictor)
@@ -666,8 +651,16 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsXP", function(ent)
 		if shouldXP then
 			ent:InsaneStats_SetXP(shouldXP)
 			ent:InsaneStats_SetIsAlpha(isAlpha)
+
+			if InsaneStats:IsDebugLevel(3) then
+				InsaneStats:Log("%s should spawn with %g XP", tostring(ent), shouldXP)
+			end
 		else
 			table.insert(toUpdateLevelEntities, ent)
+			
+			if InsaneStats:IsDebugLevel(3) then
+				InsaneStats:Log("Could not determine XP for %s", tostring(ent))
+			end
 		end
 	end
 end)

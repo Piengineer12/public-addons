@@ -16,7 +16,7 @@ InsaneStats:RegisterClientConVar("hud_xp_y", "insanestats_hud_xp_y", "0.98", {
 	display = "XP Bar Y", desc = "Vertical position of XP bar.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
-InsaneStats:RegisterClientConVar("hud_xp_w", "insanestats_hud_xp_w", "24", {
+InsaneStats:RegisterClientConVar("hud_xp_w", "insanestats_hud_xp_w", "20", {
 	display = "XP Bar Width", desc = "Width of XP bar.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
@@ -45,7 +45,7 @@ InsaneStats:RegisterClientConVar("hud_target_y", "insanestats_hud_target_y", "0.
 	display = "Target Info Y", desc = "Vertical position of target info.",
 	type = InsaneStats.FLOAT, min = 0, max = 1
 })
-InsaneStats:RegisterClientConVar("hud_target_w", "insanestats_hud_target_w", "16", {
+InsaneStats:RegisterClientConVar("hud_target_w", "insanestats_hud_target_w", "12", {
 	display = "Target Info Bar Width", desc = "Width of target info bars.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
@@ -347,13 +347,11 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 					local nameColor = lookEntityInfo.teamColor
 					
 					-- health bar + name widths
-					local ourAttack = InsaneStats:GetConVarValue("xp_enabled") and InsaneStats:ScaleValueToLevelQuadratic(
+					local ourAttack = InsaneStats:GetConVarValue("xp_enabled") and InsaneStats:ScaleValueToLevel(
 						250,
 						InsaneStats:GetConVarValue("xp_player_damage")/100,
 						level,
-						"xp_player_damage_mode",
-						false,
-						InsaneStats:GetConVarValue("xp_player_damage_add")/100
+						"xp_player_damage_mode"
 					) or 250
 					local barH = fontHeight * InsaneStats:GetConVarValue("hud_target_h")
 					local maxBarW = fontHeight * InsaneStats:GetConVarValue("hud_target_w")
@@ -369,21 +367,17 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 					local infoX = (scrW - infoW) * InsaneStats:GetConVarValue("hud_target_x") + outlineThickness
 					if InsaneStats:GetConVarValue("xp_enabled") then
 						-- calculate strength of entity based on its level compared to us
-						local theirStrength = InsaneStats:ScaleValueToLevelQuadratic(
+						local theirStrength = InsaneStats:ScaleValueToLevel(
 							1,
 							InsaneStats:GetConVarValue("xp_drop_add")/100,
 							theirLevel,
-							"xp_drop_add_mode",
-							false,
-							InsaneStats:GetConVarValue("xp_drop_add_add")/100
+							"xp_drop_add_mode"
 						)
-						local ourStrength = InsaneStats:ScaleValueToLevelQuadratic(
+						local ourStrength = InsaneStats:ScaleValueToLevel(
 							1,
 							InsaneStats:GetConVarValue("xp_drop_add")/100,
 							level,
-							"xp_drop_add_mode",
-							false,
-							InsaneStats:GetConVarValue("xp_drop_add_add")/100
+							"xp_drop_add_mode"
 						)
 
 						--[[if wpLevel then
@@ -402,9 +396,13 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 						local levelColor = HSVToColor(levelColorHue % 360, 1, 1)
 						
 						-- now actually draw the text
+						local infoYOffset = fontHeight + outlineThickness * 2
+						if lookEntityInfo.maxHealth > 0 then
+							infoYOffset = infoYOffset + barH + outlineThickness
+						end
 						infoX = infoX + InsaneStats:DrawTextOutlined(
-							theirLevelString, 3, infoX, infoY,
-							levelColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
+							theirLevelString, 3, infoX, infoY + infoYOffset / 2,
+							levelColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER
 						)
 						infoX = infoX + outlineThickness
 					end
@@ -526,10 +524,10 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 							
 							local smallText
 							if statusEffectData.level ~= 1 then
-								smallText = InsaneStats:FormatNumber(statusEffectData.level, {compress = true, decimals = 0})
+								smallText = InsaneStats:FormatNumber(statusEffectData.level, {compress = true, decimals = 1})
 							elseif statusEffectData.expiry < math.huge then
-								local duration = math.ceil(statusEffectData.expiry - curTime)
-								smallText = InsaneStats:FormatNumber(duration, {compress = true, decimals = 0}).."s"
+								local duration = statusEffectData.expiry - curTime
+								smallText = InsaneStats:FormatNumber(duration, {compress = true, decimals = 1}).."s"
 							end
 
 							if smallText then

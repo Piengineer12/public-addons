@@ -115,6 +115,30 @@ end, nil, "Saves all Insane Stats data immediately. A save file name can be supp
 which will cause save data to be written into that save file \z
 instead of the name specified by \"insanestats_save_file\".")
 
+concommand.Add("insanestats_save_delete", function(ply, cmd, args, argStr)
+	if ply:IsAdmin() then
+		if next(args) then
+			local saveFileName = "insane_stats/"..argStr..".json"
+			if argStr == currentSaveFile then
+				InsaneStats:Log(
+					"Save file \"%s\" is in use, please first set \"insanestats_save_file\" to \z
+					a new save file name, then restart the map!",
+					argStr
+				)
+			elseif file.Exists(saveFileName, "DATA") then
+				file.Delete(saveFileName)
+				InsaneStats:Log("Deleted save file \"%s\"!", argStr)
+			else
+				InsaneStats:Log("Could not find save file \"%s\"!", argStr)
+			end
+		else
+			InsaneStats:Log("Usage: %s <save file name>", cmd)
+		end
+	else
+		InsaneStats:Log("This command can only be run by admins!")
+	end
+end, nil, "Deletes the specified Insane Stats save file.")
+
 concommand.Add("insanestats_revert_all_convars", function(ply, cmd, args, argStr)
 	if argStr:lower() == "yes" then
 		for name, data in pairs(InsaneStats.conVars) do
@@ -139,6 +163,7 @@ local hlsAliases = {
 }
 local keyValuesOnCrashableEntities = {}
 local targetnamesToPreventCrashes = {}]]
+local replaceAllGunships = false
 -- For some reason "color" isn't included under game_text:GetKeyValues(). Why?
 hook.Add("EntityKeyValue", "InsaneStats", function(ent, key, value)
 	key = key:lower()
@@ -187,6 +212,13 @@ hook.Add("EntityKeyValue", "InsaneStats", function(ent, key, value)
 				delay = initialDelay,
 				times = tonumber(rawData[5]) or -1
 			})
+		end
+	elseif class == "npc_combinegunship" then
+		ent.insaneStats_KVs = ent.insaneStats_KVs or {}
+		table.insert(ent.insaneStats_KVs, {key, value})
+
+		if key == "spawnflags" and bit.band(tonumber(value), 2048) == 2048 then
+			replaceAllGunships = true
 		end
 	end
 end)
@@ -388,6 +420,31 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStats", function(ent)
 			ent:InsaneStats_MarkForUpdate(256)
 		elseif class=="npc_combinedropship" and InsaneStats:GetConVarValue("nonsolid_combine_dropship") then
 			ent:SetCollisionGroup(COLLISION_GROUP_WORLD)
+		elseif class=="npc_combinegunship" and InsaneStats:GetConVarValue("prevent_gunship_death_crash")
+		and replaceAllGunships then
+			local keyValues = ent.insaneStats_KVs or {}
+			local pos = ent:GetPos()
+			
+			for i,v in ipairs(ents.FindByClass("info_target_helicopter_crash")) do
+				v:Fire("Kill")
+			end
+
+			ent:InsaneStats_ApplyStatusEffect("invincible", 1, math.huge)
+			ent:InsaneStats_ApplyStatusEffect("stunned", 1, math.huge)
+			ent:SetNoDraw(true)
+			ent:Fire("Kill")
+
+			local heli = ents.Create("npc_helicopter")
+			heli:SetPos(pos)
+			for i,v in ipairs(keyValues) do
+				local key, value = v[1],v[2]
+				if key == "spawnflags" then
+					heli:SetKeyValue(key, bit.band(tonumber(value), bit.bnot(2048)))
+				elseif key ~= "classname" then
+					heli:SetKeyValue(key, value)
+				end
+			end
+			heli:Spawn()
 		end
 	end
 end)
@@ -565,6 +622,9 @@ end)
 
 hook.Add("Initialize", "InsaneStats", function()
 	currentSaveFile = InsaneStats:GetConVarValue("save_file")
+	if InsaneStats:GetConVarValue("resource_addworkshop") then
+		resource.AddWorkshop(InsaneStats.WORKSHOP_ID)
+	end
 end)
 
 hook.Add("InitPostEntity", "InsaneStats", function()

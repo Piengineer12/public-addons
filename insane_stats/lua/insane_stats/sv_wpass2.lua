@@ -641,7 +641,7 @@ function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 
 			modifiersLeveled = modifiersLeveled + v
 			points = points - (modifierTable.cost or 1) * v
-			if v >= (modifierTable.max or 65536) then
+			if v + 1 > (modifierTable.max or 65536) then
 				modifierProbabilities[k] = nil
 			end
 		else
@@ -710,7 +710,7 @@ function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 			end
 			
 			points = points - (modifierTable.cost or 1)
-			if applyModifiers[appliedModifier] >= (modifierTable.max or 65536) then
+			if applyModifiers[appliedModifier] + 1 > (modifierTable.max or 65536) then
 				modifierProbabilities[appliedModifier] = nil
 			end
 
@@ -734,14 +734,8 @@ function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 	end
 	
 	wep.insaneStats_Modifiers = applyModifiers
-	if not wep:InsaneStats_IsWPASS2Pickup() and (wep.GetMaxArmor and wep:GetMaxArmor() <= 0)
-	and not wep:IsPlayer() and wep.insaneStats_Tier ~= 0 then
-		-- apply armor
-		local startingHealth = wep:InsaneStats_GetMaxHealth() / wep:InsaneStats_GetCurrentHealthAdd()
-		local startingArmor = startingHealth * self:GetConVarValue("infhealth_armor_mul")
-		wep:SetMaxArmor(wep:InsaneStats_GetMaxHealth() * self:GetConVarValue("infhealth_armor_mul"))
-		wep:InsaneStats_SetCurrentArmorAdd(wep:InsaneStats_GetMaxArmor() / startingArmor)
-		wep:SetArmor(wep:InsaneStats_GetMaxArmor())
+	if not wep:InsaneStats_IsWPASS2Pickup() and not wep:IsPlayer() and wep.insaneStats_Tier ~= 0 then
+		wep:InsaneStats_ApplyArmor()
 	end
 	
 	self:ApplyWPASS2Attributes(wep)
@@ -931,13 +925,11 @@ function ENTITY:InsaneStats_AddMaxHealth(health)
 	if (self:InsaneStats_GetEntityData("xp_health_mul") or 1) == 1 then
 		local scaleType = self:IsPlayer() and "player" or "other"
 		local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and self:InsaneStats_GetLevel() or 1
-		local val = InsaneStats:ScaleValueToLevelQuadratic(
+		local val = InsaneStats:ScaleValueToLevel(
 			100,
 			InsaneStats:GetConVarValue("xp_"..scaleType.."_health")/100,
 			effectiveLevel,
-			"xp_"..scaleType.."_health_mode",
-			false,
-			InsaneStats:GetConVarValue("xp_"..scaleType.."_health_add")/100
+			"xp_"..scaleType.."_health_mode"
 		)
 
 		self:InsaneStats_SetCurrentHealthAdd(val)
@@ -953,13 +945,11 @@ function ENTITY:InsaneStats_AddMaxArmor(armor)
 		if (self:InsaneStats_GetEntityData("xp_armor_mul") or 1) == 1 then
 			local scaleType = self:IsPlayer() and "player" or "other"
 			local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and self:InsaneStats_GetLevel() or 1
-			local val = InsaneStats:ScaleValueToLevelQuadratic(
+			local val = InsaneStats:ScaleValueToLevel(
 				100,
 				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
 				effectiveLevel,
-				"xp_"..scaleType.."_armor_mode",
-				false,
-				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor_add")/100
+				"xp_"..scaleType.."_armor_mode"
 			)
 	
 			self:InsaneStats_SetCurrentArmorAdd(val)
@@ -1011,7 +1001,7 @@ end
 
 function ENTITY:InsaneStats_IsValidAlly(ent)
 	-- this returns true when ent -> self is an ally relationship (without regarding self -> ent)
-	if not IsValid(ent) then return false end
+	if not (IsValid(ent) and IsValid(self)) then return false end
 	
 	-- poll Disposition to figure out if ent is an ally
 	if (ent.Disposition and ent:Disposition(self) == D_LI) then return true end
@@ -1052,6 +1042,59 @@ function ENTITY:InsaneStats_GetEffectiveSpeed()
 	hook.Run("InsaneStatsEffectiveSpeed", data)
 	return data.speed
 end
+
+local queuedDoTs = {}
+function ENTITY:InsaneStats_ApplyDoT(effect)
+	table.insert(queuedDoTs, {self, effect})
+end
+
+function ENTITY:InsaneStats_ApplyDoTCustom(id)
+	table.insert(queuedDoTs, {self, id, true})
+end
+
+hook.Add("Tick", "InsaneStatsWPASS", function()
+	--for i=0, math.sqrt(#queuedDoTs)/10 do
+		local entry = table.remove(queuedDoTs, 1)
+		if entry then
+			local victim = entry[1]
+			local effect = entry[2]
+			local dotTimerName = string.format(
+				"InsaneStatsWPASSDoT%s%i",
+				effect,
+				victim:EntIndex()
+			)
+			if not timer.Exists(dotTimerName) then
+				local hurtFunc
+				if entry[3] then
+					hurtFunc = function()
+						if IsValid(victim) then
+							local cancel = hook.Run("InsaneStatsWPASSDoT", victim, effect)
+							if cancel then timer.Remove(dotTimerName) end
+						else
+							timer.Remove(dotTimerName)
+						end
+					end
+				else
+					hurtFunc = function()
+						if IsValid(victim) then
+							local durationLeft = victim:InsaneStats_GetStatusEffectDuration(effect)
+							if durationLeft > 0 and victim:InsaneStats_GetHealth() > 0 then
+								hook.Run("InsaneStatsWPASSDoT", victim, effect)
+							else
+								timer.Remove(dotTimerName)
+							end
+						else
+							timer.Remove(dotTimerName)
+						end
+					end
+				end
+
+				hurtFunc()
+				timer.Create(dotTimerName, 0.5, 0, hurtFunc)
+			end
+		end
+	--end
+end)
 
 local PLAYER = FindMetaTable("Player")
 function PLAYER:InsaneStats_EquipBattery(item)

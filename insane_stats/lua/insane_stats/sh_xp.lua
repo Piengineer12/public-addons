@@ -51,12 +51,6 @@ InsaneStats:RegisterConVar("xp_drop_add_mode", "insanestats_xp_drop_add_mode", "
 		-1 causes this ConVar to use the value of insanestats_xp_mode.",
 	type = InsaneStats.INT, min = -1, max = 1
 })
-InsaneStats:RegisterConVar("xp_drop_add_add", "insanestats_xp_drop_add_add", "0", {
-	display = "Drop Growth", desc = "Additional % of additional % experience dropped per level. \z
-		Note that this value also influences experience % added when non-players kill other non-players. \z
-		This is only applied if \"insanestats_xp_drop_add_mode\" is 0.",
-	type = InsaneStats.FLOAT, min = 0, max = 100
-})
 
 InsaneStats:RegisterConVar("xp_player_mul", "insanestats_xp_player_mul", "1", {
 	display = "Player Drop Multiplier", desc = "Multiplier for experience dropped by players. The amount of experience dropped is based on max starting health and level.",
@@ -173,11 +167,6 @@ InsaneStats:RegisterConVar("xp_player_health_mode", "insanestats_xp_player_healt
 		-1 causes this ConVar to use the value of insanestats_xp_mode.",
 	type = InsaneStats.INT, min = -1, max = 1
 })
-InsaneStats:RegisterConVar("xp_player_health_add", "insanestats_xp_player_health_add_add", "0", {
-	display = "Player Health Growth", desc = "Additional % of player % max health gained per level. \z
-	This is only applied if \"insanestats_xp_player_health_add_mode\" is 0.",
-	type = InsaneStats.FLOAT, min = 0, max = 1000
-})
 InsaneStats:RegisterConVar("xp_player_armor", "insanestats_xp_player_armor_add", "10", {
 	display = "Player Armor Scaling", desc = "Player % max armor gained per level.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
@@ -186,11 +175,6 @@ InsaneStats:RegisterConVar("xp_player_armor_mode", "insanestats_xp_player_armor_
 	display = "Player Armor Scaling Mode", desc = "If 1, player max armor gained is applied multiplicatively rather than additively. \z
 		-1 causes this ConVar to use the value of insanestats_xp_mode.",
 	type = InsaneStats.INT, min = -1, max = 1
-})
-InsaneStats:RegisterConVar("xp_player_armor_add", "insanestats_xp_player_armor_add_add", "0", {
-	display = "Player Armor Growth", desc = "Additional % of player % max armor gained per level. \z
-	This is only applied if \"insanestats_xp_player_armor_add_mode\" is 0.",
-	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
 
 InsaneStats:RegisterConVar("xp_player_damage", "insanestats_xp_player_damage_add", "10", {
@@ -202,11 +186,6 @@ InsaneStats:RegisterConVar("xp_player_damage_mode", "insanestats_xp_player_damag
 		-1 causes this ConVar to use the value of insanestats_xp_mode.",
 	type = InsaneStats.INT, min = -1, max = 1
 })
-InsaneStats:RegisterConVar("xp_player_damage_add", "insanestats_xp_player_damage_add_add", "0", {
-	display = "Player Damage Growth", desc = "Additional % of player % damage dealt gained per level. \z
-	This is only applied if \"insanestats_xp_player_damage_add_mode\" is 0.",
-	type = InsaneStats.FLOAT, min = 0, max = 1000
-})
 InsaneStats:RegisterConVar("xp_player_resistance", "insanestats_xp_player_resistance_add", "0", {
 	display = "Player Resistance Scaling", desc = "Player % resistance gained per level.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
@@ -215,11 +194,6 @@ InsaneStats:RegisterConVar("xp_player_resistance_mode", "insanestats_xp_player_r
 	display = "Player Resistance Scaling Mode", desc = "If 1, player damage resistance gained is applied multiplicatively rather than additively. \z
 		-1 causes this ConVar to use the value of insanestats_xp_mode.",
 	type = InsaneStats.INT, min = -1, max = 1
-})
-InsaneStats:RegisterConVar("xp_player_resistance_add", "insanestats_xp_player_resistance_add_add", "0", {
-	display = "Player Resistance Growth", desc = "Additional % of player % resistance gained per level. \z
-	This is only applied if \"insanestats_xp_player_resistance_add_mode\" is 0.",
-	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
 
 InsaneStats:SetDefaultConVarCategory("XP - Non-Player Scales")
@@ -233,11 +207,6 @@ InsaneStats:RegisterConVar("xp_other_health_mode", "insanestats_xp_other_health_
 		-1 causes this ConVar to use the value of insanestats_xp_mode.",
 	type = InsaneStats.INT, min = -1, max = 1
 })
-InsaneStats:RegisterConVar("xp_other_health_add", "insanestats_xp_other_health_add_add", "0", {
-	display = "Non-player Health Growth", desc = "Additional % of non-player % max health gained per level. \z
-	This is only applied if \"insanestats_xp_other_health_add_mode\" is 0.",
-	type = InsaneStats.FLOAT, min = 0, max = 1000
-})
 InsaneStats:RegisterConVar("xp_other_armor", "insanestats_xp_other_armor_add", "10", {
 	display = "Non-player Armor Scaling", desc = "Non-player % max armor gained per level.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
@@ -246,11 +215,6 @@ InsaneStats:RegisterConVar("xp_other_armor_mode", "insanestats_xp_other_armor_ad
 	display = "Non-player Armor Scaling Mode", desc = "If 1, non-player max armor gained is applied multiplicatively rather than additively. \z
 		-1 causes this ConVar to use the value of insanestats_xp_mode.",
 	type = InsaneStats.INT, min = -1, max = 1
-})
-InsaneStats:RegisterConVar("xp_other_armor_add", "insanestats_xp_other_armor_add_add", "0", {
-	display = "Non-player Armor Growth", desc = "Additional % of non-player % max armor gained per level. \z
-	This is only applied if \"insanestats_xp_other_armor_add_mode\" is 0.",
-	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
 
 InsaneStats:RegisterConVar("xp_other_damage", "insanestats_xp_other_damage_add", "10", {
@@ -262,11 +226,6 @@ InsaneStats:RegisterConVar("xp_other_damage_mode", "insanestats_xp_other_damage_
 		-1 causes this ConVar to use the value of insanestats_xp_mode.",
 	type = InsaneStats.INT, min = -1, max = 1
 })
-InsaneStats:RegisterConVar("xp_other_damage_add", "insanestats_xp_other_damage_add_add", "0", {
-	display = "Non-player Damage Growth", desc = "Additional % of non-player % damage dealt gained per level. \z
-	This is only applied if \"insanestats_xp_other_damage_add_mode\" is 0.",
-	type = InsaneStats.FLOAT, min = 0, max = 1000
-})
 InsaneStats:RegisterConVar("xp_other_resistance", "insanestats_xp_other_resistance_add", "0", {
 	display = "Non-player Resistance Scaling", desc = "Non-player % damage resistance gained per level.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
@@ -275,11 +234,6 @@ InsaneStats:RegisterConVar("xp_other_resistance_mode", "insanestats_xp_other_res
 	display = "Non-player Resistance Scaling Mode", desc = "If 1, non-player damage resistance gained is applied multiplicatively rather than additively. \z
 		-1 causes this ConVar to use the value of insanestats_xp_mode.",
 	type = InsaneStats.INT, min = -1, max = 1
-})
-InsaneStats:RegisterConVar("xp_other_resistance_add", "insanestats_xp_other_resistance_add_add", "0", {
-	display = "Non-player Resistance Growth", desc = "Additional % of non-player % damage resistance gained per level. \z
-	This is only applied if \"insanestats_xp_other_resistance_add_mode\" is 0.",
-	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
 
 function InsaneStats:ScaleValueToLevelPure(value, mul, level, multiplicative)
@@ -381,43 +335,35 @@ function InsaneStats:DetermineDamageMulPure(attacker, vic)
 	if self:GetConVarValue("xp_enabled") then
 		local level = attacker:InsaneStats_GetLevel()
 		if attacker:IsPlayer() then
-			damageBonus = self:ScaleValueToLevelQuadratic(
+			damageBonus = self:ScaleValueToLevel(
 				damageBonus,
 				self:GetConVarValue("xp_player_damage")/100,
 				level,
-				"xp_player_damage_mode",
-				false,
-				self:GetConVarValue("xp_player_damage_add")/100
+				"xp_player_damage_mode"
 			)
 		else
-			damageBonus = self:ScaleValueToLevelQuadratic(
+			damageBonus = self:ScaleValueToLevel(
 				damageBonus,
 				self:GetConVarValue("xp_other_damage")/100,
 				level,
-				"xp_other_damage_mode",
-				false,
-				self:GetConVarValue("xp_other_damage_add")/100
+				"xp_other_damage_mode"
 			)
 		end
 
 		level = vic:InsaneStats_GetLevel()
 		if vic:IsPlayer() then
-			damageBonus = damageBonus / self:ScaleValueToLevelQuadratic(
+			damageBonus = damageBonus / self:ScaleValueToLevel(
 				1,
 				self:GetConVarValue("xp_player_resistance")/100,
 				level,
-				"xp_player_resistance_mode",
-				false,
-				self:GetConVarValue("xp_player_resistance_add")/100
+				"xp_player_resistance_mode"
 			)
 		else
-			damageBonus = damageBonus / self:ScaleValueToLevelQuadratic(
+			damageBonus = damageBonus / self:ScaleValueToLevel(
 				1,
 				self:GetConVarValue("xp_other_resistance")/100,
 				level,
-				"xp_other_resistance_mode",
-				false,
-				self:GetConVarValue("xp_other_resistance_add")/100
+				"xp_other_resistance_mode"
 			)
 		end
 	end

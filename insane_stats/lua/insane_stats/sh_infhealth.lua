@@ -17,8 +17,13 @@ InsaneStats:RegisterConVar("infhealth_armor_sensible", "insanestats_infhealth_ar
 	display = "Sensible NPCs Only", desc = "Only humanoid and Combine entities are able to spawn with armor.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterConVar("infhealth_armor_healthcost", "insanestats_infhealth_armor_healthcost", "50", {
+	display = "Armor Health % Cost", desc = "NPCs that receive armor lose this % of their max health. \z
+	This penalty applies before \"insanestats_infhealth_armor_mul\".",
+	type = InsaneStats.FLOAT, min = 0, max = 100
+})
 InsaneStats:RegisterConVar("infhealth_armor_mul", "insanestats_infhealth_armor_mul", "1", {
-	display = "Armor Multiplier", desc = "Multiplier of NPC armor.",
+	display = "Armor Multiplier", desc = "NPC armor will be this many times their max health.",
 	type = InsaneStats.FLOAT, min = 0, max = 10
 })
 InsaneStats:RegisterConVar("infhealth_armor_regen", "insanestats_infhealth_armor_regen", "5", {

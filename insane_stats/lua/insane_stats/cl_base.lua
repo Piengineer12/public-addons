@@ -42,6 +42,25 @@ InsaneStats.WeaponSelectorWeaponSlots = {}
 	return fontName
 end]]
 
+local possibleEntries
+function InsaneStats:GetFakeClass(index)
+	if not possibleEntries then
+		possibleEntries = {}
+
+		for k,v in pairs(list.GetForEdit("NPC")) do
+			local class = v.Class
+			if class then
+				possibleEntries[class] = true
+			end
+		end
+
+		possibleEntries = table.GetKeys(possibleEntries)
+	end
+
+	local randomIndex = math.floor(util.SharedRandom("InsaneStatsLieClass", 1, #possibleEntries + 1, index))
+	return possibleEntries[randomIndex]
+end
+
 function InsaneStats:GetWeaponName(wep)
 	return language.GetPhrase(wep.PrintName ~= "" and wep.PrintName or wep:GetClass())
 end
@@ -471,7 +490,7 @@ InsaneStats:RegisterClientConVar("hud_exponent_format", "insanestats_hud_exponen
 	type = InsaneStats.INT, min = 0, max = 3
 })
 InsaneStats:RegisterClientConVar("hud_distance_unit", "insanestats_hud_distance_unit", "0", {
-	display = "Distance Format", desc = "Controls how to display distances. \z
+	display = "Distance Format", desc = "Controls how to display distances.\n\z
 	0: Use playerscale m or cm\n\z
 	1: Use playerscale ft or in\n\z
 	2: Use mapscale m or cm\n\z
@@ -538,8 +557,12 @@ function ENT:InsaneStats_GetPrintName()
 		or self.insaneStats_Class
 		or self:GetClass()
 	)
+	local lie = select(3, ColorToHSL(self:GetColor())) < 0.05
+	if lie then
+		classDisplayName = language.GetPhrase(InsaneStats:GetFakeClass(self:EntIndex()))
+	end
+	classDisplayName = (self:InsaneStats_GetIsAlpha() and "Alpha " or "")..classDisplayName..(lie and "?" or "")
 	local mappingName = self.insaneStats_Name or ""
-	classDisplayName = (self:InsaneStats_GetIsAlpha() and "Alpha " or "")..classDisplayName
 	if mappingName == "" then return classDisplayName
 	else return string.format("%s (%s)", classDisplayName, mappingName)
 	end
@@ -551,7 +574,7 @@ local function GenerateFonts()
 
 	InsaneStats.FONT_SMALL = ScreenScale(6 * scale)
 	InsaneStats.FONT_MEDIUM = ScreenScale(8 * scale)
-	InsaneStats.FONT_BIG = ScreenScale(12 * scale)
+	InsaneStats.FONT_BIG = ScreenScale(10 * scale)
 	
 	surface.CreateFont("InsaneStats.Small", {
 		font = font,

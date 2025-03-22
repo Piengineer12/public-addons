@@ -869,10 +869,10 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 				if #statusEffectOrder > statusesPerColumn or not hasSuit then
 					local smallText
 					if statusEffectData.level ~= 1 then
-						smallText = InsaneStats:FormatNumber(statusEffectData.level, {compress = true, decimals = 0})
+						smallText = InsaneStats:FormatNumber(statusEffectData.level, {compress = true, decimals = 1})
 					elseif statusEffectData.expiry < math.huge then
-						local duration = math.ceil(statusEffectData.expiry - CurTime())
-						smallText = InsaneStats:FormatNumber(duration, {compress = true, decimals = 0}).."s"
+						local duration = statusEffectData.expiry - CurTime()
+						smallText = InsaneStats:FormatNumber(duration, {compress = true, decimals = 1}).."s"
 					end
 
 					if smallText then

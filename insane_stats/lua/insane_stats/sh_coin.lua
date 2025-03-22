@@ -56,11 +56,6 @@ InsaneStats:RegisterConVar("coins_level_add_mode", "insanestats_coins_level_add_
 		-1 causes this ConVar to use the value of insanestats_xp_mode.",
 	type = InsaneStats.INT, min = -1, max = 1
 })
-InsaneStats:RegisterConVar("coins_level_add_add", "insanestats_coins_level_add_add", "10", {
-	display = "Level Growth", desc = "Additional % of % additional coins dropped per level. \z
-	This is only applied if \"insanestats_coins_level_add_mode\" is 0.",
-	type = InsaneStats.FLOAT, min = 0, max = 1000
-})
 
 InsaneStats:SetDefaultConVarCategory("Coin Drops - Costs")
 
@@ -182,13 +177,11 @@ function InsaneStats:GetItemCost(index, ply)
 	local itemInfo = self.ShopItems[index]
 	local cost = itemInfo[2]
 	if self:GetConVarValue("xp_enabled") and cost then
-		cost = self:ScaleValueToLevelQuadratic(
+		cost = self:ScaleValueToLevel(
 			cost,
 			self:GetConVarValue("coins_level_add")/100,
 			ply:InsaneStats_GetLevel(),
-			"coins_level_add_mode",
-			false,
-			self:GetConVarValue("coins_level_add_add")/100
+			"coins_level_add_mode"
 		)
 	end
 	return cost

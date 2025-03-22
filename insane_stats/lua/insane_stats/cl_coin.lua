@@ -364,7 +364,8 @@ local function CreateReforgePanel(parent, shopEntity)
 			end
 			for k,v in pairs(value.insaneStats_Modifiers or {}) do
 				local modifierName = modifiers[k] and (modifiers[k].suffix or modifiers[k].prefix) or k
-				local modifierMax = modifiers[k] and modifiers[k].max or "∞"
+				local modifierMax = modifiers[k] and modifiers[k].max
+				and InsaneStats:FormatNumber(math.floor(modifiers[k].max)) or "∞"
 				local modifierWeight = modifiers[k] and modifiers[k].weight or 1
 				local modifierCost = modifiers[k] and modifiers[k].cost or 1
 				local modifierIsWep = modifiers[k] and bit.band(modifiers[k].flags or 0, InsaneStats.WPASS2_FLAGS.ARMOR) == 0
@@ -442,7 +443,8 @@ local function CreateReforgePanel(parent, shopEntity)
 		BlacklistModifierList:AddColumn("Relative Weight")
 		function BlacklistModifierList:AddModifierLine(modifier)
 			local modifierName = modifiers[modifier] and (modifiers[modifier].suffix or modifiers[modifier].prefix) or modifier
-			local modifierMax = modifiers[modifier] and modifiers[modifier].max or "∞"
+			local modifierMax = modifiers[modifier] and modifiers[modifier].max
+			and InsaneStats:FormatNumber(math.floor(modifiers[modifier].max)) or "∞"
 			local modifierWeight = modifiers[modifier] and modifiers[modifier].weight or 1
 			local modifierCost = modifiers[modifier] and modifiers[modifier].cost or 1
 			local modifierIsWep = modifiers[modifier] and bit.band(modifiers[modifier].flags or 0, InsaneStats.WPASS2_FLAGS.ARMOR) == 0

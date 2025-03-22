@@ -260,8 +260,9 @@ net.Receive("insane_stats", function()
 			local maxHealth = net.ReadDouble()
 			local armor = net.ReadDouble()
 			local maxArmor = net.ReadDouble()
+			local lie = net.ReadBool()
 			
-			hook.Run("InsaneStatsWPASS2EntityMarked", entIndex, pos, class, health, maxHealth, armor, maxArmor)
+			hook.Run("InsaneStatsWPASS2EntityMarked", entIndex, pos, class, health, maxHealth, armor, maxArmor, lie)
 		end
 	elseif func == 5 then
 		local text = language.GetPhrase(net.ReadString())

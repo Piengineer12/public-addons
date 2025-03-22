@@ -7,11 +7,12 @@ local color_magenta = InsaneStats:GetColor("magenta")
 local color_black_translucent = InsaneStats:GetColor("black_translucent")
 local color_gray_translucent = InsaneStats:GetColor("gray_translucent")
 
-hook.Add("InsaneStatsWPASS2EntityMarked", "InsaneStatsWPASS2", function(entIndex, pos, class, health, maxHealth, armor, maxArmor)
+hook.Add("InsaneStatsWPASS2EntityMarked", "InsaneStatsWPASS2", function(entIndex, pos, class, health, maxHealth, armor, maxArmor, lie)
 	markedEntityInfo = {
 		index = entIndex,
 		pos = pos,
-		class = class,
+		class = lie and InsaneStats:GetFakeClass(entIndex) or class,
+		lie = lie,
 		hp = health,
 		mhp = maxHealth,
 		ar = armor,
@@ -94,7 +95,9 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 					if pos then break end
 				end
 				markedEntityInfo.pos = pos or ent:WorldSpaceCenter()
-				markedEntityInfo.class = ent:GetClass()
+				markedEntityInfo.lie = select(3, ColorToHSL(ent:GetColor())) < 0.05
+				markedEntityInfo.class = markedEntityInfo.lie
+				and InsaneStats:GetFakeClass(markedEntityInfo.index) or ent:GetClass()
 				--[[markedEntityInfo.hp = ent:InsaneStats_GetHealth()
 				markedEntityInfo.mhp = ent:InsaneStats_GetMaxHealth()
 				markedEntityInfo.ar = ent:InsaneStats_GetArmor()
@@ -121,10 +124,11 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 			surface.DrawLine(rightX, topY, leftX, bottomY)
 			
 			-- draw the target information
+			local name = language.GetPhrase(markedEntityInfo.class)..(markedEntityInfo.lie and "?" or "")
 			local textPosX = toScreenData.x
 			local textPosY = bottomY + outlineThickness
 			local texts = {
-				language.GetPhrase(markedEntityInfo.class),
+				name,
 				string.format(
 					"Health: %s / %s",
 					InsaneStats:FormatNumber(math.floor(markedEntityInfo.hp)),

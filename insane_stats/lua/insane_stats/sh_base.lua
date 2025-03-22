@@ -198,13 +198,18 @@ InsaneStats:RegisterConVar("transition_delay", "insanestats_transition_delay", "
 	Useful for maps where both trigger_changelevels are at the same place.",
 	type = InsaneStats.BOOL
 })
-InsaneStats:RegisterConVar("ammocrate_maxammo", "insanestats_ammocrate_maxammo", "0", {
+InsaneStats:RegisterConVar("ammocrate_maxammo", "insanestats_ammocrate_maxammo", "1", {
 	display = "Ammo Crates Give 9999", desc = "Ammo crates always give 9999 ammo, limited only by the gmod_maxammo ConVar.",
 	type = InsaneStats.BOOL
 })
-InsaneStats:RegisterConVar("gargantua_is_monster", "insanestats_gargantua_is_monster", "0", {
+InsaneStats:RegisterConVar("gargantua_is_monster", "insanestats_gargantua_is_monster", "1", {
 	display = "Correct Gargantua Class Name", desc = "Redirects most npc_gargantua references to monster_gargantua. \z
 	Fixes at least a few Synergy maps from not working at all in GMod.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterConVar("prevent_gunship_death_crash", "insanestats_prevent_gunship_death_crash", "1", {
+	display = "Prevent Gunship Death Crash", desc = "If an npc_combinegunship is marked as a template NPC, \z
+	ALL npc_combinegunships are replaced with npc_helicopters.",
 	type = InsaneStats.BOOL
 })
 InsaneStats:RegisterConVar("camera_no_kill", "insanestats_camera_no_kill", "1", {
@@ -246,6 +251,11 @@ InsaneStats:RegisterConVar("gametext_tochat_once", "insanestats_gametext_tochat_
 })
 InsaneStats:RegisterConVar("hudhint_tochat", "insanestats_hudhint_tochat", "0", {
 	display = "env_hudhint To Chat", desc = "Activated env_hudhints will also send their texts to chat.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterConVar("resource_addworkshop", "insanestats_resource_addworkshop", "1", {
+	display = "Add to WorkshopDL", desc = "Uses resource.AddWorkshop to add Insane Stats to the download list, \z
+	allowing all clients to listen to the sounds and see the images and fonts added by Insane Stats.",
 	type = InsaneStats.BOOL
 })
 InsaneStats:RegisterConVar("debug", "insanestats_debug", "0", {

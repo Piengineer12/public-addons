@@ -28,6 +28,28 @@ function ENT:InsaneStats_ArmorSensible()
 	end
 end
 
+function ENT:InsaneStats_ApplyArmor()
+	if (self.SetMaxArmor and self:InsaneStats_GetMaxArmor() <= 0) then
+		local healthMul = 1 - InsaneStats:GetConVarValue("infhealth_armor_healthcost") / 100
+		local newMaxHealth = self:InsaneStats_GetMaxHealth() * healthMul
+		self:SetMaxHealth(newMaxHealth)
+		self:SetHealth(self:InsaneStats_GetHealth() * healthMul)
+
+		local startingHealth = newMaxHealth / self:InsaneStats_GetCurrentHealthAdd()
+		local armorMul = InsaneStats:GetConVarValue("infhealth_armor_mul")
+		local startingArmor = startingHealth * armorMul
+		local armor = newMaxHealth * armorMul
+		self:SetMaxArmor(armor)
+		self:SetArmor(armor)
+
+		if armor == math.huge or startingArmor == 0 then
+			self:InsaneStats_SetCurrentArmorAdd(1)
+		else
+			self:InsaneStats_SetCurrentArmorAdd(armor / startingArmor)
+		end
+	end
+end
+
 -- due to info_target_*crash entities, we can't apply non-standard knockback lest we break map logic
 -- there's also a few entities that behave very strangely to knockback
 -- we won't apply this knockback for scripted entities, those are up to the addon developers
@@ -145,6 +167,14 @@ timer.Create("InsaneStatsUnlimitedHealth", 0.5, 0, function()
 		
 		hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealthPre", function(vic, dmginfo, ...)
 			InsaneStats:SetDamage(nil)
+
+			if InsaneStats:IsDebugLevel(4) and InsaneStats:GetConVarValue("infhealth_enabled") then
+				InsaneStats:Log(
+					"PreHookDamage: entity = %s, damage = %s, raw = %g, health = %i",
+					tostring(vic), tostring(InsaneStats:GetDamage()), dmginfo:InsaneStats_GetRawDamage() or dmginfo:GetDamage(),
+					vic:InsaneStats_GetRawHealth() or vic:Health()
+				)
+			end
 		end, -1)
 		hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", hookTable.EntityTakeDamage.InsaneStatsUnlimitedHealth, 1)
 		hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", hookTable.PostEntityTakeDamage.InsaneStatsUnlimitedHealth, -1)
@@ -208,12 +238,28 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 
 	if not dLibbed then
 		InsaneStats:SetDamage(nil)
+
+		if InsaneStats:IsDebugLevel(4) and InsaneStats:GetConVarValue("infhealth_enabled") then
+			InsaneStats:Log(
+				"PreHookDamage: entity = %s, damage = %s, raw = %g, health = %i",
+				tostring(vic), tostring(InsaneStats:GetDamage()), dmginfo:InsaneStats_GetRawDamage() or dmginfo:GetDamage(),
+				vic:InsaneStats_GetRawHealth() or vic:Health()
+			)
+		end
 	end
 	
 	-- run the others first
 	local shouldNegate = hook.Run("NonInsaneStatsEntityTakeDamage", vic, dmginfo, ...)
 	if shouldNegate then
 		return shouldNegate
+	end
+
+	if InsaneStats:IsDebugLevel(4) and InsaneStats:GetConVarValue("infhealth_enabled") then
+		InsaneStats:Log(
+			"PostHookDamage: entity = %s, damage = %g, raw = %g, health = %i",
+			tostring(vic), InsaneStats:GetDamage() or -1, dmginfo:InsaneStats_GetRawDamage() or dmginfo:GetDamage(),
+			vic:InsaneStats_GetRawHealth() or vic:Health()
+		)
 	end
 	
 	vic.insaneStats_LastDamageTaken = CurTime()
@@ -488,13 +534,8 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 	if InsaneStats:GetConVarValue("infhealth_enabled") then
 		if (ent:IsNPC() or ent:IsNextBot())
 		and math.random() * 100 < InsaneStats:GetConVarValue("infhealth_armor_chance")
-		and (ent:InsaneStats_GetMaxArmor() <= 0)
 		and (not InsaneStats:GetConVarValue("infhealth_armor_sensible") or ent:InsaneStats_ArmorSensible()) then
-			local startingHealth = ent:InsaneStats_GetMaxHealth() / ent:InsaneStats_GetCurrentHealthAdd()
-			local startingArmor = startingHealth * InsaneStats:GetConVarValue("infhealth_armor_mul")
-			ent:SetMaxArmor(ent:InsaneStats_GetMaxHealth() * InsaneStats:GetConVarValue("infhealth_armor_mul"))
-			ent:InsaneStats_SetCurrentArmorAdd(ent:InsaneStats_GetMaxArmor() / startingArmor)
-			ent:SetArmor(ent:InsaneStats_GetMaxArmor())
+			ent:InsaneStats_ApplyArmor()
 		end
 
 		ent.insaneStats_PreventOverdamage = ent.insaneStats_PreventOverdamage or multipleDamageClasses[class]

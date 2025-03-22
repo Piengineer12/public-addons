@@ -37,7 +37,7 @@ hook.Add("AcceptInput", "InsaneStatsPointCommand", function(ent, input, activato
 
 				if mainCommand == "disconnect" or mainCommand == "startupmenu"
 				or mainCommand == "quit" or mainCommand == "exit" or mainCommand == "killserver"
-				or mainCommand == "map_background" then
+				or mainCommand == "map_background" or mainCommand == "kickall" then
 					mainCommand = "disconnect"
 
 					local retValue = InsaneStats:CheckEvents(InsaneStats.EVENTS.DISC, restCommand)

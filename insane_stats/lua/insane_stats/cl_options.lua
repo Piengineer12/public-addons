@@ -101,56 +101,52 @@ end
 
 function InsaneStats:GetDFormGenerator(title, conVarsData)
 	return function(DForm)
-		if LocalPlayer():IsAdmin() then
-			DForm:ControlHelp(title)
-			DForm.conVarsUpdatedValues = {}
-			function DForm:UpdateConVarValue(k, v)
-				self.conVarsUpdatedValues[k] = v
-			end
-			
-			-- capture the old think
-			DForm.oldThink = DForm.Think
-			function DForm:Think(...)
-				self:oldThink(...)
-				if (self.insaneStats_LastUpdate or 0) + 0.1 < RealTime() and next(self.conVarsUpdatedValues) then
-					self.insaneStats_LastUpdate = RealTime()
+		DForm:ControlHelp(title)
+		DForm.conVarsUpdatedValues = {}
+		function DForm:UpdateConVarValue(k, v)
+			self.conVarsUpdatedValues[k] = v
+		end
+		
+		-- capture the old think
+		DForm.oldThink = DForm.Think
+		function DForm:Think(...)
+			self:oldThink(...)
+			if (self.insaneStats_LastUpdate or 0) + 0.1 < RealTime() and next(self.conVarsUpdatedValues) then
+				self.insaneStats_LastUpdate = RealTime()
+				
+				net.Start("insane_stats")
+				net.WriteUInt(2, 8)
+				net.WriteUInt(table.Count(self.conVarsUpdatedValues), 8)
+				
+				for k,v in pairs(self.conVarsUpdatedValues) do
+					local typ = InsaneStats:GetConVarData(k).type
 					
-					net.Start("insane_stats")
-					net.WriteUInt(2, 8)
-					net.WriteUInt(table.Count(self.conVarsUpdatedValues), 8)
+					net.WriteString(k)
 					
-					for k,v in pairs(self.conVarsUpdatedValues) do
-						local typ = InsaneStats:GetConVarData(k).type
-						
-						net.WriteString(k)
-						
-						if typ == InsaneStats.BOOL then
-							net.WriteBool(v)
-						elseif typ == InsaneStats.INT then
-							net.WriteInt(v, 32)
-						elseif typ == InsaneStats.FLOAT then
-							net.WriteDouble(v)
-						else
-							net.WriteString(v)
-						end
+					if typ == InsaneStats.BOOL then
+						net.WriteBool(v)
+					elseif typ == InsaneStats.INT then
+						net.WriteInt(v, 32)
+					elseif typ == InsaneStats.FLOAT then
+						net.WriteDouble(v)
+					else
+						net.WriteString(v)
 					end
-					
-					net.SendToServer()
-					
-					self.conVarsUpdatedValues = {}
 				end
+				
+				net.SendToServer()
+				
+				self.conVarsUpdatedValues = {}
 			end
-			
-			for i,v in ipairs(conVarsData) do
-				self:CreateAppropriateDFormPanel(DForm, v)
-				--panel:SetZPos(i)
-			end
+		end
+		
+		for i,v in ipairs(conVarsData) do
+			self:CreateAppropriateDFormPanel(DForm, v)
+			--panel:SetZPos(i)
+		end
 
-			if title == "Miscellaneous" then
-				DForm:Button("Reset All ConVars", "insanestats_revert_all_convars", "yes")
-			end
-		else
-			DForm:ControlHelp("You must be an admin to use this menu.")
+		if title == "Miscellaneous" then
+			DForm:Button("Reset All ConVars", "insanestats_revert_all_convars", "yes")
 		end
 	end
 end

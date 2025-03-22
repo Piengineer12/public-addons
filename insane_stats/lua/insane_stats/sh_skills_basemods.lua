@@ -112,9 +112,14 @@ local skills = {
 	},
 	dodger = {
 		name = "Dodger",
-		desc = "%+.0f%% dodge chance. Note that disintegrating damage can't be dodged.",
+		desc = "Gain +%u stack(s) of Dodger per second, up to 10. \z
+		At 10 stacks, the next non-disintegrating damage taken is dodged instead, consuming all stacks.",
 		values = function(level)
-			return level * 5
+			return level
+		end,
+		stackTick = function(state, current, time, ent)
+			local nextStacks = math.min(current + time * ent:InsaneStats_GetEffectiveSkillValues("dodger"), 10)
+			return nextStacks >= 10 and 1 or 0, nextStacks
 		end,
 		img = "journey",
 		pos = {-1, 1},
@@ -493,9 +498,24 @@ local skills = {
 			end
 			return slowWalkKey, 180 - level * 60
 		end,
-		stackTick = function(state, current, time, ent)
-			local nextStacks = math.max(current - time, 0)
-			return state < 0 and current <= 0 and 0 or state, nextStacks
+		stackTick = function(state, stacks, time, ent)
+			if state == 1 then
+				stacks = stacks - time
+				if stacks < 0 then
+					state = -1
+					stacks = stacks + ent:InsaneStats_GetEffectiveSkillValues("sneak_100", 2)
+					time = 0
+				end
+			end
+			if state < 0 then
+				stacks = stacks - time
+				if stacks <= 0 then
+					stacks = 0
+					state = 0
+				end
+			end
+
+			return state, stacks
 		end,
 		img = "domino-mask",
 		pos = {0, 3},
@@ -533,9 +553,24 @@ local skills = {
 		values = function(level)
 			return 180 - level * 60
 		end,
-		stackTick = function(state, current, time, ent)
-			local nextStacks = math.max(current - time, 0)
-			return state < 0 and current <= 0 and 0 or state, nextStacks
+		stackTick = function(state, stacks, time, ent)
+			if state == 1 then
+				stacks = stacks - time
+				if stacks < 0 then
+					state = -1
+					stacks = stacks + ent:InsaneStats_GetEffectiveSkillValues("ubercharge")
+					time = 0
+				end
+			end
+			if state < 0 then
+				stacks = stacks - time
+				if stacks <= 0 then
+					stacks = 0
+					state = 0
+				end
+			end
+
+			return state, stacks
 		end,
 		img = "mesh-ball",
 		pos = {-3, 0},
@@ -601,13 +636,11 @@ local skills = {
 		values = function(level, ent)
 			local scaleType = ent:IsPlayer() and "player" or "other"
 			local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and ent:InsaneStats_GetLevel() or 1
-			local val = InsaneStats:ScaleValueToLevelQuadratic(
+			local val = InsaneStats:ScaleValueToLevel(
 				level/50,
 				InsaneStats:GetConVarValue("xp_"..scaleType.."_health")/100,
 				effectiveLevel,
-				"xp_"..scaleType.."_health_mode",
-				false,
-				InsaneStats:GetConVarValue("xp_"..scaleType.."_health_add")/100
+				"xp_"..scaleType.."_health_mode"
 			)
 			return CLIENT and InsaneStats:FormatNumber(val), val
 		end,
@@ -622,13 +655,11 @@ local skills = {
 			local scaleType = ent:IsPlayer() and "player" or "other"
 			local baseMult = ent:IsPlayer() and 1 or InsaneStats:GetConVarValue("infhealth_armor_mul")
 			local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and ent:InsaneStats_GetLevel() or 1
-			local val = InsaneStats:ScaleValueToLevelQuadratic(
+			local val = InsaneStats:ScaleValueToLevel(
 				level/50*baseMult,
 				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
 				effectiveLevel,
-				"xp_"..scaleType.."_armor_mode",
-				false,
-				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor_add")/100
+				"xp_"..scaleType.."_armor_mode"
 			)
 			return CLIENT and InsaneStats:FormatNumber(val), val
 		end,
@@ -718,25 +749,29 @@ local skills = {
 	one_with_the_gun = {
 		name = "One With The G.U.N.",
 		desc = "Pistols and revolvers deal %+i%% damage, have %+i%% bullet spread \z
-		and fire %+i%% more bullets. Additionally, the Gravity Gun fires %s BASE damage bullets \z
-		+%u time(s) per second while %s is held. These bullets deal melee damage.",
+		and fire %+i%% more bullets. Additionally, gain +%u stack(s) of One With The G.U.N. \z
+		per second, up to 10. At 10 stacks, holding down %s with the Gravity Gun held \z
+		consumes all stacks to fire a %s BASE damage bullet that deals melee damage.",
 		values = function(level, ent)
 			local value = 4 * InsaneStats:DetermineDamageMulPure(
 				ent, game.GetWorld()
 			)
-			local primaryFireKey = "the Primary Fire key"
+			local bulletKey = "the Reload key"
 			if CLIENT then
-				local keyName = input.LookupBinding("+attack")
+				local keyName = input.LookupBinding("+reload")
 				if keyName then
-					primaryFireKey = keyName:upper()
+					bulletKey = keyName:upper()
 				end
 			end
-			return level * 10, level * -10, level * 10, CLIENT and InsaneStats:FormatNumber(value),
-			level, primaryFireKey
+			return level * 10, level * -10, level * 10,
+			level * 10, bulletKey, CLIENT and InsaneStats:FormatNumber(value)
 		end,
 		stackTick = function(state, current, time, ent)
-			local newStacks = math.max(current - time, 0)
-			return newStacks ~= 0 and -1 or 0, newStacks
+			local newStacks = math.min(
+				current + time * ent:InsaneStats_GetEffectiveSkillValues("one_with_the_gun", 4),
+				10
+			)
+			return newStacks >= 10 and 1 or 0, newStacks
 		end,
 		img = "crossed-pistols",
 		pos = {-2, -4},
@@ -771,7 +806,7 @@ local skills = {
 				end
 				distance = InsaneStats:FormatNumber(distance, {plus = true, distance = true})
 			end
-			return slowWalkKey, distance, level * 25
+			return slowWalkKey, distance, level * 25, level * 20
 		end,
 		stackTick = function(state, current, time, ent)
 			return ent:IsPlayer() and ent:KeyDown(IN_WALK) and -1 or 1, current
@@ -800,7 +835,7 @@ local skills = {
 		Each stack gives 100%% more coins and XP, \z
 		but stacks decay at a rate of %.2f/s plus an additional %.2f%%/s.",
 		values = function(level, ent)
-			local decayMult = 1 + ent:InsaneStats_GetEffectiveSkillValues("sick_combo", 2) / 100
+			local decayMult = 1 --+ ent:InsaneStats_GetEffectiveSkillValues("sick_combo", 2) / 100
 			return level * 0.2,
 			level * -0.2 * decayMult,
 			-0.1 * decayMult
@@ -878,21 +913,17 @@ local skills = {
 			local baseMult = ent:IsPlayer() and 1 or InsaneStats:GetConVarValue("infhealth_armor_mul")
 			local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and ent:InsaneStats_GetLevel() or 1
 
-			local value1 = InsaneStats:ScaleValueToLevelQuadratic(
+			local value1 = InsaneStats:ScaleValueToLevel(
 				level/100,
 				InsaneStats:GetConVarValue("xp_"..scaleType.."_health")/100,
 				effectiveLevel,
-				"xp_"..scaleType.."_health_mode",
-				false,
-				InsaneStats:GetConVarValue("xp_"..scaleType.."_health_add")/100
+				"xp_"..scaleType.."_health_mode"
 			)
-			local value2 = InsaneStats:ScaleValueToLevelQuadratic(
+			local value2 = InsaneStats:ScaleValueToLevel(
 				level/100*baseMult,
 				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
 				effectiveLevel,
-				"xp_"..scaleType.."_armor_mode",
-				false,
-				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor_add")/100
+				"xp_"..scaleType.."_armor_mode"
 			)
 
 			return CLIENT and InsaneStats:FormatNumber(value1), CLIENT and InsaneStats:FormatNumber(value2),
@@ -958,9 +989,24 @@ local skills = {
 			end
 			return slowWalkKey, -25 - level * 25, -100 + level * 200, -100 + level * 200
 		end,
-		stackTick = function(state, current, time, ent)
-			local nextStacks = math.max(current - time, 0)
-			return state < 0 and current <= 0 and 0 or state, nextStacks
+		stackTick = function(state, stacks, time, ent)
+			if state == 1 then
+				stacks = stacks - time
+				if stacks < 0 then
+					state = -1
+					stacks = stacks + 60
+					time = 0
+				end
+			end
+			if state < 0 then
+				stacks = stacks - time
+				if stacks <= 0 then
+					stacks = 0
+					state = 0
+				end
+			end
+
+			return state, stacks
 		end,
 		img = "sands-of-time",
 		pos = {1, 4},
@@ -981,9 +1027,24 @@ local skills = {
 			end
 			return slowWalkKey, level * 50, level * -40
 		end,
-		stackTick = function(state, current, time, ent)
-			local nextStacks = math.max(current - time, 0)
-			return state < 0 and current <= 0 and 0 or state, nextStacks
+		stackTick = function(state, stacks, time, ent)
+			if state == 1 then
+				stacks = stacks - time
+				if stacks < 0 then
+					state = -1
+					stacks = stacks + 60
+					time = 0
+				end
+			end
+			if state < 0 then
+				stacks = stacks - time
+				if stacks <= 0 then
+					stacks = 0
+					state = 0
+				end
+			end
+
+			return state, stacks
 		end,
 		img = "anthem",
 		pos = {1, 4},
@@ -1205,9 +1266,24 @@ local skills = {
 			local text2 = " and another that is invincible and explodes after 3 to 5 seconds randomly"
 			return level * 200, 180 - level * 60, level > 1 and text2 or ""
 		end,
-		stackTick = function(state, current, time, ent)
-			local nextStacks = math.max(current - time, 0)
-			return state < 0 and current <= 0 and 0 or state, nextStacks
+		stackTick = function(state, stacks, time, ent)
+			if state == 1 then
+				stacks = stacks - time
+				if stacks < 0 then
+					state = -1
+					stacks = stacks + ent:InsaneStats_GetEffectiveSkillValues("anger", 2)
+					time = 0
+				end
+			end
+			if state < 0 then
+				stacks = stacks - time
+				if stacks <= 0 then
+					stacks = 0
+					state = 0
+				end
+			end
+
+			return state, stacks
 		end,
 		img = "snake-bite",
 		pos = {-1, -4},
@@ -1261,12 +1337,11 @@ local skills = {
 		name = "Sick Combo",
 		desc = "On kill, gain +%.1f stack(s) of Sick Combo and extend its duration by 3 seconds. \z
 		Picking up any item will also extend the duration by half the amount. \z
-		Each stack gives 1%% more Multi Killer stacks, coins and XP, but \z
+		Each stack gives 1%% more coins and XP, but \z
 		duration is limited to a maximum of 60 seconds! \z
-		Also, Multi Killer stacks decay +%u%% faster.",
-		-- stacks are limited to the number of skill points gained in total and \z
+		Also, every power of %u Sick Combo stacks grant +100%% more kill skill retriggers on kill!",
 		values = function(level)
-			return level/5, level * 20
+			return level/5, 5
 		end,
 		img = "poker-hand",
 		pos = {5, -3},
@@ -1327,13 +1402,11 @@ local skills = {
 			local scaleType = ent:IsPlayer() and "player" or "other"
 			local baseMult = ent:IsPlayer() and 1 or InsaneStats:GetConVarValue("infhealth_armor_mul")
 			local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and ent:InsaneStats_GetLevel() or 1
-			local val = InsaneStats:ScaleValueToLevelQuadratic(
+			local val = InsaneStats:ScaleValueToLevel(
 				baseMult,
 				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
 				effectiveLevel,
-				"xp_"..scaleType.."_armor_mode",
-				false,
-				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor_add")/100
+				"xp_"..scaleType.."_armor_mode"
 			)
 
 			return 0.5 + level/20, level/-50, CLIENT and InsaneStats:FormatNumber(val), level*5, val
@@ -1401,13 +1474,11 @@ local skills = {
 			local scaleType = ent:IsPlayer() and "player" or "other"
 			local baseMult = ent:IsPlayer() and 1 or InsaneStats:GetConVarValue("infhealth_armor_mul")
 			local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and ent:InsaneStats_GetLevel() or 1
-			local val = InsaneStats:ScaleValueToLevelQuadratic(
+			local val = InsaneStats:ScaleValueToLevel(
 				baseMult,
 				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
 				effectiveLevel,
-				"xp_"..scaleType.."_armor_mode",
-				false,
-				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor_add")/100
+				"xp_"..scaleType.."_armor_mode"
 			)
 
 			return level*10, level/50, 20, CLIENT and InsaneStats:FormatNumber(val), val
@@ -1489,7 +1560,7 @@ local skills = {
 	-- distance 9
 	hateful = {
 		name = "Hateful",
-		desc = "On crit, add +%u stack(s) of Hurtful Defence Down to the victim for 10 seconds, \z
+		desc = "On crit, add +%u stack(s) of Stacking Defence Down to the victim for 10 seconds, \z
 		increasing damage taken by 1%% per stack!",
 		values = function(level)
 			return level
@@ -1928,7 +1999,8 @@ local statusEffects = {
 	skill_bleed = {
 		name = "Bleeding",
 		typ = -1,
-		img = "droplets"
+		img = "droplets",
+		overtime = true,
 	},
 	charge = {
 		name = "Charge!",

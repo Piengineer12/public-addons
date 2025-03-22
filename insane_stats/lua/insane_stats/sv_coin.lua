@@ -54,13 +54,11 @@ hook.Add("InsaneStatsEntityKilledPostXP", "InsaneStatsCoins", function(victim, a
 			local startingHealth = victim:InsaneStats_GetMaxHealth() / currentHealthAdd
 			value = startingHealth * math.random() / 16 * mul
 			if InsaneStats:GetConVarValue("xp_enabled") then
-				value = InsaneStats:ScaleValueToLevelQuadratic(
+				value = InsaneStats:ScaleValueToLevel(
 					value,
 					InsaneStats:GetConVarValue("coins_level_add")/100,
 					victim:InsaneStats_GetLevel(),
-					"coins_level_add_mode",
-					false,
-					InsaneStats:GetConVarValue("coins_level_add_add")/100
+					"coins_level_add_mode"
 				)
 			end
 		end
@@ -93,13 +91,11 @@ hook.Add("InsaneStatsPropBroke", "InsaneStatsCoins", function(victim, attacker)
 		local startingHealth = victim:InsaneStats_GetMaxHealth() / currentHealthAdd
 		local value = startingHealth * math.random() / 16 * mul
 		if InsaneStats:GetConVarValue("xp_enabled") then
-			value = InsaneStats:ScaleValueToLevelQuadratic(
+			value = InsaneStats:ScaleValueToLevel(
 				value,
 				InsaneStats:GetConVarValue("coins_level_add")/100,
 				victim:InsaneStats_GetLevel(),
-				"coins_level_add_mode",
-				false,
-				InsaneStats:GetConVarValue("coins_level_add_add")/100
+				"coins_level_add_mode"
 			)
 		end
 		
