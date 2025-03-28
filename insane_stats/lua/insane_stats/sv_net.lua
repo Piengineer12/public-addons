@@ -23,7 +23,7 @@ function ENT:InsaneStats_DamageNumber(attacker, damage, types, hitgroup, wasHeal
 		local entIndex = self:EntIndex()
 		
 		damageInfosRequireUpdate[entIndex] = damageInfosRequireUpdate[entIndex]
-			or {damage = 0, types = 0, flags = 0, hitgroup = 10, position = self:LocalToWorld(self:OBBCenter())}
+			or {damage = 0, types = 0, flags = 0, hitgroup = 10, position = self:WorldSpaceCenter()}
 		
 		local currentDamageInfo = damageInfosRequireUpdate[entIndex]
 		currentDamageInfo.attacker = IsValid(attacker) and attacker or currentDamageInfo.attacker

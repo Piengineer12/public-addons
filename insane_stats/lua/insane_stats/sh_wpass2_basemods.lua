@@ -278,16 +278,6 @@ local modifiers = {
 			},
 			weight = 0.5
 		},
-		unreal = {
-			prefix = "Unreal",
-			suffix = "Unreality",
-			modifiers = {
-				aimbot = 1.1,
-				nonbullet_damage = 1.1
-			},
-			weight = 0.5,
-			max = math.log(2, 1.1)
-		},
 		celestial = {
 			prefix = "Celestial",
 			suffix = "Celestiality",
@@ -349,6 +339,17 @@ local modifiers = {
 	},
 	
 	{-- damage, half weight doubled cost
+		unreal = {
+			prefix = "Unreal",
+			suffix = "Unreality",
+			modifiers = {
+				aimbot = 1.21,
+				nonbullet_damage = 1.21
+			},
+			weight = 0.5,
+			cost = 2,
+			max = math.log(2, 1.21)
+		},
 		ranged = {
 			prefix = "Ranged",
 			suffix = "Range",
@@ -653,14 +654,6 @@ local modifiers = {
 			weight = 2,
 			flags = InsaneStats.WPASS2_FLAGS.XP
 		},
-		chaining = {
-			prefix = "Chaining",
-			modifiers = {
-				kill10s_xp = 1.1
-			},
-			weight = 2,
-			flags = InsaneStats.WPASS2_FLAGS.XP
-		},
 	},
 	
 	{-- damage utility, doubled weight doubled cost
@@ -687,6 +680,13 @@ local modifiers = {
 	},
 	
 	{-- damage utility
+		chaining = {
+			prefix = "Chaining",
+			modifiers = {
+				kill10s_xp = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.XP
+		},
 		bolster = {
 			prefix = "Bolstering",
 			modifiers = {
@@ -1334,17 +1334,6 @@ local modifiers = {
 	},
 	
 	{-- defensive, half weight
-		dodge = {
-			prefix = "Dodgy",
-			suffix = "Dodging",
-			modifiers = {
-				dodge = 1/1.1,
-				dissolvewarning = 1.1
-			},
-			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-			weight = 0.5,
-			max = 5
-		},
 		dampening = {
 			prefix = "Dampening",
 			modifiers = {
@@ -1357,16 +1346,6 @@ local modifiers = {
 			prefix = "Menacing",
 			modifiers = {
 				shortrange_damagetaken = 1/1.21
-			},
-			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-			weight = 0.5
-		},
-		hard = {
-			prefix = "Hard",
-			suffix = "Hardness",
-			modifiers = {
-				mark = 1.1,
-				killstackmarked_defence = 1.1
 			},
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			weight = 0.5
@@ -1401,29 +1380,6 @@ local modifiers = {
 			max = CalculateLimit(2, 1/1.1),
 			weight = 0.5
 		},
-		bloodletting = {
-			prefix = "Bloodletting",
-			modifiers = {
-				bloodletting = 1.02,
-				armor_full = 1.02,
-				armor_full2 = 1.02
-			},
-			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-			weight = 0.5,
-			max = 25
-		},
-		glutton = {
-			prefix = "Gluttony",
-			modifiers = {
-				armor_fullpickup = 1.1,
-				charger_fullpickup = 1.1,
-				armor_full = 1.1,
-				armor_full2 = 1.1
-			},
-			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-			weight = 0.5,
-			max = math.log(2, 1.1)
-		},
 		ward = {
 			prefix = "Warding",
 			modifiers = {
@@ -1431,18 +1387,6 @@ local modifiers = {
 			},
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			weight = 0.5
-		},
-		sharp = {
-			prefix = "Sharp",
-			suffix = "Sharpness",
-			modifiers = {
-				hittaken_invincible = 1.1,
-				hittaken_invincible_meleebreak = 1.1,
-				dissolvewarning = 1.1
-			},
-			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-			weight = 0.5,
-			max = 1
 		},
 		ignorant = {
 			prefix = "Ignorant",
@@ -1481,25 +1425,6 @@ local modifiers = {
 			weight = 0.5,
 			max = CalculateLimit(2, 1/1.1)
 		},
-		bloodbath = {
-			prefix = "Bloodbathing",
-			modifiers = {
-				crit_lifesteal = 1.21
-			},
-			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-			max = 10,
-			weight = 0.5
-		},
-		sap = {
-			prefix = "Sapping",
-			modifiers = {
-				crit_armorsteal = 1.21,
-				armor_full = 1.1,
-				armor_full2 = 1.1
-			},
-			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
-			weight = 0.5
-		},
 		awful = {
 			prefix = "Awful",
 			suffix = "Awfulness",
@@ -1532,6 +1457,88 @@ local modifiers = {
 	},
 	
 	{-- defensive, half weight doubled cost
+		hard = {
+			prefix = "Hard",
+			suffix = "Hardness",
+			modifiers = {
+				mark = 1.21,
+				killstackmarked_defence = 1.21
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			cost = 2,
+			weight = 0.5
+		},
+		bloodletting = {
+			prefix = "Bloodletting",
+			modifiers = {
+				bloodletting = math.sqrt(1.1),
+				armor_full = math.sqrt(1.1),
+				armor_full2 = math.sqrt(1.1)
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			cost = 2,
+			max = 25
+		},
+		glutton = {
+			prefix = "Gluttony",
+			modifiers = {
+				armor_fullpickup = 1.21,
+				charger_fullpickup = 1.21,
+				armor_full = 1.21,
+				armor_full2 = 1.21
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			cost = 2,
+			max = math.log(2, 1.21)
+		},
+		sharp = {
+			prefix = "Sharp",
+			suffix = "Sharpness",
+			modifiers = {
+				hittaken_invincible = 1.1,
+				hittaken_invincible_meleebreak = 1.1,
+				dissolvewarning = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			cost = 2,
+			max = 1
+		},
+		bloodbath = {
+			prefix = "Bloodbathing",
+			modifiers = {
+				crit_lifesteal = 1.4641
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			cost = 2,
+			max = 10,
+			weight = 0.5
+		},
+		sap = {
+			prefix = "Sapping",
+			modifiers = {
+				crit_armorsteal = 1.4641,
+				armor_full = 1.4641,
+				armor_full2 = 1.4641
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			cost = 2,
+			weight = 0.5
+		},
+		dodge = {
+			prefix = "Dodgy",
+			suffix = "Dodging",
+			modifiers = {
+				dodge = 1/1.21,
+				dissolvewarning = 1.21
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			cost = 2,
+			max = 5
+		},
 		revital = {
 			prefix = "Revitalizing",
 			suffix = "Revitalization",
@@ -1567,17 +1574,6 @@ local modifiers = {
 	},
 	
 	{-- defensive, negative cost
-		tiny = {
-			prefix = "Tiny",
-			suffix = "Tinyness",
-			modifiers = {
-				knockbacktaken = 1.4641,
-				self_knockbacktaken = 1/1.4641
-			},
-			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.KNOCKBACK),
-			cost = -2,
-			max = 10
-		},
 		unhappy = {
 			prefix = "Unhappy",
 			suffix = "Unhappiness",
@@ -1618,6 +1614,17 @@ local modifiers = {
 	},
 	
 	{-- defensive, negative doubled cost
+		tiny = {
+			prefix = "Tiny",
+			suffix = "Tinyness",
+			modifiers = {
+				knockbacktaken = 1.4641,
+				self_knockbacktaken = 1/1.4641
+			},
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.KNOCKBACK),
+			cost = -2,
+			max = 10
+		},
 		unreliable = {
 			prefix = "Unreliable",
 			suffix = "Unreliability",
@@ -1702,18 +1709,6 @@ local modifiers = {
 			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP)
 		},
 	},
-
-	--[[ retired
-	point = {
-		prefix = "Pointy",
-		suffix = "Pointiness",
-		modifiers = {
-			lowhealth_victim_melee_damage = 1.1
-		},
-		weight = 0.5,
-		flags = InsaneStats.WPASS2_FLAGS.ARMOR
-	},
-	]]
 }
 
 local attributes = {
@@ -3311,6 +3306,16 @@ hook.Add("StartCommand", "InsaneStatsSharedWPASS2", function(ply, usercmd)
 			usercmd:RemoveKey(IN_RELOAD)
 		end
 	end
+
+	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
+		if ply:InsaneStats_GetSkillState("fight_for_your_life") == 1 then
+			local newbuttons = bit.bor(IN_DUCK, bit.band(
+				usercmd:GetButtons(),
+				bit.bnot(bit.bor(IN_JUMP, IN_SPEED))
+			))
+			usercmd:SetButtons(newbuttons)
+		end
+	end
 end)
 
 local traceOutput = {}
@@ -3318,16 +3323,134 @@ local teleportTraceData = {
 	mask = MASK_NPCSOLID,
 	output = traceOutput
 }
-hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd)
+
+local shouldAddBullets = true
+local commonTraceData = {
+	mask = MASK_SHOT
+}
+hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data)
 	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
-		if ply:InsaneStats_GetSkillState("fight_for_your_life") == 1 then
-			local newbuttons = bit.bor(IN_DUCK, bit.band(
-				movedata:GetButtons(),
-				bit.bnot(bit.bor(IN_JUMP, IN_SPEED))
-			))
-			movedata:SetButtons(newbuttons)
+		if shouldAddBullets then
+			local newNum = data.Num * attacker:InsaneStats_GetAttributeValue("bullets")
+			if data.AmmoType == "Pistol" or data.AmmoType == "357" then
+				newNum = newNum * (1 + attacker:InsaneStats_GetEffectiveSkillValues("one_with_the_gun", 3) / 100)
+			end
+
+			data.Num = ((math.random() < newNum % 1) and math.ceil or math.floor)(newNum)
+			if data.Num <= 0 then return false end
 		end
-		if movedata:KeyPressed(IN_WALK) then
+
+		local spreadMult = attacker:InsaneStats_GetAttributeValue("spread")
+
+		spreadMult = spreadMult * (1 + attacker:InsaneStats_GetEffectiveSkillValues("stabilization") / 100)
+		spreadMult = spreadMult / (1 + attacker:InsaneStats_GetStatusEffectLevel("accuracy_up") / 100)
+		if data.AmmoType == "Pistol" or data.AmmoType == "357" then
+			spreadMult = spreadMult * (1 + attacker:InsaneStats_GetEffectiveSkillValues("one_with_the_gun", 2) / 100)
+		end
+		
+		data.Spread:Mul(spreadMult)
+
+		local developer = InsaneStats:IsDebugLevel(1)
+		local penetrationPower = attacker:InsaneStats_GetAttributeValue("penetrate") - 1
+		if attacker:InsaneStats_GetSkillState("silver_bullets") == 1 then
+			penetrationPower = penetrationPower + attacker:InsaneStats_GetEffectiveSkillValues("silver_bullets", 4)
+		end
+		if penetrationPower > 0 then
+			-- FIXME: in some cases, bullet penetration will incorrectly pierce
+			-- hollow objects as if they were completely solid
+			local oldCallback = data.Callback
+			local newBullet = {
+				Force = data.Force,
+				Distance = math.min(data.Distance or 56756, 56756),
+				HullSize = data.HullSize,
+				Num = 1,
+				Tracer = data.Tracer,
+				AmmoType = data.AmmoType,
+				TracerName = data.TracerName,
+				Dir = data.Dir
+			}
+			data.Callback = function(attacker, trace, dmginfo, ...)
+				if oldCallback then
+					oldCallback(attacker, trace, dmginfo, ...)
+				end
+
+				if trace.Hit then
+					-- make a new trace that is in the entity but ignores it
+					local constPush = 1
+					commonTraceData.start = trace.HitPos + data.Dir * constPush
+					commonTraceData.endpos = data.Dir * penetrationPower
+					commonTraceData.endpos:Add(commonTraceData.start)
+					if trace.HitNonWorld then
+						-- line traces will always hit immediately if the trace started in an entity
+						-- so the hit entity needs to be ignored, but this is the direct cause of the
+						-- FIXME above
+						commonTraceData.filter = trace.Entity
+					else
+						-- this is so that two walls side-by-side will not be counted
+						-- as if the gap between them is solid
+						commonTraceData.filter = nil
+					end
+					if developer then
+						debugoverlay.Cross(commonTraceData.start, 5, 10, color_red, true)
+						debugoverlay.Cross(commonTraceData.endpos, 6, 10, color_green, true)
+					end
+					local lastTraceResults = util.TraceLine(commonTraceData)
+
+					if lastTraceResults.Hit or SERVER and util.IsInWorld(lastTraceResults.HitPos) then
+						if developer then
+							debugoverlay.Cross(lastTraceResults.HitPos, 7, 10, color_yellow, true)
+							debugoverlay.Text(
+								lastTraceResults.HitPos,
+								tostring(lastTraceResults.Entity)..", "..lastTraceResults.FractionLeftSolid,
+								10
+							)
+						end
+
+						local wallThickness
+						if lastTraceResults.FractionLeftSolid > 0 then
+							wallThickness = constPush + penetrationPower * lastTraceResults.FractionLeftSolid
+						else
+							-- determine thickness of the penetrated object by making a reverse trace
+							wallThickness = constPush + penetrationPower * lastTraceResults.Fraction
+							-- wallThickness is currently the length of the original penetration trace
+							commonTraceData.start = lastTraceResults.HitPos
+							commonTraceData.endpos = trace.HitPos
+							if lastTraceResults.HitNonWorld then
+								commonTraceData.filter = lastTraceResults.Entity
+							else
+								commonTraceData.filter = nil
+							end
+							--debugoverlay.Line(commonTraceData.start, commonTraceData.endpos, 5, color_red, true)
+							lastTraceResults = util.TraceLine(commonTraceData)
+							wallThickness = wallThickness * (1 - lastTraceResults.Fraction)
+						end
+
+						if wallThickness > constPush and wallThickness < penetrationPower then
+							local powerMult = 1 - wallThickness / penetrationPower
+							-- create a new bullet that doesn't travel as far and deals less damage
+							newBullet.Force = newBullet.Force * powerMult
+							newBullet.Distance = newBullet.Distance * powerMult
+							newBullet.Damage = dmginfo:GetDamage() * powerMult
+							newBullet.Src = trace.HitPos + data.Dir * (wallThickness + constPush)
+							--debugoverlay.Line(trace.HitPos, newBullet.Src, 5, color_aqua, true)
+							debugoverlay.Cross(newBullet.Src, 8, 10, color_white, true)
+
+							shouldAddBullets = false
+							attacker:FireBullets(newBullet, true)
+							shouldAddBullets = true
+						end
+					end
+				end
+			end
+		end
+	end
+end)
+
+hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
+	-- FIXME: this causes prediction errors!
+	if (InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled"))
+	and (IsFirstTimePredicted() or game.SinglePlayer()) then
+		if key == IN_WALK then
 			if (ply:InsaneStats_GetEntityData("last_alt_press") or 0) + 0.5 > RealTime() then
 				ply:InsaneStats_SetEntityData("last_alt_press", 0)
 				
@@ -3417,7 +3540,7 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 									bestDistSqr = distSqr
 								end
 							end
-	
+
 							if closestFFOPlayer == ply then
 								local maxSqrDist = ply:InsaneStats_GetEffectiveSkillValues("friendly_fire_off", 3)
 								maxSqrDist = maxSqrDist * maxSqrDist
@@ -3454,240 +3577,121 @@ hook.Add("SetupMove", "InsaneStatsSharedWPASS2", function(ply, movedata, usercmd
 				ply:InsaneStats_SetEntityData("last_alt_press", RealTime())
 			end
 		end
-		if movedata:KeyPressed(IN_DUCK) then
+		if key == IN_DUCK then
 			if (ply:InsaneStats_GetEntityData("last_duck_press") or 0) + 0.5 > RealTime() then
 				ply:InsaneStats_SetEntityData("last_duck_press", 0)
+				local oldVel = ply:GetVelocity()
 				if not ply:OnGround() and ply:InsaneStats_EffectivelyHasSkill("mantreads")
-				and movedata:GetVelocity().z > -3400 then
-					movedata:SetVelocity(vector_up * -10000)
+				and oldVel.z > -10000 then
+					ply:SetVelocity(vector_up * -10000 - oldVel)
 				end
 			else
 				ply:InsaneStats_SetEntityData("last_duck_press", RealTime())
 			end
 		end
-		local currentWep = ply:GetActiveWeapon()
-		if movedata:KeyDown(IN_RELOAD) and ply:InsaneStats_GetSkillState("one_with_the_gun") == 1
-		and (IsValid(currentWep) and currentWep:GetClass() == "weapon_physcannon") then
-			ply:InsaneStats_SetSkillData("one_with_the_gun", 0, 0)
-
-			ply:FireBullets({
-				Damage = 4,
-				Callback = function(attacker, trace, dmginfo)
-					dmginfo:SetDamageType(DMG_CLUB)
-
-					local outputs = trace.Entity.insaneStats_PhysGunOutputs or {}
-					for i,v in ipairs(outputs) do
-						local entities = v.entities
-						local times = v.times
-
-						if times ~= 0 then
-							local entitiesToFire = {}
-						
-							if entities == "!activator" then
-								entitiesToFire = {attacker}
-							elseif entities == "!self" then
-								entitiesToFire = {trace.Entity}
-							elseif entities == "!player" then
-								entitiesToFire = player.GetAll()
-							else
-								entitiesToFire = ents.FindByName(entities)
-							end
-						
-							for _, ent in ipairs(entitiesToFire) do
-								ent:Fire(v.input, v.param, v.delay, attacker, trace.Entity)
-							end
-						
-							if times > 0 then
-								v.times = times - 1
-							end
-						end
-					end
-				end,
-				AmmoType = "GaussEnergy",
-				TracerName = "GunshipImpact",
-				Dir = ply:GetAimVector(),
-				Src = ply:GetShootPos()
-			})
-		end
-		if ply:OnGround() then
-			ply:InsaneStats_ClearStatusEffect("air_jumped")
-			if ply:InsaneStats_GetSkillState("jumper") ~= 0 and ply:InsaneStats_EffectivelyHasSkill("jumper") then
-				ply:InsaneStats_SetSkillData("jumper", 0, ply:InsaneStats_GetEffectiveSkillValues("jumper"))
-			end
-		else
-			if ply:InsaneStats_GetSkillState("jumper") == 0 and ply:InsaneStats_EffectivelyHasSkill("jumper") then
-				ply:InsaneStats_SetSkillData("jumper", 1, ply:InsaneStats_GetEffectiveSkillValues("jumper"))
-			end
-			if movedata:KeyPressed(IN_JUMP) then
-				local canWPASS2Jump = ply:InsaneStats_GetStatusEffectLevel("air_jumped") + 1 < ply:InsaneStats_GetAttributeValue("jumps")
-				local canSkillJump = ply:InsaneStats_GetSkillStacks("jumper") > 0
-				if canWPASS2Jump or canSkillJump then
-					if canSkillJump then
-						local newStacks = ply:InsaneStats_GetSkillStacks("jumper") - 1
-						ply:InsaneStats_SetSkillData("jumper", newStacks <= 0 and -1 or 1, newStacks)
-					elseif canWPASS2Jump then
-						ply:InsaneStats_ApplyStatusEffect("air_jumped", 1, 5, {amplify = true})
-					end
-
-					-- vertical
-					local currentVel = movedata:GetVelocity()
-					local jumppower = ply:GetJumpPower() -- - currentVel.z
-					local desiredVector = vector_up * jumppower
-					
-					-- horizontal
-					local horizontalVector = Vector(currentVel.x, currentVel.y, 0)
-					local buttons = usercmd:GetButtons()
-					local shuntStrength = (bit.band(buttons,IN_SPEED)~=0 and ply:GetRunSpeed() or ply:GetWalkSpeed())
-					local Forward = (bit.band(buttons,IN_FORWARD)~=0 and 1 or 0) + (bit.band(buttons,IN_BACK)~=0 and -1 or 0)
-					if Forward~=0 then
-						horizontalVector:Add(ply:GetForward() * shuntStrength * Forward)
-					end
-					local Right = (bit.band(buttons,IN_MOVERIGHT)~=0 and 1 or 0) + (bit.band(buttons,IN_MOVELEFT)~=0 and -1 or 0)
-					if Right~=0 then
-						horizontalVector:Add(ply:GetRight() * shuntStrength * Right)
-					end
-					local maxSpeed = movedata:GetMaxSpeed() * 1.5
-					if horizontalVector:LengthSqr() > maxSpeed^2 then
-						horizontalVector:Normalize()
-						horizontalVector:Mul(maxSpeed)
-					end
-
-					desiredVector:Add(horizontalVector)
-					movedata:SetVelocity(desiredVector)
-				end
-			end
-		end
-	end
-end)
-
-local shouldAddBullets = true
-local commonTraceData = {
-	mask = MASK_SHOT
-}
-hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data)
-	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
-		if shouldAddBullets then
-			local newNum = data.Num * attacker:InsaneStats_GetAttributeValue("bullets")
-			if data.AmmoType == "Pistol" or data.AmmoType == "357" then
-				newNum = newNum * (1 + attacker:InsaneStats_GetEffectiveSkillValues("one_with_the_gun", 3) / 100)
-			end
-
-			data.Num = ((math.random() < newNum % 1) and math.ceil or math.floor)(newNum)
-			if data.Num <= 0 then return false end
-		end
-
-		local spreadMult = attacker:InsaneStats_GetAttributeValue("spread")
-
-		spreadMult = spreadMult * (1 + attacker:InsaneStats_GetEffectiveSkillValues("stabilization") / 100)
-		spreadMult = spreadMult / (1 + attacker:InsaneStats_GetStatusEffectLevel("accuracy_up") / 100)
-		if data.AmmoType == "Pistol" or data.AmmoType == "357" then
-			spreadMult = spreadMult * (1 + attacker:InsaneStats_GetEffectiveSkillValues("one_with_the_gun", 2) / 100)
-		end
-		
-		data.Spread:Mul(spreadMult)
-
-		local developer = InsaneStats:IsDebugLevel(1)
-		local penetrationPower = attacker:InsaneStats_GetAttributeValue("penetrate") - 1
-		if attacker:InsaneStats_GetSkillState("silver_bullets") == 1 then
-			penetrationPower = penetrationPower + attacker:InsaneStats_GetEffectiveSkillValues("silver_bullets", 4)
-		end
-		if penetrationPower > 0 then
-			-- FIXME: in some cases, bullet penetration will incorrectly pierce
-			-- hollow objects as if they were completely solid
-			local oldCallback = data.Callback
-			local newBullet = {
-				Force = data.Force,
-				Distance = data.Distance,
-				HullSize = data.HullSize,
-				Num = 1,
-				Tracer = data.Tracer,
-				AmmoType = data.AmmoType,
-				TracerName = data.TracerName,
-				Dir = data.Dir
-			}
-			data.Callback = function(attacker, trace, dmginfo, ...)
-				if oldCallback then
-					oldCallback(attacker, trace, dmginfo, ...)
+		if key == IN_JUMP and not ply:InsaneStats_GetEntityData("air_jumped_negate") then
+			local canWPASS2Jump = ply:InsaneStats_GetStatusEffectLevel("air_jumped") + 1 < ply:InsaneStats_GetAttributeValue("jumps")
+			local canSkillJump = ply:InsaneStats_GetSkillStacks("jumper") > 0
+			if canWPASS2Jump or canSkillJump then
+				if canSkillJump then
+					local newStacks = ply:InsaneStats_GetSkillStacks("jumper") - 1
+					ply:InsaneStats_SetSkillData("jumper", newStacks <= 0 and -1 or 1, newStacks)
+				elseif canWPASS2Jump then
+					ply:InsaneStats_ApplyStatusEffect("air_jumped", 1, 5, {amplify = true})
 				end
 
-				if trace.Hit then
-					-- make a new trace that is in the entity but ignores it
-					local constPush = 1
-					commonTraceData.start = trace.HitPos + data.Dir * constPush
-					commonTraceData.endpos = data.Dir * penetrationPower
-					commonTraceData.endpos:Add(commonTraceData.start)
-					if trace.HitNonWorld then
-						-- line traces will always hit immediately if the trace started in an entity
-						-- so the hit entity needs to be ignored, but this is the direct cause of the
-						-- FIXME above
-						commonTraceData.filter = trace.Entity
-					else
-						-- this is so that two walls side-by-side will not be counted
-						-- as if the gap between them is solid
-						commonTraceData.filter = nil
-					end
-					if developer then
-						debugoverlay.Cross(commonTraceData.start, 5, 10, color_red, true)
-						debugoverlay.Cross(commonTraceData.endpos, 6, 10, color_green, true)
-					end
-					local lastTraceResults = util.TraceLine(commonTraceData)
-
-					if lastTraceResults.Hit or SERVER and util.IsInWorld(lastTraceResults.HitPos) then
-						if developer then
-							debugoverlay.Cross(lastTraceResults.HitPos, 7, 10, color_yellow, true)
-							debugoverlay.Text(
-								lastTraceResults.HitPos,
-								tostring(lastTraceResults.Entity)..", "..lastTraceResults.FractionLeftSolid,
-								10
-							)
-						end
-
-						local wallThickness
-						if lastTraceResults.FractionLeftSolid > 0 then
-							wallThickness = constPush + penetrationPower * lastTraceResults.FractionLeftSolid
-						else
-							-- determine thickness of the penetrated object by making a reverse trace
-							wallThickness = constPush + penetrationPower * lastTraceResults.Fraction
-							-- wallThickness is currently the length of the original penetration trace
-							commonTraceData.start = lastTraceResults.HitPos
-							commonTraceData.endpos = trace.HitPos
-							if lastTraceResults.HitNonWorld then
-								commonTraceData.filter = lastTraceResults.Entity
-							else
-								commonTraceData.filter = nil
-							end
-							--debugoverlay.Line(commonTraceData.start, commonTraceData.endpos, 5, color_red, true)
-							lastTraceResults = util.TraceLine(commonTraceData)
-							wallThickness = wallThickness * (1 - lastTraceResults.Fraction)
-						end
-
-						if wallThickness > constPush and wallThickness < penetrationPower then
-							local powerMult = 1 - wallThickness / penetrationPower
-							-- create a new bullet that doesn't travel as far and deals less damage
-							newBullet.Force = newBullet.Force * powerMult
-							newBullet.Distance = newBullet.Distance * powerMult
-							newBullet.Damage = dmginfo:GetDamage() * powerMult
-							newBullet.Src = trace.HitPos + data.Dir * (wallThickness + constPush)
-							--debugoverlay.Line(trace.HitPos, newBullet.Src, 5, color_aqua, true)
-							debugoverlay.Cross(newBullet.Src, 8, 10, color_white, true)
-
-							shouldAddBullets = false
-							attacker:FireBullets(newBullet, true)
-							shouldAddBullets = true
-						end
-					end
+				-- vertical
+				local currentVel = ply:GetVelocity()
+				
+				-- horizontal
+				local desiredVector = Vector(currentVel.x, currentVel.y, 0)
+				local shuntStrength = (ply:KeyDown(IN_SPEED) and ply:GetRunSpeed() or ply:GetWalkSpeed())
+				local Forward = (ply:KeyDown(IN_FORWARD) and 1 or 0) + (ply:KeyDown(IN_BACK) and -1 or 0)
+				if Forward~=0 then
+					desiredVector:Add(ply:GetForward() * shuntStrength * Forward)
 				end
+				local Right = (ply:KeyDown(IN_MOVERIGHT) and 1 or 0) + (ply:KeyDown(IN_MOVELEFT) and -1 or 0)
+				if Right~=0 then
+					desiredVector:Add(ply:GetRight() * shuntStrength * Right)
+				end
+				local maxSpeed = ply:GetMaxSpeed() * 1.5
+				if desiredVector:LengthSqr() > maxSpeed^2 then
+					desiredVector:Normalize()
+					desiredVector:Mul(maxSpeed)
+				end
+
+				desiredVector:Add(vector_up * ply:GetJumpPower())
+				ply:SetVelocity(desiredVector - currentVel)
 			end
 		end
 	end
 end)
 
 hook.Add("Think", "InsaneStatsSharedWPASS2", function()
-	if SERVER then
-		canPlayPoisonSound = true
-		canPlayFreezeSound = true
-		canPlayBleedSound = true
-		canPlayShockSound = true
+	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
+		if SERVER then
+			canPlayPoisonSound = true
+			canPlayFreezeSound = true
+			canPlayBleedSound = true
+			canPlayShockSound = true
+		end
+
+		for i,ply in player.Iterator() do
+			local currentWep = ply:GetActiveWeapon()
+			if ply:KeyDown(IN_RELOAD) and ply:InsaneStats_GetSkillState("one_with_the_gun") == 1
+			and (IsValid(currentWep) and currentWep:GetClass() == "weapon_physcannon") then
+				ply:InsaneStats_SetSkillData("one_with_the_gun", 0, 0)
+
+				ply:FireBullets({
+					Damage = 4,
+					Callback = function(attacker, trace, dmginfo)
+						dmginfo:SetDamageType(DMG_CLUB)
+
+						local outputs = trace.Entity.insaneStats_PhysGunOutputs or {}
+						for i,v in ipairs(outputs) do
+							local entities = v.entities
+							local times = v.times
+
+							if times ~= 0 then
+								local entitiesToFire = {}
+							
+								if entities == "!activator" then
+									entitiesToFire = {attacker}
+								elseif entities == "!self" then
+									entitiesToFire = {trace.Entity}
+								elseif entities == "!player" then
+									entitiesToFire = player.GetAll()
+								else
+									entitiesToFire = ents.FindByName(entities)
+								end
+							
+								for _, ent in ipairs(entitiesToFire) do
+									ent:Fire(v.input, v.param, v.delay, attacker, trace.Entity)
+								end
+							
+								if times > 0 then
+									v.times = times - 1
+								end
+							end
+						end
+					end,
+					AmmoType = "GaussEnergy",
+					TracerName = "GunshipImpact",
+					Dir = ply:GetAimVector(),
+					Src = ply:GetShootPos()
+				})
+			end
+			if ply:OnGround() then
+				ply:InsaneStats_ClearStatusEffect("air_jumped")
+				ply:InsaneStats_SetEntityData("air_jumped_negate", true)
+				if ply:InsaneStats_GetSkillState("jumper") ~= 0 and ply:InsaneStats_EffectivelyHasSkill("jumper") then
+					ply:InsaneStats_SetSkillData("jumper", 0, ply:InsaneStats_GetEffectiveSkillValues("jumper"))
+				end
+			elseif ply:InsaneStats_GetEntityData("air_jumped_negate") then
+				ply:InsaneStats_SetSkillData("jumper", 1, ply:InsaneStats_GetEffectiveSkillValues("jumper"))
+				ply:InsaneStats_SetEntityData("air_jumped_negate", false)
+			end
+		end
 	end
 end)
 

@@ -590,6 +590,11 @@ end)
 
 hook.Add("PlayerSpawn", "InsaneStatsUnlimitedHealth", function(ply, fromTransition)
 	entities[ply] = true
+
+	local invincibility = InsaneStats:GetConVarValue("infhealth_spawn_invincibility")
+	if invincibility > 0 then
+		ply:InsaneStats_ApplyStatusEffect("invincible", 1, invincibility)
+	end
 end)
 
 hook.Add("EntityKeyValue", "InsaneStatsUnlimitedHealth", function(ent, key, value)

@@ -24,16 +24,23 @@ InsaneStats:RegisterClientConVar("hud_damage_noselfhealing", "insanestats_hud_da
 	display = "Don't Display Self-Heals", desc = "Self-healing numbers are not displayed.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterClientConVar("hud_damage_particle", "insanestats_hud_damage_particle", "0", {
+	display = "Numbers Are Particles", desc = "Makes damage numbers render as bouncy particles. \z
+	If 2, damage and healing received are also rendered as particles.",
+	type = InsaneStats.INT, min = 0, max = 2
+})
 InsaneStats:RegisterClientConVar("hud_damage_lifetime", "insanestats_hud_damage_lifetime", "2", {
 	display = "Damage Life Time", desc = "How long damage numbers appear for.",
 	type = InsaneStats.FLOAT, min = 0, max = 10
 })
 InsaneStats:RegisterClientConVar("hud_damage_stacktime", "insanestats_hud_damage_stacktime", "1", {
-	display = "Damage Stack Time", desc = "Successive damage dealt within this time cumulates into a single number.",
+	display = "Damage Stack Time", desc = "Successive damage dealt within this time cumulates into a single number. \z
+	Only works for non-particle numbers, see the \"insanestats_hud_damage_particle\" ConVar.",
 	type = InsaneStats.FLOAT, min = 0, max = 10
 })
 InsaneStats:RegisterClientConVar("hud_damage_stackresetlife", "insanestats_hud_damage_stackresetlife", "0", {
-	display = "Reset Lifetime When Stacking", desc = "Successive damage dealt can be stacked indefinitely.",
+	display = "Reset Lifetime When Stacking", desc = "Successive damage dealt can be stacked indefinitely. \z
+	Only works for non-particle numbers, see the \"insanestats_hud_damage_particle\" ConVar.",
 	type = InsaneStats.BOOL
 })
 
@@ -88,7 +95,6 @@ InsaneStats:RegisterClientConVar("hud_hp_decimals", "insanestats_hud_hp_decimals
 })
 
 local color_gray = InsaneStats:GetColor("gray")
-local color_dark_red = InsaneStats:GetColor("dark_red")
 local color_red = InsaneStats:GetColor("red")
 local color_orange = InsaneStats:GetColor("orange")
 local color_yellow = InsaneStats:GetColor("yellow")
@@ -100,12 +106,16 @@ local color_sky = InsaneStats:GetColor("sky")
 local color_purple = InsaneStats:GetColor("purple")
 local color_magenta = InsaneStats:GetColor("magenta")
 
+local gammaCVar
 local function LerpColor(t, a, b)
+	gammaCVar = gammaCVar or GetConVar("mat_monitorgamma")
+	local gamma = gammaCVar:GetFloat()
+	local invGamma = 1/gamma
 	return Color(
-		Lerp(t, a.r, b.r),
-		Lerp(t, a.g, b.g),
-		Lerp(t, a.b, b.b),
-		Lerp(t, a.a, b.a)
+		Lerp(t, a.r ^ gamma, b.r ^ gamma) ^ invGamma,
+		Lerp(t, a.g ^ gamma, b.g ^ gamma) ^ invGamma,
+		Lerp(t, a.b ^ gamma, b.b ^ gamma) ^ invGamma,
+		Lerp(t, a.a ^ gamma, b.a ^ gamma) ^ invGamma
 	)
 end
 
@@ -153,12 +163,6 @@ hook.Add("InsaneStatsHUDDamageTaken", "InsaneStatsUnlimitedHealth", function(ent
 						latestEntDamage.time = RealTime()
 						latestEntDamage.origin = position
 					end
-	
-					--[[if latestEntDamage.crit < 1 and hitgroup == 1 then
-						latestEntDamage.crit = 1
-					elseif latestEntDamage.crit < 0 and hitgroup <= 3 then
-						latestEntDamage.crit = 0
-					end]]
 					
 					requireNewAdd = false
 				end
@@ -205,9 +209,6 @@ local function DrawDamageNumber(entityDamageInfo)
 	local offsetY = timeExisted * InsaneStats.FONT_MEDIUM * -2
 	/ math.max(InsaneStats:GetConVarValue("hud_damage_stacktime"), 1)
 	local posY = entityDamageInfo.posY + offsetY
-	
-	-- determine outline color
-	local outlineColor = color_black
 	
 	-- determine number colors
 	local numberColors = {}
@@ -271,7 +272,6 @@ local function DrawDamageNumber(entityDamageInfo)
 	local totalOffsetX = surface.GetTextSize(numberText..suffixText)
 	
 	local textStartX = posX - totalOffsetX / 2
-	local textStartXOutline = textStartX
 	local textDrawColors = {}
 	for chr in string.gmatch(numberText, '.') do
 		local blendFactor = (RealTime() / 2 + offsetX / maxOffsetX) % 1 * #numberColors
@@ -340,6 +340,8 @@ hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 		local scrH = ScrH()
 		local ply = LocalPlayer()
 		local hasSuit = ply:IsSuitEquipped()
+		local plyIndex = ply:EntIndex()
+		--local skipOtherDamageNumbers
 		
 		if InsaneStats:GetConVarValue("hud_damage_enabled") and hasSuit then
 			cam.Start3D()
@@ -347,7 +349,33 @@ hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 				local entriesToDelete = 0
 				
 				for k,entityDamageInfo in pairs(entityDamageNumbers) do
-					if entityDamageInfo.time
+					local shouldBeParticles = InsaneStats:GetConVarValue("hud_damage_particle")
+					shouldBeParticles = shouldBeParticles == 2
+					or shouldBeParticles == 1 and ent ~= plyIndex
+					if shouldBeParticles then
+						local effData = EffectData()
+						local damage = entityDamageInfo.damage
+						if damage < 0 then
+							effData:SetMagnitude(-InsaneStats:CalculateRoot8(-damage))
+						else
+							effData:SetMagnitude(InsaneStats:CalculateRoot8(damage))
+						end
+						effData:SetDamageType(entityDamageInfo.types)
+						local crit = entityDamageInfo.crit
+						local flags = entityDamageInfo.flags
+						effData:SetFlags(bit.bor(
+							crit == 1 and 1 or 0,
+							crit == -1 and 2 or 0,
+							bit.band(flags, 1) ~= 0 and 4 or 0,
+							bit.band(flags, 2) ~= 0 and 8 or 0,
+							bit.band(flags, 4) ~= 0 and 16 or 0
+						))
+						effData:SetScale(InsaneStats:GetConVarValue("hud_damage_lifetime"))
+						effData:SetOrigin(entityDamageInfo.origin)
+						util.Effect("insane_stats_damage_number", effData)
+						entriesToDelete = entriesToDelete + 1
+						--skipOtherDamageNumbers = true
+					elseif entityDamageInfo.time
 					+ InsaneStats:GetConVarValue("hud_damage_lifetime") > RealTime() then
 						entityDamageInfo.posX = nil
 						entityDamageInfo.posY = nil
@@ -370,6 +398,8 @@ hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 						entityDamageNumbers[i] = entityDamageNumbers[i+entriesToDelete]
 					end
 				end
+
+				--if skipOtherDamageNumbers then break end
 				
 				--[[for i=1,entriesToDelete do
 					table.remove(entityDamageNumbers, 1)
@@ -377,7 +407,6 @@ hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 			end
 			cam.End3D()
 			
-			local plyIndex = ply:EntIndex()
 			for ent,entityDamageNumbers in pairs(allDamageNumbers) do
 				if ent ~= plyIndex then
 					for i,entityDamageInfo in ipairs(entityDamageNumbers) do

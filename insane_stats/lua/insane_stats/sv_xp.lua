@@ -87,6 +87,15 @@ concommand.Add("insanestats_xp_other_level_maps_remove", function(ply, cmd, args
 				InsaneStats:Log("Removed map %s.", value)
 			end
 			InsaneStats:Log("Run the command insanestats_save to save the current map list!")
+		elseif argStr == "@" then
+			local toRemove = game.GetMap()
+			local success = table.RemoveByValue(mapOrder, toRemove)
+			if success then
+				InsaneStats:Log("Removed map %s.", toRemove)
+				InsaneStats:Log("Run the command insanestats_save to save the current map list!")
+			else
+				InsaneStats:Log("Could not find map %s.", toRemove)
+			end
 		elseif argStr == "" then
 			InsaneStats:Log("Removes maps from the recorded maps list. * and ? wildcards are allowed. \z
 			If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. \z
@@ -97,6 +106,7 @@ concommand.Add("insanestats_xp_other_level_maps_remove", function(ply, cmd, args
 	end
 end, nil, "Removes maps from the recorded maps list. * and ? wildcards are allowed. \z
 If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. \z
+If @ is given (and no matching map was found), the current map will be removed. \z
 Note that a map restart is required for the map number to be updated.")
 concommand.Add("insanestats_xp_other_level_maps_add", function(ply, cmd, args, argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then

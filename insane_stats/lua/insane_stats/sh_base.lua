@@ -147,7 +147,7 @@ end
 function InsaneStats:CalculateRoot8(num)
 	local tentativeNum = num^0.125
 	
-	-- for some fucking reason 1e+40^0.125 becomes 1e+40 on the non-x64 branch
+	-- for some fucking reason 1e+40^0.125 = 1e+40 on the non-x64 branch
 	if tentativeNum == num then
 		return math.sqrt(math.sqrt(math.sqrt(num)))
 	else return tentativeNum

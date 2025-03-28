@@ -9,6 +9,10 @@ InsaneStats:RegisterConVar("infhealth_knockback", "insanestats_infhealth_knockba
 	If disabled, WPASS2 modifiers that affect knockback will become unobtainable.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterConVar("infhealth_spawn_invincibility", "insanestats_infhealth_spawn_invincibility", "10", {
+	display = "Spawn Invincible Seconds", desc = "Spawned players are given this many seconds of invincibility.",
+	type = InsaneStats.FLOAT, min = 0, max = 10
+})
 InsaneStats:RegisterConVar("infhealth_armor_chance", "insanestats_infhealth_armor_chance", "100", {
 	display = "Armor Chance", desc = "Chance for NPCs to have armor.",
 	type = InsaneStats.FLOAT, min = 0, max = 100

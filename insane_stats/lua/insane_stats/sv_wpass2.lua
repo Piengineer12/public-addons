@@ -889,11 +889,13 @@ end
 
 function ENTITY:InsaneStats_AddHealthCapped(health)
 	local oldHealth = self:InsaneStats_GetHealth()
-	if oldHealth > 0 and oldHealth < self:InsaneStats_GetMaxHealth() then
-		local data = {health = health, ent = self, nerfFactor = 0.5}
-		hook.Run("InsaneStatsWPASS2AddHealth", data)
+	local data = {health = health, ent = self, nerfFactor = 0.5}
+	hook.Run("InsaneStatsWPASS2AddHealth", data)
+	local maxHealTo = self:InsaneStats_GetMaxHealth() * 0.5 / (1 - data.nerfFactor)
+	maxHealTo = maxHealTo < 0 and math.huge or maxHealTo
 
-		local healthAdded = oldHealth < math.huge and math.min(data.health, self:InsaneStats_GetMaxHealth() - oldHealth) or 0
+	if oldHealth > 0 and oldHealth < maxHealTo then
+		local healthAdded = oldHealth < math.huge and math.min(data.health, maxHealTo - oldHealth) or 0
 		if healthAdded ~= 0 then
 			self:SetHealth(oldHealth + healthAdded)
 			hook.Run("InsaneStatsWPASS2AddedHealth", self)
@@ -904,11 +906,13 @@ end
 
 function ENTITY:InsaneStats_AddArmorCapped(armor)
 	local oldArmor = self:InsaneStats_GetArmor()
-	if self:InsaneStats_GetHealth() > 0 and oldArmor < self:InsaneStats_GetMaxArmor() then
-		local data = {armor = armor, ent = self, nerfFactor = 0.5}
-		hook.Run("InsaneStatsWPASS2AddArmor", data)
+	local data = {armor = armor, ent = self, nerfFactor = 0.5}
+	hook.Run("InsaneStatsWPASS2AddArmor", data)
+	local maxHealTo = self:InsaneStats_GetMaxArmor() * 0.5 / (1 - data.nerfFactor)
+	maxHealTo = maxHealTo < 0 and math.huge or maxHealTo
 
-		local armorAdded = oldArmor < math.huge and math.min(data.armor, self:InsaneStats_GetMaxArmor() - oldArmor) or 0
+	if self:InsaneStats_GetHealth() > 0 and oldArmor < maxHealTo then
+		local armorAdded = oldArmor < math.huge and math.min(data.armor, maxHealTo - oldArmor) or 0
 		if armorAdded ~= 0 then
 			self:SetArmor(oldArmor + armorAdded)
 			hook.Run("InsaneStatsWPASS2AddedArmor", self)

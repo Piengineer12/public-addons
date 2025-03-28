@@ -2114,7 +2114,7 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsSkills", function(victim, at
 							"ItemCount",
 							attacker:InsaneStats_GetEffectiveSkillValues("the_bigger_they_are")
 						)
-						crate:SetPos(victim:WorldSpaceCenter())
+						crate:SetPos(victim:GetPos())
 						crate:Spawn()
 						crate:Activate()
 						crate.insaneStats_TempKillSkillTriggerer = triggers - 1
@@ -4661,18 +4661,24 @@ hook.Add("InsaneStatsWPASS2AddHealth", "InsaneStatsWPASS2", function(data)
 	local ent = data.ent
 	data.health = data.health * (1 + ent:InsaneStats_GetEffectiveSkillValues("better_healthcare") / 100)
 	* (1 + ent:InsaneStats_GetSkillStacks("hellish_challenge") / 100)
+	* (1 + ent:InsaneStats_GetSkillStacks("synergy_2") / 100)
+	* (1 + ent:InsaneStats_GetSkillStacks("synergy_3") / 100)
 
 	if ent:InsaneStats_GetStatusEffectLevel("bleed") > 0
 	or ent:InsaneStats_GetStatusEffectLevel("hemotoxin") > 0
 	or ent:InsaneStats_GetStatusEffectLevel("cosmicurse") > 0 then
 		data.health = data.health / 2
 	end
+
+	data.nerfFactor = 0.5 - ent:InsaneStats_GetEffectiveSkillValues("bloodletter_pact", 2) / 200
 end)
 
 hook.Add("InsaneStatsWPASS2AddArmor", "InsaneStatsWPASS2", function(data)
 	local ent = data.ent
 	data.armor = data.armor * (1 + ent:InsaneStats_GetEffectiveSkillValues("better_healthcare") / 100)
 	* (1 + ent:InsaneStats_GetSkillStacks("hellish_challenge") / 100)
+	* (1 + ent:InsaneStats_GetSkillStacks("synergy_2") / 100)
+	* (1 + ent:InsaneStats_GetSkillStacks("synergy_3") / 100)
 
 	if ent:InsaneStats_GetStatusEffectLevel("shock") > 0
 	or ent:InsaneStats_GetStatusEffectLevel("electroblast") > 0
@@ -4680,23 +4686,21 @@ hook.Add("InsaneStatsWPASS2AddArmor", "InsaneStatsWPASS2", function(data)
 		data.armor = data.armor / 2
 	end
 
-	if ent:InsaneStats_EffectivelyHasSkill("hacked_shield") then
-		data.nerfFactor = ent:InsaneStats_GetEffectiveSkillValues("hacked_shield")
-	end
+	data.nerfFactor = 0.5 - ent:InsaneStats_GetEffectiveSkillValues("hacked_shield") / 200
 end)
 
 hook.Add("InsaneStatsWPASS2AddMaxHealth", "InsaneStatsWPASS2", function(data)
 	data.maxHealth = data.maxHealth
-	* (1 + data.ent:InsaneStats_GetSkillStacks("synergy_2") / 100)
-	* (1 + data.ent:InsaneStats_GetSkillStacks("synergy_3") / 100)
 	* (1 + data.ent:InsaneStats_GetEffectiveSkillValues("overheal", 2) / 100)
+	* (1 + data.ent:InsaneStats_GetEffectiveSkillValues("better_healthcare") / 100)
 end)
 
 hook.Add("InsaneStatsWPASS2AddMaxArmor", "InsaneStatsWPASS2", function(data)	
-	data.maxArmor = data.maxArmor
-	* (1 + data.ent:InsaneStats_GetEffectiveSkillValues("overshield", 2) / 100)
-
 	local ent = data.ent
+
+	data.maxArmor = data.maxArmor
+	* (1 + ent:InsaneStats_GetEffectiveSkillValues("overshield", 2) / 100)
+	* (1 + ent:InsaneStats_GetEffectiveSkillValues("better_healthcare") / 100)
 
 	if ent:InsaneStats_GetMaxArmor() > 0 then
 		local splitRatio = ent:InsaneStats_GetEffectiveSkillValues("bastion_of_flesh")/100

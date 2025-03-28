@@ -679,9 +679,13 @@ local skills = {
 	},
 	bloodletter_pact = {
 		name = "Bloodletter's Pact",
-		desc = "Health above %.1f%% is converted into shield. Shield gained this way can exceed max shield, but with diminishing returns.",
+		desc = "Health above %.1f%% is converted into shield. \z
+		Shield gained this way can exceed max shield, but with diminishing returns. \z
+		Also, the softcap and hardcap effects of overhealing are reduced by %.1f%%.",
 		values = function(level, ent)
-			return 100 - level * 2 * (1 + ent:InsaneStats_GetEffectiveSkillValues("bloodletters_revelation", 2) / 100)
+			-- min level above 0: 0.2, max level: 30
+			level = level * (1 + ent:InsaneStats_GetEffectiveSkillValues("bloodletters_revelation", 2) / 100)
+			return 100 - level * 2, -4 * level
 		end,
 		img = "bleeding-heart",
 		pos = {2, 4},
@@ -1394,7 +1398,7 @@ local skills = {
 	},
 	hacked_shield = {
 		name = "Hacked Shield",
-		desc = "Shield gain reduction when shield is above 100%% is a factor of ^%.2f instead of ^0.50, \z
+		desc = "Reduce the softcap and hardcap effects of overcharging the shield by %i%%, \z
 		but getting hit PERMANENTLY reduces maximum shield by %.2f%%! This skill cannot reduce max shield below %s. \z
 		Also, gain +%u%% dodge chance against non-disintegrating damage, \z
 		but this chance is divided by shield %% when shield is above 100%%.",
@@ -1409,7 +1413,7 @@ local skills = {
 				"xp_"..scaleType.."_armor_mode"
 			)
 
-			return 0.5 + level/20, level/-50, CLIENT and InsaneStats:FormatNumber(val), level*5, val
+			return level*-10, level/-50, CLIENT and InsaneStats:FormatNumber(val), level*5, val
 		end,
 		img = "circuitry",
 		pos = {3, 5},
@@ -1788,13 +1792,13 @@ local skills = {
 	},
 	better_healthcare = {
 		name = "Better Healthcare",
-		desc = "%+.0f%% health and shield restoration from skills and modifiers. \z
+		desc = "%+.0f%% health, max health, shield and max shield gains from skills and modifiers. \z
 		Coins and XP gain is also increased by +%.1f%%, \z
 		but this percentage is divided by the number of skill points gained in total \z
 		(+%.1f%% at current total skill points).",
 		values = function(level, ent)
 			local xpBoost = 1000 * level
-			return level * 10, xpBoost, xpBoost / math.max(ent:InsaneStats_GetTotalSkillPoints(), 1)
+			return level * 5, xpBoost, xpBoost / math.max(ent:InsaneStats_GetTotalSkillPoints(), 1)
 		end,
 		img = "crowned-heart",
 		pos = {-5, -4},
@@ -1876,7 +1880,7 @@ local skills = {
 	synergy_2 = {
 		name = "Synergy (Wet)",
 		desc = "Every %s travelled or whenever an item is picked up, gain %+.2f stack(s) of Synergy. \z
-		Each stack increases max health gained from skills and modifiers, coins and XP gained by 1%%, \z
+		Each stack increases health and shield gained from skills and modifiers, coins and XP gained by 1%%, \z
 		but stacks decay at a rate of -0.1%%/s regardless of skills. \z
 		Distance travelled is computed by multiplying speed and time passed.",
 		values = function(level)
@@ -1921,7 +1925,7 @@ local skills = {
 	synergy_3 = {
 		name = "Synergy (Cold)",
 		desc = "Every %s travelled or whenever damage would be taken from a mob, gain %+.2f stack(s) of Synergy. \z
-		Each stack increases max health gained from skills and modifiers, and defence by 1%%, \z
+		Each stack increases health and shield gained from skills and modifiers, and defence by 1%%, \z
 		but stacks decay at a rate of -0.1%%/s regardless of skills. \z
 		Distance travelled is computed by multiplying speed and time passed.",
 		values = function(level)
