@@ -628,6 +628,12 @@ function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 	local modifiersLeveled = 0
 	--local maxModifiersLevel = 0
 	local potentiallyMergableModifiers = {}
+	local wpass2Enabled = InsaneStats:GetConVarValue("wpass2_enabled")
+
+	if self:IsDebugLevel(2) and wpass2Enabled then
+		InsaneStats:Log("Existing modifiers on %s:", tostring(wep))
+		PrintTable(applyModifiers)
+	end
 
 	for k,v in pairs(applyModifiers) do
 		local modifierTable = modifiers[k]
@@ -658,11 +664,11 @@ function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 	modifierProbabilities = mergeReturn[2]
 	modifierCount = modifierCount + mergeReturn[3]
 
-	local wpass2Enabled = InsaneStats:GetConVarValue("wpass2_enabled")
-	if self:IsDebugLevel(2) and wpass2Enabled then
-		InsaneStats:Log("Spending %i points on %s...", points, tostring(wep))
+	if self:IsDebugLevel(1) and wpass2Enabled then
+		InsaneStats:Log("Spending %i points on tier %i %s...", points, wep.insaneStats_Tier, tostring(wep))
+		debug.Trace()
 	end
-	for i=1+modifiersLeveled, 12058+modifiersLeveled do
+	for i=1+modifiersLeveled, 12.058+modifiersLeveled do
 		if points == 0 then break end
 		
 		-- check each entry and figure out which ones are applicable
@@ -671,7 +677,7 @@ function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 			local modifierTable = modifiers[k]
 			local cost = modifierTable.cost or 1
 
-			if (cost < 0 or cost <= points) and v > 0
+			if math.abs(cost) <= math.abs(points) and v > 0
 			and (modifierCount * tiersPerModifier < math.abs(wep.insaneStats_Tier) or applyModifiers[k] and cost >= 0) then
 				currentModifierProbabilities[k] = v
 			end
@@ -682,13 +688,13 @@ function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 				local modifierTable = modifiers[k]
 				local cost = modifierTable.cost or 1
 	
-				if (cost < 0 or cost <= points) and v > 0 then
+				if math.abs(cost) <= math.abs(points) and v > 0 then
 					currentModifierProbabilities[k] = v
 				end
 			end
 		end
 
-		if self:IsDebugLevel(2) and wpass2Enabled then
+		if self:IsDebugLevel(3) and wpass2Enabled then
 			InsaneStats:Log("Possible choices:")
 			PrintTable(currentModifierProbabilities)
 		end
@@ -696,7 +702,7 @@ function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 		if next(currentModifierProbabilities) then
 			local appliedModifier = SelectWeightedRandom(currentModifierProbabilities)
 
-			if self:IsDebugLevel(2) and wpass2Enabled then
+			if self:IsDebugLevel(3) and wpass2Enabled then
 				InsaneStats:Log("Selected %s!", appliedModifier)
 			end
 			local modifierTable = modifiers[appliedModifier]
@@ -725,11 +731,15 @@ function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 				modifierProbabilities = mergeReturn[2]
 				modifierCount = modifierCount + mergeReturn[3]
 			end
+
+			if self:IsDebugLevel(3) and wpass2Enabled then
+				InsaneStats:Log("%i points left!", points)
+			end
 		else
 			break--InsaneStats:Log("Couldn't spend %i points to modify %s further!", points, tostring(wep))
 		end
 	end
-	if self:IsDebugLevel(2) and wpass2Enabled then
+	if self:IsDebugLevel(3) and wpass2Enabled then
 		InsaneStats:Log("%i points left!", points)
 	end
 	
