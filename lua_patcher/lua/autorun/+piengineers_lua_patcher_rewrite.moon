@@ -443,61 +443,61 @@ PatchClasses = ->
 
     new_entity_metatable = {
         GetClass: (...) =>
-			if "[NULL Entity]" == tostring @
+			if NULL == @
 				LogError "Some code attempted to get the class of a NULL entity."
 				"[NULL Entity]"
 			else
                 LUA_PATCHER.unpatched.ENTITY.GetClass @, ...
         SetPos: (...) =>
-			if "[NULL Entity]" == tostring @
+			if NULL == @
 				LogError "Some code attempted to set the position of a NULL entity."
 			else
                 LUA_PATCHER.unpatched.ENTITY.SetPos @, ...
         GetPos: (...) =>
-			if "[NULL Entity]" == tostring @
+			if NULL == @
 				LogError "Some code attempted to get the position of a NULL entity."
                 vector_origin
 			else
                 LUA_PATCHER.unpatched.ENTITY.GetPos @, ...
         SetAngles: (...) =>
-			if "[NULL Entity]" == tostring @
+			if NULL == @
 				LogError "Some code attempted to set the angles of a NULL entity."
 			else
                 LUA_PATCHER.unpatched.ENTITY.SetAngles @, ...
         LookupAttachment: (...) =>
-			if "[NULL Entity]" == tostring @
+			if NULL == @
 				LogError "Some code attempted to lookup an attachment of a NULL entity."
 				-1
 			else
                 LUA_PATCHER.unpatched.ENTITY.LookupAttachment @, ...
         SetColor4Part: (...) =>
-			if "[NULL Entity]" == tostring @
+			if NULL == @
 				LogError "Some code attempted to set the color of a NULL entity."
 			else
 				LUA_PATCHER.unpatched.ENTITY.SetColor4Part @, ...
         GetBoneCount: (...) =>
-			if "[NULL Entity]" == tostring @
+			if NULL == @
 				LogError "Some code attempted to get the number of bones of a NULL entity."
 				0
 			else
                 LUA_PATCHER.unpatched.ENTITY.GetBoneCount @, ...
         Spawn: (...) =>
-			if "[NULL Entity]" == tostring @
+			if NULL == @
 				LogError "Some code attempted to spawn a NULL entity."
 			else
                 LUA_PATCHER.unpatched.ENTITY.Spawn @, ...
         Activate: (...) =>
-			if "[NULL Entity]" == tostring @
+			if NULL == @
 				LogError "Some code attempted to activate a NULL entity."
 			else
                 LUA_PATCHER.unpatched.ENTITY.Activate @, ...
         Remove: (...) =>
-			if "[NULL Entity]" == tostring @
+			if NULL == @
 				LogError "Some code attempted to remove a NULL entity."
 			else
                 LUA_PATCHER.unpatched.ENTITY.Remove @, ...
         GetPhysicsObject: (...) =>
-			if "[NULL Entity]" == tostring @
+			if NULL == @
 				LogError "Some code attempted to get the physics object of a NULL entity."
 			else
                 LUA_PATCHER.unpatched.ENTITY.GetPhysicsObject @, ...
@@ -506,7 +506,7 @@ PatchClasses = ->
 				LogError "Some code attempted to call Entity:GetBonePosition() without valid bone index."
 			LUA_PATCHER.unpatched.ENTITY.GetBonePosition @, boneIndex or 0, ...
         LookupBone: (name, ...) =>
-			if "[NULL Entity]" == tostring @
+			if NULL == @
 				LogError "Some code attempted to lookup a bone of a NULL entity."
 				return -1
             
@@ -518,7 +518,7 @@ PatchClasses = ->
 				LogError "Some code attempted to call Entity:LookupBone() without lowercased bone name."
 				unpack retValues
         SetPhysicsAttacker: (attacker, ...) =>
-			if "[NULL Entity]" == tostring @
+			if NULL == @
 				LogError "Some code attempted to set the physics attacker of a NULL entity."
 			elseif attacker\IsPlayer!
                 if LUA_PATCHER.unpatched.ENTITY.SetPhysicsAttacker
@@ -530,7 +530,7 @@ PatchClasses = ->
 				LogError "Some code attempted to call Entity:SetBodyGroups() without valid string."
 			LUA_PATCHER.unpatched.ENTITY.SetBodyGroups @, bodygroups or "", ...
         SetColor: (col, ...) =>
-			if "[NULL Entity]" == tostring @
+			if NULL == @
 				LogError "Some code attempted to set the color of a NULL entity."
 			elseif not istable col
 				LogError "Some code attempted to set the color of an entity with a non-table value."
@@ -568,14 +568,14 @@ PatchClasses = ->
 				vars = {...}
 				-- take a while to remove the physics object if it exists
 				timer.Simple 0, ->
-					if (("[NULL Entity]" ~= tostring @) and IsValid @GetPhysicsObject!)
+					if (NULL ~= @ and IsValid @GetPhysicsObject!)
 						-- @PhysicsDestroy! causes issues with iv04 star wars nextbots
 						LUA_PATCHER.unpatched.ENTITY.PhysicsInit @, solidType, unpack vars
 				true
 			else
 				LUA_PATCHER.unpatched.ENTITY.PhysicsInit @, solidType, ...
         SetAnimation: (...) =>
-			if "[NULL Entity]" == tostring @
+			if NULL == @
 				LogError "Some code attempted to set the animation of a NULL entity."
 			else
                 LUA_PATCHER.unpatched.ENTITY.SetAnimation @, ...
@@ -592,14 +592,14 @@ PatchClasses = ->
     for k, v in pairs nw_override_table
         set_func_name = "SetNW"..k
         new_entity_metatable[set_func_name] = (...) =>
-            if "[NULL Entity]" == tostring @
+            if NULL == @
                 LogError "Some code attempted to call #{set_func_name} on a NULL entity."
             else
                 LUA_PATCHER.unpatched.ENTITY[set_func_name](@, ...)
         
         get_func_name = "GetNW"..k
         new_entity_metatable[get_func_name] = (...) =>
-            if "[NULL Entity]" == tostring @
+            if NULL == @
                 LogError "Some code attempted to call #{get_func_name} on a NULL entity."
                 v
             else
@@ -611,7 +611,7 @@ PatchClasses = ->
     WEAPON = FindMetaTable "Weapon"
     OverwriteTable "WEAPON", WEAPON, {
         GetPrintName: (...) =>
-			if IsValid @
+			if NULL == @
                 LUA_PATCHER.unpatched.WEAPON.GetPrintName @, ...
 			else
 				LogError "Some code attempted to get the print name of a NULL weapon."
@@ -621,7 +621,7 @@ PatchClasses = ->
     NPC = FindMetaTable "NPC"
     OverwriteTable "NPC", NPC, {
         GetEnemy: (...) =>
-			if IsValid @
+			if NULL == @
 				LUA_PATCHER.unpatched.NPC.GetEnemy @, ...
 			else
 				LogError "Some code attempted to get the enemy of a NULL NPC."
@@ -698,12 +698,12 @@ PatchClasses = ->
     CTAKEDAMAGEINFO = FindMetaTable "CTakeDamageInfo"
     OverwriteTable "CTAKEDAMAGEINFO", CTAKEDAMAGEINFO, {
         SetAttacker: (attacker, ...) =>
-            if "[NULL Entity]" == tostring attacker
+            if NULL == attacker
                 LogError "Some code attempted to call CTakeDamageInfo:SetAttacker() with NULL attacker."
                 attacker = game.GetWorld!
             LUA_PATCHER.unpatched.CTAKEDAMAGEINFO.SetAttacker @, attacker, ...
         SetInflictor: (inflictor, ...) =>
-            if "[NULL Entity]" == tostring inflictor
+            if NULL == inflictor
                 LogError "Some code attempted to call CTakeDamageInfo:SetInflictor() with NULL inflictor."
                 inflictor = game.GetWorld!
             LUA_PATCHER.unpatched.CTAKEDAMAGEINFO.SetInflictor @, inflictor, ...
