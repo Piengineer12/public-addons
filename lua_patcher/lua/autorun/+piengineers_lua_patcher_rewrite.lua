@@ -6,8 +6,8 @@ LUA_PATCHER = LUA_PATCHER or {
   extra_info = "Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 format.",
   unpatched = { }
 }
-LUA_PATCHER.VERSION = "3.0.6-rc.2"
-LUA_PATCHER.VERSION_DATE = "2025-03-29"
+LUA_PATCHER.VERSION = "3.0.6-rc.3"
+LUA_PATCHER.VERSION_DATE = "2025-04-01"
 local Log, LogError
 if gmod then
   local next_report_time = 0
@@ -858,10 +858,10 @@ PatchClasses = function()
   OverwriteTable("WEAPON", WEAPON, {
     GetPrintName = function(self, ...)
       if NULL == self then
-        return LUA_PATCHER.unpatched.WEAPON.GetPrintName(self, ...)
-      else
         LogError("Some code attempted to get the print name of a NULL weapon.")
         return tostring(self)
+      else
+        return LUA_PATCHER.unpatched.WEAPON.GetPrintName(self, ...)
       end
     end
   })
@@ -869,9 +869,9 @@ PatchClasses = function()
   OverwriteTable("NPC", NPC, {
     GetEnemy = function(self, ...)
       if NULL == self then
-        return LUA_PATCHER.unpatched.NPC.GetEnemy(self, ...)
-      else
         return LogError("Some code attempted to get the enemy of a NULL NPC.")
+      else
+        return LUA_PATCHER.unpatched.NPC.GetEnemy(self, ...)
       end
     end,
     SelectWeapon = function(self, class_name, ...)

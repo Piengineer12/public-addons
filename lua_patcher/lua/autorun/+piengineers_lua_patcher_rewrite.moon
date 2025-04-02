@@ -8,8 +8,8 @@ LUA_PATCHER or= {
     unpatched: {}
 }
 
-LUA_PATCHER.VERSION = "3.0.6-rc.1"
-LUA_PATCHER.VERSION_DATE = "2025-03-19"
+LUA_PATCHER.VERSION = "3.0.6-rc.3"
+LUA_PATCHER.VERSION_DATE = "2025-04-01"
 
 local Log, LogError
 
@@ -612,19 +612,19 @@ PatchClasses = ->
     OverwriteTable "WEAPON", WEAPON, {
         GetPrintName: (...) =>
 			if NULL == @
-                LUA_PATCHER.unpatched.WEAPON.GetPrintName @, ...
-			else
 				LogError "Some code attempted to get the print name of a NULL weapon."
 				tostring @
+			else
+                LUA_PATCHER.unpatched.WEAPON.GetPrintName @, ...
     }
 
     NPC = FindMetaTable "NPC"
     OverwriteTable "NPC", NPC, {
         GetEnemy: (...) =>
 			if NULL == @
-				LUA_PATCHER.unpatched.NPC.GetEnemy @, ...
-			else
 				LogError "Some code attempted to get the enemy of a NULL NPC."
+			else
+				LUA_PATCHER.unpatched.NPC.GetEnemy @, ...
         SelectWeapon: (class_name, ...) =>
 			unless class_name
 				class_name = ""
