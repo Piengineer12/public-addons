@@ -1068,6 +1068,15 @@ local modifiers = {
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			weight = 0.5
 		},
+		fester = {
+			prefix = "Festering",
+			modifiers = {
+				ammo_convert = 1/1.1
+			},
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR),
+			weight = 0.5,
+			max = 10
+		},
 		slip = {
 			prefix = "Slippery",
 			suffix = "Slipperiness",
@@ -1187,17 +1196,6 @@ local modifiers = {
 			weight = 0.5,
 			cost = 2,
 			max = CalculateLimit(2, 1/1.1)
-		},
-		fester = {
-			prefix = "Festering",
-			modifiers = {
-				ammo_convert = 1/1.1,
-				death_promise_damage = 1.1
-			},
-			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR),
-			weight = 0.5,
-			cost = 2,
-			max = 10
 		},
 		identify = {
 			prefix = "Identifying",
@@ -1806,9 +1804,9 @@ local attributes = {
 		display = "+/%s random damage dealt",
 		mode = 3
 	},
-	death_promise_damage = {
+	--[[death_promise_damage = {
 		display = "%s Corpse Exploder stacks gained",
-	},
+	},]]
 	explode_damage = {
 		display = "%s explosive damage dealt",
 		mul = 5
@@ -2150,7 +2148,8 @@ local attributes = {
 		invert = true
 	},
 	ammo_convert = {
-		display = "Reserve ammo above max %s turned into Corpse Exploder stacks"
+		display = "Reserve ammo above max %s turned into ammo efficiency stacks",
+		invert = true
 	},
 	xp = {
 		display = "%s coins and XP gain",
@@ -2888,11 +2887,11 @@ local statusEffects = {
 		typ = -1,
 		img = "fluffy-trefoil"
 	},
-	death_promise = {
+	--[[death_promise = {
 		name = "Corpse Exploder",
 		typ = 1,
 		img = "death-note"
-	},
+	},]]
 	
 	starlight = {
 		name = "Starlit",
@@ -3021,6 +3020,11 @@ local statusEffects = {
 		name = "Stacking Defence Up",
 		typ = 2,
 		img = "checked-shield"
+	},
+	stack_ammo_efficiency_up = {
+		name = "Stacking Ammo Efficiency Up",
+		typ = 2,
+		img = "crystal-bars"
 	},
 	--[[stack_speed_up = {
 		name = "Stacking Speed Up",

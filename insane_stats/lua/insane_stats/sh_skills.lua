@@ -28,7 +28,7 @@ InsaneStats:RegisterConVar("skills_level_start", "insanestats_skills_level_start
 	display = "Starting Level Required", desc = "Level required to earn the first skill point.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
-InsaneStats:RegisterConVar("skills_level_add", "insanestats_skills_level_add", "20", {
+InsaneStats:RegisterConVar("skills_level_add", "insanestats_skills_level_add", "10", {
 	display = "Level Scaling", desc = "Additional % levels required per skill point.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })

@@ -95,7 +95,7 @@ end)
 -- MISC
 
 concommand.Add("insanestats_save", function(ply, cmd, args, argStr)
-	if ply:IsAdmin() then
+	if (not IsValid(ply) or ply:IsAdmin()) then
 		local data = InsaneStats:Load()
 		hook.Run("InsaneStatsSave", data)
 
@@ -116,7 +116,7 @@ which will cause save data to be written into that save file \z
 instead of the name specified by \"insanestats_save_file\".")
 
 concommand.Add("insanestats_save_delete", function(ply, cmd, args, argStr)
-	if ply:IsAdmin() then
+	if (not IsValid(ply) or ply:IsAdmin()) then
 		if next(args) then
 			local saveFileName = "insane_stats/"..argStr..".json"
 			if argStr == currentSaveFile then
@@ -140,7 +140,9 @@ concommand.Add("insanestats_save_delete", function(ply, cmd, args, argStr)
 end, nil, "Deletes the specified Insane Stats save file.")
 
 concommand.Add("insanestats_revert_all_convars", function(ply, cmd, args, argStr)
-	if argStr:lower() == "yes" then
+	if (IsValid(ply) and not ply:IsAdmin()) then
+		InsaneStats:Log("This command can only be run by admins!")
+	elseif argStr:lower() == "yes" then
 		for name, data in pairs(InsaneStats.conVars) do
 			if data.conVar then
 				data.conVar:Revert()

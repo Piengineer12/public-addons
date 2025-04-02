@@ -1177,7 +1177,7 @@ local skills = {
 	},
 	actually_levelling_up = {
 		name = "Actually Levelling Up",
-		desc = "Levelling up increases max health and max shield by +%s and +%s, respectively, \z
+		desc = "Every level up increases max health and max shield by +%s and +%s, respectively, \z
 		per skill point spent in total (+%s and +%s, respectively, at current total spent skill points)! \z
 		Additionally, levelling up also restores +%u%% of health and shield! \z
 		Health and shield gained this way can exceed max health and max shield, \z
@@ -1187,21 +1187,25 @@ local skills = {
 			local baseMult = ent:IsPlayer() and 1 or InsaneStats:GetConVarValue("infhealth_armor_mul")
 			local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and ent:InsaneStats_GetLevel() or 1
 			local spentSkillPoints = ent:InsaneStats_GetSpentSkillPoints()
-
-			local value1 = InsaneStats:ScaleValueToLevel(
-				level,
-				InsaneStats:GetConVarValue("xp_"..scaleType.."_health")/100,
-				effectiveLevel,
-				"xp_"..scaleType.."_health_mode",
-				false
-			)
-			local value2 = InsaneStats:ScaleValueToLevel(
-				level*baseMult,
-				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
-				effectiveLevel,
-				"xp_"..scaleType.."_armor_mode",
-				false
-			)
+			
+			local value1 = level
+			if InsaneStats:GetConVarValueDefaulted("xp_"..scaleType.."_health_mode", "xp_mode") > 0 then
+				value1 = InsaneStats:ScaleValueToLevel(
+					value1,
+					InsaneStats:GetConVarValue("xp_"..scaleType.."_health")/100,
+					effectiveLevel,
+					"xp_"..scaleType.."_health_mode"
+				)
+			end
+			local value2 = level*baseMult
+			if InsaneStats:GetConVarValueDefaulted("xp_"..scaleType.."_armor_mode", "xp_mode") > 0 then
+				value2 = InsaneStats:ScaleValueToLevel(
+					value2,
+					InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
+					effectiveLevel,
+					"xp_"..scaleType.."_armor_mode"
+				)
+			end
 			local value3 = value1 * spentSkillPoints
 			local value4 = value2 * spentSkillPoints
 

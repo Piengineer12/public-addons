@@ -156,7 +156,7 @@ function InsaneStats:GetXPBarHue(level)
 		return RealTime()*120 % 360
 	elseif math.abs(level) > 1099511627776 then
 		-- return a random number seeded with the level
-		return math.floor(util.SharedRandom("InsaneStatsLevelHue"..string.format("%.11e", level), 0, 72))*5
+		return math.floor(util.SharedRandom("InsaneStatsLevelHue"..string.format("%.10e", level), 0, 72))*5
 	else
 		return (level*5+60) % 360
 	end

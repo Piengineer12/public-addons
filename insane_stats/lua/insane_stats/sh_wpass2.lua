@@ -192,7 +192,7 @@ InsaneStats:RegisterConVar("wpass2_tier_blacklist", "insanestats_wpass2_tier_bla
 	type = InsaneStats.STRING
 })
 
-InsaneStats:RegisterConVar("wpass2_tier_xp_enable", "insanestats_wpass2_tier_xp_enable", "1", {
+InsaneStats:RegisterConVar("wpass2_tier_xp_enable", "insanestats_wpass2_tier_xp_enable", "0", {
 	display = "Experience Integration", desc = "Allows the weapon's / armor battery's level to influence its tier. Only relevant when Insane Stats XP is enabled.",
 	type = InsaneStats.BOOL
 })

@@ -2356,7 +2356,7 @@ hook.Add("InsaneStatsEntityKilledPostXP", "InsaneStatsSkills", function(victim, 
 	end
 end)
 
-hook.Add("InsaneStatsEntityKilledPostXP", "InsaneStatsWPASS2", function(victim, attacker, inflictor)
+--[[hook.Add("InsaneStatsEntityKilledPostXP", "InsaneStatsWPASS2", function(victim, attacker, inflictor)
 	if InsaneStats:GetConVarValue("wpass2_enabled") and IsValid(attacker) and IsValid(victim) then
 		local damage = attacker:InsaneStats_GetStatusEffectLevel("death_promise")
 		if damage > 0 then
@@ -2401,7 +2401,7 @@ hook.Add("InsaneStatsEntityKilledPostXP", "InsaneStatsWPASS2", function(victim, 
 			end
 		end
 	end
-end)
+end)]]
 
 local function UpdateWeaponDeploySpeed(owner, wep)
 	local desiredDeploySpeedMul = owner:InsaneStats_GetAttributeValue("switch_speed")
@@ -4180,7 +4180,8 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 							output = traceResult
 						}
 						local backupPosition = k:WorldSpaceCenter()
-						local ourPosition = backupPosition + k:GetVelocity() * engine.TickInterval()
+						local ourPosition = backupPosition + k:GetVelocity() * engine.TickInterval() * 3
+						--debugoverlay.Cross(ourPosition, 1, 1, color_white, true)
 						if not util.IsInWorld(ourPosition) then ourPosition = backupPosition end
 
 						local otherPlayerPositions = {}
@@ -4389,21 +4390,22 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 			queuedUnlockSends = {}
 		end
 
-		for i=0, math.log10(#pendingItemSpawns)/2 do
+		--for i=0, math.log10(#pendingItemSpawns)/2 do
 			local pos = table.remove(pendingItemSpawns, 1)
 			if pos then
 				local parent = pos[2]
 				if IsValid(parent) then
-					local backupPos = parent:GetPos()
+					--[[local backupPos = parent:GetPos()
 					local traceResult = util.TraceLine({
 						start = backupPos,
 						endpos = backupPos + parent:GetVelocity() * engine.TickInterval() * 4,
 						filter = parent,
 						mask = MASK_PLAYERSOLID
 					})
-					pos = traceResult.HitPos
+					pos = traceResult.HitPos]]
 					-- pos = backupPos + parent:GetVelocity() * engine.TickInterval() * 4
 					-- if not util.IsInWorld(pos) then pos = backupPos end
+					pos = parent:GetPos()
 				else
 					pos = pos[1]
 				end
@@ -4479,7 +4481,7 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 					end
 				end
 			end
-		end
+		--end
 
 		-- item parenting is a very bad idea
 		-- since it's not clear whether the item will be automatically picked up or not
@@ -4511,6 +4513,7 @@ local function GetAmmoConsumptionMul(ent)
 	local mul = ent:InsaneStats_GetAttributeValue("ammo_savechance")
 	* (1 + ent:InsaneStats_GetEffectiveSkillValues("reuse") / 100)
 	/ (1 + ent:InsaneStats_GetStatusEffectLevel("ammo_efficiency_up") / 100)
+	/ (1 + ent:InsaneStats_GetStatusEffectLevel("stack_ammo_efficiency_up") / 100)
 	return mul
 end
 hook.Add("InsaneStatsModifyWeaponClip", "InsaneStatsWPASS2", function(data)
@@ -4588,9 +4591,9 @@ hook.Add("PlayerAmmoChanged", "InsaneStatsWPASS2", function(ply, ammoID, oldAmou
 		local threshold = ply:InsaneStats_GetAttributeValue("ammo_convert")
 		local maxPlayerReserve = maxReserve*threshold
 		if threshold < 1 and newAmount > maxPlayerReserve and maxReserve > 0 then
-			local stacks = (math.min(newAmount, maxReserve) - maxPlayerReserve) / maxReserve * ply:InsaneStats_GetAttributeValue("death_promise_damage")
+			local stacks = (math.min(newAmount, maxReserve) - maxPlayerReserve) / maxReserve --* ply:InsaneStats_GetAttributeValue("death_promise_damage")
 			--timer.Simple(0, function()
-				ply:InsaneStats_ApplyStatusEffect("death_promise", stacks * 10, math.huge, {amplify = true})
+				ply:InsaneStats_ApplyStatusEffect("stack_ammo_efficiency_up", stacks * 100, math.huge, {amplify = true})
 
 				ply.insaneStats_AmmoAdjs = ply.insaneStats_AmmoAdjs or {}
 				ply.insaneStats_AmmoAdjs[ammoID] = (1 - maxPlayerReserve) % 1
