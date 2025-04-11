@@ -9,6 +9,11 @@ InsaneStats:RegisterConVar("infhealth_knockback", "insanestats_infhealth_knockba
 	If disabled, WPASS2 modifiers that affect knockback will become unobtainable.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterConVar("infhealth_decimals", "insanestats_infhealth_decimals", "0", {
+	display = "Health and Shield Decimals", desc = "Show this number of decimals for health, \z
+	shield and their maximums on non-Insane Stats HUDs.",
+	type = InsaneStats.FLOAT, min = 0, max = 3
+})
 InsaneStats:RegisterConVar("infhealth_spawn_invincibility", "insanestats_infhealth_spawn_invincibility", "10", {
 	display = "Spawn Invincible Seconds", desc = "Spawned players are given this many seconds of invincibility.",
 	type = InsaneStats.FLOAT, min = 0, max = 10
@@ -109,7 +114,11 @@ local function OverrideHealth()
 	end
 	
 	function ENT:Health()
-		return math.ceil(self:InsaneStats_GetEntityData("health") or self:InsaneStats_GetRawHealth())
+		local actual = self:InsaneStats_GetEntityData("health") or self:InsaneStats_GetRawHealth()
+		local int, frac = math.modf(actual)
+		local mult = 10 ^ InsaneStats:GetConVarValue("infhealth_decimals")
+		frac = math.ceil(frac * mult) / mult
+		return int + frac
 	end
 	
 	function ENT:SetMaxHealth(newHealth)
@@ -146,7 +155,11 @@ local function OverrideHealth()
 	end
 	
 	function ENT:GetMaxHealth()
-		return math.ceil(self:InsaneStats_GetEntityData("max_health") or self:InsaneStats_GetRawMaxHealth())
+		local actual = self:InsaneStats_GetEntityData("max_health") or self:InsaneStats_GetRawMaxHealth()
+		local int, frac = math.modf(actual)
+		local mult = 10 ^ InsaneStats:GetConVarValue("infhealth_decimals")
+		frac = math.ceil(frac * mult) / mult
+		return int + frac
 	end
 end
 
@@ -187,7 +200,11 @@ local function OverrideArmor()
 	end
 
 	function ENT:Armor()
-		return math.ceil(tonumber(self:InsaneStats_GetEntityData("armor")) or 0)
+		local actual = tonumber(self:InsaneStats_GetEntityData("armor")) or 0
+		local int, frac = math.modf(actual)
+		local mult = 10 ^ InsaneStats:GetConVarValue("infhealth_decimals")
+		frac = math.ceil(frac * mult) / mult
+		return int + frac
 	end
 
 	function ENT:SetMaxArmor(newArmor)
@@ -217,7 +234,11 @@ local function OverrideArmor()
 	end
 	
 	function ENT:GetMaxArmor()
-		return math.ceil(tonumber(self:InsaneStats_GetEntityData("max_armor")) or 0)
+		local actual = tonumber(self:InsaneStats_GetEntityData("max_armor")) or 0
+		local int, frac = math.modf(actual)
+		local mult = 10 ^ InsaneStats:GetConVarValue("infhealth_decimals")
+		frac = math.ceil(frac * mult) / mult
+		return int + frac
 	end
 	
 	function PLAYER:SetArmor(newArmor)
@@ -244,7 +265,11 @@ local function OverrideArmor()
 	end
 	
 	function PLAYER:Armor()
-		return math.ceil(tonumber(self:InsaneStats_GetEntityData("armor")) or self:InsaneStats_GetRawArmor())
+		local actual = tonumber(self:InsaneStats_GetEntityData("armor")) or self:InsaneStats_GetRawArmor()
+		local int, frac = math.modf(actual)
+		local mult = 10 ^ InsaneStats:GetConVarValue("infhealth_decimals")
+		frac = math.ceil(frac * mult) / mult
+		return int + frac
 	end
 	
 	function PLAYER:SetMaxArmor(newArmor)
@@ -273,7 +298,11 @@ local function OverrideArmor()
 	end
 	
 	function PLAYER:GetMaxArmor()
-		return math.ceil(tonumber(self:InsaneStats_GetEntityData("max_armor")) or self:InsaneStats_GetRawMaxArmor())
+		local actual = tonumber(self:InsaneStats_GetEntityData("max_armor")) or self:InsaneStats_GetRawMaxArmor()
+		local int, frac = math.modf(actual)
+		local mult = 10 ^ InsaneStats:GetConVarValue("infhealth_decimals")
+		frac = math.ceil(frac * mult) / mult
+		return int + frac
 	end
 end
 

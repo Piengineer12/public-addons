@@ -162,6 +162,24 @@ function InsaneStats:GetXPBarHue(level)
 	end
 end
 
+function InsaneStats:GetXPInfo()
+	local ply = LocalPlayer()
+	local xp = ply:InsaneStats_GetXP()
+	local level = ply:InsaneStats_GetLevel()
+
+	local nextXP = InsaneStats:GetXPRequiredToLevel(level + 1)
+	if not InsaneStats:GetConVarValue("hud_xp_cumulative") then
+		xp, nextXP = ply:InsaneStats_GetLevelProgress()
+	end
+
+	return {
+		level = level,
+		current = math.floor(xp),
+		required = math.ceil(nextXP),
+		fraction = ply:InsaneStats_GetLevelFraction()
+	}
+end
+
 hook.Add("HUDPaint", "InsaneStatsXP", function()
 	if InsaneStats:ShouldDrawHUD() then
 		local scrW = ScrW()
@@ -235,39 +253,28 @@ hook.Add("HUDPaint", "InsaneStatsXP", function()
 				barBGColor = HSVToColor(levelHue, saturation, 0.5)
 			end
 			
+			local data = InsaneStats:GetXPInfo()
+			local level = data.level
+			local currentXP = data.current
+			local nextXP = data.required
+			local fraction = data.fraction
 			InsaneStats:DrawRectOutlined(
 				barX, barY, barWidth, barHeight,
-				ply:InsaneStats_GetLevelFraction(), barFGColor, barBGColor
+				fraction, barFGColor, barBGColor
 			)
 			
 			InsaneStats:DrawTextOutlined(
 				"Level ".. InsaneStats:FormatNumber(level), 2, barX, barY-outlineThickness,
 				fgColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM
 			)
-			if levelDisplayExpiryDuration < 0 then
-				local previousLevelXP = math.floor(InsaneStats:GetConVarValue("hud_xp_cumulative") and 0 or InsaneStats:GetXPRequiredToLevel(level))
-				local currentXP = xp - previousLevelXP
-				local nextXP = math.ceil(ply:InsaneStats_GetXPToNextLevel() - previousLevelXP)
-				--print(currentXP, nextXP)
-				if (currentXP < 0 or currentXP >= nextXP) and not InsaneStats:GetConVarValue("hud_xp_cumulative") then
-					-- precision error
-					currentXP = 0
-					nextXP = 2^(math.floor(math.log(xp, 2)-52))
-					
-					if nextXP == math.huge then
-						currentXP = math.huge
-					end
-				end
-				
-				if hasSuit then
-					local xpString = InsaneStats:FormatNumber(currentXP)
-					local requiredXp = InsaneStats:FormatNumber(nextXP)
-					local experienceText = xpString .. " / " .. requiredXp
-					InsaneStats:DrawTextOutlined(
-						experienceText, 2, barX+barWidth, barY-outlineThickness,
-						fgColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM
-					)
-				end
+			if levelDisplayExpiryDuration < 0 and hasSuit then
+				local xpString = InsaneStats:FormatNumber(currentXP)
+				local requiredXp = InsaneStats:FormatNumber(nextXP)
+				local experienceText = xpString .. " / " .. requiredXp
+				InsaneStats:DrawTextOutlined(
+					experienceText, 2, barX+barWidth, barY-outlineThickness,
+					fgColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM
+				)
 			else
 				local color = HSVToColor(levelHue, (math.cos(levelDisplayExpiryDuration*math.pi)+1)/2*maxSaturation, 1)
 			

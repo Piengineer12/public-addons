@@ -146,7 +146,7 @@ function InsaneStats:GetDFormGenerator(title, conVarsData)
 		end
 
 		if title == "Miscellaneous" then
-			DForm:Button("Reset All ConVars", "insanestats_revert_all_convars", "yes")
+			DForm:Button("Reset All Server ConVars", "insanestats_revert_all_server_convars", "yes")
 		end
 	end
 end
@@ -202,12 +202,12 @@ hook.Add("PopulateToolMenu", "InsaneStatsOptions", function()
 end)
 
 -- this concommand just tells the server to run this concommand on its end
-concommand.Add("insanestats_revert_all_convars", function(ply, cmd, args, argStr)
+concommand.Add("insanestats_revert_all_server_convars", function(ply, cmd, args, argStr)
 	if argStr:lower() == "yes" then
 		net.Start("insane_stats")
 		net.WriteUInt(2, 8)
 		net.WriteUInt(1, 8)
-		net.WriteString("insanestats_revert_all_convars")
+		net.WriteString("insanestats_revert_all_server_convars")
 		net.SendToServer()
 		InsaneStats:Log("Sent revert request to server!")
 	else
@@ -306,9 +306,9 @@ hook.Add("InsaneStats_CCVCCMRun", "InsaneStatsOptions", function()
 			-- CCVCCM EXCLUSIVE!
 			if k == "Server" then
 				if k2 == "Miscellaneous" then
-					CCVCCM:AddConCommand("revert_all_convars", {
+					CCVCCM:AddConCommand("revert_all_server_convars", {
 						realm = "server",
-						fullName = "insanestats_revert_all_convars",
+						fullName = "insanestats_revert_all_server_convars",
 						name = "Revert All ConVars",
 						help = "Reverts all server-side Insane Stats ConVars. You must pass the argument \"yes\" for this command to work.",
 						type = "string"

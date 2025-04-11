@@ -1970,11 +1970,9 @@ local attributes = {
 	},
 	kill10s_damage = {
 		display = "%s damage dealt for +10s after kill",
-		mul = 2
 	},
 	kill10s_damagetaken = {
 		display = "%s damage taken for +10s after kill",
-		mul = 2,
 		invert = true
 	},
 	kill10s_ally_damage = {
@@ -1983,19 +1981,17 @@ local attributes = {
 	},
 	kill10s_firerate = {
 		display = "%s fire rate for +10s after kill",
-		mul = 2
 	},
 	kill10s_xp = {
 		display = "%s coins and XP gain for +10s after kill",
-		mul = 2
 	},
 	kill10s_regen = {
 		display = "%s health regen for +10s after kill",
-		mul = 0.02
+		mul = 0.01
 	},
 	kill10s_armorregen = {
 		display = "%s armor regen for +10s after kill",
-		mul = 0.02
+		mul = 0.01
 	},
 	kill10s_damageaura = {
 		display = "%s damage aura for +10s after kill",
@@ -2012,48 +2008,43 @@ local attributes = {
 	},
 	killstack_damage = {
 		display = "%s stacking damage dealt per kill for 10s",
-		mul = 2
 	},
 	killstack_firerate = {
 		display = "%s stacking fire rate per kill for 10s",
-		mul = 2
 	},
 	killstack_defence = {
 		display = "%s stacking defence per kill for 10s",
-		mul = 2
 	},
 	killstack_damagetaken = {
 		display = "%s stacking damage taken per kill for 10s",
-		mul = 2,
 		invert = true
 	},
 	killstack_xp = {
 		display = "%s stacking coins and XP gain per kill for 10s",
-		mul = 2
 	},
 	killstackmarked_damage = {
 		display = "%s stacking damage dealt per marked kill for 10s",
-		mul = 4
+		mul = 2
 	},
 	killstackmarked_defence = {
 		display = "%s stacking defence per marked kill for 10s",
-		mul = 4
+		mul = 2
 	},
 	crit_lifesteal = {
 		display = "%s healing on crit",
-		mul = 0.02
+		mul = 0.01
 	},
 	crit_armorsteal = {
 		display = "%s armor recharged on crit",
-		mul = 0.02
+		mul = 0.01
 	},
 	critstack_damage = {
 		display = "%s stacking damage dealt per crit for 10s",
-		mul = 0.4
+		mul = 0.1
 	},
 	critstack_firerate = {
 		display = "%s stacking fire rate per crit for 10s",
-		mul = 0.4
+		mul = 0.1
 	},
 	hit1s_damage = {
 		display = "%s damage dealt, 1s cooldown",
@@ -3651,7 +3642,13 @@ hook.Add("Think", "InsaneStatsSharedWPASS2", function()
 					Callback = function(attacker, trace, dmginfo)
 						dmginfo:SetDamageType(DMG_CLUB)
 
-						local outputs = trace.Entity.insaneStats_PhysGunOutputs or {}
+						local ent = trace.Entity
+						if IsValid(ent) and SERVER then
+							ply:SimulateGravGunPickup(ent)
+							ply:SimulateGravGunDrop(ent)
+						end
+
+						--[[local outputs = trace.Entity.insaneStats_PhysGunOutputs or {}
 						for i,v in ipairs(outputs) do
 							local entities = v.entities
 							local times = v.times
@@ -3677,7 +3674,7 @@ hook.Add("Think", "InsaneStatsSharedWPASS2", function()
 									v.times = times - 1
 								end
 							end
-						end
+						end]]
 					end,
 					AmmoType = "GaussEnergy",
 					TracerName = "GunshipImpact",

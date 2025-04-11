@@ -1007,6 +1007,7 @@ local function DoExpiryEffect(ent, statName)
 end
 
 function ENTITY:InsaneStats_ApplyStatusEffect(id, level, duration, data)
+	if level == 0 then return end
 	-- debris cannot get status effects, as it very frequently causes net buffer overflow
 	-- FIXME: is there a better solution?
 	if self:GetCollisionGroup() == COLLISION_GROUP_DEBRIS and self:GetClass() == "prop_physics" then return end
@@ -1051,7 +1052,12 @@ function ENTITY:InsaneStats_ApplyStatusEffect(id, level, duration, data)
 			self.insaneStats_StatusEffects[id] = nil
 			changeOccured = true
 		end
-	elseif level ~= 0 then
+	else
+		local maxDuration = tonumber(data.extend) or math.huge
+		if duration > maxDuration then
+			level = level * duration / maxDuration
+			duration = maxDuration
+		end
 		self.insaneStats_StatusEffects[id] = {
 			expiry = curTime + duration,
 			level = level,
@@ -1066,7 +1072,11 @@ function ENTITY:InsaneStats_ApplyStatusEffect(id, level, duration, data)
 		effectTable = self.insaneStats_StatusEffects[id]
 		if effectTable then
 			if effectData.apply then
-				effectData.apply(self, effectTable.level or 0, effectTable.duration or 0, effectTable.attacker)
+				effectData.apply(
+					self, effectTable.level or 0,
+					(effectTable.expiry or curTime) - curTime,
+					effectTable.attacker
+				)
 			end
 			if effectData.overtime then
 				self:InsaneStats_ApplyDoT(id)

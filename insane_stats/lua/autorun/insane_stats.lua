@@ -3,11 +3,13 @@ Workshop:		https://steamcommunity.com/sharedfiles/filedetails/?id=2980423627
 Profile Page:	https://steamcommunity.com/id/Piengineer12
 GitHub Page:	https://github.com/Piengineer12/public-addons/tree/master/insane_stats
 Donate:			https://ko-fi.com/piengineer12
+
+TODO: investigate problem of disappearing gunships
 ]]
 
 InsaneStats = {
-	VERSION = "1.9.2",
-	VERSION_DATE = "2025-04-02",
+	VERSION = "1.9.3",
+	VERSION_DATE = "2025-04-05",
 	WORKSHOP_ID = "2980423627"
 }
 
@@ -90,6 +92,6 @@ for i,v in ipairs(clientFiles) do
 	end
 end
 
-for i,v in ipairs(ents.GetAll()) do
+for i,v in ents.Iterator() do
 	hook.Run("InsaneStatsTransitionCompat", v)
 end

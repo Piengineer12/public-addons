@@ -1,5 +1,6 @@
 local mapOrder = {}
 local mapNumber = 0
+local mapTimeOffset = CurTime() / 60
 concommand.Add("insanestats_xp_other_level_maps_show", function(ply, cmd, args, argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
 		if argStr == "unrecorded" then
@@ -150,6 +151,28 @@ concommand.Add("insanestats_xp_other_level_maps_add", function(ply, cmd, args, a
 	end
 end, nil, "Adds maps to the recorded maps list. * and ? wildcards are allowed. \z
 Note that a map restart is required for the map number to be updated.")
+concommand.Add("insanestats_xp_other_level_time_show", function(ply, cmd, args, argStr)
+	if (not IsValid(ply) or ply:IsAdmin()) then
+		InsaneStats:Log("%g minutes have passed.", CurTime() / 60 - mapTimeOffset)
+	end
+end, nil, "Shows the number of minutes passed regarding time-based level scaling.")
+concommand.Add("insanestats_xp_other_level_time_set", function(ply, cmd, args, argStr)
+	if (not IsValid(ply) or ply:IsAdmin()) then
+		if #args == 0 then
+			InsaneStats:Log(
+				"Sets time-based level scaling back to the specified number of minutes. \z
+				Usage: insanestats_xp_other_level_time_set <minutes>"
+			)
+		elseif tonumber(argStr) then
+			local minutes = tonumber(argStr)
+			mapTimeOffset = CurTime() / 60 - minutes
+			InsaneStats:Log("Time-based level scaling set to %g minutes.", minutes)
+		else
+			InsaneStats:Log("\"%s\" is not a valid number.", argStr)
+		end
+	end
+end, nil, "Sets time-based level scaling back to the specified number of minutes. \z
+Usage: insanestats_xp_other_level_time_set <minutes>")
 
 concommand.Add("insanestats_xp_player_level_set", function(ply, cmd, args, argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
@@ -575,11 +598,17 @@ function InsaneStats:DetermineEntitySpawnedXP(ent)
 		end
 	end
 
-	local minimum = level + self:GetConVarValue("xp_other_level_maps_minimum") * mapNumber
-	local current = self:ScaleValueToLevel(level, self:GetConVarValue("xp_other_level_maps")/100, mapNumber, "xp_other_level_maps_mode", true)
+	local minimum = level + self:GetConVarValue("xp_other_level_maps_minimum") * (mapNumber - 1)
+	local current = self:ScaleValueToLevel(
+		level,
+		self:GetConVarValue("xp_other_level_maps")/100,
+		mapNumber - 1,
+		"xp_other_level_maps_mode",
+		true
+	)
 	level = math.max(minimum, current)
 
-	local curMinutes = CurTime() / 60
+	local curMinutes = CurTime() / 60 - mapTimeOffset
 	minimum = level + self:GetConVarValue("xp_other_level_time_minimum") * curMinutes
 	current = self:ScaleValueToLevel(level, self:GetConVarValue("xp_other_level_time")/100, curMinutes, "xp_other_level_time_mode", true)
 	level = math.max(minimum, current)

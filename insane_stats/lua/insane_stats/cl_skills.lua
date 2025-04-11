@@ -45,7 +45,7 @@ local function CreateSkillButton(parent, skillName)
 	local outlineWidth = InsaneStats:GetOutlineThickness()
 	local buttonSize = InsaneStats.FONT_BIG * 2.5 + outlineWidth * 2
 	local buttonDistance = 1.5
-	local buttonOffset = buttonSize * buttonDistance * 5
+	local buttonOffset = buttonSize * buttonDistance * 6
 	local Button = vgui.Create("DButton", parent)
 	local buttonX, buttonY = skillInfo.pos[1] * buttonDistance * buttonSize + buttonOffset, skillInfo.pos[2] * 1.5 * buttonSize + buttonOffset
 	Button:SetPos(buttonX, buttonY)

@@ -30,7 +30,8 @@ function EFFECT:Think()
 				-- how many?
 				local particlesToAdd = math.floor((curTime - self.LastRenderCurTime) / particleDelay)
 				self.LastRenderCurTime = self.LastRenderCurTime + particlesToAdd * particleDelay
-				self.Particles = self.Particles + particlesToAdd
+				self:AddParticles(particlesToAdd)
+				--self.Particles = self.Particles + particlesToAdd
 			end
 		end
 		
@@ -44,7 +45,10 @@ function EFFECT:Think()
 end
 
 function EFFECT:Render()
-	for i=1, math.min(self.Particles, 25) do
+end
+
+function EFFECT:AddParticles(particles)
+	for i=1, math.min(particles, 25) do
 		-- reminder: particles are NOT entities, otherwise they would hit the object limit extremely fast
 		-- the consequence is that particles can't store variables
 		local r, g, b = self:GetParticleColor()
@@ -70,7 +74,7 @@ function EFFECT:Render()
 		end)
 	end
 
-	self.Particles = 0
+	--self.Particles = 0
 end
 
 function EFFECT:ShouldDrawBeam()

@@ -33,7 +33,7 @@ hook.Add("InsaneStatsWPASS2EntitiesHighlighted", "InsaneStatsWPASS2", function(h
 end)
 
 local revealIcons = {
-	["class C_BaseEntity"] = InsaneStats:GetIconMaterial("cursor"),
+	["class C_BaseToggle"] = InsaneStats:GetIconMaterial("cursor"),
 	func_button = InsaneStats:GetIconMaterial("cursor"),
 	func_rot_button = InsaneStats:GetIconMaterial("cursor"),
 	momentary_rot_button = InsaneStats:GetIconMaterial("cursor"),

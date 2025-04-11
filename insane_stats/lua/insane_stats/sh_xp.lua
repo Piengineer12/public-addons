@@ -17,7 +17,7 @@ InsaneStats:RegisterConVar("xp_damagemode", "insanestats_xp_damagemode", "1", {
 		Note that the inflictor will always receive the same XP as the attacker regardless of circumstance.",
 	type = InsaneStats.INT, min = 0, max = 3
 })
-InsaneStats:RegisterConVar("xp_player_share", "insanestats_xp_player_share", "0", {
+InsaneStats:RegisterConVar("xp_player_share", "insanestats_xp_player_share", "25", {
 	display = "Team XP", desc = "All team members of a player who earns XP also gain this % of XP.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
@@ -377,17 +377,31 @@ function ENT:InsaneStats_GetLevel()
 	return self:InsaneStats_GetEntityData("level") or 1
 end
 
+function ENT:InsaneStats_GetLevelProgress()
+	local level = self:InsaneStats_GetLevel()
+	local xp = self:InsaneStats_GetXP()
+	local previousXP = InsaneStats:GetXPRequiredToLevel(level)
+
+	local currentXP = math.max(xp - previousXP, 0)
+	local nextXP = InsaneStats:ScaleValueToLevel(
+		InsaneStats:GetConVarValue("xp_scale_start"),
+		InsaneStats:GetConVarValue("xp_scale_add")/100,
+		level,
+		"xp_scale_add_mode"
+	)
+
+	return currentXP, nextXP
+end
+
 function ENT:InsaneStats_GetLevelFraction()
-	local currentLevel = self:InsaneStats_GetLevel()
-	local prevXP = InsaneStats:GetXPRequiredToLevel(currentLevel)
-	local nextXP = InsaneStats:GetXPRequiredToLevel(currentLevel+1)
-	if nextXP == math.huge then
-		nextXP = 2^(1024-2^-43)
-	end
 	if self:InsaneStats_GetXP() == math.huge then
 		return 1
 	else
-		return math.Clamp(math.Remap(self:InsaneStats_GetXP(), prevXP, nextXP, 0, 1), 0, 1)
+		local current, to = self:InsaneStats_GetLevelProgress()
+		if to == math.huge then
+			to = 2^(1024-2^-43)
+		end
+		return math.Clamp(current / to, 0, 1)
 	end
 end
 

@@ -396,8 +396,8 @@ net.Receive("insane_stats", function(length, ply)
 	elseif func == 2 and ply:IsAdmin() then
 		for i=1, net.ReadUInt(8) do
 			local conVarName = net.ReadString()
-			if conVarName == "insanestats_revert_all_convars" then
-				RunConsoleCommand("insanestats_revert_all_convars", "yes")
+			if conVarName == "insanestats_revert_all_server_convars" then
+				RunConsoleCommand("insanestats_revert_all_server_convars", "yes")
 			else
 				local typ = InsaneStats:GetConVarData(conVarName).type
 				

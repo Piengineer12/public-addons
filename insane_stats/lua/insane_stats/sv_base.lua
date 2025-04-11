@@ -139,7 +139,7 @@ concommand.Add("insanestats_save_delete", function(ply, cmd, args, argStr)
 	end
 end, nil, "Deletes the specified Insane Stats save file.")
 
-concommand.Add("insanestats_revert_all_convars", function(ply, cmd, args, argStr)
+concommand.Add("insanestats_revert_all_server_convars", function(ply, cmd, args, argStr)
 	if (IsValid(ply) and not ply:IsAdmin()) then
 		InsaneStats:Log("This command can only be run by admins!")
 	elseif argStr:lower() == "yes" then

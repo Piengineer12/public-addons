@@ -1092,7 +1092,7 @@ hook.Add("Tick", "InsaneStatsWPASS", function()
 					hurtFunc = function()
 						if IsValid(victim) then
 							local durationLeft = victim:InsaneStats_GetStatusEffectDuration(effect)
-							if durationLeft > 0 and victim:InsaneStats_GetHealth() > 0 then
+							if durationLeft > 0 and not victim.insaneStats_IsDead then
 								hook.Run("InsaneStatsWPASSDoT", victim, effect)
 							else
 								timer.Remove(dotTimerName)

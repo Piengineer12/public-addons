@@ -715,7 +715,8 @@ local skills = {
 	},
 	absorption_shield = {
 		name = "Absorption Shield",
-		desc = "%+.0f%% non-dissolving damage absorption chance while shielded. Absorbed damage is converted into random ammunition.",
+		desc = "%+.0f%% non-dissolving damage absorption chance while shielded. \z
+		Absorbed damage is converted into random ammunition.",
 		values = function(level)
 			return level * 5
 		end,
@@ -1179,7 +1180,7 @@ local skills = {
 		name = "Actually Levelling Up",
 		desc = "Every level up increases max health and max shield by +%s and +%s, respectively, \z
 		per skill point spent in total (+%s and +%s, respectively, at current total spent skill points)! \z
-		Additionally, levelling up also restores +%u%% of health and shield! \z
+		Then, restore health and shield by 2 times the amount of max health and max shield gained, respectively! \z
 		Health and shield gained this way can exceed max health and max shield, \z
 		but with diminishing returns.",
 		values = function(level, ent)
@@ -1190,20 +1191,20 @@ local skills = {
 			
 			local value1 = level
 			if InsaneStats:GetConVarValueDefaulted("xp_"..scaleType.."_health_mode", "xp_mode") > 0 then
-				value1 = InsaneStats:ScaleValueToLevel(
+				value1 = InsaneStats:ScaleValueToLevelPure(
 					value1,
 					InsaneStats:GetConVarValue("xp_"..scaleType.."_health")/100,
 					effectiveLevel,
-					"xp_"..scaleType.."_health_mode"
+					true
 				)
 			end
 			local value2 = level*baseMult
 			if InsaneStats:GetConVarValueDefaulted("xp_"..scaleType.."_armor_mode", "xp_mode") > 0 then
-				value2 = InsaneStats:ScaleValueToLevel(
+				value2 = InsaneStats:ScaleValueToLevelPure(
 					value2,
 					InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
 					effectiveLevel,
-					"xp_"..scaleType.."_armor_mode"
+					true
 				)
 			end
 			local value3 = value1 * spentSkillPoints
@@ -1267,19 +1268,18 @@ local skills = {
 	},
 	anger = {
 		name = "Anger",
-		desc = "Taking damage increases all damage dealt by +%u%% for 10 seconds! %u seconds cooldown. \z
-		However, dealing explosive damage to an NPC creates a live grenade that explodes after 2 seconds%s, \z
+		desc = "Taking damage increases all damage dealt by +200%% for 10 seconds! %u seconds cooldown. \z
+		However, dealing explosive damage to an NPC creates a live grenade that explodes after 2 seconds, \z
 		at most once per second per NPC.",
 		values = function(level)
-			local text2 = " and another that is invincible and explodes after 3 to 5 seconds randomly"
-			return level * 200, 180 - level * 60, level > 1 and text2 or ""
+			return 180 - level * 60
 		end,
 		stackTick = function(state, stacks, time, ent)
 			if state == 1 then
 				stacks = stacks - time
 				if stacks < 0 then
 					state = -1
-					stacks = stacks + ent:InsaneStats_GetEffectiveSkillValues("anger", 2)
+					stacks = stacks + ent:InsaneStats_GetEffectiveSkillValues("anger")
 					time = 0
 				end
 			end
@@ -1355,6 +1355,28 @@ local skills = {
 		pos = {5, -3},
 		minpts = 5
 	},
+	too_many_items = {
+		name = "Too Many Items",
+		desc = "Gain +%.1f stack(s) of Too Many Items whenever an item is picked up. \z
+		All skills and modifiers that give random items \z
+		instead grant up to +%u stacks of Too Many Items. \z
+		At 100 stacks, consume 100 to fully restore all ammo, \z
+		health and shield, as well as triggering all skills \z
+		related to picking up Health Kits and Armor Batteries. \z
+		Health and shield gained this way can exceed max health and max shield, \z
+		but with diminishing returns.",
+		values = function(level, ent)
+			-- min level above 0: 0.1, max level: 20
+			level = level * (1 + ent:InsaneStats_GetEffectiveSkillValues("productivity", 3) / 100)
+			return level, level * 10
+		end,
+		stackTick = function(state, current, time, ent)
+			return 0, current
+		end,
+		img = "cubes",
+		pos = {6, -2},
+		minpts = 5
+	},
 	when_the_sigma_grind_aint_enough = {
 		name = "When The Sigma Grind Ain't Enough",
 		desc = "Every %u skill points gained, gain a über skill point! \z
@@ -1423,6 +1445,20 @@ local skills = {
 		pos = {3, 5},
 		minpts = 5
 	},
+	rain_from_above = {
+		name = "Rain From Above",
+		desc = "+%u%% mid-air damage dealt for every %s above ground",
+		values = function(level)
+			local distance = 16
+			if CLIENT then
+				distance = InsaneStats:FormatNumber(distance, {distance = true})
+			end
+			return level * 10, distance
+		end,
+		img = "sunbeams",
+		pos = {2, 6},
+		minpts = 5
+	},
 	celebration = {
 		name = "Celebration",
 		desc = "All kill skills are triggered%s by non-player kills from ANY entity! \z
@@ -1471,29 +1507,35 @@ local skills = {
 		pos = {-4, 4},
 		minpts = 5
 	},
-	bastion_of_flesh = {
-		name = "Bastion of Flesh",
-		desc = "+%u%% of max shield gained from skills and modifiers is converted into max health instead. \z
-		On kill, %+.2f%% of max shield is converted into max health. \z
-		Max shield converted by this skill restores health by %u times the amount converted! \z
-		Health gained this way can exceed max health, but with diminishing returns! \z
-		This skill cannot reduce max armor below %s.",
-		values = function(level, ent)
-			local scaleType = ent:IsPlayer() and "player" or "other"
-			local baseMult = ent:IsPlayer() and 1 or InsaneStats:GetConVarValue("infhealth_armor_mul")
-			local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and ent:InsaneStats_GetLevel() or 1
-			local val = InsaneStats:ScaleValueToLevel(
-				baseMult,
-				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
-				effectiveLevel,
-				"xp_"..scaleType.."_armor_mode"
-			)
-
-			return level*10, level/50, 20, CLIENT and InsaneStats:FormatNumber(val), val
+	medic_bag = {
+		name = "Medic Bag",
+		desc = "Receiving damage restores %+.0f%% of max health and max shield. \z
+		Health and shield gained this way can exceed max health and max shield, \z
+		but with diminishing returns. 60 seconds cooldown.",
+		values = function(level)
+			return level * 10
 		end,
-		img = "back-forth",
-		pos = {-5, 1},
-		minpts = 6
+		stackTick = function(state, current, time, ent)
+			local nextStacks = math.max(current - time, 0)
+			return nextStacks <= 0 and 0 or -1, nextStacks
+		end,
+		img = "hospital-cross",
+		pos = {-5, 3},
+		minpts = 5
+	},
+	across_the_sky = {
+		name = "Across The Sky",
+		desc = "+%u%% defence in mid-air for every %s above ground",
+		values = function(level)
+			local distance = 16
+			if CLIENT then
+				distance = InsaneStats:FormatNumber(distance, {distance = true})
+			end
+			return level * 10, distance
+		end,
+		img = "winged-shield",
+		pos = {-6, 2},
+		minpts = 5
 	},
 	rock_solid = {
 		name = "Rock Solid",
@@ -1562,6 +1604,19 @@ local skills = {
 		end,
 		img = "divert",
 		pos = {-3, -5},
+		minpts = 5
+	},
+	pyrotheum = {
+		name = "Pyrotheum",
+		desc = "Killed enemies drop a pool of liquid Pyrotheum that lasts for +%u seconds. \z
+		These pools deal fire damage to ALL entities within range based on duration. \z
+		Pyrotheum pools can merge together to create bigger pools \z
+		that last longer (maximum 20 seconds) and deal even more damage.",
+		values = function(level, ent)
+			return level * 2
+		end,
+		img = "sun",
+		pos = {-2, -6},
 		minpts = 5
 	},
 
@@ -1647,9 +1702,10 @@ local skills = {
 	},
 	productivity = {
 		name = "Productivity",
-		desc = "%+.0f%% chance to duplicate items. On kill, add %+.0f%% ammo into the current weapon's clips.",
+		desc = "%+.0f%% chance to duplicate items. On kill, add %+u%% ammo into the current weapon's clips. \z
+		The Too Many Items skill is also %+u%% more effective.",
 		values = function(level)
-			return level * 10, level * 5
+			return level * 10, level * 5, level * 10
 		end,
 		img = "cubeforce",
 		pos = {5, 1},
@@ -1761,21 +1817,29 @@ local skills = {
 		pos = {-5, 4},
 		minpts = 5
 	},
-	medic_bag = {
-		name = "Medic Bag",
-		desc = "Receiving damage restores %+.0f%% of max health and max shield. \z
-		Health and shield gained this way can exceed max health and max shield, \z
-		but with diminishing returns. 60 seconds cooldown.",
-		values = function(level)
-			return level * 10
+	bastion_of_flesh = {
+		name = "Bastion of Flesh",
+		desc = "+%u%% of max shield gained from skills and modifiers is converted into max health instead. \z
+		On kill, %+.2f%% of max shield is converted into max health. \z
+		Max shield converted by this skill restores health by %u times the amount converted! \z
+		Health gained this way can exceed max health, but with diminishing returns! \z
+		This skill cannot reduce max armor below %s.",
+		values = function(level, ent)
+			local scaleType = ent:IsPlayer() and "player" or "other"
+			local baseMult = ent:IsPlayer() and 1 or InsaneStats:GetConVarValue("infhealth_armor_mul")
+			local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and ent:InsaneStats_GetLevel() or 1
+			local val = InsaneStats:ScaleValueToLevel(
+				baseMult,
+				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
+				effectiveLevel,
+				"xp_"..scaleType.."_armor_mode"
+			)
+
+			return level*10, level/50, 20, CLIENT and InsaneStats:FormatNumber(val), val
 		end,
-		stackTick = function(state, current, time, ent)
-			local nextStacks = math.max(current - time, 0)
-			return nextStacks <= 0 and 0 or -1, nextStacks
-		end,
-		img = "hospital-cross",
-		pos = {-5, 3},
-		minpts = 5
+		img = "back-forth",
+		pos = {-5, 1},
+		minpts = 6
 	},
 	vitality_to_go = {
 		name = "Vitality To Go",
@@ -1824,7 +1888,8 @@ local skills = {
 	},
 	shield_shell_shots = {
 		name = "Shield Shell Shots",
-		desc = "While at 100%% shield or above, all BASE damage dealt is increased by %s, but results in %.1f%% of shield loss!",
+		desc = "While at 100%% shield or above, all BASE damage dealt is increased by %s, \z
+		but results in %.1f%% of shield loss!",
 		values = function(level, ent)
 			local value = 40 * InsaneStats:DetermineDamageMulPure(
 				ent, game.GetWorld()
@@ -2074,6 +2139,19 @@ local statusEffects = {
 		name = "Ammo Stealer",
 		typ = 1,
 		img = "arrow-cluster"
+	},
+	pyrotheum = {
+		name = "Pyrotheum",
+		typ = 0,
+		img = "sun",
+		overtime = true,
+		apply = SERVER and function(ent, level, duration, attacker)
+			--ent:Ignite(duration)
+			ent:SetModelScale(0, duration)
+		end,
+		expiry = SERVER and function(ent, level, attacker)
+			SafeRemoveEntity(ent)
+		end
 	},
 }
 

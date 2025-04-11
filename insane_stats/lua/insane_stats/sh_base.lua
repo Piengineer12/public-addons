@@ -207,7 +207,7 @@ InsaneStats:RegisterConVar("gargantua_is_monster", "insanestats_gargantua_is_mon
 	Fixes at least a few Synergy maps from not working at all in GMod.",
 	type = InsaneStats.BOOL
 })
-InsaneStats:RegisterConVar("prevent_gunship_death_crash", "insanestats_prevent_gunship_death_crash", "1", {
+InsaneStats:RegisterConVar("prevent_gunship_death_crash", "insanestats_prevent_gunship_death_crash", "0", {
 	display = "Prevent Gunship Death Crash", desc = "If an npc_combinegunship is marked as a template NPC, \z
 	ALL npc_combinegunships are replaced with npc_helicopters.",
 	type = InsaneStats.BOOL
@@ -241,15 +241,15 @@ InsaneStats:RegisterConVar("flashlight_disable_fix_modifyspeed", "insanestats_fl
 	You can reenable this behaviour via this ConVar.",
 	type = InsaneStats.BOOL
 })
-InsaneStats:RegisterConVar("gametext_tochat", "insanestats_gametext_tochat", "0", {
+InsaneStats:RegisterConVar("gametext_tochat", "insanestats_gametext_tochat", "1", {
 	display = "game_text To Chat", desc = "Activated game_texts will also send their texts to chat.",
 	type = InsaneStats.BOOL
 })
-InsaneStats:RegisterConVar("gametext_tochat_once", "insanestats_gametext_tochat_once", "0", {
+InsaneStats:RegisterConVar("gametext_tochat_once", "insanestats_gametext_tochat_once", "1", {
 	display = "Chat Only Once", desc = "Activated game_texts will only send their texts to chat once.",
 	type = InsaneStats.BOOL
 })
-InsaneStats:RegisterConVar("hudhint_tochat", "insanestats_hudhint_tochat", "0", {
+InsaneStats:RegisterConVar("hudhint_tochat", "insanestats_hudhint_tochat", "1", {
 	display = "env_hudhint To Chat", desc = "Activated env_hudhints will also send their texts to chat.",
 	type = InsaneStats.BOOL
 })

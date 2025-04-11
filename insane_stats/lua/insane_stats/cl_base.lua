@@ -549,6 +549,20 @@ InsaneStats:RegisterClientConVar("hud_ammo_h", "insanestats_hud_ammo_h", "0.25",
 	type = InsaneStats.FLOAT, min = 0, max = 10
 })
 
+concommand.Add("insanestats_revert_all_client_convars", function(ply, cmd, args, argStr)
+	if argStr:lower() == "yes" then
+		for name, data in pairs(InsaneStats.conVars) do
+			local conVar = data.conVar
+			if (conVar and not conVar:IsFlagSet(FCVAR_REPLICATED)) then
+				conVar:Revert()
+			end
+		end
+		InsaneStats:Log("All client-side Insane Stats ConVars have been reverted!")
+	else
+		InsaneStats:Log("Reverts all client-side Insane Stats ConVars. You must pass the argument \"yes\" for this command to work.")
+	end
+end, nil, "Reverts all client-side Insane Stats ConVars. You must pass the argument \"yes\" for this command to work.")
+
 local ENT = FindMetaTable("Entity")
 
 function ENT:InsaneStats_GetPrintName()
