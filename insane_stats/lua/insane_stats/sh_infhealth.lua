@@ -91,7 +91,7 @@ local function OverrideHealth()
 	
 	function ENT:SetHealth(newHealth)
 		newHealth = tonumber(newHealth)
-		assert(newHealth >= -math.huge, "Something tried to set health on "..tostring(self).." to nan!")
+		assert(CLIENT or newHealth >= -math.huge, "Something tried to set health on "..tostring(self).." to nan!")
 		self:InsaneStats_SetEntityData("health", newHealth)
 		if newHealth > 0 then
 			self.insaneStats_HealthRoot8 = InsaneStats:CalculateRoot8(newHealth)
@@ -123,7 +123,7 @@ local function OverrideHealth()
 	
 	function ENT:SetMaxHealth(newHealth)
 		newHealth = tonumber(newHealth)
-		assert(newHealth >= -math.huge, "Something tried to set max health on "..tostring(self).." to nan!")
+		assert(CLIENT or newHealth >= -math.huge, "Something tried to set max health on "..tostring(self).." to nan!")
 		self:InsaneStats_SetEntityData("max_health", newHealth)
 		if newHealth > 0 then
 			self.insaneStats_MaxHealthRoot8 = InsaneStats:CalculateRoot8(newHealth)
@@ -186,7 +186,7 @@ local function OverrideArmor()
 	end
 	
 	function ENT:SetArmor(newArmor)
-		assert(newArmor >= -math.huge, "Something tried to set armor on "..tostring(self).." to nan!")
+		assert(CLIENT or newArmor >= -math.huge, "Something tried to set armor on "..tostring(self).." to nan!")
 		self:InsaneStats_SetEntityData("armor", newArmor)
 		if newArmor > 0 then
 			self.insaneStats_ArmorRoot8 = InsaneStats:CalculateRoot8(newArmor)
@@ -208,7 +208,7 @@ local function OverrideArmor()
 	end
 
 	function ENT:SetMaxArmor(newArmor)
-		assert(newArmor >= -math.huge, "Something tried to set max armor on "..tostring(self).." to nan!")
+		assert(CLIENT or newArmor >= -math.huge, "Something tried to set max armor on "..tostring(self).." to nan!")
 		self:InsaneStats_SetEntityData("max_armor", newArmor)
 		if newArmor > 0 then
 			self.insaneStats_MaxArmorRoot8 = InsaneStats:CalculateRoot8(newArmor)
@@ -242,7 +242,7 @@ local function OverrideArmor()
 	end
 	
 	function PLAYER:SetArmor(newArmor)
-		assert(newArmor >= -math.huge, "Something tried to set armor on "..tostring(self).." to nan!")
+		assert(CLIENT or newArmor >= -math.huge, "Something tried to set armor on "..tostring(self).." to nan!")
 		self:InsaneStats_SetEntityData("armor", newArmor)
 		if newArmor > 0 then
 			self.insaneStats_ArmorRoot8 = InsaneStats:CalculateRoot8(newArmor)
@@ -273,7 +273,7 @@ local function OverrideArmor()
 	end
 	
 	function PLAYER:SetMaxArmor(newArmor)
-		assert(newArmor >= -math.huge, "Something tried to set max armor on "..tostring(self).." to nan!")
+		assert(CLIENT or newArmor >= -math.huge, "Something tried to set max armor on "..tostring(self).." to nan!")
 		self:InsaneStats_SetEntityData("max_armor", newArmor)
 		if newArmor > 0 then
 			self.insaneStats_MaxArmorRoot8 = InsaneStats:CalculateRoot8(newArmor)

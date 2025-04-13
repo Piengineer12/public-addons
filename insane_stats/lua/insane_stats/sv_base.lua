@@ -165,7 +165,7 @@ local hlsAliases = {
 }
 local keyValuesOnCrashableEntities = {}
 local targetnamesToPreventCrashes = {}]]
-local replaceAllGunships = false
+--local replaceAllGunships = false
 -- For some reason "color" isn't included under game_text:GetKeyValues(). Why?
 hook.Add("EntityKeyValue", "InsaneStats", function(ent, key, value)
 	key = key:lower()
@@ -215,13 +215,16 @@ hook.Add("EntityKeyValue", "InsaneStats", function(ent, key, value)
 				times = tonumber(rawData[5]) or -1
 			})
 		end
-	elseif class == "npc_combinegunship" then
+	--[[elseif class == "npc_combinegunship" then
 		ent.insaneStats_KVs = ent.insaneStats_KVs or {}
 		table.insert(ent.insaneStats_KVs, {key, value})
 
-		if key == "spawnflags" and bit.band(tonumber(value), 2048) == 2048 then
+		if key == "spawnflags" and bit.band(tonumber(value), 2048) ~= 0 then
+			if not replaceAllGunships then
+				InsaneStats:Log("A template gunship has been detected, all gunships will be replaced with helicopters!")
+			end
 			replaceAllGunships = true
-		end
+		end]]
 	end
 end)
 --InsaneStats.KeyValuesOnCrashableEntities = keyValuesOnCrashableEntities
@@ -422,7 +425,7 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStats", function(ent)
 			ent:InsaneStats_MarkForUpdate(256)
 		elseif class=="npc_combinedropship" and InsaneStats:GetConVarValue("nonsolid_combine_dropship") then
 			ent:SetCollisionGroup(COLLISION_GROUP_WORLD)
-		elseif class=="npc_combinegunship" and InsaneStats:GetConVarValue("prevent_gunship_death_crash")
+		--[[elseif class=="npc_combinegunship" and InsaneStats:GetConVarValue("prevent_gunship_death_crash")
 		and replaceAllGunships then
 			local keyValues = ent.insaneStats_KVs or {}
 			local pos = ent:GetPos()
@@ -446,7 +449,7 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStats", function(ent)
 					heli:SetKeyValue(key, value)
 				end
 			end
-			heli:Spawn()
+			heli:Spawn()]]
 		end
 	end
 end)

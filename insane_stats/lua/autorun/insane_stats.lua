@@ -3,13 +3,11 @@ Workshop:		https://steamcommunity.com/sharedfiles/filedetails/?id=2980423627
 Profile Page:	https://steamcommunity.com/id/Piengineer12
 GitHub Page:	https://github.com/Piengineer12/public-addons/tree/master/insane_stats
 Donate:			https://ko-fi.com/piengineer12
-
-TODO: investigate problem of disappearing gunships
 ]]
 
 InsaneStats = {
-	VERSION = "1.9.3",
-	VERSION_DATE = "2025-04-05",
+	VERSION = "1.9.4-rc.1",
+	VERSION_DATE = "2025-04-13",
 	WORKSHOP_ID = "2980423627"
 }
 

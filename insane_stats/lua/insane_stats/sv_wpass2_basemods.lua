@@ -1836,66 +1836,84 @@ local killingSpreeEffects = {
 	crit_xp_up = 25
 }
 
-local pyrotheumRadiusMul = 81
-local pyrotheumDistancePerSecond = 8
-local pyrotheumMaxDuration = 20
-local pyrotheumModel = Model("models/hunter/tubes/circle4x4.mdl")
+local pyrotheumRadiusMul = 90
+local pyrotheumDistancePerSecond = 4
+local pyrotheumMaxDuration = math.huge
+local pyrotheumModel = Model("models/hunter/misc/sphere375x375.mdl")
 local pools = {}
-local function CreatePyrotheumPool(victim, attacker, duration)
+local traceResult = {}
+local function CreatePyrotheumPool(victim, attacker, duration, triggers)
 	local poolPos = victim:WorldSpaceCenter()
+	local createNew = true
+	duration = duration * triggers ^ (1/3)
+	local trace = {
+		start = poolPos,
+		mask = MASK_SOLID_BRUSHONLY,
+		output = traceResult
+	}
 
-	-- is there already another pool nearby?
-	local dpsSqr = pyrotheumDistancePerSecond * pyrotheumDistancePerSecond
-	local i = 1
+	local toCheck = InsaneStats:GetEntitiesByStatusEffect("pyrotheum")
 	for k,v in pairs(pools) do
 		if IsValid(k) then
-			local theirDuration = k:InsaneStats_GetStatusEffectDuration("pyrotheum")
-			local theirRadius = theirDuration
-
-			if theirRadius <= 0 then theirRadius = v end
-
-			if theirRadius * theirRadius * dpsSqr > poolPos:DistToSqr(k:GetPos())
-			or i > 256 then
-				SafeRemoveEntity(k)
-				pools[k] = nil
-				duration = math.sqrt(
-					duration * duration
-					+ (theirDuration * k:InsaneStats_GetStatusEffectLevel("pyrotheum"))
-					^ 2
-				)
-			end
-			i = i + 1
+			table.insert(toCheck, k)
 		else
 			pools[k] = nil
 		end
 	end
 
-	local pool = ents.Create("prop_physics")
-	pool:SetPos(poolPos)
-	pool:SetModel(pyrotheumModel)
-	--pool:SetMaxHealth(100)
-	--pool:SetHealth(100)
-	pool:Spawn()
-	pool:SetModelScale(0.25)
-	pool:Activate()
-	pool:SetModelScale(math.min(duration, pyrotheumMaxDuration) * pyrotheumDistancePerSecond / pyrotheumRadiusMul)
-	pool:SetCollisionGroup(COLLISION_GROUP_WORLD)
-	pool:SetMaterial("models/props_lab/tank_glass001")
-	pool:AddEffects(EF_NOSHADOW)
-
-	local physObj = pool:GetPhysicsObject()
-	if IsValid(physObj) then
-		physObj:SetMass(50000)
-	end
-	pools[pool] = duration
-	timer.Simple(0, function()
-		if (IsValid(pool) and pool:InsaneStats_GetStatusEffectLevel("pyrotheum") <= 0) then
-			pool:InsaneStats_ApplyStatusEffect(
-				"pyrotheum", 1, duration,
-				{attacker = attacker, extend = pyrotheumMaxDuration}
-			)
+	for i,v in ipairs(toCheck) do
+		local radius = duration * pyrotheumDistancePerSecond
+		local theirDuration = pools[v] or v:InsaneStats_GetStatusEffectDuration("pyrotheum")
+		local theirRadius = theirDuration * pyrotheumDistancePerSecond
+		trace.endpos = v:WorldSpaceCenter()
+		util.TraceLine(trace)
+		if (not traceResult.Hit or traceResult.Entity == v)
+		and math.max(theirRadius, radius) ^ 2 > trace.start:DistToSqr(trace.endpos) then
+			local newDuration = (duration ^ 3 + theirDuration ^ 3) ^ (1/3)
+			local newPos = LerpVector(theirDuration / (duration + theirDuration), poolPos, v:WorldSpaceCenter())
+			if duration < theirDuration then
+				v:SetModelScale(newDuration * pyrotheumDistancePerSecond / pyrotheumRadiusMul)
+				v:InsaneStats_ApplyStatusEffect("pyrotheum", 1, newDuration, {attacker = attacker})
+				v:SetPos(newPos)
+				createNew = false
+				break
+			else
+				poolPos = newPos
+				duration = newDuration
+			end
 		end
-	end)
+	end
+
+	if createNew then
+		local pool = ents.Create("prop_dynamic")
+		pool:SetPos(poolPos)
+		pool:SetModel(pyrotheumModel)
+		--pool:SetMaxHealth(100)
+		--pool:SetHealth(100)
+		pool:SetKeyValue("spawnflags", 256)
+		--pool:SetCollisionGroup(COLLISION_GROUP_WORLD)
+		pool:Spawn()
+		--pool:SetColor(Color(255, 255, 255, 63))
+		--pool:SetRenderMode(RENDERMODE_TRANSCOLOR)
+		pool:SetModelScale(math.min(duration, pyrotheumMaxDuration) * pyrotheumDistancePerSecond / pyrotheumRadiusMul)
+		pool:SetMaterial("models/props_combine/portalball001_sheet")
+		pool:AddEffects(EF_NOSHADOW)
+		pools[pool] = duration
+
+		--[[local physObj = pool:GetPhysicsObject()
+		if IsValid(physObj) then
+			physObj:SetMass(50000)
+		end]]
+		timer.Simple(0, function()
+			pools[pool] = nil
+			if IsValid(pool) then
+				pool:InsaneStats_ApplyStatusEffect(
+					"pyrotheum", 1, duration, {attacker = attacker}
+					--{attacker = attacker, extend = pyrotheumMaxDuration}
+				)
+			end
+		end)
+	end
 end
 
 --[[
@@ -2175,7 +2193,7 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsSkills", function(victim, at
 				local mergeWith
 				for i,v in ipairs(ents.FindByClass("item_item_crate")) do
 					if v:GetInternalVariable("ItemClass") == "item_dynamic_resupply"
-					and v:GetPos():DistToSqr(testPos) < 2000 then
+					and v:GetPos():DistToSqr(testPos) < 4096 then
 						mergeWith = v break
 					end
 				end
@@ -2206,7 +2224,7 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsSkills", function(victim, at
 
 			if attacker:InsaneStats_EffectivelyHasSkill("pyrotheum") then
 				local duration = attacker:InsaneStats_GetEffectiveSkillValues("pyrotheum")
-				CreatePyrotheumPool(victim, attacker, duration * math.sqrt(triggers))
+				CreatePyrotheumPool(victim, attacker, duration, triggers)
 			end
 		end
 	end
@@ -2442,53 +2460,6 @@ hook.Add("InsaneStatsEntityKilledPostXP", "InsaneStatsSkills", function(victim, 
 		end
 	end
 end)
-
---[[hook.Add("InsaneStatsEntityKilledPostXP", "InsaneStatsWPASS2", function(victim, attacker, inflictor)
-	if InsaneStats:GetConVarValue("wpass2_enabled") and IsValid(attacker) and IsValid(victim) then
-		local damage = attacker:InsaneStats_GetStatusEffectLevel("death_promise")
-		if damage > 0 then
-			local damageOrigin = victim:WorldSpaceCenter()
-			local dmginfo = DamageInfo()
-			dmginfo:SetAttacker(attacker)
-			dmginfo:SetInflictor(attacker)
-			dmginfo:SetBaseDamage(damage)
-			dmginfo:SetDamage(damage)
-			dmginfo:SetMaxDamage(damage)
-			dmginfo:SetDamageForce(vector_origin)
-			dmginfo:SetDamageType(bit.bor(DMG_SONIC, DMG_ENERGYBEAM))
-			dmginfo:SetReportedPosition(damageOrigin)
-			
-			local traceResult = {}
-			local trace = {
-				start = damageOrigin,
-				filter = {victim, victim.GetVehicle and victim:GetVehicle()},
-				mask = MASK_SHOT_HULL,
-				output = traceResult
-			}
-			
-			local success = false
-			for k,v in pairs(ents.FindInPVS(damageOrigin)) do
-				if v ~= attacker and not attacker:InsaneStats_IsValidAlly(v) then
-					local damagePos = v:HeadTarget(damageOrigin) or v:WorldSpaceCenter()
-					damagePos = damagePos:IsZero() and v:WorldSpaceCenter() or damagePos
-					trace.endpos = damagePos
-					util.TraceLine(trace)
-					if not traceResult.Hit or traceResult.Entity == v then
-						success = true
-						attacker:InsaneStats_ClearStatusEffect("death_promise")
-						dmginfo:SetDamagePosition(damagePos)
-						v:TakeDamageInfo(dmginfo)
-					end
-				end
-			end
-			
-			if success then
-				local soundIndex = math.random() < 0.5 and 1 or 3
-				victim:EmitSound(string.format("weapons/bugbait/bugbait_impact%u.wav", soundIndex), 100, 100, 1, CHAN_WEAPON)
-			end
-		end
-	end
-end)]]
 
 local function UpdateWeaponDeploySpeed(owner, wep)
 	local desiredDeploySpeedMul = owner:InsaneStats_GetAttributeValue("switch_speed")
@@ -2794,7 +2765,6 @@ local function CauseStatusEffectDamage(data)
 	table.remove(damageTiers)
 end
 
-local traceResult = {}
 hook.Add("InsaneStatsWPASSDoT", "InsaneStatsWPASS2", function(ent, effect)
 	local data = {}
 	
@@ -2917,29 +2887,64 @@ hook.Add("InsaneStatsWPASSDoT", "InsaneStatsWPASS2", function(ent, effect)
 			local trace = {
 				start = ent:WorldSpaceCenter(),
 				filter = ent,
-				mask = MASK_SHOT,
 				output = traceResult
 			}
 
-			for i,v in ipairs(ents.FindInSphere(ent:WorldSpaceCenter(), radius)) do
-				if v:InsaneStats_GetHealth() > 0 and IsValid(v:GetPhysicsObject()) then
-					local damagePos = v:HeadTarget(ent:WorldSpaceCenter()) or v:WorldSpaceCenter()
+			for i,v in ipairs(ents.FindInSphere(trace.start, radius)) do
+				if v:InsaneStats_GetHealth() > 0 and IsValid(v:GetPhysicsObject())
+				or v:InsaneStats_IsMob() and not v.insaneStats_IsDead then
+					trace.mask = MASK_SHOT
+					local damagePos = v:HeadTarget(trace.start) or v:WorldSpaceCenter()
 					damagePos = damagePos:IsZero() and v:WorldSpaceCenter() or damagePos
 					trace.endpos = damagePos
 	
 					util.TraceLine(trace)
 					if not traceResult.Hit or traceResult.Entity == v then
-						local dmginfo = DamageInfo()
-						dmginfo:SetAttacker(attacker)
-						dmginfo:SetInflictor(attacker)
-						dmginfo:SetBaseDamage(damage)
-						dmginfo:SetDamage(damage)
-						dmginfo:SetMaxDamage(damage)
-						dmginfo:SetDamageForce(vector_origin)
-						dmginfo:SetDamageType(bit.bor(DMG_ENERGYBEAM, DMG_PREVENT_PHYSICS_FORCE, DMG_SLOWBURN))
-						dmginfo:SetReportedPosition(attacker:WorldSpaceCenter())
-						dmginfo:SetDamagePosition(damagePos)
-						v:TakeDamageInfo(dmginfo)
+						if attacker:InsaneStats_IsValidAlly(v) then
+							v:InsaneStats_AddHealthCapped(v:InsaneStats_GetMaxHealth() / 1000 * damage)
+						else
+							local dmginfo = DamageInfo()
+							dmginfo:SetAttacker(attacker)
+							dmginfo:SetInflictor(attacker)
+							dmginfo:SetBaseDamage(damage)
+							dmginfo:SetDamage(damage)
+							dmginfo:SetMaxDamage(damage)
+							dmginfo:SetDamageForce(vector_origin)
+							dmginfo:SetDamageType(bit.bor(DMG_ENERGYBEAM, DMG_PREVENT_PHYSICS_FORCE))
+							dmginfo:SetReportedPosition(attacker:WorldSpaceCenter())
+							dmginfo:SetDamagePosition(damagePos)
+							v:TakeDamageInfo(dmginfo)
+						end
+					end
+				end
+
+				if v:InsaneStats_GetStatusEffectDuration("pyrotheum") > 0 and ent ~= v then
+					trace.mask = MASK_SOLID_BRUSHONLY
+					local theirDuration = v:InsaneStats_GetStatusEffectDuration("pyrotheum")
+					local theirRadius = theirDuration * pyrotheumDistancePerSecond
+					trace.endpos = v:WorldSpaceCenter()
+					util.TraceLine(trace)
+					if (not traceResult.Hit or traceResult.Entity == v)
+					and math.max(theirRadius, radius) ^ 2 > trace.start:DistToSqr(trace.endpos) then
+						local newDuration = (durationLeft ^ 3 + theirDuration ^ 3) ^ (1/3)
+						local newPos = LerpVector(
+							theirDuration / (durationLeft + theirDuration),
+							ent:WorldSpaceCenter(), v:WorldSpaceCenter()
+						)
+						if durationLeft < theirDuration then
+							v:SetModelScale(newDuration * pyrotheumDistancePerSecond / pyrotheumRadiusMul)
+							v:InsaneStats_ApplyStatusEffect("pyrotheum", 1, newDuration, {attacker = attacker})
+							v:SetPos(newPos)
+							--pools[ent] = nil
+							ent:InsaneStats_ClearStatusEffect("pyrotheum")
+							break
+						else
+							ent:SetModelScale(newDuration * pyrotheumDistancePerSecond / pyrotheumRadiusMul)
+							ent:InsaneStats_ApplyStatusEffect("pyrotheum", 1, newDuration, {attacker = attacker})
+							ent:SetPos(newPos)
+							--pools[v] = nil
+							v:InsaneStats_ClearStatusEffect("pyrotheum")
+						end
 					end
 				end
 			end
@@ -4725,6 +4730,7 @@ local function ProcessAmmoChange(ply, ammoID, current)
 	end
 	
 	if InsaneStats:GetConVarValue("wpass2_enabled") then
+		if not tonumber(ammoID) then ammoID = game.GetAmmoID(ammoID) end
 		local maxReserve = game.GetAmmoMax(ammoID)
 		local threshold = ply:InsaneStats_GetAttributeValue("ammo_convert")
 		local maxPlayerReserve = maxReserve*threshold

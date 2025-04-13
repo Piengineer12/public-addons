@@ -1445,17 +1445,17 @@ local skills = {
 		pos = {3, 5},
 		minpts = 5
 	},
-	rain_from_above = {
-		name = "Rain From Above",
-		desc = "+%u%% mid-air damage dealt for every %s above ground",
-		values = function(level)
-			local distance = 16
-			if CLIENT then
-				distance = InsaneStats:FormatNumber(distance, {distance = true})
-			end
-			return level * 10, distance
+	pyrotheum = {
+		name = "Stellar Nodes",
+		desc = "Killed enemies create a stellar node that lasts for +%u second(s). \z
+		Nodes heal allies while damaging all other entities within range, \z
+		with potency based on duration. \z
+		Stellar nodes can merge together to create bigger nodes \z
+		that last longer and have even more potency.",
+		values = function(level, ent)
+			return level
 		end,
-		img = "sunbeams",
+		img = "sun",
 		pos = {2, 6},
 		minpts = 5
 	},
@@ -1606,16 +1606,17 @@ local skills = {
 		pos = {-3, -5},
 		minpts = 5
 	},
-	pyrotheum = {
-		name = "Pyrotheum",
-		desc = "Killed enemies drop a pool of liquid Pyrotheum that lasts for +%u seconds. \z
-		These pools deal fire damage to ALL entities within range based on duration. \z
-		Pyrotheum pools can merge together to create bigger pools \z
-		that last longer (maximum 20 seconds) and deal even more damage.",
-		values = function(level, ent)
-			return level * 2
+	rain_from_above = {
+		name = "Rain From Above",
+		desc = "+%u%% mid-air damage dealt for every %s above ground",
+		values = function(level)
+			local distance = 16
+			if CLIENT then
+				distance = InsaneStats:FormatNumber(distance, {distance = true})
+			end
+			return level * 10, distance
 		end,
-		img = "sun",
+		img = "sunbeams",
 		pos = {-2, -6},
 		minpts = 5
 	},
@@ -2141,7 +2142,7 @@ local statusEffects = {
 		img = "arrow-cluster"
 	},
 	pyrotheum = {
-		name = "Pyrotheum",
+		name = "Stellar Node",
 		typ = 0,
 		img = "sun",
 		overtime = true,
