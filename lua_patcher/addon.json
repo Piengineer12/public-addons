@@ -4,6 +4,7 @@
 	"tags": ["build"],
 	"ignore": [
 		"*.moon",
+		"lua_patcher.json",
 		"media/*",
 		"personal/*"
 	]

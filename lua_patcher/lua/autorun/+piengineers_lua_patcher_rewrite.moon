@@ -6,15 +6,15 @@ LUA_PATCHER or= {
     donate_page: "https://ko-fi.com/piengineer12"
     extra_info: "Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 format."
     unpatched: {}
+    tracebacks_logged: {}
 }
 
-LUA_PATCHER.VERSION = "3.0.6-rc.3"
-LUA_PATCHER.VERSION_DATE = "2025-04-01"
+LUA_PATCHER.VERSION = "3.1.0"
+LUA_PATCHER.VERSION_DATE = "2025-04-15"
 
 local Log, LogError
 
 if gmod
-    next_report_time = 0
     color_red = Color 255, 0, 0
     color_aqua = Color 0, 255, 255
 
@@ -41,16 +41,11 @@ if gmod
                 return
         return
 
-    ConVarLogging = CreateConVar "lua_patcher_logging",
-        "0",
-        FCVAR_ARCHIVED,
-        "Enables Lua Patcher logging."
-
     Log = (...) ->
         message = {
             color_aqua
             "[Lua Patcher "
-            if SERVER then "Server] " else "Client] "
+            SERVER and "Server] " or "Client] "
             color_white
             string.format(...)
             "\n"
@@ -59,15 +54,27 @@ if gmod
         MsgC unpack message
 
     LogError = (...) ->
-        real_time = RealTime!
-        if ConVarLogging\GetBool! and next_report_time < real_time and not string.find debug.traceback!, "'pcall'"
-            next_report_time = real_time + 1
-            Log ...
-            debug.Trace!
+        message = debug.traceback string.format(...), 2
+        unless string.find message, "'pcall'"
+            times_logged = LUA_PATCHER.tracebacks_logged[message] or 0
+            if times_logged < 10
+                Log ...
+                debug.Trace!
+                times_logged += 1
+                Log 'Suppressing further logs about this error.' if times_logged >= 10
+                LUA_PATCHER.tracebacks_logged[message] = times_logged
 else
-    -- ...be agnostic!
     Log = (...) -> print "[Lua Patcher] #{string.format ...}"
-    LogError = (...) -> print debug.traceback "[Lua Patcher] #{string.format ...}", 2
+    LogError = (...) ->
+        message = debug.traceback "[Lua Patcher] #{string.format ...}", 2
+        unless string.find message, "'pcall'"
+            times_logged = LUA_PATCHER.tracebacks_logged[message] or 0
+            if times_logged < 10
+                print message
+                times_logged += 1
+                Log 'Suppressing further logs about this error.' if times_logged >= 10
+                LUA_PATCHER.tracebacks_logged[message] = times_logged
+
 
 OverwriteTable = (table_name, table_contents, new_table_contents) ->
     LUA_PATCHER.unpatched[table_name] or= {}

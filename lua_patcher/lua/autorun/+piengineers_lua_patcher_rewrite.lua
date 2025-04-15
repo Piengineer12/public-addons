@@ -4,13 +4,13 @@ LUA_PATCHER = LUA_PATCHER or {
   github_page = "https://github.com/Piengineer12/public-addons/tree/master/lua_patcher",
   donate_page = "https://ko-fi.com/piengineer12",
   extra_info = "Links above are confirmed working as of 2022-05-26. All dates are in ISO 8601 format.",
-  unpatched = { }
+  unpatched = { },
+  tracebacks_logged = { }
 }
-LUA_PATCHER.VERSION = "3.0.6-rc.3"
-LUA_PATCHER.VERSION_DATE = "2025-04-01"
+LUA_PATCHER.VERSION = "3.1.0"
+LUA_PATCHER.VERSION_DATE = "2025-04-15"
 local Log, LogError
 if gmod then
-  local next_report_time = 0
   local color_red = Color(255, 0, 0)
   local color_aqua = Color(0, 255, 255)
   if SERVER then
@@ -32,18 +32,11 @@ if gmod then
       DForm:CheckBox("Enable Error Logging", "lua_patcher_logging")
     end)
   end)
-  local ConVarLogging = CreateConVar("lua_patcher_logging", "0", FCVAR_ARCHIVED, "Enables Lua Patcher logging.")
   Log = function(...)
     local message = {
       color_aqua,
       "[Lua Patcher ",
-      (function()
-        if SERVER then
-          return "Server] "
-        else
-          return "Client] "
-        end
-      end)(),
+      SERVER and "Server] " or "Client] ",
       color_white,
       string.format(...),
       "\n"
@@ -51,11 +44,18 @@ if gmod then
     return MsgC(unpack(message))
   end
   LogError = function(...)
-    local real_time = RealTime()
-    if ConVarLogging:GetBool() and next_report_time < real_time and not string.find(debug.traceback(), "'pcall'") then
-      next_report_time = real_time + 1
-      Log(...)
-      return debug.Trace()
+    local message = debug.traceback(string.format(...), 2)
+    if not (string.find(message, "'pcall'")) then
+      local times_logged = LUA_PATCHER.tracebacks_logged[message] or 0
+      if times_logged < 10 then
+        Log(...)
+        debug.Trace()
+        times_logged = times_logged + 1
+        if times_logged >= 10 then
+          Log('Suppressing further logs about this error.')
+        end
+        LUA_PATCHER.tracebacks_logged[message] = times_logged
+      end
     end
   end
 else
@@ -63,7 +63,18 @@ else
     return print("[Lua Patcher] " .. tostring(string.format(...)))
   end
   LogError = function(...)
-    return print(debug.traceback("[Lua Patcher] " .. tostring(string.format(...)), 2))
+    local message = debug.traceback("[Lua Patcher] " .. tostring(string.format(...)), 2)
+    if not (string.find(message, "'pcall'")) then
+      local times_logged = LUA_PATCHER.tracebacks_logged[message] or 0
+      if times_logged < 10 then
+        print(message)
+        times_logged = times_logged + 1
+        if times_logged >= 10 then
+          Log('Suppressing further logs about this error.')
+        end
+        LUA_PATCHER.tracebacks_logged[message] = times_logged
+      end
+    end
   end
 end
 local OverwriteTable
