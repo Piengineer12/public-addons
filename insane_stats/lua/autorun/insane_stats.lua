@@ -6,8 +6,8 @@ Donate:			https://ko-fi.com/piengineer12
 ]]
 
 InsaneStats = {
-	VERSION = "1.9.4-rc.1",
-	VERSION_DATE = "2025-04-13",
+	VERSION = "1.9.4",
+	VERSION_DATE = "2025-04-16",
 	WORKSHOP_ID = "2980423627"
 }
 

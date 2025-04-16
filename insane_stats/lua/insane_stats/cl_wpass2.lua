@@ -81,12 +81,67 @@ InsaneStats:RegisterClientConVar("hud_statuseffects_per_column", "insanestats_hu
 	type = InsaneStats.INT, min = -1, max = 100
 })
 
+local flagsDescriptions = {
+	ARMOR = "Only For Armor Batteries (false = Only For Weapons)",
+	XP = "Requires Experience Module",
+	SCRIPTED_ONLY = "Only For Scripted Weapons",
+	SP_ONLY = "Only For Singleplayer",
+	SUIT_POWER = "Requires H.E.V. Suit",
+	KNOCKBACK = "Requires Custom Knockback",
+	MP_ONLY = "Only For Multiplayer"
+}
+
 concommand.Add("insanestats_wpass2_swap", function()
 	net.Start("insane_stats")
 	net.WriteUInt(3, 8)
 	net.SendToServer()
 end, nil,
 "Swaps your current weapon / armor battery with whatever you're hovering over.")
+concommand.Add("insanestats_wpass2_modifiers_show", function(ply, cmd, args, argStr)
+	if next(args) then
+		local modifierInfo = InsaneStats:GetAllModifiers()[argStr]
+		if modifierInfo then
+			InsaneStats:Log("Attributes:")
+			local attributes = InsaneStats:DetermineWPASS2Attributes({[argStr] = 1})
+			for i,v in ipairs(InsaneStats:GetAttributeOrder(attributes)) do
+				local attributeText = InsaneStats:GetAttributeText(v, attributes[v])
+				InsaneStats:Log("- %s", attributeText)
+			end
+			local maxStacks = modifierInfo.max and InsaneStats:FormatNumber(math.floor(modifierInfo.max)) or "infinity"
+			InsaneStats:Log("Max Stacks: %s", maxStacks)
+			InsaneStats:Log("Weight: %s", InsaneStats:FormatNumber(modifierInfo.weight or 1))
+			local cost = modifierInfo.cost or 1
+			InsaneStats:Log(
+				"Modifier cost: %s (%s Modifier)", InsaneStats:FormatNumber(cost),
+				cost > 0 and "Positive" or cost < 0 and "Negative" or "Neutral"
+			)
+			InsaneStats:Log("Flags:")
+			local flags = modifierInfo.flags or 0
+			for k,v in SortedPairsByValue(InsaneStats.WPASS2_FLAGS) do
+				InsaneStats:Log("- %s: %s", flagsDescriptions[k], tostring(bit.band(flags, v) ~= 0))
+			end
+		else
+			InsaneStats:Log(
+				"Couldn't find modifier named \"%s\". \z
+				Make sure to use the internal name, not the display name shown in brackets.",
+				argStr
+			)
+		end
+	else
+		InsaneStats:Log("The list of every modifier is as follows:")
+		for k,v in SortedPairs(InsaneStats:GetAllModifiers()) do
+			if v.suffix then
+				InsaneStats:Log("- %s (%s, %s)", k, v.prefix, v.suffix)
+			elseif v.prefix then
+				InsaneStats:Log("- %s (%s)", k, v.prefix)
+			else
+				InsaneStats:Log("- %s", k)
+			end
+		end
+		InsaneStats:Log("Type insanestats_wpass2_modifiers_show <modifier> \z
+		for more information about a particular modifier.")
+	end
+end, nil, "Shows a list of all registered WPASS2 modifiers, or detailed information about a specific one.")
 
 --[[hook.Run("CCVCCMRun", "InsaneStatsWPASS", function()
 	CCVCCM:SetAddon("insane_stats", "Insane Stats")

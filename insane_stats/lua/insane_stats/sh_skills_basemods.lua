@@ -1451,7 +1451,7 @@ local skills = {
 		Nodes heal allies while damaging all other entities within range, \z
 		with potency based on duration. \z
 		Stellar nodes can merge together to create bigger nodes \z
-		that last longer and have even more potency.",
+		that last longer (maximum 60 seconds) and have even more potency.",
 		values = function(level, ent)
 			return level
 		end,
@@ -2130,11 +2130,6 @@ local statusEffects = {
 		name = "Critical Loot Up",
 		typ = 1,
 		img = "william-tell-skull"
-	},
-	ammo_efficiency_up = {
-		name = "Ammo Efficiency Up",
-		typ = 1,
-		img = "crystal-bars"
 	},
 	ammo_stealer = {
 		name = "Ammo Stealer",

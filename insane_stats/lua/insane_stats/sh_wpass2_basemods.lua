@@ -113,10 +113,20 @@ local modifiers = {
 		perserve = {
 			prefix = "Perserving",
 			modifiers = {
-				ammo_savechance = 1/1.21,
+				ammo_consumption = 1/1.21,
 				melee_damage = 1.21
 			},
 			max = 10,
+			cost = 2
+		},
+		motivate = {
+			prefix = "Motivating",
+			prefix = "Motivation",
+			modifiers = {
+				kill10s_ammo_consumption = 1/1.21,
+				melee_damage = 1.21
+			},
+			max = CalculateLimit(2, 1/1.21),
 			cost = 2
 		},
 		hold = {
@@ -156,7 +166,7 @@ local modifiers = {
 			},
 			weight = 0.5
 		},
-		execution = {
+		execute = {
 			prefix = "Executing",
 			suffix = "Execution",
 			modifiers = {
@@ -173,12 +183,13 @@ local modifiers = {
 			},
 			weight = 0.5
 		},
-		murderous = {
+		murder = {
 			prefix = "Murderous",
 			suffix = "Murder",
 			modifiers = {
 				kill10s_damage = 1.1
 			},
+			max = CalculateLimit(2, 1/1.1),
 			weight = 0.5
 		},
 		frenzy = {
@@ -198,7 +209,7 @@ local modifiers = {
 			},
 			weight = 0.5
 		},
-		energetic = {
+		energy = {
 			prefix = "Energetic",
 			suffix = "Energy",
 			modifiers = {
@@ -218,7 +229,7 @@ local modifiers = {
 			prefix = "Hurtful",
 			suffix = "Hurt",
 			modifiers = {
-				perhit_victim_damagetaken = 1.1
+				hitstack_victim_damagetaken = 1.1
 			},
 			weight = 0.5,
 		},
@@ -235,14 +246,6 @@ local modifiers = {
 			suffix = "Savageness",
 			modifiers = {
 				lowhealth_firerate = 1.21,
-			},
-			weight = 0.5,
-			max = 10
-		},
-		gatling = {
-			prefix = "Gatling",
-			modifiers = {
-				critstack_firerate = 1.1,
 			},
 			weight = 0.5,
 			max = 10
@@ -350,7 +353,7 @@ local modifiers = {
 			cost = 2,
 			max = math.log(2, 1.21)
 		},
-		ranged = {
+		range = {
 			prefix = "Ranged",
 			suffix = "Range",
 			modifiers = {
@@ -490,7 +493,7 @@ local modifiers = {
 				kill10s_ally_damage = 1/1.1
 			},
 			weight = 0.5,
-			max = CalculateLimit(5, 1/1.1),
+			max = CalculateLimit(10, 1/1.1),
 			cost = -1
 		},
 		lazy = {
@@ -620,7 +623,7 @@ local modifiers = {
 			weight = 2,
 			max = 3 * math.log(2, 1.1)
 		},
-		cosmicurse = {
+		judge = {
 			prefix = "Judgemental",
 			suffix = "Judgement",
 			modifiers = {
@@ -680,7 +683,15 @@ local modifiers = {
 	},
 	
 	{-- damage utility
-		chaining = {
+		play = {
+			prefix = "Playful",
+			suffix = "Playing",
+			modifiers = {
+				hitstack_victim_xpyield = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.XP
+		},
+		chain = {
 			prefix = "Chaining",
 			modifiers = {
 				kill10s_xp = 1.1
@@ -866,6 +877,7 @@ local modifiers = {
 			modifiers = {
 				kill10s_damagetaken = 1.1
 			},
+			max = CalculateLimit(2, 1/1.1),
 			cost = -1
 		},
 	},
@@ -895,6 +907,7 @@ local modifiers = {
 			modifiers = {
 				crit_damage = 1.1
 			},
+			max = CalculateLimit(2, 1/1.1),
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR
 		},
 		brisk = {
@@ -912,7 +925,7 @@ local modifiers = {
 			modifiers = {
 				aux_drain = 1/1.1
 			},
-			max = math.ceil(CalculateLimit(2, 1/1.1)),
+			max = CalculateLimit(2, 1/1.1),
 			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SUIT_POWER),
 		},
 	},
@@ -922,6 +935,16 @@ local modifiers = {
 			prefix = "Sprinting",
 			modifiers = {
 				sprint_speed = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			max = 5
+		},
+		panic = {
+			prefix = "Panicking",
+			suffix = "Panic",
+			modifiers = {
+				hittaken10s_speed = 1.1
 			},
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			weight = 0.5,
@@ -994,7 +1017,7 @@ local modifiers = {
 			weight = 0.5,
 			max = 10
 		},
-		cloaking = {
+		cloak = {
 			prefix = "Cloaking",
 			modifiers = {
 				alt_invisible = 1.1
@@ -1067,6 +1090,23 @@ local modifiers = {
 			},
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			weight = 0.5
+		},
+		gatling = {
+			prefix = "Gatling",
+			modifiers = {
+				critstack_firerate = 1.1,
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			max = 10
+		},
+		ponder = {
+			prefix = "Pondering",
+			modifiers = {
+				critstack_xp = 1.1,
+			},
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP),
+			weight = 0.5,
 		},
 		fester = {
 			prefix = "Festering",
@@ -1173,7 +1213,7 @@ local modifiers = {
 			cost = 2,
 			max = 10
 		},
-		fleeting = {
+		fleet = {
 			prefix = "Fleeting",
 			modifiers = {
 				ctrl_gamespeed = 1.1,
@@ -1197,7 +1237,7 @@ local modifiers = {
 			cost = 2,
 			max = CalculateLimit(2, 1/1.1)
 		},
-		identify = {
+		--[[identify = {
 			prefix = "Identifying",
 			suffix = "Identification",
 			modifiers = {
@@ -1207,7 +1247,7 @@ local modifiers = {
 			weight = 0.5,
 			cost = 2,
 			max = 1
-		},
+		},]]
 		master = {
 			prefix = "Masterful",
 			suffix = "Mastery",
@@ -1227,6 +1267,16 @@ local modifiers = {
 				killstackmarked_damage = 1.21
 			},
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			cost = 2,
+		},
+		savor = {
+			prefix = "Savoring",
+			modifiers = {
+				mark = 1.21,
+				killstackmarked_xp = 1.21
+			},
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP),
 			weight = 0.5,
 			cost = 2,
 		},
@@ -1327,12 +1377,20 @@ local modifiers = {
 			},
 			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.KNOCKBACK),
 			cost = 2,
-			max = 10
+			max = 5
 		},
 	},
 	
 	{-- defensive, half weight
-		dampening = {
+		disarm = {
+			prefix = "Disarming",
+			modifiers = {
+				critstack_defence = 1.1,
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+		},
+		dampen = {
 			prefix = "Dampening",
 			modifiers = {
 				longrange_damagetaken = 1/1.21
@@ -1466,7 +1524,7 @@ local modifiers = {
 			cost = 2,
 			weight = 0.5
 		},
-		bloodletting = {
+		bloodlet = {
 			prefix = "Bloodletting",
 			modifiers = {
 				bloodletting = math.sqrt(1.1),
@@ -1587,6 +1645,7 @@ local modifiers = {
 			modifiers = {
 				crit_damagetaken = 1.1
 			},
+			max = CalculateLimit(2, 1/1.1),
 			cost = -1,
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR
 		},
@@ -1621,7 +1680,7 @@ local modifiers = {
 			},
 			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.KNOCKBACK),
 			cost = -2,
-			max = 10
+			max = 5
 		},
 		unreliable = {
 			prefix = "Unreliable",
@@ -1969,32 +2028,41 @@ local attributes = {
 		display = "%s chance for random item on kill",
 	},
 	kill10s_damage = {
-		display = "%s damage dealt for +10s after kill",
+		display = "%s damage dealt for 10s after kill",
+		mul = 2,
 	},
 	kill10s_damagetaken = {
-		display = "%s damage taken for +10s after kill",
+		display = "%s damage taken for 10s after kill",
+		mul = 2,
 		invert = true
 	},
 	kill10s_ally_damage = {
-		display = "%s damage dealt for +10s after ally kill",
-		mul = 5
+		display = "%s damage dealt for 10s after ally kill",
+		mul = 10
 	},
 	kill10s_firerate = {
-		display = "%s fire rate for +10s after kill",
+		display = "%s fire rate for 10s after kill",
+		mul = 2,
+	},
+	kill10s_ammo_consumption = {
+		display = "%s ammo consumption for 10s after kill",
+		mul = 2,
+		invert = true
 	},
 	kill10s_xp = {
-		display = "%s coins and XP gain for +10s after kill",
+		display = "%s coins and XP gain for 10s after kill",
+		mul = 2,
 	},
 	kill10s_regen = {
-		display = "%s health regen for +10s after kill",
-		mul = 0.01
+		display = "%s health regen for 10s after kill",
+		mul = 0.02
 	},
 	kill10s_armorregen = {
-		display = "%s armor regen for +10s after kill",
-		mul = 0.01
+		display = "%s armor regen for 10s after kill",
+		mul = 0.02
 	},
 	kill10s_damageaura = {
-		display = "%s damage aura for +10s after kill",
+		display = "%s damage aura for 10s after kill",
 		nopercent = true,
 		mul = 10,
 	},
@@ -2030,6 +2098,10 @@ local attributes = {
 		display = "%s stacking defence per marked kill for 10s",
 		mul = 2
 	},
+	killstackmarked_xp = {
+		display = "%s stacking coins and XP gain per marked kill for 10s",
+		mul = 2
+	},
 	crit_lifesteal = {
 		display = "%s healing on crit",
 		mul = 0.01
@@ -2046,6 +2118,14 @@ local attributes = {
 		display = "%s stacking fire rate per crit for 10s",
 		mul = 0.1
 	},
+	critstack_defence = {
+		display = "%s stacking defence per crit for 10s",
+		mul = 0.1
+	},
+	critstack_xp = {
+		display = "%s stacking coins and XP gain per crit for 10s",
+		mul = 0.1
+	},
 	hit1s_damage = {
 		display = "%s damage dealt, 1s cooldown",
 		mul = 2
@@ -2054,6 +2134,10 @@ local attributes = {
 		display = "%s damage taken, 1s cooldown",
 		mul = 2,
 		invert = true
+	},
+	hittaken10s_speed = {
+		display = "%s movement speed for 10s on hit taken",
+		mul = 2
 	},
 	hit3_damage = {
 		display = "%s damage dealt every third hit",
@@ -2096,8 +2180,12 @@ local attributes = {
 		display = "%s defence per hit taken, decays over time",
 		mul = 0.1
 	},
-	perhit_victim_damagetaken = {
-		display = "%s victim damage taken per hit for 10s",
+	hitstack_victim_damagetaken = {
+		display = "%s stacking damage taken per hit for 10s",
+		mul = 0.1
+	},
+	hitstack_victim_xpyield = {
+		display = "%s stacking coins and XP yielded per hit for 10s",
 		mul = 0.1
 	},
 	perhittaken_damagetaken = {
@@ -2134,7 +2222,7 @@ local attributes = {
 	lastammo_damage = {
 		display = "%s last clip shot damage dealt",
 	},
-	ammo_savechance = {
+	ammo_consumption = {
 		display = "%s ammo consumption",
 		invert = true
 	},
@@ -2220,17 +2308,21 @@ local attributes = {
 	},
 	victim_speed = {
 		display = "%s victim movement speed for 10s",
+		mul = 2,
 		invert = true
 	},
 	victim_damagetaken = {
-		display = "%s victim damage taken for 10s"
+		display = "%s victim damage taken for 10s",
+		mul = 2,
 	},
 	victim_damage = {
 		display = "%s victim damage dealt for 10s",
+		mul = 2,
 		invert = true
 	},
 	victim_firerate = {
 		display = "%s victim fire rate for 10s",
+		mul = 2,
 		invert = true
 	},
 	aimbot = {
@@ -2364,9 +2456,9 @@ local attributes = {
 		mul = 500,
 		nopercent = "distance"
 	},
-	ctrl_f = {
+	--[[ctrl_f = {
 		display = "Allows identification of locks and unlockers",
-	},
+	},]]
 	switch_speed = {
 		display = "%s weapon switch speed",
 		mul = 2
@@ -2798,6 +2890,11 @@ local statusEffects = {
 		typ = 1,
 		img = "cool-spices"
 	},
+	ammo_efficiency_up = {
+		name = "Ammo Efficiency Up",
+		typ = 1,
+		img = "crystal-bars"
+	},
 	arcane_damage_up = {
 		name = "Arcane Damage Up",
 		typ = 1,
@@ -3025,6 +3122,11 @@ local statusEffects = {
 	stack_xp_up = {
 		name = "Stacking Loot Up",
 		typ = 2,
+		img = "cool-spices"
+	},
+	stack_xp_yield_up = {
+		name = "Stacking Loot Yielded Up",
+		typ = -2,
 		img = "cool-spices"
 	},
 	stack_defence_down = {

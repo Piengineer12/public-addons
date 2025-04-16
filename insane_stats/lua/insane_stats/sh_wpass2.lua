@@ -282,7 +282,6 @@ InsaneStats:RegisterConVar("wpass2_chance_other_drop_battery", "insanestats_wpas
 	type = InsaneStats.FLOAT, min = -1, max = 100
 })
 
-
 local doWeaponOverride = false
 local doEFBOverride = true
 local function PerformHookOverrides(hookName, suppressed)
@@ -686,7 +685,7 @@ hook.Run("InsaneStatsLoadWPASS", modifiers, attributes, registeredEffects)
 MapStatusEffectNamesToIDs()
 hook.Run("InsaneStatsPostLoadWPASS", modifiers, attributes, registeredEffects)
 	
-for i,v in ipairs(ents.GetAll()) do
+for i,v in ents.Iterator() do
 	for k,v2 in pairs(v.insaneStats_StatusEffects or {}) do
 		entitiesByStatusEffect[k] = entitiesByStatusEffect[k] or {}
 		entitiesByStatusEffect[k][v] = v2

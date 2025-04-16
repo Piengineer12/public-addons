@@ -388,8 +388,31 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 				local startingHealth = victim:InsaneStats_GetMaxHealth() / currentHealthAdd
 				local currentArmorAdd = victim:InsaneStats_GetCurrentArmorAdd()
 				local startingArmor = victim:InsaneStats_GetMaxArmor() / currentArmorAdd
+
+				local dayOfTheWeek = tonumber(os.date("%w")) or -1
+				local weekdayFactors = InsaneStats:GetConVarValue(
+					victim:IsPlayer() and "xp_player_weekday_mul" or "xp_other_weekday_mul"
+				)
+				local weekdayFactor = ""
+				local i = 0
+				for factor in string.gmatch(weekdayFactors, "%S+") do
+					if i == dayOfTheWeek then
+						weekdayFactor = factor break
+					end
+					i = i + 1
+				end
+				if tonumber(weekdayFactor) then
+					weekdayFactor = tonumber(weekdayFactor)
+				else
+					weekdayFactor = 1
+					InsaneStats:Log(
+						"Failed to parse weekday drop multiplier \"%s\" for %s!",
+						weekdayFactor, os.date("%A")
+					)
+				end
+
 				local startXPToGive = victim.insaneStats_IsDead and 0
-				or (startingHealth + startingArmor) * xpMul / 5
+				or (startingHealth + startingArmor) * xpMul / 5 * weekdayFactor
 				
 				if InsaneStats:IsDebugLevel(2) then
 					InsaneStats:Log("%s should drop %g base XP", tostring(victim), startXPToGive)
