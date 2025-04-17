@@ -14,6 +14,7 @@ These addons have been abandoned and no more support will be given:
 - error_fixer_tools
 - hud_plus
 - hud_sway
+- lua_patcher (use [this one](https://github.com/Piengineer12/lua_patcher) instead)
 - minecraft_firework
 - pointshop_trail_modifier
 - rotgb_selection
