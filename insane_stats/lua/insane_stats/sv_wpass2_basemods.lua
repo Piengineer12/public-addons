@@ -104,8 +104,8 @@ local function ShouldDodge(vic, attacker, dmginfo)
 end
 
 local function CalculateDamage(vic, attacker, dmginfo)
-	local wep = attacker.GetActiveWeapon and attacker:GetActiveWeapon()
 	if ShouldDodge(vic, attacker, dmginfo) then return true end
+	local wep = attacker.GetActiveWeapon and attacker:GetActiveWeapon()
 
 	if vic:InsaneStats_IsMob() then
 		if math.random() * 100 < attacker:InsaneStats_GetEffectiveSkillValues("master_of_fire") then
@@ -460,6 +460,28 @@ local function CalculateDamage(vic, attacker, dmginfo)
 		or wep:GetSecondaryAmmoType() == 3 or wep:GetSecondaryAmmoType() == 5 then
 			totalMul = totalMul * (1 + attacker:InsaneStats_GetEffectiveSkillValues("one_with_the_gun") / 100)
 		end
+
+		if wep.Clip1 then
+			local clip1 = wep:Clip1()
+			local maxClip1 = wep:GetMaxClip1()
+			local clip1Fraction = math.sqrt(math.max(clip1, 0) / maxClip1)
+			if maxClip1 <= 0 then
+				clip1Fraction = 1
+			end
+			totalMul = totalMul
+			* (1 + attacker:InsaneStats_GetEffectiveSkillValues("dangerous_preparation") / 100 * clip1Fraction)
+		end
+	end
+	local vicWep = vic.GetActiveWeapon and vic:GetActiveWeapon()
+	if IsValid(vicWep) and vicWep.Clip1 and vic:InsaneStats_EffectivelyHasSkill("dangerous_preparation") then
+		local clip1 = vicWep:Clip1()
+		local maxClip1 = vicWep:GetMaxClip1()
+		local clip1Fraction = math.sqrt(math.max(clip1, 0) / maxClip1)
+		if maxClip1 <= 0 then
+			clip1Fraction = 1
+		end
+		totalMul = totalMul
+		* (1 + vic:InsaneStats_GetEffectiveSkillValues("dangerous_preparation") / 100 * clip1Fraction)
 	end
 	if vic.insaneStats_MarkedEntity == attacker then
 		totalMul = totalMul * (1 + vic:InsaneStats_GetEffectiveSkillValues("alert", 2) / 100)
@@ -475,7 +497,12 @@ local function CalculateDamage(vic, attacker, dmginfo)
 		totalMul = totalMul / (1 + vic:InsaneStats_GetEffectiveSkillValues("spongy") / 100 * ping)
 		/ (1 + (vic:InsaneStats_GetAttributeValue("ping_defence") - 1) * ping)
 	end
-	if attacker:WorldSpaceCenter():DistToSqr(vic:WorldSpaceCenter()) > 262144 then
+	local distance = attacker:WorldSpaceCenter():DistToSqr(vic:WorldSpaceCenter())
+	if vic:InsaneStats_EffectivelyHasSkill("stuff_in_the_way") then
+		local sitwAdd, sitwDist = vic:InsaneStats_GetEffectiveSkillValues("stuff_in_the_way")
+		totalMul = totalMul / (1 + sitwAdd / 100 * math.sqrt(distance) / sitwDist)
+	end
+	if distance > 262144 then
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetEffectiveSkillValues("you_cant_run") / 100)
 	else
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetEffectiveSkillValues("youre_approaching_me") / 100)
@@ -617,6 +644,7 @@ local storedScaleCVars
 local neverReflectDamageClasses = {
 	trigger_hurt = true
 }
+local maxXPYieldStacks = 2^128
 hook.Add("EntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo)
 	if (InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled")) and IsValid(vic) then
 		
@@ -743,6 +771,20 @@ hook.Add("EntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo)
 				end)
 			end
 		end
+			
+		if dmginfo:GetDamage() > 0 and damageTier == 0 then
+			local stacks = dmginfo:GetDamage() + vic:InsaneStats_GetStatusEffectLevel("xp_yield_up")
+			stacks = math.Clamp(stacks, 0, maxXPYieldStacks)
+
+			if math.random() < attacker:InsaneStats_GetAttributeValue("victim_xpyield") - 1 then
+				vic:InsaneStats_ApplyStatusEffect("xp_yield_up", stacks, 10)
+			end
+			
+			local chance, maxStacks = attacker:InsaneStats_GetEffectiveSkillValues("seasoning")
+			if math.random() < chance / 100 then
+				vic:InsaneStats_ApplyStatusEffect("xp_yield_up", stacks, 10)
+			end
+		end
 
 		if vic:InsaneStats_EffectivelyHasSkill("mantreads") and dmginfo:IsFallDamage() and damageTier < 1.5 then
 			local targets = {}
@@ -776,6 +818,21 @@ hook.Add("EntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo)
 			end
 			
 			vic:InsaneStats_DamageNumber(attacker, "miss")
+			return true
+		end
+
+		local currentWep = vic.GetActiveWeapon and vic:GetActiveWeapon()
+		if vic:InsaneStats_GetSkillState("melee_arts") == 1 and 
+		(not vic:IsPlayer() or vic:KeyDown(IN_ATTACK2))
+		and (IsValid(currentWep) and currentWep:GetHoldType() == "melee") then
+			vic:InsaneStats_SetSkillData("melee_arts", 0, 0)
+			if vic:IsPlayer() then
+				vic:GiveAmmo(1, math.random(#game.GetAmmoTypes()))
+			end
+			local effdata = EffectData()
+			effdata:SetOrigin(vic:GetPos())
+			effdata:SetEntity(vic)
+			util.Effect("RPGShotDown", effdata)
 			return true
 		end
 
@@ -977,355 +1034,353 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 			
 			local wep = attacker.GetActiveWeapon and attacker:GetActiveWeapon()
 			
-			if damageTier < 4 and not dmginfo:IsDamageType(DMG_BURN) and not IsValid(vic:GetParent()) then
-				-- non-damage based effects
-				local speedDownLevel = (1 - attacker:InsaneStats_GetAttributeValue("victim_speed")) * 100
-				vic:InsaneStats_ApplyStatusEffect("speed_down", speedDownLevel, 10)
-				local defenceDownLevel = (attacker:InsaneStats_GetAttributeValue("victim_damagetaken") - 1) * 100
-				vic:InsaneStats_ApplyStatusEffect("defence_down", defenceDownLevel, 10)
-				local damageDownLevel = (1 - attacker:InsaneStats_GetAttributeValue("victim_damage")) * 100
-				vic:InsaneStats_ApplyStatusEffect("damage_down", damageDownLevel, 10)
-				local fireRateDownLevel = (1 - attacker:InsaneStats_GetAttributeValue("victim_firerate")) * 100
-				vic:InsaneStats_ApplyStatusEffect("firerate_down", fireRateDownLevel, 10)
-				
-				-- non-over time / delayed effects
+			if not (dmginfo:IsDamageType(DMG_BURN) or IsValid(vic:GetParent())) then
 				local damage = dmginfo:GetDamage()
 				--print(damage)
 				--print(not dmginfo:IsBulletDamage(), damageTiers[#damageTiers] < 1, vic:GetCollisionGroup() ~= COLLISION_GROUP_DEBRIS)
-				
-				if math.random() < attacker:InsaneStats_GetAttributeValue("arc_chance") - 1 then
-					-- get a random nearby entity
-					local traceResult = {}
-					local trace = {
-						start = vic:WorldSpaceCenter(),
-						filter = {vic, vic.GetVehicle and vic:GetVehicle()},
-						mask = MASK_SHOT,
-						output = traceResult
-					}
+
+				if damageTier < 4 then
+					-- non-damage based effects
+					local speedDownLevel = (1 - attacker:InsaneStats_GetAttributeValue("victim_speed")) * 100
+					vic:InsaneStats_ApplyStatusEffect("speed_down", speedDownLevel, 10)
+					local defenceDownLevel = (attacker:InsaneStats_GetAttributeValue("victim_damagetaken") - 1) * 100
+					vic:InsaneStats_ApplyStatusEffect("defence_down", defenceDownLevel, 10)
+					local damageDownLevel = (1 - attacker:InsaneStats_GetAttributeValue("victim_damage")) * 100
+					vic:InsaneStats_ApplyStatusEffect("damage_down", damageDownLevel, 10)
+					local fireRateDownLevel = (1 - attacker:InsaneStats_GetAttributeValue("victim_firerate")) * 100
+					vic:InsaneStats_ApplyStatusEffect("firerate_down", fireRateDownLevel, 10)
 					
-					local randomEntity = NULL
-					for k,v in RandomPairs(ents.FindInSphere(trace.start, 512)) do
-						if attacker:InsaneStats_IsValidEnemy(v) then
-							local damagePos = v:HeadTarget(attacker:WorldSpaceCenter()) or v:WorldSpaceCenter()
-							damagePos = damagePos:IsZero() and v:WorldSpaceCenter() or damagePos
-							trace.endpos = damagePos
-							util.TraceLine(trace)
-							if not traceResult.Hit or traceResult.Entity == v then
-								randomEntity = v break
+					-- non-over time / delayed effects
+					if math.random() < attacker:InsaneStats_GetAttributeValue("arc_chance") - 1 then
+						-- get a random nearby entity
+						local traceResult = {}
+						local trace = {
+							start = vic:WorldSpaceCenter(),
+							filter = {vic, vic.GetVehicle and vic:GetVehicle()},
+							mask = MASK_SHOT,
+							output = traceResult
+						}
+						
+						local randomEntity = NULL
+						for k,v in RandomPairs(ents.FindInSphere(trace.start, 512)) do
+							if attacker:InsaneStats_IsValidEnemy(v) then
+								local damagePos = v:HeadTarget(attacker:WorldSpaceCenter()) or v:WorldSpaceCenter()
+								damagePos = damagePos:IsZero() and v:WorldSpaceCenter() or damagePos
+								trace.endpos = damagePos
+								util.TraceLine(trace)
+								if not traceResult.Hit or traceResult.Entity == v then
+									randomEntity = v break
+								end
 							end
 						end
-					end
-					
-					if IsValid(randomEntity) then
-						table.insert(damageTiers, 3)
-						randomEntity:TakeDamageInfo(dmginfo)
-						table.remove(damageTiers)
-					end
-				end
-				
-				local worldPos = dmginfo:GetDamagePosition()
-				worldPos = worldPos:IsZero() and vic:WorldSpaceCenter() or worldPos
-				
-				local explodeCondition = not dmginfo:IsBulletDamage() and damageTier < 1 and vic:GetCollisionGroup() ~= COLLISION_GROUP_DEBRIS
-				local shouldSkillExplode = attacker:InsaneStats_EffectivelyHasSkill("brilliant_behemoth")
-				and attacker:InsaneStats_GetSkillState("brilliant_behemoth") == 1
-				if explodeCondition and shouldSkillExplode then
-					CauseExplosion({
-						attacker = attacker,
-						damageTier = 1,
-						damage = dmginfo:GetBaseDamage(),
-						damagePos = worldPos,
-						damageType = DMG_BLAST,
-						radius = attacker:InsaneStats_GetEffectiveSkillValues(
-							"brilliant_behemoth", 2
-						),
-						isSkillExplosion = true
-					})
-				end
-				
-				if attacker:InsaneStats_GetAttributeValue("hitstack_victim_damagetaken") ~= 1 then
-					local stacks = (attacker:InsaneStats_GetAttributeValue("hitstack_victim_damagetaken")-1)*100
-					vic:InsaneStats_ApplyStatusEffect("stack_defence_down", stacks, 10, {amplify = true})
-				end
-				if attacker:InsaneStats_GetAttributeValue("hitstack_victim_xpyield") ~= 1 then
-					local stacks = (attacker:InsaneStats_GetAttributeValue("hitstack_victim_xpyield")-1)*100
-					vic:InsaneStats_ApplyStatusEffect("stack_xp_yield_up", stacks, 10, {amplify = true})
-				end
-				if vic:InsaneStats_GetAttributeValue("perhittaken_damagetaken") ~= 1 then
-					local stacks = (vic:InsaneStats_GetAttributeValue("perhittaken_damagetaken")-1)*100
-					vic:InsaneStats_ApplyStatusEffect("stack_defence_down", stacks, 10, {amplify = true})
-				end
-				
-				if vic:InsaneStats_GetAttributeValue("hittakenstack_defence") ~= 1 then
-					local stacks = (vic:InsaneStats_GetAttributeValue("hittakenstack_defence")-1)*100
-					vic:InsaneStats_ApplyStatusEffect("stack_defence_up", stacks, 10, {amplify = true})
-				end
-				
-				if vic:InsaneStats_GetAttributeValue("hittaken_invincible") > 1
-				and vic:InsaneStats_GetStatusEffectLevel("hittaken_invincible") == 0
-				and vic:InsaneStats_GetStatusEffectLevel("hittaken_invincible_cooldown") == 0
-				and vic:InsaneStats_GetHealth() > 0 then
-					vic:InsaneStats_ApplyStatusEffect("hittaken_invincible", 1, vic:InsaneStats_GetAttributeValue("hittaken_invincible") - 1)
-				end
-				
-				if vic:InsaneStats_GetAttributeValue("hittaken_damage") ~= 1
-				and vic:InsaneStats_GetStatusEffectLevel("hittaken_damage_up") <= 0
-				and vic:InsaneStats_GetStatusEffectLevel("hittaken_damage_cooldown") <= 0
-				and vic:InsaneStats_GetHealth() > 0 then
-					local stacks = (vic:InsaneStats_GetAttributeValue("hittaken_damage")-1)*100
-					vic:InsaneStats_ApplyStatusEffect("hittaken_damage_up", stacks, 10)
-				end
-				
-				if vic:InsaneStats_GetAttributeValue("hittaken10s_speed") ~= 1
-				and vic:InsaneStats_GetHealth() > 0 then
-					local stacks = (vic:InsaneStats_GetAttributeValue("hittaken10s_speed")-1)*100
-					vic:InsaneStats_ApplyStatusEffect("speed_up", stacks, 10)
-				end
-				
-				if vic:InsaneStats_GetAttributeValue("hittaken_regen") ~= 1
-				and vic:InsaneStats_GetStatusEffectLevel("hittaken_regen") <= 0
-				and vic:InsaneStats_GetStatusEffectLevel("hittaken_regen_cooldown") <= 0
-				and vic:InsaneStats_GetHealth() > 0 then
-					local stacks = (vic:InsaneStats_GetAttributeValue("hittaken_regen")-1)*100
-					vic:InsaneStats_ApplyStatusEffect("hittaken_regen", stacks, 10)
-				end
-				
-				if vic:InsaneStats_GetAttributeValue("hittaken_armorregen") ~= 1
-				and vic:InsaneStats_GetStatusEffectLevel("hittaken_armorregen") <= 0
-				and vic:InsaneStats_GetStatusEffectLevel("hittaken_armorregen_cooldown") <= 0
-				and vic:InsaneStats_GetHealth() > 0 then
-					local stacks = (vic:InsaneStats_GetAttributeValue("hittaken_armorregen")-1)*100
-					vic:InsaneStats_ApplyStatusEffect("hittaken_armorregen", stacks, 10)
-				end
-				
-				-- over time effects
-				local shouldPoison = math.random() < attacker:InsaneStats_GetAttributeValue("poison") - 1
-				local shouldBleed = math.random() < attacker:InsaneStats_GetAttributeValue("bleed") - 1
-				local shouldHemotoxin = math.random() < attacker:InsaneStats_GetAttributeValue("hemotoxic") - 1
-				
-				if shouldPoison or shouldBleed or shouldHemotoxin then
-					local poisonMul = attacker:InsaneStats_GetAttributeValue("poison_damage")
-						* vic:InsaneStats_GetAttributeValue("poison_damagetaken")
-					local bleedMul = attacker:InsaneStats_GetAttributeValue("bleed_damage")
-						* vic:InsaneStats_GetAttributeValue("bleed_damagetaken")
-					
-					if shouldPoison then
-						vic:InsaneStats_ApplyStatusEffect(
-							"poison", damage * .1 * poisonMul,
-							10, {extend = 10, attacker = attacker}
-						)
-					end
-					if shouldBleed then
-						vic:InsaneStats_ApplyStatusEffect(
-							"bleed", damage * .05 * bleedMul,
-							10, {extend = 10, attacker = attacker}
-						)
-					end
-					if shouldHemotoxin then
-						vic:InsaneStats_ApplyStatusEffect(
-							"hemotoxin", damage * .15 * poisonMul * bleedMul,
-							10, {extend = 10, attacker = attacker}
-						)
-					end
-				end
-				
-				local shouldFire = math.random() < attacker:InsaneStats_GetAttributeValue("fire") - 1
-				local shouldFreeze = math.random() < attacker:InsaneStats_GetAttributeValue("freeze") - 1
-				local shouldFrostfire = math.random() < attacker:InsaneStats_GetAttributeValue("frostfire") - 1
-				
-				if shouldFire or shouldFreeze or shouldFrostfire then
-					local fireMul = attacker:InsaneStats_GetAttributeValue("fire_damage")
-						* vic:InsaneStats_GetAttributeValue("fire_damagetaken")
-					local freezeMul = attacker:InsaneStats_GetAttributeValue("freeze_damage")
-						* vic:InsaneStats_GetAttributeValue("freeze_damagetaken")
-					
-					if shouldFire then
-						vic:InsaneStats_ApplyStatusEffect("fire", damage * .1 * fireMul,
-						10, {extend = 10, attacker = attacker})
-					elseif shouldFreeze then
-						vic:InsaneStats_ApplyStatusEffect("freeze", damage * .05 * freezeMul,
-						10, {extend = 10, attacker = attacker})
-					else
-						vic:InsaneStats_ApplyStatusEffect("frostfire", damage * .15 * fireMul * freezeMul,
-						10, {extend = 10, attacker = attacker})
-					end
-				end
-				
-				local shouldExplode = math.random() < attacker:InsaneStats_GetAttributeValue("explode") - 1
-				local shouldShock = math.random() < attacker:InsaneStats_GetAttributeValue("shock") - 1
-				local shouldElectroblast = math.random() < attacker:InsaneStats_GetAttributeValue("electroblast") - 1
-				local shouldCosmicurse = attacker:InsaneStats_GetAttributeValue("cosmicurse") > 1
-
-				if shouldExplode or shouldShock or shouldElectroblast or shouldCosmicurse then
-					local damageType = DMG_BLAST
-
-					if explodeCondition then
-						if shouldCosmicurse then
-							damageType = bit.bor(
-								DMG_BLAST, DMG_SHOCK, DMG_NERVEGAS, DMG_SLASH,
-								DMG_SLOWBURN, DMG_VEHICLE, DMG_ENERGYBEAM
-							)
-						elseif shouldElectroblast then
-							damageType = bit.bor(DMG_BLAST, DMG_SHOCK)
+						
+						if IsValid(randomEntity) then
+							table.insert(damageTiers, 3)
+							randomEntity:TakeDamageInfo(dmginfo)
+							table.remove(damageTiers)
 						end
 					end
-
-					CauseDelayedDamage({
-						pos = worldPos,
-						attacker = attacker,
-						victim = vic,
-						damage = damage,
-						damageTier = 2,
-						explodeDamageType = explodeCondition and damageType,
-						shouldShock = shouldShock
-					})
-				end
-				
-				-- delayed damage handler handles shock, these are for what happens after the explosion
-				-- and entities were hit by that
-				shouldElectroblast = attacker:InsaneStats_GetAttributeValue("electroblast") > 1
-				if damageTier >= 1 and damageTier < 3 and (shouldElectroblast or shouldCosmicurse) then
-					local electroBlastMul = attacker:InsaneStats_GetAttributeValue("shock_damage")
-						* attacker:InsaneStats_GetAttributeValue("explode_damage")
-						* vic:InsaneStats_GetAttributeValue("shock_damagetaken")
-						* vic:InsaneStats_GetAttributeValue("explode_damagetaken")
-					local nonElectroBlastMul = attacker:InsaneStats_GetAttributeValue("poison_damage")
-						* attacker:InsaneStats_GetAttributeValue("bleed_damage")
-						* attacker:InsaneStats_GetAttributeValue("fire_damage")
-						* attacker:InsaneStats_GetAttributeValue("freeze_damage")
-						* vic:InsaneStats_GetAttributeValue("poison_damagetaken")
-						* vic:InsaneStats_GetAttributeValue("bleed_damagetaken")
-						* vic:InsaneStats_GetAttributeValue("fire_damagetaken")
-						* vic:InsaneStats_GetAttributeValue("freeze_damagetaken")
 					
-					if shouldElectroblast then
-						vic:InsaneStats_ApplyStatusEffect(
-							"electroblast", damage * .1 * electroBlastMul,
-							10, {extend = 10, attacker = attacker}
-						)
+					local worldPos = dmginfo:GetDamagePosition()
+					worldPos = worldPos:IsZero() and vic:WorldSpaceCenter() or worldPos
+					
+					local explodeCondition = not dmginfo:IsBulletDamage() and damageTier < 1 and vic:GetCollisionGroup() ~= COLLISION_GROUP_DEBRIS
+					local shouldSkillExplode = attacker:InsaneStats_EffectivelyHasSkill("brilliant_behemoth")
+					and attacker:InsaneStats_GetSkillState("brilliant_behemoth") == 1
+					if explodeCondition and shouldSkillExplode then
+						CauseExplosion({
+							attacker = attacker,
+							damageTier = 1,
+							damage = dmginfo:GetBaseDamage(),
+							damagePos = worldPos,
+							damageType = DMG_BLAST,
+							radius = attacker:InsaneStats_GetEffectiveSkillValues(
+								"brilliant_behemoth", 2
+							),
+							isSkillExplosion = true
+						})
 					end
-					if shouldCosmicurse then
-						vic:InsaneStats_ApplyStatusEffect(
-							"cosmicurse", damage * .1 * electroBlastMul * nonElectroBlastMul
-							* attacker:InsaneStats_GetAttributeValue("cosmicurse")-1,
-							10, {extend = 10, attacker = attacker}
-						)
+					
+					if attacker:InsaneStats_GetAttributeValue("hitstack_victim_damagetaken") ~= 1 then
+						local stacks = (attacker:InsaneStats_GetAttributeValue("hitstack_victim_damagetaken")-1)*100
+						vic:InsaneStats_ApplyStatusEffect("stack_defence_down", stacks, 10, {amplify = true})
+					end
+					if vic:InsaneStats_GetAttributeValue("perhittaken_damagetaken") ~= 1 then
+						local stacks = (vic:InsaneStats_GetAttributeValue("perhittaken_damagetaken")-1)*100
+						vic:InsaneStats_ApplyStatusEffect("stack_defence_down", stacks, 10, {amplify = true})
+					end
+					
+					if vic:InsaneStats_GetAttributeValue("hittakenstack_defence") ~= 1 then
+						local stacks = (vic:InsaneStats_GetAttributeValue("hittakenstack_defence")-1)*100
+						vic:InsaneStats_ApplyStatusEffect("stack_defence_up", stacks, 10, {amplify = true})
+					end
+					
+					if vic:InsaneStats_GetAttributeValue("hittaken_invincible") > 1
+					and vic:InsaneStats_GetStatusEffectLevel("hittaken_invincible") == 0
+					and vic:InsaneStats_GetStatusEffectLevel("hittaken_invincible_cooldown") == 0
+					and vic:InsaneStats_GetHealth() > 0 then
+						vic:InsaneStats_ApplyStatusEffect("hittaken_invincible", 1, vic:InsaneStats_GetAttributeValue("hittaken_invincible") - 1)
+					end
+					
+					if vic:InsaneStats_GetAttributeValue("hittaken_damage") ~= 1
+					and vic:InsaneStats_GetStatusEffectLevel("hittaken_damage_up") <= 0
+					and vic:InsaneStats_GetStatusEffectLevel("hittaken_damage_cooldown") <= 0
+					and vic:InsaneStats_GetHealth() > 0 then
+						local stacks = (vic:InsaneStats_GetAttributeValue("hittaken_damage")-1)*100
+						vic:InsaneStats_ApplyStatusEffect("hittaken_damage_up", stacks, 10)
+					end
+					
+					if vic:InsaneStats_GetAttributeValue("hittaken10s_speed") ~= 1
+					and vic:InsaneStats_GetHealth() > 0 then
+						local stacks = (vic:InsaneStats_GetAttributeValue("hittaken10s_speed")-1)*100
+						vic:InsaneStats_ApplyStatusEffect("speed_up", stacks, 10)
+					end
+					
+					if vic:InsaneStats_GetAttributeValue("hittaken_regen") ~= 1
+					and vic:InsaneStats_GetStatusEffectLevel("hittaken_regen") <= 0
+					and vic:InsaneStats_GetStatusEffectLevel("hittaken_regen_cooldown") <= 0
+					and vic:InsaneStats_GetHealth() > 0 then
+						local stacks = (vic:InsaneStats_GetAttributeValue("hittaken_regen")-1)*100
+						vic:InsaneStats_ApplyStatusEffect("hittaken_regen", stacks, 10)
+					end
+					
+					if vic:InsaneStats_GetAttributeValue("hittaken_armorregen") ~= 1
+					and vic:InsaneStats_GetStatusEffectLevel("hittaken_armorregen") <= 0
+					and vic:InsaneStats_GetStatusEffectLevel("hittaken_armorregen_cooldown") <= 0
+					and vic:InsaneStats_GetHealth() > 0 then
+						local stacks = (vic:InsaneStats_GetAttributeValue("hittaken_armorregen")-1)*100
+						vic:InsaneStats_ApplyStatusEffect("hittaken_armorregen", stacks, 10)
+					end
+					
+					-- over time effects
+					local shouldPoison = math.random() < attacker:InsaneStats_GetAttributeValue("poison") - 1
+					local shouldBleed = math.random() < attacker:InsaneStats_GetAttributeValue("bleed") - 1
+					local shouldHemotoxin = math.random() < attacker:InsaneStats_GetAttributeValue("hemotoxic") - 1
+					
+					if shouldPoison or shouldBleed or shouldHemotoxin then
+						local poisonMul = attacker:InsaneStats_GetAttributeValue("poison_damage")
+							* vic:InsaneStats_GetAttributeValue("poison_damagetaken")
+						local bleedMul = attacker:InsaneStats_GetAttributeValue("bleed_damage")
+							* vic:InsaneStats_GetAttributeValue("bleed_damagetaken")
+						
+						if shouldPoison then
+							vic:InsaneStats_ApplyStatusEffect(
+								"poison", damage * .1 * poisonMul,
+								10, {extend = 10, attacker = attacker}
+							)
+						end
+						if shouldBleed then
+							vic:InsaneStats_ApplyStatusEffect(
+								"bleed", damage * .05 * bleedMul,
+								10, {extend = 10, attacker = attacker}
+							)
+						end
+						if shouldHemotoxin then
+							vic:InsaneStats_ApplyStatusEffect(
+								"hemotoxin", damage * .15 * poisonMul * bleedMul,
+								10, {extend = 10, attacker = attacker}
+							)
+						end
+					end
+					
+					local shouldFire = math.random() < attacker:InsaneStats_GetAttributeValue("fire") - 1
+					local shouldFreeze = math.random() < attacker:InsaneStats_GetAttributeValue("freeze") - 1
+					local shouldFrostfire = math.random() < attacker:InsaneStats_GetAttributeValue("frostfire") - 1
+					
+					if shouldFire or shouldFreeze or shouldFrostfire then
+						local fireMul = attacker:InsaneStats_GetAttributeValue("fire_damage")
+							* vic:InsaneStats_GetAttributeValue("fire_damagetaken")
+						local freezeMul = attacker:InsaneStats_GetAttributeValue("freeze_damage")
+							* vic:InsaneStats_GetAttributeValue("freeze_damagetaken")
+						
+						if shouldFire then
+							vic:InsaneStats_ApplyStatusEffect("fire", damage * .1 * fireMul,
+							10, {extend = 10, attacker = attacker})
+						elseif shouldFreeze then
+							vic:InsaneStats_ApplyStatusEffect("freeze", damage * .05 * freezeMul,
+							10, {extend = 10, attacker = attacker})
+						else
+							vic:InsaneStats_ApplyStatusEffect("frostfire", damage * .15 * fireMul * freezeMul,
+							10, {extend = 10, attacker = attacker})
+						end
+					end
+					
+					local shouldExplode = math.random() < attacker:InsaneStats_GetAttributeValue("explode") - 1
+					local shouldShock = math.random() < attacker:InsaneStats_GetAttributeValue("shock") - 1
+					local shouldElectroblast = math.random() < attacker:InsaneStats_GetAttributeValue("electroblast") - 1
+					local shouldCosmicurse = attacker:InsaneStats_GetAttributeValue("cosmicurse") > 1
+
+					if shouldExplode or shouldShock or shouldElectroblast or shouldCosmicurse then
+						local damageType = DMG_BLAST
+
+						if explodeCondition then
+							if shouldCosmicurse then
+								damageType = bit.bor(
+									DMG_BLAST, DMG_SHOCK, DMG_NERVEGAS, DMG_SLASH,
+									DMG_SLOWBURN, DMG_VEHICLE, DMG_ENERGYBEAM
+								)
+							elseif shouldElectroblast then
+								damageType = bit.bor(DMG_BLAST, DMG_SHOCK)
+							end
+						end
+
+						CauseDelayedDamage({
+							pos = worldPos,
+							attacker = attacker,
+							victim = vic,
+							damage = damage,
+							damageTier = 2,
+							explodeDamageType = explodeCondition and damageType,
+							shouldShock = shouldShock
+						})
+					end
+					
+					-- delayed damage handler handles shock, these are for what happens after the explosion
+					-- and entities were hit by that
+					shouldElectroblast = attacker:InsaneStats_GetAttributeValue("electroblast") > 1
+					if damageTier >= 1 and damageTier < 3 and (shouldElectroblast or shouldCosmicurse) then
+						local electroBlastMul = attacker:InsaneStats_GetAttributeValue("shock_damage")
+							* attacker:InsaneStats_GetAttributeValue("explode_damage")
+							* vic:InsaneStats_GetAttributeValue("shock_damagetaken")
+							* vic:InsaneStats_GetAttributeValue("explode_damagetaken")
+						local nonElectroBlastMul = attacker:InsaneStats_GetAttributeValue("poison_damage")
+							* attacker:InsaneStats_GetAttributeValue("bleed_damage")
+							* attacker:InsaneStats_GetAttributeValue("fire_damage")
+							* attacker:InsaneStats_GetAttributeValue("freeze_damage")
+							* vic:InsaneStats_GetAttributeValue("poison_damagetaken")
+							* vic:InsaneStats_GetAttributeValue("bleed_damagetaken")
+							* vic:InsaneStats_GetAttributeValue("fire_damagetaken")
+							* vic:InsaneStats_GetAttributeValue("freeze_damagetaken")
+						
+						if shouldElectroblast then
+							vic:InsaneStats_ApplyStatusEffect(
+								"electroblast", damage * .1 * electroBlastMul,
+								10, {extend = 10, attacker = attacker}
+							)
+						end
+						if shouldCosmicurse then
+							vic:InsaneStats_ApplyStatusEffect(
+								"cosmicurse", damage * .1 * electroBlastMul * nonElectroBlastMul
+								* attacker:InsaneStats_GetAttributeValue("cosmicurse")-1,
+								10, {extend = 10, attacker = attacker}
+							)
+						end
+					end
+					
+					-- redamage effects
+					if vic:InsaneStats_GetAttributeValue("retaliation10_damage") ~= 1 then
+						if vic:InsaneStats_GetStatusEffectLevel("retaliation10_buildup") < 9 then
+							vic:InsaneStats_ApplyStatusEffect("retaliation10_buildup", 1, 5, {amplify = true})
+						elseif not neverReflectDamageClasses[attacker:GetClass()] then
+							-- reflecting stalker attacks will result in INSTANT CTD
+							vic:InsaneStats_ClearStatusEffect("retaliation10_buildup")
+							
+							local scaleFactor = vic:InsaneStats_GetAttributeValue("retaliation10_damage") - 1
+							local oldAttacker = attacker
+							
+							dmginfo:SetAttacker(vic)
+							dmginfo:ScaleDamage(scaleFactor)
+							oldAttacker:TakeDamageInfo(dmginfo)
+							dmginfo:ScaleDamage(1/scaleFactor)
+							dmginfo:SetAttacker(oldAttacker)
+						end
+					end
+					
+					if vicIsMob and notImmune and vic:GetClass() ~= "npc_turret_floor" then
+						if vic.insaneStats_LastHitGroup == HITGROUP_HEAD then
+							attacker:InsaneStats_AddHealthCapped(
+								(attacker:InsaneStats_GetAttributeValue("crit_lifesteal") - 1)
+								* attacker:InsaneStats_GetMaxHealth()
+							)
+							
+							attacker:InsaneStats_AddArmorNerfed(
+								(attacker:InsaneStats_GetAttributeValue("crit_armorsteal") - 1)
+								* attacker:InsaneStats_GetMaxArmor()
+							)
+							local stackMul = vic:IsPlayer() and 100 or 10
+							local stacks = (attacker:InsaneStats_GetAttributeValue("critstack_damage") - 1) * stackMul
+							attacker:InsaneStats_ApplyStatusEffect("stack_damage_up", stacks, 10, {amplify = true})
+							stacks = (attacker:InsaneStats_GetAttributeValue("critstack_firerate") - 1) * stackMul
+							attacker:InsaneStats_ApplyStatusEffect("stack_firerate_up", stacks, 10, {amplify = true})
+							stacks = (attacker:InsaneStats_GetAttributeValue("critstack_defence") - 1) * stackMul
+							attacker:InsaneStats_ApplyStatusEffect("stack_defence_up", stacks, 10, {amplify = true})
+							stacks = (attacker:InsaneStats_GetAttributeValue("critstack_xp") - 1) * stackMul
+							attacker:InsaneStats_ApplyStatusEffect("stack_xp_up", stacks, 10, {amplify = true})
+						end
+						
+						if attacker:InsaneStats_GetAttributeValue("hit100_damagepulse") ~= 1 then
+							if attacker:InsaneStats_GetStatusEffectLevel("hit100_damagepulse_stacks") < 99 then
+								attacker:InsaneStats_ApplyStatusEffect("hit100_damagepulse_stacks", 1, math.huge, {amplify = true})
+							else
+								local damage = attacker:InsaneStats_GetAttributeValue("hit100_damagepulse") - 1
+								local dmginfo = DamageInfo()
+								dmginfo:SetAttacker(attacker)
+								dmginfo:SetInflictor(attacker)
+								dmginfo:SetBaseDamage(damage)
+								dmginfo:SetDamage(damage)
+								dmginfo:SetMaxDamage(damage)
+								dmginfo:SetDamageForce(vector_origin)
+								dmginfo:SetDamageType(bit.bor(DMG_SONIC, DMG_ENERGYBEAM))
+								dmginfo:SetReportedPosition(attacker:WorldSpaceCenter())
+								
+								local traceResult = {}
+								local trace = {
+									start = attacker:WorldSpaceCenter(),
+									filter = {attacker, attacker.GetVehicle and attacker:GetVehicle()},
+									mask = MASK_SHOT_HULL,
+									output = traceResult
+								}
+								
+								local success = false
+								for k,v in pairs(ents.FindInPVS(attacker)) do
+									if v ~= attacker and not attacker:InsaneStats_IsValidAlly(v) then
+										local damagePos = v:HeadTarget(attacker:WorldSpaceCenter()) or v:WorldSpaceCenter()
+										damagePos = damagePos:IsZero() and v:WorldSpaceCenter() or damagePos
+										trace.endpos = damagePos
+										util.TraceLine(trace)
+										if not traceResult.Hit or traceResult.Entity == v then
+											success = true
+											attacker:InsaneStats_ClearStatusEffect("hit100_damagepulse_stacks")
+											dmginfo:SetDamagePosition(damagePos)
+											v:TakeDamageInfo(dmginfo)
+										end
+									end
+								end
+
+								if success then 
+									attacker:InsaneStats_ClearStatusEffect("hit100_damagepulse_stacks")
+									attacker:EmitSound("ambient/energy/whiteflash.wav", 100, 100, 1, CHAN_WEAPON)
+								end
+							end
+						end
+					
+						if attacker:InsaneStats_GetAttributeValue("hit100_self_damage") ~= 1 then
+							if attacker:InsaneStats_GetStatusEffectLevel("hit100_selfdamage_stacks") < 99 then
+								attacker:InsaneStats_ApplyStatusEffect("hit100_selfdamage_stacks", 1, math.huge, {amplify = true})
+							else
+								attacker:InsaneStats_ClearStatusEffect("hit100_selfdamage_stacks")
+								
+								local scaleFactor = attacker:InsaneStats_GetAttributeValue("hit100_self_damage") - 1
+								dmginfo:ScaleDamage(scaleFactor)
+								attacker:TakeDamageInfo(dmginfo)
+								dmginfo:ScaleDamage(1/scaleFactor)
+							end
+						end
+					
+						if attacker:InsaneStats_GetAttributeValue("hit1s_damage") ~= 1 and attacker:InsaneStats_GetStatusEffectLevel("hit1s_damage_cooldown") <= 0 then
+							attacker:InsaneStats_ApplyStatusEffect("hit1s_damage_cooldown", 1, 1)
+						end
+						if vic:InsaneStats_GetAttributeValue("hittaken1s_damagetaken") ~= 1 and vic:InsaneStats_GetStatusEffectLevel("hittaken1s_damagetaken_cooldown") <= 0 then
+							vic:InsaneStats_ApplyStatusEffect("hittaken1s_damagetaken_cooldown", 1, 1)
+						end
 					end
 				end
-				
+					
 				if damageTier < 5 and attacker:InsaneStats_GetAttributeValue("repeat1s_damage") > 1 then
 					vic:InsaneStats_ApplyStatusEffect(
 						"doom", damage * (attacker:InsaneStats_GetAttributeValue("repeat1s_damage")-1),
 						1, {amplify = true, attacker = attacker}
 					)
-				end
-				
-				-- redamage effects
-				if vic:InsaneStats_GetAttributeValue("retaliation10_damage") ~= 1 then
-					if vic:InsaneStats_GetStatusEffectLevel("retaliation10_buildup") < 9 then
-						vic:InsaneStats_ApplyStatusEffect("retaliation10_buildup", 1, 5, {amplify = true})
-					elseif not neverReflectDamageClasses[attacker:GetClass()] then
-						-- reflecting stalker attacks will result in INSTANT CTD
-						vic:InsaneStats_ClearStatusEffect("retaliation10_buildup")
-						
-						local scaleFactor = vic:InsaneStats_GetAttributeValue("retaliation10_damage") - 1
-						local oldAttacker = attacker
-						
-						dmginfo:SetAttacker(vic)
-						dmginfo:ScaleDamage(scaleFactor)
-						oldAttacker:TakeDamageInfo(dmginfo)
-						dmginfo:ScaleDamage(1/scaleFactor)
-						dmginfo:SetAttacker(oldAttacker)
-					end
-				end
-				
-				if vicIsMob and notImmune and vic:GetClass() ~= "npc_turret_floor" then
-					if vic.insaneStats_LastHitGroup == HITGROUP_HEAD then
-						attacker:InsaneStats_AddHealthCapped(
-							(attacker:InsaneStats_GetAttributeValue("crit_lifesteal") - 1)
-							* attacker:InsaneStats_GetMaxHealth()
-						)
-						
-						attacker:InsaneStats_AddArmorNerfed(
-							(attacker:InsaneStats_GetAttributeValue("crit_armorsteal") - 1)
-							* attacker:InsaneStats_GetMaxArmor()
-						)
-						local stackMul = vic:IsPlayer() and 100 or 10
-						local stacks = (attacker:InsaneStats_GetAttributeValue("critstack_damage") - 1) * stackMul
-						attacker:InsaneStats_ApplyStatusEffect("stack_damage_up", stacks, 10, {amplify = true})
-						stacks = (attacker:InsaneStats_GetAttributeValue("critstack_firerate") - 1) * stackMul
-						attacker:InsaneStats_ApplyStatusEffect("stack_firerate_up", stacks, 10, {amplify = true})
-						stacks = (attacker:InsaneStats_GetAttributeValue("critstack_defence") - 1) * stackMul
-						attacker:InsaneStats_ApplyStatusEffect("stack_defence_up", stacks, 10, {amplify = true})
-						stacks = (attacker:InsaneStats_GetAttributeValue("critstack_xp") - 1) * stackMul
-						attacker:InsaneStats_ApplyStatusEffect("stack_xp_up", stacks, 10, {amplify = true})
-					end
-					
-					if attacker:InsaneStats_GetAttributeValue("hit100_damagepulse") ~= 1 then
-						if attacker:InsaneStats_GetStatusEffectLevel("hit100_damagepulse_stacks") < 99 then
-							attacker:InsaneStats_ApplyStatusEffect("hit100_damagepulse_stacks", 1, math.huge, {amplify = true})
-						else
-							local damage = attacker:InsaneStats_GetAttributeValue("hit100_damagepulse") - 1
-							local dmginfo = DamageInfo()
-							dmginfo:SetAttacker(attacker)
-							dmginfo:SetInflictor(attacker)
-							dmginfo:SetBaseDamage(damage)
-							dmginfo:SetDamage(damage)
-							dmginfo:SetMaxDamage(damage)
-							dmginfo:SetDamageForce(vector_origin)
-							dmginfo:SetDamageType(bit.bor(DMG_SONIC, DMG_ENERGYBEAM))
-							dmginfo:SetReportedPosition(attacker:WorldSpaceCenter())
-							
-							local traceResult = {}
-							local trace = {
-								start = attacker:WorldSpaceCenter(),
-								filter = {attacker, attacker.GetVehicle and attacker:GetVehicle()},
-								mask = MASK_SHOT_HULL,
-								output = traceResult
-							}
-							
-							local success = false
-							for k,v in pairs(ents.FindInPVS(attacker)) do
-								if v ~= attacker and not attacker:InsaneStats_IsValidAlly(v) then
-									local damagePos = v:HeadTarget(attacker:WorldSpaceCenter()) or v:WorldSpaceCenter()
-									damagePos = damagePos:IsZero() and v:WorldSpaceCenter() or damagePos
-									trace.endpos = damagePos
-									util.TraceLine(trace)
-									if not traceResult.Hit or traceResult.Entity == v then
-										success = true
-										attacker:InsaneStats_ClearStatusEffect("hit100_damagepulse_stacks")
-										dmginfo:SetDamagePosition(damagePos)
-										v:TakeDamageInfo(dmginfo)
-									end
-								end
-							end
-
-							if success then 
-								attacker:InsaneStats_ClearStatusEffect("hit100_damagepulse_stacks")
-								attacker:EmitSound("ambient/energy/whiteflash.wav", 100, 100, 1, CHAN_WEAPON)
-							end
-						end
-					end
-				
-					if attacker:InsaneStats_GetAttributeValue("hit100_self_damage") ~= 1 then
-						if attacker:InsaneStats_GetStatusEffectLevel("hit100_selfdamage_stacks") < 99 then
-							attacker:InsaneStats_ApplyStatusEffect("hit100_selfdamage_stacks", 1, math.huge, {amplify = true})
-						else
-							attacker:InsaneStats_ClearStatusEffect("hit100_selfdamage_stacks")
-							
-							local scaleFactor = attacker:InsaneStats_GetAttributeValue("hit100_self_damage") - 1
-							dmginfo:ScaleDamage(scaleFactor)
-							attacker:TakeDamageInfo(dmginfo)
-							dmginfo:ScaleDamage(1/scaleFactor)
-						end
-					end
-				
-					if attacker:InsaneStats_GetAttributeValue("hit1s_damage") ~= 1 and attacker:InsaneStats_GetStatusEffectLevel("hit1s_damage_cooldown") <= 0 then
-						attacker:InsaneStats_ApplyStatusEffect("hit1s_damage_cooldown", 1, 1)
-					end
-					if vic:InsaneStats_GetAttributeValue("hittaken1s_damagetaken") ~= 1 and vic:InsaneStats_GetStatusEffectLevel("hittaken1s_damagetaken_cooldown") <= 0 then
-						vic:InsaneStats_ApplyStatusEffect("hittaken1s_damagetaken_cooldown", 1, 1)
-					end
 				end
 			end
 		end
@@ -1695,6 +1750,7 @@ local function CalculateXPFromSkills(attacker, victim)
 			clip1Fraction = 1
 		end
 		newXP = newXP * (1 + attacker:InsaneStats_GetEffectiveSkillValues("keep_it_ready") / 100 * clip1Fraction)
+		* (1 + attacker:InsaneStats_GetEffectiveSkillValues("dangerous_preparation") / 100 * clip1Fraction)
 	end
 
 	if attacker:InsaneStats_EffectivelyHasSkill("skill_sealer") then
@@ -1739,6 +1795,7 @@ local function CalculateXP(data)
 	local newXP = attacker:InsaneStats_GetAttributeValue("xp")
 	* (1 + attacker:InsaneStats_GetStatusEffectLevel("xp_up") / 100)
 	* (1 + attacker:InsaneStats_GetStatusEffectLevel("stack_xp_up") / 100)
+	* (1 + victim:InsaneStats_GetStatusEffectLevel("xp_yield_up") / 100)
 	* (1 + victim:InsaneStats_GetStatusEffectLevel("stack_xp_yield_up") / 100)
 
 	local attackerHealthFraction = attacker:InsaneStats_GetMaxHealth() > 0
@@ -1984,7 +2041,7 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsSkills", function(victim, at
 			if attacker:InsaneStats_GetSkillState("master_of_air") ~= -1 then
 				triggers = triggers + math.floor(
 					attacker:InsaneStats_GetTotalSkillPoints()
-					/ attacker:InsaneStats_GetEffectiveSkillValues("master_of_air", 4)
+					/ attacker:InsaneStats_GetEffectiveSkillValues("master_of_air", 5)
 				)
 				attacker:InsaneStats_SetSkillData("master_of_air", -1, 0)
 			end

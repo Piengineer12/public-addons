@@ -8,8 +8,9 @@ InsaneStats:RegisterConVar("xp_mode", "insanestats_xp_mode", "0", {
 	display = "Mode", desc = "All insanestats_xp_*mode ConVars which have been set to -1 will use this value instead.",
 	type = InsaneStats.INT, min = 0, max = 1
 })
-InsaneStats:RegisterConVar("xp_damagemode", "insanestats_xp_damagemode", "1", {
-	display = "Inflictor Damage Scaling", desc = "Determines whether the damage inflictor should determine damage scaling, instead of the attacker.\n\z
+InsaneStats:RegisterConVar("xp_damagemode", "insanestats_xp_damagemode", "0", {
+	display = "Inflictor Damage Scaling", desc = "\z
+		Determines whether the damage inflictor should determine damage scaling, instead of the attacker.\n\z
 		0: Never base damage on damage inflictor\n\z
 		1: When inflictor is a thrown prop\n\z
 		2: When inflictor is a weapon\n\z

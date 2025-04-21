@@ -3,11 +3,18 @@ Workshop:		https://steamcommunity.com/sharedfiles/filedetails/?id=2980423627
 Profile Page:	https://steamcommunity.com/id/Piengineer12
 GitHub Page:	https://github.com/Piengineer12/public-addons/tree/master/insane_stats
 Donate:			https://ko-fi.com/piengineer12
+
+idea for alternate fire modes
+
+bugbait: r -> teleport antlions to self
+crossbow: r -> ?
+frag grenade: r -> toggle instant grenades
+rpg: m2 -> fire insta-rocket, r -> ?
 ]]
 
 InsaneStats = {
-	VERSION = "1.9.4",
-	VERSION_DATE = "2025-04-16",
+	VERSION = "1.9.5",
+	VERSION_DATE = "2025-04-21",
 	WORKSHOP_ID = "2980423627"
 }
 

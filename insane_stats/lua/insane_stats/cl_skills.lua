@@ -47,8 +47,6 @@ local function CreateSkillButton(parent, skillName)
 	local buttonDistance = 1.5
 	local buttonOffset = buttonSize * buttonDistance * 6
 	local Button = vgui.Create("DButton", parent)
-	local buttonX, buttonY = skillInfo.pos[1] * buttonDistance * buttonSize + buttonOffset, skillInfo.pos[2] * 1.5 * buttonSize + buttonOffset
-	Button:SetPos(buttonX, buttonY)
 	Button:SetSize(buttonSize, buttonSize)
 	Button:SetText("")
 	--Button:SetImage("icon16/star.png")
@@ -107,7 +105,9 @@ local function CreateSkillButton(parent, skillName)
 		else
 			local currentTier = ply:InsaneStats_GetSkillTier(skillName)
 			local max = skillInfo.max or 5
-			if ply:InsaneStats_GetSkillPoints() >= 1 and currentTier < max then
+			if ply:InsaneStats_GetSkillPoints() >= 1 and currentTier < max
+			and (not InsaneStats:GetConVarValue("skills_shuffle")
+			or ply:InsaneStats_GetEffectiveSkillTier("master_of_air") > 1) then
 				net.Start("insane_stats")
 				net.WriteUInt(6, 8)
 				net.WriteUInt(1, 4)
@@ -142,7 +142,7 @@ local function CreateSkillButton(parent, skillName)
 			InsaneStats:GetIconMaterial(icon),
 			outlineWidth, outlineWidth,
 			w - outlineWidth * 2, h - outlineWidth * 2,
-			color
+			enabled and color or color_dark_gray
 		)
 
 		InsaneStats:DrawTextOutlined(
@@ -166,13 +166,20 @@ local function CreateSkillButton(parent, skillName)
 		end
 	end
 	function Button:Refresh()
+		local skillPos = ply:InsaneStats_GetSkillPosition(skillName)
+		local buttonX = skillPos[1] * buttonDistance * buttonSize + buttonOffset
+		local buttonY = skillPos[2] * buttonDistance * buttonSize + buttonOffset
+		self:SetPos(buttonX, buttonY)
+
 		local requiredAdjacent = skillInfo.minpts or 0
 		local adjacent = -ply:InsaneStats_GetEffectiveSkillValues("master_of_air", 3)
+		+ ply:InsaneStats_GetSkillTier(skillName)
 
-		local x, y = skillInfo.pos[1], skillInfo.pos[2]
+		local skillPos = ply:InsaneStats_GetSkillPosition(skillName)
+		local x, y = skillPos[1], skillPos[2]
 		local offsets = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}}
 		for i, v in ipairs(offsets) do
-			local skillName = InsaneStats:GetSkillNameByPosition(x + v[1], y + v[2])
+			local skillName = ply:InsaneStats_GetSkillByPosition(x + v[1], y + v[2])
 			if skillName then
 				adjacent = adjacent + ply:InsaneStats_GetSkillTier(skillName)
 			end
@@ -229,7 +236,7 @@ local function CreateSkillPanel()
 
     -- move the canvas to the center
 	local outlineWidth = InsaneStats:GetOutlineThickness()
-	local buttonSize = InsaneStats.FONT_BIG * 2.5 + outlineWidth * 2
+	local buttonSize = InsaneStats.FONT_BIG * 3 + outlineWidth * 2
     Panel.pnlCanvas:SetPos(
 		buttonSize * -8 + ScrW()/4,
 		buttonSize * -8 + ScrH()/3 - 19 - InsaneStats.FONT_MEDIUM - outlineWidth
@@ -401,6 +408,9 @@ local function CreateSkillHeaders(parent)
 		local allSkillsMaxed = totalSkillPoints - skillPoints >= InsaneStats:GetMaxSkillPoints()
 		local allSkillsUberMaxed = totalUberSkillPoints - uberSkillPoints >= InsaneStats:GetMaxUberSkillPoints()
 
+		if InsaneStats:GetConVarValue("skills_shuffle") == 1 and os.date("!%m-%d") == "04-01" then
+			table.insert(texts, "\"happy\" april fools lmao")
+		end
 		if skillPoints > 0 and not allSkillsMaxed then
 			table.insert(texts, "Left click to assign 1 skill point. Right click to assign max skill points.")
 		end

@@ -23,6 +23,15 @@ InsaneStats:RegisterConVar("skills_save", "insanestats_skills_save", "1", {
 	Note that Half-Life 2 level transitions already carry skills across the transitioned levels, even when this ConVar is off.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterConVar("skills_shuffle", "insanestats_skills_shuffle", "1", {
+	display = "Shuffle Skills", desc = "If 2, causes the position of skills in the skill grid \z
+	to be shuffled whenever skills change. If 1, shuffling only occurs on 1 April.",
+	type = InsaneStats.INT, min = 0, max = 2
+})
+InsaneStats:RegisterConVar("skills_shuffle_seed", "insanestats_skills_shuffle_seed", "", {
+	display = "Skill Shuffle Seed", desc = "Seed for the skill shuffle algorithm.",
+	type = InsaneStats.STRING
+})
 
 InsaneStats:RegisterConVar("skills_level_start", "insanestats_skills_level_start", "2", {
 	display = "Starting Level Required", desc = "Level required to earn the first skill point.",
@@ -284,6 +293,92 @@ function ENTITY:InsaneStats_IsSkillSealed(skill)
 	return self.insaneStats_SealedSkills[skill]
 end
 
+local range = 65536
+function ENTITY:InsaneStats_GetCurrentRNGSeed()
+	generatorName = "InsaneStatsRNGGenerator_"..InsaneStats:GetConVarValue("skills_shuffle_seed")
+	seed = 0
+
+	local selfSkills = self:InsaneStats_GetSkills()
+	for i,v in ipairs(skillNames) do
+		local tier = selfSkills[v] or 0
+		seed = math.floor(util.SharedRandom(
+			generatorName, -2147483648, 2147483648, bit.tobit(seed + range * tier)
+		))
+	end
+
+	return seed
+end
+function ENTITY:InsaneStats_GenerateRNGSkillPositions()
+	local minMax = {}
+	local newMinMax = {}
+	local skillsData = InsaneStats:GetAllSkills()
+	for i,v in ipairs(skillNames) do
+		local skillData = skillsData[v]
+		local mn = skillData.minpts or 0
+		local mx = skillData.max or 5
+		minMax[mn] = minMax[mn] or {}
+		minMax[mn][mx] = minMax[mn][mx] or {}
+		table.insert(minMax[mn][mx], v)
+
+		newMinMax[mn] = newMinMax[mn] or {}
+		newMinMax[mn][mx] = newMinMax[mn][mx] or {}
+		table.insert(newMinMax[mn][mx], v)
+	end
+
+	-- shuffle the ones in newMinMax
+	math.randomseed(self:InsaneStats_GetCurrentRNGSeed())
+	for mn,maxs in SortedPairs(newMinMax) do
+		for mx,skillNames in SortedPairs(maxs) do
+			table.Shuffle(skillNames)
+		end
+	end
+	math.randomseed(os.time())
+
+	local rngData = {{}, {}}
+	for mn,maxs in pairs(minMax) do
+		for mx,skillNames in pairs(maxs) do
+			for i,fromSkill in ipairs(skillNames) do
+				local toSkill = newMinMax[mn][mx][i]
+				local toSkillPos = skillsData[toSkill].pos
+				local x, y = toSkillPos[1], toSkillPos[2]
+				rngData[1][fromSkill] = toSkillPos
+				rngData[2][x] = rngData[2][x] or {}
+				rngData[2][x][y] = fromSkill
+			end
+		end
+	end
+
+	return rngData
+end
+function ENTITY:InsaneStats_GetSkillPosition(skill)
+	local doShuffle = InsaneStats:GetConVarValue("skills_shuffle")
+	doShuffle = doShuffle == 2 or doShuffle == 1 and os.date("!%m-%d") == "04-01"
+	if doShuffle and self:InsaneStats_GetEffectiveSkillTier("master_of_air") <= 1 then
+		local rngSkillData = self:InsaneStats_GetEntityData("skill_rng_data")
+		if not rngSkillData then
+			rngSkillData = self:InsaneStats_GenerateRNGSkillPositions()
+			self:InsaneStats_SetEntityData("skill_rng_data", rngSkillData)
+		end
+		return rngSkillData[1][skill]
+	else
+		return InsaneStats:GetSkillInfo(skill).pos
+	end
+end
+function ENTITY:InsaneStats_GetSkillByPosition(x, y)
+	local doShuffle = InsaneStats:GetConVarValue("skills_shuffle")
+	doShuffle = doShuffle == 2 or doShuffle == 1 and os.date("!%m-%d") == "04-01"
+	if doShuffle and self:InsaneStats_GetEffectiveSkillTier("master_of_air") <= 1 then
+		local rngSkillData = self:InsaneStats_GetEntityData("skill_rng_data")
+		if not rngSkillData then
+			rngSkillData = self:InsaneStats_GenerateRNGSkillPositions()
+			self:InsaneStats_SetEntityData("skill_rng_data", rngSkillData)
+		end
+		return (rngSkillData[2][x] or {})[y]
+	else
+		return (skillPositions[x] or {})[y]
+	end
+end
+
 function ENTITY:InsaneStats_CanDisableSkills()
 	return self:IsAdmin()
 end
@@ -443,5 +538,7 @@ function ENTITY:InsaneStats_GetSkillState(skill, skipUpdate)
 end
 
 hook.Add("InsaneStatsSkillsChanged", "InsaneStatsSkillsShared", function(ent)
+	--if ent:IsPlayer() then print(RealTime(), ent) end
 	cachedTotals[ent] = nil
+	ent:InsaneStats_SetEntityData("skill_rng_data", nil)
 end)

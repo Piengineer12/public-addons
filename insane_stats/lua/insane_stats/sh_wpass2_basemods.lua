@@ -657,6 +657,16 @@ local modifiers = {
 			weight = 2,
 			flags = InsaneStats.WPASS2_FLAGS.XP
 		},
+		play = {
+			prefix = "Playful",
+			suffix = "Playing",
+			modifiers = {
+				victim_xpyield = 1.1
+			},
+			max = math.log(2, 1.1),
+			weight = 2,
+			flags = InsaneStats.WPASS2_FLAGS.XP
+		},
 	},
 	
 	{-- damage utility, doubled weight doubled cost
@@ -683,14 +693,6 @@ local modifiers = {
 	},
 	
 	{-- damage utility
-		play = {
-			prefix = "Playful",
-			suffix = "Playing",
-			modifiers = {
-				hitstack_victim_xpyield = 1.1
-			},
-			flags = InsaneStats.WPASS2_FLAGS.XP
-		},
 		chain = {
 			prefix = "Chaining",
 			modifiers = {
@@ -2184,10 +2186,6 @@ local attributes = {
 		display = "%s stacking damage taken per hit for 10s",
 		mul = 0.1
 	},
-	hitstack_victim_xpyield = {
-		display = "%s stacking coins and XP yielded per hit for 10s",
-		mul = 0.1
-	},
 	perhittaken_damagetaken = {
 		display = "%s damage taken per hit taken for 10s",
 		mul = 0.1,
@@ -2295,6 +2293,9 @@ local attributes = {
 	cosmicurse = {
 		display = "%s cosmic damage dealt",
 		mul = 10
+	},
+	victim_xpyield = {
+		display = "%s chance to increase coins and XP yielded by victim",
 	},
 	arc_chance = {
 		display = "%s arc damage chance",
@@ -2718,6 +2719,11 @@ local statusEffects = {
 			hook.Run("InsaneStatsWPASS2Doom", ent, level, attacker)
 		end
 	},
+	xp_yield_up = {
+		name = "Loot Yielded Up",
+		typ = -1,
+		img = "salt-shaker"
+	},
 	
 	stunned = {
 		name = "Stunned",
@@ -3127,7 +3133,7 @@ local statusEffects = {
 	stack_xp_yield_up = {
 		name = "Stacking Loot Yielded Up",
 		typ = -2,
-		img = "cool-spices"
+		img = "salt-shaker"
 	},
 	stack_defence_down = {
 		name = "Stacking Defence Down",
@@ -3544,182 +3550,208 @@ hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data
 end)
 
 hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
-	-- FIXME: this causes prediction errors!
-	if (InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled"))
-	and (IsFirstTimePredicted() or game.SinglePlayer()) then
-		if key == IN_WALK then
-			if (ply:InsaneStats_GetEntityData("last_alt_press") or 0) + 0.5 > RealTime() then
-				ply:InsaneStats_SetEntityData("last_alt_press", 0)
-				
-				local duration = ply:InsaneStats_GetAttributeValue("alt_invisible") - 1
-				if ply:InsaneStats_GetStatusEffectLevel("invisible_cooldown") <= 0 and duration ~= 0 and not ply:GetNoDraw() then
-					ply:InsaneStats_ApplyStatusEffect("invisible", 1, duration)
-				end
-				
-				local stacks = (ply:InsaneStats_GetAttributeValue("alt_damage") - 1) * 100
-				if ply:InsaneStats_GetStatusEffectLevel("alt_damage_cooldown") <= 0
-				and ply:InsaneStats_GetStatusEffectLevel("alt_damage_up") <= 0
-				and stacks ~= 0 then
-					ply:InsaneStats_ApplyStatusEffect("alt_damage_up", stacks, 10)
-				end
-				
-				stacks = (ply:InsaneStats_GetAttributeValue("alt_speed") - 1) * 100
-				if ply:InsaneStats_GetStatusEffectLevel("alt_speed_cooldown") <= 0
-				and ply:InsaneStats_GetStatusEffectLevel("alt_speed_up") <= 0
-				and stacks ~= 0 then
-					ply:InsaneStats_ApplyStatusEffect("alt_speed_up", stacks, 10)
-				end
-				
-				stacks = 100 / ply:InsaneStats_GetAttributeValue("alt_damagetaken") - 100
-				if ply:InsaneStats_GetStatusEffectLevel("alt_defence_cooldown") <= 0
-				and ply:InsaneStats_GetStatusEffectLevel("alt_defence_up") <= 0
-				and stacks ~= 0 then
-					ply:InsaneStats_ApplyStatusEffect("alt_defence_up", stacks, 10)
-				end
-				
-				stacks = (ply:InsaneStats_GetAttributeValue("alt_firerate") - 1) * 100
-				if ply:InsaneStats_GetStatusEffectLevel("alt_firerate_cooldown") <= 0
-				and ply:InsaneStats_GetStatusEffectLevel("alt_firerate_up") <= 0
-				and stacks ~= 0 then
-					ply:InsaneStats_ApplyStatusEffect("alt_firerate_up", stacks, 10)
-				end
-				
-				stacks = (1 - ply:InsaneStats_GetAttributeValue("alt_gamespeed")) * 100
-				if ply:InsaneStats_GetStatusEffectLevel("alt_gamespeed_cooldown") <= 0
-				and ply:InsaneStats_GetStatusEffectLevel("alt_gamespeed_down") <= 0
-				and stacks ~= 0 then
-					ply:InsaneStats_ApplyStatusEffect("alt_gamespeed_down", stacks, 10)
-				end
-
-				if ply:InsaneStats_GetSkillState("sneak_100") == 0
-				and not ply:GetNoDraw()
-				and ply:InsaneStats_EffectivelyHasSkill("sneak_100") then
-					ply:AddFlags(FL_NOTARGET)
-					ply:RemoveFlags(FL_AIMTARGET)
-					ply:AddEffects(bit.bor(EF_NOSHADOW, EF_NODRAW, EF_NORECEIVESHADOW))
-					ply:InsaneStats_SetSkillData("sneak_100", 1, 10)
-
-					timer.Simple(10, function()
-						if IsValid(ply) then
-							ply:RemoveFlags(FL_NOTARGET)
-							ply:AddFlags(FL_AIMTARGET)
-							ply:RemoveEffects(bit.bor(EF_NOSHADOW, EF_NODRAW, EF_NORECEIVESHADOW))
-						end
-					end)
-				end
-
-				if ply:InsaneStats_GetSkillState("just_breathe") == 0
-				and ply:InsaneStats_EffectivelyHasSkill("just_breathe") then
-					if not game.SinglePlayer() and SERVER then
-						local skillTier = ply:InsaneStats_GetEffectiveSkillTier("just_breathe")
-						for i,v in ents.Iterator() do
-							if ply:InsaneStats_IsValidAlly(v) then
-								v:InsaneStats_ApplyStatusEffect("charge", skillTier, 10)
-							end
-						end
+	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
+		-- FIXME: this causes prediction errors!
+		if IsFirstTimePredicted() or game.SinglePlayer() then
+			if key == IN_WALK then
+				if (ply:InsaneStats_GetEntityData("last_alt_press") or 0) + 0.5 > RealTime() then
+					ply:InsaneStats_SetEntityData("last_alt_press", 0)
+					
+					local duration = ply:InsaneStats_GetAttributeValue("alt_invisible") - 1
+					if ply:InsaneStats_GetStatusEffectLevel("invisible_cooldown") <= 0 and duration ~= 0 and not ply:GetNoDraw() then
+						ply:InsaneStats_ApplyStatusEffect("invisible", 1, duration)
+					end
+					
+					local stacks = (ply:InsaneStats_GetAttributeValue("alt_damage") - 1) * 100
+					if ply:InsaneStats_GetStatusEffectLevel("alt_damage_cooldown") <= 0
+					and ply:InsaneStats_GetStatusEffectLevel("alt_damage_up") <= 0
+					and stacks ~= 0 then
+						ply:InsaneStats_ApplyStatusEffect("alt_damage_up", stacks, 10)
+					end
+					
+					stacks = (ply:InsaneStats_GetAttributeValue("alt_speed") - 1) * 100
+					if ply:InsaneStats_GetStatusEffectLevel("alt_speed_cooldown") <= 0
+					and ply:InsaneStats_GetStatusEffectLevel("alt_speed_up") <= 0
+					and stacks ~= 0 then
+						ply:InsaneStats_ApplyStatusEffect("alt_speed_up", stacks, 10)
+					end
+					
+					stacks = 100 / ply:InsaneStats_GetAttributeValue("alt_damagetaken") - 100
+					if ply:InsaneStats_GetStatusEffectLevel("alt_defence_cooldown") <= 0
+					and ply:InsaneStats_GetStatusEffectLevel("alt_defence_up") <= 0
+					and stacks ~= 0 then
+						ply:InsaneStats_ApplyStatusEffect("alt_defence_up", stacks, 10)
+					end
+					
+					stacks = (ply:InsaneStats_GetAttributeValue("alt_firerate") - 1) * 100
+					if ply:InsaneStats_GetStatusEffectLevel("alt_firerate_cooldown") <= 0
+					and ply:InsaneStats_GetStatusEffectLevel("alt_firerate_up") <= 0
+					and stacks ~= 0 then
+						ply:InsaneStats_ApplyStatusEffect("alt_firerate_up", stacks, 10)
+					end
+					
+					stacks = (1 - ply:InsaneStats_GetAttributeValue("alt_gamespeed")) * 100
+					if ply:InsaneStats_GetStatusEffectLevel("alt_gamespeed_cooldown") <= 0
+					and ply:InsaneStats_GetStatusEffectLevel("alt_gamespeed_down") <= 0
+					and stacks ~= 0 then
+						ply:InsaneStats_ApplyStatusEffect("alt_gamespeed_down", stacks, 10)
 					end
 
-					ply:InsaneStats_SetSkillData("just_breathe", 1, 10)
-				end
+					if ply:InsaneStats_GetSkillState("sneak_100") == 0
+					and not ply:GetNoDraw()
+					and ply:InsaneStats_EffectivelyHasSkill("sneak_100") then
+						ply:AddFlags(FL_NOTARGET)
+						ply:RemoveFlags(FL_AIMTARGET)
+						ply:AddEffects(bit.bor(EF_NOSHADOW, EF_NODRAW, EF_NORECEIVESHADOW))
+						ply:InsaneStats_SetSkillData("sneak_100", 1, 10)
 
-				if ply:InsaneStats_EffectivelyHasSkill("friendly_fire_off") then
-					for i,v in ipairs(ents.FindByClass("npc_citizen")) do
-						--print(v:GetInternalVariable("squadname"), v:GetNPCState())
-						if v:GetInternalVariable("squadname") == "player_squad" and v:GetNPCState() > 0
-						and v:GetNPCState() < 4 then
-							-- get the closest player with the skill, to prevent abuse
-							local closestFFOPlayer
-							local bestDistSqr = math.huge
-							for j,v2 in player.Iterator() do
-								local distSqr = v2:WorldSpaceCenter():DistToSqr(v:WorldSpaceCenter())
-								if v2:InsaneStats_EffectivelyHasSkill("friendly_fire_off") and distSqr < bestDistSqr then
-									closestFFOPlayer = v2
-									bestDistSqr = distSqr
+						timer.Simple(10, function()
+							if IsValid(ply) then
+								ply:RemoveFlags(FL_NOTARGET)
+								ply:AddFlags(FL_AIMTARGET)
+								ply:RemoveEffects(bit.bor(EF_NOSHADOW, EF_NODRAW, EF_NORECEIVESHADOW))
+							end
+						end)
+					end
+
+					if ply:InsaneStats_GetSkillState("just_breathe") == 0
+					and ply:InsaneStats_EffectivelyHasSkill("just_breathe") then
+						if not game.SinglePlayer() and SERVER then
+							local skillTier = ply:InsaneStats_GetEffectiveSkillTier("just_breathe")
+							for i,v in ents.Iterator() do
+								if ply:InsaneStats_IsValidAlly(v) then
+									v:InsaneStats_ApplyStatusEffect("charge", skillTier, 10)
 								end
 							end
+						end
 
-							if closestFFOPlayer == ply then
-								local maxSqrDist = ply:InsaneStats_GetEffectiveSkillValues("friendly_fire_off", 3)
-								maxSqrDist = maxSqrDist * maxSqrDist
-								--print(closestFFOPlayer, ply, bestDistSqr, maxSqrDist)
-								if bestDistSqr > maxSqrDist then
-									local clearPos
-									local plyVel = ply:GetVelocity()
-									local xOffset = plyVel.x < 0 and 48 or -48
-									local yOffset = plyVel.y < 0 and 48 or -48
+						ply:InsaneStats_SetSkillData("just_breathe", 1, 10)
+					end
 
-									teleportTraceData.start = ply:GetPos() + Vector(xOffset, 0, 0)
-									teleportTraceData.endpos = teleportTraceData.start
-									util.TraceEntityHull(teleportTraceData, v)
-									if traceOutput.Hit then
-										teleportTraceData.start = ply:GetPos() + Vector(0, yOffset, 0)
+					if ply:InsaneStats_EffectivelyHasSkill("friendly_fire_off") then
+						for i,v in ipairs(ents.FindByClass("npc_citizen")) do
+							--print(v:GetInternalVariable("squadname"), v:GetNPCState())
+							if v:GetInternalVariable("squadname") == "player_squad" and v:GetNPCState() > 0
+							and v:GetNPCState() < 4 then
+								-- get the closest player with the skill, to prevent abuse
+								local closestFFOPlayer
+								local bestDistSqr = math.huge
+								for j,v2 in player.Iterator() do
+									local distSqr = v2:WorldSpaceCenter():DistToSqr(v:WorldSpaceCenter())
+									if v2:InsaneStats_EffectivelyHasSkill("friendly_fire_off") and distSqr < bestDistSqr then
+										closestFFOPlayer = v2
+										bestDistSqr = distSqr
+									end
+								end
+
+								if closestFFOPlayer == ply then
+									local maxSqrDist = ply:InsaneStats_GetEffectiveSkillValues("friendly_fire_off", 3)
+									maxSqrDist = maxSqrDist * maxSqrDist
+									--print(closestFFOPlayer, ply, bestDistSqr, maxSqrDist)
+									if bestDistSqr > maxSqrDist then
+										local clearPos
+										local plyVel = ply:GetVelocity()
+										local xOffset = plyVel.x < 0 and 48 or -48
+										local yOffset = plyVel.y < 0 and 48 or -48
+
+										teleportTraceData.start = ply:GetPos() + Vector(xOffset, 0, 0)
 										teleportTraceData.endpos = teleportTraceData.start
 										util.TraceEntityHull(teleportTraceData, v)
-										if not traceOutput.Hit then
+										if traceOutput.Hit then
+											teleportTraceData.start = ply:GetPos() + Vector(0, yOffset, 0)
+											teleportTraceData.endpos = teleportTraceData.start
+											util.TraceEntityHull(teleportTraceData, v)
+											if not traceOutput.Hit then
+												clearPos = traceOutput.StartPos
+											end
+										else
 											clearPos = traceOutput.StartPos
 										end
-									else
-										clearPos = traceOutput.StartPos
-									end
 
-									if clearPos then
-										v:SetPos(clearPos)
+										if clearPos then
+											v:SetPos(clearPos)
+										end
 									end
 								end
 							end
 						end
 					end
+				else
+					ply:InsaneStats_SetEntityData("last_alt_press", RealTime())
 				end
-			else
-				ply:InsaneStats_SetEntityData("last_alt_press", RealTime())
+			end
+			if key == IN_DUCK then
+				if (ply:InsaneStats_GetEntityData("last_duck_press") or 0) + 0.5 > RealTime() then
+					ply:InsaneStats_SetEntityData("last_duck_press", 0)
+					local oldVel = ply:GetVelocity()
+					if not ply:OnGround() and ply:InsaneStats_EffectivelyHasSkill("mantreads")
+					and oldVel.z > -10000 then
+						ply:SetVelocity(vector_up * -10000 - oldVel)
+					end
+				else
+					ply:InsaneStats_SetEntityData("last_duck_press", RealTime())
+				end
+			end
+			if key == IN_JUMP and not ply:InsaneStats_GetEntityData("air_jumped_negate") then
+				local canWPASS2Jump = ply:InsaneStats_GetStatusEffectLevel("air_jumped") + 1 < ply:InsaneStats_GetAttributeValue("jumps")
+				local canSkillJump = ply:InsaneStats_GetSkillStacks("jumper") > 0
+				if canWPASS2Jump or canSkillJump then
+					if canSkillJump then
+						local newStacks = ply:InsaneStats_GetSkillStacks("jumper") - 1
+						ply:InsaneStats_SetSkillData("jumper", newStacks <= 0 and -1 or 1, newStacks)
+					elseif canWPASS2Jump then
+						ply:InsaneStats_ApplyStatusEffect("air_jumped", 1, 5, {amplify = true})
+					end
+
+					-- vertical
+					local currentVel = ply:GetVelocity()
+					
+					-- horizontal
+					local desiredVector = Vector(currentVel.x, currentVel.y, 0)
+					local shuntStrength = (ply:KeyDown(IN_SPEED) and ply:GetRunSpeed() or ply:GetWalkSpeed())
+					local Forward = (ply:KeyDown(IN_FORWARD) and 1 or 0) + (ply:KeyDown(IN_BACK) and -1 or 0)
+					if Forward~=0 then
+						desiredVector:Add(ply:GetForward() * shuntStrength * Forward)
+					end
+					local Right = (ply:KeyDown(IN_MOVERIGHT) and 1 or 0) + (ply:KeyDown(IN_MOVELEFT) and -1 or 0)
+					if Right~=0 then
+						desiredVector:Add(ply:GetRight() * shuntStrength * Right)
+					end
+					local maxSpeed = ply:GetMaxSpeed() * 1.5
+					if desiredVector:LengthSqr() > maxSpeed^2 then
+						desiredVector:Normalize()
+						desiredVector:Mul(maxSpeed)
+					end
+
+					desiredVector:Add(vector_up * ply:GetJumpPower())
+					ply:SetVelocity(desiredVector - currentVel)
+				end
 			end
 		end
-		if key == IN_DUCK then
-			if (ply:InsaneStats_GetEntityData("last_duck_press") or 0) + 0.5 > RealTime() then
-				ply:InsaneStats_SetEntityData("last_duck_press", 0)
-				local oldVel = ply:GetVelocity()
-				if not ply:OnGround() and ply:InsaneStats_EffectivelyHasSkill("mantreads")
-				and oldVel.z > -10000 then
-					ply:SetVelocity(vector_up * -10000 - oldVel)
-				end
-			else
-				ply:InsaneStats_SetEntityData("last_duck_press", RealTime())
-			end
+
+		local wep = ply:GetActiveWeapon()
+		local eligibleWep = IsValid(wep) and (
+			wep:GetClass() == "weapon_pistol" or wep:GetClass() == "weapon_357"
+		)
+		if ply:InsaneStats_EffectivelyHasSkill("one_with_the_gun")
+		and eligibleWep and key == IN_ATTACK2 then
+			local newFov = math.min(
+				ply:GetFOV(),
+				ply:InsaneStats_GetEffectiveSkillValues("one_with_the_gun", 5)
+			)
+			ply:SetFOV(newFov, 0, wep)
 		end
-		if key == IN_JUMP and not ply:InsaneStats_GetEntityData("air_jumped_negate") then
-			local canWPASS2Jump = ply:InsaneStats_GetStatusEffectLevel("air_jumped") + 1 < ply:InsaneStats_GetAttributeValue("jumps")
-			local canSkillJump = ply:InsaneStats_GetSkillStacks("jumper") > 0
-			if canWPASS2Jump or canSkillJump then
-				if canSkillJump then
-					local newStacks = ply:InsaneStats_GetSkillStacks("jumper") - 1
-					ply:InsaneStats_SetSkillData("jumper", newStacks <= 0 and -1 or 1, newStacks)
-				elseif canWPASS2Jump then
-					ply:InsaneStats_ApplyStatusEffect("air_jumped", 1, 5, {amplify = true})
-				end
+	end
+end)
 
-				-- vertical
-				local currentVel = ply:GetVelocity()
-				
-				-- horizontal
-				local desiredVector = Vector(currentVel.x, currentVel.y, 0)
-				local shuntStrength = (ply:KeyDown(IN_SPEED) and ply:GetRunSpeed() or ply:GetWalkSpeed())
-				local Forward = (ply:KeyDown(IN_FORWARD) and 1 or 0) + (ply:KeyDown(IN_BACK) and -1 or 0)
-				if Forward~=0 then
-					desiredVector:Add(ply:GetForward() * shuntStrength * Forward)
-				end
-				local Right = (ply:KeyDown(IN_MOVERIGHT) and 1 or 0) + (ply:KeyDown(IN_MOVELEFT) and -1 or 0)
-				if Right~=0 then
-					desiredVector:Add(ply:GetRight() * shuntStrength * Right)
-				end
-				local maxSpeed = ply:GetMaxSpeed() * 1.5
-				if desiredVector:LengthSqr() > maxSpeed^2 then
-					desiredVector:Normalize()
-					desiredVector:Mul(maxSpeed)
-				end
-
-				desiredVector:Add(vector_up * ply:GetJumpPower())
-				ply:SetVelocity(desiredVector - currentVel)
-			end
+hook.Add("KeyRelease", "InsaneStatsSharedWPASS2", function(ply, key)
+	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
+		local wep = ply:GetActiveWeapon()
+		local eligibleWep = IsValid(wep) and (
+			wep:GetClass() == "weapon_pistol" or wep:GetClass() == "weapon_357"
+		)
+		if eligibleWep and key == IN_ATTACK2 then
+			ply:SetFOV(0, 0, wep)
 		end
 	end
 end)
@@ -3735,9 +3767,13 @@ hook.Add("Think", "InsaneStatsSharedWPASS2", function()
 
 		for i,ply in player.Iterator() do
 			local currentWep = ply:GetActiveWeapon()
-			if ply:KeyDown(IN_RELOAD) and ply:InsaneStats_GetSkillState("one_with_the_gun") == 1
-			and (IsValid(currentWep) and currentWep:GetClass() == "weapon_physcannon") then
-				ply:InsaneStats_SetSkillData("one_with_the_gun", 0, 0)
+			local validForMeleeArts = IsValid(currentWep) and (
+				currentWep:GetClass() == "weapon_physcannon"
+				or currentWep:GetHoldType() == "melee"
+			)
+			if ply:KeyDown(IN_RELOAD) and ply:InsaneStats_GetSkillState("melee_arts") == 1
+			and validForMeleeArts then
+				ply:InsaneStats_SetSkillData("melee_arts", 0, 0)
 
 				ply:FireBullets({
 					Damage = 4,

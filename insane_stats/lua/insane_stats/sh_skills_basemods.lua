@@ -753,30 +753,19 @@ local skills = {
 	},
 	one_with_the_gun = {
 		name = "One With The G.U.N.",
-		desc = "Pistols and revolvers deal %+i%% damage, have %+i%% bullet spread \z
-		and fire %+i%% more bullets. Additionally, gain +%u stack(s) of One With The G.U.N. \z
-		per second, up to 10. At 10 stacks, holding down %s with the Gravity Gun held \z
-		consumes all stacks to fire a %s BASE damage bullet that deals melee damage.",
+		desc = "Pistols and revolvers deal +%u%% damage, have %i%% bullet spread \z
+		and fire +%u%% more bullets. Additionally, holding down %s with these weapons held \z
+		will cause the FOV to shrink to %u.",
 		values = function(level, ent)
-			local value = 4 * InsaneStats:DetermineDamageMulPure(
-				ent, game.GetWorld()
-			)
-			local bulletKey = "the Reload key"
+			local zoomKey = "the Secondary Fire key"
 			if CLIENT then
-				local keyName = input.LookupBinding("+reload")
+				local keyName = input.LookupBinding("+attack2")
 				if keyName then
-					bulletKey = keyName:upper()
+					zoomKey = keyName:upper()
 				end
 			end
 			return level * 10, level * -10, level * 10,
-			level * 10, bulletKey, CLIENT and InsaneStats:FormatNumber(value)
-		end,
-		stackTick = function(state, current, time, ent)
-			local newStacks = math.min(
-				current + time * ent:InsaneStats_GetEffectiveSkillValues("one_with_the_gun", 4),
-				10
-			)
-			return newStacks >= 10 and 1 or 0, newStacks
+			zoomKey, 75 - level * 5
 		end,
 		img = "crossed-pistols",
 		pos = {-2, -4},
@@ -1317,6 +1306,42 @@ local skills = {
 		minpts = 2,
 		max = 1
 	},
+	melee_arts = {
+		name = "Melee Arts",
+		desc = "Gain +%u stack(s) of Melee Arts per second, up to 1. \z
+		At 1 stack, holding down %s with any melee weapon or the Gravity Gun \z
+		consumes all stacks to fire a %s BASE damage bullet that deals melee damage. \z
+		Holding down %s with a melee weapon at 1 stack will instead absorb the next damage taken, \z
+		also consuming all stacks when damage is absorbed this way.",
+		values = function(level, ent)
+			local value = 4 * InsaneStats:DetermineDamageMulPure(
+				ent, game.GetWorld()
+			)
+			local defendKey = "the Secondary Fire key"
+			local bulletKey = "the Reload key"
+			if CLIENT then
+				local keyName = input.LookupBinding("+reload")
+				if keyName then
+					bulletKey = keyName:upper()
+				end
+				keyName = input.LookupBinding("+attack2")
+				if keyName then
+					defendKey = keyName:upper()
+				end
+			end
+			return level, bulletKey, CLIENT and InsaneStats:FormatNumber(value), defendKey
+		end,
+		stackTick = function(state, current, time, ent)
+			local newStacks = math.min(
+				current + time * ent:InsaneStats_GetEffectiveSkillValues("melee_arts"),
+				1
+			)
+			return newStacks >= 1 and 1 or 0, newStacks
+		end,
+		img = "spinning-sword",
+		pos = {2, -6},
+		minpts = 5
+	},
 	anti_coward_rounds = {
 		name = "Anti-Coward Rounds",
 		desc = "%+.0f%% damage dealt against props\n\z
@@ -1388,6 +1413,19 @@ local skills = {
 		pos = {4, 0},
 		minpts = 2,
 		max = 1
+	},
+	seasoning = {
+		name = "Seasoning",
+		desc = "Whenever damage would be dealt, there is a +%u%% chance \z
+		to increase coins and XP yielded by the victim for 10 seconds. \z
+		This effect can stack, but the number of stacks applied is proportional to BASE damage dealt.",
+		values = function(level, ent)
+			--local maxStacks = level / 10 * 2^128
+			return level * 10--, CLIENT and InsaneStats:FormatNumber(maxStacks, {plus = true}) or maxStacks
+		end,
+		img = "salt-shaker",
+		pos = {6, 2},
+		minpts = 5
 	},
 	feel_the_energy = {
 		name = "Feel The Energy",
@@ -1485,6 +1523,18 @@ local skills = {
 		minpts = 2,
 		max = 1
 	},
+	dangerous_preparation = {
+		name = "Dangerous Preparation",
+		desc = "Gain more damage dealt, damage taken, coins and XP \z
+		based on the square root of the percentage of ammo left in the current weapon's clip. \z
+		At 100%% ammo, damage dealt, damage taken, coins and XP gain are all increased by +%u%%!",
+		values = function(level)
+			return level * 10
+		end,
+		img = "thunder-skull",
+		pos = {-2, 6},
+		minpts = 5
+	},
 	the_fourth_dimension = {
 		name = "The Fourth Dimension",
 		desc = "Weapons are instantly reloaded %u second(s) after they are fired, \z
@@ -1552,6 +1602,20 @@ local skills = {
 		pos = {-4, 0},
 		minpts = 2,
 		max = 1
+	},
+	stuff_in_the_way = {
+		name = "Stuff In The Way",
+		desc = "Defence against attacks is increased by +%u%% for every %s away from the damage source.",
+		values = function(level)
+			local distance = 512
+			if CLIENT then
+				distance = InsaneStats:FormatNumber(distance, {distance = true})
+			end
+			return level * 10, distance
+		end,
+		img = "orbital",
+		pos = {-6, -2},
+		minpts = 5
 	},
 	suit_up = {
 		name = "Suit Up",
@@ -1937,10 +2001,11 @@ local skills = {
 		name = "Master of Air",
 		desc = "Double all shock damage dealt and halve all shock damage taken! \z
 		All attacks have a +%u%% chance to deal shock damage against mobs, and deal +%u%% damage against non-mobs! \z
-		Also, the number of adjacent skill points required to unlock skills is reduced by %i, \z
+		Also, the number of adjacent skill points required to unlock skills is reduced by %i, %s\z
 		and the first kill after spawning retriggers all kill skills once for every %u skill points gained in total!",
 		values = function(level, ent)
-			return level * 25, level * 25, level * -5, 30 - level * 10
+			local noShuffleText = level > 1 and "skills cannot be shuffled by any means, " or ""
+			return level * 25, level * 25, level * -5, noShuffleText, 30 - level * 10
 		end,
 		img = "winged-emblem",
 		pos = {5, 0},
