@@ -1,8 +1,8 @@
-/rotgb_the_gamemode/gamemodes/rotgb/gamemode/fan_sent_content/
-/dual_acting_physgun/e2/
-/dual_acting_physgun/media/*.gif
+rotgb_the_gamemode/gamemodes/rotgb/gamemode/fan_sent_content/
+dual_acting_physgun/e2/
+dual_acting_physgun/media/*.gif
 *.mp3
 *.zip
-/*/personal/
-/server_content*/
-/lua_patcher
+*/personal/
+server_content*/
+lua_patcher/
