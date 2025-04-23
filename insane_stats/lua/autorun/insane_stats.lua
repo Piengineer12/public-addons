@@ -13,8 +13,8 @@ rpg: m2 -> fire insta-rocket, r -> ?
 ]]
 
 InsaneStats = {
-	VERSION = "1.9.5",
-	VERSION_DATE = "2025-04-21",
+	VERSION = "1.9.6",
+	VERSION_DATE = "2025-04-23",
 	WORKSHOP_ID = "2980423627"
 }
 

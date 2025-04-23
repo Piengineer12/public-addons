@@ -780,7 +780,7 @@ hook.Add("EntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo)
 				vic:InsaneStats_ApplyStatusEffect("xp_yield_up", stacks, 10)
 			end
 			
-			local chance, maxStacks = attacker:InsaneStats_GetEffectiveSkillValues("seasoning")
+			local chance = attacker:InsaneStats_GetEffectiveSkillValues("seasoning")
 			if math.random() < chance / 100 then
 				vic:InsaneStats_ApplyStatusEffect("xp_yield_up", stacks, 10)
 			end
@@ -1908,23 +1908,23 @@ local killingSpreeEffects = {
 }
 
 local pyrotheumRadiusMul = 90
-local pyrotheumDistancePerSecond = 4
-local pyrotheumMaxDuration = 60
+--local pyrotheumMaxDuration = 60
 local pyrotheumModel = Model("models/hunter/misc/sphere375x375.mdl")
 local pools = {}
 local traceResult = {}
-local function GetPyrotheumRadius(duration)
-	return math.min(duration, pyrotheumMaxDuration) * pyrotheumDistancePerSecond
+local function GetPyrotheumRadius(level)
+	return pyrotheumRadiusMul * level
 end
-local function CreatePyrotheumPool(victim, attacker, duration, triggers)
+local function CreatePyrotheumPool(victim, attacker, range, duration, triggers)
 	local poolPos = victim:WorldSpaceCenter()
 	local createNew = true
-	duration = duration * triggers ^ (1/3)
 	local trace = {
 		start = poolPos,
 		mask = MASK_SOLID_BRUSHONLY,
 		output = traceResult
 	}
+	duration = duration * triggers
+	local level = range / pyrotheumRadiusMul
 
 	local toCheck = InsaneStats:GetEntitiesByStatusEffect("pyrotheum")
 	for k,v in pairs(pools) do
@@ -1935,35 +1935,56 @@ local function CreatePyrotheumPool(victim, attacker, duration, triggers)
 		end
 	end
 
+	local ourNodes = {}
 	for i,v in ipairs(toCheck) do
-		local radius = GetPyrotheumRadius(duration)
-		local theirDuration = pools[v] or (v:InsaneStats_GetStatusEffectDuration("pyrotheum")
-		* v:InsaneStats_GetStatusEffectLevel("pyrotheum"))
-		local theirRadius = GetPyrotheumRadius(theirDuration)
+		local radius = GetPyrotheumRadius(level)
+		local theirLevel = pools[v] and pools[v].level or v:InsaneStats_GetStatusEffectLevel("pyrotheum")
+		local theirRadius = GetPyrotheumRadius(theirLevel)
 		trace.endpos = v:WorldSpaceCenter()
 		util.TraceLine(trace)
 		if (not traceResult.Hit or traceResult.Entity == v)
 		and math.max(theirRadius, radius) ^ 2 > trace.start:DistToSqr(trace.endpos) then
+			local theirDuration = pools[v] and pools[v].duration or v:InsaneStats_GetStatusEffectDuration("pyrotheum")
 			local newDuration = duration + theirDuration
+			local newLevel = math.max(level, theirLevel)
 			local newPos = LerpVector(
 				theirDuration / (duration + theirDuration),
 				poolPos, v:WorldSpaceCenter()
 			)
 			if duration < theirDuration then
-				local level = math.max(newDuration / pyrotheumMaxDuration, 1)
-				local effectiveDuration = math.min(newDuration, pyrotheumMaxDuration)
-				v:SetModelScale(GetPyrotheumRadius(effectiveDuration) / pyrotheumRadiusMul)
+				v:SetModelScale(newLevel)
 				v:InsaneStats_ApplyStatusEffect(
-					"pyrotheum", level, duration,
+					"pyrotheum", newLevel, newDuration,
 					{attacker = attacker}
 				)
 				v:SetPos(newPos)
 				createNew = false
 				break
 			else
+				v:InsaneStats_ClearStatusEffect("pyrotheum")
 				poolPos = newPos
 				duration = newDuration
+				level = newLevel
 			end
+		end
+
+		if attacker == v:InsaneStats_GetStatusEffectAttacker("pyrotheum") then
+			table.insert(ourNodes, v)
+		end
+	end
+
+	if #ourNodes > 64 and createNew then
+		local limit = #ourNodes - 64
+		table.sort(ourNodes, function(a, b)
+			return a:WorldSpaceCenter():DistToSqr(poolPos) > b:WorldSpaceCenter():DistToSqr(poolPos)
+		end)
+		for i,v in ipairs(ourNodes) do
+			local theirLevel = pools[v] and pools[v].level or v:InsaneStats_GetStatusEffectLevel("pyrotheum")
+			local theirDuration = pools[v] and pools[v].duration or v:InsaneStats_GetStatusEffectDuration("pyrotheum")
+			level = math.max(level, theirLevel)
+			duration = duration + theirDuration
+			v:InsaneStats_ClearStatusEffect("pyrotheum")
+			if i >= limit then break end
 		end
 	end
 
@@ -1971,29 +1992,20 @@ local function CreatePyrotheumPool(victim, attacker, duration, triggers)
 		local pool = ents.Create("prop_dynamic")
 		pool:SetPos(poolPos)
 		pool:SetModel(pyrotheumModel)
-		--pool:SetMaxHealth(100)
-		--pool:SetHealth(100)
-		--pool:SetKeyValue("spawnflags", 256)
-		--pool:SetCollisionGroup(COLLISION_GROUP_WORLD)
 		pool:Spawn()
-		--pool:SetColor(Color(255, 255, 255, 63))
-		--pool:SetRenderMode(RENDERMODE_TRANSCOLOR)
-		pool:SetModelScale(GetPyrotheumRadius(duration) / pyrotheumRadiusMul)
+		pool:SetModelScale(level)
+		pool:SetRenderMode(RENDERMODE_TRANSCOLOR)
 		pool:SetMaterial("models/props_combine/portalball001_sheet")
 		pool:AddEffects(EF_NOSHADOW)
-		pools[pool] = duration
+		pools[pool] = {level = level, duration = duration}
 
-		--[[local physObj = pool:GetPhysicsObject()
-		if IsValid(physObj) then
-			physObj:SetMass(50000)
-		end]]
-		local level = math.max(duration / pyrotheumMaxDuration, 1)
-		local effectiveDuration = math.min(duration, pyrotheumMaxDuration)
+		--local level = math.max(duration / pyrotheumMaxDuration, 1)
+		--local effectiveDuration = math.min(duration, pyrotheumMaxDuration)
 		timer.Simple(0, function()
 			pools[pool] = nil
 			if IsValid(pool) then
 				pool:InsaneStats_ApplyStatusEffect(
-					"pyrotheum", level, effectiveDuration,
+					"pyrotheum", level, duration,
 					{attacker = attacker}
 				)
 			end
@@ -2308,8 +2320,8 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsSkills", function(victim, at
 			end
 
 			if attacker:InsaneStats_EffectivelyHasSkill("pyrotheum") then
-				local duration = attacker:InsaneStats_GetEffectiveSkillValues("pyrotheum")
-				CreatePyrotheumPool(victim, attacker, duration, triggers)
+				local range, duration = attacker:InsaneStats_GetEffectiveSkillValues("pyrotheum")
+				CreatePyrotheumPool(victim, attacker, range, duration, triggers)
 			end
 		end
 	end
@@ -2974,11 +2986,11 @@ hook.Add("InsaneStatsWPASSDoT", "InsaneStatsWPASS2", function(ent, effect)
 	elseif effect == "pyrotheum" then
 		local attacker = ent:InsaneStats_GetStatusEffectAttacker("pyrotheum")
 
-		if IsValid(attacker) then
-			local durationLeft = ent:InsaneStats_GetStatusEffectDuration("pyrotheum")
-			* ent:InsaneStats_GetStatusEffectLevel("pyrotheum")
-			local damage = durationLeft
-			local radius = GetPyrotheumRadius(durationLeft)
+		if (IsValid(attacker) and attacker:InsaneStats_EffectivelyHasSkill("pyrotheum")) then
+			local level = ent:InsaneStats_GetStatusEffectLevel("pyrotheum")
+			local duration = ent:InsaneStats_GetStatusEffectDuration("pyrotheum")
+			local damage = duration * level
+			local radius = GetPyrotheumRadius(level)
 			local trace = {
 				start = ent:WorldSpaceCenter(),
 				filter = ent,
@@ -3015,43 +3027,42 @@ hook.Add("InsaneStatsWPASSDoT", "InsaneStatsWPASS2", function(ent, effect)
 
 				if v:InsaneStats_GetStatusEffectDuration("pyrotheum") > 0 and ent ~= v then
 					trace.mask = MASK_SOLID_BRUSHONLY
+					local theirLevel = v:InsaneStats_GetStatusEffectLevel("pyrotheum")
 					local theirDuration = v:InsaneStats_GetStatusEffectDuration("pyrotheum")
-					* v:InsaneStats_GetStatusEffectLevel("pyrotheum")
-					local theirRadius = GetPyrotheumRadius(theirDuration)
+					local theirRadius = GetPyrotheumRadius(theirLevel)
 					trace.endpos = v:WorldSpaceCenter()
 					util.TraceLine(trace)
 					if (not traceResult.Hit or traceResult.Entity == v)
 					and math.max(theirRadius, radius) ^ 2 > trace.start:DistToSqr(trace.endpos) then
-						local newDuration = durationLeft + theirDuration
+						local newLevel = math.max(level, theirLevel)
+						local newDuration = duration + theirDuration
 						local newPos = LerpVector(
-							theirDuration / (durationLeft + theirDuration),
+							theirDuration / (duration + theirDuration),
 							ent:WorldSpaceCenter(), v:WorldSpaceCenter()
 						)
-						local level = math.max(newDuration / pyrotheumMaxDuration, 1)
-						local effectiveDuration = math.min(newDuration, pyrotheumMaxDuration)
-						if durationLeft < theirDuration then
-							v:SetModelScale(GetPyrotheumRadius(newDuration) / pyrotheumRadiusMul)
+						if duration < theirDuration then
+							v:SetModelScale(newLevel)
 							v:InsaneStats_ApplyStatusEffect(
-								"pyrotheum", level, effectiveDuration,
+								"pyrotheum", newLevel, newDuration,
 								{attacker = attacker}
 							)
 							v:SetPos(newPos)
-							--pools[ent] = nil
 							ent:InsaneStats_ClearStatusEffect("pyrotheum")
 							break
 						else
-							ent:SetModelScale(GetPyrotheumRadius(newDuration) / pyrotheumRadiusMul)
+							ent:SetModelScale(newLevel)
 							ent:InsaneStats_ApplyStatusEffect(
-								"pyrotheum", level, effectiveDuration,
+								"pyrotheum", newLevel, newDuration,
 								{attacker = attacker}
 							)
 							ent:SetPos(newPos)
-							--pools[v] = nil
 							v:InsaneStats_ClearStatusEffect("pyrotheum")
 						end
 					end
 				end
 			end
+		else
+			ent:InsaneStats_ClearStatusEffect("pyrotheum")
 		end
 	end
 
@@ -3163,7 +3174,7 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 				end
 				k.insaneStats_Starlight:Fire("distance", v)
 
-				local desiredColor = HSVToColor(CurTime() * 6 % 360, 0.75, 1)
+				local desiredColor = HSVToColor(CurTime() % 360, 0.75, 1)
 				k.insaneStats_Starlight:Fire("Color", string.format(
 					"%u %u %u", desiredColor.r, desiredColor.g, desiredColor.b
 				))
@@ -3259,7 +3270,7 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 				if k:IsPlayer() then
 					k:Kill()
 				else
-					k:Fire("SetHealth", "0")
+					k:TakeDamage(math.huge)
 				end
 			end
 
@@ -3514,13 +3525,13 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsWPASS2", function(ent)
 	elseif rechargerClasses[class] then
 		ent:SetSaveValue("m_takedamage", 1)
 	end
+	
+	ent:InsaneStats_ClearAllStatusEffects()
 
 	if ent.insaneStats_TempKillSkillTriggerer then
 		ent:InsaneStats_ApplyStatusEffect("kill_skill_triggerer", ent.insaneStats_TempKillSkillTriggerer, math.huge)
 		ent.insaneStats_TempKillSkillTriggerer = nil
 	end
-	
-	ent:InsaneStats_ClearAllStatusEffects()
 end)
 
 hook.Add("EntityRemoved", "InsaneStatsWPASS2", function(ent)

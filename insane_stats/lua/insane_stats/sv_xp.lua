@@ -605,6 +605,7 @@ function InsaneStats:DetermineEntitySpawnedXP(ent)
 				level = level + highestLevel
 			elseif typ == 4 then
 				-- get nearest player
+				local pos = ent:GetPos()
 				local closestPlayer = game.GetWorld()
 				local closestSqrDist = math.huge
 				for i,v in player.Iterator() do
@@ -786,7 +787,7 @@ local function DoSetHealth(ent, health)
 		end
 
 		if health <= 0 then
-			ent:TakeDamage(0)
+			ent:TakeDamage(math.huge)
 		end
 	end
 end

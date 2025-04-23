@@ -105,9 +105,10 @@ local function CreateSkillButton(parent, skillName)
 		else
 			local currentTier = ply:InsaneStats_GetSkillTier(skillName)
 			local max = skillInfo.max or 5
+			local doShuffle = InsaneStats:GetConVarValue("skills_shuffle")
+			doShuffle = doShuffle > 1 or doShuffle == 1 and os.date("!%m-%d") == "04-01"
 			if ply:InsaneStats_GetSkillPoints() >= 1 and currentTier < max
-			and (not InsaneStats:GetConVarValue("skills_shuffle")
-			or ply:InsaneStats_GetEffectiveSkillTier("master_of_air") > 1) then
+			and (not doShuffle or ply:InsaneStats_GetEffectiveSkillTier("master_of_air") > 1) then
 				net.Start("insane_stats")
 				net.WriteUInt(6, 8)
 				net.WriteUInt(1, 4)

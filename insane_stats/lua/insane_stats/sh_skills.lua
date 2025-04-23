@@ -28,7 +28,7 @@ InsaneStats:RegisterConVar("skills_shuffle", "insanestats_skills_shuffle", "1", 
 	to be shuffled whenever skills change. If 1, shuffling only occurs on 1 April.",
 	type = InsaneStats.INT, min = 0, max = 2
 })
-InsaneStats:RegisterConVar("skills_shuffle_seed", "insanestats_skills_shuffle_seed", "", {
+InsaneStats:RegisterConVar("skills_shuffle_seed", "insanestats_skills_shuffle_seed", "default", {
 	display = "Skill Shuffle Seed", desc = "Seed for the skill shuffle algorithm.",
 	type = InsaneStats.STRING
 })

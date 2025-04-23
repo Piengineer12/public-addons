@@ -1485,13 +1485,18 @@ local skills = {
 	},
 	pyrotheum = {
 		name = "Stellar Nodes",
-		desc = "Killed enemies create a stellar node that lasts for +%u second(s). \z
+		desc = "Killed enemies create a %s radius stellar node that lasts for +%u second(s). \z
+		Kills that happen within %s from a node's center will extend the duration of the node. \z
 		Nodes heal allies while damaging all other entities within range, \z
-		with potency based on duration. \z
-		Stellar nodes can merge together to create bigger nodes \z
-		that last longer (maximum 60 seconds) and have even more potency.",
+		with healing and damage scaled based on node duration and radius.",
 		values = function(level, ent)
-			return level
+			local distance = level * 16
+			local dist2 = distance * 2
+			if CLIENT then
+				distance = InsaneStats:FormatNumber(distance, {plus = true, distance = true})
+				dist2 = InsaneStats:FormatNumber(dist2, {plus = true, distance = true})
+			end
+			return distance, level * 2, dist2
 		end,
 		img = "sun",
 		pos = {2, 6},
@@ -1825,7 +1830,7 @@ local skills = {
 		For all skills and modifiers that do not dilate time, \z
 		an additional %+i%% of normal running speed is always added to effective speed!",
 		values = function(level)
-			return level * 15, level * 5
+			return level * 10, level * 10
 		end,
 		img = "afterburn",
 		pos = {-1, 5},
@@ -2206,10 +2211,6 @@ local statusEffects = {
 		typ = 0,
 		img = "sun",
 		overtime = true,
-		apply = SERVER and function(ent, level, duration, attacker)
-			--ent:Ignite(duration)
-			ent:SetModelScale(0, duration)
-		end,
 		expiry = SERVER and function(ent, level, attacker)
 			SafeRemoveEntity(ent)
 		end
