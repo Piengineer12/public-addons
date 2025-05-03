@@ -2706,7 +2706,7 @@ local statusEffects = {
 			if ent:IsNPC()
 			and ent:InsaneStats_GetStatusEffectLevel("stun_immune") <= 0
 			and ent:InsaneStats_GetStatusEffectLevel("stunned") <= 0
-			and ent:Health() > 0 then
+			and ent:InsaneStats_GetHealth() > 0 then
 				ent:InsaneStats_ApplyStatusEffect("stunned", 1, 2)
 			end
 		end
@@ -2968,7 +2968,7 @@ local statusEffects = {
 	damage_aura = {
 		name = "Damage Aura",
 		typ = 1,
-		img = "broken-heart-zone",
+		img = "death-zone",
 		overtime = true
 	},
 	masterful_xp = {
@@ -3296,7 +3296,7 @@ hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 		end
 
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetEffectiveSkillValues("pew_pew_pew")/100)
-		totalMul = totalMul * (1 + attacker:InsaneStats_GetSkillStacks("increase_the_pressure")/100)
+		* (1 + attacker:InsaneStats_GetSkillStacks("increase_the_pressure")/100)
 
 		if game.SinglePlayer() then
 			totalMul = totalMul * (1 + attacker:InsaneStats_GetEffectiveSkillValues("spongy", 2)/100)
@@ -3356,6 +3356,9 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 		speedMul = speedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("quintessence", 3) / 100)
 		* (1 + ent:InsaneStats_GetEffectiveSkillValues("speed") / 100)
 		* (1 + ent:InsaneStats_GetEffectiveSkillValues("bloodletters_revelation") / 100 * (1 - healthFraction))
+		* (1 + ent:InsaneStats_GetEffectiveSkillValues("responsive_movement", 2) / 100)
+		* (1 + ent:InsaneStats_GetEffectiveSkillValues("bookworm") / 100)
+		* (1 + ent:InsaneStats_GetEffectiveSkillValues("skinny", 2) / 100)
 
 		if ent:InsaneStats_GetSkillStacks("hunting_spirit") > 0 then
 			speedMul = speedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("hunting_spirit") / 100)
@@ -3377,12 +3380,15 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 		end
 
 		local hullMul = 1 + ent:InsaneStats_GetEffectiveSkillValues("four_parallel_universes_ahead", 2) / 100
+		local frictionMul = (1 + ent:InsaneStats_GetEffectiveSkillValues("shoe_spikes", 2) / 100)
+		* (1 + ent:InsaneStats_GetEffectiveSkillValues("responsive_movement") / 100)
 		
 		data.speed = data.speed * speedMul
 		data.sprintSpeed = data.sprintSpeed * ent:InsaneStats_GetAttributeValue("sprint_speed")
 		data.sprintSpeed = data.sprintSpeed * (1 + ent:InsaneStats_GetEffectiveSkillValues("zoomer") / 100)
 		data.laggedSpeed = data.laggedSpeed * laggedSpeedMul
 		data.hullSize = data.hullSize * hullMul
+		data.friction = data.friction * frictionMul
 	end
 end)
 
@@ -3446,7 +3452,8 @@ hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data
 		local spreadMult = attacker:InsaneStats_GetAttributeValue("spread")
 
 		spreadMult = spreadMult * (1 + attacker:InsaneStats_GetEffectiveSkillValues("stabilization") / 100)
-		spreadMult = spreadMult / (1 + attacker:InsaneStats_GetStatusEffectLevel("accuracy_up") / 100)
+		/ (1 + attacker:InsaneStats_GetStatusEffectLevel("accuracy_up") / 100)
+		* (1 + attacker:InsaneStats_GetStatusEffectLevel("accuracy_down") / 100)
 		if data.AmmoType == "Pistol" or data.AmmoType == "357" then
 			spreadMult = spreadMult * (1 + attacker:InsaneStats_GetEffectiveSkillValues("one_with_the_gun", 2) / 100)
 		end
@@ -3718,6 +3725,7 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 						desiredVector:Add(ply:GetRight() * shuntStrength * Right)
 					end
 					local maxSpeed = ply:GetMaxSpeed() * 1.5
+					--print(desiredVector)
 					if desiredVector:LengthSqr() > maxSpeed^2 then
 						desiredVector:Normalize()
 						desiredVector:Mul(maxSpeed)
@@ -3726,6 +3734,30 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 					desiredVector:Add(vector_up * ply:GetJumpPower())
 					ply:SetVelocity(desiredVector - currentVel)
 				end
+			end
+		end
+
+		if SERVER and key == IN_RELOAD and ply:InsaneStats_EffectivelyHasSkill("explosive_arsenal")
+		and IsValid(ply:GetActiveWeapon()) then
+			local wepClass = ply:GetActiveWeapon():GetClass()
+			if wepClass == "weapon_frag" then
+				local oldStacks = ply:InsaneStats_GetSkillStacks("explosive_arsenal")
+				local newStacks = bit.bxor(oldStacks, 1)
+				if bit.band(newStacks, 1) ~= 0 then
+					ply:PrintMessage(HUD_PRINTTALK, "Explode Grenade on Collision: Enabled")
+				else
+					ply:PrintMessage(HUD_PRINTTALK, "Explode Grenade on Collision: Disabled")
+				end
+				ply:InsaneStats_SetSkillData("explosive_arsenal", -2, newStacks)
+			elseif wepClass == "weapon_rpg" then
+				local oldStacks = ply:InsaneStats_GetSkillStacks("explosive_arsenal")
+				local newStacks = bit.bxor(oldStacks, 2)
+				if bit.band(newStacks, 2) ~= 0 then
+					ply:PrintMessage(HUD_PRINTTALK, "Invincible Instant Rockets: Enabled")
+				else
+					ply:PrintMessage(HUD_PRINTTALK, "Invincible Instant Rockets: Disabled")
+				end
+				ply:InsaneStats_SetSkillData("explosive_arsenal", -2, newStacks)
 			end
 		end
 
@@ -3739,7 +3771,7 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 				ply:GetFOV(),
 				ply:InsaneStats_GetEffectiveSkillValues("one_with_the_gun", 5)
 			)
-			ply:SetFOV(newFov, 0, wep)
+			ply:SetFOV(newFov, 0.1, wep)
 		end
 	end
 end)
@@ -3751,7 +3783,7 @@ hook.Add("KeyRelease", "InsaneStatsSharedWPASS2", function(ply, key)
 			wep:GetClass() == "weapon_pistol" or wep:GetClass() == "weapon_357"
 		)
 		if eligibleWep and key == IN_ATTACK2 then
-			ply:SetFOV(0, 0, wep)
+			ply:SetFOV(0, 0.1, wep)
 		end
 	end
 end)

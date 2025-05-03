@@ -847,6 +847,7 @@ function ENTITY:InsaneStats_AddHealthNerfed(health)
 	and self:InsaneStats_GetMaxHealth() > 0 then
 		local data = {health = health, ent = self, nerfFactor = 0.5}
 		hook.Run("InsaneStatsWPASS2AddHealth", data)
+		health = data.health
 
 		local maxHealth = self:InsaneStats_GetMaxHealth()
 		local oldRatio = oldHealth / maxHealth
@@ -855,7 +856,7 @@ function ENTITY:InsaneStats_AddHealthNerfed(health)
 			oldRatio = oldRatio^(1/nerfFactor)
 		end
 
-		local newRatio = oldRatio + data.health / maxHealth
+		local newRatio = health < math.huge and oldRatio + health / maxHealth or 1
 		if newRatio > 1 then
 			newRatio = newRatio^nerfFactor
 		end
@@ -870,11 +871,12 @@ function ENTITY:InsaneStats_AddHealthNerfed(health)
 end
 
 function ENTITY:InsaneStats_AddArmorNerfed(armor)
-	local oldArmor = self:InsaneStats_GetArmor()
+	local oldArmor = math.max(self:InsaneStats_GetArmor(), 0)
 	if oldArmor < math.huge and self:InsaneStats_GetHealth() > 0
 	and self:InsaneStats_GetMaxArmor() > 0 then
 		local data = {armor = armor, ent = self, nerfFactor = 0.5}
 		hook.Run("InsaneStatsWPASS2AddArmor", data)
+		armor = data.armor
 
 		local maxArmor = self:InsaneStats_GetMaxArmor()
 		local oldRatio = oldArmor / maxArmor
@@ -883,7 +885,7 @@ function ENTITY:InsaneStats_AddArmorNerfed(armor)
 			oldRatio = oldRatio^(1/nerfFactor)
 		end
 
-		local newRatio = oldRatio + armor / maxArmor
+		local newRatio = armor < math.huge and oldRatio + armor / maxArmor or 1
 		if newRatio > 1 then
 			newRatio = newRatio^nerfFactor
 		end
@@ -915,7 +917,7 @@ function ENTITY:InsaneStats_AddHealthCapped(health)
 end
 
 function ENTITY:InsaneStats_AddArmorCapped(armor)
-	local oldArmor = self:InsaneStats_GetArmor()
+	local oldArmor = math.max(self:InsaneStats_GetArmor(), 0)
 	local data = {armor = armor, ent = self, nerfFactor = 0.5}
 	hook.Run("InsaneStatsWPASS2AddArmor", data)
 	local maxHealTo = self:InsaneStats_GetMaxArmor() * 0.5 / (1 - data.nerfFactor)
@@ -946,7 +948,7 @@ function ENTITY:InsaneStats_AddMaxHealth(health)
 			"xp_"..scaleType.."_health_mode"
 		)
 
-		self:InsaneStats_SetCurrentHealthAdd(val)
+		self:InsaneStats_SetCurrentHealthAdd(val < math.huge and val or 1)
 	end
 
 	local data = {maxHealth = health, ent = self}
@@ -966,7 +968,7 @@ function ENTITY:InsaneStats_AddMaxArmor(armor)
 				"xp_"..scaleType.."_armor_mode"
 			)
 	
-			self:InsaneStats_SetCurrentArmorAdd(val)
+			self:InsaneStats_SetCurrentArmorAdd(val < math.huge and val or 1)
 		end
 
 		local data = {maxArmor = armor, ent = self}
@@ -1515,11 +1517,15 @@ local function GetPlayerWPASS2SaveData(ply, forced, shouldSave, shouldSaveBatter
 				end
 			end
 		end
-		
-		--[[if GetConVar("developer"):GetInt() > 0 then
-			InsaneStats:Log("Saved data for "..steamID)
+
+		if InsaneStats:IsDebugLevel(2) then
+			InsaneStats:Log(
+				"WPASS2 save data requested for %s, forced = %s, shouldSave = %s",
+				tostring(ply), tostring(forced), tostring(shouldSave)
+			)
 			PrintTable(plyWPASS2Data)
-		end]]
+		end
+
 		return plyWPASS2Data
 	end
 end
@@ -1609,6 +1615,12 @@ end)
 hook.Add("PlayerLoadout", "InsaneStatsWPASS", function(ply)
 	local steamID = ply:SteamID()
 	local plyWPASS2Data = steamID and playerLoadoutData[steamID]
+
+	if InsaneStats:IsDebugLevel(1) then
+		InsaneStats:Log("Loaded loadout data for %s:", steamID)
+		PrintTable(plyWPASS2Data and plyWPASS2Data.weaponsAndAmmo or {})
+	end
+
 	if (plyWPASS2Data and plyWPASS2Data.weaponsAndAmmo) then
 		ply:RemoveAllAmmo()
 		
@@ -1621,6 +1633,12 @@ hook.Add("PlayerLoadout", "InsaneStatsWPASS", function(ply)
 			if IsValid(wep) then
 				wep:SetClip1(v.primary)
 				wep:SetClip2(v.secondary)
+
+				if InsaneStats:IsDebugLevel(2) then
+					InsaneStats:Log("Gave %s to %s", tostring(wep), tostring(ply))
+				end
+			else
+				InsaneStats:Log("Failed to give %s to %s!", k, tostring(ply))
 			end
 		end
 		
@@ -1696,8 +1714,29 @@ hook.Add("PlayerSpawn", "InsaneStatsWPASS", function(ply, fromTransition)
 						
 						if plyWPASS2Data then
 							if InsaneStats:IsDebugLevel(1) then
-								InsaneStats:Log("Loaded data for %s:", steamID)
-								PrintTable(plyWPASS2Data)
+								InsaneStats:Log("Loaded modifier data for %s:", steamID)
+								PrintTable(plyWPASS2Data.modifiers or {})
+							end
+
+							-- this is already done in PlayerLoadout
+							-- but the map might remove the player's weapon on spawn by mistake
+							-- and then not give a spare
+							if plyWPASS2Data.weaponsAndAmmo then
+								for k,v in pairs(plyWPASS2Data.weaponsAndAmmo.weapons) do
+									if not ply:HasWeapon(k) then
+										local wep = ply:Give(k, true)
+										if IsValid(wep) then
+											wep:SetClip1(v.primary)
+											wep:SetClip2(v.secondary)
+							
+											if InsaneStats:IsDebugLevel(2) then
+												InsaneStats:Log("Re-gave %s to %s", tostring(wep), tostring(ply))
+											end
+										else
+											InsaneStats:Log("Failed to give %s to %s!", k, tostring(ply))
+										end
+									end
+								end
 							end
 							
 							if plyWPASS2Data.modifiers then

@@ -131,7 +131,7 @@ net.Receive("insane_stats", function()
 				skills, sealedSkills = {}, {}
 				for i=1, net.ReadUInt(8) do
 					local skillName = InsaneStats:GetSkillName(net.ReadUInt(8))
-					skills[skillName] = net.ReadUInt(8)
+					skills[skillName] = net.ReadUInt(16)
 				end
 				for i=1, net.ReadUInt(8) do
 					local skillName = InsaneStats:GetSkillName(net.ReadUInt(8))
@@ -185,10 +185,11 @@ net.Receive("insane_stats", function()
 				end
 				
 				if statusEffects then
-					ent.insaneStats_StatusEffects = ent.insaneStats_StatusEffects or {}
+					--ent.insaneStats_StatusEffects = ent.insaneStats_StatusEffects or {}
 					
 					for k,v in pairs(statusEffects) do
-						ent.insaneStats_StatusEffects[k] = v
+						--ent.insaneStats_StatusEffects[k] = v
+						ent:InsaneStats_ApplyStatusEffect(k, v.level, v.expiry - CurTime(), {replace = true})
 					end
 				end
 				
@@ -254,15 +255,18 @@ net.Receive("insane_stats", function()
 			-- the server will send the entity index, but also the entity position, class, health and armor (if any)
 			-- since we can't see entities outside our PVS
 			local entIndex = net.ReadUInt(16)
-			local pos = net.ReadVector()
-			local class = net.ReadString()
-			local health = net.ReadDouble()
-			local maxHealth = net.ReadDouble()
-			local armor = net.ReadDouble()
-			local maxArmor = net.ReadDouble()
-			local lie = net.ReadBool()
-			
-			hook.Run("InsaneStatsWPASS2EntityMarked", entIndex, pos, class, health, maxHealth, armor, maxArmor, lie)
+			if entIndex == 0 then
+				hook.Run("InsaneStatsWPASS2EntityMarked", 0, vector_origin, "", 0, 0, 0, 0, false)
+			else
+				local pos = net.ReadVector()
+				local class = net.ReadString()
+				local health = net.ReadDouble()
+				local maxHealth = net.ReadDouble()
+				local armor = net.ReadDouble()
+				local maxArmor = net.ReadDouble()
+				local lie = net.ReadBool()
+				hook.Run("InsaneStatsWPASS2EntityMarked", entIndex, pos, class, health, maxHealth, armor, maxArmor, lie)
+			end
 		end
 	elseif func == 5 then
 		local text = language.GetPhrase(net.ReadString())

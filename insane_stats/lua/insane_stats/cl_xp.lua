@@ -56,7 +56,7 @@ InsaneStats:RegisterClientConVar("hud_target_h", "insanestats_hud_target_h", "0.
 InsaneStats:RegisterClientConVar("hud_target_statuseffects_size", "insanestats_hud_target_statuseffects_size", "3", {
 	display = "Target Info Status Effect Size", desc = "Size of target info status effects.",
 	type = InsaneStats.FLOAT, min = 0, max = 10
-}) --
+})
 InsaneStats:RegisterClientConVar("hud_target_halo", "insanestats_hud_target_halo", "1", {
 	display = "Show Halo", desc = "Show a halo for the current entity displayed by the target info HUD.",
 	type = InsaneStats.BOOL

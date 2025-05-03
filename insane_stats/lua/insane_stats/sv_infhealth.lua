@@ -358,7 +358,7 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 			elseif vic.insaneStats_PreventOverdamage then
 				-- make sure to not let the helicopter's health go too low since it also causes issues
 				-- again, single floating-point arithmetic makes this more difficult
-				local maxDamage = vic:InsaneStats_GetRawHealth() * (1 + 2 ^ -24)
+				local maxDamage = vic:InsaneStats_GetRawHealth() * (1 + 2 ^ -24) + 256
 				if dmginfo:InsaneStats_GetRawDamage() > maxDamage then
 					dmginfo:InsaneStats_SetRawDamage(math.max(maxDamage, 0))
 				end

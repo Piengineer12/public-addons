@@ -141,7 +141,7 @@ local function BroadcastEntityUpdates()
 			net.WriteUInt(table.Count(k:InsaneStats_GetSkills()), 8)
 			for k2,v2 in pairs(k:InsaneStats_GetSkills()) do
 				net.WriteUInt(InsaneStats:GetSkillID(k2), 8)
-				net.WriteUInt(v2, 8)
+				net.WriteUInt(v2, 16)
 			end
 			net.WriteUInt(table.Count(k:InsaneStats_GetSealedSkills()), 8)
 			for k2,v2 in pairs(k:InsaneStats_GetSealedSkills()) do

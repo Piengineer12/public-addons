@@ -207,11 +207,15 @@ InsaneStats:RegisterConVar("gargantua_is_monster", "insanestats_gargantua_is_mon
 	Fixes at least a few Synergy maps from not working at all in GMod.",
 	type = InsaneStats.BOOL
 })
---[[InsaneStats:RegisterConVar("prevent_gunship_death_crash", "insanestats_prevent_gunship_death_crash", "0", {
-	display = "Prevent Gunship Death Crash", desc = "If an npc_combinegunship is marked as a template NPC, \z
-	ALL npc_combinegunships are replaced with npc_helicopters.",
-	type = InsaneStats.BOOL
-})]]
+InsaneStats:RegisterConVar("sleepphys_lagamount", "insanestats_sleepphys_lagamount", "50", {
+	display = "Sleep Physics On Lag", desc = "If the server's taking 0.5 seconds to process ticks \z
+	for this many ticks, ALL physics objects will be put to sleep. 0 disables this feature.",
+	type = InsaneStats.FLOAT, min = 0, max = 10
+})
+InsaneStats:RegisterConVar("sleepphys_cooldown", "insanestats_sleepphys_cooldown", "1", {
+	display = "Sleep Physics Cooldown", desc = "Minimum seconds between \"insanestats_sleepphys_lagamount\" triggers.",
+	type = InsaneStats.FLOAT, min = 0, max = 100
+})
 InsaneStats:RegisterConVar("camera_no_kill", "insanestats_camera_no_kill", "1", {
 	display = "No Camera Killing", desc = "point_viewcontrols will not be removed when the Kill input is sent to them.\n\z
 	Fixes certain cameras not working in some older campaign maps.",

@@ -473,7 +473,3 @@ end
 function ENT:InsaneStats_AddXP(xp, addDropValue)
 	return self:InsaneStats_SetXP(self:InsaneStats_GetXP() + xp, self:InsaneStats_GetDropXP() + addDropValue)
 end
-
-function ENT:InsaneStats_GetXPToNextLevel()
-	return InsaneStats:GetXPRequiredToLevel(self:InsaneStats_GetLevel()+1)
-end

@@ -8,13 +8,11 @@ idea for alternate fire modes
 
 bugbait: r -> teleport antlions to self
 crossbow: r -> ?
-frag grenade: r -> toggle instant grenades
-rpg: m2 -> fire insta-rocket, r -> ?
 ]]
 
 InsaneStats = {
-	VERSION = "1.9.6",
-	VERSION_DATE = "2025-04-23",
+	VERSION = "2.0.0",
+	VERSION_DATE = "2025-05-03",
 	WORKSHOP_ID = "2980423627"
 }
 

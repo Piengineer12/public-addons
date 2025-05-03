@@ -357,10 +357,7 @@ local function CreateSkillHeaders(parent)
 		)
 
 		x = x + InsaneStats:DrawTextOutlined(
-			string.format(
-				" skill point(s) remaining",
-				ply:InsaneStats_GetTotalSkillPoints()
-			),
+			" skill point(s) remaining",
 			2, x, outlineThickness,
 			color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
 		)
@@ -368,8 +365,8 @@ local function CreateSkillHeaders(parent)
 		if skillPoints < ply:InsaneStats_GetTotalSkillPoints() then
 			x = x + InsaneStats:DrawTextOutlined(
 				string.format(
-					" (%u total)",
-					ply:InsaneStats_GetTotalSkillPoints()
+					" (%s total)",
+					InsaneStats:FormatNumber(ply:InsaneStats_GetTotalSkillPoints())
 				),
 				2, x, outlineThickness,
 				color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP

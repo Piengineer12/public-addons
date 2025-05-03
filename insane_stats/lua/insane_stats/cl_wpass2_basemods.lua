@@ -312,18 +312,16 @@ hook.Add("InsaneStatsLookPositionsRecieved", "InsaneStatsWPASS2", function(posit
 end)
 
 hook.Add("Think", "InsaneStatsWPASS2", function()
-	for i,v in ents.Iterator() do
+	for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("pyrotheum")) do
 		if IsValid(v) then
 			local duration = v:InsaneStats_GetStatusEffectDuration("pyrotheum")
-			if duration > 0 then
-				local alpha = math.log(duration * 2 + 1, 4)
-				local desiredColor = HSVToColor(
-					math.max(alpha - 1, 0) * 60 % 360,
-					1,
-					math.min(alpha, 1)
-				)
-				v:SetColor(desiredColor)
-			end
+			local alpha = math.log(duration * 2 + 1, 4)
+			local desiredColor = HSVToColor(
+				math.max(alpha - 1, 0) * 60 % 360,
+				1,
+				math.min(alpha, 1)
+			)
+			v:SetColor(desiredColor)
 		end
 	end
 end)

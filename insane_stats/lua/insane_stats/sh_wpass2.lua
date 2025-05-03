@@ -36,6 +36,10 @@ InsaneStats:RegisterConVar("wpass2_dropship_invincible", "insanestats_wpass2_dro
 	display = "Invincible Dropship Containers", desc = "Combine dropship containers can't be damaged. This has been known to break maps if disabled!",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterConVar("wpass2_burrowed_invincible", "insanestats_wpass2_burrowed_invincible", "1", {
+	display = "Invincible Burrowed NPCs", desc = "Burrowed antlions can't be damaged.",
+	type = InsaneStats.BOOL
+})
 InsaneStats:RegisterConVar("wpass2_modifiers_player_save", "insanestats_wpass2_modifiers_player_save", "2", {
 	display = "Save Player Modifiers Across Maps", desc = "If 1, modifiers on player weapons / armor batteries will be saved across maps. \z
 	Consequently, all weapons and ammo are also perserved across maps. \z
@@ -768,18 +772,22 @@ function InsaneStats:ApplyWPASS2Attributes(wep)
 end
 
 function InsaneStats:GetEntitiesByStatusEffect(id)
-	entitiesByStatusEffect[id] = entitiesByStatusEffect[id] or {}
-	local entities = {}
-	
-	for k,v in pairs(entitiesByStatusEffect[id]) do
-		if v.expiry >= CurTime() and IsValid(k) then
-			table.insert(entities, k)
-		else
-			entitiesByStatusEffect[id][k] = nil
+	if id then
+		entitiesByStatusEffect[id] = entitiesByStatusEffect[id] or {}
+		local entities = {}
+		
+		for k,v in pairs(entitiesByStatusEffect[id]) do
+			if v.expiry >= CurTime() and IsValid(k) then
+				table.insert(entities, k)
+			else
+				entitiesByStatusEffect[id][k] = nil
+			end
 		end
+		
+		return entities
+	else
+		return entitiesByStatusEffect
 	end
-	
-	return entities
 end
 
 function InsaneStats:GetModifierProbabilities(wep)
@@ -939,16 +947,41 @@ function ENTITY:InsaneStats_GetAttributeValue(attribute)
 				end
 
 				if shouldGive then
-					wep = ents.Create("weapon_base")
-					wep:SetKeyValue("spawnflags", 3)
-					wep:SetPos(storePos)
-					wep:Spawn()
-					wep:SetMoveType(MOVETYPE_NONE)
-					wep:SetNotSolid(true)
-					wep:SetNoDraw(true)
-					wep.insaneStats_IsProxyWeapon = true
-					wep.insaneStats_ProxyWeaponTo = self
-					self.insaneStats_ProxyWeapon = wep
+					local existingProxyWeapons = ents.FindByClass("weapon_base")
+					if #existingProxyWeapons > 1000 then
+						InsaneStats:Log("WARNING: Over 1000 proxy weapons have been created.")
+						InsaneStats:Log("Either insanestats_wpass2_modifiers_other_create is 3, \z
+						or there are too many mobs.")
+
+						local copiedProxyWeaponRefs = {}
+						for k,v in pairs(existingProxyWeapons) do copiedProxyWeaponRefs[k] = v end
+						repeat
+							if not next(copiedProxyWeaponRefs) then
+								wep = NULL
+								break
+							end
+							local randomIndex = math.random(#copiedProxyWeaponRefs)
+							wep = table.remove(copiedProxyWeaponRefs, randomIndex)
+						until wep.insaneStats_IsProxyWeapon
+
+						self.insaneStats_ProxyWeapon = wep
+						InsaneStats:Log(
+							"Binding a random existing proxy weapon (%s) to %s.",
+							tostring(wep),
+							tostring(self)
+						)
+					else
+						wep = ents.Create("weapon_base")
+						wep:SetKeyValue("spawnflags", 3)
+						wep:SetPos(storePos)
+						wep:Spawn()
+						wep:SetMoveType(MOVETYPE_NONE)
+						wep:SetNotSolid(true)
+						wep:SetNoDraw(true)
+						wep.insaneStats_IsProxyWeapon = true
+						wep.insaneStats_ProxyWeaponTo = self
+						self.insaneStats_ProxyWeapon = wep
+					end
 				end
 				self.insaneStats_ProxyWeaponLastTick = engine.TickCount()
 			end
@@ -1019,7 +1052,7 @@ function ENTITY:InsaneStats_ApplyStatusEffect(id, level, duration, data)
 	entitiesByStatusEffect[id] = entitiesByStatusEffect[id] or {}
 	
 	data = data or {}
-	if (effectTable and effectTable.expiry > curTime) then
+	if (effectTable and effectTable.expiry > curTime) and not data.replace then
 		if data.amplify then level = level + effectTable.level end
 		
 		if data.extend and duration ~= 0 then

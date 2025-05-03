@@ -20,7 +20,7 @@ InsaneStats:RegisterClientConVar("hud_damage_nonzero_health", "insanestats_hud_d
 	display = "Non-Zero HP Only", desc = "Damage dealt to zero health entities are not displayed.",
 	type = InsaneStats.BOOL
 })
-InsaneStats:RegisterClientConVar("hud_damage_noselfhealing", "insanestats_hud_damage_noselfhealing", "1", {
+InsaneStats:RegisterClientConVar("hud_damage_noselfhealing", "insanestats_hud_damage_noselfhealing", "0", {
 	display = "Don't Display Self-Heals", desc = "Self-healing numbers are not displayed.",
 	type = InsaneStats.BOOL
 })
@@ -29,11 +29,11 @@ InsaneStats:RegisterClientConVar("hud_damage_particle", "insanestats_hud_damage_
 	If 2, damage and healing received are also rendered as particles.",
 	type = InsaneStats.INT, min = 0, max = 2
 })
-InsaneStats:RegisterClientConVar("hud_damage_lifetime", "insanestats_hud_damage_lifetime", "2", {
+InsaneStats:RegisterClientConVar("hud_damage_lifetime", "insanestats_hud_damage_lifetime", "1", {
 	display = "Damage Life Time", desc = "How long damage numbers appear for.",
 	type = InsaneStats.FLOAT, min = 0, max = 10
 })
-InsaneStats:RegisterClientConVar("hud_damage_stacktime", "insanestats_hud_damage_stacktime", "1", {
+InsaneStats:RegisterClientConVar("hud_damage_stacktime", "insanestats_hud_damage_stacktime", "0.5", {
 	display = "Damage Stack Time", desc = "Successive damage dealt within this time cumulates into a single number. \z
 	Only works for non-particle numbers, see the \"insanestats_hud_damage_particle\" ConVar.",
 	type = InsaneStats.FLOAT, min = 0, max = 10

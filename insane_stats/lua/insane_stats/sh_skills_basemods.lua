@@ -336,7 +336,7 @@ local skills = {
 		values = function(level)
 			return level * -8
 		end,
-		img = "cut-palm",
+		img = "pierced-heart",
 		pos = {-3, 1},
 		minpts = 5
 	},
@@ -685,7 +685,7 @@ local skills = {
 		values = function(level, ent)
 			-- min level above 0: 0.2, max level: 30
 			level = level * (1 + ent:InsaneStats_GetEffectiveSkillValues("bloodletters_revelation", 2) / 100)
-			return 100 - level * 2, -4 * level
+			return 100 - level * 2, math.max(-4 * level, -100)
 		end,
 		img = "bleeding-heart",
 		pos = {2, 4},
@@ -775,7 +775,7 @@ local skills = {
 	-- distance 7
 	the_red_plague = {
 		name = "The Red Plague",
-		desc = "On hit, inflict Bleeding for %u seconds on the victim, triggering on-hit effects over time! \z
+		desc = "On hitting a mob, inflict Bleeding for %u seconds, triggering on-hit effects over time! \z
 		Bleeding does not stack.",
 		values = function(level)
 			return level * 8
@@ -1062,7 +1062,8 @@ local skills = {
 	},
 	you_all_get_a_car = {
 		name = "You All Get A Car",
-		desc = "While %s is not held, share up to level %+i of most skills with all allies. Also, weapon switch speed is increased by %+i%%.",
+		desc = "While %s is not held, share up to level %+i of most skills with all allies. \z
+		Also, weapon switch speed is increased by %+i%%.",
 		values = function(level, ent)
 			local slowWalkKey = "the Slow Walk key"
 			if CLIENT then
@@ -1259,7 +1260,7 @@ local skills = {
 		name = "Anger",
 		desc = "Taking damage increases all damage dealt by +200%% for 10 seconds! %u seconds cooldown. \z
 		However, dealing explosive damage to an NPC creates a live grenade that explodes after 2 seconds, \z
-		at most once per second per NPC.",
+		at most once every 5 seconds per NPC.",
 		values = function(level)
 			return 180 - level * 60
 		end,
@@ -1372,7 +1373,8 @@ local skills = {
 		Picking up any item will also extend the duration by half the amount. \z
 		Each stack gives 1%% more coins and XP, but \z
 		duration is limited to a maximum of 60 seconds! \z
-		Also, every power of %u Sick Combo stacks grant +100%% more kill skill retriggers on kill!",
+		Also, every power of %u Sick Combo stacks grant +100%% more kill skill retriggers on kill, \z
+		but also halves Sick Combo duration gained from kills and items!",
 		values = function(level)
 			return level/5, 5
 		end,
@@ -1486,19 +1488,26 @@ local skills = {
 	pyrotheum = {
 		name = "Stellar Nodes",
 		desc = "Killed enemies create a %s radius stellar node that lasts for +%u second(s). \z
-		Kills that happen within %s from a node's center will extend the duration of the node. \z
-		Nodes heal allies while damaging all other entities within range, \z
-		with healing and damage scaled based on node duration and radius.",
+		There can only be at most +%u nodes at once, but \z
+		kills that happen inside a node will extend the duration of the node. \z
+		Nodes heal allies while damaging all other entities within range while %s is not held, \z
+		with healing and damage scaled based on node duration.",
 		values = function(level, ent)
-			local distance = level * 16
-			local dist2 = distance * 2
+			local distance = 64
+			local slowWalkKey = "the Slow Walk key"
 			if CLIENT then
 				distance = InsaneStats:FormatNumber(distance, {plus = true, distance = true})
-				dist2 = InsaneStats:FormatNumber(dist2, {plus = true, distance = true})
+				local keyName = input.LookupBinding("+walk")
+				if keyName then
+					slowWalkKey = keyName:upper()
+				end
 			end
-			return distance, level * 2, dist2
+			return distance, level * 2, level * 2, slowWalkKey
 		end,
-		img = "sun",
+		stackTick = function(state, current, time, ent)
+			return ent:IsPlayer() and ent:KeyDown(IN_WALK) and -1 or current > 0 and 1 or 0, current
+		end,
+		img = "barbed-sun",
 		pos = {2, 6},
 		minpts = 5
 	},
@@ -1594,11 +1603,11 @@ local skills = {
 	},
 	rock_solid = {
 		name = "Rock Solid",
-		desc = "Negate all fire%s damage taken! \z
+		desc = "Negate all fire%s and explosive damage taken! \z
 		Additionally, negate ALL damage taken while in a vehicle!",
 		values = function(level)
 			if level > 1 then
-				return ", poison and shock"
+				return ", poison, shock, freeze"
 			else
 				return ""
 			end
@@ -1635,9 +1644,8 @@ local skills = {
 	},
 	blast_proof_suit = {
 		name = "Blast-Proof Suit",
-		desc = "Move -25%% slower, but take -100%% self-explosion damage! \z
-		Explosive damage from other sources is reduced by %i%% instead. \z
-		Also, holding %s allows picking up props that are up to +%u%% heavier \z
+		desc = "Take %i%% explosion damage! \z
+		Also, holding %s allows picking up props that are up to %s%% heavier \z
 		than what could be picked up by hand.",
 		values = function(level)
 			local slowWalkKey = "the Slow Walk key"
@@ -1647,7 +1655,7 @@ local skills = {
 					slowWalkKey = keyName:upper()
 				end
 			end
-			return level * -10, slowWalkKey, level * 200
+			return level * -10, slowWalkKey, CLIENT and InsaneStats:FormatNumber(level * 200, {plus = true}) or level * 200
 		end,
 		stackTick = function(state, current, time, ent)
 			return ent:IsPlayer() and ent:KeyDown(IN_WALK) and 1 or 0, current
@@ -1702,6 +1710,17 @@ local skills = {
 		pos = {1, -5},
 		minpts = 6
 	},
+	heads_will_roll = {
+		name = "Heads Will Roll",
+		desc = "Deal %s%% more damage against enemies at +%u%% health or below.",
+		values = function(level, ent)
+			local initialValue = level * 100000
+			return CLIENT and InsaneStats:FormatNumber(initialValue, {plus = true}) or initialValue, level * 4
+		end,
+		img = "guillotine",
+		pos = {3, -6},
+		minpts = 5
+	},
 	kill_aura = {
 		name = "Kill Aura",
 		desc = "On kill, gain %+u stack(s) of Kill Aura. Enemies within %s times the number of stacks \z
@@ -1738,7 +1757,7 @@ local skills = {
 			or nextStacks <= 0 and 0
 			or 1, nextStacks
 		end,
-		img = "broken-heart-zone",
+		img = "death-zone",
 		pos = {4, -5},
 		minpts = 5
 	},
@@ -1754,17 +1773,31 @@ local skills = {
 		pos = {5, -4},
 		minpts = 5
 	},
+	skystrike = {
+		name = "Skystrike",
+		desc = "+%u%% coins and XP gained in mid-air for every %s above ground",
+		values = function(level)
+			local distance = 16
+			if CLIENT then
+				distance = InsaneStats:FormatNumber(distance, {distance = true})
+			end
+			return level * 10, distance
+		end,
+		img = "steelwing-emblem",
+		pos = {6, -3},
+		minpts = 5
+	},
 	upward_spiralling = {
 		name = "Upward Spiralling",
 		desc = "Every spent skill point gives +%.2f%% coins and XP, \z
 		while every spent über skill point adds +%.3f to the value of the percentage. \z
-		(+%.3f%% coins and XP gain at current total spent skill points and über skill points.)",
+		(+%s%% coins and XP gain at current total spent skill points and über skill points.)",
 		values = function(level, ent)
 			local thirdValue = (
 				level/20 + level/200
 				* ent:InsaneStats_GetSpentUberSkillPoints()
 			) * ent:InsaneStats_GetSpentSkillPoints()
-			return level/20, level/200, thirdValue
+			return level/20, level/200, CLIENT and InsaneStats:FormatNumber(thirdValue) or thirdValue
 		end,
 		img = "gold-shell",
 		pos = {5, -1},
@@ -1772,8 +1805,8 @@ local skills = {
 	},
 	productivity = {
 		name = "Productivity",
-		desc = "%+.0f%% chance to duplicate items. On kill, add %+u%% ammo into the current weapon's clips. \z
-		The Too Many Items skill is also %+u%% more effective.",
+		desc = "%+.0f%% chance to duplicate items. On kill, add +%u%% ammo into the current weapon's clips. \z
+		The Too Many Items skill is also +%u%% more effective.",
 		values = function(level)
 			return level * 10, level * 5, level * 10
 		end,
@@ -1781,9 +1814,39 @@ local skills = {
 		pos = {5, 1},
 		minpts = 6
 	},
+	um_what = {
+		name = "Um, What?",
+		desc = "%+i%% coins and XP gained",
+		values = function(level)
+			--level = 10
+			local u = math.sqrt(level) * 3
+			local value = level * 5
+			local points = {
+				Vector(0, 0, 0),
+				Vector(-u, 0, 0),
+				Vector(u, 0, -u),
+				Vector(-u, -u, u),
+				Vector(0, 0, -u),
+				Vector(u, u, u),
+				Vector(-u, -u, -u),
+				Vector(0, 0, u),
+				Vector(u, u, -u),
+				Vector(-u, 0, u),
+				Vector(u, 0, 0),
+				Vector(0, 0, 0)
+			}
+			local splinePoint = math.BSplinePoint(CurTime() / math.tau % 1, points, 1)
+			value = value + splinePoint.x * splinePoint.y * splinePoint.z
+			return value
+		end,
+		no_cache_values = true,
+		img = "spotted-mushroom",
+		pos = {6, 3},
+		minpts = 5
+	},
 	the_bigger_they_are = {
 		name = "The Bigger They Are",
-		desc = "Killing a large enemy creates an Item Crate that gives +%u random items when broken. \z
+		desc = "Killing a large mob creates an Item Crate that gives +%u random items when broken. \z
 		Coins and XP gained from such kills are also multiplied by the victim's amount of XP ^%.2f.",
 		values = function(level, ent)
 			return level, level / 100
@@ -1813,6 +1876,16 @@ local skills = {
 		pos = {4, 5},
 		minpts = 5
 	},
+	degeneration = {
+		name = "Degeneration",
+		desc = "Lose %.1f%% of current health per second, in exchange for +%u%% damage dealt, coins and XP gain.",
+		values = function(level, ent)
+			return level / -5, level * 10
+		end,
+		img = "ouroboros",
+		pos = {3, 6},
+		minpts = 5
+	},
 	bloodletters_revelation = {
 		name = "Bloodletter's Revelation",
 		desc = "Gain up to %+.0f%% movement speed at high health. The Bloodletter's Pact skill is also +%u%% more effective.",
@@ -1835,6 +1908,18 @@ local skills = {
 		img = "afterburn",
 		pos = {-1, 5},
 		minpts = 6
+	},
+	infestation = {
+		name = "Infestation",
+		desc = "On hit, inflict a random negative status effect, \z
+		such as %i%% damage dealt, +%u%% damage taken, etc. \z
+		Upon getting hit, gain a random negative status effect.",
+		values = function(level, ent)
+			return level * -5, level * 5, level
+		end,
+		img = "infested-mass",
+		pos = {-3, 6},
+		minpts = 5
 	},
 	aint_got_time_for_this = game.SinglePlayer() and {
 		name = "Ain't Got Time For This",
@@ -1887,6 +1972,17 @@ local skills = {
 		pos = {-5, 4},
 		minpts = 5
 	},
+	shoe_spikes = {
+		name = "Shoe Spikes",
+		desc = "Take %i%% damage but also increase player friction by +%u%%, \z
+		reducing movement speed on the ground.",
+		values = function(level, ent)
+			return level * -8, level * 10
+		end,
+		img = "boot-stomp",
+		pos = {-6, 3},
+		minpts = 5
+	},
 	bastion_of_flesh = {
 		name = "Bastion of Flesh",
 		desc = "+%u%% of max shield gained from skills and modifiers is converted into max health instead. \z
@@ -1928,15 +2024,46 @@ local skills = {
 		pos = {-5, -1},
 		minpts = 6
 	},
+	beep3 = {
+		name = "Beep Beep Beeeeeeeeep",
+		desc = "Gain +%u stack(s) of Beep Beep Beeeeeeeeep per second, up to 10. \z
+		At 10 stacks while %s is not held, the next damage dealt to a mob \z
+		stuns it for 2 seconds, consuming all stacks. \z
+		Note that after the stun expires, the affected mob becomes immune to all stunning effects \z
+		for 2 seconds.",
+		values = function(level)
+			local slowWalkKey = "the Slow Walk key"
+			if CLIENT then
+				local keyName = input.LookupBinding("+walk")
+				if keyName then
+					slowWalkKey = keyName:upper()
+				end
+			end
+			return level, slowWalkKey
+		end,
+		stackTick = function(state, current, time, ent)
+			local generation = ent:InsaneStats_GetEffectiveSkillValues("beep3")
+			local nextStacks = math.min(current + time * generation, 10)
+
+			return ent:IsPlayer() and ent:KeyDown(IN_WALK) and -1
+			or nextStacks >= 10 and 1
+			or 0, nextStacks
+		end,
+		img = "coma",
+		pos = {-6, -3},
+		minpts = 5
+	},
 	better_healthcare = {
 		name = "Better Healthcare",
 		desc = "%+.0f%% health, max health, shield and max shield gains from skills and modifiers. \z
-		Coins and XP gain is also increased by +%.1f%%, \z
+		Coins and XP gain is also increased by %s%%, \z
 		but this percentage is divided by the number of skill points gained in total \z
-		(+%.1f%% at current total skill points).",
+		(%s%% at current total skill points).",
 		values = function(level, ent)
 			local xpBoost = 1000 * level
-			return level * 5, xpBoost, xpBoost / math.max(ent:InsaneStats_GetTotalSkillPoints(), 1)
+			local xpBoostEff = xpBoost / math.max(ent:InsaneStats_GetTotalSkillPoints(), 1)
+			return level * 5, CLIENT and InsaneStats:FormatNumber(xpBoost, {decimals = 1, plus = true}) or xpBoost,
+			CLIENT and InsaneStats:FormatNumber(xpBoostEff, {decimals = 1, plus = true}) or xpBoostEff
 		end,
 		img = "crowned-heart",
 		pos = {-5, -4},
@@ -1956,6 +2083,16 @@ local skills = {
 		pos = {-4, -5},
 		minpts = 5
 	},
+	doom = {
+		name = "Jaws",
+		desc = "+%u%% doom damage dealt after 1s",
+		values = function(level, ent)
+			return level * 5
+		end,
+		img = "shark-jaws",
+		pos = {-3, -6},
+		minpts = 5
+	},
 	shield_shell_shots = {
 		name = "Shield Shell Shots",
 		desc = "While at 100%% shield or above, all BASE damage dealt is increased by %s, \z
@@ -1969,6 +2106,121 @@ local skills = {
 		img = "shield-bounces",
 		pos = {-1, -5},
 		minpts = 6
+	},
+
+	-- distance 10
+	explosive_arsenal = {
+		name = "Explosive Arsenal",
+		desc = "While holding a grenade, %s toggles between fused grenades and on-contact grenades. \z
+		On-contact grenades explode immediately upon collision, but have +%u%% more radius and BASE damage. \z
+		While holding an RPG, %s instantly fires a rocket if the RPG is not disabled, \z
+		while %s toggles rocket invincibility for those fired with %s. \z
+		Invincible rockets fired this way will disable the RPG for %.1f seconds, \z
+		while non-invincible rockets disable the RPG for half the time.",
+		values = function(level)
+			local secondKey = "the Secondary Fire key"
+			local reloadKey = "the Reload key"
+			if CLIENT then
+				local keyName = input.LookupBinding("+reload")
+				if keyName then
+					reloadKey = keyName:upper()
+				end
+				keyName = input.LookupBinding("+attack2")
+				if keyName then
+					secondKey = keyName:upper()
+				end
+			end
+			return reloadKey, level * 10, secondKey, reloadKey, secondKey, 10 - level / 2
+		end,
+		img = "sparky-bomb",
+		pos = {4, -6},
+		minpts = 5
+	},
+	lets_do_that_again = {
+		name = "Let's Do That Again!",
+		desc = "On NPC kill, resurrect it 5 seconds after death if the space they died in remains empty. \z
+		Resurrected NPCs spawn with +%u%% more XP, are always hostile to all players \z
+		and cannot resurrect again, however they also drop +%u%% more coins and XP.",
+		values = function(level, ent)
+			return level * 5, level * 5
+		end,
+		img = "recycle",
+		pos = {6, -4},
+		minpts = 5,
+	},
+	bookworm = {
+		name = "Bookworm",
+		desc = "%i%% movement speed\n+%u%% coins and XP gain",
+		values = function(level, ent)
+			return level * -5, level * 15
+		end,
+		img = "book-cover",
+		pos = {6, 4},
+		minpts = 5,
+	},
+	responsive_movement = {
+		name = "Responsive Movement",
+		desc = "Increase player friction by +%u%%, with movement speed increased by +%u%% to compensate.",
+		values = function(level, ent)
+			return level * 10, level * 10
+		end,
+		img = "gamepad-cross",
+		pos = {4, 6},
+		minpts = 5,
+	},
+	skinny = {
+		name = "Skinny",
+		desc = "+%u%% damage taken\n+%u%% movement speed",
+		values = function(level, ent)
+			return level * 5, level * 10
+		end,
+		img = "puppet",
+		pos = {-4, 6},
+		minpts = 5,
+	},
+	more_and_more = {
+		name = "More and More",
+		desc = "Having a full bar of shield \z
+		boosts all healing and shield gained from skills and modifiers by +%u%%. \z
+		Every power of %u bars of shield grants +%u%% more health and shield gain.",
+		values = function(level, ent)
+			return level * 5, 15 - level, level * 5
+		end,
+		img = "mineral-heart",
+		pos = {-6, 4},
+		minpts = 5,
+	},
+	solar_power = {
+		name = "Solar Power",
+		desc = "+%u%%/s health regeneration while standing under sunlight or moonlight",
+		values = function(level)
+			return level
+		end,
+		img = "sun",
+		pos = {-6, -4},
+		minpts = 5,
+	},
+	ion_cannon = {
+		name = "Ion Cannon",
+		desc = "Damage that would hit a large enemy inflicts 1 stack of Ion Cannon Target for 6 seconds. \z
+		The next +%u hits will double the number of stacks but do not extend the duration. \z
+		After 6 seconds elapse, deal %s BASE damage per stack \z
+		to the large enemy and all others shootable from it! %u seconds cooldown, \z
+		unless the large enemy was killed before the cannon hits.",
+		values = function(level, ent)
+			local value = 40 * InsaneStats:DetermineDamageMulPure(
+				ent, game.GetWorld()
+			)
+			return level * 2, CLIENT and InsaneStats:FormatNumber(value) or 40, 110 - level * 10
+		end,
+		stackTick = function(state, current, time, ent)
+			local preCooldownTime = ent:InsaneStats_GetEffectiveSkillValues("ion_cannon", 3) - 6
+			local nextStacks = math.max(current - time, 0)
+			return nextStacks >= preCooldownTime and state > -1 and 1 or nextStacks <= 0 and 0 or -1, nextStacks
+		end,
+		img = "laser-warning",
+		pos = {-4, -6},
+		minpts = 5,
 	},
 
 	-- distance X
@@ -2000,7 +2252,7 @@ local skills = {
 		img = "jigsaw-box",
 		pos = {5, -5},
 		minpts = 10,
-		max = 100
+		max = 200
 	},
 	master_of_air = {
 		name = "Master of Air",
@@ -2043,7 +2295,7 @@ local skills = {
 		img = "jigsaw-box",
 		pos = {5, 5},
 		minpts = 10,
-		max = 100
+		max = 200
 	},
 	master_of_water = {
 		name = "Master of Water",
@@ -2088,7 +2340,7 @@ local skills = {
 		img = "jigsaw-box",
 		pos = {-5, 5},
 		minpts = 10,
-		max = 100
+		max = 200
 	},
 	master_of_earth = {
 		name = "Master of Earth",
@@ -2127,7 +2379,7 @@ local skills = {
 		img = "jigsaw-box",
 		pos = {-5, -5},
 		minpts = 10,
-		max = 100
+		max = 200
 	},
 }
 
@@ -2176,10 +2428,35 @@ local statusEffects = {
 		typ = 1,
 		img = "fast-arrow"
 	},
+	crit_defence_up = {
+		name = "Critical Defence Up",
+		typ = 1,
+		img = "rear-aura"
+	},
+	crit_defence_down = {
+		name = "Critical Defence Down",
+		typ = -1,
+		img = "william-tell-skull"
+	},
+	crit_xp_up = {
+		name = "Critical Loot Up",
+		typ = 1,
+		img = "william-tell-skull"
+	},
+	xp_down = {
+		name = "Loot Down",
+		typ = -1,
+		img = "animal-skull"
+	},
 	accuracy_up = {
 		name = "Accuracy Up",
 		typ = 1,
 		img = "on-target"
+	},
+	accuracy_down = {
+		name = "Accuracy Down",
+		typ = -1,
+		img = "radial-balance"
 	},
 	absorption = {
 		name = "Absorption",
@@ -2191,15 +2468,25 @@ local statusEffects = {
 		typ = 1,
 		img = "boxing-glove-surprise"
 	},
+	knockback_down = {
+		name = "Knockback Down",
+		typ = -1,
+		img = "cut-palm"
+	},
 	knockback_resistance_up = {
 		name = "Knockback Resistance Up",
 		typ = 1,
-		img = "breastplate"
+		img = "oak"
 	},
-	crit_xp_up = {
-		name = "Critical Loot Up",
-		typ = 1,
-		img = "william-tell-skull"
+	knockback_resistance_down = {
+		name = "Knockback Resistance Down",
+		typ = -1,
+		img = "dead-wood"
+	},
+	inverted_shield = {
+		name = "Inverted Shield",
+		typ = -1,
+		img = "middle-arrow"
 	},
 	ammo_stealer = {
 		name = "Ammo Stealer",
@@ -2211,8 +2498,133 @@ local statusEffects = {
 		typ = 0,
 		img = "sun",
 		overtime = true,
+		apply = SERVER and function(ent, level, duration, attacker)
+			ent:InsaneStats_SetEntityData("pyrotheum_lastapplied", CurTime())
+
+			if IsValid(attacker) then
+				local count = 0
+				for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("pyrotheum")) do
+					if v:InsaneStats_GetStatusEffectAttacker("pyrotheum") == attacker then
+						count = count + 1
+					end
+				end
+				attacker:InsaneStats_SetSkillData(
+					"pyrotheum",
+					attacker:InsaneStats_GetSkillState("pyrotheum"),
+					count
+				)
+			end
+		end,
 		expiry = SERVER and function(ent, level, attacker)
+			if IsValid(attacker) then
+				local count = 0
+				for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("pyrotheum")) do
+					if v:InsaneStats_GetStatusEffectAttacker("pyrotheum") == attacker then
+						count = count + 1
+					end
+				end
+				attacker:InsaneStats_SetSkillData(
+					"pyrotheum",
+					attacker:InsaneStats_GetSkillState("pyrotheum"),
+					count
+				)
+			end
+
 			SafeRemoveEntity(ent)
+		end
+	},
+	no_skill_forced_respawning = {
+		name = "No Skill-Forced Respawning",
+		typ = 0,
+		img = "pirate-grave"
+	},
+	other_damage_aura = {
+		name = "Inflicted Damage Aura",
+		typ = 0,
+		img = "death-zone",
+		overtime = true
+	},
+	ion_cannon_target = {
+		name = "Ion Cannon Target",
+		typ = -1,
+		img = "laser-warning",
+		apply = SERVER and function(ent, level, duration, attacker)
+			if not ent:InsaneStats_GetEntityData("ion_cannon_soundpatch") then
+				ent:InsaneStats_SetEntityData(
+					"ion_cannon_soundpatch",
+					CreateSound(ent, "insane_stats/icbm_antimatter_cut.wav")
+				)
+
+				--print("PLAY")
+				--debug.Trace()
+				ent:InsaneStats_GetEntityData("ion_cannon_soundpatch"):Play()
+			end
+		end,
+		expiry = SERVER and function(ent, level, attacker)
+			local soundPatch = ent:InsaneStats_GetEntityData("ion_cannon_soundpatch")
+			if soundPatch then
+				soundPatch:Stop()
+				--print("STOP")
+				ent:InsaneStats_SetEntityData("ion_cannon_soundpatch")
+			end
+
+			if ent.insaneStats_IsDead then
+				if IsValid(attacker) then
+					attacker:InsaneStats_SetSkillData("ion_cannon", 0, 0)
+				end
+			elseif IsValid(attacker) then
+				local damage = 40 * level
+				
+				local traceResult = {}
+				local trace = {
+					start = ent:WorldSpaceCenter(),
+					filter = {ent, ent.GetVehicle and ent:GetVehicle()},
+					mask = MASK_SHOT_HULL,
+					output = traceResult
+				}
+				
+				local toFlash = {}
+				local toHurt = {}
+				for k,v in pairs(ents.FindInPVS(ent)) do
+					if v ~= attacker and not attacker:InsaneStats_IsValidAlly(v) then
+						local damagePos = v:HeadTarget(ent:WorldSpaceCenter()) or v:WorldSpaceCenter()
+						damagePos = damagePos:IsZero() and v:WorldSpaceCenter() or damagePos
+						trace.endpos = damagePos
+						util.TraceLine(trace)
+						if not traceResult.Hit or traceResult.Entity == v then
+							table.insert(toHurt, {v, damagePos})
+						end
+					end
+
+					if v:IsPlayer() then
+						table.insert(toFlash, v)
+					end
+				end
+
+				ent:EmitSound("ambient/energy/whiteflash.wav", 100, 100, 1, CHAN_WEAPON)
+				for i,v in ipairs(toFlash) do
+					v:ScreenFade(SCREENFADE.IN, color_white, 1, 0)
+				end
+
+				timer.Simple(0, function()
+					if IsValid(attacker) then
+						local dmginfo = DamageInfo()
+						dmginfo:SetAttacker(attacker)
+						dmginfo:SetInflictor(attacker)
+						dmginfo:SetBaseDamage(damage)
+						dmginfo:SetDamage(damage)
+						dmginfo:SetMaxDamage(damage)
+						dmginfo:SetDamageForce(vector_origin)
+						dmginfo:SetDamageType(bit.bor(DMG_SONIC, DMG_ENERGYBEAM))
+						dmginfo:SetReportedPosition(attacker:WorldSpaceCenter())
+						
+						for i,v in ipairs(toHurt) do
+							dmginfo:SetDamagePosition(v[2])
+							v[1]:TakeDamageInfo(dmginfo)
+						end
+					end
+				end)
+			end
 		end
 	},
 }

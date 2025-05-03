@@ -475,6 +475,9 @@ local function SaveData()
 end
 
 local saveThinkCooldown = 0
+local lagBuildup = 0
+local nextPhysSleep = 0
+local lastCurTime, lastRealTime = CurTime(), RealTime()
 local buggys = ents.FindByClass("prop_vehicle_jeep*")
 hook.Add("Think", "InsaneStats", function()
 	if saveThinkCooldown < RealTime() then
@@ -543,6 +546,24 @@ hook.Add("Think", "InsaneStats", function()
 			end
 		else
 			crossbowBolts[k] = nil
+		end
+	end
+
+	local buildupCount = InsaneStats:GetConVarValue("sleepphys_lagamount")
+	if buildupCount > 0 then
+		if engine.AbsoluteFrameTime() >= 0.5 and nextPhysSleep < RealTime() then
+			lagBuildup = lagBuildup + 1
+			if lagBuildup >= buildupCount then
+				for i,v in ents.Iterator() do
+					local physObj = v:GetPhysicsObject()
+					if IsValid(physObj) then
+						physObj:Sleep()
+					end
+				end
+				nextPhysSleep = RealTime() + InsaneStats:GetConVarValue("sleepphys_cooldown")
+			end
+		else
+			lagBuildup = 0
 		end
 	end
 end)

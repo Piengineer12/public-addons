@@ -358,6 +358,9 @@ local function CalculateDamage(vic, attacker, dmginfo)
 	/ (1 + vic:InsaneStats_GetSkillStacks("synergy_4") / 100)
 	/ (1 + vic:InsaneStats_GetSkillStacks("synergy_3") / 100)
 	* (1 + attacker:InsaneStats_GetEffectiveSkillValues("hellish_challenge") / 100)
+	* (1 + attacker:InsaneStats_GetEffectiveSkillValues("degeneration", 2) / 100)
+	* (1 + vic:InsaneStats_GetEffectiveSkillValues("shoe_spikes") / 100)
+	* (1 + vic:InsaneStats_GetEffectiveSkillValues("skinny") / 100)
 
 	if attacker:InsaneStats_GetSkillStacks("rip_and_tear") > 0 then
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetEffectiveSkillValues("rip_and_tear") / 100)
@@ -401,12 +404,8 @@ local function CalculateDamage(vic, attacker, dmginfo)
 		totalMul = totalMul / (1 + addDamage * traceResult.Fraction * 655.36 / distanceFactor)
 	end
 	if dmginfo:IsExplosionDamage() then
-		if attacker == vic and vic:InsaneStats_EffectivelyHasSkill("blast_proof_suit") then
-			totalMul = 0
-		else
-			totalMul = totalMul * (1 + attacker:InsaneStats_GetEffectiveSkillValues("kablooey") / 100)
-			* (1 + vic:InsaneStats_GetEffectiveSkillValues("blast_proof_suit") / 100)
-		end
+		totalMul = totalMul * (1 + attacker:InsaneStats_GetEffectiveSkillValues("kablooey") / 100)
+		* (1 + vic:InsaneStats_GetEffectiveSkillValues("blast_proof_suit") / 100)
 
 	end
 	if dmginfo:IsDamageType(fireDamageTypes) then
@@ -448,6 +447,8 @@ local function CalculateDamage(vic, attacker, dmginfo)
 		totalMul = totalMul
 		* (1 + attacker:InsaneStats_GetEffectiveSkillValues("the_sniper") / 100)
 		* (1 + attacker:InsaneStats_GetStatusEffectLevel("crit_damage_up")/100)
+		/ (1 + vic:InsaneStats_GetStatusEffectLevel("crit_defence_up")/100)
+		* (1 + vic:InsaneStats_GetStatusEffectLevel("crit_defence_down")/100)
 		* (1 + vic:InsaneStats_GetEffectiveSkillValues("watch_your_head") / 100)
 	end
 	if isNotBulletDamage then
@@ -510,6 +511,20 @@ local function CalculateDamage(vic, attacker, dmginfo)
 	if victimHealthFraction > 0.8 then
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetSkillStacks("silver_bullets") / 100)
 	end
+	if attacker:InsaneStats_EffectivelyHasSkill("heads_will_roll") then
+		local damageMul, below = attacker:InsaneStats_GetEffectiveSkillValues("heads_will_roll")
+		below = below / 100
+		if victimHealthFraction <= below then
+			totalMul = totalMul * (1 + damageMul / 100)
+		end
+	end
+
+	local armorBatteryTier = InsaneStats:GetConVarValue("wpass2_enabled") and vic.insaneStats_Tier or 0
+	if armorBatteryTier > 0 then
+		totalMul = totalMul / (1 + vic:InsaneStats_GetEffectiveSkillValues("suit_up", 2) / 100)
+	else
+		totalMul = totalMul * (1 + vic:InsaneStats_GetEffectiveSkillValues("suit_up") / 100)
+	end
 
 	local acrCount = 0
 	if vic:InsaneStats_GetArmor() > 0 then
@@ -527,18 +542,20 @@ local function CalculateDamage(vic, attacker, dmginfo)
 	if armoredClasses[vic:GetClass()] then
 		acrCount = acrCount + 1
 	end
+	if acrCount > 0 then
+		totalMul = totalMul * (1 + attacker:InsaneStats_GetEffectiveSkillValues("anti_coward_rounds") / 100) ^ acrCount
 
-	local armorBatteryTier = InsaneStats:GetConVarValue("wpass2_enabled") and vic.insaneStats_Tier or 0
-	if armorBatteryTier > 0 then
-		totalMul = totalMul / (1 + vic:InsaneStats_GetEffectiveSkillValues("suit_up", 2) / 100)
-	else
-		totalMul = totalMul * (1 + vic:InsaneStats_GetEffectiveSkillValues("suit_up") / 100)
+		local victimArmorFraction = vic:InsaneStats_GetMaxArmor() > 0
+		and vic:InsaneStats_GetArmor() / vic:InsaneStats_GetMaxArmor()
+		or 1
+		victimArmorFraction = math.max(victimArmorFraction, 0)
+		totalMul = totalMul * (1 + vic:InsaneStats_GetStatusEffectLevel("inverted_shield") / 100 * victimArmorFraction)
 	end
 
-	totalMul = totalMul * (1 + attacker:InsaneStats_GetEffectiveSkillValues("anti_coward_rounds") / 100) ^ acrCount
-
 	knockbackMul = knockbackMul / (1 + vic:InsaneStats_GetStatusEffectLevel("knockback_resistance_up") / 100)
+	* (1 + vic:InsaneStats_GetStatusEffectLevel("knockback_resistance_down") / 100)
 	* (1 + attacker:InsaneStats_GetStatusEffectLevel("knockback_up") / 100)
+	* (1 - attacker:InsaneStats_GetStatusEffectLevel("knockback_down") / 100)
 	
 	dmginfo:ScaleDamage(totalMul)
 	
@@ -551,6 +568,7 @@ local function CalculateDamage(vic, attacker, dmginfo)
 	dmginfo:SetDamageForce(dmginfo:GetDamageForce() * knockbackMul)
 end
 
+local explosionQueued = false
 local function CauseExplosion(data)
 	local damageTier = data.damageTier
 	local attacker = data.attacker
@@ -573,14 +591,18 @@ local function CauseExplosion(data)
 		dmginfo:SetReportedPosition(attacker:WorldSpaceCenter())
 		util.BlastDamageInfo(dmginfo, damagePos, radius or 128)
 		
-		timer.Simple(0, function()
-			local effdata = EffectData()
-			effdata:SetOrigin(damagePos)
-			effdata:SetMagnitude(1)
-			effdata:SetScale(1)
-			effdata:SetFlags(0)
-			util.Effect("Explosion", effdata)
-		end)
+		if not explosionQueued then
+			timer.Simple(0, function()
+				explosionQueued = false
+				local effdata = EffectData()
+				effdata:SetOrigin(damagePos)
+				effdata:SetMagnitude(1)
+				effdata:SetScale(1)
+				effdata:SetFlags(0)
+				util.Effect("Explosion", effdata)
+			end)
+		end
+		explosionQueued = true
 		
 		table.remove(damageTiers)
 		isSkillExplosion = false
@@ -772,17 +794,38 @@ hook.Add("EntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo)
 			end
 		end
 			
-		if dmginfo:GetDamage() > 0 and damageTier == 0 then
-			local stacks = dmginfo:GetDamage() + vic:InsaneStats_GetStatusEffectLevel("xp_yield_up")
+		if dmginfo:GetDamage() > 0 and damageTier <= 0.5 then
+			local stacks = dmginfo:GetDamage() + vic:InsaneStats_GetStatusEffectLevel("stack_xp_yield_up")
 			stacks = math.Clamp(stacks, 0, maxXPYieldStacks)
 
 			if math.random() < attacker:InsaneStats_GetAttributeValue("victim_xpyield") - 1 then
-				vic:InsaneStats_ApplyStatusEffect("xp_yield_up", stacks, 10)
+				vic:InsaneStats_ApplyStatusEffect("stack_xp_yield_up", stacks, 10)
 			end
 			
 			local chance = attacker:InsaneStats_GetEffectiveSkillValues("seasoning")
 			if math.random() < chance / 100 then
-				vic:InsaneStats_ApplyStatusEffect("xp_yield_up", stacks, 10)
+				vic:InsaneStats_ApplyStatusEffect("stack_xp_yield_up", stacks, 10)
+			end
+		end
+
+		local cannonLevel = vic:InsaneStats_GetStatusEffectLevel("ion_cannon_target")
+		if vic:InsaneStats_IsMob() and not vic.insaneStats_IsDead and vic:InsaneStats_IsBig()
+		and attacker:InsaneStats_EffectivelyHasSkill("ion_cannon")
+		and attacker:InsaneStats_IsValidEnemy(vic)
+		and (attacker:InsaneStats_GetSkillState("ion_cannon") == 0 or cannonLevel > 0) then
+			local maxHits, _, cooldown = attacker:InsaneStats_GetEffectiveSkillValues("ion_cannon")
+			if cannonLevel > 0 then
+				local maxCannonLevel = 2 ^ maxHits
+				if cannonLevel < maxCannonLevel then
+					vic:InsaneStats_ApplyStatusEffect(
+						"ion_cannon_target", cannonLevel,
+						vic:InsaneStats_GetStatusEffectDuration("ion_cannon_target"),
+						{amplify = true, attacker = attacker}
+					)
+				end
+			else
+				vic:InsaneStats_ApplyStatusEffect("ion_cannon_target", 1, 6, {attacker = attacker})
+				attacker:InsaneStats_SetSkillData("ion_cannon", 1, cooldown)
 			end
 		end
 
@@ -859,10 +902,12 @@ hook.Add("EntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo)
 			return true
 		end
 
-		if vic:InsaneStats_GetEffectiveSkillTier("rock_solid") > 0 then
-			if (vic:IsPlayer() and vic:InVehicle()) or dmginfo:IsDamageType(fireDamageTypes)
-			or vic:InsaneStats_GetEffectiveSkillTier("rock_solid") > 1
-			and dmginfo:IsDamageType(bit.bor(poisonDamageTypes, DMG_SHOCK)) then
+		if vic:InsaneStats_EffectivelyHasSkill("rock_solid") then
+			local negatedDamageTypes = bit.bor(fireDamageTypes, blastDamageTypes)
+			if vic:InsaneStats_GetEffectiveSkillTier("rock_solid") > 1 then
+				negatedDamageTypes = bit.bor(negatedDamageTypes, poisonDamageTypes, DMG_SHOCK, freezeDamageTypes)
+			end
+			if (vic:IsPlayer() and vic:InVehicle()) or dmginfo:IsDamageType(negatedDamageTypes) then
 				vic:InsaneStats_DamageNumber(attacker, "immune")
 				return true
 			end
@@ -875,6 +920,8 @@ hook.Add("EntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo)
 			vic:InsaneStats_DamageNumber(attacker, "immune")
 			return true
 		end
+
+		if vic.insaneStats_TempKillSkillTriggerer then return true end
 		
 		if IsValid(attacker) or attacker == game.GetWorld() and not vic:IsVehicle() then
 			if attacker:GetClass() == "entityflame"
@@ -886,7 +933,10 @@ hook.Add("EntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo)
 
 			local victimClass = vic:GetClass()
 			local isDropshipContainer = victimClass == "prop_dropship_container"
-			if isDropshipContainer and InsaneStats:GetConVarValue("wpass2_dropship_invincible") then
+			local isBurrowed = vic:GetInternalVariable("startburrowed")
+			if isDropshipContainer and InsaneStats:GetConVarValue("wpass2_dropship_invincible")
+			or isBurrowed and InsaneStats:GetConVarValue("wpass2_burrowed_invincible")
+			or victimClass == "env_fire" then
 				--[[local wep = attacker.GetActiveWeapon and attacker:GetActiveWeapon()
 				if not (IsValid(wep) and wep:GetClass() == "weapon_rpg") then]]
 					vic:InsaneStats_DamageNumber(attacker, "immune")
@@ -966,11 +1016,12 @@ local possibleItems = {
 	weapon_stunstick = true
 }
 local pendingItemSpawns = {}
-local function SpawnRandomItems(items, pos, activator)
+local function SpawnRandomItems(items, pos, activator, triggers)
+	triggers = triggers or 1
 	if activator:InsaneStats_EffectivelyHasSkill("too_many_items") and next(pendingItemSpawns) then
 		activator:InsaneStats_SetSkillData(
 			"too_many_items", 0, activator:InsaneStats_GetSkillStacks("too_many_items")
-			+ activator:InsaneStats_GetEffectiveSkillValues("too_many_items", 2) * items
+			+ activator:InsaneStats_GetEffectiveSkillValues("too_many_items", 2) * items * triggers
 		)
 	else
 		local closestSqrDist = math.huge
@@ -984,24 +1035,32 @@ local function SpawnRandomItems(items, pos, activator)
 			end
 		end
 
-		if closestPlayer:InsaneStats_EffectivelyHasSkill("too_many_items") and next(pendingItemSpawns) then
-			closestPlayer:InsaneStats_SetSkillData(
-				"too_many_items", 0, closestPlayer:InsaneStats_GetSkillStacks("too_many_items")
-				+ closestPlayer:InsaneStats_GetEffectiveSkillValues("too_many_items", 2) * items
-			)
-		elseif math.random() < items then
-			local itemSpawnPlaces = {pos}
-			if IsValid(closestPlayer) then
-				if closestPlayer:InsaneStats_GetEffectiveSkillValues("item_magnet")^2 >= closestSqrDist then
-					table.insert(itemSpawnPlaces, closestPlayer)
-			
-					if InsaneStats:IsDebugLevel(4) then
-						InsaneStats:Log("Item spawn position set to %s", tostring(closestPlayer))
+		if IsValid(closestPlayer) then
+			for i=1, triggers do
+				if closestPlayer:InsaneStats_EffectivelyHasSkill("too_many_items") and next(pendingItemSpawns)
+				or closestPlayer:InsaneStats_GetHealth() == math.huge
+				or closestPlayer:InsaneStats_GetArmor() == math.huge then
+					closestPlayer:InsaneStats_SetSkillData(
+						"too_many_items", 0, closestPlayer:InsaneStats_GetSkillStacks("too_many_items")
+						+ closestPlayer:InsaneStats_GetEffectiveSkillValues("too_many_items", 2)
+						* items * (triggers - i + 1)
+					)
+					break
+				elseif math.random() < items then
+					local itemSpawnPlaces = {pos}
+					if IsValid(closestPlayer) then
+						if closestPlayer:InsaneStats_GetEffectiveSkillValues("item_magnet")^2 >= closestSqrDist then
+							table.insert(itemSpawnPlaces, closestPlayer)
+					
+							if InsaneStats:IsDebugLevel(4) then
+								InsaneStats:Log("Item spawn position set to %s", tostring(closestPlayer))
+							end
+						end
 					end
+
+					table.insert(pendingItemSpawns, itemSpawnPlaces)
 				end
 			end
-
-			table.insert(pendingItemSpawns, itemSpawnPlaces)
 		end
 	end
 end
@@ -1013,6 +1072,40 @@ local rechargerClasses = {
 	item_healthcharger = true,
 	func_recharge = true,
 	item_suitcharger = true
+}
+local infestationEffects = {
+	damage_down = 5,
+	firerate_down = 5,
+	accuracy_down = 20,
+	knockback_down = 20,
+
+	defence_down = 5,
+	crit_defence_down = 10,
+	knockback_resistance_down = 20,
+	inverted_shield = 20,
+
+	xp_down = 5,
+	xp_yield_up = 5,
+}
+local killingSpreeEffects = {
+	damage_up = 25,
+	crit_damage_up = 50,
+	firerate_up = 25,
+	accuracy_up = 100,
+	ammo_efficiency_up = 50,
+	ammo_stealer = 50,
+	knockback_up = 100,
+
+	defence_up = 25,
+	crit_defence_up = 50,
+	regen = 1,
+	armor_regen = 1,
+	absorption = 1,
+	pheonix = 1,
+	knockback_resistance_up = 100,
+
+	xp_up = 25,
+	crit_xp_up = 25
 }
 hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, notImmune)
 	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
@@ -1399,7 +1492,7 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 			if attacker ~= vic and not IsValid(vic:GetParent()) then
 				if (vic:InsaneStats_GetStatusEffectLevel("skill_bleed") <= 0 or damageTier < 0.5)
 				and attacker:InsaneStats_EffectivelyHasSkill("the_red_plague")
-				and IsValid(vic:GetPhysicsObject()) then
+				and IsValid(vic:GetPhysicsObject()) and vicIsMob then
 					vic:InsaneStats_ApplyStatusEffect(
 						"skill_bleed",
 						1,
@@ -1511,13 +1604,67 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo, not
 				and vic:InsaneStats_GetStatusEffectLevel("anger_resist") <= 0
 				and attacker:InsaneStats_EffectivelyHasSkill("anger") then
 					vic:InsaneStats_ApplyStatusEffect(
-						"anger_resist", 1, not vic.insaneStats_IsDead and 1 or math.huge
+						"anger_resist", 1, not vic.insaneStats_IsDead and 5 or math.huge
 					)
 					--[[local grenadePos = dmginfo:GetDamagePosition()
 					grenadePos = grenadePos:IsZero() and vic:WorldSpaceCenter() or grenadePos]]
 					grenadedEntities[attacker] = grenadedEntities[attacker] or {}
 					table.insert(grenadedEntities[attacker], vic:WorldSpaceCenter())
 					--grenadedEntities[attacker].z = grenadedEntities[attacker].z + vic:OBBMaxs().z
+				end
+					
+				if damageTier < 5 and attacker:InsaneStats_EffectivelyHasSkill("doom") then
+					local damage = dmginfo:GetDamage()
+					local damageMul = attacker:InsaneStats_GetEffectiveSkillValues("doom") / 100
+					vic:InsaneStats_ApplyStatusEffect(
+						"doom", damage * damageMul, 1, {amplify = true, attacker = attacker}
+					)
+				end
+
+				if vicIsMob and vic:InsaneStats_GetStatusEffectLevel("stun_immune") <= 0
+				and not vic.insaneStats_IsDead
+				and vic:InsaneStats_GetStatusEffectLevel("stunned") <= 0
+				and attacker:InsaneStats_GetSkillState("beep3") == 1 then
+					vic:InsaneStats_ApplyStatusEffect("stunned", 1, 2)
+					attacker:InsaneStats_SetSkillData("beep3", 0, 0)
+				end
+
+				if attacker:InsaneStats_EffectivelyHasSkill("infestation") then
+					local effectLevel = attacker:InsaneStats_GetEffectiveSkillValues("infestation", 3)
+					local possibleEffects = {}
+					for k,v in pairs(infestationEffects) do
+						if vic:InsaneStats_GetStatusEffectDuration(k) < 10
+						or vic:InsaneStats_GetStatusEffectLevel(k) < v * effectLevel then
+							table.insert(possibleEffects, k)
+						end
+					end
+
+					if next(possibleEffects) then
+						local effect = table.remove(possibleEffects, math.random(#possibleEffects))
+						vic:InsaneStats_ApplyStatusEffect(
+							effect, infestationEffects[effect] * effectLevel, 10,
+							{attacker = attacker}
+						)
+					end
+				end
+			end
+
+			if vic:InsaneStats_EffectivelyHasSkill("infestation") then
+				local effectLevel = vic:InsaneStats_GetEffectiveSkillValues("infestation", 3)
+				local possibleEffects = {}
+				for k,v in pairs(infestationEffects) do
+					if vic:InsaneStats_GetStatusEffectDuration(k) < 10
+					or vic:InsaneStats_GetStatusEffectLevel(k) < v * effectLevel then
+						table.insert(possibleEffects, k)
+					end
+				end
+
+				if next(possibleEffects) then
+					local effect = table.remove(possibleEffects, math.random(#possibleEffects))
+					vic:InsaneStats_ApplyStatusEffect(
+						effect, infestationEffects[effect] * effectLevel, 10,
+						{attacker = attacker}
+					)
 				end
 			end
 
@@ -1698,11 +1845,13 @@ hook.Add("EntityFireBullets", "InsaneStatsWPASS2", function(attacker, data)
 end)
 
 local function CalculateXPFromSkills(attacker, victim)
-	local healthFactor = attacker:InsaneStats_GetMaxHealth() > 0
-	and 1 - math.Clamp(attacker:InsaneStats_GetHealth() / attacker:InsaneStats_GetMaxHealth(), 0, 1)
+	local health = attacker:InsaneStats_GetHealth()
+	local maxHealth = attacker:InsaneStats_GetMaxHealth()
+	local healthFactor = health == math.huge and 1 or maxHealth > 0
+	and 1 - math.Clamp(health / maxHealth, 0, 1)
 	or 0
-	local armorInverseFactor = attacker:InsaneStats_GetMaxArmor() > 0
-		and attacker:InsaneStats_GetArmor() / attacker:InsaneStats_GetMaxArmor() or 0
+	local armor = attacker:InsaneStats_GetArmor()
+	local maxArmor = attacker:InsaneStats_GetMaxArmor()
 	local attackerSpeedFraction = attacker:InsaneStats_GetEffectiveSpeed() / 400
 	local attackerSuperColdValue = attacker:InsaneStats_GetEffectiveSkillValues("super_cold", 2) or 0
 
@@ -1714,7 +1863,6 @@ local function CalculateXPFromSkills(attacker, victim)
 	* (1 + attacker:InsaneStats_GetEffectiveSkillValues("jazz_feet") / 100 * attackerSpeedFraction)
 	* (1 + attackerSuperColdValue / 100 * attacker:InsaneStats_GetSkillStacks("super_cold"))
 	* (1 + attacker:InsaneStats_GetSkillStacks("keep_it_fresh")/100)
-	* (1 + attacker:InsaneStats_GetEffectiveSkillValues("feel_the_energy")/100 * armorInverseFactor)
 	* (1 + attacker:InsaneStats_GetSkillStacks("reject_humanity") / 100)
 	* (1 + attacker:InsaneStats_GetStatusEffectLevel("sick_combo") / 100)
 	* (1 + attacker:InsaneStats_GetEffectiveSkillValues("glass", 3) / 100)
@@ -1724,6 +1872,20 @@ local function CalculateXPFromSkills(attacker, victim)
 	* (1 + attacker:InsaneStats_GetSkillStacks("better_healthcare", 3) / 100)
 	* (1 + attacker:InsaneStats_GetEffectiveSkillValues("hellish_challenge") / 100)
 	* (1 + attacker:InsaneStats_GetSkillStacks("starlight") / 100)
+	* (1 + attacker:InsaneStats_GetEffectiveSkillValues("degeneration", 2) / 100)
+	* (1 + attacker:InsaneStats_GetEffectiveSkillValues("bookworm", 2) / 100)
+
+	if attacker:InsaneStats_EffectivelyHasSkill("um_what") then
+		newXP = newXP * (1 + attacker:InsaneStats_GetEffectiveSkillValues("um_what") / 100)
+	end
+
+	if attacker:InsaneStats_EffectivelyHasSkill("feel_the_energy") then
+		local armorInverseFactor = armor == math.huge and math.huge or maxArmor > 0
+			and attacker:InsaneStats_GetArmor() / maxArmor or 0
+		newXP = newXP * (1 + attacker:InsaneStats_GetEffectiveSkillValues("feel_the_energy")/100 * armorInverseFactor)
+	end
+
+	if newXP == math.huge then return newXP end
 
 	local masterfulXPFactor = attacker:InsaneStats_GetSkillStacks("multi_killer")
 	masterfulXPFactor = math.max(0, masterfulXPFactor - attacker:InsaneStats_GetEffectiveSkillValues("multi_killer"))
@@ -1773,7 +1935,7 @@ local function CalculateXPFromSkills(attacker, victim)
 	end
 
 	local victimXP = victim:InsaneStats_GetXP()
-	if victim:InsaneStats_IsBig() and victimXP > 1 then
+	if victim:InsaneStats_IsBig() and victimXP > 1 and victim:InsaneStats_IsMob() then
 		newXP = newXP * victimXP ^ attacker:InsaneStats_GetEffectiveSkillValues("the_bigger_they_are", 2)
 	end
 
@@ -1785,6 +1947,20 @@ local function CalculateXPFromSkills(attacker, victim)
 		newXP = newXP * (1 + (basePercent + add * spentUberSkillPoints) * spentSkillPoints / 100)
 	end
 
+	if attacker:InsaneStats_EffectivelyHasSkill("skystriker") then
+		local gravityDir = physenv.GetGravity():GetNormalized()
+		gravityDir:Mul(65536)
+		local traceResult = util.TraceEntity({
+			start = attacker:GetPos(),
+			endpos = attacker:GetPos() + gravityDir,
+			filter = attacker,
+			mask = MASK_PLAYERSOLID
+		}, attacker)
+
+		local mult, distanceFactor = attacker:InsaneStats_GetEffectiveSkillValues("skystriker")
+		newXP = newXP * (1 + mult * traceResult.Fraction * 655.36 / distanceFactor)
+	end
+
 	return newXP
 end
 
@@ -1794,17 +1970,24 @@ local function CalculateXP(data)
 	
 	local newXP = attacker:InsaneStats_GetAttributeValue("xp")
 	* (1 + attacker:InsaneStats_GetStatusEffectLevel("xp_up") / 100)
+	* (1 - attacker:InsaneStats_GetStatusEffectLevel("xp_down") / 100)
 	* (1 + attacker:InsaneStats_GetStatusEffectLevel("stack_xp_up") / 100)
 	* (1 + victim:InsaneStats_GetStatusEffectLevel("xp_yield_up") / 100)
 	* (1 + victim:InsaneStats_GetStatusEffectLevel("stack_xp_yield_up") / 100)
 
-	local attackerHealthFraction = attacker:InsaneStats_GetMaxHealth() > 0
-		and 1-math.Clamp(attacker:InsaneStats_GetHealth() / attacker:InsaneStats_GetMaxHealth(), 0, 1) or 0
+	local health = attacker:InsaneStats_GetHealth()
+	local maxHealth = attacker:InsaneStats_GetMaxHealth()
+	local attackerHealthFraction = health == math.huge and 1 or maxHealth > 0
+		and 1-math.Clamp(health / maxHealth, 0, 1) or 0
 	newXP = newXP * (1 + (attacker:InsaneStats_GetAttributeValue("lowhealth_xp") - 1) * attackerHealthFraction)
-
-	local attackerArmorInverseFraction = attacker:InsaneStats_GetMaxArmor() > 0
-		and attacker:InsaneStats_GetArmor() / attacker:InsaneStats_GetMaxArmor() or 0
-	newXP = newXP * (1 + (attacker:InsaneStats_GetAttributeValue("armor_xp") - 1) * attackerArmorInverseFraction)
+	
+	if attacker:InsaneStats_GetAttributeValue("armor_xp") ~= 1 then
+		local armor = attacker:InsaneStats_GetArmor()
+		local maxArmor = attacker:InsaneStats_GetMaxArmor()
+		local attackerArmorInverseFraction = armor == math.huge and math.huge or maxArmor > 0
+			and armor / maxArmor or 0
+		newXP = newXP * (1 + (attacker:InsaneStats_GetAttributeValue("armor_xp") - 1) * attackerArmorInverseFraction)
+	end
 
 	local attackerSpeedFraction = attacker:InsaneStats_GetEffectiveSpeed() / 400
 	newXP = newXP * (1 + (attacker:InsaneStats_GetAttributeValue("speed_xp") - 1) * attackerSpeedFraction)
@@ -1812,6 +1995,7 @@ local function CalculateXP(data)
 	if victim.insaneStats_LastHitGroup == HITGROUP_HEAD then
 		newXP = newXP * attacker:InsaneStats_GetAttributeValue("crit_xp")
 	end
+
 
 	local masterfulXPFactor = attacker:InsaneStats_GetStatusEffectDuration("masterful_xp")
 	masterfulXPFactor = math.sqrt(math.max(0, masterfulXPFactor - 1))
@@ -1829,7 +2013,8 @@ local function CalculateXP(data)
 		newXP = newXP * (1 + (attacker:InsaneStats_GetAttributeValue("clip_xp") - 1) * clip1Fraction)
 	end
 
-	return newXP * CalculateXPFromSkills(attacker, victim)
+	newXP = newXP * CalculateXPFromSkills(attacker, victim)
+	return newXP
 end
 
 hook.Add("InsaneStatsScaleXP", "InsaneStatsWPASS2", function(data)
@@ -1856,7 +2041,8 @@ hook.Add("InsaneStatsScaleXP", "InsaneStatsWPASS2", function(data)
 				end
 			end
 
-			newXP = newXP * CalculateXP(data)
+			local mult = CalculateXP(data)
+			newXP = mult < math.huge and newXP * mult or mult
 		end
 		data.xp = newXP
 
@@ -1886,27 +2072,6 @@ hook.Add("InsaneStatsScaleCoins", "InsaneStatsWPASS2", function(data)
 	end
 end)
 
-local killingSpreeEffects = {
-	damage_up = 25,
-	crit_damage_up = 50,
-	firerate_up = 25,
-	accuracy_up = 100,
-	ammo_efficiency_up = 50,
-	ammo_stealer = 50,
-	knockback_up = 100,
-
-	defence_up = 25,
-	regen = 1,
-	armor_regen = 1,
-	absorption = 1,
-	pheonix = 1,
-	undying = 0.5,
-	knockback_resistance_up = 100,
-
-	xp_up = 25,
-	crit_xp_up = 25
-}
-
 local pyrotheumRadiusMul = 90
 --local pyrotheumMaxDuration = 60
 local pyrotheumModel = Model("models/hunter/misc/sphere375x375.mdl")
@@ -1915,7 +2080,7 @@ local traceResult = {}
 local function GetPyrotheumRadius(level)
 	return pyrotheumRadiusMul * level
 end
-local function CreatePyrotheumPool(victim, attacker, range, duration, triggers)
+local function CreatePyrotheumPool(victim, attacker, range, limit, duration, triggers)
 	local poolPos = victim:WorldSpaceCenter()
 	local createNew = true
 	local trace = {
@@ -1973,10 +2138,12 @@ local function CreatePyrotheumPool(victim, attacker, range, duration, triggers)
 		end
 	end
 
-	if #ourNodes > 64 and createNew then
-		local limit = #ourNodes - 64
+	local excess = #ourNodes - limit + 1
+	if excess > 0 and createNew then
 		table.sort(ourNodes, function(a, b)
-			return a:WorldSpaceCenter():DistToSqr(poolPos) > b:WorldSpaceCenter():DistToSqr(poolPos)
+			local a2 = a:InsaneStats_GetEntityData("pyrotheum_lastapplied") or CurTime()
+			local b2 = b:InsaneStats_GetEntityData("pyrotheum_lastapplied") or CurTime()
+			return a2 < b2
 		end)
 		for i,v in ipairs(ourNodes) do
 			local theirLevel = pools[v] and pools[v].level or v:InsaneStats_GetStatusEffectLevel("pyrotheum")
@@ -1984,7 +2151,7 @@ local function CreatePyrotheumPool(victim, attacker, range, duration, triggers)
 			level = math.max(level, theirLevel)
 			duration = duration + theirDuration
 			v:InsaneStats_ClearStatusEffect("pyrotheum")
-			if i >= limit then break end
+			if i >= excess then break end
 		end
 	end
 
@@ -2058,10 +2225,22 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsSkills", function(victim, at
 				attacker:InsaneStats_SetSkillData("master_of_air", -1, 0)
 			end
 
+			--[[if attacker:InsaneStats_EffectivelyHasSkill("more_and_more") and attacker:InsaneStats_GetArmor() > 0 then
+				local armorBars = attacker:InsaneStats_GetMaxArmor() > 0
+				and attacker:InsaneStats_GetArmor() / attacker:InsaneStats_GetMaxArmor()
+				or 1
+				local triggerMul = math.floor(math.max(2 + math.log(
+					armorBars,
+					attacker:InsaneStats_GetEffectiveSkillValues("more_and_more")
+				), 1))
+				triggers = triggers * triggerMul
+			end]]
+
 			if attacker:InsaneStats_EffectivelyHasSkill("sick_combo") then
 				local sickComboTriggersToParse = triggers
 				local comboIncrement, base = attacker:InsaneStats_GetEffectiveSkillValues("sick_combo")
 				local combo = attacker:InsaneStats_GetStatusEffectLevel("sick_combo")
+				local duration = attacker:InsaneStats_GetStatusEffectDuration("sick_combo")
 
 				-- perform this discretely, go from 0 -> 5, then 5 -> 25, and so on
 				for i=1, 256 do
@@ -2073,14 +2252,12 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsSkills", function(victim, at
 					))
 
 					triggers = triggers + toParse * currentIncrement
+					duration = duration + toParse * (currentIncrement + 1) * 2 ^ -currentIncrement
 					sickComboTriggersToParse = sickComboTriggersToParse - toParse
 					combo = combo + toParse * (currentIncrement + 1) * comboIncrement
 				end
 
-				local duration = math.min(
-					attacker:InsaneStats_GetStatusEffectDuration("sick_combo") + 3 * triggers,
-					60
-				)
+				duration = math.min(duration, 60)
 				attacker:InsaneStats_ApplyStatusEffect("sick_combo", combo, duration)
 			end
 
@@ -2102,7 +2279,9 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsSkills", function(victim, at
 						maxHealth = currentMaxArmor - minimumArmor
 					end
 					attacker:InsaneStats_AddMaxHealth(maxHealth)
-					attacker:SetMaxArmor(attacker:InsaneStats_GetMaxArmor() - maxHealth)
+					if attacker:InsaneStats_GetMaxArmor() < math.huge then
+						attacker:SetMaxArmor(attacker:InsaneStats_GetMaxArmor() - maxHealth)
+					end
 					attacker:InsaneStats_AddHealthNerfed(maxHealth * skillValues[3])
 				end
 			end
@@ -2279,10 +2458,8 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsSkills", function(victim, at
 			end
 
 			local chance = attacker:InsaneStats_GetEffectiveSkillValues("looting") / 100
-			for i=1, triggers do
-				SpawnRandomItems(chance, victim:GetPos(), attacker)
-			end
-
+			SpawnRandomItems(chance, victim:GetPos(), attacker, triggers)
+			
 			if victim:InsaneStats_IsBig() and victim:InsaneStats_IsMob()
 			and attacker:InsaneStats_EffectivelyHasSkill("the_bigger_they_are") then
 				-- merge with crates that are in a 64^3 area centered on the item crate
@@ -2320,10 +2497,61 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsSkills", function(victim, at
 			end
 
 			if attacker:InsaneStats_EffectivelyHasSkill("pyrotheum") then
-				local range, duration = attacker:InsaneStats_GetEffectiveSkillValues("pyrotheum")
-				CreatePyrotheumPool(victim, attacker, range, duration, triggers)
+				local range, limit, duration = attacker:InsaneStats_GetEffectiveSkillValues("pyrotheum")
+				CreatePyrotheumPool(victim, attacker, range, limit, duration, triggers)
+			end
+
+			if attacker:InsaneStats_EffectivelyHasSkill("lets_do_that_again") and victim:InsaneStats_IsMob()
+			and victim:InsaneStats_GetStatusEffectLevel("no_skill_forced_respawning") <= 0 then
+				local xpBonus = attacker:InsaneStats_GetEffectiveSkillValues("lets_do_that_again")
+				local class = victim:GetClass()
+				local pos = victim:GetPos()
+				local angles = victim:GetAngles()
+				local wepClass = victim:GetActiveWeapon()
+				wepClass = IsValid(wepClass) and wepClass:GetClass()
+				local mins, maxs = victim:GetCollisionBounds()
+				local trace = {
+					start = pos, endpos = pos,
+					mins = mins, maxs = maxs,
+					output = traceResult
+				}
+
+				if victim:IsNPC() or victim:IsNextBot() then
+					local isNPC = victim:IsNPC()
+					timer.Simple(5, function()
+						trace.mask = MASK_NPCSOLID
+						util.TraceHull(trace)
+						if not traceResult.Hit then
+							local newEnt = ents.Create(class)
+							newEnt:SetPos(pos)
+							newEnt:SetAngles(angles)
+							--newEnt:SetKeyValue("spawnflags", "512")
+							if wepClass then
+								newEnt:SetKeyValue("additionalequipment", wepClass)
+							end
+							newEnt:Spawn()
+							newEnt:Activate()
+							newEnt.insaneStats_TempLDTA = xpBonus
+							if isNPC then newEnt:AddRelationship("player D_HT 99") end
+
+							--[[local effData = EffectData()
+							effData:SetEntity(newEnt)
+							util.Effect("propspawn", effData)]]
+						end
+					end)
+				end
 			end
 		end
+	end
+
+	if victim:InsaneStats_GetStatusEffectLevel("ion_cannon_target") > 0 then
+		local applier = victim:InsaneStats_GetStatusEffectAttacker("ion_cannon_target")
+		if IsValid(applier) then
+			applier:InsaneStats_SetSkillData("ion_cannon", 0, 0)
+		end
+		-- FIXME: directly changing a field is bad
+		victim.insaneStats_StatusEffects.ion_cannon_target.attacker = nil
+		victim:InsaneStats_ClearStatusEffect("ion_cannon_target")
 	end
 
 	if attacker.insaneStats_MarkedEntity == victim then
@@ -2371,6 +2599,7 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsSkills", function(victim, at
 							net.WriteDouble(ent:InsaneStats_GetMaxHealth())
 							net.WriteDouble(ent:InsaneStats_GetArmor())
 							net.WriteDouble(ent:InsaneStats_GetMaxArmor())
+							net.WriteBool(select(3, ColorToHSL(ent:GetColor())) < 0.05)
 							net.Send(attacker)
 						elseif (attacker:IsNPC() and attacker:Disposition(ent) == D_HT
 						and attacker.HasEnemyEluded and attacker:HasEnemyEluded(ent)) then
@@ -2393,7 +2622,10 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsSkills", function(victim, at
 	end
 end)
 
-InsaneStats.CreatePyrotheumPool = CreatePyrotheumPool
+function InsaneStats:TestPyrotheumPool(ply, range, duration)
+	ply:InsaneStats_SetEntityData("pyrotheum_debug", true)
+	return CreatePyrotheumPool(ply, ply, range, duration, 1)
+end
 
 hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsWPASS2", function(victim, attacker, inflictor)
 	if InsaneStats:GetConVarValue("wpass2_enabled") and IsValid(attacker) then
@@ -2814,23 +3046,28 @@ hook.Add("InsaneStatsPlayerPickedUpItem", "InsaneStatsWPASS2", function(ply, ite
 			end
 		end
 
-		if tmiTriggerer and ply:IsPlayer() then
-			if not ply:HasWeapon("weapon_frag") then
-				ply:Give("weapon_frag")
-			end
-			for i,v in ipairs(game.GetAmmoTypes()) do
-				local maxcarry = game.GetAmmoData(i).maxcarry
-				local maximum = tonumber(maxcarry)
-				if not maximum then
-					local conVar = GetConVar(maxcarry)
-					if conVar then
-						maximum = conVar:GetFloat()
+		if tmiTriggerer then
+			if ply:IsPlayer() then
+				if not ply:HasWeapon("weapon_frag") then
+					ply:Give("weapon_frag")
+				end
+				for i,v in ipairs(game.GetAmmoTypes()) do
+					local maxcarry = game.GetAmmoData(i).maxcarry
+					local maximum = tonumber(maxcarry)
+					if not maximum then
+						local conVar = GetConVar(maxcarry)
+						if conVar then
+							maximum = conVar:GetFloat()
+						end
+					end
+					if (maximum and maximum > 0) then
+						ply:GiveAmmo(maximum * count, i)
 					end
 				end
-				if (maximum and maximum > 0) then
-					ply:GiveAmmo(maximum * count, i)
-				end
 			end
+
+			ply:InsaneStats_AddHealthNerfed(ply:InsaneStats_GetMaxHealth() * count)
+			ply:InsaneStats_AddArmorNerfed(ply:InsaneStats_GetMaxArmor() * count)
 		end
 	end
 end)
@@ -2986,10 +3223,13 @@ hook.Add("InsaneStatsWPASSDoT", "InsaneStatsWPASS2", function(ent, effect)
 	elseif effect == "pyrotheum" then
 		local attacker = ent:InsaneStats_GetStatusEffectAttacker("pyrotheum")
 
-		if (IsValid(attacker) and attacker:InsaneStats_EffectivelyHasSkill("pyrotheum")) then
+		if (IsValid(attacker) and (
+			attacker:InsaneStats_EffectivelyHasSkill("pyrotheum")
+			or attacker:InsaneStats_GetEntityData("pyrotheum_debug")
+		)) then
 			local level = ent:InsaneStats_GetStatusEffectLevel("pyrotheum")
 			local duration = ent:InsaneStats_GetStatusEffectDuration("pyrotheum")
-			local damage = duration * level
+			local damage = duration * 2
 			local radius = GetPyrotheumRadius(level)
 			local trace = {
 				start = ent:WorldSpaceCenter(),
@@ -2999,8 +3239,8 @@ hook.Add("InsaneStatsWPASSDoT", "InsaneStatsWPASS2", function(ent, effect)
 
 			for i,v in ipairs(ents.FindInSphere(trace.start, radius)) do
 				if v:InsaneStats_GetHealth() > 0 and IsValid(v:GetPhysicsObject())
-				or v:InsaneStats_IsMob() and not v.insaneStats_IsDead then
-					trace.mask = MASK_SHOT
+				and attacker:InsaneStats_GetSkillState("pyrotheum") >= 0 then
+					trace.mask = MASK_SHOT_HULL
 					local damagePos = v:HeadTarget(trace.start) or v:WorldSpaceCenter()
 					damagePos = damagePos:IsZero() and v:WorldSpaceCenter() or damagePos
 					trace.endpos = damagePos
@@ -3100,6 +3340,46 @@ local function ApplyRegeneration(frameTime)
 					)
 				end
 			end
+		end
+
+		if k:InsaneStats_EffectivelyHasSkill("solar_power") then
+			local checkDir = Vector(0, 0, 1)
+			local envSun = ents.FindByClass("env_sun")[1]
+			local shadowControl = ents.FindByClass("shadow_control")[1]
+			if IsValid(envSun) then
+				local angles = envSun:GetAngles()
+				local pitchOverride = envSun:GetInternalVariable("pitch")
+				angles.pitch = pitchOverride and -pitchOverride or angles.pitch
+				checkDir = -angles:Forward()
+			elseif IsValid(shadowControl) then
+				local newDir = shadowControl:GetInternalVariable("direction")
+				checkDir = not newDir:IsZero() and -newDir or checkDir
+			end
+
+			checkDir:Normalize()
+			checkDir:Mul(65536)
+
+			local trace = {
+				start = k:GetShootPos(),
+				endpos = k:GetShootPos() + checkDir,
+				mask = MASK_OPAQUE,
+				output = traceResult
+			}
+			util.TraceLine(trace)
+
+			k:InsaneStats_SetSkillData("solar_power", traceResult.HitSky and 1 or 0, 0)
+			if traceResult.HitSky then
+				regenAmounts[k] = (regenAmounts[k] or 0) + k:InsaneStats_GetEffectiveSkillValues("solar_power")
+			end
+		end
+
+		if k:InsaneStats_EffectivelyHasSkill("degeneration") then
+			local oldHealth = k:InsaneStats_GetHealth()
+			local healthLost = k:InsaneStats_GetEffectiveSkillValues("degeneration") / 100
+			local mult = (1 + healthLost) ^ frameTime
+			healthLost = (1 - mult) * oldHealth
+			k:SetHealth(k:InsaneStats_GetHealth() * mult)
+			k:InsaneStats_DamageNumber(k, healthLost, bit.bor(DMG_ENERGYBEAM, DMG_PREVENT_PHYSICS_FORCE))
 		end
 	end
 
@@ -3520,6 +3800,18 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsWPASS2", function(ent)
 			net.WriteVector(v)
 		end
 		net.Broadcast()
+	elseif class == "npc_grenade_frag" then
+		local thrower = ent:GetInternalVariable("m_hThrower")
+		if (IsValid(thrower) and bit.band(thrower:InsaneStats_GetSkillStacks("explosive_arsenal"), 1) ~= 0) then
+			local boost = (1 + thrower:InsaneStats_GetEffectiveSkillValues("explosive_arsenal", 2) / 100)
+			ent:SetSaveValue("m_flDamage", ent:GetInternalVariable("m_flDamage") * boost)
+			ent:SetSaveValue("m_DmgRadius", ent:GetInternalVariable("m_DmgRadius") * boost)
+			ent:AddCallback("PhysicsCollide", function(this, data)
+				if not data.OurOldVelocity:IsEqualTol(data.OurNewVelocity, 1) then
+					ent:Fire("SetTimer", 0, 0, thrower, thrower)
+				end
+			end)
+		end
 	elseif onBreakClasses[class] then
 		ent:Fire("AddOutput", "OnBreak !self:InsaneStats_OnBreak::0:-1")
 	elseif rechargerClasses[class] then
@@ -3531,6 +3823,18 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsWPASS2", function(ent)
 	if ent.insaneStats_TempKillSkillTriggerer then
 		ent:InsaneStats_ApplyStatusEffect("kill_skill_triggerer", ent.insaneStats_TempKillSkillTriggerer, math.huge)
 		ent.insaneStats_TempKillSkillTriggerer = nil
+	end
+
+	if ent.insaneStats_TempLDTA then
+		local xpBonus = ent.insaneStats_TempLDTA
+		ent:InsaneStats_SetXP(ent:InsaneStats_GetXP() * (1 + xpBonus / 100))
+		ent:InsaneStats_ApplyStatusEffect("xp_yield_up", xpBonus, math.huge)
+		ent:InsaneStats_ApplyStatusEffect("no_skill_forced_respawning", 1, math.huge)
+		ent.insaneStats_TempLDTA = nil
+	end
+
+	if ent.insaneStats_TempInvincible then
+		ent:InsaneStats_ApplyStatusEffect("invincible", ent.insaneStats_TempInvincible, math.huge)
 	end
 end)
 
@@ -3703,6 +4007,7 @@ hook.Add("AcceptInput", "InsaneStatsWPASS2", function(ent, input, activator, cal
 	or (input == "enable" or input == "disable" or input == "break")
 	and (class:StartWith("func_") or class:StartWith("trigger_")) then
 		queuedUnlockSends[ent] = true
+		if input == "break" then ent.insaneStats_IsDead = true end
 	end
 end)
 
@@ -4108,14 +4413,13 @@ local function bloodlet(ent)
 
 	if bloodFrac ~= 1 and ent:InsaneStats_GetMaxArmor() > 0 then
 		local minimumHealth = ent:InsaneStats_GetMaxHealth() * bloodFrac
-		local lostHealth = math.ceil(ent:InsaneStats_GetHealth() - minimumHealth)
+		local lostHealth = minimumHealth < math.huge
+			and math.ceil(ent:InsaneStats_GetHealth() - minimumHealth) or math.huge
 		local armorMul = 1
 		
 		if lostHealth > 0 then
 			ent:InsaneStats_AddArmorNerfed(lostHealth * armorMul)
-			if lostHealth < math.huge then
-				ent:SetHealth(ent:InsaneStats_GetHealth() - lostHealth)
-			end
+			ent:SetHealth(minimumHealth)
 		end
 	end
 end
@@ -4230,6 +4534,7 @@ hook.Add("InsaneStatsCrossbowBoltLanded", "InsaneStatsWPASS2", function(bolt, at
 	end
 end)
 
+local nextItemSpawn = 0
 local currentCoinIndex, coins
 hook.Add("Think", "InsaneStatsWPASS2", function()
 	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
@@ -4294,24 +4599,30 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 					k.insaneStats_OldCrouchedMoveMul = k.insaneStats_OldCrouchedMoveMul or 1
 					k.insaneStats_OldLaggedMoveMul = k.insaneStats_OldLaggedMoveMul or 1
 					k.insaneStats_OldHullMul = k.insaneStats_OldHullMul or 1
-					local data = {ent = k, speed = 1, sprintSpeed = 1, crouchedSpeed = 1, laggedSpeed = 1, hullSize = 1}
+					k.insaneStats_OldFrictionMul = k.insaneStats_OldFrictionMul or 1
+					local data = {
+						ent = k, speed = 1, sprintSpeed = 1, crouchedSpeed = 1, laggedSpeed = 1,
+						hullSize = 1, friction = 1}
 					hook.Run("InsaneStatsMoveSpeed", data)
 					local newMoveSpeed = data.speed
 					local newSprintSpeed = data.sprintSpeed
 					local newCrouchedSpeed = data.crouchedSpeed
 					local newLaggedSpeed = data.laggedSpeed
 					local newHullMul = data.hullSize
+					local newFrictionMul = data.friction
 					if k.insaneStats_OldMoveMul ~= newMoveSpeed
 					or k.insaneStats_OldSprintMoveMul ~= newSprintSpeed
 					or k.insaneStats_OldCrouchedMoveMul ~= newCrouchedSpeed
 					or k.insaneStats_OldLaggedMoveMul ~= laggedSpeed
 					or k.insaneStats_OldHullMul ~= newHullMul
+					or k.insaneStats_OldFrictionMul ~= newFrictionMul
 					or engine.TickCount() % 200 == 0 then
 						local applyMul = newMoveSpeed / k.insaneStats_OldMoveMul
 						local sprintApplyMul = applyMul * newSprintSpeed / k.insaneStats_OldSprintMoveMul
 						local crouchedApplyMul = newCrouchedSpeed / k.insaneStats_OldCrouchedMoveMul
 						local laggedApplyMul = newLaggedSpeed / k.insaneStats_OldLaggedMoveMul
 						local hullMul = newHullMul / k.insaneStats_OldHullMul
+						local frictionMul = newFrictionMul / k.insaneStats_OldFrictionMul
 						if k:IsPlayer() and not k:IsSprinting() then
 							if InsaneStats:GetConVarValue("wpass2_attributes_player_constant_speed") then
 								local runSpeed = 400*newMoveSpeed*newSprintSpeed
@@ -4327,6 +4638,7 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 								k:SetCrouchedWalkSpeed(crouchSpeed)
 								k:SetDuckSpeed(crouchSpeed)
 								k:SetUnDuckSpeed(crouchSpeed)
+								k:SetFriction(newFrictionMul)
 								if laggedApplyMul ~= 1 then
 									k:SetLaggedMovementValue(newLaggedSpeed)
 								end
@@ -4351,6 +4663,7 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 								k:SetDuckSpeed(k:GetDuckSpeed()*crouchedApplyMul)
 								k:SetUnDuckSpeed(k:GetUnDuckSpeed()*crouchedApplyMul)
 								k:SetLaggedMovementValue(k:GetLaggedMovementValue()*laggedApplyMul)
+								k:SetFriction(k:GetFriction()*frictionMul)
 
 								local mins, maxs = k:GetHull()
 								k:SetHull(mins * hullMul, maxs * hullMul)
@@ -4364,6 +4677,7 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 							k.insaneStats_OldCrouchedMoveMul = newCrouchedSpeed
 							k.insaneStats_OldLaggedMoveMul = newLaggedSpeed
 							k.insaneStats_OldHullMul = newHullMul
+							k.insaneStats_OldFrictionMul = newFrictionMul
 						elseif SERVER and k:IsNextBot() then
 							k.loco:SetDesiredSpeed(k.loco:GetDesiredSpeed()*applyMul)
 						
@@ -4372,6 +4686,7 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 							k.insaneStats_OldCrouchedMoveMul = newCrouchedSpeed
 							k.insaneStats_OldLaggedMoveMul = newLaggedSpeed
 							k.insaneStats_OldHullMul = newHullMul
+							k.insaneStats_OldFrictionMul = newFrictionMul
 						end
 					end
 					
@@ -4518,6 +4833,36 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 									v2:SetClip2(clip + ammoToRemove)
 									k:SetAmmo(playerAmmoCount - ammoToRemove, ammoType)
 								end
+							end
+						end
+
+						if (IsValid(wep) and wep:GetClass() == "weapon_rpg"
+						and wep:GetNextPrimaryFire() <= CurTime()) and k:KeyDown(IN_ATTACK2)
+						and k:InsaneStats_EffectivelyHasSkill("explosive_arsenal") then
+							if k:GetAmmoCount("RPG_Round") > 0 then
+								local cooldown = k:InsaneStats_GetEffectiveSkillValues("explosive_arsenal", 6)
+								local invincible = bit.band(k:InsaneStats_GetSkillStacks("explosive_arsenal"), 2) ~= 0
+								k:RemoveAmmo(1, "RPG_Round")
+
+								if not invincible then cooldown = cooldown / 2 end
+								wep:SetNextPrimaryFire(CurTime() + cooldown)
+				
+								local rocket = ents.Create("rpg_missile")
+								rocket:SetOwner(k)
+								rocket:SetSaveValue("m_flDamage", 150)
+								rocket:SetPos(k:GetShootPos())
+								rocket:SetAngles(k:EyeAngles())
+								rocket:Spawn()
+								rocket:Activate()
+								rocket:SetCollisionGroup(COLLISION_GROUP_WORLD)
+				
+								if invincible then
+									rocket.insaneStats_TempInvincible = 1
+									rocket:SetSaveValue("m_takedamage", 1)
+								end
+							else
+								wep:EmitSound("Weapon_Pistol.Empty")
+								wep:SetNextPrimaryFire(CurTime() + 1)
 							end
 						end
 					end
@@ -4670,7 +5015,8 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 			queuedUnlockSends = {}
 		end
 
-		if engine.TickCount() % 8 == 0 then
+		if nextItemSpawn < CurTime() then
+			nextItemSpawn = CurTime() + 0.5
 			local pos = table.remove(pendingItemSpawns, 1)
 			if pos then
 				local parent = pos[2]
@@ -4806,6 +5152,7 @@ end)
 
 local function ProcessAmmoChange(ply, ammoID, current)
 	local new
+	if not tonumber(ammoID) then ammoID = game.GetAmmoID(ammoID) end
 	if ply:InsaneStats_EffectivelyHasSkill("more_bullet_per_bullet") then
 		local maxReserve = game.GetAmmoMax(ammoID)
 		local skillValues = {ply:InsaneStats_GetEffectiveSkillValues("more_bullet_per_bullet")}
@@ -4823,7 +5170,6 @@ local function ProcessAmmoChange(ply, ammoID, current)
 	end
 	
 	if InsaneStats:GetConVarValue("wpass2_enabled") then
-		if not tonumber(ammoID) then ammoID = game.GetAmmoID(ammoID) end
 		local maxReserve = game.GetAmmoMax(ammoID)
 		local threshold = ply:InsaneStats_GetAttributeValue("ammo_convert")
 		local maxPlayerReserve = maxReserve*threshold
@@ -4980,10 +5326,15 @@ hook.Add("InsaneStatsLevelChanged", "InsaneStatsWPASS2", function(ent, oldLevel,
 	and oldLevel < newLevel and IsValid(ent) then
 		local amplifier = newLevel - oldLevel
 		local args = {ent:InsaneStats_GetEffectiveSkillValues("actually_levelling_up", 5)}
-		ent:InsaneStats_AddMaxHealth(amplifier * args[2])
-		ent:InsaneStats_AddMaxArmor(amplifier * args[3])
-		ent:InsaneStats_AddHealthNerfed(amplifier * args[2] * 2)
-		ent:InsaneStats_AddArmorNerfed(amplifier * args[3] * 2)
+		-- wait for level to apply first!
+		timer.Simple(0.5, function()
+			if IsValid(ent) then
+				ent:InsaneStats_AddMaxHealth(amplifier * args[2])
+				ent:InsaneStats_AddMaxArmor(amplifier * args[3])
+				ent:InsaneStats_AddHealthNerfed(amplifier * args[2] * 2)
+				ent:InsaneStats_AddArmorNerfed(amplifier * args[3] * 2)
+			end
+		end)
 	end
 end)
 
@@ -5012,6 +5363,15 @@ hook.Add("InsaneStatsWPASS2AddHealth", "InsaneStatsWPASS2", function(data)
 		data.health = data.health / 2
 	end
 
+	if ent:InsaneStats_EffectivelyHasSkill("more_and_more") and ent:InsaneStats_GetArmor() > 0 then
+		local armorBars = ent:InsaneStats_GetMaxArmor() > 0
+		and ent:InsaneStats_GetArmor() / ent:InsaneStats_GetMaxArmor()
+		or 1
+		local potency, base = ent:InsaneStats_GetEffectiveSkillValues("more_and_more")
+		local healingMul = math.max(2 + math.log(armorBars, base), 1)
+		data.health = data.health * ((healingMul - 1) * potency / 100 + 1)
+	end
+
 	data.nerfFactor = 0.5 - ent:InsaneStats_GetEffectiveSkillValues("bloodletter_pact", 2) / 200
 end)
 
@@ -5026,6 +5386,15 @@ hook.Add("InsaneStatsWPASS2AddArmor", "InsaneStatsWPASS2", function(data)
 	or ent:InsaneStats_GetStatusEffectLevel("electroblast") > 0
 	or ent:InsaneStats_GetStatusEffectLevel("cosmicurse") > 0 then
 		data.armor = data.armor / 2
+	end
+
+	if ent:InsaneStats_EffectivelyHasSkill("more_and_more") and ent:InsaneStats_GetArmor() > 0 then
+		local armorBars = ent:InsaneStats_GetMaxArmor() > 0
+		and ent:InsaneStats_GetArmor() / ent:InsaneStats_GetMaxArmor()
+		or 1
+		local potency, base = ent:InsaneStats_GetEffectiveSkillValues("more_and_more")
+		local healingMul = math.max(2 + math.log(armorBars, base), 1)
+		data.armor = data.armor * ((healingMul - 1) * potency / 100 + 1)
 	end
 
 	data.nerfFactor = 0.5 - ent:InsaneStats_GetEffectiveSkillValues("hacked_shield") / 200
@@ -5047,9 +5416,14 @@ hook.Add("InsaneStatsWPASS2AddMaxArmor", "InsaneStatsWPASS2", function(data)
 	if ent:InsaneStats_GetMaxArmor() > 0 then
 		local splitRatio = ent:InsaneStats_GetEffectiveSkillValues("bastion_of_flesh")/100
 		local healthMul = ent:InsaneStats_GetEffectiveSkillValues("bastion_of_flesh", 3)
-		data.maxArmor = data.maxArmor * (1 - splitRatio)
+
 		ent:InsaneStats_AddMaxHealth(data.maxArmor * splitRatio)
 		ent:InsaneStats_AddHealthNerfed(data.maxArmor * splitRatio * healthMul)
+		if splitRatio == 1 then
+			data.maxArmor = 0
+		else
+			data.maxArmor = data.maxArmor * (1 - splitRatio)
+		end
 	end
 end)
 

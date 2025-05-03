@@ -252,7 +252,7 @@ function ENT:InsaneStats_ApplyLevel(level)
 		if not (newHealth >= -math.huge) then
 			print(
 				self:InsaneStats_GetMaxHealth(), currentHealthAdd, InsaneStats:GetConVarValue("xp_other_health")/100,
-				level, false, InsaneStats:GetConVarValue("xp_other_health_add")/100
+				level
 			)
 		end
 		self:SetMaxHealth(newHealth)
@@ -284,7 +284,7 @@ function ENT:InsaneStats_ApplyLevel(level)
 			elseif not (newArmor >= -math.huge) then
 				print(
 					self:InsaneStats_GetMaxArmor(), currentArmorAdd, InsaneStats:GetConVarValue("xp_other_armor")/100,
-					level, false, InsaneStats:GetConVarValue("xp_other_armor_add")/100
+					level
 				)
 			end
 			self:SetMaxArmor(newArmor)
@@ -305,6 +305,11 @@ function ENT:InsaneStats_ApplyLevel(level)
 end
 
 function ENT:InsaneStats_SetCurrentHealthAdd(mul)
+	if mul == math.huge then
+		mul = 1
+		InsaneStats:Log("Something tried to set starting health of %s to inf.", tostring(self))
+		debug.Trace()
+	end
 	self:InsaneStats_SetEntityData("xp_health_mul", mul)
 	self.insaneStats_CurrentHealthAddRoot8 = InsaneStats:CalculateRoot8(mul)
 end
@@ -316,6 +321,11 @@ function ENT:InsaneStats_GetCurrentHealthAdd()
 end
 
 function ENT:InsaneStats_SetCurrentArmorAdd(mul)
+	if mul == math.huge then
+		mul = 1
+		InsaneStats:Log("Something tried to set starting armor of %s to inf.", tostring(self))
+		debug.Trace()
+	end
 	self:InsaneStats_SetEntityData("xp_armor_mul", mul)
 	self.insaneStats_CurrentArmorAddRoot8 = InsaneStats:CalculateRoot8(mul)
 end
