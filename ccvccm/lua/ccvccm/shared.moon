@@ -182,24 +182,27 @@ hook.Add 'CCVCCMRun', 'CCVCCM', ->
 		realm: 'client'
 		name: 'Autoloaded File'
 		help: 'Layout to automatically load when CCVCCM is opened.'
+		default: ''
 		generate: true
 	}
-	CCVCCM\AddConVar 'autosave_interval_client', {
+	CCVCCM\AddConVar 'auto_save_interval_client', {
 		realm: 'client'
 		name: 'Autosave Interval (Client)'
 		help: 'Time between saves.'
 		type: 'int'
-		min: 30
+		min: 1
 		max: 3600
+		default: 15
 		generate: true
 	}
-	CCVCCM\AddConVar 'autosave_interval_server', {
+	CCVCCM\AddConVar 'auto_save_interval_server', {
 		realm: 'server'
 		name: 'Autosave Interval (Server)'
 		help: 'Time between saves.'
 		type: 'int'
-		min: 30
+		min: 1
 		max: 3600
+		default: 15
 		generate: true
 	}
 	cvars.AddChangeCallback 'ccvccm_autosave_interval_client', ((conVarName, oldValue, newValue) ->

@@ -39,9 +39,9 @@ if false then
 end
 
 CCVCCM = {
-	_VERSION = '1.0.2',
-	_VERSIONNUMBER = 10002,
-	_VERSIONDATE = '2024-03-18'
+	_VERSION = '1.0.3',
+	_VERSIONNUMBER = 10003,
+	_VERSIONDATE = '2025-05-08'
 }
 
 if SERVER then
