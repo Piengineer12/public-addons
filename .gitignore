@@ -6,3 +6,11 @@ dual_acting_physgun/media/*.gif
 */personal/
 server_content*/
 lua_patcher/
+lua_patcher/addon.json
+lua_patcher/lua/autorun/+piengineers_lua_patcher_rewrite.lua
+lua_patcher/lua/autorun/+piengineers_lua_patcher_rewrite.moon
+lua_patcher/media/1.png
+lua_patcher/media/2.png
+lua_patcher/media/gm_construct0051.jpg
+lua_patcher/media/gm_construct0055.jpg
+lua_patcher/README.md
