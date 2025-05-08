@@ -11,8 +11,8 @@ crossbow: r -> ?
 ]]
 
 InsaneStats = {
-	VERSION = "2.0.0",
-	VERSION_DATE = "2025-05-03",
+	VERSION = "2.0.1",
+	VERSION_DATE = "2025-05-08",
 	WORKSHOP_ID = "2980423627"
 }
 

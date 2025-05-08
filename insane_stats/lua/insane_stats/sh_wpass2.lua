@@ -600,14 +600,19 @@ hook.Add("PlayerCanPickupWeapon", "InsaneStats", function(...)
 		end
 	end
 end)
-hook.Add("PlayerCanPickupItem", "InsaneStats", function(...)
+hook.Add("PlayerCanPickupItem", "InsaneStats", function(ply, item, ...)
 	if doWeaponOverride then
 		-- run the others first, but in a more roundabout way
 		local nonInsaneStatsHooks = hook.GetTable().NonInsaneStatsPlayerCanPickupItem or {}
 		local shouldAlter = false
 		for k,v in pairs(nonInsaneStatsHooks) do
-			local ret = v(...)
-			if ret == false then return false end
+			local ret = v(ply, item, ...)
+			if ret == false then
+				if InsaneStats:IsDebugLevel(4) then
+					InsaneStats:Log("%s denied pickup of %s by %s", k, item, ply)
+				end
+				return false
+			end
 		end
 	end
 end)

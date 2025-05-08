@@ -318,8 +318,8 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 			end
 			if InsaneStats:IsDebugLevel(3) then
 				InsaneStats:Log(
-					"%g damage against %g health is actually %g damage against %g health",
-					insaneStatsDamage, insaneStatsHealth, rawDamage, rawHealth
+					"%g damage against %g health is actually %g damage against %g health with %g absorbed",
+					insaneStatsDamage, insaneStatsHealth, rawDamage, rawHealth, InsaneStats:GetAbsorbedDamage()
 				)
 			end
 			dmginfo:InsaneStats_SetRawDamage(rawDamage)
@@ -384,9 +384,13 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 		dmginfo:InsaneStats_SetRawDamage(0)
 		error("Something tried to set damage to nan!")
 	elseif rawDamage == 0 then
+		if InsaneStats:GetAbsorbedDamage() > 0 then
+			vic:SetArmor(math.max(vic:InsaneStats_GetArmor() - InsaneStats:GetAbsorbedDamage(), 0))
+		end
+
 		vic:InsaneStats_DamageNumber(
 			attacker,
-			InsaneStats:GetDamage(),
+			InsaneStats:GetDamage() + InsaneStats:GetAbsorbedDamage(),
 			dmginfo:GetDamageType(),
 			vic.insaneStats_LastHitGroup,
 			vic:InsaneStats_GetHealth() > 0
@@ -463,8 +467,6 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 				if vic:IsPlayer() and armorDamage == 0 then
 					armorDamage = math.min(vic:InsaneStats_GetArmor(), healthDamage/1.25)
 					healthDamage = healthDamage - armorDamage
-				--[[elseif bit.band(dmginfo:GetDamageType(), armorBypassingDamage) == 0 then
-					armorDamage = math.min(vic:InsaneStats_GetArmor(), healthDamage*4)]]
 				end
 			end
 			
@@ -501,7 +503,7 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 			--print(newHealth, newArmor)
 			--print(vic, dmginfo:GetDamage(), vic:InsaneStats_GetRawHealth(), vic:InsaneStats_GetHealth())
 			vic:SetHealth(newHealth)
-			vic:SetArmor(newArmor)
+			vic:SetArmor(math.max(newArmor, 0))
 		end
 		
 		if not notImmune and rawHealthDamage == 0 and armorDamage == 0 then

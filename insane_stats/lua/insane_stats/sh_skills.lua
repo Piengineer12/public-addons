@@ -451,6 +451,9 @@ function ENTITY:InsaneStats_GetEffectiveSkillValues(skill, index)
 		return select(index, self:InsaneStats_GetEffectiveSkillValues(skill))
 	else
 		local skillInfo = InsaneStats:GetSkillInfo(skill)
+		if not skillInfo then
+			InsaneStats:Log("%s is not a valid skill!", skill)
+		end
 		return skillInfo.values(self:InsaneStats_GetEffectiveSkillTier(skill), self)
 	end
 end

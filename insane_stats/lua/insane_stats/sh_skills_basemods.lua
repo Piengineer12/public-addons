@@ -90,8 +90,8 @@ local skills = {
 		pos = {2, 0},
 		minpts = 5
 	},
-	risk_reward = {
-		name = "Risk... Reward...",
+	daredevil = {
+		name = "Daredevil",
 		desc = "Gain more coins and XP on low health, up to %+.0f%%.",
 		values = function(level)
 			return level * 20
@@ -128,13 +128,13 @@ local skills = {
 	love_and_tolerate = {
 		name = "Love And Tolerate",
 		desc = "Whenever damage would be taken from a mob, gain %+.1f stack(s) of Love And Tolerate. \z
-		Each stack gives 1%% more defence, but stacks decay at a rate of -0.1%%/s. \z
+		Each stack gives 1%% more defence, but stacks decay at a rate of -1%%/s. \z
 		The Hellish Challenge skill is also +%u%% more effective. ",
 		values = function(level)
 			return level/5, level * 20
 		end,
 		stackTick = function(state, current, time, ent)
-			local nextStacks = current * .999 ^ time
+			local nextStacks = current * .99 ^ time
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
 		img = "arrows-shield",
@@ -618,12 +618,12 @@ local skills = {
 	mania = {
 		name = "Mania",
 		desc = "On kill, gain %+.1f stack(s) of Mania. Each stack gives 1%% more coins and XP, \z
-		but stacks decay at a rate of -0.1%%/s.",
+		but stacks decay at a rate of -1%%/s.",
 		values = function(level)
 			return level/5
 		end,
 		stackTick = function(state, current, time, ent)
-			local nextStacks = current * .999 ^ time
+			local nextStacks = current * .99 ^ time
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
 		img = "hot-spices",
@@ -738,13 +738,13 @@ local skills = {
 	more_bullet_per_bullet = {
 		name = "More Bullet Per Bullet",
 		desc = "Reserve ammo above %u%% is converted into More Bullet Per Bullet stacks. \z
-		Each stack increases defence and damage dealt by 1%%, but stacks decay at a rate of -0.1%%/s. \z
+		Each stack increases defence and damage dealt by 1%%, but stacks decay at a rate of -1%%/s. \z
 		Additionally, interacting with an Ammo Crate causes all stacks to be removed.",
 		values = function(level)
 			return 100 - level * 5
 		end,
 		stackTick = function(state, current, time, ent)
-			local nextStacks = current * .999 ^ time
+			local nextStacks = current * .99 ^ time
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
 		img = "implosion",
@@ -811,12 +811,13 @@ local skills = {
 	},
 	increase_the_pressure = {
 		name = "Increase the Pressure",
-		desc = "On kill, gain %+.1f stack(s) of Increase the Pressure. Each stack increases most weapons' fire rate by 1%%, but stacks decay at a rate of -0.1%%/s.",
+		desc = "On kill, gain %+.1f stack(s) of Increase the Pressure. \z
+		Each stack increases most weapons' fire rate by 1%%, but stacks decay at a rate of -1%%/s.",
 		values = function(level)
 			return level/5
 		end,
 		stackTick = function(state, current, time, ent)
-			local nextStacks = current * .999 ^ time
+			local nextStacks = current * .99 ^ time
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
 		img = "hydra-shot",
@@ -825,21 +826,20 @@ local skills = {
 	},
 	multi_killer = {
 		name = "Multi Killer",
-		desc = "On kill or prop broken, gain +%.1f stacks of Multi Killer. \z
-		Each stack gives 100%% more coins and XP, \z
-		but stacks decay at a rate of %.2f/s plus an additional %.2f%%/s.",
+		desc = "On kill or prop broken, gain +%u stacks of Multi Killer. \z
+		Each stack gives 1%% more coins and XP, \z
+		but stacks decay at a rate of -50%%/s.",
 		values = function(level, ent)
 			local decayMult = 1 --+ ent:InsaneStats_GetEffectiveSkillValues("sick_combo", 2) / 100
-			return level * 0.2,
-			level * -0.2 * decayMult,
-			-0.1 * decayMult
+			return level * 10--, level * -0.2 * decayMult, -0.1 * decayMult
 		end,
 		stackTick = function(state, current, time, ent)
-			local constantDecayRate, expDecayRate = ent:InsaneStats_GetEffectiveSkillValues("multi_killer", 2)
+			--[[local constantDecayRate, expDecayRate = ent:InsaneStats_GetEffectiveSkillValues("multi_killer", 2)
 			local f1, f2 = 100 / expDecayRate, 1 + expDecayRate / 100
 			local offset = constantDecayRate * f1
-			local nextStacks = (current + offset) * f2 ^ time - offset
-			nextStacks = math.max(nextStacks, 0)
+			local nextStacks = (current + offset) * f2 ^ time - offset]]
+			--nextStacks = math.max(nextStacks, 0)
+			local nextStacks = current * 0.5 ^ time
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
 		img = "double-shot",
@@ -956,12 +956,12 @@ local skills = {
 		name = "Reject Humanity",
 		desc = "On kill, gain %+.1f stack(s) of Reject Humanity. \z
 		Each stack gives 1%% more damage dealt, coins and XP, \z
-		but each stack also causes 1%% more damage taken and stacks decay at a rate of -0.1%%/s.",
+		but each stack also causes 1%% more damage taken and stacks decay at a rate of -1%%/s.",
 		values = function(level)
 			return level/5
 		end,
 		stackTick = function(state, current, time, ent)
-			local nextStacks = current * .999 ^ time
+			local nextStacks = current * .99 ^ time
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
 		img = "mad-scientist",
@@ -1100,19 +1100,19 @@ local skills = {
 	},
 	starlight = {
 		name = "Starlight",
-		desc = "On kill or prop broken, gain %+.1f stacks of Starlight. \z
+		desc = "On kill or prop broken, gain %+.1f stack(s) of Starlight. \z
 		Each stack gives 1%% more defence, coins and XP but also causes glowing \z
 		by %s times the square root of the number of stacks. \z
-		Stacks decay at a rate of -0.1%%/s.",
+		Stacks decay at a rate of -1%%/s.",
 		values = function(level)
-			local distance = 64
+			local distance = 256
 			if CLIENT then
 				distance = InsaneStats:FormatNumber(distance, {distance = true})
 			end
 			return level/5, distance
 		end,
 		stackTick = function(state, current, time, ent)
-			local nextStacks = current * .999 ^ time
+			local nextStacks = current * .99 ^ time
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
 		img = "sundial",
@@ -1367,26 +1367,26 @@ local skills = {
 		pos = {4, -4},
 		minpts = 5
 	},
-	sick_combo = {
-		name = "Sick Combo",
-		desc = "On kill, gain +%.1f stack(s) of Sick Combo and extend its duration by 3 seconds. \z
-		Picking up any item will also extend the duration by half the amount. \z
-		Each stack gives 1%% more coins and XP, but \z
-		duration is limited to a maximum of 60 seconds! \z
-		Also, every power of %u Sick Combo stacks grant +100%% more kill skill retriggers on kill, \z
-		but also halves Sick Combo duration gained from kills and items!",
-		values = function(level)
-			return level/5, 5
+	upward_spiralling = {
+		name = "Upward Spiralling",
+		desc = "Every spent skill point gives +%.2f%% coins and XP, \z
+		while every spent über skill point adds +%.3f to the value of the percentage. \z
+		(+%s%% coins and XP gain at current total spent skill points and über skill points.)",
+		values = function(level, ent)
+			local thirdValue = (
+				level/20 + level/200
+				* ent:InsaneStats_GetSpentUberSkillPoints()
+			) * ent:InsaneStats_GetSpentSkillPoints()
+			return level/20, level/200, CLIENT and InsaneStats:FormatNumber(thirdValue) or thirdValue
 		end,
-		img = "poker-hand",
+		img = "gold-shell",
 		pos = {5, -3},
 		minpts = 5
 	},
 	too_many_items = {
 		name = "Too Many Items",
 		desc = "Gain +%.1f stack(s) of Too Many Items whenever an item is picked up. \z
-		All skills and modifiers that give random items \z
-		instead grant up to +%u stacks of Too Many Items. \z
+		All skills and modifiers that would create random items grant up to +%u stacks instead. \z
 		At 100 stacks, consume 100 to fully restore all ammo, \z
 		health and shield, as well as triggering all skills \z
 		related to picking up Health Kits and Armor Batteries. \z
@@ -1395,7 +1395,7 @@ local skills = {
 		values = function(level, ent)
 			-- min level above 0: 0.1, max level: 20
 			level = level * (1 + ent:InsaneStats_GetEffectiveSkillValues("productivity", 3) / 100)
-			return level, level * 10
+			return level, level * 2
 		end,
 		stackTick = function(state, current, time, ent)
 			return 0, current
@@ -1490,8 +1490,8 @@ local skills = {
 		desc = "Killed enemies create a %s radius stellar node that lasts for +%u second(s). \z
 		There can only be at most +%u nodes at once, but \z
 		kills that happen inside a node will extend the duration of the node. \z
-		Nodes heal allies while damaging all other entities within range while %s is not held, \z
-		with healing and damage scaled based on node duration.",
+		Nodes damage all non-ally entities within range while %s is not held, \z
+		with damage scaled based on node duration.",
 		values = function(level, ent)
 			local distance = 64
 			local slowWalkKey = "the Slow Walk key"
@@ -1725,7 +1725,7 @@ local skills = {
 		name = "Kill Aura",
 		desc = "On kill, gain %+u stack(s) of Kill Aura. Enemies within %s times the number of stacks \z
 		take %s BASE damage per second while %s is not held, \z
-		but stacks decay at a rate of %.1f/s plus an additional -0.1%%/s.",
+		but stacks decay at a rate of %.1f/s plus an additional -1%%/s.",
 		values = function(level, ent)
 			local slowWalkKey = "the Slow Walk key"
 			local damage = 5
@@ -1744,14 +1744,15 @@ local skills = {
 				distance = InsaneStats:FormatNumber(distance, {distance = true})
 			end
 
-			return level * 2, distance, damage, slowWalkKey, level / -5
+			return level, distance, damage, slowWalkKey, level / -10
 		end,
 		stackTick = function(state, current, time, ent)
 			local constantDecayRate = ent:InsaneStats_GetEffectiveSkillValues("kill_aura", 5)
-			local f1, f2 = -1000, .999
+			local f1, f2 = -100, .99
 			local offset = constantDecayRate * f1
 			local nextStacks = (current + offset) * f2 ^ time - offset
 			nextStacks = math.max(nextStacks, 0)
+			local nextStacks = current * .99 ^ time
 
 			return ent:IsPlayer() and ent:KeyDown(IN_WALK) and -1
 			or nextStacks <= 0 and 0
@@ -1787,19 +1788,24 @@ local skills = {
 		pos = {6, -3},
 		minpts = 5
 	},
-	upward_spiralling = {
-		name = "Upward Spiralling",
-		desc = "Every spent skill point gives +%.2f%% coins and XP, \z
-		while every spent über skill point adds +%.3f to the value of the percentage. \z
-		(+%s%% coins and XP gain at current total spent skill points and über skill points.)",
-		values = function(level, ent)
-			local thirdValue = (
-				level/20 + level/200
-				* ent:InsaneStats_GetSpentUberSkillPoints()
-			) * ent:InsaneStats_GetSpentSkillPoints()
-			return level/20, level/200, CLIENT and InsaneStats:FormatNumber(thirdValue) or thirdValue
+	sick_combo = {
+		name = "Sick Combo",
+		desc = "On kill, gain +%.1f stack(s) of Sick Combo and extend its duration by %u seconds. \z
+		Picking up any item will also extend the duration by half the amount. \z
+		Each stack gives 1%% more coins and XP, but duration is limited to a maximum of 60 seconds! \z
+		Also, every power of %u Sick Combo stacks grants +100%% more kill skill retriggers on kill, \z
+		but also halves Sick Combo duration gains!",
+		--[[
+		\z
+		multiplied by the number of skill points gained in total
+		
+		doubles the max Sick Combo duration \z
+		and 
+		]]
+		values = function(level)
+			return level/5, 2, 5
 		end,
-		img = "gold-shell",
+		img = "poker-hand",
 		pos = {5, -1},
 		minpts = 6
 	},
@@ -2241,12 +2247,12 @@ local skills = {
 		name = "Synergy (Hot)",
 		desc = "On kill or whenever an item is picked up, gain %+.2f stack(s) of Synergy. \z
 		Each stack increases damage dealt, coins and XP gained by 1%%, \z
-		but stacks decay at a rate of -0.1%%/s regardless of skills.",
+		but stacks decay at a rate of -1%%/s regardless of skills.",
 		values = function(level)
 			return level/20
 		end,
 		stackTick = function(state, current, time, ent)
-			local nextStacks = current * .999 ^ time
+			local nextStacks = current * .99 ^ time
 			return nextStacks <= 0 and 0 or 1, nextStacks
 		end,
 		img = "jigsaw-box",
@@ -2273,7 +2279,7 @@ local skills = {
 		name = "Synergy (Wet)",
 		desc = "Every %s travelled or whenever an item is picked up, gain %+.2f stack(s) of Synergy. \z
 		Each stack increases health and shield gained from skills and modifiers, coins and XP gained by 1%%, \z
-		but stacks decay at a rate of -0.1%%/s regardless of skills. \z
+		but stacks decay at a rate of -1%%/s regardless of skills. \z
 		Distance travelled is computed by multiplying speed and time passed.",
 		values = function(level)
 			local distance = 8192
@@ -2283,7 +2289,7 @@ local skills = {
 			return distance, level/20
 		end,
 		stackTick = function(state, current, time, ent)
-			local nextStacks = current * .999 ^ time
+			local nextStacks = current * .99 ^ time
 			local newState = nextStacks <= 0 and 0 or 1
 
 			if ent:InsaneStats_EffectivelyHasSkill("synergy_1") then
@@ -2328,7 +2334,7 @@ local skills = {
 			return distance, level/20
 		end,
 		stackTick = function(state, current, time, ent)
-			local nextStacks = current * .999 ^ time
+			local nextStacks = current * .99 ^ time
 			local newState = nextStacks <= 0 and 0 or 1
 
 			if ent:InsaneStats_EffectivelyHasSkill("synergy_1") or ent:InsaneStats_EffectivelyHasSkill("synergy_2") then
@@ -2366,7 +2372,7 @@ local skills = {
 			return level/20
 		end,
 		stackTick = function(state, current, time, ent)
-			local nextStacks = current * .999 ^ time
+			local nextStacks = current * .99 ^ time
 			local newState = nextStacks <= 0 and 0 or 1
 
 			if ent:InsaneStats_EffectivelyHasSkill("synergy_1") or ent:InsaneStats_EffectivelyHasSkill("synergy_2")
