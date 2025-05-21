@@ -544,13 +544,10 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 
 		--timer.Simple(0, function()
 			--if IsValid(ent) then
-				if ent.insaneStats_TempOnHalfHealth then
+				if ent.insaneStats_TempOnHalfHealth or class == "npc_helicopter" or class == "prop_dropship_container" then
 					ent.insaneStats_TempOnHalfHealth = nil
-					ent:InsaneStats_ApplyStatusEffect("pheonix", 10, math.huge)
-					ent:Fire("AddOutput", "OnHalfHealth !self:InsaneStats_OnHalfHealth")
-				elseif class == "npc_helicopter" then
-					ent.insaneStats_TempOnHalfHealth = nil
-					ent:InsaneStats_ApplyStatusEffect("pheonix", 1, math.huge)
+					local duration = class == "prop_dropship_container" and 100 or class == "npc_helicopter" and 1 or 10
+					ent:InsaneStats_ApplyStatusEffect("pheonix", duration, math.huge)
 					ent:Fire("AddOutput", "OnHalfHealth !self:InsaneStats_OnHalfHealth")
 				end
 				if ent.insaneStats_TempOnDamaged or ent.insaneStats_TempOnStun then
@@ -561,9 +558,6 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 						ent:InsaneStats_ApplyStatusEffect("undying", 10, math.huge)
 						ent:Fire("AddOutput", "OnDamaged !self:InsaneStats_OnDamaged")
 					end
-				elseif class == "prop_dropship_container" then
-					ent:InsaneStats_ApplyStatusEffect("undying", 10, math.huge)
-					ent:Fire("AddOutput", "OnDamaged !self:InsaneStats_OnDamaged")
 				end
 			--end
 		--end)

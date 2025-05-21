@@ -8,11 +8,16 @@ idea for alternate fire modes
 
 bugbait: r -> teleport antlions to self
 crossbow: r -> ?
+
+idea for skills
+
+stats up but take DoT while touching grass and move slower underwater
+skills decay slower
 ]]
 
 InsaneStats = {
-	VERSION = "2.0.1",
-	VERSION_DATE = "2025-05-08",
+	VERSION = "2.0.2",
+	VERSION_DATE = "2025-05-21",
 	WORKSHOP_ID = "2980423627"
 }
 

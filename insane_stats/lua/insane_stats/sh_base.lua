@@ -245,6 +245,12 @@ InsaneStats:RegisterConVar("flashlight_disable_fix_modifyspeed", "insanestats_fl
 	You can reenable this behaviour via this ConVar.",
 	type = InsaneStats.BOOL
 })
+--[[InsaneStats:RegisterConVar("minimum_spawn_delay", "insanestats_minimum_spawn_delay", "-1", {
+	display = "Minimum NPC Maker Delay", desc = "npc_maker and npc_template_maker require at least this many seconds \z
+	to spawn a new NPC. Useful for preventing lag caused by way too many NPC kills. \z
+	Set to a negative value to disable.",
+	type = InsaneStats.FLOAT, min = -1, max = 10
+})]]
 InsaneStats:RegisterConVar("gametext_tochat", "insanestats_gametext_tochat", "1", {
 	display = "game_text To Chat", desc = "Activated game_texts will also send their texts to chat.",
 	type = InsaneStats.BOOL

@@ -3716,6 +3716,7 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 					-- horizontal
 					local desiredVector = Vector(currentVel.x, currentVel.y, 0)
 					local shuntStrength = (ply:KeyDown(IN_SPEED) and ply:GetRunSpeed() or ply:GetWalkSpeed())
+					shuntStrength = shuntStrength / ply:GetFriction()
 					local Forward = (ply:KeyDown(IN_FORWARD) and 1 or 0) + (ply:KeyDown(IN_BACK) and -1 or 0)
 					if Forward~=0 then
 						desiredVector:Add(ply:GetForward() * shuntStrength * Forward)

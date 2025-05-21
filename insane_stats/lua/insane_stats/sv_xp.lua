@@ -792,7 +792,7 @@ local function DoSetHealth(ent, health)
 	if IsValid(ent) then
 		ent:SetHealth(health)
 		
-		if ent:InsaneStats_GetMaxHealth() < health and not ent:IsPlayer() then
+		if --[[ent:InsaneStats_GetMaxHealth() < health and]] not ent:IsPlayer() then
 			ent:SetMaxHealth(health)
 		end
 

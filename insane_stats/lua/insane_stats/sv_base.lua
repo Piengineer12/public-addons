@@ -404,8 +404,15 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStats", function(ent)
 		ent.insaneStats_FiredBy = ent:GetOwner()
 		crossbowBolts[ent] = true
 		hook.Run("InsaneStatsCrossbowBoltCreated", ent, ent.insaneStats_FiredBy)
-	elseif class == "npc_template_maker" then
-		ent:Fire("AddOutput", "OnSpawnNPC !activator:InsaneStats_OnNPCTemplateMade")
+	elseif (class == "npc_maker" or class == "npc_template_maker")
+	--[[and InsaneStats:GetConVarValue("minimum_spawn_delay") >= 0]] then
+		--[[local current = ent:GetInternalVariable("spawnfrequency")
+		local minimum = InsaneStats:GetConVarValue("minimum_spawn_delay")
+		ent:Fire("SetSpawnFrequency", math.max(tonumber(current) or -1, minimum))]]
+
+		if class == "npc_template_maker" then
+			ent:Fire("AddOutput", "OnSpawnNPC !activator:InsaneStats_OnNPCTemplateMade")
+		end
 	elseif ent:IsNPC() then
 		ent:Fire("AddOutput", "OnDeath !activator:InsaneStats_OnNPCKilled")
 		if class=="npc_helicopter" then

@@ -40,6 +40,12 @@ InsaneStats:RegisterConVar("wpass2_burrowed_invincible", "insanestats_wpass2_bur
 	display = "Invincible Burrowed NPCs", desc = "Burrowed antlions can't be damaged.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterConVar("wpass2_no_fractional_clips", "insanestats_wpass2_no_fractional_clips", "0", {
+	display = "Disable Fractional Clips", desc = "Stops clips within weapons from becoming fractional. \z
+	Requires a map restart to fully take effect. \z
+	Effects that grant ammo efficiency instead have a chance to prevent ammo from being consumed.",
+	type = InsaneStats.BOOL
+})
 InsaneStats:RegisterConVar("wpass2_modifiers_player_save", "insanestats_wpass2_modifiers_player_save", "2", {
 	display = "Save Player Modifiers Across Maps", desc = "If 1, modifiers on player weapons / armor batteries will be saved across maps. \z
 	Consequently, all weapons and ammo are also perserved across maps. \z
@@ -74,7 +80,7 @@ InsaneStats:RegisterConVar("wpass2_modifiers_other_create", "insanestats_wpass2_
 InsaneStats:RegisterConVar("wpass2_modifiers_blacklist", "insanestats_wpass2_modifiers_blacklist", "", {
 	display = "Modifier Blacklist", desc = "Modifiers in this list will never appear on weapons nor armor batteries.\n\z
 	Note that you must specify the internal name of modifiers, not the display name. You can find the internal name \z
-	of item modifiers in the Insane Stats Coin Shop's item reforge menu.\n\z
+	of item modifiers by typing \"insanestats_wpass2_modifiers_show\" in the (client) console.\n\z
 	You can also specify \"!curse\", which will cause unlisted negative modifiers to be blacklisted \z
 	and listed negative modifiers to NOT be blacklisted.",
 	type = InsaneStats.STRING
@@ -379,17 +385,25 @@ local function OverrideWeapons()
 		return self:InsaneStats_SetRawNextSecondaryFire(data.next)
 	end
 
-	function WEAPON:Clip1()
-		return self:InsaneStats_RawClip1() - (self.insaneStats_Clip1Adj or 0)
+	if not InsaneStats:GetConVarValue("wpass2_no_fractional_clips") then
+		function WEAPON:Clip1()
+			return self:InsaneStats_RawClip1() - (self.insaneStats_Clip1Adj or 0)
+		end
+
+		function WEAPON:Clip2()
+			return self:InsaneStats_RawClip2() - (self.insaneStats_Clip2Adj or 0)
+		end
 	end
 
-	function WEAPON:Clip2()
-		return self:InsaneStats_RawClip2() - (self.insaneStats_Clip2Adj or 0)
-	end
-	
 	function WEAPON:SetClip1(num)
-		local data = {new = num, old = self.insaneStats_LastClip1 or self:Clip1(), wep = self}
+		local data = {
+			new = num, old = self.insaneStats_LastClip1 or self:Clip1(),
+			wep = self
+		}
 		hook.Run("InsaneStatsModifyWeaponClip", data)
+		if InsaneStats:GetConVarValue("wpass2_no_fractional_clips") then
+			data.new = (data.new % 1 > math.random() and math.ceil or math.floor)(data.new)
+		end
 		self.insaneStats_Clip1Adj = math.Round(1 - data.new, 3) % 1
 		if SERVER then
 			self:InsaneStats_MarkForUpdate(512)
@@ -399,8 +413,14 @@ local function OverrideWeapons()
 	end
 	
 	function WEAPON:SetClip2(num)
-		local data = {new = num, old = self.insaneStats_LastClip2 or self:Clip2(), wep = self}
+		local data = {
+			new = num, old = self.insaneStats_LastClip2 or self:Clip2(),
+			wep = self, secondary = true
+		}
 		hook.Run("InsaneStatsModifyWeaponClip", data)
+		if InsaneStats:GetConVarValue("wpass2_no_fractional_clips") then
+			data.new = (data.new % 1 > math.random() and math.ceil or math.floor)(data.new)
+		end
 		self.insaneStats_Clip2Adj = math.Round(1 - data.new, 3) % 1
 		if SERVER then
 			self:InsaneStats_MarkForUpdate(512)

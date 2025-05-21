@@ -891,9 +891,14 @@ local skills = {
 	},
 	keep_it_ready = {
 		name = "Keep It Ready",
-		desc = "Gain more coins and XP based on the square root of the percentage of ammo left in the current weapon's clip. At 100%% ammo, coins and XP gain is increased by +%u%%!",
-		values = function(level)
-			return level * 10
+		desc = "Gain more coins and XP \z
+		based on the square root of the percentage of ammo left in the current weapon's clip. \z
+		At 100%% ammo, coins and XP gain is increased by %s%%!",
+		values = function(level, ent)
+			if ent:InsaneStats_EffectivelyHasSkill("dangerous_preparation") then
+				level = level * (1 + ent:InsaneStats_GetEffectiveSkillValues("dangerous_preparation", 5) / 100)
+			end
+			return CLIENT and InsaneStats:FormatNumber(level * 10, {plus = true}) or level * 10
 		end,
 		img = "knapsack",
 		pos = {5, 2},
@@ -952,19 +957,17 @@ local skills = {
 		pos = {3, 4},
 		minpts = 5
 	},
-	reject_humanity = {
-		name = "Reject Humanity",
-		desc = "On kill, gain %+.1f stack(s) of Reject Humanity. \z
-		Each stack gives 1%% more damage dealt, coins and XP, \z
-		but each stack also causes 1%% more damage taken and stacks decay at a rate of -1%%/s.",
-		values = function(level)
-			return level/5
+	vampiric = {
+		name = "Vampiric",
+		desc = "Restore +%.1f health per hit. However, take %s BASE fire damage per second \z
+		while under sunlight or even moonlight.",
+		values = function(level, ent)
+			local value = 10 * InsaneStats:DetermineDamageMulPure(
+				ent, game.GetWorld()
+			)
+			return level/5, CLIENT and InsaneStats:FormatNumber(value)
 		end,
-		stackTick = function(state, current, time, ent)
-			local nextStacks = current * .99 ^ time
-			return nextStacks <= 0 and 0 or 1, nextStacks
-		end,
-		img = "mad-scientist",
+		img = "batwing-emblem",
 		pos = {2, 5},
 		minpts = 5
 	},
@@ -1101,7 +1104,7 @@ local skills = {
 	starlight = {
 		name = "Starlight",
 		desc = "On kill or prop broken, gain %+.1f stack(s) of Starlight. \z
-		Each stack gives 1%% more defence, coins and XP but also causes glowing \z
+		Each stack gives 1%% more defence but also causes glowing \z
 		by %s times the square root of the number of stacks. \z
 		Stacks decay at a rate of -1%%/s.",
 		values = function(level)
@@ -1109,7 +1112,7 @@ local skills = {
 			if CLIENT then
 				distance = InsaneStats:FormatNumber(distance, {distance = true})
 			end
-			return level/5, distance
+			return level/2.5, distance
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = current * .99 ^ time
@@ -1223,7 +1226,7 @@ local skills = {
 	},
 	desperate_harvest = {
 		name = "Desperate Harvest",
-		desc = "At low health, critical hits restore up to %+.0f%% of max health.",
+		desc = "At low health, critical hits restore up to %+u%% of max health.",
 		values = function(level)
 			return level
 		end,
@@ -1418,12 +1421,15 @@ local skills = {
 	},
 	seasoning = {
 		name = "Seasoning",
-		desc = "Whenever damage would be dealt, there is a +%u%% chance \z
-		to increase coins and XP yielded by the victim for 10 seconds. \z
-		This effect can stack, but the number of stacks applied is proportional to BASE damage dealt.",
+		desc = "Whenever damage would be dealt, increase coins and XP yielded by the victim for 10 seconds. \z
+		This effect can stack, but the number of stacks applied \z
+		is proportional to +%u%% of BASE damage dealt \z
+		and limited to +%u times the number of skill points gained in total \z
+		(maximum %s stacks per hit at current total skill points).",
 		values = function(level, ent)
-			--local maxStacks = level / 10 * 2^128
-			return level * 10--, CLIENT and InsaneStats:FormatNumber(maxStacks, {plus = true}) or maxStacks
+			local skillPoints = ent:InsaneStats_GetTotalSkillPoints()
+			local maxStacks = level * skillPoints
+			return level * 10, level, CLIENT and InsaneStats:FormatNumber(maxStacks, {plus = true}) or maxStacks
 		end,
 		img = "salt-shaker",
 		pos = {6, 2},
@@ -1462,26 +1468,16 @@ local skills = {
 		pos = {4, 4},
 		minpts = 5
 	},
-	hacked_shield = {
-		name = "Hacked Shield",
-		desc = "Reduce the softcap and hardcap effects of overcharging the shield by %i%%, \z
-		but getting hit PERMANENTLY reduces maximum shield by %.2f%%! This skill cannot reduce max shield below %s. \z
-		Also, gain +%u%% dodge chance against non-disintegrating damage, \z
-		but this chance is divided by shield %% when shield is above 100%%.",
-		values = function(level, ent)
-			local scaleType = ent:IsPlayer() and "player" or "other"
-			local baseMult = ent:IsPlayer() and 1 or InsaneStats:GetConVarValue("infhealth_armor_mul")
-			local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and ent:InsaneStats_GetLevel() or 1
-			local val = InsaneStats:ScaleValueToLevel(
-				baseMult,
-				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
-				effectiveLevel,
-				"xp_"..scaleType.."_armor_mode"
-			)
-
-			return level*-10, level/-50, CLIENT and InsaneStats:FormatNumber(val), level*5, val
+	beyond_240_kmph = {
+		name = "Beyond 240 km/h",
+		desc = "Speed-based skills and modifiers now use effective speed, \z
+		which is calculated as being %+i%% higher than actual speed! \z
+		For all skills and modifiers that do not dilate time, \z
+		an additional %+i%% of normal running speed is always added to effective speed!",
+		values = function(level)
+			return level * 10, level * 10
 		end,
-		img = "circuitry",
+		img = "afterburn",
 		pos = {3, 5},
 		minpts = 5
 	},
@@ -1539,11 +1535,31 @@ local skills = {
 	},
 	dangerous_preparation = {
 		name = "Dangerous Preparation",
-		desc = "Gain more damage dealt, damage taken, coins and XP \z
+		desc = "Gain more damage dealt and ammo consumption \z
 		based on the square root of the percentage of ammo left in the current weapon's clip. \z
-		At 100%% ammo, damage dealt, damage taken, coins and XP gain are all increased by +%u%%!",
-		values = function(level)
-			return level * 10
+		At 100%% ammo, damage dealt and ammo consumption are increased by +%u%%! \z
+		The Keep It Ready skill is also more effective based on the percentage of ammo \z
+		left in the current weapon's clip, raised to the power of %.5f times the number of skill points \z
+		gained in total (^%s at current total skill points, %s%% more effectiveness at current ammo percentage).",
+		values = function(level, ent)
+			local skillPoints = ent:InsaneStats_GetTotalSkillPoints()
+			local basePower = level * 0.00002
+			local power = skillPoints * basePower
+			local effectiveBonus = 0
+			
+			local wep = ent.GetActiveWeapon and ent:GetActiveWeapon()
+			if (IsValid(wep) and wep.Clip1) then
+				local clip1 = wep:Clip1()
+				local maxClip1 = wep:GetMaxClip1()
+				local clip1Fraction = (math.max(clip1, 0) / maxClip1) ^ power
+				if maxClip1 <= 0 then
+					clip1Fraction = 1
+				end
+				effectiveBonus = clip1Fraction * 100
+			end
+
+			return level * 10, basePower, CLIENT and InsaneStats:FormatNumber(power) or power,
+			CLIENT and InsaneStats:FormatNumber(effectiveBonus) or effectiveBonus, effectiveBonus
 		end,
 		img = "thunder-skull",
 		pos = {-2, 6},
@@ -1790,11 +1806,11 @@ local skills = {
 	},
 	sick_combo = {
 		name = "Sick Combo",
-		desc = "On kill, gain +%.1f stack(s) of Sick Combo and extend its duration by %u seconds. \z
+		desc = "On kill, gain +%.3f stack(s) of Sick Combo and extend its duration by %u seconds, up to 60 seconds. \z
 		Picking up any item will also extend the duration by half the amount. \z
-		Each stack gives 1%% more coins and XP, but duration is limited to a maximum of 60 seconds! \z
-		Also, every power of %u Sick Combo stacks grants +100%% more kill skill retriggers on kill, \z
-		but also halves Sick Combo duration gains!",
+		Each stack gives 1%% more coins and XP, but stacks are limited to a maximum of 1, \z
+		multiplied by 5 for every %u skill points gained in total (%s at current total skill points). \z
+		Also, every power of %u Sick Combo stacks grants +100%% more kill skill retriggers on kill!",
 		--[[
 		\z
 		multiplied by the number of skill points gained in total
@@ -1802,8 +1818,10 @@ local skills = {
 		doubles the max Sick Combo duration \z
 		and 
 		]]
-		values = function(level)
-			return level/5, 2, 5
+		values = function(level, ent)
+			local pointsPer5 = 400 - level * 20
+			local stackLimit = 5 ^ (ent:InsaneStats_GetTotalSkillPoints() / pointsPer5)
+			return level/1000, 2, pointsPer5, CLIENT and InsaneStats:FormatNumber(stackLimit) or stackLimit, 5
 		end,
 		img = "poker-hand",
 		pos = {5, -1},
@@ -1902,16 +1920,32 @@ local skills = {
 		pos = {1, 5},
 		minpts = 6
 	},
-	beyond_240_kmph = {
-		name = "Beyond 240 km/h",
-		desc = "Speed-based skills and modifiers now use effective speed, \z
-		which is calculated as being %+i%% higher than actual speed! \z
-		For all skills and modifiers that do not dilate time, \z
-		an additional %+i%% of normal running speed is always added to effective speed!",
-		values = function(level)
-			return level * 10, level * 10
+	hacked_shield = {
+		name = "Hacked Shield",
+		desc = "Reduce the softcap and hardcap effects of overcharging the shield by %.3f%% \z
+		times the number of skill points gained in total, up to -100%% (%s%% at current total skill points). \z
+		However, getting hit PERMANENTLY reduces maximum shield by %.2f%%! \z
+		This skill cannot reduce max shield below %s. \z
+		Also, gain +%u%% dodge chance against non-disintegrating damage, \z
+		but this chance is divided by shield %% when shield is above 100%%.",
+		values = function(level, ent)
+			local scaleType = ent:IsPlayer() and "player" or "other"
+			local baseMult = ent:IsPlayer() and 1 or InsaneStats:GetConVarValue("infhealth_armor_mul")
+			local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and ent:InsaneStats_GetLevel() or 1
+			local skillPoints = ent:InsaneStats_GetTotalSkillPoints()
+			local baseNerfReduction = level * -0.005
+			local nerfReduction = math.max(baseNerfReduction*skillPoints, -100)
+			local val = InsaneStats:ScaleValueToLevel(
+				baseMult,
+				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
+				effectiveLevel,
+				"xp_"..scaleType.."_armor_mode"
+			)
+
+			return baseNerfReduction, CLIENT and InsaneStats:FormatNumber(nerfReduction) or nerfReduction,
+			level/-50, CLIENT and InsaneStats:FormatNumber(val) or val, level*5
 		end,
-		img = "afterburn",
+		img = "circuitry",
 		pos = {-1, 5},
 		minpts = 6
 	},
@@ -2144,11 +2178,10 @@ local skills = {
 	},
 	lets_do_that_again = {
 		name = "Let's Do That Again!",
-		desc = "On NPC kill, resurrect it 5 seconds after death if the space they died in remains empty. \z
-		Resurrected NPCs spawn with +%u%% more XP, are always hostile to all players \z
-		and cannot resurrect again, however they also drop +%u%% more coins and XP.",
+		desc = "On NPC kill, there is a +%u%% chance to resurrect it 5 seconds after death \z
+		if the space they died in remains empty. Resurrected NPCs cannot resurrect again.",
 		values = function(level, ent)
-			return level * 5, level * 5
+			return level * 5
 		end,
 		img = "recycle",
 		pos = {6, -4},
@@ -2188,9 +2221,16 @@ local skills = {
 		name = "More and More",
 		desc = "Having a full bar of shield \z
 		boosts all healing and shield gained from skills and modifiers by +%u%%. \z
-		Every power of %u bars of shield grants +%u%% more health and shield gain.",
+		Every power of %u bars of shield grants +%u%% more health and shield gain. \z
+		Additionally, defence is increased by %s%%, \z
+		but this percentage is divided by the number of skill points gained in total \z
+		(%s%% at current total skill points).",
 		values = function(level, ent)
-			return level * 5, 15 - level, level * 5
+			local defBoost = 1000 * level
+			local defBoostEff = defBoost / math.max(ent:InsaneStats_GetTotalSkillPoints(), 1)
+			return level * 5, 5, level * 5,
+			CLIENT and InsaneStats:FormatNumber(defBoost, {decimals = 1, plus = true}) or defBoost,
+			CLIENT and InsaneStats:FormatNumber(defBoostEff, {decimals = 1, plus = true}) or defBoostEff
 		end,
 		img = "mineral-heart",
 		pos = {-6, 4},
@@ -2198,7 +2238,7 @@ local skills = {
 	},
 	solar_power = {
 		name = "Solar Power",
-		desc = "+%u%%/s health regeneration while standing under sunlight or moonlight",
+		desc = "+%u%%/s health regeneration while under sunlight or moonlight",
 		values = function(level)
 			return level
 		end,
@@ -2632,6 +2672,11 @@ local statusEffects = {
 				end)
 			end
 		end
+	},
+	xp_yield_down = {
+		name = "Loot Yielded Down",
+		typ = 1,
+		img = "acid-blob"
 	},
 }
 

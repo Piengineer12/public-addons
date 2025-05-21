@@ -473,3 +473,13 @@ end
 function ENT:InsaneStats_AddXP(xp, addDropValue)
 	return self:InsaneStats_SetXP(self:InsaneStats_GetXP() + xp, self:InsaneStats_GetDropXP() + addDropValue)
 end
+
+-- this is deprecated but turns out there's a part of D/GL4 that still needs this!
+-- TODO: tell!
+function ENT:InsaneStats_GetXPToNextLevel()
+	local nextXP = InsaneStats:GetXPRequiredToLevel(self:InsaneStats_GetLevel() + 1)
+	if not InsaneStats:GetConVarValue("hud_xp_cumulative") then
+		nextXP = select(2, self:InsaneStats_GetLevelProgress())
+	end
+	return nextXP
+end
