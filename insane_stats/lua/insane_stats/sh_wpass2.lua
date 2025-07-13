@@ -40,12 +40,26 @@ InsaneStats:RegisterConVar("wpass2_burrowed_invincible", "insanestats_wpass2_bur
 	display = "Invincible Burrowed NPCs", desc = "Burrowed antlions can't be damaged.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterConVar("wpass2_no_aiscripted_schedule_interrupt", "insanestats_wpass2_no_aiscripted_schedule_interrupt", "1", {
+	display = "Disable aiscripted_schedule Interrupt",
+	desc = "Stops NPCs from forgetting what they were supposed to be doing when combat is nearby. \z
+	If 1, they can still be interrupted by taking damage.",
+	type = InsaneStats.INT, min = 0, max = 2
+})
 InsaneStats:RegisterConVar("wpass2_no_fractional_clips", "insanestats_wpass2_no_fractional_clips", "0", {
 	display = "Disable Fractional Clips", desc = "Stops clips within weapons from becoming fractional. \z
 	Requires a map restart to fully take effect. \z
 	Effects that grant ammo efficiency instead have a chance to prevent ammo from being consumed.",
 	type = InsaneStats.BOOL
 })
+InsaneStats:RegisterConVar("wpass2_item_limit", "insanestats_wpass2_item_limit", "-1", {
+	display = "Item Limit", desc = "If there are more than this number of items in the map, \z
+	all items will be teleported to random players to prevent lag. A negative number disables this feature.",
+	type = InsaneStats.FLOAT, min = -1, max = 1000
+})
+
+InsaneStats:SetDefaultConVarCategory("WPASS2 - Modifiers & Saving")
+
 InsaneStats:RegisterConVar("wpass2_modifiers_player_save", "insanestats_wpass2_modifiers_player_save", "2", {
 	display = "Save Player Modifiers Across Maps", desc = "If 1, modifiers on player weapons / armor batteries will be saved across maps. \z
 	Consequently, all weapons and ammo are also perserved across maps. \z

@@ -2466,10 +2466,10 @@ local attributes = {
 	}
 }
 
-local canPlayPoisonSound = true
-local canPlayFreezeSound = true
-local canPlayShockSound = true
-local canPlayBleedSound = true
+InsaneStats.canPlayPoisonSound = true
+InsaneStats.canPlayFreezeSound = true
+InsaneStats.canPlayShockSound = true
+InsaneStats.canPlayBleedSound = true
 local statusEffects = {
 	poison = {
 		name = "Poisoned",
@@ -2477,8 +2477,8 @@ local statusEffects = {
 		img = "poison-bottle",
 		overtime = true,
 		apply = SERVER and function(ent, level, duration, attacker)
-			if canPlayPoisonSound then
-				canPlayPoisonSound = false
+			if InsaneStats.canPlayPoisonSound then
+				InsaneStats.canPlayPoisonSound = false
 				ent:EmitSound(string.format("weapons/bugbait/bugbait_squeeze%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
 				
 				local effdata = EffectData()
@@ -2507,8 +2507,8 @@ local statusEffects = {
 		img = "snowflake-2",
 		overtime = true,
 		apply = SERVER and function(ent, level, duration, attacker)
-			if canPlayFreezeSound then
-				canPlayFreezeSound = false
+			if InsaneStats.canPlayFreezeSound then
+				InsaneStats.canPlayFreezeSound = false
 				ent:EmitSound(string.format("physics/glass/glass_sheet_break%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
 				
 				local effdata = EffectData()
@@ -2532,8 +2532,8 @@ local statusEffects = {
 		img = "lightning-frequency",
 		overtime = true,
 		apply = SERVER and function(ent, level, duration, attacker)
-			if canPlayShockSound then
-				canPlayShockSound = false
+			if InsaneStats.canPlayShockSound then
+				InsaneStats.canPlayShockSound = false
 				ent:EmitSound("ambient/energy/weld1.wav", 75, 100, 1, CHAN_WEAPON)
 
 				local effdata = EffectData()
@@ -2550,8 +2550,8 @@ local statusEffects = {
 		img = "droplets",
 		overtime = true,
 		apply = SERVER and function(ent, level, duration, attacker)
-			if canPlayBleedSound then
-				canPlayBleedSound = false
+			if InsaneStats.canPlayBleedSound then
+				InsaneStats.canPlayBleedSound = false
 				ent:EmitSound(string.format("npc/manhack/grind_flesh%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
 
 				local effdata = EffectData()
@@ -2573,8 +2573,8 @@ local statusEffects = {
 		img = "spotted-wound",
 		overtime = true,
 		apply = SERVER and function(ent, level, duration, attacker)
-			if canPlayPoisonSound then
-				canPlayPoisonSound = false
+			if InsaneStats.canPlayPoisonSound then
+				InsaneStats.canPlayPoisonSound = false
 				ent:EmitSound(string.format("weapons/bugbait/bugbait_squeeze%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
 				
 				local effdata = EffectData()
@@ -2586,8 +2586,8 @@ local statusEffects = {
 				effdata:SetNormal(vector_up)
 				util.Effect("StriderBlood", effdata)
 			end
-			if canPlayBleedSound then
-				canPlayBleedSound = false
+			if InsaneStats.canPlayBleedSound then
+				InsaneStats.canPlayBleedSound = false
 				ent:EmitSound(string.format("npc/manhack/grind_flesh%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
 				
 				local effdata = EffectData()
@@ -2610,8 +2610,8 @@ local statusEffects = {
 		overtime = true,
 		apply = SERVER and function(ent, level, duration, attacker)
 			ent:Ignite(duration)
-			if canPlayFreezeSound then
-				canPlayFreezeSound = false
+			if InsaneStats.canPlayFreezeSound then
+				InsaneStats.canPlayFreezeSound = false
 				ent:EmitSound(string.format("physics/glass/glass_sheet_break%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
 				
 				local effdata = EffectData()
@@ -2635,8 +2635,8 @@ local statusEffects = {
 		img = "sonic-lightning",
 		overtime = true,
 		apply = SERVER and function(ent, level, duration, attacker)
-			if canPlayShockSound then
-				canPlayShockSound = false
+			if InsaneStats.canPlayShockSound then
+				InsaneStats.canPlayShockSound = false
 				ent:EmitSound("ambient/energy/weld1.wav", 75, 100, 1, CHAN_WEAPON)
 
 				local effdata = EffectData()
@@ -2654,8 +2654,8 @@ local statusEffects = {
 		overtime = true,
 		apply = SERVER and function(ent, level, duration, attacker)
 			ent:Ignite(duration)
-			if canPlayPoisonSound then
-				canPlayPoisonSound = false
+			if InsaneStats.canPlayPoisonSound then
+				InsaneStats.canPlayPoisonSound = false
 				ent:EmitSound(string.format("weapons/bugbait/bugbait_squeeze%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
 
 				local effdata = EffectData()
@@ -2667,8 +2667,8 @@ local statusEffects = {
 				effdata:SetNormal(vector_up)
 				util.Effect("StriderBlood", effdata)
 			end
-			if canPlayFreezeSound then
-				canPlayFreezeSound = false
+			if InsaneStats.canPlayFreezeSound then
+				InsaneStats.canPlayFreezeSound = false
 				ent:EmitSound(string.format("physics/glass/glass_sheet_break%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
 				
 				local effdata = EffectData()
@@ -2677,8 +2677,8 @@ local statusEffects = {
 				effdata:SetMagnitude(1)
 				util.Effect("GlassImpact", effdata)
 			end
-			if canPlayBleedSound then
-				canPlayBleedSound = false
+			if InsaneStats.canPlayBleedSound then
+				InsaneStats.canPlayBleedSound = false
 				ent:EmitSound(string.format("npc/manhack/grind_flesh%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
 				
 				local effdata = EffectData()
@@ -2692,8 +2692,8 @@ local statusEffects = {
 				effdata:SetMagnitude(1)
 				util.Effect("bloodspray", effdata)
 			end
-			if canPlayShockSound then
-				canPlayShockSound = false
+			if InsaneStats.canPlayShockSound then
+				InsaneStats.canPlayShockSound = false
 				ent:EmitSound("ambient/energy/weld1.wav", 75, 100, 1, CHAN_WEAPON)
 
 				local effdata = EffectData()
@@ -3146,6 +3146,21 @@ local statusEffects = {
 		typ = -2,
 		img = "time-trap"
 	},
+	extra_jumps = {
+		name = "Extra Jumps",
+		typ = 2,
+		img = "fluffy-trefoil"
+	},
+	no_spreading_damage = {
+		name = "No Spreading Damage",
+		typ = -2,
+		img = "scalpel"
+	},
+	no_movement_modifications = {
+		name = "No Movement Modifications",
+		typ = -2,
+		img = "barefoot"
+	}
 }
 
 
@@ -3331,7 +3346,7 @@ end)
 
 hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 	local ent = data.ent
-	if IsValid(ent) then
+	if (IsValid(ent) and ent:InsaneStats_GetStatusEffectLevel("no_movement_modifications") <= 0) then
 		local combatFraction = SERVER and math.Clamp(ent:InsaneStats_GetCombatTime()/5, 0, 1) or 0
 		local healthFraction = 1-math.Clamp(ent:InsaneStats_GetHealth() / ent:InsaneStats_GetMaxHealth(), 0, 1)
 		local speedMul = ent:InsaneStats_GetAttributeValue("speed")
@@ -3358,7 +3373,7 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 		* (1 + ent:InsaneStats_GetEffectiveSkillValues("bloodletters_revelation") / 100 * (1 - healthFraction))
 		* (1 + ent:InsaneStats_GetEffectiveSkillValues("responsive_movement", 2) / 100)
 		* (1 + ent:InsaneStats_GetEffectiveSkillValues("bookworm") / 100)
-		* (1 + ent:InsaneStats_GetEffectiveSkillValues("skinny", 2) / 100)
+		--* (1 + ent:InsaneStats_GetEffectiveSkillValues("skinny", 2) / 100)
 
 		if ent:InsaneStats_GetSkillStacks("hunting_spirit") > 0 then
 			speedMul = speedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("hunting_spirit") / 100)
@@ -3378,10 +3393,15 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 				laggedSpeedMul = laggedSpeedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("just_breathe", 3) / 100)
 			end
 		end
+		if ent:InsaneStats_EffectivelyHasSkill("so_heres_the_problem") and ent:WaterLevel() > 1 then
+			speedMul = speedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("so_heres_the_problem", 3) / 100)
+		end
 
 		local hullMul = 1 + ent:InsaneStats_GetEffectiveSkillValues("four_parallel_universes_ahead", 2) / 100
 		local frictionMul = (1 + ent:InsaneStats_GetEffectiveSkillValues("shoe_spikes", 2) / 100)
 		* (1 + ent:InsaneStats_GetEffectiveSkillValues("responsive_movement") / 100)
+
+		local stepMul = 1 + ent:InsaneStats_GetEffectiveSkillValues("step_it_up", 2) / 100
 		
 		data.speed = data.speed * speedMul
 		data.sprintSpeed = data.sprintSpeed * ent:InsaneStats_GetAttributeValue("sprint_speed")
@@ -3389,6 +3409,7 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 		data.laggedSpeed = data.laggedSpeed * laggedSpeedMul
 		data.hullSize = data.hullSize * hullMul
 		data.friction = data.friction * frictionMul
+		data.stepHeight = data.stepHeight * stepMul
 	end
 end)
 
@@ -3412,7 +3433,13 @@ hook.Add("StartCommand", "InsaneStatsSharedWPASS2", function(ply, usercmd)
 	if usercmd:KeyDown(IN_RELOAD) and IsValid(ply:GetActiveWeapon()) then
 		local wep = ply:GetActiveWeapon()
 		if not wep:IsScripted() and wep:Clip1() > wep:GetMaxClip1() and wep:GetMaxClip1() > 0 then
-			usercmd:RemoveKey(IN_RELOAD)
+			local cancel = false
+			if wep:GetClass() == "weapon_crossbow" then
+				cancel = hook.Run("InsaneStatsReloadXBow", wep, ply)
+			end
+			if not cancel then
+				usercmd:RemoveKey(IN_RELOAD)
+			end
 		end
 	end
 
@@ -3454,6 +3481,7 @@ hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data
 		spreadMult = spreadMult * (1 + attacker:InsaneStats_GetEffectiveSkillValues("stabilization") / 100)
 		/ (1 + attacker:InsaneStats_GetStatusEffectLevel("accuracy_up") / 100)
 		* (1 + attacker:InsaneStats_GetStatusEffectLevel("accuracy_down") / 100)
+		* (1 + attacker:InsaneStats_GetEffectiveSkillValues("helm_too_big", 2) / 100)
 		if data.AmmoType == "Pistol" or data.AmmoType == "357" then
 			spreadMult = spreadMult * (1 + attacker:InsaneStats_GetEffectiveSkillValues("one_with_the_gun", 2) / 100)
 		end
@@ -3463,15 +3491,15 @@ hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data
 		local developer = InsaneStats:IsDebugLevel(1)
 		local penetrationPower = attacker:InsaneStats_GetAttributeValue("penetrate") - 1
 		if attacker:InsaneStats_GetSkillState("silver_bullets") == 1 then
-			penetrationPower = penetrationPower + attacker:InsaneStats_GetEffectiveSkillValues("silver_bullets", 4)
+			penetrationPower = penetrationPower + attacker:InsaneStats_GetEffectiveSkillValues("silver_bullets", 3)
 		end
-		if penetrationPower > 0 then
+		if penetrationPower > 0 and attacker:InsaneStats_GetStatusEffectLevel("no_spreading_damage") <= 0 then
 			-- FIXME: in some cases, bullet penetration will incorrectly pierce
 			-- hollow objects as if they were completely solid
 			local oldCallback = data.Callback
 			local newBullet = {
 				Force = data.Force,
-				Distance = math.min(data.Distance or 56756, 56756),
+				Distance = math.min(data.Distance or 65536, 65536),
 				HullSize = data.HullSize,
 				Num = 1,
 				Tracer = data.Tracer,
@@ -3635,7 +3663,8 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 						ply:InsaneStats_SetSkillData("just_breathe", 1, 10)
 					end
 
-					if ply:InsaneStats_EffectivelyHasSkill("friendly_fire_off") then
+					if ply:InsaneStats_GetEffectiveSkillTier("friendly_fire_off") > 1
+					and ply:InsaneStats_GetStatusEffectLevel("no_movement_modifications") <= 0 then
 						for i,v in ipairs(ents.FindByClass("npc_citizen")) do
 							--print(v:GetInternalVariable("squadname"), v:GetNPCState())
 							if v:GetInternalVariable("squadname") == "player_squad" and v:GetNPCState() > 0
@@ -3645,14 +3674,14 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 								local bestDistSqr = math.huge
 								for j,v2 in player.Iterator() do
 									local distSqr = v2:WorldSpaceCenter():DistToSqr(v:WorldSpaceCenter())
-									if v2:InsaneStats_EffectivelyHasSkill("friendly_fire_off") and distSqr < bestDistSqr then
+									if distSqr < bestDistSqr then
 										closestFFOPlayer = v2
 										bestDistSqr = distSqr
 									end
 								end
 
 								if closestFFOPlayer == ply then
-									local maxSqrDist = ply:InsaneStats_GetEffectiveSkillValues("friendly_fire_off", 3)
+									local maxSqrDist = ply:InsaneStats_GetEffectiveSkillValues("friendly_fire_off", 4)
 									maxSqrDist = maxSqrDist * maxSqrDist
 									--print(closestFFOPlayer, ply, bestDistSqr, maxSqrDist)
 									if bestDistSqr > maxSqrDist then
@@ -3692,15 +3721,17 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 					ply:InsaneStats_SetEntityData("last_duck_press", 0)
 					local oldVel = ply:GetVelocity()
 					if not ply:OnGround() and ply:InsaneStats_EffectivelyHasSkill("mantreads")
-					and oldVel.z > -10000 then
+					and oldVel.z > -10000 and ply:InsaneStats_GetStatusEffectLevel("no_movement_modifications") <= 0 then
 						ply:SetVelocity(vector_up * -10000 - oldVel)
 					end
 				else
 					ply:InsaneStats_SetEntityData("last_duck_press", RealTime())
 				end
 			end
-			if key == IN_JUMP and not ply:InsaneStats_GetEntityData("air_jumped_negate") then
-				local canWPASS2Jump = ply:InsaneStats_GetStatusEffectLevel("air_jumped") + 1 < ply:InsaneStats_GetAttributeValue("jumps")
+			if key == IN_JUMP and not ply:InsaneStats_GetEntityData("air_jumped_negate")
+			and ply:InsaneStats_GetStatusEffectLevel("no_movement_modifications") <= 0 then
+				local canWPASS2Jump = ply:InsaneStats_GetStatusEffectLevel("air_jumped") + 1
+				< ply:InsaneStats_GetAttributeValue("jumps") + ply:InsaneStats_GetStatusEffectLevel("extra_jumps")
 				local canSkillJump = ply:InsaneStats_GetSkillStacks("jumper") > 0
 				if canWPASS2Jump or canSkillJump then
 					if canSkillJump then
@@ -3738,10 +3769,10 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 			end
 		end
 
-		if SERVER and key == IN_RELOAD and ply:InsaneStats_EffectivelyHasSkill("explosive_arsenal")
-		and IsValid(ply:GetActiveWeapon()) then
-			local wepClass = ply:GetActiveWeapon():GetClass()
-			if wepClass == "weapon_frag" then
+		local wep = ply:GetActiveWeapon()
+		if SERVER and key == IN_RELOAD and IsValid(wep) then
+			local wepClass = wep:GetClass()
+			if wepClass == "weapon_frag" and ply:InsaneStats_EffectivelyHasSkill("explosive_arsenal") then
 				local oldStacks = ply:InsaneStats_GetSkillStacks("explosive_arsenal")
 				local newStacks = bit.bxor(oldStacks, 1)
 				if bit.band(newStacks, 1) ~= 0 then
@@ -3750,7 +3781,7 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 					ply:PrintMessage(HUD_PRINTTALK, "Explode Grenade on Collision: Disabled")
 				end
 				ply:InsaneStats_SetSkillData("explosive_arsenal", -2, newStacks)
-			elseif wepClass == "weapon_rpg" then
+			elseif wepClass == "weapon_rpg" and ply:InsaneStats_EffectivelyHasSkill("explosive_arsenal") then
 				local oldStacks = ply:InsaneStats_GetSkillStacks("explosive_arsenal")
 				local newStacks = bit.bxor(oldStacks, 2)
 				if bit.band(newStacks, 2) ~= 0 then
@@ -3759,10 +3790,11 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 					ply:PrintMessage(HUD_PRINTTALK, "Invincible Instant Rockets: Disabled")
 				end
 				ply:InsaneStats_SetSkillData("explosive_arsenal", -2, newStacks)
+			elseif wepClass == "weapon_crossbow" then
+				hook.Run("InsaneStatsReloadXBow", wep, ply)
 			end
 		end
 
-		local wep = ply:GetActiveWeapon()
 		local eligibleWep = IsValid(wep) and (
 			wep:GetClass() == "weapon_pistol" or wep:GetClass() == "weapon_357"
 		)
@@ -3792,10 +3824,10 @@ end)
 hook.Add("Think", "InsaneStatsSharedWPASS2", function()
 	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
 		if SERVER then
-			canPlayPoisonSound = true
-			canPlayFreezeSound = true
-			canPlayBleedSound = true
-			canPlayShockSound = true
+			InsaneStats.canPlayPoisonSound = true
+			InsaneStats.canPlayFreezeSound = true
+			InsaneStats.canPlayBleedSound = true
+			InsaneStats.canPlayShockSound = true
 		end
 
 		for i,ply in player.Iterator() do
@@ -3806,8 +3838,11 @@ hook.Add("Think", "InsaneStatsSharedWPASS2", function()
 			)
 			if ply:KeyDown(IN_RELOAD) and ply:InsaneStats_GetSkillState("melee_arts") == 1
 			and validForMeleeArts then
-				ply:InsaneStats_SetSkillData("melee_arts", 0, 0)
+				local curTime = CurTime()
+				local data = {next = curTime + 1, attacker = ply}
+				hook.Run("InsaneStatsModifyNextFire", data)
 
+				ply:InsaneStats_SetSkillData("melee_arts", 0, curTime - data.next + 1)
 				ply:FireBullets({
 					Damage = 4,
 					Callback = function(attacker, trace, dmginfo)
@@ -3853,14 +3888,16 @@ hook.Add("Think", "InsaneStatsSharedWPASS2", function()
 					Src = ply:GetShootPos()
 				})
 			end
+			local jumperStacks = ply:InsaneStats_GetStatusEffectLevel("no_movement_modifications") > 0
+			and 0 or ply:InsaneStats_GetEffectiveSkillValues("jumper")
 			if ply:OnGround() then
 				ply:InsaneStats_ClearStatusEffect("air_jumped")
 				ply:InsaneStats_SetEntityData("air_jumped_negate", true)
 				if ply:InsaneStats_GetSkillState("jumper") ~= 0 and ply:InsaneStats_EffectivelyHasSkill("jumper") then
-					ply:InsaneStats_SetSkillData("jumper", 0, ply:InsaneStats_GetEffectiveSkillValues("jumper"))
+					ply:InsaneStats_SetSkillData("jumper", 0, jumperStacks)
 				end
 			elseif ply:InsaneStats_GetEntityData("air_jumped_negate") then
-				ply:InsaneStats_SetSkillData("jumper", 1, ply:InsaneStats_GetEffectiveSkillValues("jumper"))
+				ply:InsaneStats_SetSkillData("jumper", 1, jumperStacks)
 				ply:InsaneStats_SetEntityData("air_jumped_negate", false)
 			end
 		end

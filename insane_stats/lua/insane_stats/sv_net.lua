@@ -488,23 +488,26 @@ net.Receive("insane_stats", function(length, ply)
 			local skillID = net.ReadUInt(8) + 1
 			local skillName = InsaneStats:GetSkillName(skillID)
 			if skillName then
-				local max = InsaneStats:GetSkillInfo(skillName).max or 5
+				local max = ply:InsaneStats_GetSkillMaxLevel(skillName)
 				local currentTier = ply:InsaneStats_GetSkillTier(skillName)
 				if currentTier < max and ply:InsaneStats_GetSkillPoints() >= 1 then
 					ply:InsaneStats_SetSkillTier(skillName, currentTier+1)
-				elseif currentTier < max * 2 and ply:InsaneStats_GetUberSkillPoints() >= 1 then
+				elseif currentTier == max and ply:InsaneStats_GetUberSkillPoints() >= 1 then
 					ply:InsaneStats_SetSkillTier(skillName, currentTier*2)
+				elseif currentTier > max and currentTier < max * 2 and ply:InsaneStats_GetSkillPoints() >= 1 then
+					ply:InsaneStats_SetSkillTier(skillName, currentTier+2)
 				end
 			end
 		elseif operation == 1 then
 			local skillID = net.ReadUInt(8) + 1
 			local skillName = InsaneStats:GetSkillName(skillID)
 			if skillName then
-				local max = InsaneStats:GetSkillInfo(skillName).max or 5
+				local max = ply:InsaneStats_GetSkillMaxLevel(skillName)
 				local currentTier = ply:InsaneStats_GetSkillTier(skillName)
-				local spend = math.min(ply:InsaneStats_GetSkillPoints(), max - currentTier)
+				local div = currentTier > max and 2 or 1
+				local spend = math.min(ply:InsaneStats_GetSkillPoints(), max - currentTier / div)
 				
-				ply:InsaneStats_SetSkillTier(skillName, currentTier + spend)
+				ply:InsaneStats_SetSkillTier(skillName, currentTier + spend * div)
 			end
 		elseif operation == 2 and ply:InsaneStats_CanSealSkills() then
 			local skillID = net.ReadUInt(8) + 1

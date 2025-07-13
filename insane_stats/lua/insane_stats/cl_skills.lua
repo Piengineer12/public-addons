@@ -34,6 +34,7 @@ end, nil, "If manual skill respecs are enabled, this ConCommand respecs all skil
 
 local color_dark_gray = InsaneStats:GetColor("dark_gray")
 local color_gray = InsaneStats:GetColor("gray")
+local color_red = InsaneStats:GetColor("red")
 local color_yellow = InsaneStats:GetColor("yellow")
 local color_green = InsaneStats:GetColor("green")
 local color_aqua = InsaneStats:GetColor("aqua")
@@ -70,9 +71,9 @@ local function CreateSkillButton(parent, skillName)
 			parent:Refresh()
 		else
 			local currentTier = ply:InsaneStats_GetSkillTier(skillName)
-			local max = skillInfo.max or 5
-			if ply:InsaneStats_GetSkillPoints() >= 1 and currentTier < max
-			or ply:InsaneStats_GetUberSkillPoints() >= 1 and currentTier >= max and currentTier < max * 2 then
+			local max = ply:InsaneStats_GetSkillMaxLevel(skillName)
+			if ply:InsaneStats_GetSkillPoints() >= 1 and (currentTier < max or currentTier > max and currentTier < max * 2)
+			or ply:InsaneStats_GetUberSkillPoints() >= 1 and currentTier == max then
 				net.Start("insane_stats")
 				net.WriteUInt(6, 8)
 				net.WriteUInt(0, 4)
@@ -81,8 +82,10 @@ local function CreateSkillButton(parent, skillName)
 				-- update immediately on client's end
 				if currentTier < max then
 					ply:InsaneStats_SetSkillTier(skillName, currentTier + 1)
-				else
+				elseif currentTier == max then
 					ply:InsaneStats_SetSkillTier(skillName, currentTier * 2)
+				elseif currentTier > max and currentTier < max * 2 then
+					ply:InsaneStats_SetSkillTier(skillName, currentTier + 2)
 				end
 				parent:InsaneStats_SkillHovered(skillName)
 				parent:Refresh()
@@ -104,19 +107,21 @@ local function CreateSkillButton(parent, skillName)
 			parent:Refresh()
 		else
 			local currentTier = ply:InsaneStats_GetSkillTier(skillName)
-			local max = skillInfo.max or 5
+			local max = ply:InsaneStats_GetSkillMaxLevel(skillName)
 			local doShuffle = InsaneStats:GetConVarValue("skills_shuffle")
 			doShuffle = doShuffle > 1 or doShuffle == 1 and os.date("!%m-%d") == "04-01"
-			if ply:InsaneStats_GetSkillPoints() >= 1 and currentTier < max
-			and (not doShuffle or ply:InsaneStats_GetEffectiveSkillTier("master_of_air") > 1) then
+			doShuffle = doShuffle and ply:InsaneStats_GetEffectiveSkillTier("master_of_air") <= 1
+			if ply:InsaneStats_GetSkillPoints() >= 1 and (currentTier < max or currentTier > max and currentTier < max * 2)
+			and not doShuffle then
 				net.Start("insane_stats")
 				net.WriteUInt(6, 8)
 				net.WriteUInt(1, 4)
 				net.WriteUInt(InsaneStats:GetSkillID(skillName) - 1, 8)
 				net.SendToServer()
 				-- update immediately on client's end
-				local spend = math.min(ply:InsaneStats_GetSkillPoints(), max - currentTier)
-				ply:InsaneStats_SetSkillTier(skillName, currentTier + spend)
+				local div = currentTier > max and 2 or 1
+				local spend = math.min(ply:InsaneStats_GetSkillPoints(), max - currentTier / div)
+				ply:InsaneStats_SetSkillTier(skillName, currentTier + spend * div)
 
 				parent:InsaneStats_SkillHovered(skillName)
 				parent:Refresh()
@@ -129,7 +134,7 @@ local function CreateSkillButton(parent, skillName)
 		local disabled = InsaneStats:IsSkillDisabled(skillName)
 		local sealed = ply:InsaneStats_IsSkillSealed(skillName)
 		local tier = ply:InsaneStats_GetSkillTier(skillName)
-		local max = skillInfo.max or 5
+		local max = ply:InsaneStats_GetSkillMaxLevel(skillName)
 		local enabled = self:IsEnabled()
 		local color = tier > max and color_aqua
 			or tier == max and color_green
@@ -173,8 +178,8 @@ local function CreateSkillButton(parent, skillName)
 		self:SetPos(buttonX, buttonY)
 
 		local requiredAdjacent = skillInfo.minpts or 0
-		local adjacent = -ply:InsaneStats_GetEffectiveSkillValues("master_of_air", 3)
-		+ ply:InsaneStats_GetSkillTier(skillName)
+		local adjacent = ply:InsaneStats_GetSkillTier(skillName)
+		-- - ply:InsaneStats_GetEffectiveSkillValues("master_of_air", 3)
 
 		local skillPos = ply:InsaneStats_GetSkillPosition(skillName)
 		local x, y = skillPos[1], skillPos[2]
@@ -276,7 +281,7 @@ local function CreateSkillInfoPanel()
 			or isSealed and InsaneStats.SealedInfo.desc
 			or skillInfo.desc
 			local skillValues = isDisabled and function(currentTier, ply)
-				local maxTier = skillInfo.max or 5
+				local maxTier = ply:InsaneStats_GetSkillMaxLevel(currentSkill)
 				local uberText = currentTier > maxTier and InsaneStats.DisabledInfo.desc_uber or ""
 				return math.min(currentTier, maxTier), uberText
 			end or isSealed and InsaneStats.SealedInfo.values
@@ -297,11 +302,16 @@ local function CreateSkillInfoPanel()
 				Panel:AppendText("\n"..tierDescription)
 			end
 
-			if currentTier < (skillInfo.max or 5) then
+			local max = ply:InsaneStats_GetSkillMaxLevel(currentSkill)
+			if currentTier < max then
 				local nextTierDescription = string.format(skillDesc, skillValues(currentTier+1, ply))
 				Panel:InsertColorChange(255, 255, 0, 255)
 				Panel:AppendText("\n\nNext Tier:\n"..nextTierDescription)
-			elseif currentTier < (skillInfo.max or 5) * 2 and ply:InsaneStats_GetUberSkillPoints() > 0 then
+			elseif currentTier > max and currentTier < max * 2 then
+				local nextTierDescription = string.format(skillDesc, skillValues(currentTier+2, ply))
+				Panel:InsertColorChange(255, 255, 0, 255)
+				Panel:AppendText("\n\nNext Tier:\n"..nextTierDescription)
+			elseif currentTier == max and ply:InsaneStats_GetUberSkillPoints() > 0 then
 				local nextTierDescription = string.format(skillDesc, skillValues(currentTier*2, ply))
 				Panel:InsertColorChange(0, 255, 255, 255)
 				Panel:AppendText("\n\nNext Tier:\n"..nextTierDescription)
@@ -399,11 +409,12 @@ local function CreateSkillHeaders(parent)
 	function HeaderLabel:Think()
 		local ply = LocalPlayer()
 		local texts = {}
+		local maxPoints = ply:InsaneStats_GetMaxSkillPoints()
 		local skillPoints, totalSkillPoints = ply:InsaneStats_GetSkillPoints(), ply:InsaneStats_GetTotalSkillPoints()
-		totalSkillPoints = math.min(totalSkillPoints, InsaneStats:GetMaxSkillPoints())
+		totalSkillPoints = math.min(totalSkillPoints, maxPoints)
 		local uberSkillPoints, totalUberSkillPoints = ply:InsaneStats_GetUberSkillPoints(), ply:InsaneStats_GetTotalUberSkillPoints()
 		totalUberSkillPoints = math.min(totalUberSkillPoints, InsaneStats:GetMaxUberSkillPoints())
-		local allSkillsMaxed = totalSkillPoints - skillPoints >= InsaneStats:GetMaxSkillPoints()
+		local allSkillsMaxed = totalSkillPoints - skillPoints >= maxPoints
 		local allSkillsUberMaxed = totalUberSkillPoints - uberSkillPoints >= InsaneStats:GetMaxUberSkillPoints()
 
 		if InsaneStats:GetConVarValue("skills_shuffle") == 1 and os.date("!%m-%d") == "04-01" then
@@ -415,7 +426,7 @@ local function CreateSkillHeaders(parent)
 		if uberSkillPoints > 0 and not allSkillsUberMaxed then
 			table.insert(texts, "On a fully upgraded skill, both left click and right click will instead assign 1 über skill point.")
 		end
-		if totalSkillPoints >= InsaneStats:GetMaxSkillPoints() and not allSkillsMaxed then
+		if totalSkillPoints >= maxPoints and not allSkillsMaxed then
 			table.insert(texts, "Press Ctrl + Space to assign max skill points to all skills.")
 		end
 		if totalUberSkillPoints >= InsaneStats:GetMaxUberSkillPoints() and not allSkillsUberMaxed then
@@ -535,7 +546,7 @@ hook.Add("HUDPaint", "InsaneStatsSkills", function()
 	and IsValid(ply) and InsaneStats:ShouldDrawHUD() then
 		local totalSkillPoints = math.min(
 			ply:InsaneStats_GetTotalSkillPoints(),
-			InsaneStats:GetMaxSkillPoints()
+			ply:InsaneStats_GetMaxSkillPoints()
 		)
 		local totalUberSkillPoints = math.min(
 			ply:InsaneStats_GetTotalUberSkillPoints(),
@@ -595,7 +606,10 @@ hook.Add("HUDPaint", "InsaneStatsSkills", function()
 				local skillInfo = InsaneStats:GetSkillInfo(v)
 				local skillState = ply:InsaneStats_GetSkillState(v, true)
 				local skillStacks = ply:InsaneStats_GetSkillStacks(v, true)
-				local skillColor = skillState == 0 and color_white or skillState > 0 and color_aqua or color_dark_gray
+				local skillColor = skillState == 1 and color_aqua
+				or skillState == 2 and color_red
+				or skillState == -1 and color_dark_gray
+				or color_white
 
 				-- what row number is this skill in? (0-indexed)
 				local rowY = math.ceil(i / skillsPerRow) - 1

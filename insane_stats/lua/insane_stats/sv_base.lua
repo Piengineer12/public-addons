@@ -165,7 +165,7 @@ local hlsAliases = {
 }
 local keyValuesOnCrashableEntities = {}
 local targetnamesToPreventCrashes = {}]]
---local replaceAllGunships = false
+local replaceAllGunships = false
 -- For some reason "color" isn't included under game_text:GetKeyValues(). Why?
 hook.Add("EntityKeyValue", "InsaneStats", function(ent, key, value)
 	key = key:lower()
@@ -215,7 +215,7 @@ hook.Add("EntityKeyValue", "InsaneStats", function(ent, key, value)
 				times = tonumber(rawData[5]) or -1
 			})
 		end
-	--[[elseif class == "npc_combinegunship" then
+	elseif class == "npc_combinegunship" then
 		ent.insaneStats_KVs = ent.insaneStats_KVs or {}
 		table.insert(ent.insaneStats_KVs, {key, value})
 
@@ -224,7 +224,7 @@ hook.Add("EntityKeyValue", "InsaneStats", function(ent, key, value)
 				InsaneStats:Log("A template gunship has been detected, all gunships will be replaced with helicopters!")
 			end
 			replaceAllGunships = true
-		end]]
+		end
 	end
 end)
 --InsaneStats.KeyValuesOnCrashableEntities = keyValuesOnCrashableEntities
@@ -310,12 +310,15 @@ hook.Add("AcceptInput", "InsaneStats", function(ent, input, activator, caller, v
 			ent.insaneStats_DisplayedInChat = true
 		end
 	elseif input == "showhudhint" and class == "env_hudhint" and InsaneStats:GetConVarValue("hudhint_tochat") then
-		table.insert(pendingGameTexts, {
-			order = 0,
-			t = ent.insaneStats_Text,
-			c = Color(255, 255, 0),
-			target = not ent:HasSpawnFlags(1) and activator:IsPlayer() and activator
-		})
+		local message = ent.insaneStats_Text or ent:GetInternalVariable("message")
+		if message then
+			table.insert(pendingGameTexts, {
+				order = 0,
+				t = message,
+				c = Color(255, 255, 0),
+				target = not ent:HasSpawnFlags(1) and activator:IsPlayer() and activator
+			})
+		end
 	elseif input == "disableflashlight" and ent:IsPlayer() then
 		ent.insaneStats_FlashlightDisabled = true
 	elseif input == "enableflashlight" and ent:IsPlayer() then
@@ -430,9 +433,10 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStats", function(ent)
 			ent:Fire("AddOutput", "OnJoinedPlayerSquad !self:InsaneStats_OnJoinedPlayerSquad")
 			ent:Fire("AddOutput", "OnLeftPlayerSquad !self:InsaneStats_OnLeftPlayerSquad")
 			ent:InsaneStats_MarkForUpdate(256)
-		elseif class=="npc_combinedropship" and InsaneStats:GetConVarValue("nonsolid_combine_dropship") then
+		elseif (class=="npc_combinedropship" or class=="prop_dropship_container")
+		and InsaneStats:GetConVarValue("nonsolid_combine_dropship") then
 			ent:SetCollisionGroup(COLLISION_GROUP_WORLD)
-		--[[elseif class=="npc_combinegunship" and InsaneStats:GetConVarValue("prevent_gunship_death_crash")
+		elseif class=="npc_combinegunship" and InsaneStats:GetConVarValue("prevent_gunship_death_crash")
 		and replaceAllGunships then
 			local keyValues = ent.insaneStats_KVs or {}
 			local pos = ent:GetPos()
@@ -456,7 +460,7 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStats", function(ent)
 					heli:SetKeyValue(key, value)
 				end
 			end
-			heli:Spawn()]]
+			heli:Spawn()
 		end
 	end
 end)
@@ -558,7 +562,7 @@ hook.Add("Think", "InsaneStats", function()
 
 	local buildupCount = InsaneStats:GetConVarValue("sleepphys_lagamount")
 	if buildupCount > 0 then
-		if engine.AbsoluteFrameTime() >= 0.5 and nextPhysSleep < RealTime() then
+		if engine.AbsoluteFrameTime() >= 0.5 and nextPhysSleep < RealTime() and CurTime() > 10 then
 			lagBuildup = lagBuildup + 1
 			if lagBuildup >= buildupCount then
 				for i,v in ents.Iterator() do

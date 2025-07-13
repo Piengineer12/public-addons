@@ -74,10 +74,10 @@ InsaneStats:SetAllSkills({})
 
 local skillNames = {}
 local skillPositions = {}
-local maxSkillPoints = 0
+--local maxSkillPoints = 0
 local maxUberSkillPoints = 0
 local function MapSkillsToIDs()
-	maxSkillPoints = 0
+	--maxSkillPoints = 0
 	maxUberSkillPoints = 0
 
 	for k,v in SortedPairs(InsaneStats:GetAllSkills()) do
@@ -88,7 +88,7 @@ local function MapSkillsToIDs()
 		skillPositions[x][y] = k
 
 		maxUberSkillPoints = maxUberSkillPoints + 1
-		maxSkillPoints = maxSkillPoints + (v.max or 5)
+		--maxSkillPoints = maxSkillPoints + InsaneStats:GetSkillMaxLevel(k)
 	end
 end
 
@@ -117,9 +117,9 @@ function InsaneStats:GetSkillNameByPosition(x, y)
 	return (skillPositions[x] or {})[y]
 end
 
-function InsaneStats:GetMaxSkillPoints()
+--[[function InsaneStats:GetMaxSkillPoints()
 	return maxSkillPoints
-end
+end]]
 
 function InsaneStats:GetMaxUberSkillPoints()
 	return maxUberSkillPoints
@@ -138,12 +138,29 @@ function ENTITY:InsaneStats_SetSkillTier(skill, level)
 	hook.Run("InsaneStatsSkillsChanged", self)
 end
 
+function ENTITY:InsaneStats_GetMaxSkillPoints()
+	local maxSkillPoints = 0
+
+	for k,v in SortedPairs(InsaneStats:GetAllSkills()) do
+		maxSkillPoints = maxSkillPoints + self:InsaneStats_GetSkillMaxLevel(k)
+	end
+
+	return maxSkillPoints
+end
+
+function ENTITY:InsaneStats_GetSkillMaxLevel(name)
+	local data = {max = InsaneStats:GetSkillInfo(name).max or 5, name = name, ent = self}
+	hook.Run("InsaneStatsSkillMaxLevel", data)
+	return data.max
+end
+
 function ENTITY:InsaneStats_MaxAllSkills(uber)
-	if self:InsaneStats_GetTotalSkillPoints() >= InsaneStats:GetMaxSkillPoints() then
+	if self:InsaneStats_GetTotalSkillPoints() >= self:InsaneStats_GetMaxSkillPoints() then
 		uber = uber and self:InsaneStats_GetTotalUberSkillPoints() >= InsaneStats:GetMaxUberSkillPoints()
 
 		for k,v in pairs(InsaneStats:GetAllSkills()) do
-			self.insaneStats_Skills[k] = math.max((v.max or 5) * (uber and 2 or 1), self.insaneStats_Skills[k] or 0)
+			local max = self:InsaneStats_GetSkillMaxLevel(k)
+			self.insaneStats_Skills[k] = math.max(max * (uber and 2 or 1), self.insaneStats_Skills[k] or 0)
 		end
 		hook.Run("InsaneStatsSkillsChanged", self)
 	end
@@ -185,8 +202,8 @@ function ENTITY:InsaneStats_GetTotalSkillPoints()
 	end
 
 	for k,v in pairs(InsaneStats:GetDisabledSkills()) do
-		local skillInfo = InsaneStats:GetSkillInfo(k)
-		points = points + math.min(self:InsaneStats_GetSkillTier(k), skillInfo.max or 5)
+		local max = self:InsaneStats_GetSkillMaxLevel(k)
+		points = points + math.min(self:InsaneStats_GetSkillTier(k), max)
 	end
 
 	return math.max(math.floor(points), 0)
@@ -195,7 +212,8 @@ end
 function ENTITY:InsaneStats_GetSpentSkillPoints()
 	local invested = 0
 	for k,v in pairs(self:InsaneStats_GetSkills()) do
-		local max = InsaneStats:GetSkillInfo(k).max or 5
+		local max = self:InsaneStats_GetSkillMaxLevel(k)
+		if v > max then v = v / 2 end
 		invested = invested + math.min(max, v)
 	end
 
@@ -205,7 +223,7 @@ end
 function ENTITY:InsaneStats_GetSkillPoints()
 	return math.min(
 		self:InsaneStats_GetTotalSkillPoints(),
-		InsaneStats:GetMaxSkillPoints()
+		self:InsaneStats_GetMaxSkillPoints()
 	) - self:InsaneStats_GetSpentSkillPoints()
 end
 
@@ -215,8 +233,8 @@ function ENTITY:InsaneStats_GetTotalUberSkillPoints()
 		local points = math.floor(self:InsaneStats_GetTotalSkillPoints() / levels)
 
 		for k,v in pairs(InsaneStats:GetDisabledSkills()) do
-			local skillInfo = InsaneStats:GetSkillInfo(k)
-			if self:InsaneStats_GetSkillTier(k) > (skillInfo.max or 5) then
+			local max = self:InsaneStats_GetSkillMaxLevel(k)
+			if self:InsaneStats_GetSkillTier(k) > max then
 				points = points + 1
 			end
 		end
@@ -230,7 +248,7 @@ end
 function ENTITY:InsaneStats_GetSpentUberSkillPoints()
 	local invested = 0
 	for k,v in pairs(self:InsaneStats_GetSkills()) do
-		local max = InsaneStats:GetSkillInfo(k).max or 5
+		local max = self:InsaneStats_GetSkillMaxLevel(k)
 		if v > max then
 			invested = invested + 1
 		end
@@ -315,7 +333,7 @@ function ENTITY:InsaneStats_GenerateRNGSkillPositions()
 	for i,v in ipairs(skillNames) do
 		local skillData = skillsData[v]
 		local mn = skillData.minpts or 0
-		local mx = skillData.max or 5
+		local mx = self:InsaneStats_GetSkillMaxLevel(v)
 		minMax[mn] = minMax[mn] or {}
 		minMax[mn][mx] = minMax[mn][mx] or {}
 		table.insert(minMax[mn][mx], v)
@@ -353,7 +371,8 @@ end
 function ENTITY:InsaneStats_GetSkillPosition(skill)
 	local doShuffle = InsaneStats:GetConVarValue("skills_shuffle")
 	doShuffle = doShuffle == 2 or doShuffle == 1 and os.date("!%m-%d") == "04-01"
-	if doShuffle and self:InsaneStats_GetEffectiveSkillTier("master_of_air") <= 1 then
+	doShuffle = doShuffle and self:InsaneStats_GetEffectiveSkillTier("master_of_air") <= 1
+	if doShuffle then
 		local rngSkillData = self:InsaneStats_GetEntityData("skill_rng_data")
 		if not rngSkillData then
 			rngSkillData = self:InsaneStats_GenerateRNGSkillPositions()
@@ -367,7 +386,8 @@ end
 function ENTITY:InsaneStats_GetSkillByPosition(x, y)
 	local doShuffle = InsaneStats:GetConVarValue("skills_shuffle")
 	doShuffle = doShuffle == 2 or doShuffle == 1 and os.date("!%m-%d") == "04-01"
-	if doShuffle and self:InsaneStats_GetEffectiveSkillTier("master_of_air") <= 1 then
+	doShuffle = doShuffle and self:InsaneStats_GetEffectiveSkillTier("master_of_air") <= 1
+	if doShuffle then
 		local rngSkillData = self:InsaneStats_GetEntityData("skill_rng_data")
 		if not rngSkillData then
 			rngSkillData = self:InsaneStats_GenerateRNGSkillPositions()
@@ -496,48 +516,56 @@ function ENTITY:InsaneStats_ClearSkillData()
 	self.insaneStats_SkillData = {}
 end
 
-function ENTITY:InsaneStats_GetSkillStacks(skill, skipUpdate)
+function ENTITY:InsaneStats_GetSkillStacks(skill)
 	if self:InsaneStats_EffectivelyHasSkill(skill) then
 		local skillInfo = InsaneStats:GetSkillInfo(skill)
-		if skillInfo.stackTick and not skipUpdate then
+		if skillInfo.stackTick then
 			local skillData = self:InsaneStats_GetSkillData(skill)
-			local diffTime = math.max(CurTime() - (skillData.updateTime or CurTime()), 0)
-			local diffTimeData = {diffTime = diffTime, ent = self, skill = skill}
-			hook.Run("InsaneStatsSkillDiffTime", diffTimeData)
-			local newState, newStacks = skillInfo.stackTick(skillData.state or -2, skillData.stacks or 0, diffTimeData.diffTime, self)
-			
-			local skillData = self:InsaneStats_GetSkillData(skill)
-			skillData.state = newState
-			skillData.stacks = newStacks
-			skillData.updateTime = CurTime()
-			return newStacks
-		else
-			return self:InsaneStats_GetSkillData(skill).stacks or 0
+			local diffTime = math.max(CurTime() - (skillData.updateTime or 0), 0)
+			if diffTime ~= 0 then
+				local diffTimeData = {diffTime = diffTime, ent = self, skill = skill}
+				hook.Run("InsaneStatsSkillDiffTime", diffTimeData)
+				local newState, newStacks = skillInfo.stackTick(
+					skillData.state or -2, skillData.stacks or 0,
+					diffTimeData.diffTime, self
+				)
+				
+				skillData.state = newState
+				skillData.stacks = newStacks
+				skillData.updateTime = CurTime()
+				return newStacks
+			end
 		end
 	else return 0
 	end
+	
+	return self:InsaneStats_GetSkillData(skill).stacks or 0
 end
 
-function ENTITY:InsaneStats_GetSkillState(skill, skipUpdate)
+function ENTITY:InsaneStats_GetSkillState(skill)
 	if self:InsaneStats_EffectivelyHasSkill(skill) then
 		local skillInfo = InsaneStats:GetSkillInfo(skill)
-		if skillInfo.stackTick and not skipUpdate then
+		if skillInfo.stackTick then
 			local skillData = self:InsaneStats_GetSkillData(skill)
-			local diffTime = math.max(CurTime() - (skillData.updateTime or CurTime()), 0)
-			local diffTimeData = {diffTime = diffTime, ent = self, skill = skill}
-			hook.Run("InsaneStatsSkillDiffTime", diffTimeData)
-			local newState, newStacks = skillInfo.stackTick(skillData.state or -2, skillData.stacks or 0, diffTimeData.diffTime, self)
-			
-			local skillData = self:InsaneStats_GetSkillData(skill)
-			skillData.state = newState
-			skillData.stacks = newStacks
-			skillData.updateTime = CurTime()
-			return newState
-		else
-			return self:InsaneStats_GetSkillData(skill).state or -2
+			local diffTime = math.max(CurTime() - (skillData.updateTime or 0), 0)
+			if diffTime ~= 0 then
+				local diffTimeData = {diffTime = diffTime, ent = self, skill = skill}
+				hook.Run("InsaneStatsSkillDiffTime", diffTimeData)
+				local newState, newStacks = skillInfo.stackTick(
+					skillData.state or -2, skillData.stacks or 0,
+					diffTimeData.diffTime, self
+				)
+				
+				skillData.state = newState
+				skillData.stacks = newStacks
+				skillData.updateTime = CurTime()
+				return newState
+			end
 		end
 	else return -2
 	end
+	
+	return self:InsaneStats_GetSkillData(skill).state or -2
 end
 
 hook.Add("InsaneStatsSkillsChanged", "InsaneStatsSkillsShared", function(ent)

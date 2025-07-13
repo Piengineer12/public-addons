@@ -4,20 +4,16 @@ Profile Page:	https://steamcommunity.com/id/Piengineer12
 GitHub Page:	https://github.com/Piengineer12/public-addons/tree/master/insane_stats
 Donate:			https://ko-fi.com/piengineer12
 
-idea for alternate fire modes
+ideas for skills
 
-bugbait: r -> teleport antlions to self
-crossbow: r -> ?
+thrown bugbait marks target for death, and r -> teleport antlions to self
 
-idea for skills
-
-stats up but take DoT while touching grass and move slower underwater
-skills decay slower
+misc
 ]]
 
 InsaneStats = {
-	VERSION = "2.0.2",
-	VERSION_DATE = "2025-05-21",
+	VERSION = "2.1.0",
+	VERSION_DATE = "2025-07-01",
 	WORKSHOP_ID = "2980423627"
 }
 

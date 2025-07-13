@@ -162,6 +162,7 @@ hook.Add("InsaneStatsHUDDamageTaken", "InsaneStatsUnlimitedHealth", function(ent
 					if InsaneStats:GetConVarValue("hud_damage_stackresetlife") then
 						latestEntDamage.time = RealTime()
 						latestEntDamage.origin = position
+						latestEntDamage.particle = nil
 					end
 					
 					requireNewAdd = false
@@ -205,10 +206,13 @@ local function DrawDamageNumber(entityDamageInfo)
 	surface.SetAlphaMultiplier(alpha)
 	
 	local posX = entityDamageInfo.posX
-	-- text floats at a rate of 2em/s divided by stacking time
-	local offsetY = timeExisted * InsaneStats.FONT_MEDIUM * -2
-	/ math.max(InsaneStats:GetConVarValue("hud_damage_stacktime"), 1)
-	local posY = entityDamageInfo.posY + offsetY
+	local posY = entityDamageInfo.posY
+	if not entityDamageInfo.particle then
+		-- text floats at a rate of 2em/s divided by stacking time
+		local offsetY = timeExisted * InsaneStats.FONT_MEDIUM * -2
+		/ math.max(InsaneStats:GetConVarValue("hud_damage_stacktime"), 1)
+		posY = posY + offsetY
+	end
 	
 	-- determine number colors
 	local numberColors = {}
@@ -347,41 +351,40 @@ hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 			cam.Start3D()
 			for ent,entityDamageNumbers in pairs(allDamageNumbers) do
 				local entriesToDelete = 0
+				local shouldBeParticles = InsaneStats:GetConVarValue("hud_damage_particle")
+				shouldBeParticles = shouldBeParticles == 2
+				or shouldBeParticles == 1 and ent ~= plyIndex
 				
 				for k,entityDamageInfo in pairs(entityDamageNumbers) do
-					local shouldBeParticles = InsaneStats:GetConVarValue("hud_damage_particle")
-					shouldBeParticles = shouldBeParticles == 2
-					or shouldBeParticles == 1 and ent ~= plyIndex
-					if shouldBeParticles then
-						local effData = EffectData()
-						local damage = entityDamageInfo.damage
-						if damage < 0 then
-							effData:SetMagnitude(-InsaneStats:CalculateRoot8(-damage))
-						else
-							effData:SetMagnitude(InsaneStats:CalculateRoot8(damage))
-						end
-						effData:SetDamageType(entityDamageInfo.types)
-						local crit = entityDamageInfo.crit
-						local flags = entityDamageInfo.flags
-						effData:SetFlags(bit.bor(
-							crit == 1 and 1 or 0,
-							crit == -1 and 2 or 0,
-							bit.band(flags, 1) ~= 0 and 4 or 0,
-							bit.band(flags, 2) ~= 0 and 8 or 0,
-							bit.band(flags, 4) ~= 0 and 16 or 0
-						))
-						effData:SetScale(InsaneStats:GetConVarValue("hud_damage_lifetime"))
-						effData:SetOrigin(entityDamageInfo.origin)
-						util.Effect("insane_stats_damage_number", effData)
-						entriesToDelete = entriesToDelete + 1
-						--skipOtherDamageNumbers = true
-					elseif entityDamageInfo.time
-					+ InsaneStats:GetConVarValue("hud_damage_lifetime") > RealTime() then
+					if entityDamageInfo.time + InsaneStats:GetConVarValue("hud_damage_lifetime") > RealTime() then
 						entityDamageInfo.posX = nil
 						entityDamageInfo.posY = nil
 						
+						if entityDamageInfo.origin and shouldBeParticles then
+							local lifeTime = InsaneStats:GetConVarValue("hud_damage_lifetime")
+							if not IsValid(InsaneStats.DamageNumberEntity) then
+								local effData = EffectData()
+								effData:SetMagnitude(lifeTime)
+								util.Effect("insane_stats_dmgnum_2", effData)
+							end
+
+							if IsValid(InsaneStats.DamageNumberEntity) then
+								entityDamageInfo.particle = InsaneStats.DamageNumberEntity:CreateParticle(
+									entityDamageInfo.origin, lifeTime
+								)
+								entityDamageInfo.origin = nil
+							end
+						end
+						
 						if entityDamageInfo.origin then
 							local toScreenData = entityDamageInfo.origin:ToScreen()
+							
+							if toScreenData.visible then
+								entityDamageInfo.posX = toScreenData.x
+								entityDamageInfo.posY = toScreenData.y
+							end
+						elseif entityDamageInfo.particle then
+							local toScreenData = entityDamageInfo.particle:GetPos():ToScreen()
 							
 							if toScreenData.visible then
 								entityDamageInfo.posX = toScreenData.x
@@ -602,9 +605,13 @@ hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 				local setPosY = baseY - barH - InsaneStats.FONT_MEDIUM
 
 				for i,entityDamageInfo in ipairs(entityDamageNumbers) do
-					entityDamageInfo.posX = setPosX
-					entityDamageInfo.posY = setPosY
-					DrawDamageNumber(entityDamageInfo)
+					if InsaneStats:GetConVarValue("hud_damage_particle") ~= 2 then
+						entityDamageInfo.posX = setPosX
+						entityDamageInfo.posY = setPosY
+					end
+					if entityDamageInfo.posX then
+						DrawDamageNumber(entityDamageInfo)
+					end
 				end
 				surface.SetAlphaMultiplier(1)
 			end

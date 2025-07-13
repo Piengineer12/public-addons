@@ -10,7 +10,7 @@ concommand.Add("insanestats_wpass2_statuseffect", function(ply, cmd, args, argSt
 			local status, level, duration = args[1], args[2], args[3]
 			local target = table.concat(args, " ", 4)
 			level = tonumber(level) or 1
-			duration = tonumber(duration) or 10
+			duration = string.lower(duration or "") == "inf" and math.huge or tonumber(duration) or 10
 
 			if not InsaneStats:GetStatusEffectInfo(status) then
 				return InsaneStats:Log("\"%s\" is not a valid status effect!", status)
@@ -344,6 +344,20 @@ concommand.Add("insanestats_wpass2_giverandomweapons", function(ply, cmd, args, 
 		end
 	end
 end, nil, "Gives a random % of all weapons in the game for debugging purposes.")
+
+concommand.Add("insanestats_wpass2_resethealthandshield", function(ply, cmd, args, argStr)
+	if (IsValid(ply) and ply:IsAdmin()) then
+		ply:SetHealth(1)
+		ply:SetMaxHealth(100)
+		ply:SetArmor(1)
+		ply:SetMaxArmor(InsaneStats:ScaleValueToLevel(
+			1,
+			InsaneStats:GetConVarValue("xp_player_armor")/100,
+			InsaneStats:GetConVarValue("xp_enabled") and ply:InsaneStats_GetLevel() or 1,
+			"xp_player_armor_mode"
+		))
+	end
+end)
 
 hook.Add("InsaneStatsPostLoadWPASS", "InsaneStatsWPASS", function(modifiers, attributes, registeredEffects)
 	InsaneStats.mergeEffectsToCheck = {}
@@ -973,6 +987,7 @@ function ENTITY:InsaneStats_AddMaxArmor(armor)
 
 		local data = {maxArmor = armor, ent = self}
 		hook.Run("InsaneStatsWPASS2AddMaxArmor", data)
+
 		self:SetMaxArmor(math.max(self:InsaneStats_GetMaxArmor() + data.maxArmor, 0))
 	end
 end
@@ -1022,8 +1037,9 @@ function ENTITY:InsaneStats_IsValidAlly(ent)
 	-- poll Disposition to figure out if ent is an ally
 	if (ent.Disposition and ent:Disposition(self) == D_LI) then return true end
 
-	-- if it's a citizen, neutrals count as allies as well
-	if (ent:GetClass() == "npc_citizen" and ent:Disposition(self) == D_NU) then return true end
+	-- if it's a citizen / G-Man, neutrals count as allies as well
+	local class = ent:GetClass()
+	if ((class == "npc_citizen" or class == "npc_gman") and ent:Disposition(self) == D_NU) then return true end
 	
 	-- poll GetRelationship
 	if (ent.GetRelationship and ent:GetRelationship(self) == D_LI) then return true end
@@ -1608,6 +1624,19 @@ hook.Add("InitPostEntity", "InsaneStatsWPASS", function()
 			end
 			
 			playerLoadoutData[k] = plyWPASS2Data
+		end
+	end
+
+	local minInterruptValue = InsaneStats:GetConVarValue("wpass2_no_aiscripted_schedule_interrupt")
+	if minInterruptValue > 0 then
+		for i,v in ipairs(ents.FindByClass("aiscripted_schedule")) do
+			v:SetSaveValue(
+				"interruptability",
+				math.max(
+					minInterruptValue,
+					v:GetInternalVariable("interruptability")
+				)
+			)
 		end
 	end
 end)

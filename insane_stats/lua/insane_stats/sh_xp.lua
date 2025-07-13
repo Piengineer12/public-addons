@@ -168,6 +168,11 @@ InsaneStats:RegisterConVar("xp_other_alpha_model_scale", "insanestats_xp_other_m
 	display = "Alpha Model Scale", desc = "Alpha entities will be resized by this factor.",
 	type = InsaneStats.FLOAT, min = 0.25, max = 4
 })
+InsaneStats:RegisterConVar("xp_other_max_mul", "insanestats_xp_other_max_mul", "-1", {
+	display = "Max Other XP vs. Players", desc = "If 0 or above, non-player entities \z
+	will spawn with at most this times the highest amount of XP among players.",
+	type = InsaneStats.FLOAT, min = -1, max = 100
+})
 
 InsaneStats:SetDefaultConVarCategory("XP - Player Scales")
 

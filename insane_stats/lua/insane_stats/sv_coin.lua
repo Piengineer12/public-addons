@@ -52,7 +52,9 @@ hook.Add("InsaneStatsEntityKilledPostXP", "InsaneStatsCoins", function(victim, a
 			local mul = InsaneStats:GetConVarValue(victim:IsPlayer() and "coins_player_mul" or "coins_other_mul")
 			local currentHealthAdd = victim:InsaneStats_GetCurrentHealthAdd()
 			local startingHealth = victim:InsaneStats_GetMaxHealth() / currentHealthAdd
-			value = startingHealth * math.random() / 16 * mul
+			local currentArmorAdd = victim:InsaneStats_GetCurrentArmorAdd()
+			local startingArmor = victim:InsaneStats_GetMaxArmor() / currentArmorAdd
+			value = (startingHealth + startingArmor) * math.random() / 16 * mul
 			if InsaneStats:GetConVarValue("xp_enabled") then
 				value = InsaneStats:ScaleValueToLevel(
 					value,

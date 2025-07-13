@@ -216,6 +216,11 @@ InsaneStats:RegisterConVar("sleepphys_cooldown", "insanestats_sleepphys_cooldown
 	display = "Sleep Physics Cooldown", desc = "Minimum seconds between \"insanestats_sleepphys_lagamount\" triggers.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
+InsaneStats:RegisterConVar("prevent_gunship_death_crash", "insanestats_prevent_gunship_death_crash", "0", {
+	display = "Prevent Gunship Death Crash", desc = "If an npc_combinegunship is marked as a template NPC, \z
+	ALL npc_combinegunships are replaced with npc_helicopters.",
+	type = InsaneStats.BOOL
+})
 InsaneStats:RegisterConVar("camera_no_kill", "insanestats_camera_no_kill", "1", {
 	display = "No Camera Killing", desc = "point_viewcontrols will not be removed when the Kill input is sent to them.\n\z
 	Fixes certain cameras not working in some older campaign maps.",
@@ -227,7 +232,8 @@ InsaneStats:RegisterConVar("skip_missing_scenes", "insanestats_skip_missing_scen
 	type = InsaneStats.BOOL
 })
 InsaneStats:RegisterConVar("nonsolid_combine_dropship", "insanestats_nonsolid_combine_dropship", "1", {
-	display = "Non-Solid Combine Dropships", desc = "Causes npc_combinedropships to be non-solid. \z
+	display = "Non-Solid Combine Dropships",
+	desc = "Causes npc_combinedropships and prop_dropship_containers to be non-solid. \z
 	Prevents combine dropships that travel to the same location from getting stuck against each other.",
 	type = InsaneStats.BOOL
 })
@@ -324,11 +330,11 @@ hook.Add("Initialize", "InsaneStatsShared", function()
 		aliasHLSEnts()
 	end
 
-	if InsaneStats:GetConVarValue("hudhint_tochat") and not scripted_ents.GetStored("env_hudhint") then
+	if not scripted_ents.GetStored("env_hudhint") then
 		local entTable = {Type = "point", Base = "base_point"}
 		function entTable:KeyValue(k,v)
 			if k:lower() == "message" then
-				self.insaneStats_Text = v
+				self.m_iszMessage = v
 			end
 		end
 		scripted_ents.Register(entTable, "env_hudhint")
@@ -339,11 +345,11 @@ if InsaneStats:GetConVarValue("gargantua_is_monster") and player.GetCount() > 0 
 	aliasHLSEnts(true)
 end
 
-if InsaneStats:GetConVarValue("hudhint_tochat") and player.GetCount() > 0 then
+if player.GetCount() > 0 then
 	local entTable = {Type = "point", Base = "base_point"}
 	function entTable:KeyValue(k,v)
 		if k:lower() == "message" then
-			self.insaneStats_Text = v
+			self.m_iszMessage = v
 		end
 	end
 	scripted_ents.Register(entTable, "env_hudhint")

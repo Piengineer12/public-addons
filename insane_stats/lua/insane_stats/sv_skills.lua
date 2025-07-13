@@ -94,10 +94,10 @@ timer.Create("InsaneStatsSkills", 0, 0, function()
 				})
 			end
 			
-			net.WriteUInt(#data, 8)
+			net.WriteUInt(#data, 16)
 			for i,v2 in ipairs(data) do
-				net.WriteUInt(v2.id or 0, 8)
-				net.WriteInt(v2.state, 2)
+				net.WriteUInt(v2.id or 0, 16)
+				net.WriteInt(v2.state, 4)
 				net.WriteDouble(v2.stacks)
 				net.WriteFloat(v2.updateTime)
 			end

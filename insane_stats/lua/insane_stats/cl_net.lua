@@ -189,7 +189,11 @@ net.Receive("insane_stats", function()
 					
 					for k,v in pairs(statusEffects) do
 						--ent.insaneStats_StatusEffects[k] = v
-						ent:InsaneStats_ApplyStatusEffect(k, v.level, v.expiry - CurTime(), {replace = true})
+						if v.level == 0 then
+							ent:InsaneStats_ClearStatusEffect(k)
+						else
+							ent:InsaneStats_ApplyStatusEffect(k, v.level, v.expiry - CurTime(), {replace = true})
+						end
 					end
 				end
 				
@@ -311,9 +315,9 @@ net.Receive("insane_stats", function()
 		ply.insaneStats_SkillData = ply.insaneStats_SkillData or {}
 		
 		if IsValid(ply) then
-			for i=1, net.ReadUInt(8) do
-				local id = net.ReadUInt(8)
-				local state = net.ReadInt(2)
+			for i=1, net.ReadUInt(16) do
+				local id = net.ReadUInt(16)
+				local state = net.ReadInt(4)
 				local stacks = net.ReadDouble()
 				local updateTime = net.ReadFloat()
 				

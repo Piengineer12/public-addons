@@ -6,6 +6,9 @@ local color_aqua = InsaneStats:GetColor("aqua")
 local color_magenta = InsaneStats:GetColor("magenta")
 local color_black_translucent = InsaneStats:GetColor("black_translucent")
 local color_gray_translucent = InsaneStats:GetColor("gray_translucent")
+local color_white_translucent = InsaneStats:GetColor("white_translucent")
+local color_red_translucent = InsaneStats:GetColor("red_translucent")
+local color_aqua_translucent = InsaneStats:GetColor("aqua_translucent")
 
 hook.Add("InsaneStatsWPASS2EntityMarked", "InsaneStatsWPASS2", function(entIndex, pos, class, health, maxHealth, armor, maxArmor, lie)
 	markedEntityInfo = {
@@ -54,7 +57,7 @@ local revealIcons = {
 
 local function GetIconForEntity(ent)
 	local ply = LocalPlayer()
-	if ent == ply or ent:GetOwner() == ply or ent:GetParent() == ply then return end
+	if (ent == ply or ent:GetOwner() == ply or ent:GetParent() == ply) and ent:GetClass() ~= "npc_grenade_frag" then return end
 	if ent:GetNWBool("insanestats_vital") then return InsaneStats:GetIconMaterial("ruby") end
 	if ent:GetNWBool("insanestats_use") then return revealIcons.func_button end
 	if ent:GetClass() == "func_breakable_surf" and ent:InsaneStats_GetHealth() <= 0 then return end
@@ -75,7 +78,8 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 	if InsaneStats:GetConVarValue("hud_wpass2_attributes") and InsaneStats:ShouldDrawHUD() then
 		local ply = LocalPlayer()
 		local curTime = CurTime()
-		local magentaStartExpiryTime = curTime - 60
+		local lifeTime = ply:InsaneStats_GetEffectiveSkillValues("ctrl_f")
+		local magentaStartExpiryTime = curTime - lifeTime
 		local outlineThickness = InsaneStats:GetOutlineThickness()
 		if markedEntityInfo.refreshedTime + 2 > curTime and (markedEntityInfo.index or 0) ~= 0 then
 			ply:InsaneStats_SetSkillData("alert", 1, 0)
@@ -261,7 +265,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 				toScreenData.y = math.Clamp(toScreenData.y, 0, ScrH())
 				
 				-- draw the target indicator
-				local alpha = 1 - (curTime - v.start) / 60
+				local alpha = 1 - (curTime - v.start) / lifeTime
 				local indicator = v.indicator
 				surface.SetAlphaMultiplier(alpha)
 				if indicator == 3 then
@@ -319,9 +323,38 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 			local desiredColor = HSVToColor(
 				math.max(alpha - 1, 0) * 60 % 360,
 				1,
-				math.min(alpha, 1)
+				math.min(alpha, 1) / 2
 			)
 			v:SetColor(desiredColor)
 		end
+	end
+end)
+
+hook.Add("PostDrawTranslucentRenderables", "InsaneStatsWPASS2", function()
+	local toSphere = {}
+	for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("xp_up_aura")) do
+		toSphere[v] = bit.bor(toSphere[v] or 0, 4)
+	end
+	for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("damage_up_aura")) do
+		toSphere[v] = bit.bor(toSphere[v] or 0, 1)
+	end
+	for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("defence_up_aura")) do
+		toSphere[v] = bit.bor(toSphere[v] or 0, 2)
+	end
+
+	for k,v in pairs(toSphere) do
+		local color = Color(
+			bit.band(v, 1) ~= 0 and 255 or 63,
+			bit.band(v, 2) ~= 0 and 255 or 63,
+			bit.band(v, 4) ~= 0 and 255 or 63,
+			127
+		)
+		render.DrawWireframeSphere(k:WorldSpaceCenter(), 512, 8, 7, color, true)
+	end
+end)
+
+hook.Add("InsaneStatsReloadXBow", "InsaneStatsWPASS2", function(wep, ply)
+	if ply:InsaneStats_EffectivelyHasSkill("crunch") then
+		return true
 	end
 end)

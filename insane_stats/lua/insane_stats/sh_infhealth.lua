@@ -277,6 +277,12 @@ local function OverrideArmor()
 		self:InsaneStats_SetEntityData("max_armor", newArmor)
 		if newArmor > 0 then
 			self.insaneStats_MaxArmorRoot8 = InsaneStats:CalculateRoot8(newArmor)
+		elseif newArmor < 0 then
+			InsaneStats:Log("Max armor on %s was set to %g, is this intentional?", tostring(self), newArmor)
+			debug.Trace()
+		elseif newArmor == 0 and self:IsPlayer() then
+			InsaneStats:Log("Max armor on %s was set to %g, is this intentional?", tostring(self), newArmor)
+			debug.Trace()
 		end
 		
 		if self.InsaneStats_SetRawMaxArmor then

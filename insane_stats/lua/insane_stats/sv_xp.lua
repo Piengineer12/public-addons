@@ -347,15 +347,17 @@ end
 local savedPlayerXP = {}
 
 hook.Add("InsaneStatsScaleXP", "InsaneStatsXP", function(data)
+	local attacker = data.attacker
+	local inflictor = data.inflictor
+	local victim = data.victim
+
 	data.xp = InsaneStats:ScaleValueToLevel(
 		data.xp,
 		InsaneStats:GetConVarValue("xp_drop_add")/100,
-		data.victim:InsaneStats_GetLevel(),
+		victim:InsaneStats_GetLevel(),
 		"xp_drop_add_mode"
-	) + data.victim:InsaneStats_GetDropXP()
+	)
 
-	local attacker = data.attacker
-	local inflictor = data.inflictor
 	if attacker:IsPlayer() then
 		local shareFactor = InsaneStats:GetConVarValue("xp_player_share") / 100
 		for i,v in ipairs(team.GetPlayers(attacker:Team())) do
@@ -364,6 +366,30 @@ hook.Add("InsaneStatsScaleXP", "InsaneStatsXP", function(data)
 			end
 		end
 	end
+
+	local dayOfTheWeek = tonumber(os.date("%w")) or -1
+	local weekdayFactors = InsaneStats:GetConVarValue(
+		victim:IsPlayer() and "xp_player_weekday_mul" or "xp_other_weekday_mul"
+	)
+	local weekdayFactor = ""
+	local i = 0
+	for factor in string.gmatch(weekdayFactors, "%S+") do
+		if i == dayOfTheWeek then
+			weekdayFactor = factor break
+		end
+		i = i + 1
+	end
+	if tonumber(weekdayFactor) then
+		weekdayFactor = tonumber(weekdayFactor)
+	else
+		weekdayFactor = 1
+		InsaneStats:Log(
+			"Failed to parse weekday drop multiplier \"%s\" for %s!",
+			weekdayFactor, os.date("%A")
+		)
+	end
+
+	data.xp = data.xp * weekdayFactor
 end)
 
 local function ProcessKillEvent(victim, attacker, inflictor)
@@ -399,30 +425,8 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 				local currentArmorAdd = victim:InsaneStats_GetCurrentArmorAdd()
 				local startingArmor = victim:InsaneStats_GetMaxArmor() / currentArmorAdd
 
-				local dayOfTheWeek = tonumber(os.date("%w")) or -1
-				local weekdayFactors = InsaneStats:GetConVarValue(
-					victim:IsPlayer() and "xp_player_weekday_mul" or "xp_other_weekday_mul"
-				)
-				local weekdayFactor = ""
-				local i = 0
-				for factor in string.gmatch(weekdayFactors, "%S+") do
-					if i == dayOfTheWeek then
-						weekdayFactor = factor break
-					end
-					i = i + 1
-				end
-				if tonumber(weekdayFactor) then
-					weekdayFactor = tonumber(weekdayFactor)
-				else
-					weekdayFactor = 1
-					InsaneStats:Log(
-						"Failed to parse weekday drop multiplier \"%s\" for %s!",
-						weekdayFactor, os.date("%A")
-					)
-				end
-
 				local startXPToGive = victim.insaneStats_IsDead and 0
-				or (startingHealth + startingArmor) * xpMul / 5 * weekdayFactor
+				or (startingHealth + startingArmor) * xpMul / 5
 				
 				if InsaneStats:IsDebugLevel(2) then
 					InsaneStats:Log("%s should drop %g base XP", tostring(victim), startXPToGive)
@@ -444,7 +448,7 @@ local function ProcessKillEvent(victim, attacker, inflictor)
 				}
 				hook.Run("InsaneStatsScaleXP", data)
 				
-				local xpToGive = data.xp
+				local xpToGive = data.xp + victim:InsaneStats_GetDropXP()
 				--print(xpToGive)
 				local extraXP = 0
 				
@@ -663,7 +667,22 @@ function InsaneStats:DetermineEntitySpawnedXP(ent)
 	if isAlpha then
 		alphaXPMul = self:GetConVarValue("xp_other_alpha_mul")
 	end
-	return self:GetXPRequiredToLevel(level) * playerXPMul * driftXPFactor * alphaXPMul, isAlpha
+
+	local totalXP = self:GetXPRequiredToLevel(level) * playerXPMul * driftXPFactor * alphaXPMul
+	local maxXP = -1
+	if hasPlayer and self:GetConVarValue("xp_other_max_mul") >= 0 then
+		for i,v in player.Iterator() do
+			maxXP = math.max(maxXP, v:InsaneStats_GetEntityData("xp") or -1)
+		end
+	end
+	if maxXP >= 0 then
+		maxXP = maxXP * self:GetConVarValue("xp_other_max_mul")
+		if maxXP < totalXP then
+			totalXP = maxXP
+		end
+	end
+
+	return totalXP, isAlpha
 end
 
 function InsaneStats:DetermineDamageMul(vic, dmginfo)
@@ -692,7 +711,7 @@ function InsaneStats:DetermineDamageMul(vic, dmginfo)
 		if IsValid(inflictor) then
 			local inflictorFlags = self:GetConVarValue("xp_damagemode")
 			if bit.band(inflictorFlags, 1) ~= 0 and (inflictor:GetPhysicsAttacker() == attacker
-		 	or inflictor:GetClass() == "grenade_helicopter") then
+		 	or inflictor:GetClass() == "grenade_helicopter") or inflictor:GetClass() == "prop_combine_ball" then
 				attacker = inflictor
 			elseif bit.band(inflictorFlags, 2) ~= 0 and inflictor:IsWeapon() then
 				attacker = inflictor
