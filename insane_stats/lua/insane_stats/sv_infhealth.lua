@@ -551,13 +551,15 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 					ent:Fire("AddOutput", "OnHalfHealth !self:InsaneStats_OnHalfHealth")
 				end
 				if ent.insaneStats_TempOnDamaged or ent.insaneStats_TempOnStun then
-					ent.insaneStats_TempOnDamaged = nil
+					local times = 1
 					if ent.insaneStats_TempOnStun or multipleDamageClasses[class]
 					and (ent:GetInternalVariable("damagefilter") or "") == "" then
-						ent.insaneStats_TempOnStun = nil
-						ent:InsaneStats_ApplyStatusEffect("undying", 10, math.huge)
-						ent:Fire("AddOutput", "OnDamaged !self:InsaneStats_OnDamaged")
+						times = 10
 					end
+					ent.insaneStats_TempOnDamaged = nil
+					ent.insaneStats_TempOnStun = nil
+					ent:InsaneStats_ApplyStatusEffect("undying", times, math.huge)
+					ent:Fire("AddOutput", "OnDamaged !self:InsaneStats_OnDamaged")
 				end
 			--end
 		--end)

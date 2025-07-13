@@ -960,36 +960,6 @@ hook.Add("HUDPaint", "InsaneStatsWPASS", function()
 	end
 end)
 
-local healthClasses = {
-	item_healthkit = true,
-	item_healthvial = true,
-	item_grubnugget = true
-}
-local ammoClasses = {
-	item_ammo_357 = true,
-	item_ammo_357_large = true,
-	item_ammo_ar2 = true,
-	item_ammo_ar2_large = true,
-	item_ammo_ar2_altfire = true,
-	item_ammo_crossbow = true,
-	item_ammo_pistol = true,
-	item_ammo_pistol_large = true,
-	item_ammo_smg1 = true,
-	item_ammo_smg1_large = true,
-	item_ammo_smg1_grenade = true,
-	item_box_buckshot = true,
-	item_rpg_round = true,
-
-	ammo_357 = true,
-	ammo_9mmbox = true,
-	ammo_buckshot = true,
-	ammo_crossbow = true,
-	ammo_gaussclip = true,
-	ammo_glockclip = true,
-	ammo_mp5clip = true,
-	ammo_mp5grenades = true,
-	ammo_rpgclip = true,
-}
 timer.Create("InsaneStatsWPASS", 1, 0, function()
 	if InsaneStats:GetConVarValue("hud_wpass2_lootbeams") then
 		for i,v in ipairs(ents.GetAll()) do
@@ -1001,7 +971,7 @@ timer.Create("InsaneStatsWPASS", 1, 0, function()
 				else
 					v:InsaneStats_MarkForUpdate()
 				end
-			elseif healthClasses[v:GetClass()] or ammoClasses[v:GetClass()] then
+			elseif v:InsaneStats_GetHealingItemType() then
 				local effData = EffectData()
 				effData:SetEntity(v)
 				util.Effect("insane_stats_tier", effData)

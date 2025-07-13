@@ -639,10 +639,11 @@ function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 	local modifierCount = 0
 	local tiersPerModifier = self:GetConVarValueDefaulted(not isWep and "wpass2_tier_newmodifiercost_battery", "wpass2_tier_newmodifiercost")
 	local points = wep.insaneStats_Tier
-	local modifiersLeveled = 0
+	--local modifiersLeveled = 0
 	--local maxModifiersLevel = 0
 	local potentiallyMergableModifiers = {}
 	local wpass2Enabled = InsaneStats:GetConVarValue("wpass2_enabled")
+	local increment = InsaneStats:GetConVarValue("wpass2_modifiers_effectmul")
 
 	if self:IsDebugLevel(2) and wpass2Enabled then
 		InsaneStats:Log("Existing modifiers on %s:", tostring(wep))
@@ -659,9 +660,9 @@ function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 			modifierCount = modifierCount + 1
 			--maxModifiersLevel = maxModifiersLevel + (modifierTable.max or 65536)
 
-			modifiersLeveled = modifiersLeveled + v
+			--modifiersLeveled = modifiersLeveled + v
 			points = points - (modifierTable.cost or 1) * v
-			if v + 1 > (modifierTable.max or 65536) then
+			if v + 1 > (modifierTable.max or math.huge) / increment then
 				modifierProbabilities[k] = nil
 			end
 		else
@@ -682,7 +683,8 @@ function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 		InsaneStats:Log("Spending %i points on tier %i %s...", points, wep.insaneStats_Tier, tostring(wep))
 		debug.Trace()
 	end
-	for i=1+modifiersLeveled, 12.058+modifiersLeveled do
+	--for i=1+modifiersLeveled, 12.058+modifiersLeveled do
+	for i=1, 12058 do
 		if points == 0 then break end
 		
 		-- check each entry and figure out which ones are applicable
@@ -730,7 +732,7 @@ function InsaneStats:ApplyWPASS2Modifiers(wep, blacklist)
 			end
 			
 			points = points - (modifierTable.cost or 1)
-			if applyModifiers[appliedModifier] + 1 > (modifierTable.max or 65536) then
+			if applyModifiers[appliedModifier] + 1 > (modifierTable.max or 65536) / increment then
 				modifierProbabilities[appliedModifier] = nil
 			end
 
@@ -855,6 +857,26 @@ function ENTITY:InsaneStats_TimeSinceCombat()
 	return self.insaneStats_LastCombatTime and self.insaneStats_LastCombatTime - CurTime() or math.huge
 end
 
+local function ComputeNerfedIncrement(x, dx, n)
+	-- when x<1, y=x
+	if x < 1 then
+		local dxToUse = math.min(1 - x, dx)
+		x = x + dxToUse
+		dx = dx - dxToUse
+	end
+
+	if n <= 1e-7 then
+		x = x + dx
+	elseif dx ~= 0 then
+		local c = 2/n-1
+		local y = c * math.exp( (x-1)/c ) + 1 - c 
+		y = y + dx
+		x = c * math.log( (y+c-1)/c ) + 1
+	end
+
+	return x
+end
+
 function ENTITY:InsaneStats_AddHealthNerfed(health)
 	local oldHealth = self:InsaneStats_GetHealth()
 	if oldHealth < math.huge and oldHealth > 0 
@@ -866,18 +888,20 @@ function ENTITY:InsaneStats_AddHealthNerfed(health)
 		local maxHealth = self:InsaneStats_GetMaxHealth()
 		local oldRatio = oldHealth / maxHealth
 		local nerfFactor = data.nerfFactor
-		if oldRatio > 1 then
+		--[[if oldRatio > 1 then
 			oldRatio = oldRatio^(1/nerfFactor)
 		end
 
 		local newRatio = health < math.huge and oldRatio + health / maxHealth or 1
 		if newRatio > 1 then
 			newRatio = newRatio^nerfFactor
-		end
-		local healthAdded = newRatio * maxHealth - oldHealth
+		end]]
+		local addRatio = health / maxHealth
+		local newRatio = ComputeNerfedIncrement(oldRatio, addRatio, nerfFactor)
+		local healthAdded = maxHealth < math.huge and newRatio * maxHealth - oldHealth or health
 		
 		if healthAdded ~= 0 then
-			self:SetHealth(newRatio * maxHealth)
+			self:SetHealth(oldHealth + healthAdded)
 			hook.Run("InsaneStatsWPASS2AddedHealth", self)
 			self:InsaneStats_DamageNumber(self, oldHealth - self:InsaneStats_GetHealth(), DMG_DROWNRECOVER)
 		end
@@ -895,18 +919,20 @@ function ENTITY:InsaneStats_AddArmorNerfed(armor)
 		local maxArmor = self:InsaneStats_GetMaxArmor()
 		local oldRatio = oldArmor / maxArmor
 		local nerfFactor = data.nerfFactor
-		if oldRatio > 1 then
+		--[[if oldRatio > 1 then
 			oldRatio = oldRatio^(1/nerfFactor)
 		end
 
 		local newRatio = armor < math.huge and oldRatio + armor / maxArmor or 1
 		if newRatio > 1 then
 			newRatio = newRatio^nerfFactor
-		end
-		local armorAdded = newRatio * maxArmor - oldArmor
+		end]]
+		local addRatio = armor / maxArmor
+		local newRatio = ComputeNerfedIncrement(oldRatio, addRatio, nerfFactor)
+		local armorAdded = maxArmor < math.huge and newRatio * maxArmor - oldArmor or armor
 		
 		if armorAdded ~= 0 then
-			self:SetArmor(newRatio * maxArmor)
+			self:SetArmor(oldArmor + armorAdded)
 			hook.Run("InsaneStatsWPASS2AddedArmor", self)
 			self:InsaneStats_DamageNumber(self, oldArmor - self:InsaneStats_GetArmor(), DMG_DROWN)
 		end

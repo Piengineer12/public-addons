@@ -9,11 +9,13 @@ ideas for skills
 thrown bugbait marks target for death, and r -> teleport antlions to self
 
 misc
+
+make shop no longer physical
 ]]
 
 InsaneStats = {
-	VERSION = "2.1.0",
-	VERSION_DATE = "2025-07-01",
+	VERSION = "2.1.1",
+	VERSION_DATE = "2025-07-13",
 	WORKSHOP_ID = "2980423627"
 }
 

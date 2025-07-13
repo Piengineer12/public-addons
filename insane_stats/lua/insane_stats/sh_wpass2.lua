@@ -10,6 +10,7 @@ InsaneStats.WPASS2_FLAGS = {
 	-- non-obvious combinations:
 	-- 5: NEVER
 }
+InsaneStats.ModifierTierLimits = {}
 
 InsaneStats:SetDefaultConVarCategory("WPASS2 - General")
 
@@ -45,6 +46,11 @@ InsaneStats:RegisterConVar("wpass2_no_aiscripted_schedule_interrupt", "insanesta
 	desc = "Stops NPCs from forgetting what they were supposed to be doing when combat is nearby. \z
 	If 1, they can still be interrupted by taking damage.",
 	type = InsaneStats.INT, min = 0, max = 2
+})
+InsaneStats:RegisterConVar("wpass2_disintegrate_helicopter_chunk", "insanestats_wpass2_disintegrate_helicopter_chunk", "0", {
+	display = "Disintegrate Helicopter Chunks",
+	desc = "Causes helicopter_chunks to be dissolved after 5 seconds.",
+	type = InsaneStats.BOOL
 })
 InsaneStats:RegisterConVar("wpass2_no_fractional_clips", "insanestats_wpass2_no_fractional_clips", "0", {
 	display = "Disable Fractional Clips", desc = "Stops clips within weapons from becoming fractional. \z
@@ -91,13 +97,18 @@ InsaneStats:RegisterConVar("wpass2_modifiers_other_create", "insanestats_wpass2_
 	If 3, ALL entities will gain weapon modifiers in the same way. Setting this to 3 is NOT RECOMMENDED.",
 	type = InsaneStats.INT, min = 0, max = 3
 })
-InsaneStats:RegisterConVar("wpass2_modifiers_blacklist", "insanestats_wpass2_modifiers_blacklist", "", {
+--[[InsaneStats:RegisterConVar("wpass2_modifiers_blacklist", "insanestats_wpass2_modifiers_blacklist", "", {
 	display = "Modifier Blacklist", desc = "Modifiers in this list will never appear on weapons nor armor batteries.\n\z
-	Note that you must specify the internal name of modifiers, not the display name. You can find the internal name \z
-	of item modifiers by typing \"insanestats_wpass2_modifiers_show\" in the (client) console.\n\z
 	You can also specify \"!curse\", which will cause unlisted negative modifiers to be blacklisted \z
-	and listed negative modifiers to NOT be blacklisted.",
+	and listed negative modifiers to NOT be blacklisted.\n\z
+	Note that you must specify the internal name of modifiers, not the display name. You can find the internal name \z
+	of item modifiers by typing \"insanestats_wpass2_modifiers_show\" in the (client) console.",
 	type = InsaneStats.STRING
+})]]
+InsaneStats:RegisterConVar("wpass2_modifiers_effectmul", "insanestats_wpass2_modifiers_effectmul", "1", {
+	display = "Modifier Effect Multiplier", desc = "Controls the intensity of modifier effects. \z
+	Note that this only applies to newly spawned weapons / armor batteries.",
+	type = InsaneStats.FLOAT, min = 0, max = 10
 })
 InsaneStats:RegisterConVar("wpass2_modifiers_negativeweight", "insanestats_wpass2_modifiers_negativeweight", "0.25", {
 	display = "Negative Modifier Weight Multiplier", desc = "Weight multiplier for negative modifiers.",
@@ -765,7 +776,10 @@ end
 
 function InsaneStats:DetermineWPASS2Attributes(currentModifiers)
 	local wepAttributes = {}
+	local increment = InsaneStats:GetConVarValue("wpass2_modifiers_effectmul")
+	
 	for k,v in pairs(currentModifiers or {}) do
+		v = v * increment
 		for k2,v2 in pairs(modifiers[k] and modifiers[k].modifiers or {}) do
 			local startValue = wepAttributes[k2] or attributes[k2].start or 1
 			if attributes[k2].mode == 1 then
@@ -804,7 +818,7 @@ function InsaneStats:ApplyWPASS2Attributes(wep)
 	local wepAttributes = self:DetermineWPASS2Attributes(wep.insaneStats_Modifiers)
 	local tier = wep.insaneStats_Tier or 0
 	if tier ~= 0 then
-		wepAttributes.reverse_xp = 1.1 ^ (tier / 2)
+		wepAttributes.reverse_xp = 1.1 ^ (tier / 2 * self:GetConVarValue("wpass2_modifiers_effectmul"))
 	end
 	wep:InsaneStats_SetAttributes(wepAttributes)
 	hook.Run("InsaneStatsWPASS2AttributesChanged", wep)
@@ -854,8 +868,23 @@ function InsaneStats:GetModifierProbabilities(wep)
 	if self:GetConVarValue("infhealth_knockback") then
 		inclusiveFlags = bit.bor(inclusiveFlags, self.WPASS2_FLAGS.KNOCKBACK)
 	end
-	
+
 	local modifierProbabilities = {}
+	local blacklistedModifiers = {}
+	local defaultBlacklistNegatives = false
+	-- FIXME: does the below really not cause any issues?
+	local tier = wep.insaneStats_Tier or 0
+	for i,v in ipairs(self.ModifierTierLimits) do
+		local modifier, minimum, maximum = unpack(v)
+		local matches = tier < minimum or tier > maximum
+		if modifier == "!curse" then
+			defaultBlacklistNegatives = matches
+		else
+			blacklistedModifiers[modifier] = matches
+		end
+	end
+	
+	--[[local modifierProbabilities = {}
 	local blacklistedModifiers = {}
 	local invertNegative = false
 	for w in string.gmatch(InsaneStats:GetConVarValue("wpass2_modifiers_blacklist"), "%S+") do
@@ -863,7 +892,7 @@ function InsaneStats:GetModifierProbabilities(wep)
 		if w == "!curse" then
 			invertNegative = not invertNegative
 		end
-	end
+	end]]
 
 	local data = {
 		negativeWeightMul = InsaneStats:GetConVarValueDefaulted(
@@ -884,7 +913,13 @@ function InsaneStats:GetModifierProbabilities(wep)
 		local isNegative = (v.cost or 1) < 0
 		local flags = v.flags or 0
 
-		local matchesBlacklist = (not blacklistedModifiers[k]) ~= (isNegative and invertNegative)
+		--local matchesBlacklist = (not blacklistedModifiers[k]) ~= (isNegative and invertNegative)
+		local matchesBlacklist = true
+		if blacklistedModifiers[k] ~= nil then
+			matchesBlacklist = not blacklistedModifiers[k]
+		elseif isNegative then
+			matchesBlacklist = not defaultBlacklistNegatives
+		end
 		local matchesFlags = bit.band(bit.bor(inclusiveFlags, 1), flags) == flags
 		local matchesTier = isNegative or (wep.insaneStats_Tier or 0) >= 0
 		-- if a modifier DOES NOT have bitflag WPASS2_FLAGS.ARMOR and inclusiveFlags DOES,
@@ -1035,29 +1070,9 @@ function ENTITY:InsaneStats_IsWPASS2Pickup()
 	return self:IsWeapon() or self:GetClass() == "item_battery"
 end
 
-local healthClasses = {
-	item_healthkit = true,
-	item_healthvial = true,
-	item_grubnugget = true
-}
-local ammoClasses = {
-	item_ammo_357 = true,
-	item_ammo_357_large = true,
-	item_ammo_ar2 = true,
-	item_ammo_ar2_large = true,
-	item_ammo_ar2_altfire = true,
-	item_ammo_crossbow = true,
-	item_ammo_pistol = true,
-	item_ammo_pistol_large = true,
-	item_ammo_smg1 = true,
-	item_ammo_smg1_large = true,
-	item_ammo_smg1_grenade = true,
-	item_box_buckshot = true,
-	item_rpg_round = true,
-}
 function ENTITY:InsaneStats_IsItem()
 	local class = self:GetClass()
-	return self:InsaneStats_IsWPASS2Pickup() or healthClasses[class] or ammoClasses[class]
+	return self:InsaneStats_IsWPASS2Pickup() or self:InsaneStats_GetHealingItemType() and true
 end
 
 local function EntityInitStatusEffects(ent)
@@ -1255,6 +1270,45 @@ function ENTITY:InsaneStats_ClearStatusEffectsByType(typ)
 				self:InsaneStats_MarkForUpdate(16)
 			end
 		end
+	end
+end
+
+local healthClasses = {
+	item_healthkit = true,
+	item_healthvial = true,
+	item_grubnugget = true
+}
+local ammoClasses = {
+	item_ammo_357 = true,
+	item_ammo_357_large = true,
+	item_ammo_ar2 = true,
+	item_ammo_ar2_large = true,
+	item_ammo_ar2_altfire = true,
+	item_ammo_crossbow = true,
+	item_ammo_pistol = true,
+	item_ammo_pistol_large = true,
+	item_ammo_smg1 = true,
+	item_ammo_smg1_large = true,
+	item_ammo_smg1_grenade = true,
+	item_box_buckshot = true,
+	item_rpg_round = true,
+
+	ammo_357 = true,
+	ammo_9mmbox = true,
+	ammo_buckshot = true,
+	ammo_crossbow = true,
+	ammo_gaussclip = true,
+	ammo_glockclip = true,
+	ammo_mp5clip = true,
+	ammo_mp5grenades = true,
+	ammo_rpgclip = true,
+}
+function ENTITY:InsaneStats_GetHealingItemType()
+	local class = self:GetClass()
+	if healthClasses[class] then
+		return 2
+	elseif ammoClasses[class] then
+		return 1
 	end
 end
 

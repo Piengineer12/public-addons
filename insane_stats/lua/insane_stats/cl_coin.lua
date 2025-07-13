@@ -328,6 +328,17 @@ local function CreateReforgePanel(parent, shopEntity)
 		-- column.Header:SetFont("InsaneStats.Medium")
 		-- column.Header:SizeToContentsY(4)
 
+		local AllPossibleCheckbox = vgui.Create("DCheckBoxLabel", Panel)
+		AllPossibleCheckbox:SetTall(InsaneStats.FONT_MEDIUM)
+		AllPossibleCheckbox:Dock(TOP)
+		AllPossibleCheckbox:SetFont("InsaneStats.Medium")
+		AllPossibleCheckbox:SetText("Show All Possible Modifiers")
+		AllPossibleCheckbox:SetEnabled(false)
+		function AllPossibleCheckbox:OnChange()
+			local text, ent = Selector:GetSelected()
+			Selector:OnSelect(0, text, ent)
+		end
+
 		local modifiers = InsaneStats:GetAllModifiers()
 		function Selector:OnSelect(index, key, value)
 			local tier = value.insaneStats_Tier or 0
@@ -362,10 +373,13 @@ local function CreateReforgePanel(parent, shopEntity)
 			for i=#ModifierList:GetLines(), 1, -1 do
 				ModifierList:RemoveLine(i)
 			end
-			for k,v in pairs(value.insaneStats_Modifiers or {}) do
+			local increment = InsaneStats:GetConVarValue("wpass2_modifiers_effectmul")
+			local showAll = AllPossibleCheckbox:GetChecked()
+			local valueModifiers = value.insaneStats_Modifiers or {}
+			for k,v in pairs(showAll and InsaneStats:GetModifierProbabilities(value) or valueModifiers) do
 				local modifierName = modifiers[k] and (modifiers[k].suffix or modifiers[k].prefix) or k
 				local modifierMax = modifiers[k] and modifiers[k].max
-				and InsaneStats:FormatNumber(math.floor(modifiers[k].max)) or "∞"
+				and InsaneStats:FormatNumber(math.floor(modifiers[k].max / increment)) or "∞"
 				local modifierWeight = modifiers[k] and modifiers[k].weight or 1
 				local modifierCost = modifiers[k] and modifiers[k].cost or 1
 				local modifierIsWep = modifiers[k] and bit.band(modifiers[k].flags or 0, InsaneStats.WPASS2_FLAGS.ARMOR) == 0
@@ -375,10 +389,14 @@ local function CreateReforgePanel(parent, shopEntity)
 						"wpass2_modifiers_negativeweight"
 					)
 				end
-				ModifierList:AddLine(modifierName, k, modifierCost < 0 and "✓" or "", v, modifierMax, modifierWeight)
+				ModifierList:AddLine(
+					modifierName, k, modifierCost < 0 and "✓" or "",
+					showAll and (valueModifiers[k] or 0) or v, modifierMax, modifierWeight
+				)
 			end
 			selectedEntity = value
 			ReforgeButton:SetEnabled(true)
+			AllPossibleCheckbox:SetEnabled(true)
 			ModifierList:SortByColumn(1)
 		end
 
@@ -430,7 +448,10 @@ local function CreateReforgePanel(parent, shopEntity)
 		BlacklistLabel:SetText("Modifiers can be blacklisted by double-clicking on the modifiers above. \z
 		Modifiers can be removed from the blacklist by doing the same on the modifiers below.\
 		Blacklisted modifiers will never appear on a reforged item, \z
-		but each blacklisted modifier will increase the reforge cost!")
+		but each blacklisted modifier will increase the reforge cost!\n\z
+		Note that this does not affect spawned or field-found items - \z
+		see the Modifier Tier Limit / Blacklist option under \z
+		WPASS2 - Modifiers & Saving in CCVCCM to disable certain modifiers globally.")
 		BlacklistLabel:Dock(TOP)
 
 		local BlacklistModifierList = vgui.Create("DListView", Panel)
@@ -443,8 +464,9 @@ local function CreateReforgePanel(parent, shopEntity)
 		BlacklistModifierList:AddColumn("Relative Weight")
 		function BlacklistModifierList:AddModifierLine(modifier)
 			local modifierName = modifiers[modifier] and (modifiers[modifier].suffix or modifiers[modifier].prefix) or modifier
+			local increment = InsaneStats:GetConVarValue("wpass2_modifiers_effectmul")
 			local modifierMax = modifiers[modifier] and modifiers[modifier].max
-			and InsaneStats:FormatNumber(math.floor(modifiers[modifier].max)) or "∞"
+			and InsaneStats:FormatNumber(math.floor(modifiers[modifier].max / increment)) or "∞"
 			local modifierWeight = modifiers[modifier] and modifiers[modifier].weight or 1
 			local modifierCost = modifiers[modifier] and modifiers[modifier].cost or 1
 			local modifierIsWep = modifiers[modifier] and bit.band(modifiers[modifier].flags or 0, InsaneStats.WPASS2_FLAGS.ARMOR) == 0

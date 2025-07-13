@@ -81,45 +81,16 @@ function EFFECT:ShouldDrawBeam()
 	return IsValid(self.Entity) and not IsValid(self.Entity:GetOwner()) and not self.Entity:IsDormant()
 end
 
-local healthClasses = {
-	item_healthkit = true,
-	item_healthvial = true,
-	item_grubnugget = true
-}
-local ammoClasses = {
-	item_ammo_357 = true,
-	item_ammo_357_large = true,
-	item_ammo_ar2 = true,
-	item_ammo_ar2_large = true,
-	item_ammo_ar2_altfire = true,
-	item_ammo_crossbow = true,
-	item_ammo_pistol = true,
-	item_ammo_pistol_large = true,
-	item_ammo_smg1 = true,
-	item_ammo_smg1_large = true,
-	item_ammo_smg1_grenade = true,
-	item_box_buckshot = true,
-	item_rpg_round = true,
-
-	ammo_357 = true,
-	ammo_9mmbox = true,
-	ammo_buckshot = true,
-	ammo_crossbow = true,
-	ammo_gaussclip = true,
-	ammo_glockclip = true,
-	ammo_mp5clip = true,
-	ammo_mp5grenades = true,
-	ammo_rpgclip = true,
-}
 function EFFECT:GetParticleColor()
 	local color = color_black
 	
 	if self:ShouldDrawBeam() then
 		local class = self.Entity:GetClass()
+		local healingItemType = self.Entity:InsaneStats_GetHealingItemType()
 		
-		if healthClasses[class] then
+		if healingItemType == 2 then
 			color = color_dark_green
-		elseif ammoClasses[class] then
+		elseif healingItemType == 1 then
 			color = color_gray
 		elseif self.Entity.insaneStats_Modifiers then
 			color = InsaneStats:GetPhasedRarityColor(InsaneStats:GetWPASS2Rarity(self.Entity))

@@ -215,7 +215,7 @@ concommand.Add("insanestats_revert_all_server_convars", function(ply, cmd, args,
 	end
 end, nil, "Reverts all server-side Insane Stats ConVars. You must pass the argument \"yes\" for this command to work.")
 
--- CCVCCM compat.
+-- CCVCCM compat., also see sh_options.lua
 local ccvccmTypes = {
 	[InsaneStats.BOOL] = "bool",
 	[InsaneStats.INT] = "int",
@@ -239,6 +239,30 @@ hook.Add("InsaneStats_CCVCCMRun", "InsaneStatsOptions", function()
 						Usage: [player] <level>",
 						type = "string"
 					})
+				elseif k2 == "XP - Level Calculations" then
+					CCVCCM:AddConCommand("other_level_maps_show", {
+						realm = "server",
+						fullName = "insanestats_xp_other_level_maps_show",
+						name = "Show Factored Maps",
+						help = "Dumps into the console all maps that are currently factored into level scaling.",
+						type = "none"
+					})
+					CCVCCM:AddConCommand("other_level_maps_remove", {
+						realm = "server",
+						fullName = "insanestats_xp_other_level_maps_remove",
+						name = "Remove Factored Maps",
+						help = "Removes maps from the recorded maps list. * wildcards are allowed. \z
+						If a number is given (and no matching map was found), \z
+						the number will be interpreted as the number of recent maps to remove. \z
+						Note that a map restart is required for the map number to be updated.",
+						type = "string"
+					})
+					CCVCCM:AddConCommand("other_level_maps_reset", {
+						realm = "server",
+						fullName = "insanestats_xp_other_level_maps_reset",
+						name = "Reset Factored Maps",
+						help = "Clears the recorded maps list."
+					})
 				elseif k2 == "WPASS2 - General" then
 					CCVCCM:AddConCommand("wpass2_statuseffect", {
 						realm = "server",
@@ -256,6 +280,14 @@ hook.Add("InsaneStats_CCVCCMRun", "InsaneStatsOptions", function()
 						help = "Clears a status effect from a named entity. If no name is specified, the effect will be cleared from you, \z
 						or from all players when entered through the server console.\n\z
 						Format: insanestats_wpass2_statuseffect_clear <internalName> [entity=self]",
+						type = "string"
+					})
+				elseif k2 == "Miscellaneous" then
+					CCVCCM:AddConCommand("revert_all_server_convars", {
+						realm = "server",
+						fullName = "insanestats_revert_all_server_convars",
+						name = "Revert All ConVars",
+						help = "Reverts all server-side Insane Stats ConVars. You must pass the argument \"yes\" for this command to work.",
 						type = "string"
 					})
 				end
@@ -302,44 +334,6 @@ hook.Add("InsaneStats_CCVCCMRun", "InsaneStatsOptions", function()
 					userInfo = v3[2].userInfo
 				})
 			end
-			
-			-- CCVCCM EXCLUSIVE!
-			if k == "Server" then
-				if k2 == "Miscellaneous" then
-					CCVCCM:AddConCommand("revert_all_server_convars", {
-						realm = "server",
-						fullName = "insanestats_revert_all_server_convars",
-						name = "Revert All ConVars",
-						help = "Reverts all server-side Insane Stats ConVars. You must pass the argument \"yes\" for this command to work.",
-						type = "string"
-					})
-				elseif k2 == "XP - Level Calculations" then
-					CCVCCM:AddConCommand("other_level_maps_show", {
-						realm = "server",
-						fullName = "insanestats_xp_other_level_maps_show",
-						name = "Show Factored Maps",
-						help = "Dumps into the console all maps that are currently factored into level scaling.",
-						type = "none"
-					})
-					CCVCCM:AddConCommand("other_level_maps_remove", {
-						realm = "server",
-						fullName = "insanestats_xp_other_level_maps_remove",
-						name = "Remove Factored Maps",
-						help = "Removes maps from the recorded maps list. * wildcards are allowed. \z
-						If a number is given (and no matching map was found), \z
-						the number will be interpreted as the number of recent maps to remove. \z
-						Note that a map restart is required for the map number to be updated.",
-						type = "string"
-					})
-					CCVCCM:AddConCommand("other_level_maps_reset", {
-						realm = "server",
-						fullName = "insanestats_xp_other_level_maps_reset",
-						name = "Reset Factored Maps",
-						help = "Clears the recorded maps list."
-					})
-				end
-			end
-
 			CCVCCM:PopCategory()
 		end
 		CCVCCM:PopCategory()

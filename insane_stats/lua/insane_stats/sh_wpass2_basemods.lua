@@ -3160,6 +3160,19 @@ local statusEffects = {
 		name = "No Movement Modifications",
 		typ = -2,
 		img = "barefoot"
+	},
+	certain_deletion = {
+		name = "Certain Deletion",
+		typ = -2,
+		img = "void",
+		expiry = SERVER and function(ent, level, attacker)
+			ent:Dissolve()
+		end
+	},
+	can_noclip = {
+		name = "Can Noclip",
+		typ = 1,
+		img = "void"
 	}
 }
 
@@ -3491,7 +3504,7 @@ hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data
 		local developer = InsaneStats:IsDebugLevel(1)
 		local penetrationPower = attacker:InsaneStats_GetAttributeValue("penetrate") - 1
 		if attacker:InsaneStats_GetSkillState("silver_bullets") == 1 then
-			penetrationPower = penetrationPower + attacker:InsaneStats_GetEffectiveSkillValues("silver_bullets", 3)
+			penetrationPower = penetrationPower + attacker:InsaneStats_GetEffectiveSkillValues("silver_bullets", 4)
 		end
 		if penetrationPower > 0 and attacker:InsaneStats_GetStatusEffectLevel("no_spreading_damage") <= 0 then
 			-- FIXME: in some cases, bullet penetration will incorrectly pierce
@@ -3775,7 +3788,7 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 			if wepClass == "weapon_frag" and ply:InsaneStats_EffectivelyHasSkill("explosive_arsenal") then
 				local oldStacks = ply:InsaneStats_GetSkillStacks("explosive_arsenal")
 				local newStacks = bit.bxor(oldStacks, 1)
-				if bit.band(newStacks, 1) ~= 0 then
+				if bit.band(newStacks, 1) == 0 then
 					ply:PrintMessage(HUD_PRINTTALK, "Explode Grenade on Collision: Enabled")
 				else
 					ply:PrintMessage(HUD_PRINTTALK, "Explode Grenade on Collision: Disabled")
@@ -3784,7 +3797,7 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 			elseif wepClass == "weapon_rpg" and ply:InsaneStats_EffectivelyHasSkill("explosive_arsenal") then
 				local oldStacks = ply:InsaneStats_GetSkillStacks("explosive_arsenal")
 				local newStacks = bit.bxor(oldStacks, 2)
-				if bit.band(newStacks, 2) ~= 0 then
+				if bit.band(newStacks, 2) == 0 then
 					ply:PrintMessage(HUD_PRINTTALK, "Invincible Instant Rockets: Enabled")
 				else
 					ply:PrintMessage(HUD_PRINTTALK, "Invincible Instant Rockets: Disabled")
@@ -3919,5 +3932,11 @@ hook.Add("InsaneStatsEffectiveSpeed", "InsaneStatsSharedWPASS2", function(data)
 		mult = (1 + mult / 100)
 		add = add * 4
 		data.speed = (data.speed + add) * mult
+	end
+end)
+
+hook.Add("PlayerNoClip", "InsaneStatsSharedWPASS2", function(ply, desiredState)
+	if ply:InsaneStats_GetStatusEffectLevel("can_noclip") ~= 0 and desiredState then
+		return ply:InsaneStats_GetStatusEffectLevel("can_noclip") > 0
 	end
 end)

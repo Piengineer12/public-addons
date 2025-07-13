@@ -45,14 +45,20 @@ local revealIcons = {
 	func_door = InsaneStats:GetIconMaterial("door"),
 	func_door_rotating = InsaneStats:GetIconMaterial("door"),
 	prop_door_rotating = InsaneStats:GetIconMaterial("door"),
-	npc_grenade_frag = InsaneStats:GetIconMaterial("exclamation"),
-	item_item_crate = InsaneStats:GetIconMaterial("package"),
+	npc_grenade_frag = InsaneStats:GetIconMaterial("bomb"),
+	item_item_crate = InsaneStats:GetIconMaterial("bricks"),
 
 	trigger_hurt = InsaneStats:GetIconMaterial("error"),
 	trigger_push = InsaneStats:GetIconMaterial("weather_clouds"),
 	trigger_teleport = InsaneStats:GetIconMaterial("transmit"),
 	trigger_once = InsaneStats:GetIconMaterial("transmit"),
 	trigger_multiple = InsaneStats:GetIconMaterial("transmit"),
+
+	item_battery = InsaneStats:GetIconMaterial("brick"),
+	item_healthcharger = InsaneStats:GetIconMaterial("heart_add"),
+	func_healthcharger = InsaneStats:GetIconMaterial("heart_add"),
+	item_suitcharger = InsaneStats:GetIconMaterial("brick_add"),
+	func_suitcharger = InsaneStats:GetIconMaterial("brick_add"),
 }
 
 local function GetIconForEntity(ent)
@@ -66,9 +72,16 @@ local function GetIconForEntity(ent)
 		return InsaneStats:GetIconMaterial("gun")
 	end
 
+	local healingItemType = ent:InsaneStats_GetHealingItemType()
+	if healingItemType == 2 then
+		return InsaneStats:GetIconMaterial("heart")
+	elseif healingItemType == 1 then
+		return InsaneStats:GetIconMaterial("coins")
+	end
+
 	if (ent:GetModel() or "")~="" then
 		local icon = revealIcons[ent:GetClass()]
-		if icon then return icon end
+		if icon and not ent.insaneStats_NoTargetID then return icon end
 	end
 end
 
@@ -330,7 +343,7 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 	end
 end)
 
-hook.Add("PostDrawTranslucentRenderables", "InsaneStatsWPASS2", function()
+--[[hook.Add("PostDrawTranslucentRenderables", "InsaneStatsWPASS2", function()
 	local toSphere = {}
 	for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("xp_up_aura")) do
 		toSphere[v] = bit.bor(toSphere[v] or 0, 4)
@@ -351,7 +364,7 @@ hook.Add("PostDrawTranslucentRenderables", "InsaneStatsWPASS2", function()
 		)
 		render.DrawWireframeSphere(k:WorldSpaceCenter(), 512, 8, 7, color, true)
 	end
-end)
+end)]]
 
 hook.Add("InsaneStatsReloadXBow", "InsaneStatsWPASS2", function(wep, ply)
 	if ply:InsaneStats_EffectivelyHasSkill("crunch") then

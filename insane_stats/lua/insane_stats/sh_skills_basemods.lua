@@ -467,10 +467,11 @@ local skills = {
 	super_cold = game.SinglePlayer() and {
 		name = "Super Cold",
 		desc = "While not in a vehicle, game speed is reduced based on speed. \z
-		At normal running speed, time takes +%u%% longer to pass.\n\z
+		At normal running speed, time takes +%u%% longer to pass. \z
+		However, all damage taken is multiplied by game speed. \n\z
 		(This skill is completely different in multiplayer.)",
 		values = function(level)
-			return level * 10
+			return level * 5
 		end,
 		img = "ice-cube",
 		pos = {2, 3},
@@ -810,7 +811,7 @@ local skills = {
 				end
 				distance = InsaneStats:FormatNumber(distance, {plus = true, distance = true})
 			end
-			return level * 5, slowWalkKey, distance
+			return level * 5, slowWalkKey, distance, level * 20
 		end,
 		stackTick = function(state, current, time, ent)
 			return (
@@ -910,21 +911,6 @@ local skills = {
 		minpts = 10,
 		max = 1
 	},
-	--[=[keep_it_ready = {
-		name = "Keep It Ready",
-		desc = "Gain more coins and XP \z
-		based on the square root of the percentage of ammo left in the current weapon's clip. \z
-		At 100%% ammo, coins and XP gain is increased by %s%%!",
-		values = function(level, ent)
-			--[[if ent:InsaneStats_EffectivelyHasSkill("dangerous_preparation") then
-				level = level * (1 + ent:InsaneStats_GetEffectiveSkillValues("dangerous_preparation", 5) / 100)
-			end]]
-			return CLIENT and InsaneStats:FormatNumber(level * 10, {plus = true}) or level * 10
-		end,
-		img = "knapsack",
-		pos = {5, 2},
-		minpts = 5
-	},]=]
 	unseen_killer = {
 		name = "Unseen Killer",
 		desc = "+%u%% coins and XP gained from kills either happening behind, \z
@@ -1403,15 +1389,14 @@ local skills = {
 	},
 	upward_spiralling = {
 		name = "Upward Spiralling",
-		desc = "Every spent skill point gives +%.2f%% coins and XP, \z
-		while every spent über skill point adds +%.3f to the value of the percentage. \z
-		(%s%% coins and XP gain at current total spent skill points and über skill points.)",
+		desc = "Every spent skill point gives +%.2f%% coins and XP \z
+		(%s%% coins and XP gain at current total spent skill points).",
 		values = function(level, ent)
 			local thirdValue = (
-				level/20 + level/200
-				* ent:InsaneStats_GetSpentUberSkillPoints()
+				level/50 --+ level/200
+				--* ent:InsaneStats_GetSpentUberSkillPoints()
 			) * ent:InsaneStats_GetSpentSkillPoints()
-			return level/20, level/200, CLIENT and InsaneStats:FormatNumber(thirdValue, {plus = true}) or thirdValue
+			return level/50, CLIENT and InsaneStats:FormatNumber(thirdValue, {plus = true}) or thirdValue
 		end,
 		img = "gold-shell",
 		pos = {5, -3},
@@ -1419,16 +1404,17 @@ local skills = {
 	},
 	too_many_items = {
 		name = "Too Many Items",
-		desc = "Gain +%.1f stack(s) of Too Many Items whenever an item is picked up. \z
-		All skills and modifiers that would create random items instead grant +%.1f stacks of this skill. \z
-		At 100 stacks, consume 100 to fully restore all ammo, \z
+		desc = "Gain +%u stack(s) of Too Many Items whenever an item is picked up. \z
+		All skills and modifiers that would create random items \z
+		instead grant +%u stacks of this skill, multiplied by all item multipliers. \z
+		At 100 stacks, consume 100 to fully restore reserve ammo on all equipped weapons, \z
 		health and shield, as well as triggering all skills \z
 		related to picking up Health Kits and Armor Batteries. \z
 		Health and shield gained this way can exceed max health and max shield, \z
 		but with diminishing returns.",
 		values = function(level, ent)
-			-- min level above 0: 0.1, max level: 20
-			level = level * (1 + ent:InsaneStats_GetEffectiveSkillValues("productivity", 3) / 100)
+			--[[ min level above 0: 0.1, max level: 20
+			level = level * (1 + ent:InsaneStats_GetEffectiveSkillValues("productivity", 3) / 100)]]
 			return level, level * 2
 		end,
 		stackTick = function(state, current, time, ent)
@@ -1443,7 +1429,7 @@ local skills = {
 		desc = "Every %u skill points gained, gain a über skill point! \z
 		Über skill points can double the level of skills, but can only be spent on fully upgraded skills!",
 		values = function(level)
-			return 20 * 2 ^ -math.log(level, 2)
+			return math.max(25 - 5 * level, 10)
 		end,
 		img = "star-swirl",
 		pos = {4, 0},
@@ -1466,18 +1452,18 @@ local skills = {
 		pos = {6, 2},
 		minpts = 5
 	},
-	--[[feel_the_energy = {
+	feel_the_energy = {
 		name = "Feel The Energy",
 		desc = "Having more shield increases coins and XP gained. \z
-		At 100%% shield, coins and XP gain is increased by %+.0f%%.",
+		At 100%% shield, coins and XP gain is increased by +%u%%.",
 		values = function(level)
 			return level * 20
 		end,
 		img = "triple-yin",
 		pos = {5, 3},
 		minpts = 5
-	},]]
-	triple_kill = {
+	},
+	--[[triple_kill = {
 		name = "Triple Kill",
 		desc = "Every third kill yields +%u%% coins and XP.",
 		values = function(level)
@@ -1489,7 +1475,7 @@ local skills = {
 		img = "triple-yin",
 		pos = {5, 3},
 		minpts = 5
-	},
+	},]]
 	mantreads = {
 		name = "Mantreads",
 		desc = "Negate all fall damage! All fall damage that would be received \z
@@ -1896,7 +1882,7 @@ local skills = {
 		All skills tick %i%% slower, reducing stack decay but also increasing cooldown times. \z
 		The Ain't Got Time For This skill is also +%u%% more effective.",
 		values = function(level, ent)
-			return level * 10, level * -5, level * 10
+			return level * 2, level * -5, level * 10
 		end,
 		img = "bubbling-flask",
 		pos = {5, -1},
@@ -1904,10 +1890,9 @@ local skills = {
 	},
 	productivity = {
 		name = "Productivity",
-		desc = "+%u%% chance to duplicate items. On kill, add +%u%% ammo into the current weapon's clips. \z
-		The Too Many Items skill is also +%u%% more effective.",
+		desc = "+%u%% chance to duplicate items. On kill, add +%u%% ammo into the current weapon's clips.",
 		values = function(level)
-			return level * 10, level * 5, level * 10
+			return level * 10, level * 5
 		end,
 		img = "cubeforce",
 		pos = {5, 1},
@@ -2061,9 +2046,9 @@ local skills = {
 		Also, gain +%u%% dodge chance against non-disintegrating damage, \z
 		but this chance is divided by shield %% when shield is above 100%%.",
 		values = function(level, ent)
-			local baseEffect = level / -500
+			local baseEffect = level / -200
 			local skillPoints = ent:InsaneStats_GetTotalSkillPoints()
-			local effect = baseEffect * skillPoints
+			local effect = math.max(baseEffect * skillPoints, -100)
 
 			local baseMult = ent:IsPlayer() and 1 or InsaneStats:GetConVarValue("infhealth_armor_mul")
 			local scaleType = ent:IsPlayer() and "player" or "other"
@@ -2288,10 +2273,10 @@ local skills = {
 		name = "Explosive Arsenal",
 		desc = "While holding a grenade, %s toggles between fused grenades and on-contact grenades. \z
 		On-contact grenades explode immediately upon collision, but have +%u%% more radius and BASE damage. \z
-		While holding an RPG, %s instantly fires a rocket if the RPG is not disabled, \z
-		while %s toggles rocket invincibility for those fired with %s. \z
-		Invincible rockets fired this way will disable the RPG for %.1f seconds, \z
-		while non-invincible rockets disable the RPG for half the time.",
+		While holding an RPG, %s instantly fires a rocket \z
+		while %s toggles rocket invincibility for insta-rockets. \z
+		Insta-rockets have a cooldown of %.1f seconds between shots, \z
+		with invincible rockets requiring double the amount of time.",
 		values = function(level)
 			local secondKey = "the Secondary Fire key"
 			local reloadKey = "the Reload key"
@@ -2305,7 +2290,7 @@ local skills = {
 					secondKey = keyName:upper()
 				end
 			end
-			return reloadKey, level * 10, secondKey, reloadKey, secondKey, 10 - level / 2
+			return reloadKey, level * 10, secondKey, reloadKey, 5 - level / 2.5
 		end,
 		img = "sparky-bomb",
 		pos = {4, -6},
@@ -2331,6 +2316,21 @@ local skills = {
 		img = "book-cover",
 		pos = {6, 4},
 		minpts = 5,
+	},
+	keep_it_ready = {
+		name = "Keep It Ready",
+		desc = "Gain more coins and XP \z
+		based on the square root of the percentage of ammo left in the current weapon's clip. \z
+		At 100%% ammo, coins and XP gain is increased by %s%%!",
+		values = function(level, ent)
+			--[[if ent:InsaneStats_EffectivelyHasSkill("dangerous_preparation") then
+				level = level * (1 + ent:InsaneStats_GetEffectiveSkillValues("dangerous_preparation", 5) / 100)
+			end]]
+			return CLIENT and InsaneStats:FormatNumber(level * 10, {plus = true}) or level * 10
+		end,
+		img = "knapsack",
+		pos = {5, 5},
+		minpts = 5
 	},
 	responsive_movement = {
 		name = "Responsive Movement",
@@ -2429,14 +2429,15 @@ local skills = {
 	},]]
 	kill_at_first_hit = {
 		name = "Kill At First Hit",
-		desc = "Extra crowbars and Gravity Guns can be picked up for 25 stacks of Silver Bullets. \z
-		Each stack gives 1%% more damage dealt against entities above 90%% health. \z
-		On kill while having any melee weapon, there is a +%u%% chance for the victim to drop a crowbar.",
+		desc = "Extra crowbars and Gravity Guns can be picked up for 25 stacks of Kill At First Hit. \z
+		Each stack gives 1%% more damage dealt against entities above 90%% health, but stacks decay at a rate of -1%%/s. \z
+		On kill while having any melee weapon, there is a +%u%% chance gain 25 stacks of Kill At First Hit.",
 		values = function(level, ent)
 			return level
 		end,
 		stackTick = function(state, current, time, ent)
-			return current > 0 and 1 or 0, current
+			local nextStacks = current * .99 ^ time
+			return nextStacks > 0 and 1 or 0, nextStacks
 		end,
 		img = "eclipse",
 		pos = {-4, -6},
@@ -2489,9 +2490,10 @@ local skills = {
 	},
 	flex = {
 		name = "Flex",
-		desc = "On kill while %s is not held, perform a random taunt! During the taunt and +%u seconds after, \z
-		gain invincibility from non-dissolving damage, as well as +%u%% attack damage, \z
-		coins and XP gain. 120 seconds cooldown.",
+		desc = "On kill while %s is not held, perform a random taunt! \z
+		During the taunt, gain invincibility from non-dissolving damage. \z
+		Also, gain +%u%% attack damage, \z
+		coins and XP gain, which persist for +%u seconds after the taunt finishes. 120 seconds cooldown.",
 		values = function(level)
 			local slowWalkKey = "the Slow Walk key"
 			if CLIENT then
@@ -2500,7 +2502,7 @@ local skills = {
 					slowWalkKey = keyName:upper()
 				end
 			end
-			return slowWalkKey, level * 5, level * 25
+			return slowWalkKey, level * 25, level * 5
 		end,
 		stackTick = function(state, stacks, time, ent)
 			if state == 1 then
@@ -2596,7 +2598,7 @@ local skills = {
 		name = "Step It Up",
 		desc = "+%u%% knockback dealt. Also, increase step height by +%u%%.",
 		values = function(level)
-			return level * 20, level * 40
+			return level * 20, level * 20
 		end,
 		img = "boxing-glove-surprise",
 		pos = {-1, 6},
@@ -2731,11 +2733,11 @@ local skills = {
 	},
 	synergy_1 = {
 		name = "Synergy (Hot)",
-		desc = "On kill or whenever an item is picked up, gain %+.2f stack(s) of Synergy. \z
-		Each stack increases damage dealt, coins and XP gained by 1%%, \z
+		desc = "On kill or whenever an item is picked up, gain 0.1 stacks of Synergy. \z
+		Each stack increases damage dealt, coins and XP gained by +%u%%, \z
 		but stacks decay at a rate of -1%%/s regardless of skills.",
 		values = function(level)
-			return level/20
+			return level
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = current * .99 ^ time
@@ -2762,8 +2764,8 @@ local skills = {
 	},
 	synergy_2 = {
 		name = "Synergy (Wet)",
-		desc = "Every %s travelled or whenever an item is picked up, gain %+.2f stack(s) of Synergy. \z
-		Each stack increases health and shield gained from skills and modifiers, coins and XP gained by 1%%, \z
+		desc = "Every %s travelled or whenever an item is picked up, gain 0.1 stacks of Synergy. \z
+		Each stack increases health and shield gained from skills and modifiers, coins and XP gained by +%u%%, \z
 		but stacks decay at a rate of -1%%/s regardless of skills. \z
 		Distance travelled is computed by multiplying speed and time passed.",
 		values = function(level)
@@ -2771,7 +2773,7 @@ local skills = {
 			if CLIENT then
 				distance = InsaneStats:FormatNumber(distance, {distance = true})
 			end
-			return distance, level/20
+			return distance, level
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = current * .99 ^ time
@@ -2807,16 +2809,16 @@ local skills = {
 	},
 	synergy_3 = {
 		name = "Synergy (Cold)",
-		desc = "Every %s travelled or whenever damage would be taken from a mob, gain %+.2f stack(s) of Synergy. \z
-		Each stack increases health and shield gained from skills and modifiers, and defence by 1%%, \z
-		but stacks decay at a rate of -0.1%%/s regardless of skills. \z
+		desc = "Every %s travelled or whenever damage would be taken from a mob, gain 0.1 stacks of Synergy. \z
+		Each stack increases health and shield gained from skills and modifiers, and defence by +%u%%, \z
+		but stacks decay at a rate of -1%%/s regardless of skills. \z
 		Distance travelled is computed by multiplying speed and time passed.",
 		values = function(level)
 			local distance = 8192
 			if CLIENT then
 				distance = InsaneStats:FormatNumber(distance, {distance = true})
 			end
-			return distance, level/20
+			return distance, level
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = current * .99 ^ time
@@ -2850,11 +2852,11 @@ local skills = {
 	},
 	synergy_4 = {
 		name = "Synergy (Dry)",
-		desc = "On kill or whenever damage would be taken from a mob, gain %+.2f stack(s) of Synergy. \z
-		Each stack increases damage dealt and defence by 1%%, \z
-		but stacks decay at a rate of -0.1%%/s regardless of skills.",
+		desc = "On kill or whenever damage would be taken from a mob, gain 0.1 stacks of Synergy. \z
+		Each stack increases damage dealt and defence by +%u%%, \z
+		but stacks decay at a rate of -1%%/s regardless of skills.",
 		values = function(level)
-			return level/20
+			return level
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = current * .99 ^ time

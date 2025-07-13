@@ -1,10 +1,50 @@
 -- CCVCCM compat.
 
 hook.Add("CCVCCMRun", "InsaneStatsOptionsShared", function()
-	-- allow editing InsaneStats.ShopItems
 	CCVCCM:SetAddon("Insane Stats")
 	CCVCCM:PushCategory("Server", nil, true)
-	CCVCCM:PushCategory("Coin Drops - Shops")
+
+	CCVCCM:PushCategory("WPASS2 - Modifiers & Saving")
+	CCVCCM:AddAddonVar("modifier_tier_limit", {
+		realm = "shared",
+		name = "Modifier Tier Limit / Blacklist",
+		help = "Specifies the minimum and maximum tier of weapon / armor battery \z
+		that certain modifiers can appear on.",
+		default = table.Copy(InsaneStats.ModifierTierLimits),
+		typeInfo = {
+			help = "If the minimum tier is higher than the maximum tier, the modifier will never appear. \z
+			This is useful for blacklisting modifiers.\n\z
+			You can also specify \"!curse\", which sets the minimum and maximum for all negative modifiers \z
+			unless overridden by another entry.\n\z
+			Note that you must specify the internal name of modifiers, not the display name. \z
+			You can find the internal name of item modifiers \z
+			by typing \"insanestats_wpass2_modifiers_show\" in the client console.",
+			{
+				name = "Modifier Internal Name (e.g. rejuvenate)",
+				type = "string"
+			},
+			{
+				name = "Minimum Tier",
+				type = "number",
+				min = -100,
+				max = 100,
+				interval = 1
+			},
+			{
+				name = "Maximum Tier",
+				type = "number",
+				min = -100,
+				max = 100,
+				interval = 1
+			}
+		},
+		func = function(arg, fullName)
+			InsaneStats.ModifierTierLimits = arg
+		end
+	})
+
+	-- allow editing InsaneStats.ShopItems
+	CCVCCM:NextCategory("Coin Drops - Shops")
 	-- ^ even though this is a mistake, DO NOT CHANGE
 	-- as old save files still use this name
 	CCVCCM:AddAddonVar("items", {

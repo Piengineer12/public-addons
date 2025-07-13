@@ -85,7 +85,8 @@ local needCorrectiveDeathClasses = {
 }
 
 hook.Add("PostEntityTakeDamage", "InsaneStats", function(victim, dmginfo, took)
-	if needCorrectiveDeathClasses[victim:GetClass()] and victim:InsaneStats_GetHealth() <= 0 then
+	local class = victim:GetClass()
+	if needCorrectiveDeathClasses[class] and victim:InsaneStats_GetHealth() <= 0 then
 		local attacker = dmginfo:GetAttacker()
 		local inflictor = dmginfo:GetInflictor()
 		hook.Run("InsaneStatsEntityKilled", victim, attacker, inflictor)

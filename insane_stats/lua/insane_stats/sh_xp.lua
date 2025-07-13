@@ -435,6 +435,20 @@ function ENT:InsaneStats_SetXP(xp, dropValue)
 		xp = tonumber(xp) or math.huge
 	end
 	assert(xp >= -math.huge, "Something tried to set XP on "..tostring(self).." to nan!")
+
+	local maxMul = InsaneStats:GetConVarValue("xp_other_max_mul")
+	if maxMul >= 0 and not self:IsPlayer() then
+		local maxXP = -1
+		for i,v in player.Iterator() do
+			maxXP = math.max(maxXP, v:InsaneStats_GetEntityData("xp") or -1)
+		end
+		if maxXP >= 0 then
+			maxXP = maxXP * maxMul
+			if maxXP < xp then
+				xp = maxXP
+			end
+		end
+	end
 	
 	self:InsaneStats_SetEntityData("xp", xp)
 	if xp > 0 then

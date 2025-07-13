@@ -669,7 +669,7 @@ function InsaneStats:DetermineEntitySpawnedXP(ent)
 	end
 
 	local totalXP = self:GetXPRequiredToLevel(level) * playerXPMul * driftXPFactor * alphaXPMul
-	local maxXP = -1
+	--[[local maxXP = -1
 	if hasPlayer and self:GetConVarValue("xp_other_max_mul") >= 0 then
 		for i,v in player.Iterator() do
 			maxXP = math.max(maxXP, v:InsaneStats_GetEntityData("xp") or -1)
@@ -680,7 +680,7 @@ function InsaneStats:DetermineEntitySpawnedXP(ent)
 		if maxXP < totalXP then
 			totalXP = maxXP
 		end
-	end
+	end]]
 
 	return totalXP, isAlpha
 end
