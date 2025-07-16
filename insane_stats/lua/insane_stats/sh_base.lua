@@ -161,7 +161,10 @@ end
 local ENTITY = FindMetaTable("Entity")
 
 function ENTITY:InsaneStats_IsMob()
-	return IsValid(self) and (self:IsPlayer() or self:IsNPC() or self:IsNextBot() or self:GetClass()=="prop_vehicle_apc")
+	return IsValid(self) and (
+		self:IsPlayer() or self:IsNPC() or self:IsNextBot()
+		or self:GetClass()=="prop_vehicle_apc"
+	) and self:GetClass() ~= "npc_bullseye"
 end
 
 function ENTITY:InsaneStats_IsBig()

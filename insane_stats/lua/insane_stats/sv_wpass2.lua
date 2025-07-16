@@ -779,6 +779,28 @@ function InsaneStats:GetWPASS2SavedData()
 	return playerLoadoutData
 end
 
+function InsaneStats:ComputeDXForNerfedIncrement(x, dy, n)
+	local dx = 0
+
+	-- when y<1, x=y
+	if x < 1 then
+		dx = math.min(1 - x, dy)
+		x = x + dx
+		dy = dy - dx
+	end
+
+	if n <= 1e-7 then
+		return dx + dy
+	elseif dy ~= 0 then
+		local c = 2/n-1
+		local y1 = c * math.exp( (x-1)/c ) + 1 - c
+		local y2 = c * math.exp( (x+dy-1)/c ) + 1 - c
+		dx = dx + y2 - y1
+	end
+
+	return dx
+end
+
 -- this coroutine thread deals with entity relationship collections
 -- for ENTITY:InsaneStats_GetValidEnemies() and ENTITY:InsaneStats_GetValidAllies()
 --[[local relationships = {}
@@ -869,7 +891,7 @@ local function ComputeNerfedIncrement(x, dx, n)
 		x = x + dx
 	elseif dx ~= 0 then
 		local c = 2/n-1
-		local y = c * math.exp( (x-1)/c ) + 1 - c 
+		local y = c * math.exp( (x-1)/c ) + 1 - c
 		y = y + dx
 		x = c * math.log( (y+c-1)/c ) + 1
 	end

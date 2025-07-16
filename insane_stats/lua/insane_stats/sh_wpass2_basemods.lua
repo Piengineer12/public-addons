@@ -3602,7 +3602,7 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 		-- FIXME: this causes prediction errors!
 		if IsFirstTimePredicted() or game.SinglePlayer() then
 			if key == IN_WALK then
-				if (ply:InsaneStats_GetEntityData("last_alt_press") or 0) + 0.5 > RealTime() then
+				if (ply:InsaneStats_GetEntityData("last_alt_press") or 0) + 0.5 > RealTime() or FrameTime() > 0.25 then
 					ply:InsaneStats_SetEntityData("last_alt_press", 0)
 					
 					local duration = ply:InsaneStats_GetAttributeValue("alt_invisible") - 1

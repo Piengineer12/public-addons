@@ -599,7 +599,7 @@ hook.Add("EntityKeyValue", "InsaneStatsUnlimitedHealth", function(ent, key, valu
 	key = key:lower()
 	if key == "onhalfhealth" then
 		ent.insaneStats_TempOnHalfHealth = true
-	elseif key == "ondamaged" then
+	elseif key == "ondamaged" or key == "onhealthchanged" then
 		ent.insaneStats_TempOnDamaged = true
 	elseif key == "onstunnedplayer" then
 		ent.insaneStats_TempOnStun = true

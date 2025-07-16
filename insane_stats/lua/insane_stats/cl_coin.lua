@@ -676,6 +676,11 @@ local function CreateRespecPanel(parent, shopEntity)
 	return Panel
 end
 
+local function CreateRechargePanel(parent)
+	local Panel = vgui.Create("DScrollPanel", parent)
+	Panel:Dock(FILL)
+end
+
 function InsaneStats:CreateShopMenu(shopEntity, weaponsSold, modifierBlacklist)
 	LocalPlayer():InsaneStats_SetReforgeBlacklist(modifierBlacklist)
 
@@ -691,7 +696,7 @@ function InsaneStats:CreateShopMenu(shopEntity, weaponsSold, modifierBlacklist)
 	end
 
 	local CoinDisplay = vgui.Create("DPanel", Main)
-	CoinDisplay:SetTall(InsaneStats.FONT_BIG + 8)
+	CoinDisplay:SetTall(InsaneStats.FONT_BIG + 4 + InsaneStats:GetOutlineThickness() * 2)
 	CoinDisplay:Dock(TOP)
 	function CoinDisplay:Paint(w, h)
 		local ply = LocalPlayer()

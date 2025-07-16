@@ -19,7 +19,7 @@ end
 end]]
 
 function ENT:InsaneStats_DamageNumber(attacker, damage, types, hitgroup, wasHealthyWhenDamaged)
-	if IsValid(self) then
+	if (IsValid(self) and (self:GetClass() ~= "prop_physics" or self:GetCollisionGroup() ~= COLLISION_GROUP_DEBRIS)) then
 		local entIndex = self:EntIndex()
 		
 		damageInfosRequireUpdate[entIndex] = damageInfosRequireUpdate[entIndex]

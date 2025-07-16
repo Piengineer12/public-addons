@@ -2598,7 +2598,7 @@ local skills = {
 		name = "Step It Up",
 		desc = "+%u%% knockback dealt. Also, increase step height by +%u%%.",
 		values = function(level)
-			return level * 20, level * 20
+			return level * 20, level * 10
 		end,
 		img = "boxing-glove-surprise",
 		pos = {-1, 6},

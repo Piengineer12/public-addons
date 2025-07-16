@@ -4592,8 +4592,8 @@ hook.Add("AcceptInput", "InsaneStatsWPASS2", function(ent, input, activator, cal
 		ent:SetNW2Float("insanestats_progress", tonumber(value) or 0)
 	elseif input == "insanestats_onbreak" then
 		ProcessBreakEvent(caller, activator)
-	elseif input == "unlock" or input == "open" or input == "close" or input == "setanimation"
-	or (input == "enable" or input == "disable" or input == "break")
+	elseif input == "unlock" or input == "open" or input == "close" or input == "setanimation" or input == "setskin"
+	or (input == "enable" or input == "disable" or input == "break" or input == "kill")
 	and (class:StartWith("func_") or class:StartWith("trigger_")) then
 		queuedUnlockSends[ent] = true
 		if input == "break" then ent.insaneStats_IsDead = true end
@@ -4700,6 +4700,8 @@ hook.Add("EntityKeyValue", "InsaneStatsWPASS2", function(ent, key, value)
 				times = tonumber(rawData[5]) or -1
 			})
 		end]]
+	elseif key:StartWith("onawakened") then
+		ent:SetNWBool("insanestats_use", true)
 	end
 
 	local targetEntName, targetInput = string.match(value, "^([^\27]*)\27([^\27]+)")

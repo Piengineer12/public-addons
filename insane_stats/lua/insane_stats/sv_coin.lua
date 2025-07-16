@@ -1,3 +1,11 @@
+
+concommand.Add("insanestats_coins_reset", function(ply, cmd, args, argStr)
+	if (IsValid(ply) and ply:IsAdmin()) then
+		ply:InsaneStats_SetCoins(0)
+		InsaneStats:Log("Coins reset.")
+	end
+end, nil, "Sets your coins to 0.")
+
 local function SpawnCoins(victim, value)
 	local pos = victim:WorldSpaceCenter()
 	local coins = ents.FindByClass("insanestats_coin")

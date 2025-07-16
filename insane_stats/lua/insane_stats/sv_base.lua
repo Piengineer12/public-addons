@@ -443,7 +443,18 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStats", function(ent)
 			local pos = ent:GetPos()
 			
 			for i,v in ipairs(ents.FindByClass("info_target_helicopter_crash")) do
-				v:Fire("Kill")
+				if not v.insaneStats_Replacement then
+					v:Fire("Kill")
+				end
+			end
+			
+			for i,v in ipairs(ents.FindByClass("info_target_gunshipcrash")) do
+				local replacement = ents.Create("info_target_helicopter_crash")
+				replacement:SetName(v:GetName())
+				replacement:SetPos(v:GetPos())
+				replacement:Spawn()
+				replacement:Activate()
+				replacement.insaneStats_Replacement = true
 			end
 
 			ent:InsaneStats_ApplyStatusEffect("invincible", 1, math.huge)
