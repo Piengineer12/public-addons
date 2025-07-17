@@ -1129,7 +1129,7 @@ local skills = {
 			if CLIENT then
 				distance = InsaneStats:FormatNumber(distance, {distance = true})
 			end
-			return level/2.5, distance
+			return level/2.5, distance, 256
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = current * .99 ^ time

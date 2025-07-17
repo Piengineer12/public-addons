@@ -7,20 +7,21 @@ Donate:			https://ko-fi.com/piengineer12
 ideas for skills
 
 thrown bugbait marks target for death, and r -> teleport antlions to self
+make starlight range fixed
 
 misc
 
 make shops accessible via infinite ammo crates / chargers
+- cost per health point: 1 unless health charger, where Fill to Max is free
+- - buy options: Fill to Max, x1, x10, x100, 1%c, 10%c and 100%c
+- - bloodletting effects disables ability to restore health for free
+- cost per armor point: 2 unless suit charger, where Fill to Max is free
+- - buy options: Fill to Max, x1, x10, x100, 1%c, 10%c and 100%c
 - base full refill cost per ammo type: 100 * missing fraction (* 0 for matching ammo crate)
 - - only Fill to Max buy option is available
 - - More Bullet per Bullet adds buy options x1, x10, x100, 1%c, 10%c and 100%c, but disables ability to restore ammo for free
 - - option to randomize costs
 - - option to limit number of extra ammo types sold, as %
-- cost per health point: 1 unless health charger
-- - buy options: Fill to Max, x1, x10, x100, 1%c, 10%c and 100%c
-- - bloodletting effects disable Fill to Max buy option
-- cost per armor point: 2 unless suit charger
-- - buy options: Fill to Max, x1, x10, x100, 1%c, 10%c and 100%c
 add more support for Synergy maps (info_player_equip, trigger_coop, hud_timer)
 ]]
 

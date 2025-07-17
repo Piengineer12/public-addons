@@ -1522,7 +1522,7 @@ local function GetPlayerWPASS2SaveData(ply, forced, shouldSave, shouldSaveBatter
 			if shouldSave == 1 then
 				plyWPASS2Data.weaponsAndAmmo = {weapons = {}, ammo = {}}
 				
-				for k,v in pairs(ply:GetAmmo()) do
+				for k,v in pairs(ply:InsaneStats_GetAmmo()) do
 					local ammoName = game.GetAmmoName(k)
 					plyWPASS2Data.weaponsAndAmmo.ammo[ammoName] = v
 				end
@@ -1539,8 +1539,8 @@ local function GetPlayerWPASS2SaveData(ply, forced, shouldSave, shouldSaveBatter
 				
 				if shouldSave == 1 then
 					plyWPASS2Data.weaponsAndAmmo.weapons[v:GetClass()] = {
-						primary = v:Clip1(),
-						secondary = v:Clip2()
+						primary = v:InsaneStats_Clip1(),
+						secondary = v:InsaneStats_Clip2()
 					}
 				end
 			end

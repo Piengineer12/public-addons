@@ -243,7 +243,7 @@ local function CalculateDamage(vic, attacker, dmginfo)
 		MultiplyDamage(attacker:InsaneStats_GetAttributeValue("melee_damage"), "melee_damage")
 	end
 	
-	if (IsValid(wep) and wep.Clip1 and wep:Clip1() < 2) then
+	if (IsValid(wep) and wep.Clip1 and wep:InsaneStats_Clip1() < 2) then
 		MultiplyDamage(attacker:InsaneStats_GetAttributeValue("lastammo_damage"), "lastammo_damage")
 	end
 	if attacker:WorldSpaceCenter():DistToSqr(vic:WorldSpaceCenter()) > 262144 then
@@ -506,7 +506,7 @@ local function CalculateDamage(vic, attacker, dmginfo)
 		end
 
 		if wep.Clip1 then
-			local clip1 = wep:Clip1()
+			local clip1 = wep:InsaneStats_Clip1()
 			local maxClip1 = wep:GetMaxClip1()
 			local clip1Fraction = math.sqrt(math.max(clip1, 0) / maxClip1)
 			if maxClip1 <= 0 then
@@ -2055,7 +2055,7 @@ local function CalculateXPFromSkills(attacker, victim)
 
 	local wep = attacker.GetActiveWeapon and attacker:GetActiveWeapon()
 	if (IsValid(wep) and wep.Clip1) then
-		local clip1 = wep:Clip1()
+		local clip1 = wep:InsaneStats_Clip1()
 		local maxClip1 = wep:GetMaxClip1()
 		local clip1Fraction = math.sqrt(math.max(clip1, 0) / maxClip1)
 		if maxClip1 <= 0 then
@@ -2174,7 +2174,7 @@ local function CalculateXP(data)
 
 	local wep = attacker.GetActiveWeapon and attacker:GetActiveWeapon()
 	if (IsValid(wep) and wep.Clip1) then
-		local clip1 = wep:Clip1()
+		local clip1 = wep:InsaneStats_Clip1()
 		local maxClip1 = wep:GetMaxClip1()
 		local clip1Fraction = math.sqrt(math.max(clip1, 0) / maxClip1)
 		if maxClip1 <= 0 then
@@ -2662,14 +2662,14 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsSkills", function(victim, at
 
 					if clip1ToAdd > 0 then
 						if maxClip1 > 0 then
-							wep:SetClip1(math.min(wep:Clip1() + clip1ToAdd, 2147483647))
+							wep:SetClip1(math.min(wep:InsaneStats_Clip1() + clip1ToAdd, 2147483647))
 						elseif attacker:IsPlayer() then
 							attacker:GiveAmmo(clip1ToAdd, ammoType1)
 						end
 					end
 					if clip2ToAdd > 0 then
 						if maxClip2 > 0 then
-							wep:SetClip2(math.min(wep:Clip2() + clip2ToAdd, 2147483647))
+							wep:SetClip2(math.min(wep:InsaneStats_Clip2() + clip2ToAdd, 2147483647))
 						elseif attacker:IsPlayer() then
 							attacker:GiveAmmo(clip2ToAdd, ammoType2)
 						end
@@ -2987,13 +2987,13 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsWPASS2", function(victim, at
 				end
 				
 				if clip1Used then
-					wep:SetClip1(math.min(wep:Clip1()+ammoToGive1, 2147483647))
+					wep:SetClip1(math.min(wep:InsaneStats_Clip1()+ammoToGive1, 2147483647))
 				elseif isPlayer then
 					attacker:GiveAmmo(ammoToGive1, wep:GetPrimaryAmmoType())
 				end
 				
 				if clip2Used then
-					wep:SetClip2(math.min(wep:Clip2()+ammoToGive2, 2147483647))
+					wep:SetClip2(math.min(wep:InsaneStats_Clip2()+ammoToGive2, 2147483647))
 				elseif isPlayer then
 					attacker:GiveAmmo(ammoToGive2, wep:GetSecondaryAmmoType())
 				end
@@ -3412,7 +3412,7 @@ hook.Add("InsaneStatsPlayerPickedUpItem", "InsaneStatsWPASS2", function(ply, ite
 					if k > 0 then
 						local maxcarry = game.GetAmmoData(k).maxcarry
 						local maximum = tonumber(maxcarry)
-						local current = ply:GetAmmoCount(k)
+						local current = ply:InsaneStats_GetAmmoCount(k)
 						if not maximum then
 							local conVar = GetConVar(maxcarry)
 							if conVar then
@@ -3867,7 +3867,6 @@ hook.Add("InsaneStatsCtrlStateChanged", "InsaneStatsWPASS2", function(ply, bool)
 	end
 end)
 
-local tickIndex = 0
 local occupyRatio = 0.05
 local timerResolution = 0.5
 local decayRate = 0.99^timerResolution
@@ -3875,19 +3874,16 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
 		local startTime = SysTime()
 		local timeIndex = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-		local tempTimeStart
-		
-		tickIndex = (tickIndex + 1) % 5
-		tempTimeStart = SysTime()
+		local tempTimeStart = SysTime()
 		
 		local starlightRadii = {}
 
 		for i,v in player.Iterator() do
 			if not v:GetNoDraw() then
 				starlightRadii[v] = (starlightRadii[v] or 0)
-				+ math.sqrt(v:InsaneStats_GetSkillStacks("starlight"))
+				--[[+ math.sqrt(v:InsaneStats_GetSkillStacks("starlight"))
 				* v:InsaneStats_GetEffectiveSkillValues("starlight", 2)
-				+ math.sqrt(v:InsaneStats_GetStatusEffectDuration("starlight")) * 32
+				+ math.sqrt(v:InsaneStats_GetStatusEffectDuration("starlight")) * 32]]
 			end
 		end
 
@@ -4528,12 +4524,12 @@ end)
 hook.Add("InsaneStatsReloadXBow", "InsaneStatsWPASS2", function(wep, ply)
 	if ply:InsaneStats_EffectivelyHasSkill("crunch") then
 		-- FIXME: so much hacks here and there
-		local bolts = wep:Clip1() - 1
-		local data = {wep = wep, old = wep:Clip1(), new = 1}
+		local bolts = wep:InsaneStats_Clip1() - 1
+		local data = {wep = wep, old = wep:InsaneStats_Clip1(), new = 1}
 		hook.Run("InsaneStatsModifyWeaponClip", data)
 		bolts = bolts * bolts / math.max(data.old - data.new, 4.6566128730774e-10)
 
-		local bolts2 = ply:GetAmmoCount(6)
+		local bolts2 = ply:InsaneStats_GetAmmoCount(6)
 		local data = {ply = ply, old = bolts2, new = 0, type = 6}
 		hook.Run("InsaneStatsPlayerSetAmmo", data)
 		bolts2 = bolts2 * bolts2 / math.max(data.old - data.new, 4.6566128730774e-10)
@@ -5311,28 +5307,28 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 						-- there are two particular non-Lua weapons - weapon_grenade and weapon_rpg - that don't have unlimited ammo + don't use clips.
 						k.insaneStats_LastWeapon = k.insaneStats_LastWeapon or wep
 						if k.insaneStats_LastWeapon == wep and (IsValid(wep) and not wep:IsScripted()) then
-							if wep:Clip1() <= 0 then
+							if wep:InsaneStats_Clip1() <= 0 then
 								local ammoType = wep:GetPrimaryAmmoType()
-								local count = k:GetAmmoCount(ammoType)
+								local count = k:InsaneStats_GetAmmoCount(ammoType)
 								k.insaneStats_LastPrimaryAmmo = k.insaneStats_LastPrimaryAmmo or count
 								if k.insaneStats_LastPrimaryAmmo ~= count then
 									-- FIXME: wouldn't it be easier to just call the relevant hook???
 									k.insaneStats_OldSetAmmoValue = k.insaneStats_LastPrimaryAmmo
 									k:SetAmmo(count, ammoType)
-									k.insaneStats_LastPrimaryAmmo = k:GetAmmoCount(ammoType)
+									k.insaneStats_LastPrimaryAmmo = k:InsaneStats_GetAmmoCount(ammoType)
 									k.insaneStats_OldSetAmmoValue = nil
 								end
 							else
 								k.insaneStats_LastPrimaryAmmo = nil
 							end
-							if wep:Clip2() <= 0 then
+							if wep:InsaneStats_Clip2() <= 0 then
 								local ammoType = wep:GetSecondaryAmmoType()
-								local count = k:GetAmmoCount(ammoType)
+								local count = k:InsaneStats_GetAmmoCount(ammoType)
 								k.insaneStats_LastSecondaryAmmo = k.insaneStats_LastSecondaryAmmo or count
 								if k.insaneStats_LastSecondaryAmmo ~= count then
 									k.insaneStats_OldSetAmmoValue = k.insaneStats_LastSecondaryAmmo
 									k:SetAmmo(count, ammoType)
-									k.insaneStats_LastSecondaryAmmo = k:GetAmmoCount(ammoType)
+									k.insaneStats_LastSecondaryAmmo = k:InsaneStats_GetAmmoCount(ammoType)
 									k.insaneStats_OldSetAmmoValue = nil
 								end
 							else
@@ -5435,21 +5431,21 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 							and (lastFired and lastFired + k:InsaneStats_GetEffectiveSkillValues("the_fourth_dimension") < curTime) then
 								v2:InsaneStats_SetEntityData("last_fired_t4d", nil)
 		
-								local clip = v2:Clip1()
+								local clip = v2:InsaneStats_Clip1()
 								local maxClip = v2:GetMaxClip1()
 								if maxClip > 0 and clip < maxClip then
 									local ammoType = v2:GetPrimaryAmmoType()
-									local playerAmmoCount = k:GetAmmoCount(ammoType)
+									local playerAmmoCount = k:InsaneStats_GetAmmoCount(ammoType)
 									local ammoToRemove = math.min(maxClip - clip, playerAmmoCount)
 									v2:SetClip1(clip + ammoToRemove)
 									k:SetAmmo(playerAmmoCount - ammoToRemove, ammoType)
 								end
 		
-								clip = v2:Clip2()
+								clip = v2:InsaneStats_Clip2()
 								maxClip = v2:GetMaxClip2()
 								if maxClip > 0 and clip < maxClip then
 									local ammoType = v2:GetSecondaryAmmoType()
-									local playerAmmoCount = k:GetAmmoCount(ammoType)
+									local playerAmmoCount = k:InsaneStats_GetAmmoCount(ammoType)
 									local ammoToRemove = math.min(maxClip - clip, playerAmmoCount)
 									v2:SetClip2(clip + ammoToRemove)
 									k:SetAmmo(playerAmmoCount - ammoToRemove, ammoType)
@@ -5460,7 +5456,7 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 						if (IsValid(wep) and wep:GetClass() == "weapon_rpg")
 						and (k:InsaneStats_GetEntityData("explosive_arsenal_rpg_nextfire") or 0) <= CurTime()
 						and k:KeyDown(IN_ATTACK2) and k:InsaneStats_EffectivelyHasSkill("explosive_arsenal") then
-							if k:GetAmmoCount("RPG_Round") > 0 then
+							if k:InsaneStats_GetAmmoCount("RPG_Round") > 0 then
 								local cooldown = k:InsaneStats_GetEffectiveSkillValues("explosive_arsenal", 5)
 								local invincible = bit.band(k:InsaneStats_GetSkillStacks("explosive_arsenal"), 2) == 0
 								k:RemoveAmmo(1, "RPG_Round")
@@ -5504,16 +5500,16 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 						wep.insaneStats_LastSecondaryFire = wep:GetNextSecondaryFire()
 					end
 					
-					wep.insaneStats_LastClip1 = wep.insaneStats_LastClip1 or wep:Clip1()
-					if wep.insaneStats_LastClip1 ~= wep:Clip1() then
-						wep:SetClip1(wep:Clip1())
-						wep.insaneStats_LastClip1 = wep:Clip1()
+					wep.insaneStats_LastClip1 = wep.insaneStats_LastClip1 or wep:InsaneStats_Clip1()
+					if wep.insaneStats_LastClip1 ~= wep:InsaneStats_Clip1() then
+						wep:SetClip1(wep:InsaneStats_Clip1())
+						wep.insaneStats_LastClip1 = wep:InsaneStats_Clip1()
 					end
 					
-					wep.insaneStats_LastClip2 = wep.insaneStats_LastClip2 or wep:Clip2()
-					if wep.insaneStats_LastClip2 ~= wep:Clip2() then
-						wep:SetClip2(wep:Clip2())
-						wep.insaneStats_LastClip2 = wep:Clip2()
+					wep.insaneStats_LastClip2 = wep.insaneStats_LastClip2 or wep:InsaneStats_Clip2()
+					if wep.insaneStats_LastClip2 ~= wep:InsaneStats_Clip2() then
+						wep:SetClip2(wep:InsaneStats_Clip2())
+						wep.insaneStats_LastClip2 = wep:InsaneStats_Clip2()
 					end
 				end
 				
@@ -5667,7 +5663,7 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 						canAnyAmmo = true
 					else
 						for j=1,9 do
-							if v:GetAmmoCount(j) > 0 then
+							if v:InsaneStats_GetAmmoCount(j) > 0 then
 								cachedPlayersAmmo[j] = true break
 							end
 						end
@@ -5777,7 +5773,7 @@ local function GetAmmoConsumptionMul(ent, wep, secondary)
 	/ (1 + ent:InsaneStats_GetStatusEffectLevel("stack_ammo_efficiency_up") / 100)
 	
 	if IsValid(wep) and ent:InsaneStats_EffectivelyHasSkill("dangerous_preparation") then
-		local clip = secondary and wep:Clip2() or wep:Clip1()
+		local clip = secondary and wep:InsaneStats_Clip2() or wep:InsaneStats_Clip1()
 		local maxClip = secondary and wep:GetMaxClip2() or wep:GetMaxClip1()
 		local clipFraction = math.sqrt(math.max(clip, 0) / maxClip)
 		if maxClip <= 0 then
@@ -5835,7 +5831,7 @@ end
 hook.Add("InsaneStatsPlayerAddAmmo", "InsaneStatsWPASS2", function(data)
 	local attacker = data.ply
 	if IsValid(attacker) then
-		local current = attacker:GetAmmoCount(data.type)
+		local current = attacker:InsaneStats_GetAmmoCount(data.type)
 		local new = ProcessAmmoChange(attacker, data.type, current + data.num)
 		if new then
 			data.num = math.max(new - current, 0)

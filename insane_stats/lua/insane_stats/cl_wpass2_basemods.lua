@@ -349,6 +349,31 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 			v:SetColor(desiredColor)
 		end
 	end
+
+	local ply = LocalPlayer()
+	local starlightRange = math.sqrt(ply:InsaneStats_GetSkillStacks("starlight"))
+		* ply:InsaneStats_GetEffectiveSkillValues("starlight", 3)
+		+ math.sqrt(ply:InsaneStats_GetStatusEffectDuration("starlight")) * 32
+		+ 0
+	
+	if starlightRange > 0 then
+		if not IsValid(ply.insaneStats_Starlight) then
+			ply.insaneStats_Starlight = ProjectedTexture()
+			ply.insaneStats_Starlight:SetTexture("effects/flashlight/hard")
+			ply.insaneStats_Starlight:SetNearZ(32)
+		end
+
+		local light = ply.insaneStats_Starlight
+		light:SetAngles(ply:EyeAngles())
+		light:SetFarZ(starlightRange)
+		light:SetPos(ply:EyePos())
+		light:SetFOV((ply:GetFOV() + 180)/2)
+		light:SetColor(HSVToColor(CurTime() * 32 % 360, 0.75, 1))
+		light:Update()
+
+	elseif IsValid(ply.insaneStats_Starlight) then
+		ply.insaneStats_Starlight:Remove()
+	end
 end)
 
 --[[hook.Add("PostDrawTranslucentRenderables", "InsaneStatsWPASS2", function()

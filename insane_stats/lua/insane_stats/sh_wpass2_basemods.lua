@@ -3290,7 +3290,7 @@ hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 		if IsValid(wep) then
 			if wep:GetClass() == "weapon_physcannon" then return end
 			if wep.Clip1 then
-				local clip1 = wep:Clip1()
+				local clip1 = wep:InsaneStats_Clip1()
 				local maxClip1 = wep:GetMaxClip1()
 				local clip1Fraction = clip1 / maxClip1
 				if maxClip1 <= 0 then
@@ -3332,7 +3332,7 @@ hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 	
 		if IsValid(wep) then
 			if wep.Clip1 then
-				local clip1 = wep:Clip1()
+				local clip1 = wep:InsaneStats_Clip1()
 				local maxClip1 = wep:GetMaxClip1()
 				local clip1Fraction = clip1 / maxClip1
 				if maxClip1 <= 0 then
@@ -3445,7 +3445,7 @@ end)
 hook.Add("StartCommand", "InsaneStatsSharedWPASS2", function(ply, usercmd)
 	if usercmd:KeyDown(IN_RELOAD) and IsValid(ply:GetActiveWeapon()) then
 		local wep = ply:GetActiveWeapon()
-		if not wep:IsScripted() and wep:Clip1() > wep:GetMaxClip1() and wep:GetMaxClip1() > 0 then
+		if not wep:IsScripted() and wep:InsaneStats_Clip1() > wep:GetMaxClip1() and wep:GetMaxClip1() > 0 then
 			local cancel = false
 			if wep:GetClass() == "weapon_crossbow" then
 				cancel = hook.Run("InsaneStatsReloadXBow", wep, ply)
