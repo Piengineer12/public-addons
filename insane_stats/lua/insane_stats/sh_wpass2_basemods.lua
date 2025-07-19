@@ -2011,9 +2011,8 @@ local attributes = {
 		mul = 30
 	},
 	starlight_glow = {
-		display = "+1 glow power, scaled by starlit duration",
-		mul = 30,
-		invert = true
+		display = "+1 night vision, scaled by starlit duration",
+		mul = 30
 	},
 	kill_lifesteal = {
 		display = "%s healing on kill",

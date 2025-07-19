@@ -7,7 +7,8 @@ Donate:			https://ko-fi.com/piengineer12
 ideas for skills
 
 thrown bugbait marks target for death, and r -> teleport antlions to self
-make starlight range fixed
+skill that converts dropped weapons into more ammo than normal
+redo synergy skills that increase health gains
 
 misc
 

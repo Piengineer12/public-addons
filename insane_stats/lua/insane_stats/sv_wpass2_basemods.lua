@@ -836,7 +836,7 @@ hook.Add("EntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo)
 
 		local damageTier = damageTiers[#damageTiers]
 		if damageTier < 0.5 and math.random() * 100 < vic:InsaneStats_GetEffectiveSkillValues("instant_karma")
-		and attacker:InsaneStats_GetStatusEffectLevel("no_spreading_damage") then
+		and vic:InsaneStats_GetStatusEffectLevel("no_spreading_damage") <= 0 then
 			--[[local oldDamage = dmginfo:GetDamage()
 			local oldAttacker = attacker]]
 
@@ -973,7 +973,7 @@ hook.Add("EntityTakeDamage", "InsaneStatsWPASS2", function(vic, dmginfo)
 			if vic:InsaneStats_GetEffectiveSkillTier("rock_solid") > 1 then
 				negatedDamageTypes = bit.bor(negatedDamageTypes, poisonDamageTypes, DMG_SHOCK, freezeDamageTypes)
 				if vic:InsaneStats_GetEffectiveSkillTier("rock_solid") > 2 then
-					negatedDamageTypes = bit.bor(negatedDamageTypes, DMG_CLUB, DMG_SONIC, DMG_ENERGYBEAM)
+					negatedDamageTypes = bit.bor(negatedDamageTypes, DMG_CLUB, DMG_SONIC, DMG_ENERGYBEAM, DMG_CRUSH)
 				end
 			end
 			if dmginfo:IsDamageType(negatedDamageTypes) then
@@ -2631,7 +2631,7 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsSkills", function(victim, at
 			local wep = attacker.GetActiveWeapon and attacker:GetActiveWeapon()
 			if IsValid(wep) then
 				local ammoMul = (
-					attacker:InsaneStats_GetEffectiveSkillValues("productivity", 2) / 100
+					attacker:InsaneStats_GetEffectiveSkillValues("productivity", 3) / 100
 					+ attacker:InsaneStats_GetStatusEffectLevel("ammo_stealer") / 100
 				) * triggers
 				if ammoMul > 0 then
@@ -3215,6 +3215,26 @@ local function DoItemPickupTriggers(ply, item, class)
 			end
 		end
 	end
+
+	if item:IsWeapon() and ply:InsaneStats_EffectivelyHasSkill("productivity")
+	and ply:HasWeapon(class) then
+		local mul = 1 + ply:InsaneStats_GetEffectiveSkillValues("productivity", 2) / 100
+		local ammoToGive1 = {item:GetPrimaryAmmoType(), item:GetMaxClip1() * mul}
+		local ammoToGive2 = {item:GetSecondaryAmmoType(), item:GetMaxClip2() * mul}
+		if ammoToGive1[1] > 0 then
+			if ammoToGive1[2] <= 0 then
+				ammoToGive1[2] = game.GetAmmoMax(ammoToGive1[1]) * mul
+			end
+			ply:GiveAmmo(ammoToGive1[2], ammoToGive1[1])
+		end
+		if ammoToGive2[1] > 0 then
+			if ammoToGive2[2] <= 0 then
+				ammoToGive2[2] = game.GetAmmoMax(ammoToGive2[1]) * mul
+			end
+			ply:GiveAmmo(ammoToGive2[2], ammoToGive2[1])
+		end
+		deleteItem = true
+	end
 	
 	hook.Run("InsaneStatsPlayerPickedUpItem", ply, item)
 
@@ -3282,7 +3302,10 @@ local function AttemptDupeEntity(ply, item)
 				end
 			end
 
-			DoItemPickupTriggers(ply, item, class)
+			if not item:GetNWBool("insanestats_use") then
+				local ret = DoItemPickupTriggers(ply, item, class)
+				if ret ~= nil then return ret end
+			end
 		end
 
 		if item:IsWeapon() then
@@ -3893,7 +3916,7 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 		ApplyRegeneration(timerResolution)
 
 		timeIndex[2] = SysTime() - tempTimeStart
-		tempTimeStart = SysTime()
+		--[=[tempTimeStart = SysTime()
 
 		for k,v in pairs(starlightRadii) do
 			if v > 0 then
@@ -3953,7 +3976,7 @@ timer.Create("InsaneStatsWPASS2", timerResolution, 0, function()
 			end
 		end
 		
-		timeIndex[3] = SysTime() - tempTimeStart
+		timeIndex[3] = SysTime() - tempTimeStart]=]
 		tempTimeStart = SysTime()
 		
 		for k,v in pairs(entities) do
@@ -4328,9 +4351,9 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsWPASS2", function(ent)
 	if ent:InsaneStats_IsMob() then
 		rapidThinkEntities[ent] = true
 	end
-	if IsValid(ent.insaneStats_Starlight) then
+	--[[if IsValid(ent.insaneStats_Starlight) then
 		ent.insaneStats_Starlight:Remove()
-	end
+	end]]
 	local class = ent:GetClass()
 	if class == "momentary_rot_button" then
 		ent:Fire("AddOutput", "Position !self:InsaneStatsInteraction::0:-1")
@@ -4842,9 +4865,9 @@ hook.Add("PlayerSpawn", "InsaneStatsWPASS2", function(ply, fromTransition)
 		ply:InsaneStats_SetSkillData("fight_for_your_life", 0, 0)
 		ply:InsaneStats_SetSkillData("master_of_air", 0, 0)
 	end
-	if IsValid(ply.insaneStats_Starlight) then
+	--[[if IsValid(ply.insaneStats_Starlight) then
 		ply.insaneStats_Starlight:Remove()
-	end
+	end]]
 end)
 
 hook.Add("PlayerUse", "InsaneStatsWPASS2", function(ply, ent)

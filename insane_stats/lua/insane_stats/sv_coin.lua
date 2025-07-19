@@ -22,7 +22,7 @@ local function SpawnCoins(victim, value)
 			end
 		end
 		if not (value >= 1) then break end
-		local valueExponent = math.floor(math.log(value, denomDist))
+		local valueExponent = math.floor(InsaneStats:GetCoinValueExponent(value))
 		local toSubtract = denomDist^valueExponent
 		value = value - toSubtract
 		local doNot = hook.Run("InsaneStatsCoinsSpawn", victim, pos, toSubtract, valueExponent)

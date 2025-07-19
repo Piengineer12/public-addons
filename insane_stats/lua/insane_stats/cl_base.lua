@@ -329,7 +329,8 @@ function InsaneStats:DrawMaterialOutlined(material, x, y, w, h, color)
 	end
 	
 	surface.SetDrawColor(color.r, color.g, color.b, color.a)
-	return surface.DrawTexturedRect(x, y, w, h)
+	surface.DrawTexturedRect(x, y, w, h)
+	return w, h
 end
 
 function InsaneStats:DrawRectOutlined(x, y, w, h, frac, colorFG, colorBG)

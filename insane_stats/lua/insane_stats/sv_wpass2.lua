@@ -1462,7 +1462,9 @@ hook.Add("PlayerCanPickupWeapon", "InsaneStatsWPASS", function(ply, wep)
 		return false
 	end
 	
-	hook.Run("InsaneStatsPlayerCanPickupWeapon", ply, wep)
+	local ret = hook.Run("InsaneStatsPlayerCanPickupWeapon", ply, wep)
+	if ret ~= nil then return false end
+	
 	toSavePlayers[ply] = true
 end)
 

@@ -560,6 +560,7 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 					ent.insaneStats_TempOnStun = nil
 					ent:InsaneStats_ApplyStatusEffect("undying", times, math.huge)
 					ent:Fire("AddOutput", "OnDamaged !self:InsaneStats_OnDamaged")
+					ent:Fire("AddOutput", "OnHealthChanged !self:InsaneStats_OnDamaged")
 				end
 			--end
 		--end)
@@ -645,7 +646,7 @@ hook.Add("AcceptInput", "InsaneStatsUnlimitedHealth", function(ent, input, activ
 	elseif input == "insanestats_ondamaged" then
 		local undyingLevel = ent:InsaneStats_GetStatusEffectLevel("undying")
 
-		if undyingLevel > 0 then
+		if undyingLevel > 0 and ent:InsaneStats_GetStatusEffectLevel("invincible") <= 0 then
 			local duration = ent:InsaneStats_GetStatusEffectDuration("undying")
 
 			timer.Simple(0, function()

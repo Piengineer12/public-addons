@@ -210,6 +210,11 @@ function InsaneStats:GetRespecCost(ent)
 	)
 end
 
+function InsaneStats:GetCoinValueExponent(value)
+	local denom = InsaneStats:GetConVarValue("coins_denomination_mul")
+	return math.log(math.max(value, 1/denom), denom)
+end
+
 -- the server needs access for setting the fallback coin color
 local color_gray = Color(127, 127, 127)
 function InsaneStats:GetCoinColor(valueExponent)

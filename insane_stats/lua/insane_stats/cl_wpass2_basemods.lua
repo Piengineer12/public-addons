@@ -351,16 +351,18 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 	end
 
 	local ply = LocalPlayer()
-	local starlightRange = math.sqrt(ply:InsaneStats_GetSkillStacks("starlight"))
+	local starlightRange = ply:InsaneStats_GetSkillStacks("starlight")
 		* ply:InsaneStats_GetEffectiveSkillValues("starlight", 3)
-		+ math.sqrt(ply:InsaneStats_GetStatusEffectDuration("starlight")) * 32
+		+ ply:InsaneStats_GetStatusEffectDuration("starlight") * ply:InsaneStats_GetStatusEffectLevel("starlight") * 2
 		+ 0
 	
-	if starlightRange > 0 then
+	if starlightRange > 0 and not ply:InVehicle() then
 		if not IsValid(ply.insaneStats_Starlight) then
 			ply.insaneStats_Starlight = ProjectedTexture()
 			ply.insaneStats_Starlight:SetTexture("effects/flashlight/hard")
 			ply.insaneStats_Starlight:SetNearZ(32)
+			ply.insaneStats_Starlight:SetBrightness(1)
+			ply.insaneStats_Starlight:SetEnableShadows(false)
 		end
 
 		local light = ply.insaneStats_Starlight
@@ -368,7 +370,7 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 		light:SetFarZ(starlightRange)
 		light:SetPos(ply:EyePos())
 		light:SetFOV((ply:GetFOV() + 180)/2)
-		light:SetColor(HSVToColor(CurTime() * 32 % 360, 0.75, 1))
+		light:SetColor(HSVToColor(CurTime() * 16 % 360, .5, 1))
 		light:Update()
 
 	elseif IsValid(ply.insaneStats_Starlight) then

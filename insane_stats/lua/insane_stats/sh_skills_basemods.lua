@@ -1121,15 +1121,14 @@ local skills = {
 	starlight = {
 		name = "Starlight",
 		desc = "On kill or prop broken, gain %+.1f stack(s) of Starlight. \z
-		Each stack gives 1%% more defence but also causes glowing \z
-		by %s times the square root of the number of stacks. \z
+		Each stack gives 1%% more defence and %s of night vision. \z
 		Stacks decay at a rate of -1%%/s.",
 		values = function(level)
-			local distance = 256
+			local distance = 32
 			if CLIENT then
 				distance = InsaneStats:FormatNumber(distance, {distance = true})
 			end
-			return level/2.5, distance, 256
+			return level/5, distance, 32
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = current * .99 ^ time
@@ -1661,7 +1660,7 @@ local skills = {
 		Additionally, negate ALL damage taken while in a vehicle!",
 		values = function(level)
 			if level > 2 then
-				return ", poison, shock, freeze, melee, sonic, laser, auric"
+				return ", poison, shock, freeze, melee, sonic, laser, auric, physical"
 			elseif level > 1 then
 				return ", poison, shock, freeze"
 			else
@@ -1890,9 +1889,11 @@ local skills = {
 	},
 	productivity = {
 		name = "Productivity",
-		desc = "+%u%% chance to duplicate items. On kill, add +%u%% ammo into the current weapon's clips.",
+		desc = "+%u%% chance to duplicate items. Whenever a weapon would be picked up for ammo, \z
+		instead gain ammo equal to the weapon's max clips +%u%%. \z
+		On kill, add +%u%% ammo into the current weapon's clips.",
 		values = function(level)
-			return level * 10, level * 5
+			return level * 10, level * 10, level * 5
 		end,
 		img = "cubeforce",
 		pos = {5, 1},
@@ -2598,7 +2599,7 @@ local skills = {
 		name = "Step It Up",
 		desc = "+%u%% knockback dealt. Also, increase step height by +%u%%.",
 		values = function(level)
-			return level * 20, level * 10
+			return level * 20, level * 15
 		end,
 		img = "boxing-glove-surprise",
 		pos = {-1, 6},
