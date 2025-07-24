@@ -4572,7 +4572,6 @@ hook.Add("InsaneStatsReloadXBow", "InsaneStatsWPASS2", function(wep, ply)
 			hook.Run("InsaneStatsScaleXP", data)
 			
 			local xpToGive = data.xp
-			print(xpToGive)
 			local xpDropMul = InsaneStats:GetConVarValue("xp_other_kill")
 			
 			for k,v in pairs(data.receivers) do
@@ -6049,8 +6048,6 @@ hook.Add("InsaneStatsWPASS2AddHealth", "InsaneStatsWPASS2", function(data)
 			local healingMul = math.max(2 + math.log(armorBars, base), 1)
 			data.health = data.health * ((healingMul - 1) * potency / 100 + 1)
 		end
-
-		data.nerfFactor = data.nerfFactor * (1 + ent:InsaneStats_GetEffectiveSkillValues("bloodletter_pact", 2) / 100)
 	end
 end)
 
@@ -6074,11 +6071,6 @@ hook.Add("InsaneStatsWPASS2AddArmor", "InsaneStatsWPASS2", function(data)
 		local potency, base = ent:InsaneStats_GetEffectiveSkillValues("more_and_more")
 		local healingMul = math.max(2 + math.log(armorBars, base), 1)
 		data.armor = data.armor * ((healingMul - 1) * potency / 100 + 1)
-	end
-
-	if ent:InsaneStats_EffectivelyHasSkill("hacked_shield") then
-		--data.armor = data.armor * (1 + ent:InsaneStats_GetEffectiveSkillValues("hacked_shield", 3) / 100)
-		data.nerfFactor = data.nerfFactor * (1 + ent:InsaneStats_GetEffectiveSkillValues("hacked_shield", 2) / 100)
 	end
 end)
 

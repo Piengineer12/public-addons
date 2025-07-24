@@ -290,11 +290,15 @@ net.Receive("insane_stats", function()
 		for i=1, net.ReadUInt(16) do
 			table.insert(soldWeapons, net.ReadUInt(16))
 		end
+		local soldAmmo = {}
+		for i=1, net.ReadUInt(9) do
+			table.insert(soldAmmo, net.ReadUInt(9))
+		end
 		local modifierBlacklist = {}
 		for i=1, net.ReadUInt(16) do
 			modifierBlacklist[net.ReadString()] = true
 		end
-		InsaneStats:CreateShopMenu(ent, soldWeapons, modifierBlacklist)
+		InsaneStats:CreateShopMenu(ent, soldWeapons, soldAmmo, modifierBlacklist)
 	elseif func == 7 then
 		if net.ReadBool() then
 			-- disabled skill set

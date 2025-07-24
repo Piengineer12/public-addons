@@ -472,6 +472,63 @@ net.Receive("insane_stats", function(length, ply)
 					modifierBlacklist[net.ReadString()] = true
 				end
 				ply:InsaneStats_SetReforgeBlacklist(modifierBlacklist)
+			elseif subFunc == 6 then
+				ammoType = net.ReadUInt(9)
+				level = ply:InsaneStats_GetLevel()
+				if ammoType == 257 then
+					local qty = net.ReadDouble()
+					local unitPrice = InsaneStats:ScaleValueToLevel(
+						InsaneStats:GetConVarValue("coins_health_cost"),
+						InsaneStats:GetConVarValue("coins_health_cost_add")/100,
+						level,
+						"coins_health_cost_mode"
+					)
+					local price = qty * unitPrice
+					local missingHealth = ply:InsaneStats_GetMaxHealth() - ply:InsaneStats_GetHealth()
+					if not hook.Run("InsaneStatsBlockFreebie", ply, shopEntity, ammoType) and missingHealth > 0 then
+						price = math.max(0, price - missingHealth * unitPrice)
+					end
+					if ply:InsaneStats_GetCoins() >= price then
+						local linearAdd = math.Clamp(missingHealth, 0, qty)
+						qty = (qty - linearAdd) / InsaneStats:GetConVarValue("coins_health_cost_overmul") + linearAdd
+						ply:InsaneStats_AddHealthNerfed(qty, true)
+						ply:InsaneStats_RemoveCoins(price)
+					end
+				elseif ammoType == 258 then
+					local qty = net.ReadDouble()
+					local unitPrice = InsaneStats:ScaleValueToLevel(
+						InsaneStats:GetConVarValue("coins_armor_cost"),
+						InsaneStats:GetConVarValue("coins_armor_cost_add")/100,
+						level,
+						"coins_armor_cost_mode"
+					)
+					local price = qty * unitPrice
+					local missingArmor = ply:InsaneStats_GetMaxArmor() - ply:InsaneStats_GetArmor()
+					if not hook.Run("InsaneStatsBlockFreebie", ply, shopEntity, ammoType) and missingArmor > 0 then
+						price = math.max(0, price - missingArmor * unitPrice)
+					end
+					if ply:InsaneStats_GetCoins() >= price then
+						local linearAdd = math.Clamp(missingArmor, 0, qty)
+						qty = (qty - linearAdd) / InsaneStats:GetConVarValue("coins_armor_cost_overmul") + linearAdd
+						ply:InsaneStats_AddArmorNerfed(qty, true)
+						ply:InsaneStats_RemoveCoins(price)
+					end
+				else
+					local qty = net.ReadDouble()
+					local unitPrice = InsaneStats:ScaleValueToLevel(
+						InsaneStats:GetConVarValue("coins_ammo_cost") / game.GetAmmoMax(ammoType),
+						InsaneStats:GetConVarValue("coins_ammo_cost_add")/100,
+						level, "coins_ammo_cost_mode"
+					)
+					local price = qty * unitPrice
+					if not hook.Run("InsaneStatsBlockFreebie", ply, shopEntity, ammoType) then
+						price = 0
+					end
+					if ply:InsaneStats_GetCoins() >= price then
+						ply:GiveAmmo(qty, ammoType)
+						ply:InsaneStats_RemoveCoins(price)
+					end
+				end
 			end
 		end
 	elseif func == 6 then

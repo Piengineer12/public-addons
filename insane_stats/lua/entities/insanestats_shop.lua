@@ -12,6 +12,23 @@ ENT.Spawnable		= true
 ENT.AdminOnly		= true
 ENT.Model			= Model("models/items/ammocrate_rockets.mdl")
 ENT.Material		= "insane_stats/ammocrate_coins"
+ENT.Editable		= true
+
+--[[
+this is normally for ammo types, but other values can be used for testing purposes:
+257: free health
+258: free armor
+]]
+function ENT:SetupDataTables()
+	self:NetworkVar("Int", "FreebieAmmoType", {
+		KeyName = "freebieammotype",
+		Edit = {
+			type = "Int",
+			min = 0,
+			max = 259
+		}
+	})
+end
 
 function ENT:SpawnFunction(ply, traceResult, class)
 	if traceResult.Hit then
@@ -47,6 +64,9 @@ function ENT:Use(activator, caller)
 		if not self.insaneStats_WeaponIndexes then
 			self.insaneStats_WeaponIndexes = self:SelectSoldWeapons()
 		end
+		if not self.insaneStats_AmmoIndexes then
+			self.insaneStats_AmmoIndexes = self:SelectSoldAmmo()
+		end
 		local modifierBlacklist = activator:InsaneStats_GetReforgeBlacklist()
 		
 		net.Start("insane_stats", true)
@@ -55,6 +75,10 @@ function ENT:Use(activator, caller)
 		net.WriteUInt(#self.insaneStats_WeaponIndexes, 16)
 		for i, v in ipairs(self.insaneStats_WeaponIndexes) do
 			net.WriteUInt(v, 16)
+		end
+		net.WriteUInt(#self.insaneStats_AmmoIndexes, 9)
+		for i, v in ipairs(self.insaneStats_AmmoIndexes) do
+			net.WriteUInt(v, 9)
 		end
 		net.WriteUInt(table.Count(modifierBlacklist), 16)
 		for k, v in pairs(modifierBlacklist) do
@@ -93,5 +117,25 @@ function ENT:SelectSoldWeapons()
 	end
 
 	table.sort(selected)
+	return selected
+end
+
+function ENT:SelectSoldAmmo()
+	local allAmmoTypes = game.GetAmmoTypes()
+	local ammoIDs = {}
+	for id, name in pairs(allAmmoTypes) do
+		if game.GetAmmoMax(id) > 0 then
+			table.insert(ammoIDs, id)
+		end
+	end
+	local typesToSell = math.ceil(#ammoIDs * InsaneStats:GetConVarValue("coins_ammo_soldtypes") / 100)
+
+	local selected = {257, 258}
+	for i=1, typesToSell do
+		local choice = table.remove(ammoIDs, math.random(#ammoIDs))
+		table.insert(selected, choice)
+		if table.IsEmpty(ammoIDs) then break end
+	end
+	
 	return selected
 end

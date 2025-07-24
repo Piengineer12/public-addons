@@ -676,12 +676,17 @@ local function CreateRespecPanel(parent, shopEntity)
 	return Panel
 end
 
-local function CreateRechargePanel(parent)
-	local Panel = vgui.Create("DScrollPanel", parent)
+local function CreateNewItemsPanel(parent, shopEntity, ammoSold)
+	local Panel = vgui.Create("InsaneStats_ShopItems", parent)
+	Panel:SetShopEntity(shopEntity)
+	Panel:SetAmmoSold(ammoSold)
 	Panel:Dock(FILL)
+	Panel.Paint = nil
+
+	return Panel
 end
 
-function InsaneStats:CreateShopMenu(shopEntity, weaponsSold, modifierBlacklist)
+function InsaneStats:CreateShopMenu(shopEntity, weaponsSold, ammoSold, modifierBlacklist)
 	LocalPlayer():InsaneStats_SetReforgeBlacklist(modifierBlacklist)
 
 	local Main = vgui.Create("DFrame")
@@ -727,6 +732,7 @@ function InsaneStats:CreateShopMenu(shopEntity, weaponsSold, modifierBlacklist)
 
 	local Categories = vgui.Create("DColumnSheet", Main)
 	Categories:Dock(FILL)
+	Categories:AddSheet("TEST ONLY", CreateNewItemsPanel(Categories, shopEntity, ammoSold))
 	Categories:AddSheet("Weapons", CreateWeaponryPanel(Categories, shopEntity, weaponsSold), "icon16/gun.png")
 	Categories:AddSheet("Items", CreateItemsPanel(Categories, shopEntity), "icon16/bricks.png")
 	Categories:AddSheet("Reforging", CreateReforgePanel(Categories, shopEntity), "icon16/wand.png")

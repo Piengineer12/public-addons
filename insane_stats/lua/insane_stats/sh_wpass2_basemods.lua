@@ -3935,7 +3935,19 @@ hook.Add("InsaneStatsEffectiveSpeed", "InsaneStatsSharedWPASS2", function(data)
 end)
 
 hook.Add("PlayerNoClip", "InsaneStatsSharedWPASS2", function(ply, desiredState)
-	if ply:InsaneStats_GetStatusEffectLevel("can_noclip") ~= 0 and desiredState then
+	if ply:InsaneStats_GetStatusEffectLevel("can_noclip") ~= 0 then
 		return ply:InsaneStats_GetStatusEffectLevel("can_noclip") > 0
+	end
+end)
+
+hook.Add("InsaneStatsWPASS2AddHealthNerfFactor", "InsaneStatsSharedWPASS2", function(data)
+	local ent = data.ent
+	data.nerfFactor = data.nerfFactor * (1 + ent:InsaneStats_GetEffectiveSkillValues("bloodletter_pact", 2) / 100)
+end)
+
+hook.Add("InsaneStatsWPASS2AddArmorNerfFactor", "InsaneStatsSharedWPASS2", function(data)
+	local ent = data.ent
+	if ent:InsaneStats_EffectivelyHasSkill("hacked_shield") then
+		data.nerfFactor = data.nerfFactor * (1 + ent:InsaneStats_GetEffectiveSkillValues("hacked_shield", 2) / 100)
 	end
 end)

@@ -351,7 +351,7 @@ concommand.Add("insanestats_wpass2_resethealthandshield", function(ply, cmd, arg
 		ply:SetMaxHealth(100)
 		ply:SetArmor(1)
 		ply:SetMaxArmor(InsaneStats:ScaleValueToLevel(
-			1,
+			100,
 			InsaneStats:GetConVarValue("xp_player_armor")/100,
 			InsaneStats:GetConVarValue("xp_enabled") and ply:InsaneStats_GetLevel() or 1,
 			"xp_player_armor_mode"
@@ -779,28 +779,6 @@ function InsaneStats:GetWPASS2SavedData()
 	return playerLoadoutData
 end
 
-function InsaneStats:ComputeDXForNerfedIncrement(x, dy, n)
-	local dx = 0
-
-	-- when y<1, x=y
-	if x < 1 then
-		dx = math.min(1 - x, dy)
-		x = x + dx
-		dy = dy - dx
-	end
-
-	if n <= 1e-7 then
-		return dx + dy
-	elseif dy ~= 0 then
-		local c = 2/n-1
-		local y1 = c * math.exp( (x-1)/c ) + 1 - c
-		local y2 = c * math.exp( (x+dy-1)/c ) + 1 - c
-		dx = dx + y2 - y1
-	end
-
-	return dx
-end
-
 -- this coroutine thread deals with entity relationship collections
 -- for ENTITY:InsaneStats_GetValidEnemies() and ENTITY:InsaneStats_GetValidAllies()
 --[[local relationships = {}
@@ -899,17 +877,23 @@ local function ComputeNerfedIncrement(x, dx, n)
 	return x
 end
 
-function ENTITY:InsaneStats_AddHealthNerfed(health)
+function ENTITY:InsaneStats_AddHealthNerfed(health, bypass)
 	local oldHealth = self:InsaneStats_GetHealth()
 	if oldHealth < math.huge and oldHealth > 0 
 	and self:InsaneStats_GetMaxHealth() > 0 then
-		local data = {health = health, ent = self, nerfFactor = 0.5}
-		hook.Run("InsaneStatsWPASS2AddHealth", data)
+		local data = {health = health, ent = self}
+		if not bypass then
+			hook.Run("InsaneStatsWPASS2AddHealth", data)
+		end
 		health = data.health
+
+		local nerfFactor = 0
+		if health ~= 0 then
+			nerfFactor = self:InsaneStats_GetHealthNerfFactor()
+		end
 
 		local maxHealth = self:InsaneStats_GetMaxHealth()
 		local oldRatio = oldHealth / maxHealth
-		local nerfFactor = data.nerfFactor
 		--[[if oldRatio > 1 then
 			oldRatio = oldRatio^(1/nerfFactor)
 		end
@@ -930,17 +914,23 @@ function ENTITY:InsaneStats_AddHealthNerfed(health)
 	end
 end
 
-function ENTITY:InsaneStats_AddArmorNerfed(armor)
+function ENTITY:InsaneStats_AddArmorNerfed(armor, bypass)
 	local oldArmor = math.max(self:InsaneStats_GetArmor(), 0)
 	if oldArmor < math.huge and self:InsaneStats_GetHealth() > 0
 	and self:InsaneStats_GetMaxArmor() > 0 then
 		local data = {armor = armor, ent = self, nerfFactor = 0.5}
-		hook.Run("InsaneStatsWPASS2AddArmor", data)
+		if not bypass then
+			hook.Run("InsaneStatsWPASS2AddArmor", data)
+		end
 		armor = data.armor
+
+		local nerfFactor = 0
+		if armor ~= 0 then
+			nerfFactor = self:InsaneStats_GetArmorNerfFactor()
+		end
 
 		local maxArmor = self:InsaneStats_GetMaxArmor()
 		local oldRatio = oldArmor / maxArmor
-		local nerfFactor = data.nerfFactor
 		--[[if oldRatio > 1 then
 			oldRatio = oldRatio^(1/nerfFactor)
 		end
@@ -961,10 +951,12 @@ function ENTITY:InsaneStats_AddArmorNerfed(armor)
 	end
 end
 
-function ENTITY:InsaneStats_AddHealthCapped(health)
+function ENTITY:InsaneStats_AddHealthCapped(health, bypass)
 	local oldHealth = self:InsaneStats_GetHealth()
 	local data = {health = health, ent = self, nerfFactor = 0.5}
-	hook.Run("InsaneStatsWPASS2AddHealth", data)
+	if not bypass then
+		hook.Run("InsaneStatsWPASS2AddHealth", data)
+	end
 	local maxHealTo = self:InsaneStats_GetMaxHealth() * 0.5 / (1 - data.nerfFactor)
 	maxHealTo = maxHealTo < 0 and math.huge or maxHealTo
 
@@ -978,10 +970,12 @@ function ENTITY:InsaneStats_AddHealthCapped(health)
 	end
 end
 
-function ENTITY:InsaneStats_AddArmorCapped(armor)
+function ENTITY:InsaneStats_AddArmorCapped(armor, bypass)
 	local oldArmor = math.max(self:InsaneStats_GetArmor(), 0)
 	local data = {armor = armor, ent = self, nerfFactor = 0.5}
-	hook.Run("InsaneStatsWPASS2AddArmor", data)
+	if not bypass then
+		hook.Run("InsaneStatsWPASS2AddArmor", data)
+	end
 	local maxHealTo = self:InsaneStats_GetMaxArmor() * 0.5 / (1 - data.nerfFactor)
 	maxHealTo = maxHealTo < 0 and math.huge or maxHealTo
 

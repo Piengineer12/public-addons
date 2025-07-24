@@ -979,6 +979,28 @@ function InsaneStats:GetModifierProbabilities(wep)
 	return modifierProbabilities
 end
 
+function InsaneStats:ComputeDXForNerfedIncrement(x, dy, n)
+	local dx1, dx2 = 0, 0
+
+	-- when y<1, x=y
+	if x < 1 then
+		dx1 = math.min(1 - x, dy)
+		x = x + dx1
+		dy = dy - dx1
+	end
+
+	if n <= 0 then
+		return dx1, dy
+	elseif dy ~= 0 then
+		local c = 2/n-1
+		local y1 = c * math.exp( (x-1)/c ) + 1 - c
+		local y2 = c * math.exp( (x+dy-1)/c ) + 1 - c
+		dx2 = y2 - y1
+	end
+
+	return dx1, dx2
+end
+
 local ENTITY = FindMetaTable("Entity")
 
 function ENTITY:InsaneStats_SetBatteryXP(xp)
@@ -1305,6 +1327,18 @@ function ENTITY:InsaneStats_ClearStatusEffectsByType(typ)
 			end
 		end
 	end
+end
+
+function ENTITY:InsaneStats_GetHealthNerfFactor()
+	local data = {ent = self, nerfFactor = 0.5}
+	hook.Run("InsaneStatsWPASS2AddHealthNerfFactor", data)
+	return data.nerfFactor
+end
+
+function ENTITY:InsaneStats_GetArmorNerfFactor()
+	local data = {ent = self, nerfFactor = 0.5}
+	hook.Run("InsaneStatsWPASS2AddArmorNerfFactor", data)
+	return data.nerfFactor
 end
 
 local healthClasses = {

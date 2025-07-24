@@ -114,6 +114,65 @@ InsaneStats:RegisterConVar("coins_respec_cost_add", "insanestats_coins_respec_co
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
 
+InsaneStats:RegisterConVar("coins_health_cost", "insanestats_coins_health_cost", "1", {
+	display = "Health Cost", desc = "Base price of healing 1 health.",
+	type = InsaneStats.FLOAT, min = 0.1, max = 10
+})
+InsaneStats:RegisterConVar("coins_health_cost_add", "insanestats_coins_health_cost_add", "0", {
+	display = "Health Cost Scaling", desc = "% additional cost per level.",
+	type = InsaneStats.FLOAT, min = 0, max = 1000
+})
+InsaneStats:RegisterConVar("coins_health_cost_mode", "insanestats_coins_health_cost_mode", "-1", {
+	display = "Health Cost Scaling Mode",
+	desc = "If 1, additional cost is applied multiplicatively rather than additively per level. \z
+	-1 causes this ConVar to use the value of insanestats_xp_mode.",
+	type = InsaneStats.INT, min = -1, max = 1
+})
+InsaneStats:RegisterConVar("coins_health_cost_overmul", "insanestats_coins_health_cost_overmul", "8", {
+	display = "Overheal Cost", desc = "Cost multiplier for overhealing. \z
+	Note that overhealing already incurs an exponential cost multiplier on top of this multiplier.",
+	type = InsaneStats.FLOAT, min = 1, max = 1000
+})
+
+InsaneStats:RegisterConVar("coins_armor_cost", "insanestats_coins_armor_cost", "2", {
+	display = "Shield Cost", desc = "Base price of charging 1 shield.",
+	type = InsaneStats.FLOAT, min = 0.1, max = 10
+})
+InsaneStats:RegisterConVar("coins_armor_cost_add", "insanestats_coins_armor_cost_add", "0", {
+	display = "Shield Cost Scaling", desc = "% additional cost per level.",
+	type = InsaneStats.FLOAT, min = 0, max = 1000
+})
+InsaneStats:RegisterConVar("coins_armor_cost_mode", "insanestats_coins_armor_cost_mode", "-1", {
+	display = "Shield Cost Scaling Mode",
+	desc = "If 1, additional cost is applied multiplicatively rather than additively per level. \z
+	-1 causes this ConVar to use the value of insanestats_xp_mode.",
+	type = InsaneStats.INT, min = -1, max = 1
+})
+InsaneStats:RegisterConVar("coins_armor_cost_overmul", "insanestats_coins_armor_cost_overmul", "8", {
+	display = "Overcharge Cost", desc = "Cost multiplier for overcharging. \z
+	Note that overcharging already incurs an exponential cost multiplier on top of this multiplier.",
+	type = InsaneStats.FLOAT, min = 1, max = 1000
+})
+
+InsaneStats:RegisterConVar("coins_ammo_cost", "insanestats_coins_ammo_cost", "100", {
+	display = "Ammo Cost", desc = "Base price of fully replenishing an ammo type to HL2's maximum.",
+	type = InsaneStats.FLOAT, min = 0.1, max = 10
+})
+InsaneStats:RegisterConVar("coins_ammo_cost_add", "insanestats_coins_ammo_cost_add", "10", {
+	display = "Ammo Cost Scaling", desc = "% additional cost per level.",
+	type = InsaneStats.FLOAT, min = 0, max = 1000
+})
+InsaneStats:RegisterConVar("coins_ammo_cost_mode", "insanestats_coins_ammo_cost_mode", "-1", {
+	display = "Ammo Cost Scaling Mode",
+	desc = "If 1, additional cost is applied multiplicatively rather than additively per level. \z
+	-1 causes this ConVar to use the value of insanestats_xp_mode.",
+	type = InsaneStats.INT, min = -1, max = 1
+})
+InsaneStats:RegisterConVar("coins_ammo_soldtypes", "insanestats_coins_ammo_soldtypes", "20", {
+	display = "% Ammo Types Sold", desc = "% of all ammo types that a coin shop will sell.",
+	type = InsaneStats.FLOAT, min = 0.1, max = 10
+})
+
 InsaneStats.ShopItems = {
 	{"item_battery", 25},
 	{"item_healthvial", 10},
@@ -287,4 +346,8 @@ hook.Add("InsaneStatsTransitionCompat", "InsaneStatsCoinsShared", function(ent)
 	if ent.insaneStats_CoinsRoot8 then
 		ent:InsaneStats_SetCoins(ent.insaneStats_CoinsRoot8 ^ 8)
 	end
+end)
+
+hook.Add("InsaneStatsBlockFreebie", "InsaneStatsCoinsShared", function(ply, shopEntity, ammoType)
+	if shopEntity:GetFreebieAmmoType() ~= ammoType then return true end
 end)

@@ -158,6 +158,11 @@ function InsaneStats:IsDebugLevel(num)
 	return self:GetConVarValue("debug") >= num
 end
 
+function InsaneStats:GetAmmoMax(id)
+	local ammoMaxOverride = GetConVar("gmod_maxammo"):GetFloat()
+	return tonumber(ammoMaxOverride > 0 and ammoMaxOverride or game.GetAmmoMax(id)) or -1
+end
+
 local ENTITY = FindMetaTable("Entity")
 
 function ENTITY:InsaneStats_IsMob()
