@@ -443,7 +443,18 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStats", function(ent)
 			local pos = ent:GetPos()
 			
 			for i,v in ipairs(ents.FindByClass("info_target_helicopter_crash")) do
-				v:Fire("Kill")
+				if not v.insaneStats_Replacement then
+					v:Fire("Kill")
+				end
+			end
+			
+			for i,v in ipairs(ents.FindByClass("info_target_gunshipcrash")) do
+				local replacement = ents.Create("info_target_helicopter_crash")
+				replacement:SetName(v:GetName())
+				replacement:SetPos(v:GetPos())
+				replacement:Spawn()
+				replacement:Activate()
+				replacement.insaneStats_Replacement = true
 			end
 
 			ent:InsaneStats_ApplyStatusEffect("invincible", 1, math.huge)
@@ -624,10 +635,13 @@ local ammoCrateTypes = {
 	2, -- ar2 alt
 	9, -- smg alt
 }
+function InsaneStats:TranslateAmmoCrateTypeToAmmoType(crateAmmoType)
+	return ammoCrateTypes[crateAmmoType+1]
+end
 hook.Add("PlayerUse", "InsaneStats", function(ply, ent)
 	if ent:GetClass() == "item_ammo_crate" then
-		local crateType = tonumber(ent:GetKeyValues().AmmoType)
-		local ammoType = ammoCrateTypes[crateType+1]
+		local crateAmmoType = tonumber(ent:GetInternalVariable("AmmoType"))
+		local ammoType = InsaneStats:TranslateAmmoCrateTypeToAmmoType(crateAmmoType)
 		timer.Simple(0.8, function()
 			if IsValid(ply) and IsValid(ent) then
 				if InsaneStats:GetConVarValue("ammocrate_maxammo") then

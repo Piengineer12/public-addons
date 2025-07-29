@@ -10,11 +10,12 @@ thrown bugbait marks target for death, and r -> teleport antlions to self
 
 misc
 
-make shop no longer physical
+add more support for Synergy maps (info_player_equip, trigger_coop, hud_timer)
+test non-remake maps too
 ]]
 
 InsaneStats = {
-	VERSION = "2.1.1",
+	VERSION = "2.1.2",
 	VERSION_DATE = "2025-07-13",
 	WORKSHOP_ID = "2980423627"
 }

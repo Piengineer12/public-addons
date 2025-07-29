@@ -403,7 +403,12 @@ function ENTITY:InsaneStats_CanDisableSkills()
 	return self:IsAdmin()
 end
 function InsaneStats:SetDisabledSkills(skills)
-	self.DisabledSkills = skills
+	self.DisabledSkills = {}
+	for k,v in pairs(skills) do
+		if InsaneStats:GetSkillInfo(k) then
+			self.DisabledSkills[k] = true
+		end
+	end
 
 	for i,v in ents.Iterator() do
 		if v.insaneStats_Skills then

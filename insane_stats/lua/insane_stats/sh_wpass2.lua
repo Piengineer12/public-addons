@@ -410,24 +410,24 @@ local function OverrideWeapons()
 		return self:InsaneStats_SetRawNextSecondaryFire(data.next)
 	end
 
-	if not InsaneStats:GetConVarValue("wpass2_no_fractional_clips") then
-		function WEAPON:Clip1()
-			return self:InsaneStats_RawClip1() - (self.insaneStats_Clip1Adj or 0)
-		end
+	function WEAPON:Clip1()
+		return InsaneStats:GetConVarValue("wpass2_no_fractional_clips") and self:InsaneStats_RawClip1()
+		or self:InsaneStats_Clip1()
+	end
 
-		function WEAPON:Clip2()
-			return self:InsaneStats_RawClip2() - (self.insaneStats_Clip2Adj or 0)
-		end
+	function WEAPON:Clip2()
+		return InsaneStats:GetConVarValue("wpass2_no_fractional_clips") and self:InsaneStats_RawClip2()
+		or self:InsaneStats_Clip2()
 	end
 
 	function WEAPON:SetClip1(num)
 		local data = {
-			new = num, old = self.insaneStats_LastClip1 or self:Clip1(),
-			wep = self
+			old = self.insaneStats_LastClip1 or self:InsaneStats_Clip1(),
+			new = num, wep = self
 		}
 		hook.Run("InsaneStatsModifyWeaponClip", data)
 		if InsaneStats:GetConVarValue("wpass2_no_fractional_clips") then
-			data.new = (data.new % 1 > math.random() and math.ceil or math.floor)(data.new)
+			data.new = (math.random() < data.new % 1 and math.ceil or math.floor)(data.new)
 		end
 		self.insaneStats_Clip1Adj = math.Round(1 - data.new, 3) % 1
 		if SERVER then
@@ -439,12 +439,12 @@ local function OverrideWeapons()
 	
 	function WEAPON:SetClip2(num)
 		local data = {
-			new = num, old = self.insaneStats_LastClip2 or self:Clip2(),
-			wep = self, secondary = true
+			old = self.insaneStats_LastClip2 or self:InsaneStats_Clip2(),
+			new = num, wep = self, secondary = true
 		}
 		hook.Run("InsaneStatsModifyWeaponClip", data)
 		if InsaneStats:GetConVarValue("wpass2_no_fractional_clips") then
-			data.new = (data.new % 1 > math.random() and math.ceil or math.floor)(data.new)
+			data.new = (math.random() < data.new % 1 and math.ceil or math.floor)(data.new)
 		end
 		self.insaneStats_Clip2Adj = math.Round(1 - data.new, 3) % 1
 		if SERVER then
@@ -455,39 +455,35 @@ local function OverrideWeapons()
 	end
 
 	function PLAYER:GetAmmoCount(ammoType)
-		self.insaneStats_AmmoAdjs = self.insaneStats_AmmoAdjs or {}
-		local ammoTypeNum = isstring(ammoType) and game.GetAmmoID(ammoType) or ammoType
-		return self:InsaneStats_GetRawAmmoCount(ammoType) - (self.insaneStats_AmmoAdjs[ammoTypeNum] or 0)
+		return InsaneStats:GetConVarValue("wpass2_no_fractional_clips") and self:InsaneStats_GetRawAmmoCount(ammoType)
+		or self:InsaneStats_GetAmmoCount(ammoType)
 	end
 
 	function PLAYER:GetAmmo()
-		self.insaneStats_AmmoAdjs = self.insaneStats_AmmoAdjs or {}
-		local rawData = self:InsaneStats_GetRawAmmo()
-		local returnedData = {}
-		for k,v in pairs(rawData) do
-			returnedData[k] = v - (self.insaneStats_AmmoAdjs[k] or 0)
-		end
-		return returnedData
+		return InsaneStats:GetConVarValue("wpass2_no_fractional_clips") and self:InsaneStats_GetRawAmmo()
+		or self:InsaneStats_GetAmmo()
 	end
 
 	function PLAYER:GiveAmmo(num, ammoType, hidePopup)
 		local data = {num = num, type = ammoType, ply = self}
 		hook.Run("InsaneStatsPlayerAddAmmo", data)
+		self.insaneStats_AmmoAdjs = self.insaneStats_AmmoAdjs or {}
 		
 		ammoType = data.type
 		local ammoTypeNum = isstring(ammoType) and game.GetAmmoID(ammoType) or ammoType
-		local newAmmo = math.Round(self:GetAmmoCount(ammoType) + data.num, 3)
+		local newAmmo = math.Round(self:InsaneStats_GetAmmoCount(ammoType) + data.num, 3)
+		if InsaneStats:GetConVarValue("wpass2_no_fractional_clips") then
+			newAmmo = (math.random() < newAmmo % 1 and math.ceil or math.floor)(newAmmo)
+		end
+
 		local rawAmmo = math.ceil(newAmmo)
 		self.insaneStats_AmmoAdjs[ammoTypeNum] = rawAmmo - newAmmo
 
 		playerAmmosToUpdateAdjs[self] = playerAmmosToUpdateAdjs[self] or {}
 		playerAmmosToUpdateAdjs[self][ammoTypeNum] = true
-		
-		return self:InsaneStats_GiveRawAmmo(
-			rawAmmo
-			- self:InsaneStats_GetRawAmmoCount(ammoType),
-			ammoType, hidePopup
-		)
+
+		local rawGive = rawAmmo - self:InsaneStats_GetRawAmmoCount(ammoType)
+		return self:InsaneStats_GiveRawAmmo(rawGive, ammoType, hidePopup)
 	end
 	
 	function PLAYER:RemoveAmmo(num, ammoType)
@@ -496,7 +492,11 @@ local function OverrideWeapons()
 
 		ammoType = data.type
 		local ammoTypeNum = isstring(ammoType) and game.GetAmmoID(ammoType) or ammoType
-		local newAmmo = math.Round(self:GetAmmoCount(ammoType) - data.num, 3)
+		local newAmmo = math.Round(self:InsaneStats_GetAmmoCount(ammoType) - data.num, 3)
+		if InsaneStats:GetConVarValue("wpass2_no_fractional_clips") then
+			newAmmo = (math.random() < newAmmo % 1 and math.ceil or math.floor)(newAmmo)
+		end
+
 		local rawAmmo = math.ceil(newAmmo)
 		self.insaneStats_AmmoAdjs[ammoTypeNum] = rawAmmo - newAmmo
 		
@@ -529,12 +529,19 @@ local function OverrideWeapons()
 	end
 	
 	function PLAYER:SetAmmo(num, ammoType)
-		local data = {new = num, old = self.insaneStats_OldSetAmmoValue or self:GetAmmoCount(ammoType), type = ammoType, ply = self}
+		local data = {
+			old = self.insaneStats_OldSetAmmoValue or self:InsaneStats_GetAmmoCount(ammoType),
+			new = num, type = ammoType, ply = self
+		}
 		hook.Run("InsaneStatsPlayerSetAmmo", data)
 
 		ammoType = data.type
 		local ammoTypeNum = isstring(ammoType) and game.GetAmmoID(ammoType) or ammoType
 		local newAmmo = math.Round(data.new, 3)
+		if InsaneStats:GetConVarValue("wpass2_no_fractional_clips") then
+			newAmmo = (math.random() < newAmmo % 1 and math.ceil or math.floor)(newAmmo)
+		end
+		
 		local rawAmmo = math.ceil(newAmmo)
 		self.insaneStats_AmmoAdjs[ammoTypeNum] = rawAmmo - newAmmo
 		
@@ -609,6 +616,30 @@ local function JoinBulletCallbacks(funcs)
 			return tab
 		end
 	end
+end
+
+function WEAPON:InsaneStats_Clip1()
+	return self:InsaneStats_RawClip1() - (self.insaneStats_Clip1Adj or 0)
+end
+
+function WEAPON:InsaneStats_Clip2()
+	return self:InsaneStats_RawClip2() - (self.insaneStats_Clip2Adj or 0)
+end
+
+function PLAYER:InsaneStats_GetAmmoCount(ammoType)
+	self.insaneStats_AmmoAdjs = self.insaneStats_AmmoAdjs or {}
+	local ammoTypeNum = isstring(ammoType) and game.GetAmmoID(ammoType) or ammoType
+	return self:InsaneStats_GetRawAmmoCount(ammoType) - (self.insaneStats_AmmoAdjs[ammoTypeNum] or 0)
+end
+
+function PLAYER:InsaneStats_GetAmmo()
+	self.insaneStats_AmmoAdjs = self.insaneStats_AmmoAdjs or {}
+	local rawData = self:InsaneStats_GetRawAmmo()
+	local returnedData = {}
+	for k,v in pairs(rawData) do
+		returnedData[k] = v - (self.insaneStats_AmmoAdjs[k] or 0)
+	end
+	return returnedData
 end
 
 hook.Add("EntityFireBullets", "InsaneStats", function(ent, data, ...)
@@ -945,6 +976,28 @@ function InsaneStats:GetModifierProbabilities(wep)
 	return modifierProbabilities
 end
 
+function InsaneStats:ComputeDXForNerfedIncrement(x, dy, n)
+	local dx1, dx2 = 0, 0
+
+	-- when y<1, x=y
+	if x < 1 then
+		dx1 = math.min(1 - x, dy)
+		x = x + dx1
+		dy = dy - dx1
+	end
+
+	if n <= 0 then
+		return dx1, dy
+	elseif dy ~= 0 then
+		local c = 2/n-1
+		local y1 = c * math.exp( (x-1)/c ) + 1 - c
+		local y2 = c * math.exp( (x+dy-1)/c ) + 1 - c
+		dx2 = y2 - y1
+	end
+
+	return dx1, dx2
+end
+
 local ENTITY = FindMetaTable("Entity")
 
 function ENTITY:InsaneStats_SetBatteryXP(xp)
@@ -1271,6 +1324,18 @@ function ENTITY:InsaneStats_ClearStatusEffectsByType(typ)
 			end
 		end
 	end
+end
+
+function ENTITY:InsaneStats_GetHealthNerfFactor()
+	local data = {ent = self, nerfFactor = 1}
+	hook.Run("InsaneStatsWPASS2AddHealthNerfFactor", data)
+	return data.nerfFactor
+end
+
+function ENTITY:InsaneStats_GetArmorNerfFactor()
+	local data = {ent = self, nerfFactor = 1}
+	hook.Run("InsaneStatsWPASS2AddArmorNerfFactor", data)
+	return data.nerfFactor
 end
 
 local healthClasses = {

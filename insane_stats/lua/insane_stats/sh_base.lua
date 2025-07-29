@@ -158,10 +158,18 @@ function InsaneStats:IsDebugLevel(num)
 	return self:GetConVarValue("debug") >= num
 end
 
+function InsaneStats:GetAmmoMax(id)
+	local ammoMaxOverride = GetConVar("gmod_maxammo"):GetFloat()
+	return tonumber(ammoMaxOverride > 0 and ammoMaxOverride or game.GetAmmoMax(id)) or -1
+end
+
 local ENTITY = FindMetaTable("Entity")
 
 function ENTITY:InsaneStats_IsMob()
-	return IsValid(self) and (self:IsPlayer() or self:IsNPC() or self:IsNextBot() or self:GetClass()=="prop_vehicle_apc")
+	return IsValid(self) and (
+		self:IsPlayer() or self:IsNPC() or self:IsNextBot()
+		or self:GetClass()=="prop_vehicle_apc"
+	) and self:GetClass() ~= "npc_bullseye"
 end
 
 function ENTITY:InsaneStats_IsBig()

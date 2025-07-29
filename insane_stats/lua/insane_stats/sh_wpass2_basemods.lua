@@ -1110,15 +1110,6 @@ local modifiers = {
 			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP),
 			weight = 0.5,
 		},
-		fester = {
-			prefix = "Festering",
-			modifiers = {
-				ammo_convert = 1/1.1
-			},
-			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR),
-			weight = 0.5,
-			max = 10
-		},
 		slip = {
 			prefix = "Slippery",
 			suffix = "Slipperiness",
@@ -1281,6 +1272,17 @@ local modifiers = {
 			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP),
 			weight = 0.5,
 			cost = 2,
+		},
+		fester = {
+			prefix = "Festering",
+			modifiers = {
+				ammo_convert = 1/1.21,
+				no_free_ammo = 1/1.21
+			},
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR),
+			weight = 0.5,
+			cost = 2,
+			max = 5
 		},
 	},
 
@@ -1530,6 +1532,7 @@ local modifiers = {
 			prefix = "Bloodletting",
 			modifiers = {
 				bloodletting = math.sqrt(1.1),
+				no_free_healing = math.sqrt(1.1),
 				armor_full = math.sqrt(1.1),
 				armor_full2 = math.sqrt(1.1)
 			},
@@ -2011,9 +2014,8 @@ local attributes = {
 		mul = 30
 	},
 	starlight_glow = {
-		display = "+1 glow power, scaled by starlit duration",
-		mul = 30,
-		invert = true
+		display = "+1 night vision, scaled by starlit duration",
+		mul = 30
 	},
 	kill_lifesteal = {
 		display = "%s healing on kill",
@@ -2228,6 +2230,9 @@ local attributes = {
 		display = "Reserve ammo above max %s turned into ammo efficiency stacks",
 		invert = true
 	},
+	no_free_ammo = {
+		display = "Coin Shops never sell free ammo"
+	},
 	xp = {
 		display = "%s coins and XP gain",
 	},
@@ -2385,6 +2390,10 @@ local attributes = {
 	bloodletting = {
 		display = "Health above max %s turned into armor",
 		invert = true,
+		mode = 2
+	},
+	no_free_healing = {
+		display = "Coin Shops never sell free health",
 		mode = 2
 	},
 	armor_fullpickup = {
@@ -3290,7 +3299,7 @@ hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 		if IsValid(wep) then
 			if wep:GetClass() == "weapon_physcannon" then return end
 			if wep.Clip1 then
-				local clip1 = wep:Clip1()
+				local clip1 = wep:InsaneStats_Clip1()
 				local maxClip1 = wep:GetMaxClip1()
 				local clip1Fraction = clip1 / maxClip1
 				if maxClip1 <= 0 then
@@ -3332,7 +3341,7 @@ hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 	
 		if IsValid(wep) then
 			if wep.Clip1 then
-				local clip1 = wep:Clip1()
+				local clip1 = wep:InsaneStats_Clip1()
 				local maxClip1 = wep:GetMaxClip1()
 				local clip1Fraction = clip1 / maxClip1
 				if maxClip1 <= 0 then
@@ -3445,7 +3454,7 @@ end)
 hook.Add("StartCommand", "InsaneStatsSharedWPASS2", function(ply, usercmd)
 	if usercmd:KeyDown(IN_RELOAD) and IsValid(ply:GetActiveWeapon()) then
 		local wep = ply:GetActiveWeapon()
-		if not wep:IsScripted() and wep:Clip1() > wep:GetMaxClip1() and wep:GetMaxClip1() > 0 then
+		if not wep:IsScripted() and wep:InsaneStats_Clip1() > wep:GetMaxClip1() and wep:GetMaxClip1() > 0 then
 			local cancel = false
 			if wep:GetClass() == "weapon_crossbow" then
 				cancel = hook.Run("InsaneStatsReloadXBow", wep, ply)
@@ -3602,7 +3611,7 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 		-- FIXME: this causes prediction errors!
 		if IsFirstTimePredicted() or game.SinglePlayer() then
 			if key == IN_WALK then
-				if (ply:InsaneStats_GetEntityData("last_alt_press") or 0) + 0.5 > RealTime() then
+				if (ply:InsaneStats_GetEntityData("last_alt_press") or 0) + 0.5 > RealTime() or FrameTime() > 0.25 then
 					ply:InsaneStats_SetEntityData("last_alt_press", 0)
 					
 					local duration = ply:InsaneStats_GetAttributeValue("alt_invisible") - 1
@@ -3936,7 +3945,30 @@ hook.Add("InsaneStatsEffectiveSpeed", "InsaneStatsSharedWPASS2", function(data)
 end)
 
 hook.Add("PlayerNoClip", "InsaneStatsSharedWPASS2", function(ply, desiredState)
-	if ply:InsaneStats_GetStatusEffectLevel("can_noclip") ~= 0 and desiredState then
+	if ply:InsaneStats_GetStatusEffectLevel("can_noclip") ~= 0 then
 		return ply:InsaneStats_GetStatusEffectLevel("can_noclip") > 0
 	end
+end)
+
+hook.Add("InsaneStatsWPASS2AddHealthNerfFactor", "InsaneStatsSharedWPASS2", function(data)
+	local ent = data.ent
+	data.nerfFactor = data.nerfFactor * (1 + ent:InsaneStats_GetEffectiveSkillValues("bloodletter_pact", 2) / 100)
+end)
+
+hook.Add("InsaneStatsWPASS2AddArmorNerfFactor", "InsaneStatsSharedWPASS2", function(data)
+	local ent = data.ent
+	if ent:InsaneStats_EffectivelyHasSkill("hacked_shield") then
+		data.nerfFactor = data.nerfFactor * (1 + ent:InsaneStats_GetEffectiveSkillValues("hacked_shield", 2) / 100)
+	end
+end)
+
+hook.Add("InsaneStatsBlockFreebie", "InsaneStatsSharedWPASS2", function(ply, shopEntity, ammoType)
+	if (
+		ply:InsaneStats_EffectivelyHasSkill("bloodletter_pact")
+		or ply:InsaneStats_GetAttributeValue("no_free_healing") ~= 1
+	) and ammoType == 257 then return true
+	elseif (
+		ply:InsaneStats_EffectivelyHasSkill("more_bullet_per_bullet")
+		or ply:InsaneStats_GetAttributeValue("no_free_ammo") ~= 1
+	) and ammoType < 257 then return true end
 end)

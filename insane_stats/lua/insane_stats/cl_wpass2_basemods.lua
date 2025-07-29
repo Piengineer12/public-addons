@@ -35,36 +35,44 @@ hook.Add("InsaneStatsWPASS2EntitiesHighlighted", "InsaneStatsWPASS2", function(h
 	end
 end)
 
+--[[
+red: danger
+yeelow: map
+green: healing / shield
+gray: weapon / ammo
+]]
+
 local revealIcons = {
 	["class C_BaseToggle"] = InsaneStats:GetIconMaterial("cursor"),
 	func_button = InsaneStats:GetIconMaterial("cursor"),
 	func_rot_button = InsaneStats:GetIconMaterial("cursor"),
 	momentary_rot_button = InsaneStats:GetIconMaterial("cursor"),
-	func_breakable = InsaneStats:GetIconMaterial("asterisk_yellow"),
-	func_breakable_surf = InsaneStats:GetIconMaterial("asterisk_yellow"),
+	func_breakable = InsaneStats:GetIconMaterial("asterisk_orange"),
+	func_breakable_surf = InsaneStats:GetIconMaterial("asterisk_orange"),
 	func_door = InsaneStats:GetIconMaterial("door"),
 	func_door_rotating = InsaneStats:GetIconMaterial("door"),
 	prop_door_rotating = InsaneStats:GetIconMaterial("door"),
-	npc_grenade_frag = InsaneStats:GetIconMaterial("bomb"),
+	npc_grenade_frag = InsaneStats:GetIconMaterial("cancel"),
 	item_item_crate = InsaneStats:GetIconMaterial("bricks"),
+	item_ammo_crate = InsaneStats:GetIconMaterial("newspaper_add"),
 
-	trigger_hurt = InsaneStats:GetIconMaterial("error"),
+	trigger_hurt = InsaneStats:GetIconMaterial("cancel"),
 	trigger_push = InsaneStats:GetIconMaterial("weather_clouds"),
 	trigger_teleport = InsaneStats:GetIconMaterial("transmit"),
 	trigger_once = InsaneStats:GetIconMaterial("transmit"),
 	trigger_multiple = InsaneStats:GetIconMaterial("transmit"),
 
-	item_battery = InsaneStats:GetIconMaterial("brick"),
+	item_battery = InsaneStats:GetIconMaterial("tag_blue"),
 	item_healthcharger = InsaneStats:GetIconMaterial("heart_add"),
 	func_healthcharger = InsaneStats:GetIconMaterial("heart_add"),
-	item_suitcharger = InsaneStats:GetIconMaterial("brick_add"),
-	func_suitcharger = InsaneStats:GetIconMaterial("brick_add"),
+	item_suitcharger = InsaneStats:GetIconMaterial("tag_blue_add"),
+	func_suitcharger = InsaneStats:GetIconMaterial("tag_blue_add"),
 }
 
 local function GetIconForEntity(ent)
 	local ply = LocalPlayer()
 	if (ent == ply or ent:GetOwner() == ply or ent:GetParent() == ply) and ent:GetClass() ~= "npc_grenade_frag" then return end
-	if ent:GetNWBool("insanestats_vital") then return InsaneStats:GetIconMaterial("ruby") end
+	if ent:GetNWBool("insanestats_vital") then return InsaneStats:GetIconMaterial("key") end
 	if ent:GetNWBool("insanestats_use") then return revealIcons.func_button end
 	if ent:GetClass() == "func_breakable_surf" and ent:InsaneStats_GetHealth() <= 0 then return end
 	if ent:GetNWBool("insanestats_break") then return InsaneStats:GetIconMaterial("asterisk_orange") end
@@ -76,7 +84,7 @@ local function GetIconForEntity(ent)
 	if healingItemType == 2 then
 		return InsaneStats:GetIconMaterial("heart")
 	elseif healingItemType == 1 then
-		return InsaneStats:GetIconMaterial("coins")
+		return InsaneStats:GetIconMaterial("newspaper")
 	end
 
 	if (ent:GetModel() or "")~="" then
@@ -340,6 +348,33 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 			)
 			v:SetColor(desiredColor)
 		end
+	end
+
+	local ply = LocalPlayer()
+	local starlightRange = ply:InsaneStats_GetSkillStacks("starlight")
+		* ply:InsaneStats_GetEffectiveSkillValues("starlight", 3)
+		+ ply:InsaneStats_GetStatusEffectDuration("starlight") * ply:InsaneStats_GetStatusEffectLevel("starlight") * 2
+		+ 0
+	
+	if starlightRange > 0 and not ply:InVehicle() then
+		if not IsValid(ply.insaneStats_Starlight) then
+			ply.insaneStats_Starlight = ProjectedTexture()
+			ply.insaneStats_Starlight:SetTexture("effects/flashlight/hard")
+			ply.insaneStats_Starlight:SetNearZ(32)
+			ply.insaneStats_Starlight:SetBrightness(1)
+			ply.insaneStats_Starlight:SetEnableShadows(false)
+		end
+
+		local light = ply.insaneStats_Starlight
+		light:SetAngles(ply:EyeAngles())
+		light:SetFarZ(starlightRange)
+		light:SetPos(ply:EyePos())
+		light:SetFOV((ply:GetFOV() + 180)/2)
+		light:SetColor(HSVToColor(CurTime() * 16 % 360, .5, 1))
+		light:Update()
+
+	elseif IsValid(ply.insaneStats_Starlight) then
+		ply.insaneStats_Starlight:Remove()
 	end
 end)
 

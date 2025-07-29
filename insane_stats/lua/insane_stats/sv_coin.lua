@@ -1,3 +1,11 @@
+
+concommand.Add("insanestats_coins_reset", function(ply, cmd, args, argStr)
+	if (IsValid(ply) and ply:IsAdmin()) then
+		ply:InsaneStats_SetCoins(0)
+		InsaneStats:Log("Coins reset.")
+	end
+end, nil, "Sets your coins to 0.")
+
 local function SpawnCoins(victim, value)
 	local pos = victim:WorldSpaceCenter()
 	local coins = ents.FindByClass("insanestats_coin")
@@ -14,7 +22,7 @@ local function SpawnCoins(victim, value)
 			end
 		end
 		if not (value >= 1) then break end
-		local valueExponent = math.floor(math.log(value, denomDist))
+		local valueExponent = math.floor(InsaneStats:GetCoinValueExponent(value))
 		local toSubtract = denomDist^valueExponent
 		value = value - toSubtract
 		local doNot = hook.Run("InsaneStatsCoinsSpawn", victim, pos, toSubtract, valueExponent)
@@ -152,6 +160,16 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsCoins", function(ent)
 				ent:SetCollisionGroup(oldCollisionGroup)
 			end
 		end)
+	elseif ent:GetClass() == "item_ammo_crate" and not ent:GetNWBool("insanestats_use")
+	and math.random() < InsaneStats:GetConVarValue("coins_shop_replace_chance") / 100 then
+		local crateAmmoType = tonumber(ent:GetInternalVariable("AmmoType"))
+		local shop = ents.Create("insanestats_shop")
+		shop:SetPos(ent:GetPos())
+		shop:SetAngles(ent:GetAngles())
+		shop:SetFreebieAmmoType(InsaneStats:TranslateAmmoCrateTypeToAmmoType(crateAmmoType))
+		shop:Spawn()
+
+		SafeRemoveEntity(ent)
 	end
 end)
 
