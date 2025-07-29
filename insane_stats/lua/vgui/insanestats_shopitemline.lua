@@ -7,6 +7,7 @@ local PANEL = {
     local outlineWidth = InsaneStats:GetOutlineThickness()
     self:SetTall(panelHeight * 2 + outlineWidth * 2)
     self:Dock(TOP)
+    self:SetBulkOption(1)
     do
       local _with_0 = vgui.Create('DPanel', self)
       _with_0:SetTall(panelHeight + outlineWidth * 2)
@@ -66,6 +67,9 @@ local PANEL = {
       _with_0:AddChoice('1% of Coins', 5)
       _with_0:AddChoice('10% of Coins', 6)
       _with_0:AddChoice('100% of Coins', 7)
+      _with_0.OnSelect = function(_, index, text, data)
+        return self:SetBulkOption(data)
+      end
     end
     do
       local _with_0 = vgui.Create('DLabel', self)
@@ -78,7 +82,7 @@ local PANEL = {
     end
   end,
   GetDetails = function(self)
-    return self:OnPollDetails(select(2, self.insaneStats_BuyOptions:GetSelected()))
+    return self:OnPollDetails(self:GetBulkOption())
   end,
   GetCurrentCoins = function(self)
     return LocalPlayer():InsaneStats_GetCoins()
@@ -86,9 +90,16 @@ local PANEL = {
   SetText = function(self, ...)
     return self.insaneStats_Label:SetText(...)
   end,
+  TriggerBuyToMax = function(self)
+    local oldBulkOption = self:GetBulkOption()
+    self:SetBulkOption(1)
+    self.insaneStats_BuyButton:DoClick()
+    return self:SetBulkOption(oldBulkOption)
+  end,
   OnPollQuantity = function(self, id)
     return 0
   end,
   OnPurchase = function(self, quantity, paid) end
 }
+AccessorFunc(PANEL, 'insaneStats_bulkOption', 'BulkOption', FORCE_NUMBER)
 return vgui.Register('InsaneStats_ShopItemLine', PANEL, 'DPanel')

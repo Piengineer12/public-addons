@@ -1145,7 +1145,7 @@ hook.Add("PlayerCanPickupItem", "InsaneStatsXP", function(ply, item)
 					ply:InsaneStats_GetHealth() + affectedConVar:GetFloat() * ply:InsaneStats_GetCurrentHealthAdd()
 				)
 				ply:SetHealth(newHealth)
-				ply:EmitSound("HealthKit.Touch")
+				ply:EmitSound("HealthVial.Touch")
 
 				hook.Run("InsaneStatsPlayerPickedUpItem", ply, item)
 				item:Remove()

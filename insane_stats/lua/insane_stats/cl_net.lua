@@ -394,6 +394,11 @@ net.Receive("insane_stats", function()
 		if IsValid(toSwitchTo) then
 			input.SelectWeapon(toSwitchTo)
 		end
+	elseif func == 15 then
+		local ammoID = net.ReadUInt(9)
+		local quantity = net.ReadDouble()
+		local ammoName = game.GetAmmoName(ammoID).."_ammo"
+		hook.Run("HUDAmmoPickedUp", ammoName, quantity)
 	end
 end)
 

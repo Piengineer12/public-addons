@@ -1110,15 +1110,6 @@ local modifiers = {
 			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP),
 			weight = 0.5,
 		},
-		fester = {
-			prefix = "Festering",
-			modifiers = {
-				ammo_convert = 1/1.1
-			},
-			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR),
-			weight = 0.5,
-			max = 10
-		},
 		slip = {
 			prefix = "Slippery",
 			suffix = "Slipperiness",
@@ -1281,6 +1272,17 @@ local modifiers = {
 			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP),
 			weight = 0.5,
 			cost = 2,
+		},
+		fester = {
+			prefix = "Festering",
+			modifiers = {
+				ammo_convert = 1/1.21,
+				no_free_ammo = 1/1.21
+			},
+			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR),
+			weight = 0.5,
+			cost = 2,
+			max = 5
 		},
 	},
 
@@ -1530,6 +1532,7 @@ local modifiers = {
 			prefix = "Bloodletting",
 			modifiers = {
 				bloodletting = math.sqrt(1.1),
+				no_free_healing = math.sqrt(1.1),
 				armor_full = math.sqrt(1.1),
 				armor_full2 = math.sqrt(1.1)
 			},
@@ -2227,6 +2230,9 @@ local attributes = {
 		display = "Reserve ammo above max %s turned into ammo efficiency stacks",
 		invert = true
 	},
+	no_free_ammo = {
+		display = "Coin Shops never sell free ammo"
+	},
 	xp = {
 		display = "%s coins and XP gain",
 	},
@@ -2384,6 +2390,10 @@ local attributes = {
 	bloodletting = {
 		display = "Health above max %s turned into armor",
 		invert = true,
+		mode = 2
+	},
+	no_free_healing = {
+		display = "Coin Shops never sell free health",
 		mode = 2
 	},
 	armor_fullpickup = {
@@ -3950,4 +3960,15 @@ hook.Add("InsaneStatsWPASS2AddArmorNerfFactor", "InsaneStatsSharedWPASS2", funct
 	if ent:InsaneStats_EffectivelyHasSkill("hacked_shield") then
 		data.nerfFactor = data.nerfFactor * (1 + ent:InsaneStats_GetEffectiveSkillValues("hacked_shield", 2) / 100)
 	end
+end)
+
+hook.Add("InsaneStatsBlockFreebie", "InsaneStatsSharedWPASS2", function(ply, shopEntity, ammoType)
+	if (
+		ply:InsaneStats_EffectivelyHasSkill("bloodletter_pact")
+		or ply:InsaneStats_GetAttributeValue("no_free_healing") ~= 1
+	) and ammoType == 257 then return true
+	elseif (
+		ply:InsaneStats_EffectivelyHasSkill("more_bullet_per_bullet")
+		or ply:InsaneStats_GetAttributeValue("no_free_ammo") ~= 1
+	) and ammoType < 257 then return true end
 end)

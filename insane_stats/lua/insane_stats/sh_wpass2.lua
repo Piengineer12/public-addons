@@ -481,12 +481,9 @@ local function OverrideWeapons()
 
 		playerAmmosToUpdateAdjs[self] = playerAmmosToUpdateAdjs[self] or {}
 		playerAmmosToUpdateAdjs[self][ammoTypeNum] = true
-		
-		return self:InsaneStats_GiveRawAmmo(
-			rawAmmo
-			- self:InsaneStats_GetRawAmmoCount(ammoType),
-			ammoType, hidePopup
-		)
+
+		local rawGive = rawAmmo - self:InsaneStats_GetRawAmmoCount(ammoType)
+		return self:InsaneStats_GiveRawAmmo(rawGive, ammoType, hidePopup)
 	end
 	
 	function PLAYER:RemoveAmmo(num, ammoType)
@@ -1330,13 +1327,13 @@ function ENTITY:InsaneStats_ClearStatusEffectsByType(typ)
 end
 
 function ENTITY:InsaneStats_GetHealthNerfFactor()
-	local data = {ent = self, nerfFactor = 0.5}
+	local data = {ent = self, nerfFactor = 1}
 	hook.Run("InsaneStatsWPASS2AddHealthNerfFactor", data)
 	return data.nerfFactor
 end
 
 function ENTITY:InsaneStats_GetArmorNerfFactor()
-	local data = {ent = self, nerfFactor = 0.5}
+	local data = {ent = self, nerfFactor = 1}
 	hook.Run("InsaneStatsWPASS2AddArmorNerfFactor", data)
 	return data.nerfFactor
 end

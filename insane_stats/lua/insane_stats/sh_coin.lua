@@ -32,6 +32,12 @@ InsaneStats:RegisterConVar("coins_drop_max", "insanestats_coins_drop_max", "25",
 	If this limit is reached, addtional coins dropped by entities will cause existing coins to be randomly given to random players.",
 	type = InsaneStats.INT, min = 0, max = 1000
 })
+InsaneStats:RegisterConVar("coins_shop_replace_chance", "insanestats_coins_shop_replace_chance", "0", {
+	display = "Replace % Ammo Crates with Shops",
+	desc = "Infinite ammo crates have this % chance to be replaced with shops. \z
+	Ammo crates that are able to fire map I/O will never be replaced.",
+	type = InsaneStats.FLOAT, min = 0, max = 100
+})
 
 InsaneStats:SetDefaultConVarCategory("Coin Drops - Values")
 
@@ -114,9 +120,11 @@ InsaneStats:RegisterConVar("coins_respec_cost_add", "insanestats_coins_respec_co
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
 
+InsaneStats:SetDefaultConVarCategory("Coin Drops - Resources")
+
 InsaneStats:RegisterConVar("coins_health_cost", "insanestats_coins_health_cost", "1", {
 	display = "Health Cost", desc = "Base price of healing 1 health.",
-	type = InsaneStats.FLOAT, min = 0.1, max = 10
+	type = InsaneStats.FLOAT, min = 0.01, max = 10
 })
 InsaneStats:RegisterConVar("coins_health_cost_add", "insanestats_coins_health_cost_add", "0", {
 	display = "Health Cost Scaling", desc = "% additional cost per level.",
@@ -136,7 +144,7 @@ InsaneStats:RegisterConVar("coins_health_cost_overmul", "insanestats_coins_healt
 
 InsaneStats:RegisterConVar("coins_armor_cost", "insanestats_coins_armor_cost", "2", {
 	display = "Shield Cost", desc = "Base price of charging 1 shield.",
-	type = InsaneStats.FLOAT, min = 0.1, max = 10
+	type = InsaneStats.FLOAT, min = 0.01, max = 10
 })
 InsaneStats:RegisterConVar("coins_armor_cost_add", "insanestats_coins_armor_cost_add", "0", {
 	display = "Shield Cost Scaling", desc = "% additional cost per level.",
@@ -154,9 +162,14 @@ InsaneStats:RegisterConVar("coins_armor_cost_overmul", "insanestats_coins_armor_
 	type = InsaneStats.FLOAT, min = 1, max = 1000
 })
 
+InsaneStats:RegisterConVar("coins_xp_cost", "insanestats_coins_xp_cost", "1", {
+	display = "XP Cost", desc = "Base price of gaining 1 XP.",
+	type = InsaneStats.FLOAT, min = 0.01, max = 10
+})
+
 InsaneStats:RegisterConVar("coins_ammo_cost", "insanestats_coins_ammo_cost", "100", {
 	display = "Ammo Cost", desc = "Base price of fully replenishing an ammo type to HL2's maximum.",
-	type = InsaneStats.FLOAT, min = 0.1, max = 10
+	type = InsaneStats.FLOAT, min = 0.1, max = 1000
 })
 InsaneStats:RegisterConVar("coins_ammo_cost_add", "insanestats_coins_ammo_cost_add", "10", {
 	display = "Ammo Cost Scaling", desc = "% additional cost per level.",

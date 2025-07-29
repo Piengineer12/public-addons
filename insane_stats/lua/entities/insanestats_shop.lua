@@ -25,7 +25,7 @@ function ENT:SetupDataTables()
 		Edit = {
 			type = "Int",
 			min = 0,
-			max = 259
+			max = 258
 		}
 	})
 end
@@ -122,19 +122,24 @@ end
 
 function ENT:SelectSoldAmmo()
 	local allAmmoTypes = game.GetAmmoTypes()
+	local freebieAmmoType = self:GetFreebieAmmoType()
 	local ammoIDs = {}
 	for id, name in pairs(allAmmoTypes) do
-		if game.GetAmmoMax(id) > 0 then
+		if game.GetAmmoMax(id) > 0 and id ~= freebieAmmoType then
 			table.insert(ammoIDs, id)
 		end
 	end
 	local typesToSell = math.ceil(#ammoIDs * InsaneStats:GetConVarValue("coins_ammo_soldtypes") / 100)
 
-	local selected = {257, 258}
+	local selected = {257, 258, 259}
 	for i=1, typesToSell do
 		local choice = table.remove(ammoIDs, math.random(#ammoIDs))
 		table.insert(selected, choice)
 		if table.IsEmpty(ammoIDs) then break end
+	end
+
+	if freebieAmmoType > 0 then
+		table.insert(selected, freebieAmmoType)
 	end
 	
 	return selected

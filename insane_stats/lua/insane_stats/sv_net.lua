@@ -513,6 +513,14 @@ net.Receive("insane_stats", function(length, ply)
 						ply:InsaneStats_AddArmorNerfed(qty, true)
 						ply:InsaneStats_RemoveCoins(price)
 					end
+				elseif ammoType == 259 then
+					local qty = net.ReadDouble()
+					local unitPrice = InsaneStats:GetConVarValue("coins_xp_cost")
+					local price = qty * unitPrice
+					if ply:InsaneStats_GetCoins() >= price then
+						ply:InsaneStats_SetXP(ply:InsaneStats_GetXP() + qty)
+						ply:InsaneStats_RemoveCoins(price)
+					end
 				else
 					local qty = net.ReadDouble()
 					local unitPrice = InsaneStats:ScaleValueToLevel(

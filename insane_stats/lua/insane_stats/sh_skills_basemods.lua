@@ -694,7 +694,8 @@ local skills = {
 		name = "Bloodletter's Pact",
 		desc = "Health above %.1f%% is converted into shield. \z
 		Shield gained this way can exceed max shield, but with diminishing returns. \z
-		Also, the softcap and hardcap effects of overhealing are reduced by %.1f%%.",
+		Also, the softcap and hardcap effects of overhealing are reduced by %.1f%%, \z
+		but Coin Shops will no longer offer free healing.",
 		values = function(level, ent)
 			-- min level above 0: 0.2, max level: 40.8
 			level = level * (1 + ent:InsaneStats_GetEffectiveSkillValues("bloodletters_revelation", 2) / 100)
@@ -752,7 +753,8 @@ local skills = {
 		name = "More Bullet Per Bullet",
 		desc = "Reserve ammo above %u%% is converted into More Bullet Per Bullet stacks. \z
 		Each stack increases defence and damage dealt by 1%%, but stacks decay at a rate of -1%%/s. \z
-		Additionally, interacting with an Ammo Crate causes all stacks to be removed.",
+		Additionally, interacting with an Ammo Crate causes all stacks to be removed \z
+		and Coin Shops will no longer sell ammo for free.",
 		values = function(level)
 			return 100 - level * 5
 		end,
@@ -2518,7 +2520,7 @@ local skills = {
 				if stacks > 0 then
 					stacks = math.max(stacks - time, 0)
 					state = -1
-				elseif ent:IsPlayer() and not ent:KeyDown(IN_WALK) then
+				elseif (ent:IsPlayer() and not ent:KeyDown(IN_WALK) and not ent:InVehicle()) then
 					state = 0
 				else
 					state = -1
@@ -2766,7 +2768,8 @@ local skills = {
 	synergy_2 = {
 		name = "Synergy (Wet)",
 		desc = "Every %s travelled or whenever an item is picked up, gain 0.1 stacks of Synergy. \z
-		Each stack increases health and shield gained from skills and modifiers, coins and XP gained by +%u%%, \z
+		Each stack increases health, max health, shield and max shield gained from skills and modifiers, \z
+		as well as coins and XP gained by +%u%%, \z
 		but stacks decay at a rate of -1%%/s regardless of skills. \z
 		Distance travelled is computed by multiplying speed and time passed.",
 		values = function(level)
@@ -2811,7 +2814,8 @@ local skills = {
 	synergy_3 = {
 		name = "Synergy (Cold)",
 		desc = "Every %s travelled or whenever damage would be taken from a mob, gain 0.1 stacks of Synergy. \z
-		Each stack increases health and shield gained from skills and modifiers, and defence by +%u%%, \z
+		Each stack increases health, max health, shield and max shield gained from skills and modifiers, \z
+		as well as defence by +%u%%, \z
 		but stacks decay at a rate of -1%%/s regardless of skills. \z
 		Distance travelled is computed by multiplying speed and time passed.",
 		values = function(level)

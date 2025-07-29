@@ -11,6 +11,7 @@ PANEL = {
 
         @SetTall panelHeight * 2 + outlineWidth * 2
         @Dock TOP
+        @SetBulkOption 1
 
         with vgui.Create 'DPanel', @
             \SetTall panelHeight + outlineWidth * 2
@@ -89,6 +90,8 @@ PANEL = {
             \AddChoice '1% of Coins', 5
             \AddChoice '10% of Coins', 6
             \AddChoice '100% of Coins', 7
+
+            .OnSelect = (_, index, text, data) -> @SetBulkOption data
         
         with @insaneStats_Label = vgui.Create 'DLabel', @
             \SetFont font
@@ -96,13 +99,19 @@ PANEL = {
             \Dock FILL
             \SetDark true
     
-    GetDetails: => @OnPollDetails select 2, @insaneStats_BuyOptions\GetSelected!
+    GetDetails: => @OnPollDetails @GetBulkOption!
     GetCurrentCoins: => LocalPlayer!\InsaneStats_GetCoins!
     SetText: (...) => @insaneStats_Label\SetText ...
+    TriggerBuyToMax: =>
+        oldBulkOption = @GetBulkOption!
+        @SetBulkOption 1
+        @insaneStats_BuyButton\DoClick!
+        @SetBulkOption oldBulkOption
     
     -- to override
     OnPollQuantity: (id) => 0
     OnPurchase: (quantity, paid) =>
 }
 
+AccessorFunc PANEL, 'insaneStats_bulkOption', 'BulkOption', FORCE_NUMBER
 vgui.Register 'InsaneStats_ShopItemLine', PANEL, 'DPanel'

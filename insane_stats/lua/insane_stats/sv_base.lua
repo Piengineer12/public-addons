@@ -635,10 +635,13 @@ local ammoCrateTypes = {
 	2, -- ar2 alt
 	9, -- smg alt
 }
+function InsaneStats:TranslateAmmoCrateTypeToAmmoType(crateAmmoType)
+	return ammoCrateTypes[crateAmmoType+1]
+end
 hook.Add("PlayerUse", "InsaneStats", function(ply, ent)
 	if ent:GetClass() == "item_ammo_crate" then
-		local crateType = tonumber(ent:GetKeyValues().AmmoType)
-		local ammoType = ammoCrateTypes[crateType+1]
+		local crateAmmoType = tonumber(ent:GetInternalVariable("AmmoType"))
+		local ammoType = InsaneStats:TranslateAmmoCrateTypeToAmmoType(crateAmmoType)
 		timer.Simple(0.8, function()
 			if IsValid(ply) and IsValid(ent) then
 				if InsaneStats:GetConVarValue("ammocrate_maxammo") then

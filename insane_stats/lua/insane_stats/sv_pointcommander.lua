@@ -60,10 +60,11 @@ hook.Add("AcceptInput", "InsaneStatsPointCommand", function(ent, input, activato
 						if retValue then return retValue end
 					end
 				elseif mainCommand == "cl_forwardspeed" or mainCommand == "cl_sidespeed" or mainCommand == "cl_backspeed" then
-					if (tonumber(restCommand) or 0) >= 320 then
+					if (tonumber(restCommand) or 0) >= 200 then
 						restCommand = "10000"
 					end
-				elseif mainCommand == "cl_playermodel" or mainCommand and IsConCommandBlocked(mainCommand) then
+				elseif mainCommand == "cl_playermodel" or mainCommand == "host_timescale"
+				or mainCommand == "host_framerate" or mainCommand and IsConCommandBlocked(mainCommand) then
 					if developer then
 						InsaneStats:Log("Command \"%s\" from \"%s\" was blocked!", command, tostring(ent))
 					end

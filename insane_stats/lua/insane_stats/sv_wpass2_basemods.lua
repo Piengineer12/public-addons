@@ -4688,16 +4688,16 @@ local jottedRelayerInputs = {}
 local jottedUnlockerInputs = {}
 hook.Add("EntityKeyValue", "InsaneStatsWPASS2", function(ent, key, value)
 	key = key:lower()
-	if key:StartWith("onplayeruse") or key:StartWith("oncacheinteraction")
-	or key:StartWith("outremaininghealth") or key:StartWith("outremainingcharge")
-	or key:StartWith("onhalfempty") or key:StartWith("onempty") or key:StartWith("onfull") then
+	if key:StartWith("onplayeruse") or key:StartWith("oncacheinteraction") or key:StartWith("onused")
+	or key:StartWith("outremainingcharge") or key:StartWith("onhalfempty")
+	or key:StartWith("onempty") or key:StartWith("onfull") then
 		ent:SetNWBool("insanestats_use", true)
 		ent.insaneStats_PreventMagnet = 100
 	elseif key:StartWith("onplayerpickup") then
 		ent:SetNWBool("insanestats_use", true)
 		ent.insaneStats_Duplicated = true
 		ent.insaneStats_PreventMagnet = 100
-	elseif key:StartWith("ondamaged") then
+	elseif key:StartWith("ondamaged") or key:StartWith("outremaininghealth") then
 		ent:SetNWBool("insanestats_break", true)
 	elseif key:StartWith("onphysgun") then
 		ent:SetNWBool("insanestats_use", true)
@@ -5856,7 +5856,16 @@ hook.Add("InsaneStatsPlayerAddAmmo", "InsaneStatsWPASS2", function(data)
 		local current = attacker:InsaneStats_GetAmmoCount(data.type)
 		local new = ProcessAmmoChange(attacker, data.type, current + data.num)
 		if new then
+			local difference = data.num - new
 			data.num = math.max(new - current, 0)
+
+			--[[if difference > 0 then
+				net.Start("insane_stats")
+				net.WriteUInt(15, 8)
+				net.WriteUInt(data.type, 9)
+				net.WriteDouble(difference)
+				net.Send(attacker)
+			end]]
 		end
 	end
 end)
@@ -6075,9 +6084,12 @@ hook.Add("InsaneStatsWPASS2AddArmor", "InsaneStatsWPASS2", function(data)
 end)
 
 hook.Add("InsaneStatsWPASS2AddMaxHealth", "InsaneStatsWPASS2", function(data)
+	local ent = data.ent
 	data.maxHealth = data.maxHealth
-	* (1 + data.ent:InsaneStats_GetEffectiveSkillValues("overheal", 2) / 100)
-	* (1 + data.ent:InsaneStats_GetEffectiveSkillValues("better_healthcare") / 100)
+	* (1 + ent:InsaneStats_GetEffectiveSkillValues("overheal", 2) / 100)
+	* (1 + ent:InsaneStats_GetEffectiveSkillValues("better_healthcare") / 100)
+	* (1 + ent:InsaneStats_GetSkillStacks("synergy_2") * ent:InsaneStats_GetEffectiveSkillValues("synergy_2", 2) / 100)
+	* (1 + ent:InsaneStats_GetSkillStacks("synergy_3") * ent:InsaneStats_GetEffectiveSkillValues("synergy_3", 2) / 100)
 end)
 
 hook.Add("InsaneStatsWPASS2AddMaxArmor", "InsaneStatsWPASS2", function(data)	
@@ -6086,6 +6098,8 @@ hook.Add("InsaneStatsWPASS2AddMaxArmor", "InsaneStatsWPASS2", function(data)
 	data.maxArmor = data.maxArmor
 	* (1 + ent:InsaneStats_GetEffectiveSkillValues("overshield", 2) / 100)
 	* (1 + ent:InsaneStats_GetEffectiveSkillValues("better_healthcare") / 100)
+	* (1 + ent:InsaneStats_GetSkillStacks("synergy_2") * ent:InsaneStats_GetEffectiveSkillValues("synergy_2", 2) / 100)
+	* (1 + ent:InsaneStats_GetSkillStacks("synergy_3") * ent:InsaneStats_GetEffectiveSkillValues("synergy_3", 2) / 100)
 
 	if ent:InsaneStats_GetMaxArmor() > 0 then
 		local splitRatio = ent:InsaneStats_GetEffectiveSkillValues("bastion_of_flesh")/100

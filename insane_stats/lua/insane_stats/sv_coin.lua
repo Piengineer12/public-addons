@@ -160,6 +160,16 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsCoins", function(ent)
 				ent:SetCollisionGroup(oldCollisionGroup)
 			end
 		end)
+	elseif ent:GetClass() == "item_ammo_crate" and not ent:GetNWBool("insanestats_use")
+	and math.random() < InsaneStats:GetConVarValue("coins_shop_replace_chance") / 100 then
+		local crateAmmoType = tonumber(ent:GetInternalVariable("AmmoType"))
+		local shop = ents.Create("insanestats_shop")
+		shop:SetPos(ent:GetPos())
+		shop:SetAngles(ent:GetAngles())
+		shop:SetFreebieAmmoType(InsaneStats:TranslateAmmoCrateTypeToAmmoType(crateAmmoType))
+		shop:Spawn()
+
+		SafeRemoveEntity(ent)
 	end
 end)
 
