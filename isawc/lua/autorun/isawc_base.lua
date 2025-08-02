@@ -10,9 +10,9 @@ Links above are confirmed working as of 2022-04-16. All dates are in ISO 8601 fo
 local startLoadTime = SysTime()
 
 ISAWC = ISAWC or {}
-ISAWC._VERSION = "5.6.4"
-ISAWC._VERSIONNUMBER = 50604
-ISAWC._VERSIONDATE = "2024-06-13"
+ISAWC._VERSION = "5.6.5"
+ISAWC._VERSIONNUMBER = 50605
+ISAWC._VERSIONDATE = "2025-08-02"
 
 if SERVER then util.AddNetworkString("isawc_general") end
 
@@ -6404,18 +6404,16 @@ ISAWC.Initialize = function()
 			ISAWC:Log("ConVar file loaded, no ConVar values updated.")
 		end
 		
-		if not sql.TableExists("isawc_item_stamps") then
-			ISAWC:SQL([[CREATE TABLE "isawc_item_stamps" (
-				"name" TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
-				"data" TEXT NOT NULL
-			);]])
-			
-			ISAWC:SQL("BEGIN;")
-			for k,v in pairs(defaultItemStampNames) do
-				ISAWC:CreateItemStamp(v, defaultItemStampData[k])
-			end
-			ISAWC:SQL("COMMIT;")
+		ISAWC:SQL([[CREATE TABLE IF NOT EXISTS "isawc_item_stamps" (
+			"name" TEXT NOT NULL UNIQUE ON CONFLICT REPLACE,
+			"data" TEXT NOT NULL
+		);]])
+		
+		ISAWC:SQL("BEGIN;")
+		for k,v in pairs(defaultItemStampNames) do
+			ISAWC:CreateItemStamp(v, defaultItemStampData[k])
 		end
+		ISAWC:SQL("COMMIT;")
 	end
 end
 
@@ -6627,6 +6625,36 @@ ISAWC.RecursiveToNumbering = function(self,tab,done)
 	end
 end
 
+local hooksToIgnore = {"PlayerSpawnEffect", "PlayerSpawnNPC", "PlayerSpawnObject", "PlayerSpawnProp",
+"PlayerSpawnRagdoll", "PlayerSpawnSENT", "PlayerSpawnSWEP", "PlayerSpawnVehicle"}
+ISAWC.IgnoreSpawnHooks = function(self,ignore)
+	if ignore then
+		ISAWC.OldSpawnHooks = {}
+		local allHooks = hook.GetTable()
+		for i,v in ipairs(hooksToIgnore) do
+			ISAWC.OldSpawnHooks[v] = {}
+			local targetTable = ISAWC.OldSpawnHooks[v]
+			for k,v2 in pairs(allHooks[v] or {}) do
+				targetTable[k] = v2
+				hook.Remove(v, k)
+			end
+
+			hook.Add(v, "ISAWCIgnoreHookReturn", function()
+				return true
+			end)
+		end
+	else
+		local allHooks = ISAWC.OldSpawnHooks
+		for i,v in ipairs(hooksToIgnore) do
+			hook.Remove(v, "ISAWCIgnoreHookReturn")
+			
+			for k,v2 in pairs(allHooks[v]) do
+				hook.Add(v, k, v2)
+			end
+		end
+	end
+end
+
 ISAWC.StoredInAltSaveProps = ISAWC.StoredInAltSaveProps or {}
 ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 	local canDel = self.ConAllowDelete:GetBool()
@@ -6690,9 +6718,11 @@ ISAWC.SpawnDupe = function(self,dupe,isSpawn,sSpawn,invnum,ply)
 		else
 			duplicator.SetLocalPos(spawnpos)
 			duplicator.SetLocalAng(Angle(0,ply:EyeAngles().y,0))
+			ISAWC:IgnoreSpawnHooks(true)
 			local entTab,conTab = duplicator.Paste(ply,dupe.Entities,dupe.Constraints)
 			duplicator.SetLocalPos(vector_origin)
 			duplicator.SetLocalAng(angle_zero)
+			ISAWC:IgnoreSpawnHooks(false)
 			for k,v in pairs(entTab) do
 				self:RecursiveToNumbering(v)
 				v:SetCreator(ply)
@@ -6822,9 +6852,11 @@ ISAWC.SpawnDupe2 = function(self,dupe,isSpawn,sSpawn,invnum,ply,container)
 		else
 			duplicator.SetLocalPos(spawnpos)
 			duplicator.SetLocalAng(Angle(0,ply:EyeAngles().y,0))
+			ISAWC:IgnoreSpawnHooks(true)
 			local entTab,conTab = duplicator.Paste(ply,dupe.Entities,dupe.Constraints)
 			duplicator.SetLocalPos(vector_origin)
 			duplicator.SetLocalAng(angle_zero)
+			ISAWC:IgnoreSpawnHooks(false)
 			for k,v in pairs(entTab) do
 				self:RecursiveToNumbering(v)
 				v:SetCreator(ply)
@@ -6928,9 +6960,11 @@ ISAWC.SpawnDupeWeak = function(self,dupe,spawnpos,spawnangles,ply)
 	else
 		duplicator.SetLocalPos(spawnpos)
 		duplicator.SetLocalAng(Angle(0,spawnangles.y,0))
+		ISAWC:IgnoreSpawnHooks(true)
 		local entTab,conTab = duplicator.Paste(ply,dupe.Entities,dupe.Constraints)
 		duplicator.SetLocalPos(vector_origin)
 		duplicator.SetLocalAng(angle_zero)
+		ISAWC:IgnoreSpawnHooks(false)
 		for k,v in pairs(entTab) do
 			self:RecursiveToNumbering(v)
 			v:SetCreator(ply)
