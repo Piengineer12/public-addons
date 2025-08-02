@@ -9,7 +9,9 @@ PANEL = {
         fontSizeNum = 3
         outlineWidth = InsaneStats\GetOutlineThickness!
 
-        @SetTall panelHeight * 2 + outlineWidth * 2
+        @SetTall panelHeight * 2 + outlineWidth * 2 + 8
+        @DockPadding 4, 4, 4, 4
+        @DockMargin 0, 0, 0, 4
         @Dock TOP
         @SetBulkOption 1
 
@@ -97,7 +99,10 @@ PANEL = {
             \SetFont font
             \SetText ''
             \Dock FILL
-            \SetDark true
+    
+    Paint: (w, h) =>
+        @insaneStats_panelColor = InsaneStats\GetColor 'black_translucent' unless @insaneStats_panelColor
+        draw.RoundedBox 4, 0, 0, w, h, @insaneStats_panelColor
     
     GetDetails: => @OnPollDetails @GetBulkOption!
     GetCurrentCoins: => LocalPlayer!\InsaneStats_GetCoins!

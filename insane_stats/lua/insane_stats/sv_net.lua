@@ -535,6 +535,10 @@ net.Receive("insane_stats", function(length, ply)
 					if ply:InsaneStats_GetCoins() >= price then
 						ply:GiveAmmo(qty, ammoType)
 						ply:InsaneStats_RemoveCoins(price)
+
+						if ammoType == 10 and not ply:HasWeapon("weapon_frag") then
+							ply:Give("weapon_frag")
+						end
 					end
 				end
 			end

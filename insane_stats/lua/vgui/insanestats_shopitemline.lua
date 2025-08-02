@@ -5,7 +5,9 @@ local PANEL = {
     local font = 'InsaneStats.Big'
     local fontSizeNum = 3
     local outlineWidth = InsaneStats:GetOutlineThickness()
-    self:SetTall(panelHeight * 2 + outlineWidth * 2)
+    self:SetTall(panelHeight * 2 + outlineWidth * 2 + 8)
+    self:DockPadding(4, 4, 4, 4)
+    self:DockMargin(0, 0, 0, 4)
     self:Dock(TOP)
     self:SetBulkOption(1)
     do
@@ -77,9 +79,14 @@ local PANEL = {
       _with_0:SetFont(font)
       _with_0:SetText('')
       _with_0:Dock(FILL)
-      _with_0:SetDark(true)
       return _with_0
     end
+  end,
+  Paint = function(self, w, h)
+    if not (self.insaneStats_panelColor) then
+      self.insaneStats_panelColor = InsaneStats:GetColor('black_translucent')
+    end
+    return draw.RoundedBox(4, 0, 0, w, h, self.insaneStats_panelColor)
   end,
   GetDetails = function(self)
     return self:OnPollDetails(self:GetBulkOption())

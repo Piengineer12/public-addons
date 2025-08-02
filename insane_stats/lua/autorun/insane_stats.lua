@@ -15,7 +15,7 @@ test non-remake maps too
 ]]
 
 InsaneStats = {
-	VERSION = "2.1.2",
+	VERSION = "2.1.3-alpha",
 	VERSION_DATE = "2025-07-13",
 	WORKSHOP_ID = "2980423627"
 }

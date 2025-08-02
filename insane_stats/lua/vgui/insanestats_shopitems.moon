@@ -9,9 +9,9 @@ PANEL = {
         with vgui.Create 'DButton', @
             \SetFont 'InsaneStats.Big'
             \SetText 'Fill All To Max'
-            \SetTall InsaneStats.FONT_BIG
-            \SizeToContentsX 4
+            \SizeToContentsY 4
             \Dock TOP
+            \DockMargin 0, 0, 0, 4
             \SetZPos 0
             \SetDoubleClickingEnabled false
             .DoClick = -> itemLine\TriggerBuyToMax! for itemLine in *@ItemLines
