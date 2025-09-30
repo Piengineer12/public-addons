@@ -234,7 +234,7 @@ local skills = {
 		values = function(level)
 			return level * -8
 		end,
-		img = "metal-scales",
+		img = "breastplate",
 		pos = {-2, -1},
 		minpts = 5
 	},
@@ -276,7 +276,7 @@ local skills = {
 		values = function(level)
 			return level * 5
 		end,
-		img = "cogsplosion",
+		img = "hammer-nails",
 		pos = {3, -1},
 		minpts = 5
 	},
@@ -306,7 +306,7 @@ local skills = {
 		values = function(level)
 			return level * 5, level * 5, level * 5
 		end,
-		img = "martini",
+		img = "emerald",
 		pos = {1, 3},
 		minpts = 5
 	},
@@ -316,7 +316,7 @@ local skills = {
 		values = function(level)
 			return level
 		end,
-		img = "fluffy-trefoil",
+		img = "feather",
 		pos = {-1, 3},
 		minpts = 5
 	},
@@ -528,7 +528,7 @@ local skills = {
 
 			return state, stacks
 		end,
-		img = "domino-mask",
+		img = "spectre",
 		pos = {0, 3},
 		minpts = 10,
 		max = 1
@@ -1069,7 +1069,7 @@ local skills = {
 		max = 1
 	},
 	ctrl_f = {
-		name = "Ctrl+F",
+		name = "How They Come Together",
 		desc = "Interacting with a key will show the door it unlocks on the HUD, and vice versa, for +%u seconds.%s",
 		values = function(level, ent)
 			if level > 1 then
@@ -1078,7 +1078,7 @@ local skills = {
 			else return level * 30, ""
 			end
 		end,
-		img = "magnifying-glass",
+		img = "gears",
 		pos = {-1, 4},
 		minpts = 10,
 		max = 1
@@ -1104,10 +1104,9 @@ local skills = {
 		minpts = 5
 	},
 	item_magnet = {
-		name = "Item Magnet",
+		name = "Reach",
 		desc = "Items and weapons wtihin %s are magnetized, \z
-		with random items created from modifiers / skills within this radius \z
-		being teleported instead of magnetized! \z
+		with created random items being teleported instead of magnetized! \z
 		Also, automatically pick up coins that are furthest from any other player after %u seconds.",
 		values = function(level, ent)
 			local distance = level * 256
@@ -1116,25 +1115,30 @@ local skills = {
 			end
 			return distance, math.max(20 - level * 2, 0)
 		end,
-		img = "magnet",
+		img = "grab",
 		pos = {-3, 4},
 		minpts = 5
 	},
 	starlight = {
 		name = "Starlight",
 		desc = "On kill or prop broken, gain %+.1f stack(s) of Starlight. \z
-		Each stack gives 1%% more defence and %s of night vision. \z
+		Each stack gives 1%% more defence and while %s is not held, %s of night vision. \z
 		Stacks decay at a rate of -1%%/s.",
 		values = function(level)
 			local distance = 32
+			local slowWalkKey = "the Slow Walk key"
 			if CLIENT then
 				distance = InsaneStats:FormatNumber(distance, {distance = true})
+				local keyName = input.LookupBinding("+walk")
+				if keyName then
+					slowWalkKey = keyName:upper()
+				end
 			end
-			return level/5, distance, 32
+			return level/5, slowWalkKey, distance, 32
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = current * .99 ^ time
-			return nextStacks <= 0 and 0 or 1, nextStacks
+			return ent:IsPlayer() and ent:KeyDown(IN_WALK) and -1 or nextStacks <= 0 and 0 or 1, nextStacks
 		end,
 		img = "sundial",
 		pos = {-4, 3},
@@ -1164,7 +1168,7 @@ local skills = {
 		pos = {-5, 2},
 		minpts = 5
 	},
-	fight_for_your_life = {
+	--[[fight_for_your_life = {
 		name = "Fight For Your Life",
 		desc = "Whenever lethal damage would be taken, instead become prone. \z
 		Killing an enemy while prone grants a Second Wind, restoring 100%% of health!\n\z
@@ -1183,6 +1187,24 @@ local skills = {
 			end
 		end,
 		img = "defibrilate",
+		pos = {-4, 1},
+		minpts = 10,
+		max = 1
+	},]]
+	rise_from_your_grave = {
+		name = "Rise From Your Grave",
+		desc = "Gain +%.1f stacks of Rise From Your Grave per second, up to +%u. \z
+		At 100 stacks, the next respawn consumes 100 to respawn exactly where the last death occured, \z
+		if there is space.",
+		values = function(level)
+			return level / 5, level * 100
+		end,
+		stackTick = function(state, current, time, ent)
+			local mul, mx = ent:InsaneStats_GetEffectiveSkillValues("rise_from_your_grave")
+			local nextStacks = math.min(current + time * mul, mx)
+			return nextStacks >= 100 and 1 or 0, nextStacks
+		end,
+		img = "pirate-grave",
 		pos = {-4, 1},
 		minpts = 10,
 		max = 1
@@ -1280,7 +1302,7 @@ local skills = {
 	},
 	anger = {
 		name = "Anger",
-		desc = "Taking damage increases all damage dealt by +200%% for 10 seconds! %u seconds cooldown. \z
+		desc = "Taking damage triples all damage dealt for 10 seconds! %u seconds cooldown. \z
 		However, dealing explosive damage to an NPC creates a live grenade that explodes after 2 seconds, \z
 		at most once every 5 seconds per NPC. The Hellish Challenge skill is also +%u%% more effective.",
 		values = function(level)
@@ -1390,16 +1412,16 @@ local skills = {
 	},
 	upward_spiralling = {
 		name = "Upward Spiralling",
-		desc = "Every spent skill point gives +%.2f%% coins and XP \z
-		(%s%% coins and XP gain at current total spent skill points).",
+		desc = "Every skill point gained in total gives +%.2f%% coins and XP \z
+		(%s%% coins and XP gain at current total skill points).",
 		values = function(level, ent)
 			local thirdValue = (
 				level/50 --+ level/200
 				--* ent:InsaneStats_GetSpentUberSkillPoints()
-			) * ent:InsaneStats_GetSpentSkillPoints()
+			) * ent:InsaneStats_GetTotalSkillPoints()
 			return level/50, CLIENT and InsaneStats:FormatNumber(thirdValue, {plus = true}) or thirdValue
 		end,
-		img = "gold-shell",
+		img = "crown-coin",
 		pos = {5, -3},
 		minpts = 5
 	},
@@ -1432,7 +1454,7 @@ local skills = {
 		values = function(level)
 			return math.max(25 - 5 * level, 10)
 		end,
-		img = "star-swirl",
+		img = "thor-fist",
 		pos = {4, 0},
 		minpts = 2,
 		max = 1
@@ -1503,10 +1525,11 @@ local skills = {
 	beyond_240_kmph = {
 		name = "Beyond 240 km/h",
 		desc = "Speed-based skills and modifiers now use effective speed, \z
-		which is calculated as being %+i%% higher than actual speed! \z
+		which is calculated as being +%u%% higher than actual speed! \z
 		For all skills and modifiers that do not dilate time, \z
-		an additional %+i%% of normal running speed is always added to effective speed!",
-		values = function(level)
+		an additional +%u%% of normal running speed is always added to effective speed!",
+		values = function(level, ent)
+			--level = level * ent:InsaneStats_GetEffectiveSkillValues("grandmaster_of_water", 2)
 			return level * 10, level * 10
 		end,
 		img = "afterburn",
@@ -1539,6 +1562,7 @@ local skills = {
 			) and -1 or current > 0 and 1 or 0, current
 		end,
 		img = "barbed-sun",
+		
 		pos = {2, 6},
 		minpts = 5
 	},
@@ -1777,7 +1801,7 @@ local skills = {
 		end,
 		img = "skull-crack",
 		pos = {1, -5},
-		minpts = 6
+		minpts = 5
 	},
 	heads_will_roll = {
 		name = "Heads Will Roll",
@@ -1874,7 +1898,7 @@ local skills = {
 		end,
 		img = "poker-hand",
 		pos = {5, -1},
-		minpts = 6
+		minpts = 5
 	},]]
 	controlled_reaction = {
 		name = "Controlled Reaction",
@@ -1887,7 +1911,7 @@ local skills = {
 		end,
 		img = "bubbling-flask",
 		pos = {5, -1},
-		minpts = 6
+		minpts = 5
 	},
 	productivity = {
 		name = "Productivity",
@@ -1897,9 +1921,9 @@ local skills = {
 		values = function(level)
 			return level * 10, level * 10, level * 5
 		end,
-		img = "cubeforce",
+		img = "dig-dug",
 		pos = {5, 1},
-		minpts = 6
+		minpts = 5
 	},
 	um_what = {
 		name = "Um, What?",
@@ -2003,7 +2027,7 @@ local skills = {
 		end,
 		img = "dripping-goo",
 		pos = {1, 5},
-		minpts = 6
+		minpts = 5
 	},
 	--[[hacked_shield = {
 		name = "Hacked Shield",
@@ -2038,22 +2062,22 @@ local skills = {
 		end,
 		img = "circuitry",
 		pos = {-1, 5},
-		minpts = 6
+		minpts = 5
 	},]]
 	hacked_shield = {
 		name = "Hacked Shield",
-		desc = "The softcap and hardcap effects of overshielding are reduced by %.3f%% \z
-		times the number of skill points gained in total (%.3f%% at current total skill points). \z
-		However, getting hit PERMANENTLY reduces maximum shield by %.2f%%! \z
-		This skill cannot reduce max shield below %s. \z
+		desc = "The softcap and hardcap effects of overshielding are reduced by %.2f%% \z
+		times the square root of the number of skill points gained in total \z
+		(%.2f%% at current total skill points). \z
+		However, Insane Stats Coin Shops will no longer sell health nor shield for coins! \z
 		Also, gain +%u%% dodge chance against non-disintegrating damage, \z
 		but this chance is divided by shield %% when shield is above 100%%.",
 		values = function(level, ent)
-			local baseEffect = level / -200
+			local baseEffect = level * -0.16
 			local skillPoints = ent:InsaneStats_GetTotalSkillPoints()
-			local effect = math.max(baseEffect * skillPoints, -100)
+			local effect = math.max(baseEffect * math.sqrt(skillPoints), -100)
 
-			local baseMult = ent:IsPlayer() and 1 or InsaneStats:GetConVarValue("infhealth_armor_mul")
+			--[[local baseMult = ent:IsPlayer() and 1 or InsaneStats:GetConVarValue("infhealth_armor_mul")
 			local scaleType = ent:IsPlayer() and "player" or "other"
 			local effectiveLevel = InsaneStats:GetConVarValue("xp_enabled") and ent:InsaneStats_GetLevel() or 1
 			local val = InsaneStats:ScaleValueToLevel(
@@ -2061,24 +2085,24 @@ local skills = {
 				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
 				effectiveLevel,
 				"xp_"..scaleType.."_armor_mode"
-			)
+			)]]
 
-			return baseEffect, effect,
-			level/-50, CLIENT and InsaneStats:FormatNumber(val) or val, level*5
+			return baseEffect, effect, --level/-50, CLIENT and InsaneStats:FormatNumber(val) or val,
+			level*5
 		end,
 		img = "circuitry",
 		pos = {-1, 5},
-		minpts = 6
+		minpts = 5
 	},
 	infestation = {
-		name = "Infestation",
+		name = "Soulcrusher",
 		desc = "On hit, inflict a random negative status effect, \z
 		such as %i%% damage dealt, +%u%% damage taken, etc. \z
 		Upon getting hit, gain a random negative status effect.",
 		values = function(level, ent)
 			return level * -5, level * 5, level
 		end,
-		img = "infested-mass",
+		img = "wolf-trap",
 		pos = {-3, 6},
 		minpts = 5
 	},
@@ -2168,7 +2192,7 @@ local skills = {
 		end,
 		img = "back-forth",
 		pos = {-5, 1},
-		minpts = 6
+		minpts = 5
 	},
 	vitality_to_go = {
 		name = "Vitality To Go",
@@ -2185,7 +2209,7 @@ local skills = {
 		end,
 		img = "chalice-drops",
 		pos = {-5, -1},
-		minpts = 6
+		minpts = 5
 	},
 	beep3 = {
 		name = "Beep Beep Beeeeeeeeep",
@@ -2268,7 +2292,7 @@ local skills = {
 		end,
 		img = "shield-bounces",
 		pos = {-1, -5},
-		minpts = 6
+		minpts = 5
 	},
 
 	-- distance 10
@@ -2297,6 +2321,30 @@ local skills = {
 		end,
 		img = "sparky-bomb",
 		pos = {4, -6},
+		minpts = 5
+	},
+	bugbait_mastery = {
+		name = "Bugbait Mastery",
+		desc = "Thrown bugbaits cause all entities within %s from the impact to yield +%u%% more coins and XP, \z
+		take +%u%% more damage and deal %i%% less damage for 10 seconds. Pressing %s while holding bugbait \z
+		will cause all antlions that are over %s away to be teleported closer. \z
+		Gain +%u%% coins and XP while not having bugbait.",
+		values = function(level)
+			local distance = 64
+			local distance2 = 1024 / level
+			local reloadKey = "the Reload key"
+			if CLIENT then
+				distance = InsaneStats:FormatNumber(distance, {distance = true})
+				distance2 = InsaneStats:FormatNumber(distance2, {distance = true})
+				local keyName = input.LookupBinding("+reload")
+				if keyName then
+					reloadKey = keyName:upper()
+				end
+			end
+			return distance, level * 100, level * 100, level * -8, reloadKey, distance2, level * 6
+		end,
+		img = "infested-mass",
+		pos = {5, -5},
 		minpts = 5
 	},
 	lets_do_that_again = {
@@ -2382,7 +2430,7 @@ local skills = {
 		name = "More and More",
 		desc = "Having a full bar of shield \z
 		boosts all healing and shield gained from skills and modifiers by +%u%%. \z
-		Every power of %u bars of shield grants +%u%% more health and shield gain. \z
+		Every power of %u bars of shield after grants +%u%% more health and shield gain. \z
 		Additionally, defence is increased by %s%%, \z
 		but this percentage is divided by the number of skill points gained in total \z
 		(%s%% at current total skill points).",
@@ -2405,6 +2453,16 @@ local skills = {
 		end,
 		img = "sun",
 		pos = {-6, -4},
+		minpts = 5,
+	},
+	make_like_a_tree = {
+		name = "Make Like A Tree And...",
+		desc = "+%u%% knockback dealt\n%i%% knockback taken",
+		values = function(level)
+			return level * 12, level * -8
+		end,
+		img = "oak",
+		pos = {-5, -5},
 		minpts = 5,
 	},
 	--[[ion_cannon = {
@@ -2457,11 +2515,12 @@ local skills = {
 		end,
 		img = "metal-bar",
 		pos = {1, -6},
-		minpts = 10
+		minpts = 5
 	},
 	campfire = {
 		name = ":fire:",
-		desc = "+%u%% damage dealt while within %s from the nearest fire",
+		desc = "+%u%% damage dealt while within %s from the nearest fire. \z
+		Dealing damage to an Item Crate directly sets its health to 1 before the attack connects.",
 		values = function(level)
 			local distance = 512
 			if CLIENT then
@@ -2531,17 +2590,31 @@ local skills = {
 		end,
 		img = "minotaur",
 		pos = {6, -1},
-		minpts = 10
+		minpts = 5
 	},
-	insane_stats_skills_plus = {
-		name = "Insane Stats Skills+",
-		desc = "%+i%% coins and XP gain, but add one level to the max level of all skills.",
+	obligatory_thanks = {
+		name = "Obligatory Skill for Thanking the Community",
+		desc = "+%.2f%% coins and XP gain for each rating given to Insane Stats \z
+		(+%.2f%% coins and XP gain at current total votes, minimum +%u%%)",
 		values = function(level)
-			return level * 10 - 100
+			if (InsaneStats.obligatory_thanks_cooldown or 0) < RealTime() then
+				InsaneStats.obligatory_thanks_cooldown = RealTime() + 10
+
+				steamworks.FileInfo(InsaneStats.WORKSHOP_ID, function(data)
+					if data.total then
+						InsaneStats.obligatory_thanks_votes = data.total
+						InsaneStats.obligatory_thanks_cooldown = RealTime() + 60
+					end
+				end)
+			end
+			local votes = InsaneStats.obligatory_thanks_votes or 0
+			
+			return level / 20, level / 20 * votes, level * 5
 		end,
-		img = "processor",
+		img = "fairy-wand",
+		no_cache_values = true,
 		pos = {6, 1},
-		minpts = 10
+		minpts = 5
 	},
 	crunch = {
 		name = "CRUNCH",
@@ -2595,17 +2668,20 @@ local skills = {
 		end,
 		img = "prayer",
 		pos = {1, 6},
-		minpts = 10
+		minpts = 5
 	},
 	step_it_up = {
 		name = "Step It Up",
-		desc = "+%u%% knockback dealt. Also, increase step height by +%u%%.",
+		desc = "+%u%% knockback dealt. Also, increase step height by +%u%% while not underwater.",
 		values = function(level)
 			return level * 20, level * 15
 		end,
+		stackTick = function(state, current, time, ent)
+			return ent:WaterLevel() > 1 and 0 or 1, current
+		end,
 		img = "boxing-glove-surprise",
 		pos = {-1, 6},
-		minpts = 10
+		minpts = 5
 	},
 	totem_of_vigor = {
 		name = "Doll of Vigor",
@@ -2634,7 +2710,7 @@ local skills = {
 		end,
 		img = "echo-ripples",
 		pos = {-6, -1},
-		minpts = 10
+		minpts = 5
 	},]]
 	bloodsapper = {
 		name = "Bloodsapper",
@@ -2658,7 +2734,7 @@ local skills = {
 		end,
 		img = "heavy-helm",
 		pos = {-6, 1},
-		minpts = 10
+		minpts = 5
 	},
 	self_validation = {
 		name = "Self-Validation",
@@ -2670,7 +2746,7 @@ local skills = {
 		end,
 		img = "self-love",
 		pos = {-6, -1},
-		minpts = 10
+		minpts = 5
 	},
 	totem_of_courage = {
 		name = "Doll of Courage",
@@ -2716,7 +2792,7 @@ local skills = {
 		end,
 		img = "shining-sword",
 		pos = {-1, -6},
-		minpts = 10
+		minpts = 5
 	},
 
 	-- distance X
@@ -2730,17 +2806,37 @@ local skills = {
 			or string.format("add +%u to", level)
 		end,
 		img = "ifrit",
-		pos = {0, -5},
-		minpts = 11,
+		pos = {0, -6},
+		minpts = 5,
 		max = 1
+	},
+	grandmaster_of_fire = {
+		name = "Grandmaster of Fire",
+		desc = "This is a Grandmaster skill. \z
+		All kill skills have a 0.5%% chance to retrigger an extra time for each Grandmaster skill, \z
+		with the retrigger chance multiplied by the level of each respective skill. \z",
+		--Also, the Synergy (Hot) and Synergy (Dry) skills are more effective by \z
+		--+%.3f%% times the number of skill points gained in total (+%.3f%% at current total skill points).",
+		values = function(level, ent)
+			--local skillPoints = ent:InsaneStats_GetTotalSkillPoints()
+			--return level / 1000, level * skillPoints / 1000
+		end,
+		img = "small-fire-circled",
+		pos = {0, -5},
+		minpts = 12,
+		max = 99
 	},
 	synergy_1 = {
 		name = "Synergy (Hot)",
 		desc = "On kill or whenever an item is picked up, gain 0.1 stacks of Synergy. \z
-		Each stack increases damage dealt, coins and XP gained by +%u%%, \z
+		Each stack increases damage dealt, coins and XP gained by +%s%%, \z
 		but stacks decay at a rate of -1%%/s regardless of skills.",
-		values = function(level)
-			return level
+		values = function(level, ent)
+			--[[level = level
+			* (1 + ent:InsaneStats_GetEffectiveSkillValues("grandmaster_of_fire", 2) / 100)
+			* (1 + ent:InsaneStats_GetEffectiveSkillValues("grandmaster_of_air", 2) / 100)]]
+
+			return CLIENT and InsaneStats:FormatNumber(level) or level
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = current * .99 ^ time
@@ -2761,23 +2857,43 @@ local skills = {
 			return level * 25, level * 25, noShuffleText, math.max(30 - level * 10, 5)
 		end,
 		img = "winged-emblem",
-		pos = {5, 0},
-		minpts = 11,
+		pos = {6, 0},
+		minpts = 5,
 		max = 1
+	},
+	grandmaster_of_air = {
+		name = "Grandmaster of Air",
+		desc = "This is a Grandmaster skill. \z
+		When the total level of all Grandmaster skills exceeds 777, \z
+		add one to the max level of all skills. \z",
+		--Also, the Synergy (Hot) and Synergy (Wet) skills are more effective by \z
+		--+%.3f%% times the number of skill points gained in total (+%.3f%% at current total skill points).",
+		values = function(level, ent)
+			--local skillPoints = ent:InsaneStats_GetTotalSkillPoints()
+			--return level / 1000, level * skillPoints / 1000
+		end,
+		img = "gold-shell",
+		pos = {5, 0},
+		minpts = 12,
+		max = 99
 	},
 	synergy_2 = {
 		name = "Synergy (Wet)",
 		desc = "Every %s travelled or whenever an item is picked up, gain 0.1 stacks of Synergy. \z
 		Each stack increases health, max health, shield and max shield gained from skills and modifiers, \z
-		as well as coins and XP gained by +%u%%, \z
+		as well as coins and XP gained by +%s%%, \z
 		but stacks decay at a rate of -1%%/s regardless of skills. \z
 		Distance travelled is computed by multiplying speed and time passed.",
-		values = function(level)
+		values = function(level, ent)
+			--[[level = level
+			* (1 + ent:InsaneStats_GetEffectiveSkillValues("grandmaster_of_air", 2) / 100)
+			* (1 + ent:InsaneStats_GetEffectiveSkillValues("grandmaster_of_water", 2) / 100)]]
+
 			local distance = 8192
 			if CLIENT then
 				distance = InsaneStats:FormatNumber(distance, {distance = true})
 			end
-			return distance, level
+			return distance, CLIENT and InsaneStats:FormatNumber(level) or level
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = current * .99 ^ time
@@ -2797,33 +2913,74 @@ local skills = {
 	master_of_water = {
 		name = "Master of Water",
 		desc = "Double all freeze damage dealt and halve all freeze damage taken! \z
-		All attacks have a +%u%% chance to deal freeze damage against mobs, and deal +%u%% damage against non-mobs! \z
-		Also, this skill gains stacks based on velocity, with normal running speed granting +%u stack(s) per second! \z
+		All attacks have a +%s%% chance to deal freeze damage against mobs, and deal +%s%% damage against non-mobs! \z
+		Also, this skill gains stacks based on velocity, with normal running speed granting +%s stack(s) per second! \z
 		When this skill reaches 100 stacks, 100 stacks are removed to trigger all kill skills!",
 		values = function(level, ent)
-			return level * 25, level * 25, level
+			--level = level * ent:InsaneStats_GetEffectiveSkillValues("grandmaster_of_water", 2)
+			local value1 = CLIENT and InsaneStats:FormatNumber(level * 25) or level * 25
+			local value2 = CLIENT and InsaneStats:FormatNumber(level) or level
+			return value1, value1, value2
 		end,
 		stackTick = function(state, current, time, ent)
 			return 0, current
 		end,
 		img = "wave-crest",
-		pos = {0, 5},
-		minpts = 11,
+		pos = {0, 6},
+		minpts = 5,
 		max = 1
+	},
+	grandmaster_of_water = {
+		name = "Grandmaster of Water",
+		desc = "This is a Grandmaster skill. \z
+		On hit, gain stacks of Grandmaster of Water equal to \z
+		1.01 raised to the total level of all Grandmaster skills (%s multiplier at current total level). \z
+		At 1.00 M stacks, the next hit while %s is not held consumes 1.00 M stacks \z
+		to halve the health of ALL visible entities!",
+		--Also, the Synergy (Wet) and Synergy (Cold) skills are more effective by \z
+		--+%.3f%% times the number of skill points gained in total (+%.3f%% at current total skill points).",
+		values = function(level, ent)
+			local totalLevel = ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_fire")
+			+ ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_air")
+			+ ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_water")
+			+ ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_earth")
+			local rawValue = 1.01 ^ totalLevel
+			local slowWalkKey = "the Slow Walk key"
+			if CLIENT then
+				local keyName = input.LookupBinding("+walk")
+				if keyName then
+					slowWalkKey = keyName:upper()
+				end
+			end
+			--local skillPoints = ent:InsaneStats_GetTotalSkillPoints()
+			return CLIENT and InsaneStats:FormatNumber(rawValue) or rawValue, slowWalkKey
+			--return level / 1000, level * skillPoints / 1000
+		end,
+		stackTick = function(state, current, time, ent)
+			return ent:IsPlayer() and ent:KeyDown(IN_WALK) and -1 or 0, current
+		end,
+		img = "at-sea",
+		pos = {0, 5},
+		minpts = 12,
+		max = 99
 	},
 	synergy_3 = {
 		name = "Synergy (Cold)",
 		desc = "Every %s travelled or whenever damage would be taken from a mob, gain 0.1 stacks of Synergy. \z
 		Each stack increases health, max health, shield and max shield gained from skills and modifiers, \z
-		as well as defence by +%u%%, \z
+		as well as defence by +%s%%, \z
 		but stacks decay at a rate of -1%%/s regardless of skills. \z
 		Distance travelled is computed by multiplying speed and time passed.",
-		values = function(level)
+		values = function(level, ent)
+			--[[level = level
+			* (1 + ent:InsaneStats_GetEffectiveSkillValues("grandmaster_of_water", 2) / 100)
+			* (1 + ent:InsaneStats_GetEffectiveSkillValues("grandmaster_of_earth", 3) / 100)]]
+
 			local distance = 8192
 			if CLIENT then
 				distance = InsaneStats:FormatNumber(distance, {distance = true})
 			end
-			return distance, level
+			return distance, CLIENT and InsaneStats:FormatNumber(level) or level
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = current * .99 ^ time
@@ -2851,17 +3008,43 @@ local skills = {
 			level < 2 and "" or level < 3 and " twice" or string.format(" +%u times", level)
 		end,
 		img = "stone-tablet",
-		pos = {-5, 0},
-		minpts = 11,
+		pos = {-6, 0},
+		minpts = 5,
 		max = 1
+	},
+	grandmaster_of_earth = {
+		name = "Grandmaster of Earth",
+		desc = "This is a Grandmaster skill. \z
+		The softcap and hardcap effects of overshielding and overhealing are divided by 1.01 \z
+		raised to the total level of all Grandmaster skills (%s divisor at current total level). \z",
+		--Also, the Synergy (Cold) and Synergy (Dry) skills are more effective by \z
+		--+%.3f%% times the number of skill points gained in total (+%.3f%% at current total skill points).",
+		values = function(level, ent)
+			local totalLevel = ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_fire")
+			+ ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_air")
+			+ ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_water")
+			+ ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_earth")
+			local rawValue = 1.01 ^ totalLevel
+			--local skillPoints = ent:InsaneStats_GetTotalSkillPoints()
+			return CLIENT and InsaneStats:FormatNumber(rawValue) or rawValue
+			--level / 1000, level * skillPoints / 1000
+		end,
+		img = "mountains",
+		pos = {-5, 0},
+		minpts = 12,
+		max = 99
 	},
 	synergy_4 = {
 		name = "Synergy (Dry)",
 		desc = "On kill or whenever damage would be taken from a mob, gain 0.1 stacks of Synergy. \z
-		Each stack increases damage dealt and defence by +%u%%, \z
+		Each stack increases damage dealt and defence by +%s%%, \z
 		but stacks decay at a rate of -1%%/s regardless of skills.",
-		values = function(level)
-			return level
+		values = function(level, ent)
+			--[[level = level
+			* (1 + ent:InsaneStats_GetEffectiveSkillValues("grandmaster_of_fire", 2) / 100)
+			* (1 + ent:InsaneStats_GetEffectiveSkillValues("grandmaster_of_earth", 3) / 100)]]
+
+			return CLIENT and InsaneStats:FormatNumber(level) or level
 		end,
 		stackTick = function(state, current, time, ent)
 			local nextStacks = current * .99 ^ time
@@ -3145,7 +3328,7 @@ local statusEffects = {
 	item_duplicator = {
 		name = "Item Duplicator",
 		typ = 1,
-		img = "cubeforce"
+		img = "dig-dug"
 	},
 	bloodsapped = {
 		name = "Bloodsapped",
@@ -3198,7 +3381,16 @@ hook.Add("InsaneStatsCannotSealSkill", "InsaneStatsSkillsDefault", function(skil
 end)
 
 hook.Add("InsaneStatsSkillMaxLevel", "InsaneStatsSkillsDefault", function(data)
-	if data.ent:InsaneStats_EffectivelyHasSkill("insane_stats_skills_plus") then
+	local ent = data.ent
+	--[[if ent:InsaneStats_EffectivelyHasSkill("insane_stats_skills_plus") then
+		data.max = data.max + 1
+	end]]
+
+	local totalLevel = ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_fire")
+	+ ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_air")
+	+ ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_water")
+	+ ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_earth")
+	if ent:InsaneStats_EffectivelyHasSkill("grandmaster_of_air") and totalLevel >= 777 then
 		data.max = data.max + 1
 	end
 end)

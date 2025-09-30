@@ -64,6 +64,11 @@ InsaneStats:RegisterClientConVar("hud_dps_time", "insanestats_hud_dps_time", "5"
 	display = "DPS Timer", desc = "Damage done after this amount of time will not be factored into the DPS.",
 	type = InsaneStats.FLOAT, min = 0, max = 60
 })
+InsaneStats:RegisterClientConVar("hud_dps_performant", "insanestats_hud_dps_performant", "1", {
+	display = "Performant DPS", desc = "Makes the DPS still keep track of older damage dealt \z
+	until the element fades away, which saves on performance.",
+	type = InsaneStats.BOOL
+})
 InsaneStats:RegisterClientConVar("hud_dps_simplified", "insanestats_hud_dps_simplified", "0", {
 	display = "Compact DPS", desc = "Makes the DPS meter use a simplified display like damage numbers.",
 	type = InsaneStats.BOOL
@@ -120,6 +125,8 @@ local function LerpColor(t, a, b)
 end
 
 local ourDamages = {}
+local totalDetimedDamage = 0
+local ourDamagesAltTimes = {}
 -- table fields: damage, types, crit, time, origin, posX, posY
 local allDamageNumbers = {}
 local doNotReportDamageOnTheseClasses = {
@@ -183,15 +190,21 @@ hook.Add("InsaneStatsHUDDamageTaken", "InsaneStatsUnlimitedHealth", function(ent
 		
 		if attacker == ply and not isSelf and not missed and damage > 0
 		and condition2 and condition3 and condition5 then
-			local latestEntry = ourDamages[#ourDamages]
-			local curTime = CurTime()
-			if (latestEntry and latestEntry.time == curTime) then
-				latestEntry.damage = latestEntry.damage + damage
+			if InsaneStats:GetConVarValue("hud_dps_performant") then
+				ourDamagesAltTimes[1] = ourDamagesAltTimes[1] or CurTime()
+				ourDamagesAltTimes[2] = CurTime()
+				totalDetimedDamage = totalDetimedDamage + damage
 			else
-				table.insert(ourDamages, {
-					damage = damage,
-					time = curTime
-				})
+				local latestEntry = ourDamages[#ourDamages]
+				local curTime = CurTime()
+				if (latestEntry and latestEntry.time == curTime) then
+					latestEntry.damage = latestEntry.damage + damage
+				else
+					table.insert(ourDamages, {
+						damage = damage,
+						time = curTime
+					})
+				end
 			end
 		end
 	end
@@ -334,7 +347,6 @@ end
 --local dps = 1
 local slowDamage = 0
 local slowDPS = 0
-local totalDetimedDamage = 0
 local totalDPS = 0
 local slowArmor = 0
 local slowHealth = 0
@@ -444,37 +456,52 @@ hook.Add("HUDPaint", "InsaneStatsUnlimitedHealth", function()
 			local outlineThickness = InsaneStats:GetOutlineThickness()
 			local curTime = CurTime()
 			local discardTime = curTime - InsaneStats:GetConVarValue("hud_dps_time")
+			local totalDamage, totalDPS, life
 
-			-- remove expired entries in the ourDamages table
-			if next(ourDamages) then
-				while ourDamages[1].time < discardTime do
-					local instance = table.remove(ourDamages, 1)
-					if next(ourDamages) then
-						totalDetimedDamage = totalDetimedDamage + instance.damage
-					else
-						totalDetimedDamage = 0
-						slowDamage = 0
-						slowDPS = 0
-						break
+			if InsaneStats:GetConVarValue("hud_dps_performant") and ourDamagesAltTimes[2] then
+				if ourDamagesAltTimes[2] < discardTime then
+					ourDamagesAltTimes = {}
+					totalDetimedDamage = 0
+				else
+					totalDamage = totalDetimedDamage
+					totalDPS = totalDamage / math.max(1, curTime - ourDamagesAltTimes[1])
+					life = math.min(ourDamagesAltTimes[2] - discardTime, 1)
+				end
+			else
+				-- remove expired entries in the ourDamages table
+				if next(ourDamages) then
+					while ourDamages[1].time < discardTime do
+						local instance = table.remove(ourDamages, 1)
+						if next(ourDamages) then
+							totalDetimedDamage = totalDetimedDamage + instance.damage
+						else
+							totalDetimedDamage = 0
+							slowDamage = 0
+							slowDPS = 0
+							break
+						end
 					end
+				end
+
+				if next(ourDamages) then
+					local totalLatestDamage = 0
+					for i,v in ipairs(ourDamages) do
+						totalLatestDamage = totalLatestDamage + v.damage
+					end
+
+					totalDamage = totalDetimedDamage + totalLatestDamage
+					local minTime = ourDamages[1].time
+					local maxTime = ourDamages[#ourDamages].time
+					
+					local entryFactor = #ourDamages > 1 and 1+1/(#ourDamages - 1) or 1
+					local timeDifference = math.max((maxTime - minTime) * entryFactor, 1)
+					totalDPS = totalLatestDamage / timeDifference
+					
+					life = ourDamages[#ourDamages].time - discardTime
 				end
 			end
 
-			if next(ourDamages) then
-				local totalLatestDamage = 0
-				for i,v in ipairs(ourDamages) do
-					totalLatestDamage = totalLatestDamage + v.damage
-				end
-
-				local totalDamage = totalDetimedDamage + totalLatestDamage
-				local minTime = ourDamages[1].time
-				local maxTime = ourDamages[#ourDamages].time
-				
-				local entryFactor = #ourDamages > 1 and 1+1/(#ourDamages - 1) or 1
-				local timeDifference = math.max((maxTime - minTime) * entryFactor, 1)
-				local totalDPS = totalLatestDamage / timeDifference
-				
-				local life = ourDamages[#ourDamages].time - discardTime
+			if life then
 				surface.SetAlphaMultiplier(life)
 				
 				local simplify = InsaneStats:GetConVarValue("hud_dps_simplified")

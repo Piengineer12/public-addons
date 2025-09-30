@@ -6,6 +6,7 @@
 		"comic"
 	],
 	"ignore": [
+		"*.moon",
 		"media/*",
 		"personal/*",
 		"README.md"

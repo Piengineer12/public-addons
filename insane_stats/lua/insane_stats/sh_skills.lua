@@ -60,7 +60,7 @@ InsaneStats.SealedInfo = {
 	values = function(level, ent)
 		return level * ent:InsaneStats_GetEffectiveSkillValues("skill_sealer")
 	end,
-	img = "interdiction"
+	img = "void"
 }
 InsaneStats.DisabledInfo = {
 	name = "[DISABLED]",
@@ -307,6 +307,7 @@ function ENTITY:InsaneStats_GetSealedSkills()
 	return skills
 end
 function ENTITY:InsaneStats_IsSkillSealed(skill)
+	if not IsValid(self) then return false end
 	self.insaneStats_SealedSkills = self.insaneStats_SealedSkills or {}
 	return self.insaneStats_SealedSkills[skill]
 end

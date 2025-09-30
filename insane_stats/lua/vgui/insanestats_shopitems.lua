@@ -7,9 +7,9 @@ local PANEL = {
       local _with_0 = vgui.Create('DButton', self)
       _with_0:SetFont('InsaneStats.Big')
       _with_0:SetText('Fill All To Max')
-      _with_0:SetTall(InsaneStats.FONT_BIG)
-      _with_0:SizeToContentsX(4)
+      _with_0:SizeToContentsY(4)
       _with_0:Dock(TOP)
+      _with_0:DockMargin(0, 0, 0, 4)
       _with_0:SetZPos(0)
       _with_0:SetDoubleClickingEnabled(false)
       _with_0.DoClick = function()
@@ -65,9 +65,9 @@ local PANEL = {
         details.poll = function(_, id)
           local ply = LocalPlayer()
           local coins = ply:InsaneStats_GetCoins()
-          local unitPrice = InsaneStats:ScaleValueToLevel(InsaneStats:GetConVarValue('coins_health_cost'), InsaneStats:GetConVarValue('coins_health_cost_add') / 100, ply:InsaneStats_GetLevel(), 'coins_health_cost_mode')
-          local overUnitPrice = InsaneStats:GetConVarValue('coins_health_cost_overmul')
           local shopEntity = self:GetShopEntity()
+          local unitPrice = InsaneStats:ScaleValueToLevel(InsaneStats:GetConVarValue('coins_health_cost'), InsaneStats:GetConVarValue('coins_health_cost_add') / 100, shopEntity:InsaneStats_GetLevel(), 'coins_health_cost_mode')
+          local overUnitPrice = InsaneStats:GetConVarValue('coins_health_cost_overmul')
           local freeQty = 0
           if (IsValid(shopEntity) and not hook.Run('InsaneStatsBlockFreebie', ply, shopEntity, ammoID)) then
             freeQty = math.max(0, ply:InsaneStats_GetMaxHealth() - ply:InsaneStats_GetHealth())
@@ -118,9 +118,9 @@ local PANEL = {
         details.poll = function(_, id)
           local ply = LocalPlayer()
           local coins = ply:InsaneStats_GetCoins()
-          local unitPrice = InsaneStats:ScaleValueToLevel(InsaneStats:GetConVarValue('coins_armor_cost'), InsaneStats:GetConVarValue('coins_armor_cost_add') / 100, ply:InsaneStats_GetLevel(), 'coins_armor_cost_mode')
-          local overUnitPrice = InsaneStats:GetConVarValue('coins_armor_cost_overmul')
           local shopEntity = self:GetShopEntity()
+          local unitPrice = InsaneStats:ScaleValueToLevel(InsaneStats:GetConVarValue('coins_armor_cost'), InsaneStats:GetConVarValue('coins_armor_cost_add') / 100, shopEntity:InsaneStats_GetLevel(), 'coins_armor_cost_mode')
+          local overUnitPrice = InsaneStats:GetConVarValue('coins_armor_cost_overmul')
           local freeQty = 0
           if (IsValid(shopEntity) and not hook.Run('InsaneStatsBlockFreebie', ply, shopEntity, ammoID)) then
             freeQty = math.max(0, ply:InsaneStats_GetMaxArmor() - ply:InsaneStats_GetArmor())
@@ -211,8 +211,8 @@ local PANEL = {
           local ply = LocalPlayer()
           local coins = ply:InsaneStats_GetCoins()
           local maxAmmo = game.GetAmmoMax(ammoID)
-          local unitPrice = InsaneStats:ScaleValueToLevel(InsaneStats:GetConVarValue('coins_ammo_cost') / maxAmmo, InsaneStats:GetConVarValue('coins_ammo_cost_add') / 100, ply:InsaneStats_GetLevel(), 'coins_ammo_cost_mode')
           local shopEntity = self:GetShopEntity()
+          local unitPrice = InsaneStats:ScaleValueToLevel(InsaneStats:GetConVarValue('coins_ammo_cost') / maxAmmo, InsaneStats:GetConVarValue('coins_ammo_cost_add') / 100, shopEntity:InsaneStats_GetLevel(), 'coins_ammo_cost_mode')
           local freeQty = 0
           if (IsValid(shopEntity) and not hook.Run('InsaneStatsBlockFreebie', ply, shopEntity, ammoID)) then
             freeQty = math.huge

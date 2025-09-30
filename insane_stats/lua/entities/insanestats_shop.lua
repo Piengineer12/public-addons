@@ -68,6 +68,14 @@ function ENT:Use(activator, caller)
 			self.insaneStats_AmmoIndexes = self:SelectSoldAmmo()
 		end
 		local modifierBlacklist = activator:InsaneStats_GetReforgeBlacklist()
+
+		local ammoSoldToPlayer = {}
+		for i,v in ipairs(self.insaneStats_AmmoIndexes) do
+			local doNotSell = hook.Run("InsaneStatsBlockSelling", activator, self, v)
+			if not doNotSell then
+				table.insert(ammoSoldToPlayer, v)
+			end
+		end
 		
 		net.Start("insane_stats", true)
 		net.WriteUInt(6, 8)
@@ -76,8 +84,8 @@ function ENT:Use(activator, caller)
 		for i, v in ipairs(self.insaneStats_WeaponIndexes) do
 			net.WriteUInt(v, 16)
 		end
-		net.WriteUInt(#self.insaneStats_AmmoIndexes, 9)
-		for i, v in ipairs(self.insaneStats_AmmoIndexes) do
+		net.WriteUInt(#ammoSoldToPlayer, 9)
+		for i, v in ipairs(ammoSoldToPlayer) do
 			net.WriteUInt(v, 9)
 		end
 		net.WriteUInt(table.Count(modifierBlacklist), 16)

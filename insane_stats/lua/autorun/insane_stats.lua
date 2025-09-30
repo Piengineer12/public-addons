@@ -4,19 +4,17 @@ Profile Page:	https://steamcommunity.com/id/Piengineer12
 GitHub Page:	https://github.com/Piengineer12/public-addons/tree/master/insane_stats
 Donate:			https://ko-fi.com/piengineer12
 
-ideas for skills
-
-thrown bugbait marks target for death, and r -> teleport antlions to self
-
 misc
 
 add more support for Synergy maps (info_player_equip, trigger_coop, hud_timer)
 test non-remake maps too
+enemies gain skills based on level
+rewards for less damage taken / less time taken
 ]]
 
 InsaneStats = {
-	VERSION = "2.1.2",
-	VERSION_DATE = "2025-07-13",
+	VERSION = "2.2.0",
+	VERSION_DATE = "2025-09-30",
 	WORKSHOP_ID = "2980423627"
 }
 

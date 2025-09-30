@@ -127,7 +127,7 @@ InsaneStats:RegisterConVar("coins_health_cost", "insanestats_coins_health_cost",
 	type = InsaneStats.FLOAT, min = 0.01, max = 10
 })
 InsaneStats:RegisterConVar("coins_health_cost_add", "insanestats_coins_health_cost_add", "0", {
-	display = "Health Cost Scaling", desc = "% additional cost per level.",
+	display = "Health Cost Scaling", desc = "% additional cost per Insane Stats Coin Shop level.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
 InsaneStats:RegisterConVar("coins_health_cost_mode", "insanestats_coins_health_cost_mode", "-1", {
@@ -147,7 +147,7 @@ InsaneStats:RegisterConVar("coins_armor_cost", "insanestats_coins_armor_cost", "
 	type = InsaneStats.FLOAT, min = 0.01, max = 10
 })
 InsaneStats:RegisterConVar("coins_armor_cost_add", "insanestats_coins_armor_cost_add", "0", {
-	display = "Shield Cost Scaling", desc = "% additional cost per level.",
+	display = "Shield Cost Scaling", desc = "% additional cost per Insane Stats Coin Shop level.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
 InsaneStats:RegisterConVar("coins_armor_cost_mode", "insanestats_coins_armor_cost_mode", "-1", {
@@ -172,7 +172,7 @@ InsaneStats:RegisterConVar("coins_ammo_cost", "insanestats_coins_ammo_cost", "10
 	type = InsaneStats.FLOAT, min = 0.1, max = 1000
 })
 InsaneStats:RegisterConVar("coins_ammo_cost_add", "insanestats_coins_ammo_cost_add", "10", {
-	display = "Ammo Cost Scaling", desc = "% additional cost per level.",
+	display = "Ammo Cost Scaling", desc = "% additional cost per Insane Stats Coin Shop level.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
 InsaneStats:RegisterConVar("coins_ammo_cost_mode", "insanestats_coins_ammo_cost_mode", "-1", {

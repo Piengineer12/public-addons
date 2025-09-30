@@ -351,18 +351,20 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 	end
 
 	local ply = LocalPlayer()
-	local starlightRange = ply:InsaneStats_GetSkillStacks("starlight")
-		* ply:InsaneStats_GetEffectiveSkillValues("starlight", 3)
+	local starlightRange = ply:InsaneStats_GetSkillState("starlight") == 1
+		and ply:InsaneStats_GetSkillStacks("starlight") * ply:InsaneStats_GetEffectiveSkillValues("starlight", 4) or 0
+	starlightRange = starlightRange
 		+ ply:InsaneStats_GetStatusEffectDuration("starlight") * ply:InsaneStats_GetStatusEffectLevel("starlight") * 2
 		+ 0
 	
 	if starlightRange > 0 and not ply:InVehicle() then
 		if not IsValid(ply.insaneStats_Starlight) then
 			ply.insaneStats_Starlight = ProjectedTexture()
-			ply.insaneStats_Starlight:SetTexture("effects/flashlight/hard")
+			ply.insaneStats_Starlight:SetTexture("effects/flashlight/soft")
 			ply.insaneStats_Starlight:SetNearZ(32)
-			ply.insaneStats_Starlight:SetBrightness(1)
+			--ply.insaneStats_Starlight:SetBrightness(2)
 			ply.insaneStats_Starlight:SetEnableShadows(false)
+			--ply.insaneStats_Starlight:SetColor(color_white)
 		end
 
 		local light = ply.insaneStats_Starlight
@@ -370,7 +372,7 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 		light:SetFarZ(starlightRange)
 		light:SetPos(ply:EyePos())
 		light:SetFOV((ply:GetFOV() + 180)/2)
-		light:SetColor(HSVToColor(CurTime() * 16 % 360, .5, 1))
+		--light:SetColor(HSVToColor(CurTime() * 256 % 360, .5, 1))
 		light:Update()
 
 	elseif IsValid(ply.insaneStats_Starlight) then

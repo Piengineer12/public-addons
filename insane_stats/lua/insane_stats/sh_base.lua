@@ -250,6 +250,11 @@ InsaneStats:RegisterConVar("solid_bolts", "insanestats_solid_bolts", "0", {
 	Allows maps such as sp_crossbowplatformer, which makes heavy use of bolt physics, to work in GMod.",
 	type = InsaneStats.INT, min = 0, max = 100
 })
+InsaneStats:RegisterConVar("void_rescue", "insanestats_void_rescue", "1", {
+	display = "Rescue from Void",
+	desc = "Players that fall into the void are eventually teleported to an available spawnpoint.",
+	type = InsaneStats.BOOL
+})
 InsaneStats:RegisterConVar("flashlight_disable_fix", "insanestats_flashlight_disable_fix", "0", {
 	display = "Fix DisableFlashlight", desc = "The DisableFlashlight map input will now actually disable the player's flashlight.",
 	type = InsaneStats.BOOL

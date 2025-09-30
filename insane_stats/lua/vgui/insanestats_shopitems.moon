@@ -9,9 +9,9 @@ PANEL = {
         with vgui.Create 'DButton', @
             \SetFont 'InsaneStats.Big'
             \SetText 'Fill All To Max'
-            \SetTall InsaneStats.FONT_BIG
-            \SizeToContentsX 4
+            \SizeToContentsY 4
             \Dock TOP
+            \DockMargin 0, 0, 0, 4
             \SetZPos 0
             \SetDoubleClickingEnabled false
             .DoClick = -> itemLine\TriggerBuyToMax! for itemLine in *@ItemLines
@@ -47,14 +47,14 @@ PANEL = {
                     details.poll = (_, id) ->
                         ply = LocalPlayer!
                         coins = ply\InsaneStats_GetCoins!
+                        shopEntity = @GetShopEntity!
                         unitPrice = InsaneStats\ScaleValueToLevel(
                             InsaneStats\GetConVarValue('coins_health_cost'),
                             InsaneStats\GetConVarValue('coins_health_cost_add')/100,
-                            ply\InsaneStats_GetLevel!, 'coins_health_cost_mode'
+                            shopEntity\InsaneStats_GetLevel!, 'coins_health_cost_mode'
                         )
                         overUnitPrice = InsaneStats\GetConVarValue 'coins_health_cost_overmul'
                         
-                        shopEntity = @GetShopEntity!
                         freeQty = 0
                         if (IsValid(shopEntity) and not hook.Run 'InsaneStatsBlockFreebie', ply, shopEntity, ammoID)
                             freeQty = math.max 0, ply\InsaneStats_GetMaxHealth! - ply\InsaneStats_GetHealth!
@@ -88,14 +88,14 @@ PANEL = {
                     details.poll = (_, id) ->
                         ply = LocalPlayer!
                         coins = ply\InsaneStats_GetCoins!
+                        shopEntity = @GetShopEntity!
                         unitPrice = InsaneStats\ScaleValueToLevel(
                             InsaneStats\GetConVarValue('coins_armor_cost'),
                             InsaneStats\GetConVarValue('coins_armor_cost_add')/100,
-                            ply\InsaneStats_GetLevel!, 'coins_armor_cost_mode'
+                            shopEntity\InsaneStats_GetLevel!, 'coins_armor_cost_mode'
                         )
                         overUnitPrice = InsaneStats\GetConVarValue 'coins_armor_cost_overmul'
                         
-                        shopEntity = @GetShopEntity!
                         freeQty = 0
                         if (IsValid(shopEntity) and not hook.Run 'InsaneStatsBlockFreebie', ply, shopEntity, ammoID)
                             freeQty = math.max 0, ply\InsaneStats_GetMaxArmor! - ply\InsaneStats_GetArmor!
@@ -157,13 +157,13 @@ PANEL = {
                         ply = LocalPlayer!
                         coins = ply\InsaneStats_GetCoins!
                         maxAmmo = game.GetAmmoMax ammoID
+                        shopEntity = @GetShopEntity!
                         unitPrice = InsaneStats\ScaleValueToLevel(
                             InsaneStats\GetConVarValue('coins_ammo_cost') / maxAmmo,
                             InsaneStats\GetConVarValue('coins_ammo_cost_add')/100,
-                            ply\InsaneStats_GetLevel!, 'coins_ammo_cost_mode'
+                            shopEntity\InsaneStats_GetLevel!, 'coins_ammo_cost_mode'
                         )
                         
-                        shopEntity = @GetShopEntity!
                         freeQty = 0
                         if (IsValid(shopEntity) and not hook.Run 'InsaneStatsBlockFreebie', ply, shopEntity, ammoID)
                             freeQty = math.huge

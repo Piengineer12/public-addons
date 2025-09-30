@@ -870,8 +870,10 @@ local function ComputeNerfedIncrement(x, dx, n)
 	elseif dx ~= 0 then
 		local c = 2/n-1
 		local y = c * math.exp( (x-1)/c ) + 1 - c
-		y = y + dx
-		x = c * math.log( (y+c-1)/c ) + 1
+		if y < math.huge then
+			y = y + dx
+			x = c * math.log( (y+c-1)/c ) + 1
+		end
 	end
 
 	return x

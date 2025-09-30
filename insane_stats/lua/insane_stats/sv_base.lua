@@ -582,6 +582,11 @@ hook.Add("Think", "InsaneStats", function()
 					if IsValid(physObj) then
 						physObj:Sleep()
 					end
+					if v:GetClass() == "prop_physics" and v:GetCollisionGroup() == COLLISION_GROUP_DEBRIS
+					and not v:GetNWBool("insanestats_use") and not v:GetNWBool("insanestats_vital")
+					and not v:GetNWBool("insanestats_break") and ents.GetCount() > 4096 then
+						SafeRemoveEntity(v)
+					end
 				end
 				nextPhysSleep = RealTime() + InsaneStats:GetConVarValue("sleepphys_cooldown")
 			end
@@ -616,6 +621,17 @@ end)
 
 timer.Create("InsaneStats", 5, 0, function()
 	buggys = ents.FindByClass("prop_vehicle_jeep*")
+
+	if InsaneStats:GetConVarValue("void_rescue") then
+		for i,v in player.Iterator() do
+			if v:GetPos():LengthSqr() > 805306368 then
+				local spawnpoint = hook.Run("PlayerSelectSpawn", v, false)
+				if IsValid(spawnpoint) then
+					v:SetPos(spawnpoint:GetPos())
+				end
+			end
+		end
+	end
 end)
 
 hook.Add("PlayerDisconnected", "InsaneStats", SaveData)
@@ -697,6 +713,9 @@ hook.Add("InitPostEntity", "InsaneStats", function()
 end)
 
 hook.Add("PlayerSelectSpawn", "InsaneStats", function(ply, transition)
+	local override = hook.Run("InsaneStatsPlayerSelectSpawn", ply, transition)
+	if IsValid(override) then return override end
+	
 	if InsaneStats:GetConVarValue("spawn_master") and not transition then
 		local developer = InsaneStats:IsDebugLevel(1)
 		local spawnPoints = ents.FindByClass("info_player_rebel")
@@ -748,6 +767,16 @@ hook.Add("PlayerSelectSpawn", "InsaneStats", function(ply, transition)
 		end
 		if developer then
 			InsaneStats:Log("Could not find valid spawn point for %s!", tostring(ply))
+		end
+	end
+end)
+
+hook.Add("IsSpawnpointSuitable", "InsaneStats", function(ply, spawn, force)
+	local entsFound = ents.FindInSphere(spawn:GetPos(), 1)
+	for i,v in ipairs(entsFound) do
+		if (v:GetClass() == "trigger_hurt" or v:GetClass() == "trigger_physics_trap")
+		and (v:HasSpawnFlags(1) or v:HasSpawnFlags(64)) then
+			return false
 		end
 	end
 end)

@@ -355,6 +355,10 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 						vic:InsaneStats_ApplyStatusEffect("invincible", 1, 0.25)
 					end
 				end
+
+				if not vic:InsaneStats_IsMob() then
+					vic:Fire("InsaneStats_OnDamaged")
+				end
 			elseif vic.insaneStats_PreventOverdamage then
 				-- make sure to not let the helicopter's health go too low since it also causes issues
 				-- again, single floating-point arithmetic makes this more difficult
@@ -554,7 +558,7 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 					local times = 1
 					if ent.insaneStats_TempOnStun or multipleDamageClasses[class]
 					and (ent:GetInternalVariable("damagefilter") or "") == "" then
-						times = 10
+						times = 15
 					end
 					ent.insaneStats_TempOnDamaged = nil
 					ent.insaneStats_TempOnStun = nil
@@ -600,7 +604,7 @@ hook.Add("EntityKeyValue", "InsaneStatsUnlimitedHealth", function(ent, key, valu
 	key = key:lower()
 	if key == "onhalfhealth" then
 		ent.insaneStats_TempOnHalfHealth = true
-	elseif key == "ondamaged" or key == "onhealthchanged" then
+	elseif key == "ondamaged" or key == "onhealthchanged" or key == "ondamagedbyplayer" then
 		ent.insaneStats_TempOnDamaged = true
 	elseif key == "onstunnedplayer" then
 		ent.insaneStats_TempOnStun = true

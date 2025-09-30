@@ -71,6 +71,7 @@ function ENT:Initialize()
 		local scale = modelModified and 2 or 0.25
 		self:SetModelScale(scale * sizeMultiplier)
 		if modelModified then
+			self:PhysicsInit(SOLID_VPHYSICS)
 			self:Activate()
 		end
 
@@ -82,7 +83,6 @@ function ENT:Initialize()
 		self:DrawShadow(false)
 		
 		if modelModified then
-			self:PhysicsInit(SOLID_VPHYSICS)
 			self:UseTriggerBounds(true, 32 / sizeMultiplier)
 		else
 			self:PhysicsInitSphere(6 * sizeMultiplier, "gmod_bouncy")

@@ -20,6 +20,18 @@ InsaneStats:RegisterClientConVar("hud_skills_per_row", "insanestats_hud_skills_p
 	display = "Skill Statuses Per Row", desc = "Number of skill statuses per row. If set to 0, all skill status indicators will be in a single row.",
 	type = InsaneStats.INT, min = 0, max = 100
 })
+InsaneStats:RegisterClientConVar("hud_skills_stacking_only", "insanestats_hud_skills_stacking_only", "0", {
+	display = "Stacking Skills Only", desc = "Only skill indicators with non-zero stacks are displayed.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterClientConVar("hud_skills_only_on_walk", "insanestats_hud_skills_only_on_walk", "0", {
+	display = "Only Show On Walk Key", desc = "Skill indicators are only shown when the walk key is held.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterClientConVar("hud_skills_notifications_enabled", "insanestats_hud_skills_notifications_enabled", "1", {
+	display = "Skill Point Notifications", desc = "Enables skill point gained notifications.",
+	type = InsaneStats.BOOL
+})
 
 concommand.Add("insanestats_skills_menu", function()
 	InsaneStats:CreateSkillMenu()
@@ -540,56 +552,60 @@ hook.Add("InitPostEntity", "InsaneStatsSkills", function()
 end)
 
 local oldTotalSkillPoints, oldTotalUberSkillPoints = -1, -1
+local lastAltTime = -10
 hook.Add("HUDPaint", "InsaneStatsSkills", function()
 	local ply = LocalPlayer()
-	if InsaneStats:GetConVarValue("skills_enabled") and InsaneStats:GetConVarValue("hud_skills_enabled")
-	and IsValid(ply) and InsaneStats:ShouldDrawHUD() then
-		local totalSkillPoints = math.min(
-			ply:InsaneStats_GetTotalSkillPoints(),
-			ply:InsaneStats_GetMaxSkillPoints()
-		)
-		local totalUberSkillPoints = math.min(
-			ply:InsaneStats_GetTotalUberSkillPoints(),
-			InsaneStats:GetMaxUberSkillPoints()
-		)
-		if totalSkillPoints ~= oldTotalSkillPoints then
-			if oldTotalSkillPoints >= 0 then
-				local diff = totalSkillPoints - oldTotalSkillPoints
-				if diff > 0 then
-					chat.AddText(string.format(
-						"You have gained %s skill point(s)! Open the Insane Stats Skills menu to spend them.",
-						InsaneStats:FormatNumber(diff)
-					))
-				else
-					chat.AddText(string.format(
-						"You have lost %s skill point(s)!",
-						InsaneStats:FormatNumber(-diff)
-					))
+	if InsaneStats:GetConVarValue("skills_enabled") and IsValid(ply) and InsaneStats:ShouldDrawHUD() then
+		if InsaneStats:GetConVarValue("hud_skills_notifications_enabled") then
+			local totalSkillPoints = math.min(
+				ply:InsaneStats_GetTotalSkillPoints(),
+				ply:InsaneStats_GetMaxSkillPoints()
+			)
+			local totalUberSkillPoints = math.min(
+				ply:InsaneStats_GetTotalUberSkillPoints(),
+				InsaneStats:GetMaxUberSkillPoints()
+			)
+			if totalSkillPoints ~= oldTotalSkillPoints then
+				if oldTotalSkillPoints >= 0 then
+					local diff = totalSkillPoints - oldTotalSkillPoints
+					if diff > 0 then
+						chat.AddText(string.format(
+							"You have gained %s skill point(s)! Open the Insane Stats Skills menu to spend them.",
+							InsaneStats:FormatNumber(diff)
+						))
+					else
+						chat.AddText(string.format(
+							"You have lost %s skill point(s)!",
+							InsaneStats:FormatNumber(-diff)
+						))
+					end
 				end
+				oldTotalSkillPoints = totalSkillPoints
 			end
-			oldTotalSkillPoints = totalSkillPoints
-		end
-		if totalUberSkillPoints ~= oldTotalUberSkillPoints then
-			if oldTotalUberSkillPoints >= 0 then
-				local diff = totalUberSkillPoints - oldTotalUberSkillPoints
-				if diff > 0 then
-					chat.AddText(string.format(
-						"You have gained %s über skill point(s)! Open the Insane Stats Skills menu to spend them.",
-						InsaneStats:FormatNumber(diff)
-					))
-				else
-					chat.AddText(string.format(
-						"You have lost %s über skill point(s)!",
-						InsaneStats:FormatNumber(-diff)
-					))
+			if totalUberSkillPoints ~= oldTotalUberSkillPoints then
+				if oldTotalUberSkillPoints >= 0 then
+					local diff = totalUberSkillPoints - oldTotalUberSkillPoints
+					if diff > 0 then
+						chat.AddText(string.format(
+							"You have gained %s über skill point(s)! Open the Insane Stats Skills menu to spend them.",
+							InsaneStats:FormatNumber(diff)
+						))
+					else
+						chat.AddText(string.format(
+							"You have lost %s über skill point(s)!",
+							InsaneStats:FormatNumber(-diff)
+						))
+					end
 				end
+				oldTotalUberSkillPoints = totalUberSkillPoints
 			end
-			oldTotalUberSkillPoints = totalUberSkillPoints
 		end
-		if ply:IsSuitEquipped() then
+		if InsaneStats:GetConVarValue("hud_skills_enabled") and ply:IsSuitEquipped() then
 			local iconSkills = {}
 			for k,v in SortedPairs(InsaneStats:GetAllSkills(), true) do
-				if ply:InsaneStats_GetSkillState(k) ~= -2 then
+				if ply:InsaneStats_GetSkillState(k) ~= -2
+				and (not InsaneStats:GetConVarValue("hud_skills_stacking_only")
+				or ply:InsaneStats_GetSkillStacks(k) ~= 0) then
 					table.insert(iconSkills, k)
 				end
 			end
@@ -602,6 +618,15 @@ hook.Add("HUDPaint", "InsaneStatsSkills", function()
 			local skillsPerRow = InsaneStats:GetConVarValue("hud_skills_per_row")
 			skillsPerRow = skillsPerRow < 1 and 65536 or skillsPerRow
 
+			local alphaMul = 1
+			if InsaneStats:GetConVarValue("hud_skills_only_on_walk") then
+				if ply:KeyDown(IN_WALK) then
+					lastAltTime = RealTime()
+				end
+				alphaMul = math.Clamp(lastAltTime - RealTime() + 5, 0, 1)
+			end
+
+			surface.SetAlphaMultiplier(alphaMul)
 			for i,v in ipairs(iconSkills) do
 				local skillInfo = InsaneStats:GetSkillInfo(v)
 				local skillState = ply:InsaneStats_GetSkillState(v, true)
@@ -640,6 +665,7 @@ hook.Add("HUDPaint", "InsaneStatsSkills", function()
 					)
 				end
 			end
+			surface.SetAlphaMultiplier(1)
 		end
 	end
 end)

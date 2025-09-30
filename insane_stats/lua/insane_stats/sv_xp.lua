@@ -99,8 +99,10 @@ concommand.Add("insanestats_xp_other_level_maps_remove", function(ply, cmd, args
 			end
 		elseif argStr == "" then
 			InsaneStats:Log("Removes maps from the recorded maps list. * and ? wildcards are allowed. \z
-			If a number is given (and no matching map was found), the number will be interpreted as the number of recent maps to remove. \z
-			Note that a map restart is required for the map number to be updated.")
+			If a number is given (and no matching map was found), \z
+			the number will be interpreted as the number of recent maps to remove. \z
+			Note that a map restart is required for the map number to be updated. \z
+			A single \"@\" is interpreted as the current map.")
 		else
 			InsaneStats:Log("Could not find map %s.", argStr)
 		end
@@ -235,6 +237,10 @@ function ENT:InsaneStats_ApplyLevel(level)
 		--print(self:InsaneStats_GetMaxHealth(), currentHealthAdd)
 		local newHealth
 		if isPlayer then
+			if startingHealth <= 0 then
+				startingHealth = 100
+			end
+
 			newHealth = math.floor(InsaneStats:ScaleValueToLevel(
 				startingHealth,
 				InsaneStats:GetConVarValue("xp_player_health")/100,
@@ -256,7 +262,7 @@ function ENT:InsaneStats_ApplyLevel(level)
 			)
 		end
 		self:SetMaxHealth(newHealth)
-		if math.abs(currentHealthFrac) < math.huge then
+		if math.abs(currentHealthFrac * newHealth) < math.huge then
 			self:SetHealth(currentHealthFrac * newHealth)
 		end
 		if newHealth == math.huge or startingHealth == 0 then
@@ -273,6 +279,9 @@ function ENT:InsaneStats_ApplyLevel(level)
 			local startingArmor = self:InsaneStats_GetMaxArmor() / currentArmorAdd
 			local newArmor
 			local scaleType = isPlayer and "player" or "other"
+			if isPlayer and startingArmor <= 0 then
+				startingArmor = 100
+			end
 			newArmor = math.floor(InsaneStats:ScaleValueToLevel(
 				startingArmor,
 				InsaneStats:GetConVarValue("xp_"..scaleType.."_armor")/100,
@@ -288,7 +297,9 @@ function ENT:InsaneStats_ApplyLevel(level)
 				)
 			end
 			self:SetMaxArmor(newArmor)
-			self:SetArmor(currentArmorFrac * newArmor)
+			if math.abs(currentArmorFrac * newArmor) < math.huge then
+				self:SetArmor(currentArmorFrac * newArmor)
+			end
 			if newArmor == math.huge or startingArmor == 0 then
 				self:InsaneStats_SetCurrentArmorAdd(1)
 			else

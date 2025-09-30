@@ -2504,7 +2504,7 @@ local statusEffects = {
 	fire = {
 		name = "On Fire",
 		typ = -1,
-		img = "small-fire",
+		img = "celebration-fire",
 		overtime = true,
 		apply = SERVER and function(ent, level, duration, attacker)
 			ent:Ignite(duration)
@@ -2988,7 +2988,7 @@ local statusEffects = {
 	air_jumped = {
 		name = "Extra Jump Used",
 		typ = -1,
-		img = "fluffy-trefoil"
+		img = "feather"
 	},
 	--[[death_promise = {
 		name = "Corpse Exploder",
@@ -3016,7 +3016,7 @@ local statusEffects = {
 	invisible = {
 		name = "Invisible",
 		typ = 2,
-		img = "domino-mask",
+		img = "spectre",
 		apply = function(ent, level, duration, attacker)
 			ent:AddFlags(FL_NOTARGET)
 			ent:RemoveFlags(FL_AIMTARGET)
@@ -3158,7 +3158,7 @@ local statusEffects = {
 	extra_jumps = {
 		name = "Extra Jumps",
 		typ = 2,
-		img = "fluffy-trefoil"
+		img = "feather"
 	},
 	no_spreading_damage = {
 		name = "No Spreading Damage",
@@ -3423,7 +3423,10 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 		local frictionMul = (1 + ent:InsaneStats_GetEffectiveSkillValues("shoe_spikes", 2) / 100)
 		* (1 + ent:InsaneStats_GetEffectiveSkillValues("responsive_movement") / 100)
 
-		local stepMul = 1 + ent:InsaneStats_GetEffectiveSkillValues("step_it_up", 2) / 100
+		local stepMul = 1
+		if ent:InsaneStats_GetSkillState("step_it_up") == 1 then
+			stepMul = 1 + ent:InsaneStats_GetEffectiveSkillValues("step_it_up", 2) / 100
+		end
 		
 		data.speed = data.speed * speedMul
 		data.sprintSpeed = data.sprintSpeed * ent:InsaneStats_GetAttributeValue("sprint_speed")
@@ -3465,7 +3468,7 @@ hook.Add("StartCommand", "InsaneStatsSharedWPASS2", function(ply, usercmd)
 		end
 	end
 
-	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
+	--[[if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
 		if ply:InsaneStats_GetSkillState("fight_for_your_life") == 1 then
 			local newbuttons = bit.bor(IN_DUCK, bit.band(
 				usercmd:GetButtons(),
@@ -3473,7 +3476,7 @@ hook.Add("StartCommand", "InsaneStatsSharedWPASS2", function(ply, usercmd)
 			))
 			usercmd:SetButtons(newbuttons)
 		end
-	end
+	end]]
 end)
 
 local traceOutput = {}
@@ -3814,6 +3817,8 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 				ply:InsaneStats_SetSkillData("explosive_arsenal", -2, newStacks)
 			elseif wepClass == "weapon_crossbow" then
 				hook.Run("InsaneStatsReloadXBow", wep, ply)
+			elseif wepClass == "weapon_bugbait" then
+				hook.Run("InsaneStatsReloadBugbait", wep, ply)
 			end
 		end
 
@@ -3857,6 +3862,7 @@ hook.Add("Think", "InsaneStatsSharedWPASS2", function()
 			local validForMeleeArts = IsValid(currentWep) and (
 				currentWep:GetClass() == "weapon_physcannon"
 				or currentWep:GetHoldType() == "melee"
+				or currentWep:GetHoldType() == "crowbar"
 			)
 			if ply:KeyDown(IN_RELOAD) and ply:InsaneStats_GetSkillState("melee_arts") == 1
 			and validForMeleeArts then
@@ -3953,12 +3959,32 @@ end)
 hook.Add("InsaneStatsWPASS2AddHealthNerfFactor", "InsaneStatsSharedWPASS2", function(data)
 	local ent = data.ent
 	data.nerfFactor = data.nerfFactor * (1 + ent:InsaneStats_GetEffectiveSkillValues("bloodletter_pact", 2) / 100)
+
+	if ent:InsaneStats_EffectivelyHasSkill("grandmaster_of_earth") then
+		local totalLevel = ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_fire")
+		+ ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_air")
+		+ ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_water")
+		+ ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_earth")
+
+		local mul = 1.01 ^ -totalLevel
+		data.nerfFactor = data.nerfFactor * mul
+	end
 end)
 
 hook.Add("InsaneStatsWPASS2AddArmorNerfFactor", "InsaneStatsSharedWPASS2", function(data)
 	local ent = data.ent
 	if ent:InsaneStats_EffectivelyHasSkill("hacked_shield") then
 		data.nerfFactor = data.nerfFactor * (1 + ent:InsaneStats_GetEffectiveSkillValues("hacked_shield", 2) / 100)
+	end
+	
+	if ent:InsaneStats_EffectivelyHasSkill("grandmaster_of_earth") then
+		local totalLevel = ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_fire")
+		+ ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_air")
+		+ ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_water")
+		+ ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_earth")
+
+		local mul = 1.01 ^ -totalLevel
+		data.nerfFactor = data.nerfFactor * mul
 	end
 end)
 

@@ -45,7 +45,7 @@ local function ReloadSkills()
 	local fileContent = InsaneStats:Load()
 	savedPlayerSkills = fileContent.playerSkills or {}
 	savedPlayerSealedSkills = fileContent.playerSealedSkills or {}
-	InsaneStats:SetDisabledSkills(fileContent.disabledSkills)
+	InsaneStats:SetDisabledSkills(fileContent.disabledSkills or {})
 end
 
 ReloadSkills()

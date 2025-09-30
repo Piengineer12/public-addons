@@ -452,7 +452,9 @@ local statusEffects = {
 		typ = 1,
 		img = "condor-emblem",
 		apply = SERVER and function(ent, level, duration, attacker)
-			ent.insaneStats_PreventOverdamage = true
+			if ent:InsaneStats_IsMob() then
+				ent.insaneStats_PreventOverdamage = true
+			end
 		end
 	},
 	undying = {
@@ -460,7 +462,9 @@ local statusEffects = {
 		typ = 1,
 		img = "magic-palm",
 		apply = SERVER and function(ent, level, duration, attacker)
-			ent.insaneStats_PreventOverdamage = true
+			if ent:InsaneStats_IsMob() then
+				ent.insaneStats_PreventOverdamage = true
+			end
 		end
 	},
 	helibomber = {
