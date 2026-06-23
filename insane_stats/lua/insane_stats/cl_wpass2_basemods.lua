@@ -44,6 +44,7 @@ gray: weapon / ammo
 
 local revealIcons = {
 	["class C_BaseToggle"] = InsaneStats:GetIconMaterial("cursor"),
+	["12C_BaseToggle"] = InsaneStats:GetIconMaterial("cursor"),
 	func_button = InsaneStats:GetIconMaterial("cursor"),
 	func_rot_button = InsaneStats:GetIconMaterial("cursor"),
 	momentary_rot_button = InsaneStats:GetIconMaterial("cursor"),
@@ -96,7 +97,7 @@ end
 local lookPositions
 local nextLookPositionsRequestTime = 0
 hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
-	if InsaneStats:GetConVarValue("hud_wpass2_attributes") and InsaneStats:ShouldDrawHUD() then
+	if InsaneStats:GetConVarValue("hud_wpass2_attributes") then
 		local ply = LocalPlayer()
 		local curTime = CurTime()
 		local lifeTime = ply:InsaneStats_GetEffectiveSkillValues("ctrl_f")
@@ -128,12 +129,12 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 				markedEntityInfo.ar = ent:InsaneStats_GetArmor()
 				markedEntityInfo.mar = ent:InsaneStats_GetMaxArmor()]]
 			end
-			
+
 			-- get the entity position in 2D space
 			cam.Start3D()
 			local toScreenData = markedEntityInfo.pos:ToScreen()
 			cam.End3D()
-			
+
 			--if toScreenData.visible then
 			toScreenData.x = math.Clamp(toScreenData.x, 0, ScrW())
 			toScreenData.y = math.Clamp(toScreenData.y, 0, ScrH())
@@ -142,12 +143,12 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 			local rightX = toScreenData.x + InsaneStats.FONT_SMALL
 			local topY = toScreenData.y - InsaneStats.FONT_SMALL
 			local bottomY = toScreenData.y + InsaneStats.FONT_SMALL
-			
+
 			-- draw the target indicator
 			surface.SetDrawColor(255, 255, 0)
 			surface.DrawLine(leftX, topY, rightX, bottomY)
 			surface.DrawLine(rightX, topY, leftX, bottomY)
-			
+
 			-- draw the target information
 			local name = language.GetPhrase(markedEntityInfo.class)..(markedEntityInfo.lie and "?" or "")
 			local textPosX = toScreenData.x
@@ -167,7 +168,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 					InsaneStats:FormatNumber(math.floor(markedEntityInfo.mar))
 				)
 			end
-			
+
 			for i,v in ipairs(texts) do
 				InsaneStats:DrawTextOutlined(
 					v,
@@ -242,7 +243,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 				if v.progress > 0 then
 					render.SetScissorRect(v.x-12, v.y-12, v.x+12, v.y+12-24*v.progress, true)
 					draw.RoundedBox(8, v.x-12, v.y-12, 24, 24, color_black_translucent)
-					
+
 					render.SetScissorRect(v.x-12, v.y+12-24*v.progress, v.x+12, v.y+12, true)
 					draw.RoundedBox(8, v.x-12, v.y-12, 24, 24, color_gray_translucent)
 					render.SetScissorRect(0, 0, 0, 0, false)
@@ -267,7 +268,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 				if (IsValid(ent) and not ent:IsDormant()) then
 					sqrDistToHide = math.max(sqrDistToHide, ent:BoundingRadius()^2)
 				end
-				
+
 				local distSqr = v.pos:DistToSqr(ply:WorldSpaceCenter())
 				if distSqr < sqrDistToHide or v.start > 0 and v.start < magentaStartExpiryTime then
 					highlightedEntities[k] = nil
@@ -284,7 +285,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 				--if toScreenData.visible then
 				toScreenData.x = math.Clamp(toScreenData.x, 0, ScrW())
 				toScreenData.y = math.Clamp(toScreenData.y, 0, ScrH())
-				
+
 				-- draw the target indicator
 				local alpha = 1 - (curTime - v.start) / lifeTime
 				local indicator = v.indicator
@@ -296,11 +297,11 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 				elseif indicator == 1 then
 					surface.DrawCircle(toScreenData.x, toScreenData.y, InsaneStats.FONT_SMALL, 255, 0, 255)
 				end
-				
+
 				-- draw the target information
 				local textPosX = toScreenData.x
 				local textPosY = toScreenData.y + InsaneStats.FONT_SMALL + outlineThickness
-				
+
 				InsaneStats:DrawTextOutlined(
 					language.GetPhrase(v.class), 1,
 					textPosX, textPosY,
@@ -337,7 +338,7 @@ hook.Add("InsaneStatsLookPositionsRecieved", "InsaneStatsWPASS2", function(posit
 end)
 
 hook.Add("Think", "InsaneStatsWPASS2", function()
-	for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("pyrotheum")) do
+	--[[for i,v in ipairs(InsaneStats:GetEntitiesByStatusEffect("pyrotheum")) do
 		if IsValid(v) then
 			local duration = v:InsaneStats_GetStatusEffectDuration("pyrotheum")
 			local alpha = math.log(duration * 2 + 1, 4)
@@ -348,28 +349,28 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 			)
 			v:SetColor(desiredColor)
 		end
-	end
+	end]]
 
 	local ply = LocalPlayer()
 	local starlightRange = ply:InsaneStats_GetSkillState("starlight") == 1
-		and ply:InsaneStats_GetSkillStacks("starlight") * ply:InsaneStats_GetEffectiveSkillValues("starlight", 4) or 0
+		and ply:InsaneStats_GetSkillStacks("starlight") * ply:InsaneStats_GetEffectiveSkillValues("starlight", 5) or 0
 	starlightRange = starlightRange
 		+ ply:InsaneStats_GetStatusEffectDuration("starlight") * ply:InsaneStats_GetStatusEffectLevel("starlight") * 2
 		+ 0
-	
+
 	if starlightRange > 0 and not ply:InVehicle() then
 		if not IsValid(ply.insaneStats_Starlight) then
 			ply.insaneStats_Starlight = ProjectedTexture()
-			ply.insaneStats_Starlight:SetTexture("effects/flashlight/soft")
+			ply.insaneStats_Starlight:SetTexture("effects/flashlight/hard")
 			ply.insaneStats_Starlight:SetNearZ(32)
-			--ply.insaneStats_Starlight:SetBrightness(2)
+			ply.insaneStats_Starlight:SetBrightness(0.5)
 			ply.insaneStats_Starlight:SetEnableShadows(false)
 			--ply.insaneStats_Starlight:SetColor(color_white)
 		end
 
 		local light = ply.insaneStats_Starlight
 		light:SetAngles(ply:EyeAngles())
-		light:SetFarZ(starlightRange)
+		light:SetFarZ(math.min(starlightRange, 32768))
 		light:SetPos(ply:EyePos())
 		light:SetFOV((ply:GetFOV() + 180)/2)
 		--light:SetColor(HSVToColor(CurTime() * 256 % 360, .5, 1))
@@ -406,5 +407,38 @@ end)]]
 hook.Add("InsaneStatsReloadXBow", "InsaneStatsWPASS2", function(wep, ply)
 	if ply:InsaneStats_EffectivelyHasSkill("crunch") then
 		return true
+	end
+end)
+
+hook.Add("EntityEmitSound","InsaneStatsWPASS2",function(sound)
+	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
+		local soundName = sound.SoundName
+		if soundName:match("^^weapons/explode%d.wav$") then
+			local attnMul = 1 + LocalPlayer():InsaneStats_GetEffectiveSkillValues("blast_proof_suit", 2) / 100
+			if attnMul ~= 1 then
+				sound.SoundLevel = sound.SoundLevel * attnMul
+				return true
+			end
+		end
+	end
+end)
+
+local colorModifyDefaults = {
+	["$pp_colour_addr"] = 0,
+	["$pp_colour_addg"] = 0,
+	["$pp_colour_addb"] = 0,
+	["$pp_colour_brightness"] = 0,
+	["$pp_colour_colour"] = 1,
+	["$pp_colour_inv"] = 0,
+	["$pp_colour_mulr"] = 0,
+	["$pp_colour_mulg"] = 0,
+	["$pp_colour_mulb"] = 0
+}
+hook.Add("RenderScreenspaceEffects", "InsaneStatsWPASS2", function()
+	local ply = LocalPlayer()
+	if ply:InsaneStats_EffectivelyHasSkill("starlight") and ply:FlashlightIsOn() then
+		local mult = 1 + ply:InsaneStats_GetEffectiveSkillValues("starlight", 4) / 100
+		colorModifyDefaults["$pp_colour_contrast"] = mult
+		DrawColorModify(colorModifyDefaults)
 	end
 end)

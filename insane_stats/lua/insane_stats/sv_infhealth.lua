@@ -30,38 +30,32 @@ end
 
 function ENT:InsaneStats_ApplyArmor()
 	if (self.SetMaxArmor and self:InsaneStats_GetMaxArmor() <= 0) then
+		local startingHealth = self:InsaneStats_GetStartingHealth()
 		local healthMul = 1 - InsaneStats:GetConVarValue("infhealth_armor_healthcost") / 100
 		local newMaxHealth = self:InsaneStats_GetMaxHealth() * healthMul
 		self:SetMaxHealth(newMaxHealth)
 		self:SetHealth(self:InsaneStats_GetHealth() * healthMul)
+		startingHealth = startingHealth * healthMul
 
-		local startingHealth = newMaxHealth / self:InsaneStats_GetCurrentHealthAdd()
 		local armorMul = InsaneStats:GetConVarValue("infhealth_armor_mul")
-		local startingArmor = startingHealth * armorMul
 		local armor = newMaxHealth * armorMul
 		self:SetMaxArmor(armor)
 		self:SetArmor(armor)
-
-		if armor == math.huge or startingArmor == 0 then
-			self:InsaneStats_SetCurrentArmorAdd(1)
-		else
-			self:InsaneStats_SetCurrentArmorAdd(armor / startingArmor)
-		end
+		self:InsaneStats_SetStartingHealth(startingHealth)
+		self:InsaneStats_SetStartingArmor(startingHealth * healthMul * armorMul)
 	end
 end
 
 -- due to info_target_*crash entities, we can't apply non-standard knockback lest we break map logic
 -- there's also a few entities that behave very strangely to knockback
--- we won't apply this knockback for scripted entities, those are up to the addon developers
+-- we won't apply this knockback for scripted entities either, those are up to the addon developers
 local doNotKnockbackClasses = {
 	npc_combinegunship = true,
 	npc_helicopter = true,
-	prop_physics = true,
-	npc_sniper = true,
-	prop_door_rotating = true
+	npc_sniper = true
 }
 function ENT:InsaneStats_ApplyKnockback(knockback, additionalVelocity)
-	if IsValid(self:GetPhysicsObject()) and not doNotKnockbackClasses[self:GetClass()]
+	if IsValid(self:GetPhysicsObject()) and self:InsaneStats_IsMob() and not doNotKnockbackClasses[self:GetClass()]
 	and not self:IsScripted() and InsaneStats:GetConVarValue("infhealth_knockback") then
 		local reductionFactor = self:GetPhysicsObject():GetMass()
 		local originalKnockback = knockback
@@ -77,7 +71,7 @@ function ENT:InsaneStats_ApplyKnockback(knockback, additionalVelocity)
 		knockback:Div(reductionFactor)
 
 		local newVelocity = originalVelocity + knockback
-		
+
 		self:SetVelocity(newVelocity)
 	end
 end
@@ -94,7 +88,7 @@ timer.Create("InsaneStatsUnlimitedHealth", 0.5, 0, function()
 			entities[k] = nil
 		end
 	end
-	
+
 	if not DLib then
 		local hookTable = hook.GetTable()
 		local etdHooks = hookTable.EntityTakeDamage
@@ -102,7 +96,7 @@ timer.Create("InsaneStatsUnlimitedHealth", 0.5, 0, function()
 		local petdHooks = hookTable.PostEntityTakeDamage
 		local nispetdHooks = hookTable.NonInsaneStatsPostEntityTakeDamage
 		local doHealthOverride = InsaneStats:GetConVarValue("infhealth_enabled")
-		
+
 		if etdHooks and doHealthOverride then
 			for k,v in pairs(etdHooks) do
 				if tostring(InsaneStats.NOP) ~= tostring(v) and k ~= "InsaneStatsUnlimitedHealth" and isstring(k) then
@@ -111,7 +105,7 @@ timer.Create("InsaneStatsUnlimitedHealth", 0.5, 0, function()
 				end
 			end
 		end
-		
+
 		if nisetdHooks then
 			for k,v in pairs(nisetdHooks) do
 				if not etdHooks[k] then -- it's gone!
@@ -122,7 +116,7 @@ timer.Create("InsaneStatsUnlimitedHealth", 0.5, 0, function()
 				end
 			end
 		end
-		
+
 		if petdHooks and doHealthOverride then
 			for k,v in pairs(petdHooks) do
 				if tostring(InsaneStats.NOP) ~= tostring(v) and k ~= "InsaneStatsUnlimitedHealth" then
@@ -131,7 +125,7 @@ timer.Create("InsaneStatsUnlimitedHealth", 0.5, 0, function()
 				end
 			end
 		end
-		
+
 		if nispetdHooks then
 			for k,v in pairs(nispetdHooks) do
 				if not petdHooks[k] then -- it's gone!
@@ -148,7 +142,7 @@ timer.Create("InsaneStatsUnlimitedHealth", 0.5, 0, function()
 		local hookTable = hook.GetTable()
 		local nisetdHooks = hookTable.NonInsaneStatsEntityTakeDamage
 		local nispetdHooks = hookTable.NonInsaneStatsPostEntityTakeDamage
-		
+
 		if nisetdHooks then
 			for k,v in pairs(nisetdHooks) do
 				-- put it back!
@@ -156,7 +150,7 @@ timer.Create("InsaneStatsUnlimitedHealth", 0.5, 0, function()
 				hook.Remove("NonInsaneStatsEntityTakeDamage", k)
 			end
 		end
-		
+
 		if nispetdHooks then
 			for k,v in pairs(nispetdHooks) do
 				-- put it back!
@@ -164,11 +158,11 @@ timer.Create("InsaneStatsUnlimitedHealth", 0.5, 0, function()
 				hook.Remove("NonInsaneStatsPostEntityTakeDamage", k)
 			end
 		end
-		
+
 		hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealthPre", function(vic, dmginfo, ...)
 			InsaneStats:SetDamage(nil)
 
-			if InsaneStats:IsDebugLevel(4) and InsaneStats:GetConVarValue("infhealth_enabled") then
+			if InsaneStats:IsDebugLevel(2) and InsaneStats:GetConVarValue("infhealth_enabled") then
 				InsaneStats:Log(
 					"PreHookDamage: entity = %s, damage = %s, raw = %g, health = %i",
 					tostring(vic), tostring(InsaneStats:GetDamage()), dmginfo:InsaneStats_GetRawDamage() or dmginfo:GetDamage(),
@@ -189,35 +183,32 @@ hook.Add("Think", "InsaneStatsUnlimitedHealth", function()
 			if IsValid(k) then
 				if k.InsaneStats_GetRawHealth then
 					k.insaneStats_OldRawHealth = k.insaneStats_OldRawHealth or k:InsaneStats_GetRawHealth()
-					
-					if k.insaneStats_OldRawHealth ~= k:InsaneStats_GetRawHealth() then
-						local difference = k:InsaneStats_GetRawHealth() - k.insaneStats_OldRawHealth
+
+					local difference = k:InsaneStats_GetRawHealth() - k.insaneStats_OldRawHealth
+					if difference ~= 0 and k:InsaneStats_GetStartingHealth() > 0 then
 						--print(difference)
-						if difference < 0 and k:IsOnFire() then -- getting set on fire resets the entity's health. Valve, pls fix.
-							difference = 0
+						if not (difference < 0 and k:IsOnFire()) then -- getting set on fire resets the entity's health. Valve, pls fix.
+							local frac = difference / k:InsaneStats_GetStartingHealth()
+							k:SetHealth(k:InsaneStats_GetHealth() + k:InsaneStats_GetMaxHealth() * frac)
 						end
-						
-						difference = difference * k:InsaneStats_GetCurrentHealthAdd()
-						
-						k:SetHealth(k:InsaneStats_GetHealth() + difference)
 					end
-					
-					if k:GetMaxArmor() > 0
-					and k:InsaneStats_GetArmor() < k:GetMaxArmor()
-					and not k:IsPlayer()
+
+					local maxArmor = k:InsaneStats_GetMaxArmor()
+					if maxArmor > 0 and k:InsaneStats_GetArmor() < maxArmor and not k:IsPlayer()
 					and (k.insaneStats_LastDamageTaken or 0) + InsaneStats:GetConVarValue("infhealth_armor_regen_delay") <= CurTime() then
-						local armorToAdd = k:GetMaxArmor() * InsaneStats:GetConVarValue("infhealth_armor_regen") / 100 * FrameTime()
+						local armorToAdd = maxArmor * InsaneStats:GetConVarValue("infhealth_armor_regen") / 100 * FrameTime()
 						--print(k:InsaneStats_GetArmor(), armorToAdd, k:InsaneStats_GetArmor() + armorToAdd)
-						k:SetArmor(math.Clamp(k:InsaneStats_GetArmor() + armorToAdd, 0, k:GetMaxArmor()))
+						k:SetArmor(math.Clamp(k:InsaneStats_GetArmor() + armorToAdd, 0, maxArmor))
 					end
 				end
-				
+
 				if k.InsaneStats_GetRawArmor then
 					k.insaneStats_OldRawArmor = k.insaneStats_OldRawArmor or k:InsaneStats_GetRawArmor()
-					if k.insaneStats_OldRawArmor ~= k:InsaneStats_GetRawArmor() then
-						local difference = k:InsaneStats_GetRawArmor() - k.insaneStats_OldRawArmor
-						difference = difference * k:InsaneStats_GetCurrentArmorAdd()
-						k:SetArmor(k:InsaneStats_GetArmor() + difference)
+
+					local difference = k:InsaneStats_GetRawArmor() - k.insaneStats_OldRawArmor
+					if difference ~= 0 then
+						local frac = difference / k:InsaneStats_GetStartingArmor()
+						k:SetArmor(k:InsaneStats_GetArmor() + k:InsaneStats_GetMaxArmor() * frac)
 					end
 				end
 			end
@@ -239,7 +230,7 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 	if not dLibbed then
 		InsaneStats:SetDamage(nil)
 
-		if InsaneStats:IsDebugLevel(4) and InsaneStats:GetConVarValue("infhealth_enabled") then
+		if InsaneStats:IsDebugLevel(2) and InsaneStats:GetConVarValue("infhealth_enabled") then
 			InsaneStats:Log(
 				"PreHookDamage: entity = %s, damage = %s, raw = %g, health = %i",
 				tostring(vic), tostring(InsaneStats:GetDamage()), dmginfo:InsaneStats_GetRawDamage() or dmginfo:GetDamage(),
@@ -247,33 +238,36 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 			)
 		end
 	end
-	
+
 	-- run the others first
 	local shouldNegate = hook.Run("NonInsaneStatsEntityTakeDamage", vic, dmginfo, ...)
 	if shouldNegate then
 		return shouldNegate
 	end
 
-	if InsaneStats:IsDebugLevel(4) and InsaneStats:GetConVarValue("infhealth_enabled") then
+	if InsaneStats:IsDebugLevel(2) and InsaneStats:GetConVarValue("infhealth_enabled") then
 		InsaneStats:Log(
 			"PostHookDamage: entity = %s, damage = %g, raw = %g, health = %i",
 			tostring(vic), InsaneStats:GetDamage() or -1, dmginfo:InsaneStats_GetRawDamage() or dmginfo:GetDamage(),
 			vic:InsaneStats_GetRawHealth() or vic:Health()
 		)
 	end
-	
+
 	vic.insaneStats_LastDamageTaken = CurTime()
 	vic.insaneStats_OldRawHealth = vic.InsaneStats_GetRawHealth and vic:InsaneStats_GetRawHealth() or vic:Health()
 	vic.insaneStats_CurrentRawDamage = dmginfo:GetDamage()
 	InsaneStats:SetAbsorbedDamage(0)
-	
+
 	if not vic:IsVehicle() then
 		local inflictor = dmginfo:GetInflictor()
 		local attacker = dmginfo:GetAttacker()
 		local multiplier = InsaneStats:DetermineDamageMul(vic, dmginfo)
 		dmginfo:ScaleDamage(multiplier)
-		
+
 		if InsaneStats:GetConVarValue("infhealth_enabled") then
+            if InsaneStats:GetConVarValue("infhealth_prevent_no_knockback_crash") and dmginfo:GetDamageForce():IsZero() then
+                dmginfo:SetDamageForce(vector_up)
+            end
 			local helibomberCondition = IsValid(inflictor) and inflictor:GetClass() == "grenade_helicopter"
 				and IsValid(attacker) and attacker:GetClass() ~= "npc_helicopter"
 			if helibomberCondition then
@@ -284,25 +278,26 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 			local armor = vic:InsaneStats_GetArmor()
 			if armor > 0 then
 				-- if entity is marked to block ALL damage with armor, use special handling
-				if vic:InsaneStats_GetEntityData("armor_blocks_all") then
-					local fullDamage = InsaneStats:GetDamage()
+                -- this also happens when damage dealt to players is less than 1% of their health,
+                -- otherwise the player would just die for reasons that i cannot decipher
+				local fullDamage = InsaneStats:GetDamage()
+				if vic:InsaneStats_GetEntityData("armor_blocks_all") or fullDamage * 100 < armor and vic:IsPlayer() then
 					local absorbedDamage = math.min(armor, fullDamage)
-					
+
 					InsaneStats:SetAbsorbedDamage(absorbedDamage)
 					dmginfo:SubtractDamage(absorbedDamage)
 				elseif not vic:IsPlayer() and bit.band(dmginfo:GetDamageType(), armorBypassingDamage) == 0 then
-					local fullDamage = InsaneStats:GetDamage()
 					local absorbedDamage = math.min(armor, fullDamage/1.25)
-					
+
 					InsaneStats:SetAbsorbedDamage(absorbedDamage)
 					dmginfo:SubtractDamage(absorbedDamage)
 				end
 			end
-			
+
 			if not (InsaneStats:GetDamage() < math.huge) then
 				InsaneStats:SetDamage(math.huge)
 			end
-			
+
 			-- determine the ACTUAL damage to deal
 			local insaneStatsHealth = math.abs(vic:InsaneStats_GetHealth())
 			local rawHealth = math.abs(vic:InsaneStats_GetRawHealth())
@@ -316,14 +311,14 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 			if insaneStatsDamage == math.huge then
 				rawDamage = insaneStatsDamage
 			end
-			if InsaneStats:IsDebugLevel(3) then
+			if InsaneStats:IsDebugLevel(2) then
 				InsaneStats:Log(
 					"%g damage against %g health is actually %g damage against %g health with %g absorbed",
 					insaneStatsDamage, insaneStatsHealth, rawDamage, rawHealth, InsaneStats:GetAbsorbedDamage()
 				)
 			end
 			dmginfo:InsaneStats_SetRawDamage(rawDamage)
-			
+
 			if dmginfo:IsDamageType(DMG_POISON) and dmginfo:InsaneStats_GetRawDamage() >= vic:InsaneStats_GetRawHealth() and vic:InsaneStats_GetRawHealth() > 0 then
 				-- poison damage should leave the user at 1 health, but the limitations of
 				-- single floating-point arithmetic is making this more difficult than it needs to be
@@ -335,12 +330,12 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 				--vic:InsaneStats_SetRawHealth(dmginfo:InsaneStats_GetRawDamage() + 1)
 				--print(vic, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth())
 			end
-			
-			local stunned = vic:InsaneStats_GetStatusEffectLevel("stunned") > 0
+
+			local stunned = vic:InsaneStats_HasStatusEffect("stunned")
 			local healthRatio = vic:InsaneStats_GetHealth() / vic:InsaneStats_GetMaxHealth()
-			if (vic:InsaneStats_GetStatusEffectLevel("pheonix") > 0
-			or vic:InsaneStats_GetStatusEffectLevel("undying") > 0
-			or stunned) and InsaneStats:DamageIsPreventable(dmginfo) then
+			if (vic:InsaneStats_HasStatusEffect("pheonix")
+			or vic:InsaneStats_HasStatusEffect("undying")
+			or stunned) and InsaneStats:DamageIsPreventable(dmginfo) and attacker:IsPlayer() then
 				if InsaneStats:IsDebugLevel(1) then
 					InsaneStats:Log("Prevented lethal damage to %s!", tostring(vic))
 				end
@@ -356,13 +351,14 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 					end
 				end
 
-				if not vic:InsaneStats_IsMob() then
+				if not vic:InsaneStats_IsMob() or vic:GetClass() == "npc_combine_camera" then
+                    -- there is a map that wants the player to destroy a camera before getting spotted
 					vic:Fire("InsaneStats_OnDamaged")
 				end
 			elseif vic.insaneStats_PreventOverdamage then
 				-- make sure to not let the helicopter's health go too low since it also causes issues
 				-- again, single floating-point arithmetic makes this more difficult
-				local maxDamage = vic:InsaneStats_GetRawHealth() * (1 + 2 ^ -24) + 256
+				local maxDamage = vic:InsaneStats_GetRawHealth() * (1 - 2 ^ -24) + 256
 				if dmginfo:InsaneStats_GetRawDamage() > maxDamage then
 					dmginfo:InsaneStats_SetRawDamage(math.max(maxDamage, 0))
 				end
@@ -409,7 +405,7 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 	vic:InsaneStats_SetEntityData("armor", vic:InsaneStats_GetArmor())
 	vic:InsaneStats_SetEntityData("old_velocity", vic:GetVelocity())
 
-	if InsaneStats:IsDebugLevel(4) then
+	if InsaneStats:IsDebugLevel(2) then
 		InsaneStats:Log(
 			"PreEntityTakeDamage: entity = %s, damage = %g, raw = %g, health = %i",
 			tostring(vic), InsaneStats:GetDamage(), rawDamage, rawHealth
@@ -424,8 +420,8 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 		debug.Trace()
 		return true
 	end
-	
-	if InsaneStats:IsDebugLevel(4) and InsaneStats:GetConVarValue("infhealth_enabled") then
+
+	if InsaneStats:IsDebugLevel(2) and InsaneStats:GetConVarValue("infhealth_enabled") then
 		InsaneStats:Log(
 			"PostEntityTakeDamage: entity = %s, damage = %g, raw = %g, health = %i",
 			tostring(vic), InsaneStats:GetDamage() or -1, dmginfo:InsaneStats_GetRawDamage(), vic:InsaneStats_GetRawHealth()
@@ -439,33 +435,33 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 			vic:InsaneStats_GetEntityData("old_velocity") - vic:GetVelocity()
 		)
 	end
-	
+
 	if not vic:IsVehicle() then
 		local reportedDamage = dmginfo:GetDamage()
 		local rawHealthDamage = vic.insaneStats_OldRawHealth and vic.insaneStats_OldRawHealth - (vic.InsaneStats_GetRawHealth and vic:InsaneStats_GetRawHealth() or vic:Health()) or 0
 		local rawArmorDamage = vic.InsaneStats_GetRawArmor and vic.insaneStats_OldRawArmor - vic:InsaneStats_GetRawArmor() or 0
-		
+
 		--print(vic, dmginfo:GetDamageForce(), vic:InsaneStats_GetEntityData("old_velocity"), vic:GetVelocity())
-		
+
 		--print(reportedDamage)
 		-- notImmune is set to false when damage == 0, even if vic:InsaneStats_GetEntityData("armor_blocks_all") is present
 		local wasHealthyWhenDamaged = vic:InsaneStats_GetHealth() > 0
 		if (notImmune or rawHealthDamage ~= 0 or vic:InsaneStats_GetEntityData("armor_blocks_all")) and vic:GetClass() ~= "npc_turret_floor" and InsaneStats:GetConVarValue("infhealth_enabled") then
 			local healthDamage = dmginfo:GetDamage()
 			local armorDamage = InsaneStats:GetAbsorbedDamage() or 0
-			
+
 			--print(armorDamage)
-			
+
 			if healthDamage == 0 and armorDamage == 0 then -- calculate damage from total HP
 				healthDamage = rawHealthDamage
-				
+
 				-- reverse damage nerf, noting that the raw health may be 0
 				if vic.insaneStats_OldRawHealth ~= 0 then
 					local antiNerf = vic:InsaneStats_GetHealth() / vic.insaneStats_OldRawHealth
 					healthDamage = healthDamage * antiNerf
 				end
 			end
-			
+
 			--print(healthDamage, armorDamage)
 			if vic:InsaneStats_GetArmor() > 0 then -- it gets complicated
 				if vic:IsPlayer() and armorDamage == 0 then
@@ -473,14 +469,14 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 					healthDamage = healthDamage - armorDamage
 				end
 			end
-			
+
 			--print(vic, antiNerf, vic:InsaneStats_GetHealth(), vic.insaneStats_OldRawHealth)
 			--print(vic, reportedDamage, healthDamage, armorDamage)
 			reportedDamage = healthDamage + armorDamage
-			
+
 			local newHealth = vic:InsaneStats_GetHealth() - healthDamage
 			local newArmor = vic:InsaneStats_GetArmor() - armorDamage
-			
+
 			--print(healthDamage, armorDamage)
 			if (vic.InsaneStats_GetRawHealth and (newHealth > 0) ~= (vic:InsaneStats_GetRawHealth() > 0)) then
 				-- something ain't holding up...
@@ -495,7 +491,7 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 					)
 				end
 			end
-			
+
 			-- beware of the nans!
 			if not (healthDamage < math.huge and newHealth > -math.huge) then
 				newHealth = -math.huge
@@ -503,24 +499,24 @@ hook.Add("PostEntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmg
 			if not (armorDamage < math.huge and newArmor > 0) then
 				newArmor = 0
 			end
-			
+
 			--print(newHealth, newArmor)
 			--print(vic, dmginfo:GetDamage(), vic:InsaneStats_GetRawHealth(), vic:InsaneStats_GetHealth())
 			vic:SetHealth(newHealth)
 			vic:SetArmor(math.max(newArmor, 0))
 		end
-		
+
 		if not notImmune and rawHealthDamage == 0 and armorDamage == 0 then
 			reportedDamage = 0
 		end
 		--print(vic, dmginfo:GetDamage(), vic:InsaneStats_GetRawHealth(), vic:InsaneStats_GetHealth())
 		vic:InsaneStats_DamageNumber(dmginfo:GetAttacker(), reportedDamage, dmginfo:GetDamageType(), vic.insaneStats_LastHitGroup, wasHealthyWhenDamaged)
 	end
-	
+
 	if vic.insaneStats_CurrentRawDamage and dmginfo.InsaneStats_SetRawDamage then
 		dmginfo:InsaneStats_SetRawDamage(vic.insaneStats_CurrentRawDamage)
 	end
-	
+
 	InsaneStats:SetDamage(nil)
 	hook.Run("NonInsaneStatsPostEntityTakeDamage", vic, dmginfo, notImmune, ...)
 end)
@@ -533,9 +529,13 @@ local multipleDamageClasses = {
 	npc_combinegunship = true,
 	prop_dropship_container = true
 }
+local neverOverdamageClasses = {
+    npc_helicopter = true,
+    npc_combinegunship = true
+}
 hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 	entities[ent] = true
-	
+
 	local class = ent:GetClass()
 	if InsaneStats:GetConVarValue("infhealth_enabled") then
 		if (ent:IsNPC() or ent:IsNextBot())
@@ -544,32 +544,33 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 			ent:InsaneStats_ApplyArmor()
 		end
 
-		ent.insaneStats_PreventOverdamage = ent.insaneStats_PreventOverdamage or multipleDamageClasses[class]
+		ent.insaneStats_PreventOverdamage = ent.insaneStats_PreventOverdamage or neverOverdamageClasses[class]
 
-		--timer.Simple(0, function()
-			--if IsValid(ent) then
-				if ent.insaneStats_TempOnHalfHealth or class == "npc_helicopter" or class == "prop_dropship_container" then
-					ent.insaneStats_TempOnHalfHealth = nil
-					local duration = class == "prop_dropship_container" and 100 or class == "npc_helicopter" and 1 or 10
-					ent:InsaneStats_ApplyStatusEffect("pheonix", duration, math.huge)
-					ent:Fire("AddOutput", "OnHalfHealth !self:InsaneStats_OnHalfHealth")
-				end
-				if ent.insaneStats_TempOnDamaged or ent.insaneStats_TempOnStun then
-					local times = 1
-					if ent.insaneStats_TempOnStun or multipleDamageClasses[class]
-					and (ent:GetInternalVariable("damagefilter") or "") == "" then
-						times = 15
-					end
-					ent.insaneStats_TempOnDamaged = nil
-					ent.insaneStats_TempOnStun = nil
-					ent:InsaneStats_ApplyStatusEffect("undying", times, math.huge)
-					ent:Fire("AddOutput", "OnDamaged !self:InsaneStats_OnDamaged")
-					ent:Fire("AddOutput", "OnHealthChanged !self:InsaneStats_OnDamaged")
-				end
-			--end
-		--end)
+        if ent.insaneStats_TempOnHalfHealth or multipleDamageClasses[class] then
+            local duration = class == "prop_dropship_container" and 100 or ent.insaneStats_TempOnHalfHealth and 10 or 1
+            ent.insaneStats_TempOnHalfHealth = nil
+            ent:InsaneStats_ApplyStatusEffect("pheonix", duration, math.huge)
+            ent:Fire("AddOutput", "OnHalfHealth !self:InsaneStats_OnHalfHealth")
+        end
+        if ent.insaneStats_TempOnDamaged or ent.insaneStats_TempOnStun then
+            local times = 1
+            if ent.insaneStats_TempOnStun or multipleDamageClasses[class]
+            and (ent:GetInternalVariable("damagefilter") or "") == ""
+			or ent:GetClass() == "func_breakable" and ent:InsaneStats_GetStartingHealth() > 9999 then
+				-- this last line is due to tales-from-the-source_01, the map breaks if the hitbox is destroyed in < 5
+				-- yet, other maps such as coop_z_harrier2 cannot be progressed if it's 15
+                times = 15
+            end
+            ent.insaneStats_TempOnDamaged = nil
+            ent.insaneStats_TempOnStun = nil
+            ent:InsaneStats_ApplyStatusEffect("undying", times, math.huge)
+            ent:Fire("AddOutput", "OnDamaged !self:InsaneStats_OnDamaged")
+            ent:Fire("AddOutput", "OnFoundPlayer !self:InsaneStats_OnDamaged")
+            ent:Fire("AddOutput", "OnFoundEnemy !self:InsaneStats_OnDamaged")
+            ent:Fire("AddOutput", "OnHealthChanged !self:InsaneStats_OnDamaged")
+        end
 	end
-	
+
 	if not ent.insaneStats_SpawnModified then
 		ent.insaneStats_SpawnModified = true
 		if class == "npc_strider" and InsaneStats:GetConVarValue("infhealth_enabled") then
@@ -578,7 +579,7 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 		elseif class == "npc_combinegunship" and InsaneStats:GetConVarValue("infhealth_enabled") then
 			ent:SetHealth(ent:InsaneStats_GetHealth()*7.5)
 			ent:SetMaxHealth(ent:InsaneStats_GetMaxHealth()*7.5)
-		
+
 		--[[elseif class == "item_suitcharger" or class == "func_recharge" then
 			if ent:HasSpawnFlags(8192) then
 				ent:Fire("AddOutput","OutRemainingCharge !activator:InsaneStatsSuperSuitChargerPoint::0:-1")
@@ -604,7 +605,8 @@ hook.Add("EntityKeyValue", "InsaneStatsUnlimitedHealth", function(ent, key, valu
 	key = key:lower()
 	if key == "onhalfhealth" then
 		ent.insaneStats_TempOnHalfHealth = true
-	elseif key == "ondamaged" or key == "onhealthchanged" or key == "ondamagedbyplayer" then
+	elseif key == "ondamaged" or key == "onhealthchanged" or key == "ondamagedbyplayer"
+    or key == "onfoundplayer" or key == "onfoundenemy" or string.match(key, "^on.*damage$") then -- onfourthdamage is a gunship-specific output
 		ent.insaneStats_TempOnDamaged = true
 	elseif key == "onstunnedplayer" then
 		ent.insaneStats_TempOnStun = true
@@ -615,7 +617,7 @@ hook.Add("AcceptInput", "InsaneStatsUnlimitedHealth", function(ent, input, activ
 	input = input:lower()
 	if input == "insanestats_onhalfhealth" then
 		local developer = InsaneStats:IsDebugLevel(1)
-		
+
 		local pheonixLevel = ent:InsaneStats_GetStatusEffectLevel("pheonix")
 		if pheonixLevel > 0 then
 			if developer then
@@ -650,20 +652,20 @@ hook.Add("AcceptInput", "InsaneStatsUnlimitedHealth", function(ent, input, activ
 	elseif input == "insanestats_ondamaged" then
 		local undyingLevel = ent:InsaneStats_GetStatusEffectLevel("undying")
 
-		if undyingLevel > 0 and ent:InsaneStats_GetStatusEffectLevel("invincible") <= 0 then
+		if undyingLevel > 0 and not ent:InsaneStats_HasStatusEffect("invincible") then
 			local duration = ent:InsaneStats_GetStatusEffectDuration("undying")
 
-			timer.Simple(0, function()
-				if IsValid(ent) then
+			--timer.Simple(0, function()
+				--if IsValid(ent) then
 					if InsaneStats:IsDebugLevel(1) then
 						InsaneStats:Log("Applying invincibility to %s!", tostring(ent))
 					end
 					ent:InsaneStats_ApplyStatusEffect("invincible", 1, 1)
 
 					local newUndyingLevel = undyingLevel - 1
-	
+
 					ent:InsaneStats_ClearStatusEffect("undying")
-	
+
 					if newUndyingLevel > 0 then
 						ent:InsaneStats_ApplyStatusEffect(
 							"undying",
@@ -671,18 +673,10 @@ hook.Add("AcceptInput", "InsaneStatsUnlimitedHealth", function(ent, input, activ
 							duration
 						)
 					end
-				end
-			end)
-
-			--[[timer.Simple(1, function()
-				if IsValid(ent) and not ent.insaneStats_NoOSP then
-					if ent:InsaneStats_GetHealth() / ent:InsaneStats_GetMaxHealth() > 0.9375 then
-						ent:InsaneStats_ApplyStatusEffect("undying", undyingLevel, duration)
-					end
-				end
-			end)]]
+				--end
+			--end)
 		end
-		
+
 		return true
 	elseif input == "selfdestruct" then
 		ent:InsaneStats_ClearStatusEffect("pheonix")

@@ -17,6 +17,10 @@ InsaneStats:RegisterConVar("skills_allow_reset", "insanestats_skills_allow_reset
 	3: Both\n\z",
 	type = InsaneStats.INT, min = 0, max = 3
 })
+InsaneStats:RegisterConVar("skills_allow_remove", "insanestats_skills_allow_remove", "0", {
+	display = "Allow Removing Points", desc = "Allows skill points to be individually removed.",
+	type = InsaneStats.BOOL
+})
 InsaneStats:RegisterConVar("skills_save", "insanestats_skills_save", "1", {
 	display = "Save Player Skills", desc = "Causes player skills to be saved across maps. \z
 	Disconnected players will also have their skills saved even if the map has changed.\n\z
@@ -31,6 +35,13 @@ InsaneStats:RegisterConVar("skills_shuffle", "insanestats_skills_shuffle", "1", 
 InsaneStats:RegisterConVar("skills_shuffle_seed", "insanestats_skills_shuffle_seed", "default", {
 	display = "Skill Shuffle Seed", desc = "Seed for the skill shuffle algorithm.",
 	type = InsaneStats.STRING
+})
+InsaneStats:RegisterConVar("skills_disable_allocation_check", "insanestats_skills_disable_allocation_check", "0", {
+    display = "Disable Allocation Validity Check",
+    desc = "Disables checking on whether a player's skill allocation is valid. \z
+    It is recommended to not touch this unless an addon update causes previous skill allocations \z
+    to become invalid.",
+	type = InsaneStats.BOOL
 })
 
 InsaneStats:RegisterConVar("skills_level_start", "insanestats_skills_level_start", "2", {
@@ -152,6 +163,12 @@ function ENTITY:InsaneStats_GetSkillMaxLevel(name)
 	local data = {max = InsaneStats:GetSkillInfo(name).max or 5, name = name, ent = self}
 	hook.Run("InsaneStatsSkillMaxLevel", data)
 	return data.max
+end
+
+function ENTITY:InsaneStats_GetSkillAdjacentPointsRequired(name)
+	local data = {minpts = InsaneStats:GetSkillInfo(name).minpts or 0, name = name, ent = self}
+	hook.Run("InsaneStatsSkillAdjacentPointsRequired", data)
+	return data.minpts
 end
 
 function ENTITY:InsaneStats_MaxAllSkills(uber)
@@ -369,11 +386,14 @@ function ENTITY:InsaneStats_GenerateRNGSkillPositions()
 
 	return rngData
 end
-function ENTITY:InsaneStats_GetSkillPosition(skill)
+function ENTITY:InsaneStats_AreSkillsShuffled()
 	local doShuffle = InsaneStats:GetConVarValue("skills_shuffle")
 	doShuffle = doShuffle == 2 or doShuffle == 1 and os.date("!%m-%d") == "04-01"
 	doShuffle = doShuffle and self:InsaneStats_GetEffectiveSkillTier("master_of_air") <= 1
-	if doShuffle then
+    return doShuffle
+end
+function ENTITY:InsaneStats_GetSkillPosition(skill)
+	if self:InsaneStats_AreSkillsShuffled() then
 		local rngSkillData = self:InsaneStats_GetEntityData("skill_rng_data")
 		if not rngSkillData then
 			rngSkillData = self:InsaneStats_GenerateRNGSkillPositions()
@@ -385,10 +405,7 @@ function ENTITY:InsaneStats_GetSkillPosition(skill)
 	end
 end
 function ENTITY:InsaneStats_GetSkillByPosition(x, y)
-	local doShuffle = InsaneStats:GetConVarValue("skills_shuffle")
-	doShuffle = doShuffle == 2 or doShuffle == 1 and os.date("!%m-%d") == "04-01"
-	doShuffle = doShuffle and self:InsaneStats_GetEffectiveSkillTier("master_of_air") <= 1
-	if doShuffle then
+	if self:InsaneStats_AreSkillsShuffled() then
 		local rngSkillData = self:InsaneStats_GetEntityData("skill_rng_data")
 		if not rngSkillData then
 			rngSkillData = self:InsaneStats_GenerateRNGSkillPositions()
@@ -398,6 +415,91 @@ function ENTITY:InsaneStats_GetSkillByPosition(x, y)
 	else
 		return (skillPositions[x] or {})[y]
 	end
+end
+
+local checkPositions = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}}
+function ENTITY:InsaneStats_GetInternalAllocationFromSubset(subset)
+    local skills = InsaneStats:GetAllSkills()
+    local open, closed = {}, {}
+
+    for k,v in pairs(skills) do
+        if self:InsaneStats_GetSkillAdjacentPointsRequired(k) <= 0 then
+            table.insert(open, k)
+            closed[k] = subset[k] or 0
+        end
+    end
+
+    while next(open) do
+        local skill = table.remove(open)
+        local skillPos = self:InsaneStats_GetSkillPosition(skill)
+
+        for _,checkPos in ipairs(checkPositions) do
+            local skillToOpenPositionX = skillPos[1] + checkPos[1]
+            local skillToOpenPositionY = skillPos[2] + checkPos[2]
+            local skillToOpen = self:InsaneStats_GetSkillByPosition(
+                skillToOpenPositionX, skillToOpenPositionY
+            )
+
+            if (skillToOpen and not closed[skillToOpen]) then
+                local neededLeft = self:InsaneStats_GetSkillAdjacentPointsRequired(skillToOpen)
+                for _,checkPos in ipairs(checkPositions) do
+                    local contributingSkill = self:InsaneStats_GetSkillByPosition(
+                        skillToOpenPositionX + checkPos[1],
+                        skillToOpenPositionY + checkPos[2]
+                    )
+
+                    if contributingSkill then
+                        neededLeft = neededLeft - (closed[contributingSkill] or 0)
+                    end
+
+                    if neededLeft <= 0 then break end
+                end
+
+                if neededLeft <= 0 then
+                    table.insert(open, skillToOpen)
+                    closed[skillToOpen] = subset[skillToOpen] or 0
+                end
+            end
+        end
+    end
+
+    return closed
+end
+function ENTITY:InsaneStats_IsSkillAllocationValid(subset)
+    if InsaneStats:GetConVarValue("skills_disable_allocation_check") then return true end
+
+    local closed = self:InsaneStats_GetInternalAllocationFromSubset(subset)
+    for k,v in pairs(subset) do
+        if (v or 0) ~= (closed[k] or 0) then return false, k end
+    end
+
+    self.insaneStats_EffectiveSkillsOverride = closed
+    local ret = nil
+    local skillPoints = self:InsaneStats_GetTotalSkillPoints()
+    local uberSkillPoints = self:InsaneStats_GetTotalUberSkillPoints()
+    for k,v in pairs(subset) do
+        if v < 0 then
+            ret = "assigned < 0"
+        end
+        local skillMax = self:InsaneStats_GetSkillMaxLevel(k)
+        if v > skillMax then
+            if uberSkillPoints <= 0 then
+                ret = "out of uber points"
+            end
+            uberSkillPoints = uberSkillPoints - 1
+            v = v / 2
+        end
+        if v % 1 ~= 0 or v > skillMax then
+            ret = "assigned > 0 or non-integer"
+        end
+        skillPoints = skillPoints - v
+        if skillPoints < 0 then
+            ret = "out of points"
+        end
+    end
+    self.insaneStats_EffectiveSkillsOverride = nil
+
+    return not ret, ret
 end
 
 function ENTITY:InsaneStats_CanDisableSkills()
@@ -411,7 +513,7 @@ function InsaneStats:SetDisabledSkills(skills)
 		end
 	end
 
-	for i,v in ents.Iterator() do
+	for i,v in InsaneStats:GetEntityIterator() do
 		if v.insaneStats_Skills then
 			hook.Run("InsaneStatsSkillsChanged", v)
 		end
@@ -425,7 +527,7 @@ function InsaneStats:DisableSkill(skill, bool)
 	self.DisabledSkills = self.DisabledSkills or {}
 	self.DisabledSkills[skill] = bool or nil
 
-	for i,v in ents.Iterator() do
+	for i,v in InsaneStats:GetEntityIterator() do
 		if v.insaneStats_Skills then
 			if v:InsaneStats_IsSkillSealed(skill) then
 				v:InsaneStats_SealSkill(skill)
@@ -448,6 +550,10 @@ local cachedTotals = {}
 local lastCache = math.floor(engine.TickCount() / 10)
 function ENTITY:InsaneStats_GetEffectiveSkillTier(skill)
 	if InsaneStats:GetConVarValue("skills_enabled") then
+        if self.insaneStats_EffectiveSkillsOverride then
+            return self.insaneStats_EffectiveSkillsOverride[skill] or 0
+        end
+
 		local tickCount = math.floor(engine.TickCount() / 10)
 		if tickCount ~= lastCache then
 			cachedTotals = {}
@@ -468,7 +574,7 @@ function ENTITY:InsaneStats_GetEffectiveSkillTier(skill)
 
 		return cachedTotals[self][skill]
 	end
-	
+
 	return 0
 end
 
@@ -486,9 +592,18 @@ end
 
 -- skill states and stacks
 function ENTITY:InsaneStats_GetSkillData(skill)
-	self.insaneStats_SkillData = self.insaneStats_SkillData or {}
-	self.insaneStats_SkillData[skill] = self.insaneStats_SkillData[skill] or {}
-	return self.insaneStats_SkillData[skill]
+	if not self:InsaneStats_GetEntityData("skill_data") then
+		self:InsaneStats_SetEntityData("skill_data", {})
+	end
+
+	if skill then
+		if not self:InsaneStats_GetEntityData("skill_data")[skill] then
+			self:InsaneStats_GetEntityData("skill_data")[skill] = {}
+		end
+		return self:InsaneStats_GetEntityData("skill_data")[skill]
+	else
+		return self:InsaneStats_GetEntityData("skill_data")
+	end
 end
 
 function ENTITY:InsaneStats_SetSkillData(skill, state, stacks)
@@ -506,7 +621,7 @@ function ENTITY:InsaneStats_SetSkillData(skill, state, stacks)
 	end
 end
 
-function ENTITY:InsaneStats_ClearSkillData()
+--[[function ENTITY:InsaneStats_ClearSkillData()
 	if SERVER then
 		self:InsaneStats_MarkForUpdate(128)
 		if not InsaneStats:GetSkillDataToNetwork() then
@@ -514,13 +629,14 @@ function ENTITY:InsaneStats_ClearSkillData()
 		end
 		local skillDataToNetwork = InsaneStats:GetSkillDataToNetwork()
 		skillDataToNetwork[self] = skillDataToNetwork[self] or {}
-		for k,v in pairs(self.insaneStats_SkillData or {}) do
+
+		for k,v in pairs(self:InsaneStats_GetSkillData()) do
 			skillDataToNetwork[self][k] = true
 		end
 	end
-	
-	self.insaneStats_SkillData = {}
-end
+
+	self:InsaneStats_SetEntityData("skill_data", {})
+end]]
 
 function ENTITY:InsaneStats_GetSkillStacks(skill)
 	if self:InsaneStats_EffectivelyHasSkill(skill) then
@@ -535,7 +651,7 @@ function ENTITY:InsaneStats_GetSkillStacks(skill)
 					skillData.state or -2, skillData.stacks or 0,
 					diffTimeData.diffTime, self
 				)
-				
+
 				skillData.state = newState
 				skillData.stacks = newStacks
 				skillData.updateTime = CurTime()
@@ -544,7 +660,7 @@ function ENTITY:InsaneStats_GetSkillStacks(skill)
 		end
 	else return 0
 	end
-	
+
 	return self:InsaneStats_GetSkillData(skill).stacks or 0
 end
 
@@ -561,7 +677,7 @@ function ENTITY:InsaneStats_GetSkillState(skill)
 					skillData.state or -2, skillData.stacks or 0,
 					diffTimeData.diffTime, self
 				)
-				
+
 				skillData.state = newState
 				skillData.stacks = newStacks
 				skillData.updateTime = CurTime()
@@ -570,7 +686,7 @@ function ENTITY:InsaneStats_GetSkillState(skill)
 		end
 	else return -2
 	end
-	
+
 	return self:InsaneStats_GetSkillData(skill).state or -2
 end
 

@@ -6,7 +6,7 @@ InsaneStats.WPASS2_FLAGS = {
 	SUIT_POWER = 16,
 	KNOCKBACK = 32,
 	MP_ONLY = 64
-	
+
 	-- non-obvious combinations:
 	-- 5: NEVER
 }
@@ -59,8 +59,8 @@ InsaneStats:RegisterConVar("wpass2_no_fractional_clips", "insanestats_wpass2_no_
 	type = InsaneStats.BOOL
 })
 InsaneStats:RegisterConVar("wpass2_item_limit", "insanestats_wpass2_item_limit", "-1", {
-	display = "Item Limit", desc = "If there are more than this number of items in the map, \z
-	all items will be teleported to random players to prevent lag. A negative number disables this feature.",
+	display = "Item Limit", desc = "If there are more than this number of created items in the map, \z
+	the oldest items will be deleted to prevent lag. A negative number disables this feature.",
 	type = InsaneStats.FLOAT, min = -1, max = 1000
 })
 
@@ -227,7 +227,7 @@ InsaneStats:RegisterConVar("wpass2_tier_blacklist", "insanestats_wpass2_tier_bla
 	type = InsaneStats.STRING
 })
 
-InsaneStats:RegisterConVar("wpass2_tier_xp_enable", "insanestats_wpass2_tier_xp_enable", "0", {
+InsaneStats:RegisterConVar("wpass2_tier_xp_enable", "insanestats_wpass2_tier_xp_enable", "1", {
 	display = "Experience Integration", desc = "Allows the weapon's / armor battery's level to influence its tier. Only relevant when Insane Stats XP is enabled.",
 	type = InsaneStats.BOOL
 })
@@ -239,7 +239,7 @@ InsaneStats:RegisterConVar("wpass2_tier_xp_level_start_battery", "insanestats_wp
 	display = "Battery Starting Level", desc = "If 0 or above, overrides insanestats_wpass2_xp_tier_levelstart for armor batteries.",
 	type = InsaneStats.FLOAT, min = -1, max = 1000
 })
-InsaneStats:RegisterConVar("wpass2_tier_xp_level_add", "insanestats_wpass2_tier_xp_level_add", "50", {
+InsaneStats:RegisterConVar("wpass2_tier_xp_level_add", "insanestats_wpass2_tier_xp_level_add", "900", {
 	display = "Level Scaling", desc = "% additional levels needed per tier up.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
@@ -386,7 +386,7 @@ local function OverrideWeapons()
 		WEAPON.InsaneStats_RawClip2 = WEAPON.Clip2
 		WEAPON.InsaneStats_SetRawClip1 = WEAPON.SetClip1
 		WEAPON.InsaneStats_SetRawClip2 = WEAPON.SetClip2
-		
+
 		PLAYER.InsaneStats_GetRawAmmoCount = PLAYER.GetAmmoCount
 		PLAYER.InsaneStats_GetRawAmmo = PLAYER.GetAmmo
 		PLAYER.InsaneStats_GiveRawAmmo = PLAYER.GiveAmmo
@@ -395,18 +395,18 @@ local function OverrideWeapons()
 		PLAYER.InsaneStats_StripRawAmmo = PLAYER.StripAmmo
 		PLAYER.InsaneStats_SetRawAmmo = PLAYER.SetAmmo
 	end
-	
+
 	function WEAPON:SetNextPrimaryFire(nextTime)
 		local data = {next = nextTime, wep = self, attacker = self:GetOwner()}
 		hook.Run("InsaneStatsModifyNextFire", data)
-		
+
 		return self:InsaneStats_SetRawNextPrimaryFire(data.next)
 	end
-	
+
 	function WEAPON:SetNextSecondaryFire(nextTime)
 		local data = {next = nextTime, wep = self, attacker = self:GetOwner()}
 		hook.Run("InsaneStatsModifyNextFire", data)
-		
+
 		return self:InsaneStats_SetRawNextSecondaryFire(data.next)
 	end
 
@@ -433,10 +433,10 @@ local function OverrideWeapons()
 		if SERVER then
 			self:InsaneStats_MarkForUpdate(512)
 		end
-		
+
 		return self:InsaneStats_SetRawClip1(math.ceil(data.new))
 	end
-	
+
 	function WEAPON:SetClip2(num)
 		local data = {
 			old = self.insaneStats_LastClip2 or self:InsaneStats_Clip2(),
@@ -450,7 +450,7 @@ local function OverrideWeapons()
 		if SERVER then
 			self:InsaneStats_MarkForUpdate(512)
 		end
-		
+
 		return self:InsaneStats_SetRawClip2(math.ceil(data.new))
 	end
 
@@ -468,7 +468,7 @@ local function OverrideWeapons()
 		local data = {num = num, type = ammoType, ply = self}
 		hook.Run("InsaneStatsPlayerAddAmmo", data)
 		self.insaneStats_AmmoAdjs = self.insaneStats_AmmoAdjs or {}
-		
+
 		ammoType = data.type
 		local ammoTypeNum = isstring(ammoType) and game.GetAmmoID(ammoType) or ammoType
 		local newAmmo = math.Round(self:InsaneStats_GetAmmoCount(ammoType) + data.num, 3)
@@ -485,7 +485,7 @@ local function OverrideWeapons()
 		local rawGive = rawAmmo - self:InsaneStats_GetRawAmmoCount(ammoType)
 		return self:InsaneStats_GiveRawAmmo(rawGive, ammoType, hidePopup)
 	end
-	
+
 	function PLAYER:RemoveAmmo(num, ammoType)
 		local data = {num = num, type = ammoType, ply = self}
 		hook.Run("InsaneStatsPlayerRemoveAmmo", data)
@@ -499,35 +499,35 @@ local function OverrideWeapons()
 
 		local rawAmmo = math.ceil(newAmmo)
 		self.insaneStats_AmmoAdjs[ammoTypeNum] = rawAmmo - newAmmo
-		
+
 		playerAmmosToUpdateAdjs[self] = playerAmmosToUpdateAdjs[self] or {}
 		playerAmmosToUpdateAdjs[self][ammoTypeNum] = true
-		
+
 		return self:InsaneStats_RemoveRawAmmo(
 			self:InsaneStats_GetRawAmmoCount(ammoType)
 			- rawAmmo,
 			ammoType
 		)
 	end
-	
+
 	function PLAYER:RemoveAllAmmo()
 		self.insaneStats_AmmoAdjs = nil
-		
+
 		playerAmmosToUpdateAdjs[self] = playerAmmosToUpdateAdjs[self] or {}
 		playerAmmosToUpdateAdjs[self].clear = true
 
 		return self:InsaneStats_RemoveAllRawAmmo()
 	end
-	
+
 	function PLAYER:StripAmmo()
 		self.insaneStats_AmmoAdjs = nil
-		
+
 		playerAmmosToUpdateAdjs[self] = playerAmmosToUpdateAdjs[self] or {}
 		playerAmmosToUpdateAdjs[self].clear = true
 
 		return self:InsaneStats_StripRawAmmo()
 	end
-	
+
 	function PLAYER:SetAmmo(num, ammoType)
 		local data = {
 			old = self.insaneStats_OldSetAmmoValue or self:InsaneStats_GetAmmoCount(ammoType),
@@ -541,13 +541,13 @@ local function OverrideWeapons()
 		if InsaneStats:GetConVarValue("wpass2_no_fractional_clips") then
 			newAmmo = (math.random() < newAmmo % 1 and math.ceil or math.floor)(newAmmo)
 		end
-		
+
 		local rawAmmo = math.ceil(newAmmo)
 		self.insaneStats_AmmoAdjs[ammoTypeNum] = rawAmmo - newAmmo
-		
+
 		playerAmmosToUpdateAdjs[self] = playerAmmosToUpdateAdjs[self] or {}
 		playerAmmosToUpdateAdjs[self][ammoTypeNum] = true
-		
+
 		return self:InsaneStats_SetRawAmmo(rawAmmo, ammoType)
 	end
 end
@@ -560,7 +560,7 @@ local function DeOverrideWeapons()
 		WEAPON.Clip2 = WEAPON.InsaneStats_RawClip2
 		WEAPON.SetClip1 = WEAPON.InsaneStats_SetRawClip1
 		WEAPON.SetClip2 = WEAPON.InsaneStats_SetRawClip2
-		
+
 		PLAYER.GetAmmoCount = PLAYER.InsaneStats_GetRawAmmoCount
 		PLAYER.GetAmmo = PLAYER.InsaneStats_GetRawAmmo
 		PLAYER.GiveAmmo = PLAYER.InsaneStats_GiveRawAmmo
@@ -568,14 +568,14 @@ local function DeOverrideWeapons()
 		PLAYER.RemoveAllAmmo = PLAYER.InsaneStats_RemoveAllRawAmmo
 		PLAYER.StripAmmo = PLAYER.InsaneStats_StripRawAmmo
 		PLAYER.SetAmmo = PLAYER.InsaneStats_SetRawAmmo
-		
+
 		WEAPON.InsaneStats_SetRawNextPrimaryFire = nil
 		WEAPON.InsaneStats_SetRawNextSecondaryFire = nil
 		WEAPON.InsaneStats_RawClip1 = nil
 		WEAPON.InsaneStats_RawClip2 = nil
 		WEAPON.InsaneStats_SetRawClip1 = nil
 		WEAPON.InsaneStats_SetRawClip2 = nil
-		
+
 		PLAYER.InsaneStats_GetRawAmmoCount = nil
 		PLAYER.InsaneStats_GetRawAmmo = nil
 		PLAYER.InsaneStats_GiveRawAmmo = nil
@@ -619,11 +619,11 @@ local function JoinBulletCallbacks(funcs)
 end
 
 function WEAPON:InsaneStats_Clip1()
-	return self:InsaneStats_RawClip1() - (self.insaneStats_Clip1Adj or 0)
+	return self.InsaneStats_RawClip1 and self:InsaneStats_RawClip1() - (self.insaneStats_Clip1Adj or 0) or self:Clip1()
 end
 
 function WEAPON:InsaneStats_Clip2()
-	return self:InsaneStats_RawClip2() - (self.insaneStats_Clip2Adj or 0)
+	return self.InsaneStats_RawClip2 and self:InsaneStats_RawClip2() - (self.insaneStats_Clip2Adj or 0) or self:Clip2()
 end
 
 function PLAYER:InsaneStats_GetAmmoCount(ammoType)
@@ -647,7 +647,7 @@ hook.Add("EntityFireBullets", "InsaneStats", function(ent, data, ...)
 		-- run the others first, but in a more roundabout way
 		local nonInsaneStatsHooks = hook.GetTable().NonInsaneStatsEntityFireBullets or {}
 		local bulletCallbacks = {}
-		
+
 		if data.Callback then
 			table.insert(bulletCallbacks, data.Callback)
 			data.Callback = nil
@@ -733,12 +733,12 @@ local entitiesByStatusEffect = {} -- used for optimization purposes
 local function MapStatusEffectNamesToIDs()
 	effectNamesToIDs = {}
 	effectIDsToNames = {}
-	
+
 	for k,v in SortedPairs(registeredEffects) do
 		effectNamesToIDs[k] = table.insert(effectIDsToNames, k)
 		expiryEffects[k] = v.expiry
 	end
-	
+
 	--print("Client: ", CLIENT)
 	--PrintTable(effectNamesToIDs)
 end
@@ -758,8 +758,8 @@ hook.Add("Initialize", "InsaneStatsSharedWPASS", function()
 end)
 
 hook.Add("InitPostEntity", "InsaneStatsSharedWPASS", function()
-	for i,v in ents.Iterator() do
-		for k,v2 in pairs(v.insaneStats_StatusEffects or {}) do
+	for i,v in InsaneStats:GetEntityIterator() do
+		for k,v2 in pairs(v:InsaneStats_GetStatusEffectData()) do
 			entitiesByStatusEffect[k] = entitiesByStatusEffect[k] or {}
 			entitiesByStatusEffect[k][v] = v2
 		end
@@ -769,9 +769,9 @@ end)
 hook.Run("InsaneStatsLoadWPASS", modifiers, attributes, registeredEffects)
 MapStatusEffectNamesToIDs()
 hook.Run("InsaneStatsPostLoadWPASS", modifiers, attributes, registeredEffects)
-	
-for i,v in ents.Iterator() do
-	for k,v2 in pairs(v.insaneStats_StatusEffects or {}) do
+
+for i,v in InsaneStats:GetEntityIterator() do
+	for k,v2 in pairs(v:InsaneStats_GetStatusEffectData()) do
 		entitiesByStatusEffect[k] = entitiesByStatusEffect[k] or {}
 		entitiesByStatusEffect[k][v] = v2
 	end
@@ -793,10 +793,6 @@ function InsaneStats:GetStatusEffectID(name)
 	return effectNamesToIDs[name]
 end
 
-function InsaneStats:GetStatusEffectNames()
-	return effectIDsToNames
-end
-
 function InsaneStats:GetStatusEffectName(id)
 	return effectIDsToNames[id]
 end
@@ -808,7 +804,7 @@ end
 function InsaneStats:DetermineWPASS2Attributes(currentModifiers)
 	local wepAttributes = {}
 	local increment = InsaneStats:GetConVarValue("wpass2_modifiers_effectmul")
-	
+
 	for k,v in pairs(currentModifiers or {}) do
 		v = v * increment
 		for k2,v2 in pairs(modifiers[k] and modifiers[k].modifiers or {}) do
@@ -822,7 +818,7 @@ function InsaneStats:DetermineWPASS2Attributes(currentModifiers)
 			end
 		end
 	end
-	
+
 	for k,v in pairs(wepAttributes) do
 		local startValue = attributes[k].start or 1
 		local mulValue = attributes[k].mul or 1
@@ -859,7 +855,7 @@ function InsaneStats:GetEntitiesByStatusEffect(id)
 	if id then
 		entitiesByStatusEffect[id] = entitiesByStatusEffect[id] or {}
 		local entities = {}
-		
+
 		for k,v in pairs(entitiesByStatusEffect[id]) do
 			if v.expiry >= CurTime() and IsValid(k) then
 				table.insert(entities, k)
@@ -867,7 +863,7 @@ function InsaneStats:GetEntitiesByStatusEffect(id)
 				entitiesByStatusEffect[id][k] = nil
 			end
 		end
-		
+
 		return entities
 	else
 		return entitiesByStatusEffect
@@ -914,7 +910,7 @@ function InsaneStats:GetModifierProbabilities(wep)
 			blacklistedModifiers[modifier] = matches
 		end
 	end
-	
+
 	--[[local modifierProbabilities = {}
 	local blacklistedModifiers = {}
 	local invertNegative = false
@@ -976,28 +972,6 @@ function InsaneStats:GetModifierProbabilities(wep)
 	return modifierProbabilities
 end
 
-function InsaneStats:ComputeDXForNerfedIncrement(x, dy, n)
-	local dx1, dx2 = 0, 0
-
-	-- when y<1, x=y
-	if x < 1 then
-		dx1 = math.min(1 - x, dy)
-		x = x + dx1
-		dy = dy - dx1
-	end
-
-	if n <= 0 then
-		return dx1, dy
-	elseif dy ~= 0 then
-		local c = 2/n-1
-		local y1 = c * math.exp( (x-1)/c ) + 1 - c
-		local y2 = c * math.exp( (x+dy-1)/c ) + 1 - c
-		dx2 = y2 - y1
-	end
-
-	return dx1, dx2
-end
-
 local ENTITY = FindMetaTable("Entity")
 
 function ENTITY:InsaneStats_SetBatteryXP(xp)
@@ -1031,7 +1005,7 @@ function ENTITY:InsaneStats_GetAttributeValue(attribute)
 		local totalMul = 1
 		local weaponEffectVars = {"wpass2_attributes_other_enabled"}
 		local batteryEffectVars = {"wpass2_attributes_other_enabled_battery", "wpass2_attributes_other_enabled"}
-		
+
 		if self:IsPlayer() then
 			weaponEffectVars = {"wpass2_attributes_player_enabled"}
 			batteryEffectVars = {"wpass2_attributes_player_enabled_battery", "wpass2_attributes_player_enabled"}
@@ -1046,14 +1020,14 @@ function ENTITY:InsaneStats_GetAttributeValue(attribute)
 				"wpass2_attributes_other_enabled_battery", "wpass2_attributes_other_enabled"}
 			end
 		end
-		
+
 		local weaponHasEffect = InsaneStats:GetConVarValueDefaulted(weaponEffectVars)
 		local armorBatteryHasEffect = InsaneStats:GetConVarValueDefaulted(batteryEffectVars)
-		
+
 		if armorBatteryHasEffect > 0 then
 			totalMul = totalMul * (self:InsaneStats_GetAttributes()[attribute] or 1)
 		end
-		
+
 		if weaponHasEffect > 0 then
 			local wep = self.GetActiveWeapon and self:GetActiveWeapon()
 
@@ -1113,7 +1087,7 @@ function ENTITY:InsaneStats_GetAttributeValue(attribute)
 				self.insaneStats_ProxyWeaponLastTick = engine.TickCount()
 			end
 		end
-		
+
 		return totalMul
 	else return 1
 	end
@@ -1128,21 +1102,52 @@ function ENTITY:InsaneStats_IsItem()
 	return self:InsaneStats_IsWPASS2Pickup() or self:InsaneStats_GetHealingItemType() and true
 end
 
-local function EntityInitStatusEffects(ent)
-	ent.insaneStats_StatusEffects = ent.insaneStats_StatusEffects or {}
+function ENTITY:InsaneStats_InitStatusEffects()
+	if not self:InsaneStats_GetEntityData("status_effects") then
+		self:InsaneStats_SetEntityData("status_effects", {})
+	end
 	if SERVER then
-		ent.insaneStats_StatusEffectsToNetwork = ent.insaneStats_StatusEffectsToNetwork or {}
+		if not self:InsaneStats_GetEntityData("status_effects_to_network") then
+			self:InsaneStats_SetEntityData("status_effects_to_network", {})
+		end
 	end
 end
 
-local function DoExpiryEffect(ent, statName)
-	if entitiesByStatusEffect[statName] then
-		entitiesByStatusEffect[statName][ent] = nil
+function ENTITY:InsaneStats_DoStatusEffectExpiry(id)
+	local statusData = self:InsaneStats_GetStatusEffectData(id)
+	if expiryEffects[id] then
+		expiryEffects[id](self, statusData.level or 0, statusData.attacker)
 	end
-	local statusData = ent.insaneStats_StatusEffects and ent.insaneStats_StatusEffects[statName]
-	if expiryEffects[statName] and statusData then
-		expiryEffects[statName](ent, statusData.level or 0, statusData.attacker)
+
+	if entitiesByStatusEffect[id] then
+		entitiesByStatusEffect[id][self] = nil
 	end
+
+	self:InsaneStats_SetStatusEffectData(id, nil)
+end
+
+function ENTITY:InsaneStats_NetworkStatusEffect(id)
+	self:InsaneStats_GetEntityData("status_effects_to_network")[id] = true
+	self:InsaneStats_MarkForUpdate(16)
+end
+
+function ENTITY:InsaneStats_SetStatusEffectData(id, data)
+	self:InsaneStats_GetEntityData("status_effects")[id] = data
+end
+
+function ENTITY:InsaneStats_GetStatusEffectData(id)
+	if id then
+		return self:InsaneStats_GetEntityData("status_effects")[id]
+	else
+		self:InsaneStats_InitStatusEffects()
+		return self:InsaneStats_GetEntityData("status_effects")
+	end
+end
+
+function ENTITY:InsaneStats_HasStatusEffect(id)
+	self:InsaneStats_InitStatusEffects()
+	local statusEffectData = self:InsaneStats_GetStatusEffectData(id)
+	return statusEffectData and statusEffectData.expiry >= CurTime()
 end
 
 function ENTITY:InsaneStats_ApplyStatusEffect(id, level, duration, data)
@@ -1151,18 +1156,17 @@ function ENTITY:InsaneStats_ApplyStatusEffect(id, level, duration, data)
 	-- FIXME: is there a better solution?
 	if self:GetCollisionGroup() == COLLISION_GROUP_DEBRIS and self:GetClass() == "prop_physics" then return end
 
-	EntityInitStatusEffects(self)
-	local effectTable = self.insaneStats_StatusEffects[id]
+	entitiesByStatusEffect[id] = entitiesByStatusEffect[id] or {}
+	self:InsaneStats_InitStatusEffects()
+	local effectTable = self:InsaneStats_GetStatusEffectData(id)
 	local changeOccured = false
 	local curTime = CurTime()
-	
-	entitiesByStatusEffect[id] = entitiesByStatusEffect[id] or {}
-	
+
 	data = data or {}
-	if (effectTable and effectTable.expiry > curTime) and not data.replace then
+	if (effectTable and effectTable.expiry >= curTime) and not data.replace then
 		if data.amplify then level = level + effectTable.level end
-		
-		if data.extend and duration ~= 0 then
+
+		if data.extend then
 			local maxDuration = tonumber(data.extend) or math.huge
 			local maxExpiry = curTime + maxDuration
 			local newExpiry = effectTable.expiry + duration
@@ -1177,18 +1181,17 @@ function ENTITY:InsaneStats_ApplyStatusEffect(id, level, duration, data)
 			effectTable.expiry = curTime + duration
 			changeOccured = true
 		end
-		
+
 		if level > effectTable.level then
 			effectTable.level = level
 			changeOccured = true
 		end
-		
+
 		effectTable.attacker = IsValid(data.attacker) and data.attacker or effectTable.attacker
-		
-		-- we do this after setting the attacker and level since those as passed as part of DoExpiryEffect
-		if effectTable.expiry <= curTime then
-			DoExpiryEffect(self, id)
-			self.insaneStats_StatusEffects[id] = nil
+
+		-- we do this after setting the attacker and level since those as processed as part of DoExpiryEffect
+		if effectTable.expiry < curTime then
+			self:InsaneStats_DoStatusEffectExpiry(id)
 			changeOccured = true
 		end
 	else
@@ -1197,19 +1200,20 @@ function ENTITY:InsaneStats_ApplyStatusEffect(id, level, duration, data)
 			level = level * duration / maxDuration
 			duration = maxDuration
 		end
-		self.insaneStats_StatusEffects[id] = {
+		local statusEffectData = {
 			expiry = curTime + duration,
 			level = level,
 			attacker = data.attacker
 		}
-		entitiesByStatusEffect[id][self] = self.insaneStats_StatusEffects[id]
+		self:InsaneStats_SetStatusEffectData(id, statusEffectData)
+		entitiesByStatusEffect[id][self] = statusEffectData
 		changeOccured = true
 	end
-	
+
 	if SERVER and changeOccured then
 		local effectData = registeredEffects[id] or {}
-		effectTable = self.insaneStats_StatusEffects[id]
-		if effectTable then
+		effectTable = self:InsaneStats_GetStatusEffectData(id)
+		if effectTable then -- it may have been removed instead of applied
 			if effectData.apply then
 				effectData.apply(
 					self, effectTable.level or 0,
@@ -1221,106 +1225,62 @@ function ENTITY:InsaneStats_ApplyStatusEffect(id, level, duration, data)
 				self:InsaneStats_ApplyDoT(id)
 			end
 		end
-		self.insaneStats_StatusEffectsToNetwork[id] = true
-		self:InsaneStats_MarkForUpdate(16)
-	end
-end
 
-function ENTITY:InsaneStats_SetStatusEffectLevel(id, level)
-	EntityInitStatusEffects(self)
-	local effectTable = self.insaneStats_StatusEffects[id]
-	local changeOccured = false
-	
-	if (effectTable and effectTable.expiry > CurTime()) then
-		if level == 0 then
-			DoExpiryEffect(self, id)
-			self.insaneStats_StatusEffects[id] = nil
-			changeOccured = true
-		elseif effectTable.level ~= level then
-			effectTable.level = level
-			changeOccured = true
-		end
-	end
-	
-	if SERVER and changeOccured then
-		self.insaneStats_StatusEffectsToNetwork[id] = true
-		self:InsaneStats_MarkForUpdate(16)
+		self:InsaneStats_NetworkStatusEffect(id)
 	end
 end
 
 function ENTITY:InsaneStats_ClearStatusEffect(id)
-	EntityInitStatusEffects(self)
-	local effectTable = self.insaneStats_StatusEffects[id]
-	
-	if (effectTable and effectTable.expiry > CurTime()) then
-		DoExpiryEffect(self, id)
-		self.insaneStats_StatusEffects[id] = nil
-		
+	self:InsaneStats_InitStatusEffects()
+	if self:InsaneStats_HasStatusEffect(id) then
+		self:InsaneStats_DoStatusEffectExpiry(id)
 		if SERVER then
-			self.insaneStats_StatusEffectsToNetwork[id] = true
-			self:InsaneStats_MarkForUpdate(16)
+			self:InsaneStats_NetworkStatusEffect(id)
 		end
 	end
 end
 
 function ENTITY:InsaneStats_ClearAllStatusEffects()
-	EntityInitStatusEffects(self)
-	for k,v in pairs(self.insaneStats_StatusEffects) do
-		if v.expiry > CurTime() then
-			DoExpiryEffect(self, k)
-			self.insaneStats_StatusEffects[k] = nil
+	self:InsaneStats_InitStatusEffects()
+	for k,v in pairs(self:InsaneStats_GetStatusEffectData()) do
+		if v.expiry >= CurTime() then
+			self:InsaneStats_DoStatusEffectExpiry(k)
 			if SERVER then
-				self.insaneStats_StatusEffectsToNetwork[k] = true
-				self:InsaneStats_MarkForUpdate(16)
+				self:InsaneStats_NetworkStatusEffect(k)
 			end
 		end
 	end
 end
 
 function ENTITY:InsaneStats_GetStatusEffectLevel(id)
-	EntityInitStatusEffects(self)
-	return self.insaneStats_StatusEffects[id]
-	and self.insaneStats_StatusEffects[id].expiry >= CurTime()
-	and self.insaneStats_StatusEffects[id].level
-	or 0
+	self:InsaneStats_InitStatusEffects()
+	local statusEffectData = self:InsaneStats_GetStatusEffectData(id)
+	return statusEffectData and statusEffectData.expiry >= CurTime()
+	and statusEffectData.level or 0
 end
 
 function ENTITY:InsaneStats_GetStatusEffectDuration(id)
-	EntityInitStatusEffects(self)
-	return self.insaneStats_StatusEffects[id]
-	and self.insaneStats_StatusEffects[id].expiry >= CurTime()
-	and self.insaneStats_StatusEffects[id].expiry - CurTime()
-	or 0
+	self:InsaneStats_InitStatusEffects()
+	local statusEffectData = self:InsaneStats_GetStatusEffectData(id)
+	return statusEffectData and statusEffectData.expiry >= CurTime()
+	and statusEffectData.expiry - CurTime() or 0
 end
 
 function ENTITY:InsaneStats_GetStatusEffectAttacker(id)
-	EntityInitStatusEffects(self)
-	return self.insaneStats_StatusEffects[id]
-	and self.insaneStats_StatusEffects[id].expiry >= CurTime()
-	and self.insaneStats_StatusEffects[id].attacker
+	self:InsaneStats_InitStatusEffects()
+	local statusEffectData = self:InsaneStats_GetStatusEffectData(id)
+	return statusEffectData and statusEffectData.expiry >= CurTime()
+	and statusEffectData.attacker
 end
 
---[[function ENTITY:InsaneStats_GetStatusEffectCountByType(typ)
-	EntityInitStatusEffects(self)
-	local count = 0
-	for k,v in pairs(self.insaneStats_StatusEffects) do
-		if v.typ == typ then
-			count = count + 1
-		end
-	end
-	return count
-end]]
-
 function ENTITY:InsaneStats_ClearStatusEffectsByType(typ)
-	EntityInitStatusEffects(self)
-	for k,v in pairs(self.insaneStats_StatusEffects) do
+	self:InsaneStats_InitStatusEffects()
+	for k,v in pairs(self:InsaneStats_GetStatusEffectData()) do
 		local statusEffectInfo = registeredEffects[k]
-		if statusEffectInfo.typ == typ and v.expiry > CurTime() then
-			DoExpiryEffect(self, k)
-			self.insaneStats_StatusEffects[k] = nil
+		if statusEffectInfo.typ == typ and v.expiry >= CurTime() then
+			self:InsaneStats_DoStatusEffectExpiry(k)
 			if SERVER then
-				self.insaneStats_StatusEffectsToNetwork[k] = true
-				self:InsaneStats_MarkForUpdate(16)
+				self:InsaneStats_NetworkStatusEffect(k)
 			end
 		end
 	end
@@ -1379,12 +1339,11 @@ end
 
 hook.Add("Think", "InsaneStatsSharedWPASS", function()
 	CheckOverrideWeapons()
-	
+
 	for stat, expiryFunc in pairs(expiryEffects) do
 		for k,v in pairs(entitiesByStatusEffect[stat] or {}) do
 			if IsValid(k) and v.expiry <= CurTime() then
-				DoExpiryEffect(k, stat)
-				k.insaneStats_StatusEffects[stat] = nil
+				k:InsaneStats_DoStatusEffectExpiry(stat)
 			end
 		end
 	end

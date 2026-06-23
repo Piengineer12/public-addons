@@ -27,7 +27,7 @@ local function SpawnCoins(victim, value)
 		value = value - toSubtract
 		local doNot = hook.Run("InsaneStatsCoinsSpawn", victim, pos, toSubtract, valueExponent)
 		if doNot then
-			if InsaneStats:IsDebugLevel(3) then
+			if InsaneStats:IsDebugLevel(2) then
 				InsaneStats:Log("Suppressed %g coin drop", toSubtract)
 			end
 		else
@@ -44,7 +44,7 @@ local function SpawnCoins(victim, value)
 					physobj:SetVelocity(initialVel)
 				end
 
-				if InsaneStats:IsDebugLevel(3) then
+				if InsaneStats:IsDebugLevel(2) then
 					InsaneStats:Log("Spawned %s worth %g", tostring(ent), toSubtract)
 				end
 			end
@@ -58,10 +58,8 @@ hook.Add("InsaneStatsEntityKilledPostXP", "InsaneStatsCoins", function(victim, a
 		local value = 0
 		if not victim.insaneStats_IsDead then
 			local mul = InsaneStats:GetConVarValue(victim:IsPlayer() and "coins_player_mul" or "coins_other_mul")
-			local currentHealthAdd = victim:InsaneStats_GetCurrentHealthAdd()
-			local startingHealth = victim:InsaneStats_GetMaxHealth() / currentHealthAdd
-			local currentArmorAdd = victim:InsaneStats_GetCurrentArmorAdd()
-			local startingArmor = victim:InsaneStats_GetMaxArmor() / currentArmorAdd
+			local startingHealth = victim:InsaneStats_GetStartingHealth()
+			local startingArmor = victim:InsaneStats_GetStartingArmor()
 			value = (startingHealth + startingArmor) * math.random() / 16 * mul
 			if InsaneStats:GetConVarValue("xp_enabled") then
 				value = InsaneStats:ScaleValueToLevel(
@@ -97,9 +95,9 @@ hook.Add("InsaneStatsPropBroke", "InsaneStatsCoins", function(victim, attacker)
 	if InsaneStats:GetConVarValue("coins_enabled") then
 		local inflictor = attacker.GetActiveWeapon and attacker:GetActiveWeapon() or attacker
 		local mul = InsaneStats:GetConVarValue("coins_breakable_mul")
-		local currentHealthAdd = victim:InsaneStats_GetCurrentHealthAdd()
-		local startingHealth = victim:InsaneStats_GetMaxHealth() / currentHealthAdd
-		local value = startingHealth * math.random() / 16 * mul
+		local startingHealth = victim:InsaneStats_GetStartingHealth()
+		local startingArmor = victim:InsaneStats_GetStartingArmor()
+		local value = (startingHealth + startingArmor) * math.random() / 16 * mul
 		if InsaneStats:GetConVarValue("xp_enabled") then
 			value = InsaneStats:ScaleValueToLevel(
 				value,

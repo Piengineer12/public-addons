@@ -293,24 +293,32 @@ function InsaneStats:GetCoinColor(valueExponent)
 	local realTime = RealTime()
 	local hue = (valueExponent + 1) * 30
 	local sat = 1
+    local val = 1
 
-	if valueExponent % 24 >= 12 then
-		sat = math.abs(Lerp(realTime%1, -1, 1))
-	end
-
-	if valueExponent < 0 then
-		return color_gray
-	elseif valueExponent < 24 then
-		-- nothing needs to be done
-	elseif valueExponent < 48 then -- 3.553e33
-		hue = hue + math.abs(Lerp(realTime%2/2, -120, 120)) - 60
-	elseif valueExponent < 72 then -- 2.118e50
-		hue = hue + math.ease.InOutCubic(realTime%3/3) * 360
-	else
-		hue = realTime * 120
+    if valueExponent >= 84 then
+		hue = realTime * 180
 		sat = 1
-	end
-	return HSVToColor(hue % 360, sat, 1)
+    elseif valueExponent >= 48 then
+		hue = hue + math.ease.InOutCubic(realTime/2%1) * 360
+
+        if valueExponent >= 72 then
+           val = math.ease.OutQuad(self:CalculateTriangleWaveValue(realTime, 1, 0.5, 0, 1))
+        elseif valueExponent >= 60 then
+            sat = math.ease.OutQuad(self:CalculateTriangleWaveValue(realTime, 1, 0.5, 0, 1))
+        end
+    elseif valueExponent >= 24 then
+		hue = hue + self:CalculateTriangleWaveValue(realTime, 2, 0, -30, 30)
+
+        if valueExponent >= 36 then
+           val = math.ease.OutQuad(self:CalculateTriangleWaveValue(realTime, 1, 0, 0, 1))
+        end
+    elseif valueExponent >= 12 then
+		sat = math.ease.OutQuad(self:CalculateTriangleWaveValue(realTime, 1, 0, 0, 1))
+    elseif valueExponent < 0 then
+		return color_gray
+    end
+
+	return HSVToColor(hue % 360, sat, val)
 end
 
 local ENT = FindMetaTable("Entity")

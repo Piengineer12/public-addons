@@ -24,12 +24,14 @@ local colors = {
 	aqua_translucent = Color(0, 255, 255, 239),
 	light_aqua = Color(127, 255, 255),
 	sky = Color(0, 127, 255),
+	blue = Color(0, 0, 255),
 	light_blue = Color(127, 127, 255),
 	purple = Color(127, 0, 255),
 	magenta = Color(255, 0, 255),
 	light_magenta = Color(255, 127, 255)
 }
 InsaneStats.WeaponSelectorWeaponSlots = {}
+InsaneStats.INT_ONLY_START = 2^52 -- at this point, the next representable numbers are only integers
 
 --[[function InsaneStats:GetFont(size)
 	local fontName = string.format("InsaneStats-%u", size)
@@ -38,10 +40,10 @@ InsaneStats.WeaponSelectorWeaponSlots = {}
 			font = "Orbitron Medium",
 			size = ScreenScale(size)
 		})
-		
+
 		createdFonts[fontName] = true
 	end
-	
+
 	return fontName
 end]]
 
@@ -81,16 +83,20 @@ function InsaneStats:TransitionUINumber(a, b)
 	end
 end
 
-local order = {[0]="K", "M", "B", "T", "Q", "Qt", "Sx", "Sp", "Oc", "No", "De"--[[,
-"Un", "Du", "Te", "Qtd", "Qid", "Sed", "Spd", "Ocd", "Nod", "Vig",
-"Unv", "Duv", "Tiv", "Qtv", "Qiv", "Sev", "Spv", "Ocv", "Nov"]]}
+local order = {[0]="K", "M", "B", "T", "Qa", "Qt", "Sx", "Sp", "Oc", "No", "De"}
+local extendedOrder = {
+	{"", "U", "D", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No"},
+	{"De", "Vi", "Tg", "Qag", "Qig", "Sxg", "Spg", "Ocg", "Nog", "Cen"}
+}
+local si_order = {[0]="k", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"}
+local superscripts = {[0]="⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹"}
 -- 1 unit is 1 inch in playerscale, 0.75 inch in mapscale
 local playerScale_cmPerHu = 2.54
 function InsaneStats:FormatNumber(number, data)
 	data = data or {}
 	local plusStr = data.plus and number > 0 and "+" or ""
 	local decimalPlaces = data.decimals or 3
-	
+
 	local numberStr = "?"
 	local suffixStr = ""
 	local distanceStr = ""
@@ -99,10 +105,10 @@ function InsaneStats:FormatNumber(number, data)
 		distanceStr = " Hu"
 		local distanceMode = InsaneStats:GetConVarValue("hud_distance_unit")
 		--[[
-		0: Use playerscale m or cm\n\z
-		1: Use playerscale ft or in\n\z
-		2: Use mapscale m or cm\n\z
-		3: Use mapscale ft or in\n\z
+		0: Use playerscale m or cm
+		1: Use playerscale ft or in
+		2: Use mapscale m or cm
+		3: Use mapscale ft or in
 		4: Use Hu
 		]]
 		if distanceMode < 4 then
@@ -125,7 +131,7 @@ function InsaneStats:FormatNumber(number, data)
 			end
 		end
 	end
-	
+
 	local absNumber = math.abs(number)
 	if absNumber < 1e3 then
 		if data.compress then
@@ -134,26 +140,69 @@ function InsaneStats:FormatNumber(number, data)
 
 		numberStr = plusStr..string.Comma(math.Round(number, decimalPlaces))
 	elseif absNumber < (data.maximumBeforeShortening or 1e6) and not data.compress
-	or InsaneStats:GetConVarValue("hud_never_simplify") then
+	or InsaneStats:GetConVarValue("hud_never_simplify") or data.noShortening then
 		numberStr = plusStr..string.Comma(math.floor(number))
 	elseif absNumber < math.huge then
 		local decimalStr = "3"
+		local expFormat = InsaneStats:GetConVarValue("hud_exponent_simplified_uppercase")
+		local suffix
 
-		local orderNeeded = math.floor(math.log10(absNumber)/3)-1
-		if order[orderNeeded] then
-			number = number / 1e3^(orderNeeded+1)
+		if absNumber < 10^InsaneStats:GetConVarValue("hud_exponent_scientific_start") then
+			local orderNeeded = math.floor(math.log10(absNumber)/3)-1
+			suffix = order[orderNeeded]
+
+			if expFormat == 4 then
+				suffix = si_order[orderNeeded]
+			elseif not suffix then
+				local suffixPart1 = extendedOrder[1][orderNeeded % 10 + 1]
+				local suffixPart2 = extendedOrder[2][math.floor(orderNeeded / 10)]
+				if expFormat == 1 and suffixPart1 ~= "" then
+					suffixPart2 = suffixPart2:lower()
+				end
+
+				suffix = suffixPart1..suffixPart2
+			end
+		end
+
+		if suffix then
+			if expFormat <= 0 then
+				suffix = suffix:lower()
+			elseif expFormat == 3 then
+				suffix = suffix:upper()
+			end
+
+			local log = math.log10(absNumber)
+			number = number / 1e3^math.floor(log/3)
 
 			if data.compress then
-				decimalStr = string.format("%u", 2 - math.floor(math.log10(math.abs(number))))
+				decimalStr = string.format("%u", 2 - math.floor(log % 3))
 			end
-			
+
 			numberStr = string.format("%"..plusStr.."."..decimalStr.."f", number)
-			suffixStr = " "..order[orderNeeded]
+			suffixStr = " "..suffix
 		else
+			local sciFormat = InsaneStats:GetConVarValue("hud_exponent_scientific_format")
 			decimalStr = data.compress and "2" or decimalStr
-			local expStr = bit.band(InsaneStats:GetConVarValue("hud_exponent_format"), 2) == 0 and "e" or "E"
+			local expStr = sciFormat < 2 and "e" or "E"
 			local rawStr = string.format("%"..plusStr.."."..decimalStr..expStr, number)
 			numberStr, suffixStr = string.match(rawStr, "^(%A*)("..expStr..".*)$")
+
+			if sciFormat == 1 or sciFormat == 3 then
+				suffixStr = suffixStr[1] .. string.sub(suffixStr, 3)
+			elseif sciFormat == 4 then
+				suffixStr = "×10^" .. string.sub(suffixStr, 3)
+			elseif sciFormat == 5 then
+				local newSuffixStr = "×10"
+				for i=3, #suffixStr do
+					local numChar = tonumber(suffixStr[i])
+					newSuffixStr = newSuffixStr .. superscripts[numChar]
+				end
+				suffixStr = newSuffixStr
+			elseif sciFormat == 6 then
+				suffixStr = "₁₀" .. string.sub(suffixStr, 3)
+			elseif sciFormat == 7 then
+				suffixStr = "⏨" .. string.sub(suffixStr, 3)
+			end
 		end
 	elseif number == math.huge then
 		numberStr = ""
@@ -163,10 +212,6 @@ function InsaneStats:FormatNumber(number, data)
 		suffixStr = "-∞"
 	end
 
-	if bit.band(InsaneStats:GetConVarValue("hud_exponent_format"), 1) == 0 then
-		suffixStr = suffixStr:Replace("+", "")
-	end
-	
 	if data.separateSuffix then
 		return numberStr, suffixStr, distanceStr
 	else
@@ -176,13 +221,13 @@ end
 
 function InsaneStats:RegisterClientConVar(name, internal, default, data)
 	local conVar
-	
+
 	-- if it is of boolean type, only 0 and 1 values are allowed
 	if data.type == self.BOOL then
 		data.min = 0
 		data.max = 1
 	end
-	
+
 	if data.type == self.INT then
 		conVar = CreateClientConVar(
 			internal,
@@ -202,9 +247,9 @@ function InsaneStats:RegisterClientConVar(name, internal, default, data)
 			data.desc
 		)
 	end
-	
+
 	self.numConVars = self.numConVars + 1
-	
+
 	local conVarData = {
 		conVar = conVar,
 		internal = internal,
@@ -212,13 +257,13 @@ function InsaneStats:RegisterClientConVar(name, internal, default, data)
 		id = self.numConVars
 	}
 	table.Merge(conVarData, data)
-	
+
 	if not conVarData.category then
 		conVarData.category = self:GetDefaultConVarCategory()
 	end
-	
+
 	self.conVars[name] = conVarData
-	
+
 	return conVar
 end
 
@@ -312,7 +357,7 @@ function InsaneStats:DrawMaterialOutlined(material, x, y, w, h, color)
 	-- draw the outline
 	local outlineColor = self:GetOutlineColor(color)
 	surface.SetDrawColor(outlineColor.r, outlineColor.g, outlineColor.b, outlineColor.a)
-	
+
 	if InsaneStats:GetConVarValue("hud_outline_mode") then
 		for i=1, outlineThickness do
 			surface.DrawTexturedRect(x + i, y + i, w, h)
@@ -327,7 +372,7 @@ function InsaneStats:DrawMaterialOutlined(material, x, y, w, h, color)
 			end
 		end
 	end
-	
+
 	surface.SetDrawColor(color.r, color.g, color.b, color.a)
 	surface.DrawTexturedRect(x, y, w, h)
 	return w, h
@@ -377,6 +422,7 @@ end
 
 function InsaneStats:ShouldDrawHUD()
 	return GetConVar("cl_drawhud"):GetBool() and GetConVar("hidehud"):GetInt() < 1
+    and InsaneStats:GetConVarValue("hud_enable")
 end
 
 local color_gray = colors.gray
@@ -391,23 +437,25 @@ function InsaneStats:CalculateMultibar(x, mx, startHue)
 	else
 		data.bars = math.max(math.ceil(x / mx), 1)
 		data.frac = x / mx - data.bars + 1
-		if data.bars > 1099511627776 then
+		if data.bars >= self.INT_ONLY_START then
 			-- a random number seeded with the level
-			currentHue = math.floor(
-				util.SharedRandom("InsaneStatsMultibarHue"..string.format("%.11e", data.bars), 0, 12)
-			)*30
+			math.randomseed(data.bars / 2)
+			currentHue = math.random(12) * 30
+			math.randomseed(data.bars)
+            data.frac = math.random()
+			math.randomseed(SysTime())
 		else
 			currentHue = currentHue + (data.bars-1)*30
 		end
 	end
-	
+
 	data.color = HSVToColor(currentHue % 360, 0.75, 1)
 	if data.bars > 1 then
 		data.nextColor = HSVToColor((currentHue - 30) % 360, 0.75, 1)
 	else
 		data.nextColor = color_gray
 	end
-	
+
 	return data
 end
 
@@ -434,7 +482,7 @@ function InsaneStats:DrawAmmoText(ammoData, x, y, alignY, firstColorOverride)
 	if reserveData then
 		table.insert(textPieces, "   |   ")
 		table.insert(
-			textPieces, 
+			textPieces,
 			InsaneStats:FormatNumber(reserveData[1])
 			.." / "..(reserveData[2] > 0 and InsaneStats:FormatNumber(reserveData[2]) or '?')
 		)
@@ -456,6 +504,15 @@ end
 
 InsaneStats:SetDefaultConVarCategory("Miscellaneous")
 
+InsaneStats:RegisterClientConVar("instant_ragdoll_maxcount", "insanestats_instant_ragdoll_maxcount", "1", {
+	display = "Enforce Ragdoll Max Count", desc = "Makes the \"g_ragdoll_maxcount\" ConVar much more aggressive \z
+    by immediately removing excess ragdolls.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterClientConVar("hud_enable", "insanestats_hud_enable", "1", {
+	display = "Enable HUD", desc = "If disabled, hides all HUD elements added by Insane Stats.",
+	type = InsaneStats.BOOL
+})
 InsaneStats:RegisterClientConVar("hud_scale", "insanestats_hud_scale", "1", {
 	display = "HUD Scale", desc = "Modifies HUD scale.",
 	type = InsaneStats.FLOAT, min = 0.1, max = 10
@@ -480,18 +537,37 @@ InsaneStats:RegisterClientConVar("hud_number_speed", "insanestats_hud_number_spe
 	display = "HUD Number Speed", desc = "Modifies the number update speed. 0 will remove number animations altogether.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
 })
-InsaneStats:RegisterClientConVar("hud_never_simplify", "insanestats_hud_never_simplify", "0", {
+InsaneStats:RegisterClientConVar("hud_never_simplify", "insanestats_hud_exponent_never", "0", {
 	display = "Don't Simplify Numbers", desc = "Disables numbers beyond 1 million being shown in simplified format. This only affects Insane Stats HUDs and GUIs.",
 	type = InsaneStats.BOOL
 })
-InsaneStats:RegisterClientConVar("hud_exponent_format", "insanestats_hud_exponent_format", "0", {
-	display = "Exponent Format", desc = "Controls how to display the exponent indicator. \z
+InsaneStats:RegisterClientConVar("hud_exponent_simplified_uppercase", "insanestats_hud_exponent_simplified_uppercase", "1", {
+	display = "Exponent Simplified Uppercase", desc = "Controls how to display the exponent indicator before scientific notation. \z
+	One undecillion (10^36) will appear as:\n\z
+	0: 1.000 ude\n\z
+    1: 1.000 Ude\n\z
+    2: 1.000 UDe\n\z
+    3: 1.000 UDE\n\z
+    If 4, SI prefixes are shown below 10^33, otherwise scientific notation is used.",
+	type = InsaneStats.INT, min = 0, max = 4
+})
+InsaneStats:RegisterClientConVar("hud_exponent_scientific_start", "insanestats_exponent_scientific_start", "36", {
+	display = "Exponent Scientific Start", desc = "Numbers 10 to the power of this value \z
+	or above are displayed in scientific notation.",
+	type = InsaneStats.FLOAT, min = 0, max = 309
+})
+InsaneStats:RegisterClientConVar("hud_exponent_scientific_format", "insanestats_hud_exponent_format", "0", {
+	display = "Exponent Format", desc = "Controls how to display scientific notation. \z
 	One undecillion (10^36) will appear as:\n\z
 	0: 1.000e36\n\z
 	1: 1.000e+36\n\z
 	2: 1.000E36\n\z
-	3: 1.000E+36",
-	type = InsaneStats.INT, min = 0, max = 3
+	3: 1.000E+36:\n\z
+	4: 1.000×10^36\n\z
+	5: 1.000×10³⁶\n\z
+	6: 1.000₁₀36\n\z
+	7: 1.000⏨36",
+	type = InsaneStats.INT, min = 0, max = 7
 })
 InsaneStats:RegisterClientConVar("hud_distance_unit", "insanestats_hud_distance_unit", "0", {
 	display = "Distance Format", desc = "Controls how to display distances.\n\z
@@ -503,7 +579,7 @@ InsaneStats:RegisterClientConVar("hud_distance_unit", "insanestats_hud_distance_
 	type = InsaneStats.INT, min = 0, max = 4
 })
 
-InsaneStats:RegisterClientConVar("hud_ally_enabled", "insanestats_hud_ally_enabled", "0", {
+InsaneStats:RegisterClientConVar("hud_ally_enabled", "insanestats_hud_ally_enabled", "1", {
 	display = "Allies", desc = "Shows ally status displays.",
 	type = InsaneStats.BOOL
 })
@@ -552,6 +628,14 @@ InsaneStats:RegisterClientConVar("hud_ammo_h", "insanestats_hud_ammo_h", "0.25",
 	display = "Clip Meters Height", desc = "Vertical height of ammo meters.",
 	type = InsaneStats.FLOAT, min = 0, max = 10
 })
+InsaneStats:RegisterClientConVar("hud_ammo_max_clip", "insanestats_hud_ammo_max_clip", "1", {
+	display = "Clip Max", desc = "Show the max clip size number.",
+	type = InsaneStats.BOOL
+})
+InsaneStats:RegisterClientConVar("hud_ammo_max_reserve", "insanestats_hud_ammo_max_reserve", "1", {
+	display = "Clip Reserve Max", desc = "Show the max reserve ammo number.",
+	type = InsaneStats.BOOL
+})
 
 concommand.Add("insanestats_revert_all_client_convars", function(ply, cmd, args, argStr)
 	if argStr:lower() == "yes" then
@@ -593,18 +677,21 @@ local function GenerateFonts()
 	InsaneStats.FONT_SMALL = ScreenScale(6 * scale)
 	InsaneStats.FONT_MEDIUM = ScreenScale(8 * scale)
 	InsaneStats.FONT_BIG = ScreenScale(10 * scale)
-	
+
 	surface.CreateFont("InsaneStats.Small", {
 		font = font,
-		size = InsaneStats.FONT_SMALL
+		size = InsaneStats.FONT_SMALL,
+		symbol = true
 	})
 	surface.CreateFont("InsaneStats.Medium", {
 		font = font,
-		size = InsaneStats.FONT_MEDIUM
+		size = InsaneStats.FONT_MEDIUM,
+		symbol = true
 	})
 	surface.CreateFont("InsaneStats.Big", {
 		font = font,
-		size = InsaneStats.FONT_BIG
+		size = InsaneStats.FONT_BIG,
+		symbol = true
 	})
 end
 
@@ -646,7 +733,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 
 		if InsaneStats:GetConVarValue("hud_ally_enabled") then
 			local citizenCounts = {0, 0, 0}
-			
+
 			for i,v in ipairs(citizens) do
 				if (IsValid(v) and not v:IsDormant() and v.insaneStats_Disposition ~= 1) then
 					local citizenFlags = v.insaneStats_CitizenFlags
@@ -671,7 +758,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 			local opaqueDistSqr = InsaneStats:GetConVarValue("hud_ally_dist_opaque")^2
 			local allyValues = {}
 			cam.Start3D()
-			for i,v in ents.Iterator() do
+			for i,v in InsaneStats:GetEntityIterator() do
 				if (IsValid(v) and not v:IsDormant()) and v ~= ply then
 					local isAlly = false
 
@@ -760,15 +847,15 @@ hook.Add("HUDPaint", "InsaneStats", function()
 						citizenSlowHealths[ent] = citizenSlowHealths[ent] or {}
 						citizenSlowHealths[ent].hp = InsaneStats:TransitionUINumber(citizenSlowHealths[ent].hp or health, health)
 						local barData = InsaneStats:CalculateMultibar(citizenSlowHealths[ent].hp, v.mhp, 120)
-						
+
 						local barX = baseX - barW / 2
 						local barY = baseY
 						InsaneStats:DrawRectOutlined(barX, barY, barW, barH, barData.frac, barData.color, barData.nextColor)
-						
+
 						-- armor
 						if v.ar > 0 then
 							barY = barY + barH + outlineThickness
-							
+
 							local armor = v.ar
 							citizenSlowHealths[ent].ar = InsaneStats:TransitionUINumber(citizenSlowHealths[ent].ar or armor, armor)
 							local barData = InsaneStats:CalculateMultibar(citizenSlowHealths[ent].ar, v.mar, 180)
@@ -788,22 +875,25 @@ hook.Add("HUDPaint", "InsaneStats", function()
 			local barH = InsaneStats.FONT_MEDIUM * InsaneStats:GetConVarValue("hud_ammo_h")
 			local ammoMaxOverride = GetConVar("gmod_maxammo"):GetInt()
 			ammoMaxOverride = ammoMaxOverride > 0 and ammoMaxOverride
-			
+
+            --[[
+                weapons can behave very differently! the following should apply when displaying ammo:
+                -1 ammo type, -1 max clip, -1 clip: don't display
+                -1 ammo type, -1 max clip, has clip: clip / ?
+                -1 ammo type, has max clip, ANY clip: clip / max clip
+                virtual ammo type, -1 max clip, -1 clip: ammo type / ?
+                virtual ammo type, -1 max clip, has clip: clip / ? | ammo type / ?
+                virtual ammo type, has max clip, ANY clip: clip / max clip | ammo type / ?
+                has ammo type, -1 max clip, -1 clip: ammo type / max ammo type
+                has ammo type, -1 max clip, has clip: clip / ? | ammo type / max ammo type
+                has ammo type, has max clip, ANY clip: clip / max clip | ammo type / max ammo type
+            ]]
+
+            --local ammoInfo = {}
+
 			if IsValid(wep) then
 				local customAmmoDisplay = wep.CustomAmmoDisplay and wep:CustomAmmoDisplay() or {}
-				--[[
-					weapons can behave very differently! the following should apply when displaying ammo:
-					-1 ammo type, -1 max clip, -1 clip: don't display
-					-1 ammo type, -1 max clip, has clip: clip / ?
-					-1 ammo type, has max clip, ANY clip: clip / max clip
-					virtual ammo type, -1 max clip, -1 clip: ammo type / ?
-					virtual ammo type, -1 max clip, has clip: clip / ? | ammo type / ?
-					virtual ammo type, has max clip, ANY clip: clip / max clip | ammo type / ?
-					has ammo type, -1 max clip, -1 clip: ammo type / max ammo type
-					has ammo type, -1 max clip, has clip: clip / ? | ammo type / max ammo type
-					has ammo type, has max clip, ANY clip: clip / max clip | ammo type / max ammo type
-				]]
-				
+
 				--if customAmmoDisplay.Draw ~= false then
 					-- secondary bar
 					local ammoType2 = wep:GetSecondaryAmmoType()
@@ -828,13 +918,13 @@ hook.Add("HUDPaint", "InsaneStats", function()
 						if bars == 1 then
 							barColor = HSVToColor(barData.frac * 120, 0.75, 1)
 						end
-						
+
 						InsaneStats:DrawRectOutlined(
 							baseX - barW, baseY - barH,
 							barW, barH,
 							barData.frac, barColor, barData.nextColor
 						)
-						
+
 						local ammoName = useAmmoType2 and language.GetPhrase(
 							string.format(
 								"#%s_ammo",
@@ -858,7 +948,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 
 						baseY = baseY - barH - offsetY - outlineThickness * 2
 					end
-					
+
 					-- primary bar
 					local ammoType1 = wep:GetPrimaryAmmoType()
 					local useAmmoType1 = ammoType1 > -1
@@ -882,13 +972,13 @@ hook.Add("HUDPaint", "InsaneStats", function()
 						if bars == 1 then
 							barColor = HSVToColor(barData.frac * 120, 0.75, 1)
 						end
-						
+
 						InsaneStats:DrawRectOutlined(
 							baseX - barW, baseY - barH,
 							barW, barH,
 							barData.frac, barColor, barData.nextColor
 						)
-						
+
 						local ammoName = useAmmoType1 and language.GetPhrase(
 							string.format(
 								"#%s_ammo",
@@ -934,7 +1024,7 @@ hook.Add("HUDPaint", "InsaneStats", function()
 			if ammoType3 > 0 then
 				local ammo3 = vehicleAmmoData[3]
 				local maxAmmo3 = vehicleAmmoData[2] > 0 and vehicleAmmoData[2] or 100
-				
+
 				local barData = InsaneStats:CalculateMultibar(ammo3, maxAmmo3, 120)
 				local bars = barData.bars
 				local barColor = barData.color
@@ -942,13 +1032,13 @@ hook.Add("HUDPaint", "InsaneStats", function()
 				if bars == 1 then
 					barColor = HSVToColor(barData.frac * 120, 0.75, 1)
 				end
-				
+
 				InsaneStats:DrawRectOutlined(
 					baseX - barW, baseY - barH,
 					barW, barH,
 					barData.frac, barColor, barData.nextColor
 				)
-				
+
 				local ammoName = language.GetPhrase(
 					string.format(
 						"#%s_ammo",
@@ -975,11 +1065,67 @@ hook.Add("HUDPaint", "InsaneStats", function()
 				end
 				baseY = baseY - barH - offsetY - outlineThickness * 2
 			end
+
+            -- new method
+            --[[for i,v in ipairs(ammoInfo) do
+                local firstUnits = v.ammoUnits[1]
+                local barData = InsaneStats:CalculateMultibar(firstUnits[1], firstUnits[2], 120)
+                local bars = barData.bars
+                local barColor = barData.color
+
+                if bars == 1 then
+                    barColor = HSVToColor(barData.frac * 120, 0.75, 1)
+                end
+
+                InsaneStats:DrawRectOutlined(
+                    baseX - barW, baseY - barH,
+                    barW, barH,
+                    barData.frac, barColor, barData.nextColor
+                )
+
+                local ammoName = v.name
+                local offsetX, offsetY = InsaneStats:DrawTextOutlined(
+                    ammoName, 2, baseX - barW, baseY - barH - outlineThickness,
+                    color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM
+                )
+                if hasSuit then
+                    local textY = baseY - barH - outlineThickness
+                    InsaneStats:DrawAmmoText(ammoUnits, baseX, textY, TEXT_ALIGN_BOTTOM, barColor)
+                end
+                if bars > 1 then
+                    InsaneStats:DrawTextOutlined(
+                        InsaneStats:FormatNumber(bars).."x", 2, baseX - barW - outlineThickness, baseY,
+                        barColor, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM
+                    )
+                end
+
+                baseY = baseY - barH - offsetY - outlineThickness * 2
+            end]]
 		end
 	end
 end)
 
 hook.Add("HUDShouldDraw", "InsaneStats", function(name)
-	if InsaneStats:GetConVarValue("hud_ally_enabled") and name == "CHudSquadStatus" then return false end
-	if InsaneStats:GetConVarValue("hud_ammo_enabled") and (name == "CHudAmmo" or name == "CHudSecondaryAmmo") then return false end
+    if InsaneStats:ShouldDrawHUD() then
+        if InsaneStats:GetConVarValue("hud_ally_enabled") and name == "CHudSquadStatus" then
+            return false
+        end
+        if InsaneStats:GetConVarValue("hud_ammo_enabled")
+            and (name == "CHudAmmo" or name == "CHudSecondaryAmmo") then
+            return false
+        end
+    end
+end)
+
+hook.Add("Think", "InsaneStats", function()
+	if InsaneStats:GetConVarValue("instant_ragdoll_maxcount") then
+		local targets = ents.FindByClass("15C_ClientRagdoll")
+		local toRemove = #targets - GetConVar("g_ragdoll_maxcount"):GetInt()
+		if toRemove > 0 then
+			for i,v in ipairs(targets) do
+				SafeRemoveEntity(v)
+				if i >= toRemove then break end
+			end
+		end
+	end
 end)

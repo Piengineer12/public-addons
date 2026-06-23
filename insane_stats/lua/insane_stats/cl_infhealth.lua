@@ -651,5 +651,8 @@ local shouldHide = {
 	CHudBattery = true
 }
 hook.Add("HUDShouldDraw", "InsaneStatsUnlimitedHealth", function(name)
-	if InsaneStats:GetConVarValue("hud_hp_enabled") and shouldHide[name] then return false end
+    if InsaneStats:GetConVarValue("hud_hp_enabled") and shouldHide[name]
+    and InsaneStats:ShouldDrawHUD() then
+        return false
+    end
 end)

@@ -89,7 +89,7 @@ local modifiers = {
 			max = math.log(2, 1.1)
 		},
 	},
-	
+
 	{-- damage, doubled cost
 		split = {
 			prefix = "Splitting",
@@ -111,7 +111,7 @@ local modifiers = {
 			cost = 2
 		},
 		perserve = {
-			prefix = "Perserving",
+			prefix = "Preserving",
 			modifiers = {
 				ammo_consumption = 1/1.21,
 				melee_damage = 1.21
@@ -140,7 +140,7 @@ local modifiers = {
 			flags = InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY
 		},
 	},
-	
+
 	{-- damage, half weight
 		anger = {
 			prefix = "Angry",
@@ -297,14 +297,6 @@ local modifiers = {
 			},
 			weight = 0.5
 		},
-		shoddy = {
-			prefix = "Shoddy",
-			suffix = "Shoddiness",
-			modifiers = {
-				unarmored_victim_damage = 1.21
-			},
-			weight = 0.5
-		},
 		terrible = {
 			prefix = "Terrible",
 			suffix = "Terribleness",
@@ -339,8 +331,33 @@ local modifiers = {
 			weight = 0.5,
 			flags = InsaneStats.WPASS2_FLAGS.XP
 		},
+		rain = {
+			prefix = "Raining",
+			suffix = "Rainfall",
+			modifiers = {
+				height_damage = 1.1
+			},
+			weight = 0.5
+		},
+		strike = {
+			prefix = "Striking",
+			modifiers = {
+				height_firerate = 1.1
+			},
+			weight = 0.5,
+			max = 10
+		},
+		emergent = {
+			prefix = "Emergent",
+            suffix = "Emergency",
+			modifiers = {
+				reload_bullet = 1.1
+			},
+			weight = 0.5,
+            max = 10
+		},
 	},
-	
+
 	{-- damage, half weight doubled cost
 		unreal = {
 			prefix = "Unreal",
@@ -555,7 +572,7 @@ local modifiers = {
 		},
 	},
 
-	{-- damage, half weight doubled negative cost
+	--[[{-- damage, half weight doubled negative cost
 		derange = {
 			prefix = "Deranged",
 			suffix = "Derangedness",
@@ -566,9 +583,9 @@ local modifiers = {
 			weight = 0.5,
 			cost = -2
 		},
-		distant = {
-			prefix = "Distant",
-			suffix = "Distance",
+		shoddy = {
+			prefix = "Shoddy",
+			suffix = "Shoddiness",
 			modifiers = {
 				shortrange_damage = 1/1.4641,
 				melee_damage = 1.21
@@ -576,7 +593,7 @@ local modifiers = {
 			weight = 0.5,
 			cost = -2
 		},
-	},
+	},]]
 
 	{-- damage inaccessible
 		frostfire = {
@@ -636,7 +653,7 @@ local modifiers = {
 			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY),
 		},
 	},
-	
+
 	{-- damage utility, doubled weight
 		force = {
 			prefix = "Forceful",
@@ -657,18 +674,17 @@ local modifiers = {
 			weight = 2,
 			flags = InsaneStats.WPASS2_FLAGS.XP
 		},
-		play = {
-			prefix = "Playful",
-			suffix = "Playing",
+        stable = {
+			prefix = "Stable",
+			suffix = "Stability",
 			modifiers = {
-				victim_xpyield = 1.1
+				kill_no_recoil = 1.1
 			},
-			max = math.log(2, 1.1),
 			weight = 2,
-			flags = InsaneStats.WPASS2_FLAGS.XP
+            max = 5
 		},
 	},
-	
+
 	{-- damage utility, doubled weight doubled cost
 		heal = {
 			prefix = "Healing",
@@ -691,7 +707,7 @@ local modifiers = {
 			max = 10
 		},
 	},
-	
+
 	{-- damage utility
 		chain = {
 			prefix = "Chaining",
@@ -721,7 +737,8 @@ local modifiers = {
 			modifiers = {
 				victim_damage = 1/1.1
 			},
-			weight = 1
+			weight = 1,
+			max = CalculateLimit(2, 1/1.1)
 		},
 		intimidate = {
 			prefix = "Intimidating",
@@ -729,7 +746,7 @@ local modifiers = {
 			modifiers = {
 				victim_firerate = 1/1.1
 			},
-			max = 10
+			max = CalculateLimit(2, 1/1.1)
 		},
 		manic = {
 			prefix = "Manic",
@@ -803,12 +820,29 @@ local modifiers = {
 				lowhealth_xp = 1.1
 			}
 		},
+		play = {
+			prefix = "Playful",
+			suffix = "Playing",
+			modifiers = {
+				victim_xpyield = 1.1
+			},
+			max = math.log(2, 1.1),
+			flags = InsaneStats.WPASS2_FLAGS.XP
+		},
+		glory = {
+			prefix = "Glorious",
+			suffix = "Glory",
+			modifiers = {
+				height_xp = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.XP
+		},
 	},
-	
+
 	{-- damage utility doubled cost
-		rejuvenate = {
-			prefix = "Rejuvenating",
-			suffix = "Rejuvenation",
+		medic = {
+			prefix = "Medical",
+			suffix = "Medication",
 			modifiers = {
 				kill10s_regen = 1.4641
 			},
@@ -836,8 +870,28 @@ local modifiers = {
 			max = 10,
 			cost = 2,
 		},
+		audio = {
+			prefix = "Auditory",
+			suffix = "Audio",
+			modifiers = {
+				longrange_xp = 1.4641,
+				melee_xp = 1.21
+			},
+			cost = 2,
+			flags = InsaneStats.WPASS2_FLAGS.XP
+		},
+		visual = {
+			prefix = "Visual",
+			suffix = "Visuality",
+			modifiers = {
+				shortrange_xp = 1.4641,
+				melee_xp = 1/1.21
+			},
+			cost = 2,
+			flags = InsaneStats.WPASS2_FLAGS.XP
+		},
 	},
-	
+
 	{-- damage utility, doubled weight negative cost
 		weak = {
 			prefix = "Weak",
@@ -870,12 +924,22 @@ local modifiers = {
 			cost = -1,
 			flags = InsaneStats.WPASS2_FLAGS.XP
 		},
+		honorbound = {
+			prefix = "Honorbound",
+			suffix = "Honorbinding",
+			modifiers = {
+				honorbound = 1/1.1
+			},
+			weight = 2,
+			cost = -1,
+            max = CalculateLimit(2, 1/1.1)
+		},
 	},
-	
+
 	{-- damage utility, negative cost
-		aggravate = {
-			prefix = "Aggravating",
-			suffix = "Aggravation",
+		derange = {
+			prefix = "Deranged",
+			suffix = "Derangedness",
 			modifiers = {
 				kill10s_damagetaken = 1.1
 			},
@@ -883,7 +947,7 @@ local modifiers = {
 			cost = -1
 		},
 	},
-	
+
 	{-- utility
 		quick = {
 			prefix = "Quick",
@@ -931,7 +995,7 @@ local modifiers = {
 			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.SUIT_POWER),
 		},
 	},
-	
+
 	{-- utility, half weight
 		sprint = {
 			prefix = "Sprinting",
@@ -1120,8 +1184,35 @@ local modifiers = {
 			weight = 0.5,
 			max = math.log(5, 1.21)
 		},
+		cloud = {
+			prefix = "Cloudy",
+            suffix = "Cloudiness",
+			modifiers = {
+				height_defence = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5
+		},
+		warm = {
+			prefix = "Warm",
+            suffix = "Warmth",
+			modifiers = {
+				seen_xp = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5
+		},
+		cool = {
+			prefix = "Cool",
+            suffix = "Coolness",
+			modifiers = {
+				unseen_xp = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5
+		},
 	},
-	
+
 	{-- utility, half weight doubled cost
 		volatile = {
 			prefix = "Volatile",
@@ -1263,6 +1354,16 @@ local modifiers = {
 			weight = 0.5,
 			cost = 2,
 		},
+		steam = {
+			prefix = "Steaming",
+			modifiers = {
+				mark = 1.21,
+				killstackmarked_firerate = 1.21
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			cost = 2,
+		},
 		savor = {
 			prefix = "Savoring",
 			modifiers = {
@@ -1307,6 +1408,16 @@ local modifiers = {
 			cost = -1,
 			max = CalculateLimit(2, 1/1.1)
 		},
+		shoddy = {
+			prefix = "Shoddy",
+			suffix = "Shoddiness",
+			modifiers = {
+				friction = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			cost = -1,
+			max = 5
+		},
 	},
 
 	{-- utility, half weight negative cost
@@ -1332,7 +1443,7 @@ local modifiers = {
 			cost = -1
 		},
 	},
-	
+
 	{-- defensive
 		defend = {
 			prefix = "Defensive",
@@ -1370,7 +1481,7 @@ local modifiers = {
 			max = 10
 		},
 	},
-	
+
 	{-- defensive, double cost
 		large = {
 			prefix = "Large",
@@ -1384,7 +1495,7 @@ local modifiers = {
 			max = 5
 		},
 	},
-	
+
 	{-- defensive, half weight
 		disarm = {
 			prefix = "Disarming",
@@ -1438,6 +1549,14 @@ local modifiers = {
 			},
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			max = CalculateLimit(2, 1/1.1),
+			weight = 0.5
+		},
+		rage = {
+			prefix = "Raging",
+			modifiers = {
+				hittakenstack_damage = 1.1
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			weight = 0.5
 		},
 		ward = {
@@ -1514,8 +1633,32 @@ local modifiers = {
 			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.MP_ONLY),
 			weight = 0.5
 		},
+		rejuvenate = {
+			prefix = "Rejuvenating",
+			suffix = "Rejuvenation",
+			modifiers = {
+				-- this intentionally scales better as regen and lifesteal
+				-- are only additive to each other
+				health_gain = 1.4641,
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			max = 10
+		},
+		barricade = {
+			prefix = "Barricading",
+			suffix = "Barrication",
+			modifiers = {
+				-- see above
+				armor_gain = 1.21,
+				armor_over = 1/1.21,
+			},
+			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
+			weight = 0.5,
+			max = 10
+		},
 	},
-	
+
 	{-- defensive, half weight doubled cost
 		hard = {
 			prefix = "Hard",
@@ -1531,7 +1674,8 @@ local modifiers = {
 		bloodlet = {
 			prefix = "Bloodletting",
 			modifiers = {
-				bloodletting = math.sqrt(1.1),
+				bloodletting = 1/1.1,
+				health_over = 1/1.1,
 				no_free_healing = math.sqrt(1.1),
 				armor_full = math.sqrt(1.1),
 				armor_full2 = math.sqrt(1.1)
@@ -1539,7 +1683,7 @@ local modifiers = {
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			weight = 0.5,
 			cost = 2,
-			max = 25
+			max = 20
 		},
 		glutton = {
 			prefix = "Gluttony",
@@ -1633,7 +1777,7 @@ local modifiers = {
 			max = 1
 		},
 	},
-	
+
 	{-- defensive, negative cost
 		unhappy = {
 			prefix = "Unhappy",
@@ -1674,7 +1818,7 @@ local modifiers = {
 			max = 10
 		},
 	},
-	
+
 	{-- defensive, negative doubled cost
 		tiny = {
 			prefix = "Tiny",
@@ -1699,7 +1843,7 @@ local modifiers = {
 			cost = -2
 		},
 	},
-	
+
 	{-- defensive, half weight negative cost
 		myopia = {
 			prefix = "Myopic",
@@ -1754,7 +1898,7 @@ local modifiers = {
 			prefix = "Fragile",
 			suffix = "Fragility",
 			modifiers = {
-				perhittaken_damagetaken = 1.1
+				hittakenstack_damagetaken = 1.1
 			},
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			cost = -1,
@@ -1822,16 +1966,24 @@ local attributes = {
 		display = "%s damage dealt, scaled by speed",
 		mul = 2
 	},
+	height_damage = {
+		display = "%s damage dealt, scaled by height from ground",
+		mul = 2
+	},
+	height_firerate = {
+		display = "%s fire rate, scaled by height from ground",
+		mul = 2
+	},
 	armor_damage = {
-		display = "%s damage dealt, scaled by armor %%",
+		display = "%s damage dealt, scaled by shield %%",
 		mul = 2
 	},
 	armored_victim_damage = {
-		display = "%s damage dealt vs. armored"
+		display = "%s damage dealt vs. armored or shielded"
 	},
-	unarmored_victim_damage = {
+	--[[unarmored_victim_damage = {
 		display = "%s damage dealt vs. unarmored"
-	},
+	},]]
 	back_damage = {
 		display = "%s damage dealt from behind",
 		mul = 1.5
@@ -1895,7 +2047,7 @@ local attributes = {
 		display = "%s laceration and bleed damage dealt",
 		mul = 10
 	},
-	
+
 	-- pure damage taken
 	damagetaken = {
 		display = "%s damage taken",
@@ -1959,6 +2111,10 @@ local attributes = {
 		display = "%s defence, scaled by speed",
 		mul = 2
 	},
+	height_defence = {
+		display = "%s defence, scaled by height from ground",
+		mul = 2
+	},
 	ping_defence = {
 		display = "%s defence, multiplied by ping",
 		mul = 0.02
@@ -2002,7 +2158,7 @@ local attributes = {
 		display = "+/%s random damage taken",
 		mode = 3
 	},
-	
+
 	-- kills and hits
 	starlight = {
 		display = "%ss starlit from kills and props",
@@ -2019,11 +2175,11 @@ local attributes = {
 	},
 	kill_lifesteal = {
 		display = "%s healing on kill",
-		mul = 0.1
+		mul = 0.2
 	},
 	kill_armorsteal = {
-		display = "%s armor recharged on kill",
-		mul = 0.1
+		display = "%s shield on kill",
+		mul = 0.2
 	},
 	kill_clipsteal = {
 		display = "%s clip refilled on kill"
@@ -2031,42 +2187,47 @@ local attributes = {
 	kill_supplychance = {
 		display = "%s chance for random item on kill",
 	},
+	kill_no_recoil = {
+		display = "%ss of no recoil after kill",
+		mul = 60,
+		nopercent = true
+	},
 	kill10s_damage = {
-		display = "%s damage dealt for 10s after kill",
-		mul = 2,
+		display = "%s damage dealt for +10s after kill",
+		mul = 2
 	},
 	kill10s_damagetaken = {
-		display = "%s damage taken for 10s after kill",
+		display = "%s damage taken for +10s after kill",
 		mul = 2,
 		invert = true
 	},
 	kill10s_ally_damage = {
-		display = "%s damage dealt for 10s after ally kill",
+		display = "%s damage dealt for +10s after ally kill",
 		mul = 10
 	},
 	kill10s_firerate = {
-		display = "%s fire rate for 10s after kill",
+		display = "%s fire rate for +10s after kill",
 		mul = 2,
 	},
 	kill10s_ammo_consumption = {
-		display = "%s ammo consumption for 10s after kill",
+		display = "%s ammo consumption for +10s after kill",
 		mul = 2,
 		invert = true
 	},
 	kill10s_xp = {
-		display = "%s coins and XP gain for 10s after kill",
+		display = "%s coins and XP gain for +10s after kill",
 		mul = 2,
 	},
 	kill10s_regen = {
-		display = "%s health regen for 10s after kill",
+		display = "%s health regen for +10s after kill",
 		mul = 0.02
 	},
 	kill10s_armorregen = {
-		display = "%s armor regen for 10s after kill",
+		display = "%s shield regen for +10s after kill",
 		mul = 0.02
 	},
 	kill10s_damageaura = {
-		display = "%s damage aura for 10s after kill",
+		display = "%s damage aura for +10s after kill",
 		nopercent = true,
 		mul = 10,
 	},
@@ -2096,23 +2257,27 @@ local attributes = {
 	},
 	killstackmarked_damage = {
 		display = "%s stacking damage dealt per marked kill for 10s",
-		mul = 2
+		mul = 1.2
+	},
+	killstackmarked_firerate = {
+		display = "%s stacking fire rate per marked kill for 10s",
+		mul = 1.2
 	},
 	killstackmarked_defence = {
 		display = "%s stacking defence per marked kill for 10s",
-		mul = 2
+		mul = 1.2
 	},
 	killstackmarked_xp = {
 		display = "%s stacking coins and XP gain per marked kill for 10s",
-		mul = 2
+		mul = 1.2
 	},
 	crit_lifesteal = {
 		display = "%s healing on crit",
-		mul = 0.01
+		mul = 0.02
 	},
 	crit_armorsteal = {
-		display = "%s armor recharged on crit",
-		mul = 0.01
+		display = "%s shield on crit",
+		mul = 0.02
 	},
 	critstack_damage = {
 		display = "%s stacking damage dealt per crit for 10s",
@@ -2174,22 +2339,26 @@ local attributes = {
 	},
 	hittaken_regen = {
 		display = "%s health regen for 10s on hit taken, 60s cooldown",
-		mul = 0.1
+		mul = 0.2
 	},
 	hittaken_armorregen = {
-		display = "%s armor regen for 10s on hit taken, 60s cooldown",
+		display = "%s shield regen for 10s on hit taken, 60s cooldown",
+		mul = 0.2
+	},
+	hittakenstack_damage = {
+		display = "%s stacking damage dealt per hit taken for 10s",
 		mul = 0.1
 	},
 	hittakenstack_defence = {
-		display = "%s defence per hit taken, decays over time",
+		display = "%s stacking defence per hit taken for 10s",
 		mul = 0.1
 	},
 	hitstack_victim_damagetaken = {
-		display = "%s stacking damage taken per hit for 10s",
+		display = "%s stacking victim damage taken per hit for 10s",
 		mul = 0.1
 	},
-	perhittaken_damagetaken = {
-		display = "%s damage taken per hit taken for 10s",
+	hittakenstack_damagetaken = {
+		display = "%s stacking damage taken per hit taken for 10s",
 		mul = 0.1,
 		invert = true
 	},
@@ -2198,7 +2367,8 @@ local attributes = {
 		mul = 60,
 		invert = true
 	},
-	
+
+    -- other damage + utility
 	crit_chance = {
 		display = "%s random crit chance",
 	},
@@ -2236,6 +2406,19 @@ local attributes = {
 	xp = {
 		display = "%s coins and XP gain",
 	},
+	longrange_xp = {
+		display = "%s coins and XP gain on long range kills",
+	},
+	shortrange_xp = {
+		display = "%s coins and XP gain on short range kills",
+	},
+	melee_xp = {
+		display = "%s coins and XP gain on melee kills",
+	},
+    height_damage = {
+        display = "%s damage dealt, scaled by height from ground",
+        mul = 2
+    },
 	lowhealth_xp = {
 		display = "Up to %s coins and XP gain at low health",
 		mul = 2
@@ -2245,7 +2428,7 @@ local attributes = {
 		mul = 2
 	},
 	armor_xp = {
-		display = "%s XP gain, scaled by armor %%",
+		display = "%s XP gain, scaled by shield %%",
 		mul = 2
 	},
 	clip_xp = {
@@ -2267,6 +2450,18 @@ local attributes = {
 	speed_xp = {
 		display = "%s coins and XP gain, scaled by speed",
 		mul = 2
+	},
+	height_xp = {
+		display = "%s coins and XP gain, scaled by height from ground",
+		mul = 2
+	},
+    seen_xp = {
+		display = "%s coins and XP gain from seen kills",
+		mul = 1.2
+	},
+    unseen_xp = {
+		display = "%s coins and XP gain from unseen kills",
+		mul = 5
 	},
 	explode = {
 		display = "%s explosion chance after 0.5s",
@@ -2331,6 +2526,10 @@ local attributes = {
 		mul = 2,
 		invert = true
 	},
+    friction = {
+		display = "%s friction on ground",
+        invert = true
+	},
 	aimbot = {
 		display = "%s bullet aimbot chance"
 	},
@@ -2342,7 +2541,17 @@ local attributes = {
 		mul = 80,
 		nopercent = "distance"
 	},
-	
+	reload_bullet = {
+		display = "%s bullets per second while holding reload",
+		mul = 10,
+		nopercent = true
+	},
+    honorbound = {
+		display = "%s health lost on holster unless kill done",
+        mul = 2
+    },
+
+    -- others
 	speed_dilation = {
 		display = "%s time dilation, scaled by square root of speed"
 	},
@@ -2360,16 +2569,30 @@ local attributes = {
 		display = "%s health",
 	},
 	armor = {
-		display = "%s armor",
+		display = "%s shield",
 	},
 	armor_trueblock = {
-		display = "Armor blocks all health damage",
+		display = "Shield blocks all health damage",
+	},
+	health_gain = {
+		display = "%s health gains from skills and modifiers"
+	},
+	health_over = {
+		display = "%s Insane Stats overhealing softcap and hardcap",
+		invert = true
 	},
 	armor_full = {
-		display = "Insane Stats armor gains can exceed full armor",
+		display = "Insane Stats shield gains can overshield",
 	},
 	armor_full2 = {
-		display = "Insane Stats armor gains reduced above full armor",
+		display = "Insane Stats overshielding has diminishing returns",
+		invert = true
+	},
+	armor_gain = {
+		display = "%s armor gains from skills and modifiers"
+	},
+	armor_over = {
+		display = "%s Insane Stats overshielding softcap and hardcap",
 		invert = true
 	},
 	dodge = {
@@ -2388,9 +2611,8 @@ local attributes = {
 		mul = 2
 	},
 	bloodletting = {
-		display = "Health above max %s turned into armor",
-		invert = true,
-		mode = 2
+		display = "Health above max %s turned into shield",
+		invert = true
 	},
 	no_free_healing = {
 		display = "Coin Shops never sell free health",
@@ -2480,6 +2702,7 @@ InsaneStats.canPlayFreezeSound = true
 InsaneStats.canPlayShockSound = true
 InsaneStats.canPlayBleedSound = true
 local statusEffects = {
+    -- victim
 	poison = {
 		name = "Poisoned",
 		typ = -1,
@@ -2489,7 +2712,7 @@ local statusEffects = {
 			if InsaneStats.canPlayPoisonSound then
 				InsaneStats.canPlayPoisonSound = false
 				ent:EmitSound(string.format("weapons/bugbait/bugbait_squeeze%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
-				
+
 				local effdata = EffectData()
 				effdata:SetOrigin(ent:GetPos())
 				effdata:SetEntity(ent)
@@ -2519,17 +2742,17 @@ local statusEffects = {
 			if InsaneStats.canPlayFreezeSound then
 				InsaneStats.canPlayFreezeSound = false
 				ent:EmitSound(string.format("physics/glass/glass_sheet_break%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
-				
+
 				local effdata = EffectData()
 				effdata:SetOrigin(ent:GetPos())
 				effdata:SetScale(1)
 				effdata:SetMagnitude(1)
 				util.Effect("GlassImpact", effdata)
 			end
-			
+
 			if ent:IsNPC()
-			and ent:InsaneStats_GetStatusEffectLevel("stun_immune") <= 0
-			and ent:InsaneStats_GetStatusEffectLevel("stunned") <= 0
+			and not ent:InsaneStats_HasStatusEffect("stun_immune")
+			and not ent:InsaneStats_HasStatusEffect("stunned")
 			and ent:InsaneStats_GetHealth() > 0 then
 				ent:InsaneStats_ApplyStatusEffect("stunned", 1, 2)
 			end
@@ -2585,7 +2808,7 @@ local statusEffects = {
 			if InsaneStats.canPlayPoisonSound then
 				InsaneStats.canPlayPoisonSound = false
 				ent:EmitSound(string.format("weapons/bugbait/bugbait_squeeze%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
-				
+
 				local effdata = EffectData()
 				effdata:SetOrigin(ent:GetPos())
 				effdata:SetEntity(ent)
@@ -2598,7 +2821,7 @@ local statusEffects = {
 			if InsaneStats.canPlayBleedSound then
 				InsaneStats.canPlayBleedSound = false
 				ent:EmitSound(string.format("npc/manhack/grind_flesh%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
-				
+
 				local effdata = EffectData()
 				effdata:SetOrigin(ent:GetPos())
 				effdata:SetEntity(ent)
@@ -2622,17 +2845,17 @@ local statusEffects = {
 			if InsaneStats.canPlayFreezeSound then
 				InsaneStats.canPlayFreezeSound = false
 				ent:EmitSound(string.format("physics/glass/glass_sheet_break%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
-				
+
 				local effdata = EffectData()
 				effdata:SetOrigin(ent:GetPos())
 				effdata:SetScale(1)
 				effdata:SetMagnitude(1)
 				util.Effect("GlassImpact", effdata)
 			end
-			
+
 			if ent:IsNPC()
-			and ent:InsaneStats_GetStatusEffectLevel("stun_immune") <= 0
-			and ent:InsaneStats_GetStatusEffectLevel("stunned") <= 0
+			and not ent:InsaneStats_HasStatusEffect("stun_immune")
+			and not ent:InsaneStats_HasStatusEffect("stunned")
 			and ent:InsaneStats_GetHealth() > 0 then
 				ent:InsaneStats_ApplyStatusEffect("stunned", 1, 2)
 			end
@@ -2679,7 +2902,7 @@ local statusEffects = {
 			if InsaneStats.canPlayFreezeSound then
 				InsaneStats.canPlayFreezeSound = false
 				ent:EmitSound(string.format("physics/glass/glass_sheet_break%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
-				
+
 				local effdata = EffectData()
 				effdata:SetOrigin(ent:GetPos())
 				effdata:SetScale(1)
@@ -2689,7 +2912,7 @@ local statusEffects = {
 			if InsaneStats.canPlayBleedSound then
 				InsaneStats.canPlayBleedSound = false
 				ent:EmitSound(string.format("npc/manhack/grind_flesh%u.wav", math.random(3)), 75, 100, 1, CHAN_WEAPON)
-				
+
 				local effdata = EffectData()
 				effdata:SetOrigin(ent:GetPos())
 				effdata:SetEntity(ent)
@@ -2711,10 +2934,10 @@ local statusEffects = {
 				effdata:SetAngles(angle_zero)
 				util.Effect("ManhackSparks", effdata)
 			end
-			
+
 			if ent:IsNPC()
-			and ent:InsaneStats_GetStatusEffectLevel("stun_immune") <= 0
-			and ent:InsaneStats_GetStatusEffectLevel("stunned") <= 0
+			and not ent:InsaneStats_HasStatusEffect("stun_immune")
+			and not ent:InsaneStats_HasStatusEffect("stunned")
 			and ent:InsaneStats_GetHealth() > 0 then
 				ent:InsaneStats_ApplyStatusEffect("stunned", 1, 2)
 			end
@@ -2733,7 +2956,8 @@ local statusEffects = {
 		typ = -1,
 		img = "salt-shaker"
 	},
-	
+
+    -- hits and hits taken
 	stunned = {
 		name = "Stunned",
 		typ = -1,
@@ -2846,7 +3070,7 @@ local statusEffects = {
 		img = "square-bottle"
 	},
 	hittaken_armorregen = {
-		name = "Shielding Armor Regeneration",
+		name = "Shielding Shield Regeneration",
 		typ = 2,
 		img = "bolt-shield",
 		overtime = true,
@@ -2859,7 +3083,8 @@ local statusEffects = {
 		typ = -2,
 		img = "bottled-bolt"
 	},
-	
+
+    -- generic status effects
 	damage_down = {
 		name = "Damage Down",
 		typ = -1,
@@ -2969,7 +3194,7 @@ local statusEffects = {
 		overtime = true,
 	},
 	armor_regen = {
-		name = "Armor Regeneration",
+		name = "Shield Regeneration",
 		typ = 1,
 		img = "bolt-shield",
 		overtime = true,
@@ -2995,7 +3220,13 @@ local statusEffects = {
 		typ = 1,
 		img = "death-note"
 	},]]
-	
+	no_recoil = {
+		name = "No Recoil",
+		typ = 1,
+		img = "on-target"
+	},
+
+    -- other triggers
 	starlight = {
 		name = "Starlit",
 		typ = 0,
@@ -3012,6 +3243,11 @@ local statusEffects = {
 		name = "Invincible",
 		typ = 1,
 		img = "mesh-ball"
+	},
+	honorbound = {
+		name = "Honorbound",
+		typ = -1,
+		img = "prayer"
 	},
 	invisible = {
 		name = "Invisible",
@@ -3150,6 +3386,7 @@ local statusEffects = {
 		img = "cracked-shield"
 	},
 
+    -- other
 	no_time_manipulation = {
 		name = "No Time Manipulation",
 		typ = -2,
@@ -3190,7 +3427,7 @@ hook.Add("InsaneStatsWPASS2AttributesChanged", "InsaneStatsSharedWPASS2", functi
 	if ent:IsWeapon() and ent:IsScripted() then
 		local oldClipMul = ent.insaneStats_WPASS2ClipMul or 1
 		local newClipMul = ent:InsaneStats_GetAttributes().clip or 1
-		
+
 		local weaponTable = ent:GetTable()
 		local entNewMaxClip1 = weaponTable.Primary
 			and tonumber(weaponTable.Primary.ClipSize)
@@ -3198,7 +3435,7 @@ hook.Add("InsaneStatsWPASS2AttributesChanged", "InsaneStatsSharedWPASS2", functi
 		local entNewMaxClip2 = weaponTable.Secondary
 			and tonumber(weaponTable.Secondary.ClipSize)
 			and weaponTable.Secondary.ClipSize * newClipMul / oldClipMul or -1
-		
+
 		if entNewMaxClip1 > 0 then
 			weaponTable.Primary.ClipSize = math.ceil(entNewMaxClip1)
 			--print(entNewMaxClip1)
@@ -3215,11 +3452,11 @@ hook.Add("InsaneStatsWPASS2AttributesChanged", "InsaneStatsSharedWPASS2", functi
 			ent:SetClip1(entNewClip1)
 			ent:SetClip2(entNewClip2)
 		end]]
-		
+
 		ent.insaneStats_WPASS2ClipMul = newClipMul
 		ent.insaneStats_WPASS2SpreadMul = ent:InsaneStats_GetAttributes().spread
 		ent.insaneStats_WPASS2BulletsMul = ent:InsaneStats_GetAttributes().bullets
-		
+
 		--[[if wepAttributes.clip and wep:IsScripted() then
 			if weaponTable.Primary then
 				weaponTable.Primary.ClipSize = math.ceil(weaponTable.Primary.ClipSize * wepAttributes.clip)
@@ -3295,7 +3532,7 @@ hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 		--local combatFraction = SERVER and math.Clamp(attacker:InsaneStats_GetCombatTime()/5, 0, 1) or 0
 		local wep = data.wep
 		local totalMul = attacker:InsaneStats_GetAttributeValue("firerate")
-	
+
 		if IsValid(wep) then
 			if wep:GetClass() == "weapon_physcannon" then return end
 			if wep.Clip1 then
@@ -3314,7 +3551,7 @@ hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 		local healthFraction = 1-math.Clamp(attacker:InsaneStats_GetHealth() / attacker:InsaneStats_GetMaxHealth(), 0, 1)
 		totalMul = totalMul * (1 + (attacker:InsaneStats_GetAttributeValue("lowhealth_firerate") - 1) * healthFraction)
 		totalMul = totalMul * (1 + (attacker:InsaneStats_GetAttributeValue("highhealth_firerate") - 1) * (1 - healthFraction))
-		
+
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetStatusEffectLevel("firerate_up")/100)
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetStatusEffectLevel("alt_firerate_up")/100)
 		--totalMul = totalMul * (1 + attacker:InsaneStats_GetStatusEffectLevel("hit10s_firerate_up")/100)
@@ -3322,14 +3559,30 @@ hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 		totalMul = totalMul * (1 - attacker:InsaneStats_GetStatusEffectLevel("firerate_down")/100)
 		--totalMul = totalMul * (1 - attacker:InsaneStats_GetStatusEffectLevel("menacing_firerate_down")/100)
 
-		-- SKILLS
+        if attacker:InsaneStats_GetAttributeValue("height_firerate") ~= 1 then
+            local gravityDir = physenv.GetGravity():GetNormalized()
+            gravityDir:Mul(65536)
+            local traceResult = util.TraceEntity({
+                start = attacker:GetPos(),
+                endpos = attacker:GetPos() + gravityDir,
+                filter = attacker,
+                mask = MASK_PLAYERSOLID
+            }, attacker)
 
-		if attacker:IsPlayer() and attacker:InsaneStats_GetSkillStacks("stabilization") > 0 then
-			timer.Simple(0, function()
+            local damageFactor = attacker:InsaneStats_GetAttributeValue("height_firerate") - 1
+            local distanceFactor = 16
+            totalMul = totalMul * (1 + damageFactor * traceResult.Fraction * 65536 / distanceFactor)
+        end
+
+        -- SKILLS
+
+		if attacker:IsPlayer() and (attacker:InsaneStats_HasStatusEffect("no_recoil")
+        or attacker:InsaneStats_GetSkillStacks("stabilization") > 0) then
+			--timer.Simple(0, function()
 				if IsValid(attacker) then
 					attacker:ViewPunchReset()
 				end
-			end)
+			--end)
 		end
 
 		totalMul = totalMul * (1 + attacker:InsaneStats_GetEffectiveSkillValues("pew_pew_pew")/100)
@@ -3338,7 +3591,7 @@ hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 		if game.SinglePlayer() then
 			totalMul = totalMul * (1 + attacker:InsaneStats_GetEffectiveSkillValues("spongy", 2)/100)
 		end
-	
+
 		if IsValid(wep) then
 			if wep.Clip1 then
 				local clip1 = wep:InsaneStats_Clip1()
@@ -3361,32 +3614,33 @@ hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 				end
 			end
 		end
-		
+
 		data.next = (data.next - CurTime()) / totalMul + CurTime()
 	end
 end)
 
 hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 	local ent = data.ent
-	if (IsValid(ent) and ent:InsaneStats_GetStatusEffectLevel("no_movement_modifications") <= 0) then
+	if (IsValid(ent) and not ent:InsaneStats_HasStatusEffect("no_movement_modifications")) then
 		local combatFraction = SERVER and math.Clamp(ent:InsaneStats_GetCombatTime()/5, 0, 1) or 0
 		local healthFraction = 1-math.Clamp(ent:InsaneStats_GetHealth() / ent:InsaneStats_GetMaxHealth(), 0, 1)
 		local speedMul = ent:InsaneStats_GetAttributeValue("speed")
-		
+
 		--speedMul = speedMul * (1 + ent:InsaneStats_GetStatusEffectLevel("stack_speed_up") / 100)
-	
+
 		speedMul = speedMul
 		* (1+ent:InsaneStats_GetStatusEffectLevel("speed_up")/100)
 		--* (1+ent:InsaneStats_GetStatusEffectLevel("alt_speed_up")/100)
 		* (1-ent:InsaneStats_GetStatusEffectLevel("speed_down")/100)
-		
-		if ent:InsaneStats_GetStatusEffectLevel("freeze") > 0
-		or ent:InsaneStats_GetStatusEffectLevel("frostfire") > 0
-		or ent:InsaneStats_GetStatusEffectLevel("cosmicurse") > 0 then
+
+		if ent:InsaneStats_HasStatusEffect("freeze")
+		or ent:InsaneStats_HasStatusEffect("frostfire")
+		or ent:InsaneStats_HasStatusEffect("cosmicurse") then
 			speedMul = speedMul / 2
 		end
 
 		local laggedSpeedMul = 1 + ent:InsaneStats_GetStatusEffectLevel("alt_speed_up")/100
+        data.friction = data.friction * ent:InsaneStats_GetAttributeValue("friction")
 
 		-- SKILLS
 
@@ -3403,16 +3657,13 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 		if ent:InsaneStats_GetSkillState("skip_the_scenery") == 1 then
 			speedMul = speedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("skip_the_scenery") / 100)
 		end
-		if ent:InsaneStats_EffectivelyHasSkill("blast_proof_suit") then
-			speedMul = speedMul * 0.75
-		end
 		--laggedSpeedMul = laggedSpeedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("fast_er", 2) / 100)
 		if game.SinglePlayer() then
 			speedMul = speedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("panic") / 100 * healthFraction)
 			* (1 + ent:InsaneStats_GetEffectiveSkillValues("spongy", 4)/100)
 
 			if ent:InsaneStats_GetSkillState("just_breathe") == 1 then
-				laggedSpeedMul = laggedSpeedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("just_breathe", 3) / 100)
+				laggedSpeedMul = laggedSpeedMul * (1 + ent:InsaneStats_GetEffectiveSkillValues("just_breathe", 4) / 100)
 			end
 		end
 		if ent:InsaneStats_EffectivelyHasSkill("so_heres_the_problem") and ent:WaterLevel() > 1 then
@@ -3427,7 +3678,9 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 		if ent:InsaneStats_GetSkillState("step_it_up") == 1 then
 			stepMul = 1 + ent:InsaneStats_GetEffectiveSkillValues("step_it_up", 2) / 100
 		end
-		
+
+		local jumpMul = 1 + ent:InsaneStats_GetStatusEffectLevel("jump_height_up")/100
+
 		data.speed = data.speed * speedMul
 		data.sprintSpeed = data.sprintSpeed * ent:InsaneStats_GetAttributeValue("sprint_speed")
 		data.sprintSpeed = data.sprintSpeed * (1 + ent:InsaneStats_GetEffectiveSkillValues("zoomer") / 100)
@@ -3435,6 +3688,7 @@ hook.Add("InsaneStatsMoveSpeed", "InsaneStatsSharedWPASS2", function(data)
 		data.hullSize = data.hullSize * hullMul
 		data.friction = data.friction * frictionMul
 		data.stepHeight = data.stepHeight * stepMul
+		data.jumpPower = data.jumpPower * math.sqrt(jumpMul)
 	end
 end)
 
@@ -3448,10 +3702,6 @@ hook.Add("EntityEmitSound","InsaneStatsSharedWPASS2",function(sound)
 			return false
 		end
 	end
-	--if sound.SoundName ~= SM_UpgradeSound then
-	--sound.Flags = bit.bor(sound.Flags, SND_SHOULDPAUSE)
-	--return true
-	--end
 end)
 
 hook.Add("StartCommand", "InsaneStatsSharedWPASS2", function(ply, usercmd)
@@ -3510,7 +3760,7 @@ hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data
 		if data.AmmoType == "Pistol" or data.AmmoType == "357" then
 			spreadMult = spreadMult * (1 + attacker:InsaneStats_GetEffectiveSkillValues("one_with_the_gun", 2) / 100)
 		end
-		
+
 		data.Spread:Mul(spreadMult)
 
 		local developer = InsaneStats:IsDebugLevel(1)
@@ -3518,7 +3768,7 @@ hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data
 		if attacker:InsaneStats_GetSkillState("silver_bullets") == 1 then
 			penetrationPower = penetrationPower + attacker:InsaneStats_GetEffectiveSkillValues("silver_bullets", 4)
 		end
-		if penetrationPower > 0 and attacker:InsaneStats_GetStatusEffectLevel("no_spreading_damage") <= 0 then
+		if penetrationPower > 0 and not attacker:InsaneStats_HasStatusEffect("no_spreading_damage") then
 			-- FIXME: in some cases, bullet penetration will incorrectly pierce
 			-- hollow objects as if they were completely solid
 			local oldCallback = data.Callback
@@ -3616,43 +3866,43 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 			if key == IN_WALK then
 				if (ply:InsaneStats_GetEntityData("last_alt_press") or 0) + 0.5 > RealTime() or FrameTime() > 0.25 then
 					ply:InsaneStats_SetEntityData("last_alt_press", 0)
-					
+
 					local duration = ply:InsaneStats_GetAttributeValue("alt_invisible") - 1
-					if ply:InsaneStats_GetStatusEffectLevel("invisible_cooldown") <= 0 and duration ~= 0 and not ply:GetNoDraw() then
+					if not ply:InsaneStats_HasStatusEffect("invisible_cooldown") and duration ~= 0 and not ply:GetNoDraw() then
 						ply:InsaneStats_ApplyStatusEffect("invisible", 1, duration)
 					end
-					
+
 					local stacks = (ply:InsaneStats_GetAttributeValue("alt_damage") - 1) * 100
-					if ply:InsaneStats_GetStatusEffectLevel("alt_damage_cooldown") <= 0
-					and ply:InsaneStats_GetStatusEffectLevel("alt_damage_up") <= 0
+					if not ply:InsaneStats_HasStatusEffect("alt_damage_cooldown")
+					and not ply:InsaneStats_HasStatusEffect("alt_damage_up")
 					and stacks ~= 0 then
 						ply:InsaneStats_ApplyStatusEffect("alt_damage_up", stacks, 10)
 					end
-					
+
 					stacks = (ply:InsaneStats_GetAttributeValue("alt_speed") - 1) * 100
-					if ply:InsaneStats_GetStatusEffectLevel("alt_speed_cooldown") <= 0
-					and ply:InsaneStats_GetStatusEffectLevel("alt_speed_up") <= 0
+					if not ply:InsaneStats_HasStatusEffect("alt_speed_cooldown")
+					and not ply:InsaneStats_HasStatusEffect("alt_speed_up")
 					and stacks ~= 0 then
 						ply:InsaneStats_ApplyStatusEffect("alt_speed_up", stacks, 10)
 					end
-					
+
 					stacks = 100 / ply:InsaneStats_GetAttributeValue("alt_damagetaken") - 100
-					if ply:InsaneStats_GetStatusEffectLevel("alt_defence_cooldown") <= 0
-					and ply:InsaneStats_GetStatusEffectLevel("alt_defence_up") <= 0
+					if not ply:InsaneStats_HasStatusEffect("alt_defence_cooldown")
+					and not ply:InsaneStats_HasStatusEffect("alt_defence_up")
 					and stacks ~= 0 then
 						ply:InsaneStats_ApplyStatusEffect("alt_defence_up", stacks, 10)
 					end
-					
+
 					stacks = (ply:InsaneStats_GetAttributeValue("alt_firerate") - 1) * 100
-					if ply:InsaneStats_GetStatusEffectLevel("alt_firerate_cooldown") <= 0
-					and ply:InsaneStats_GetStatusEffectLevel("alt_firerate_up") <= 0
+					if not ply:InsaneStats_HasStatusEffect("alt_firerate_cooldown")
+					and not ply:InsaneStats_HasStatusEffect("alt_firerate_up")
 					and stacks ~= 0 then
 						ply:InsaneStats_ApplyStatusEffect("alt_firerate_up", stacks, 10)
 					end
-					
+
 					stacks = (1 - ply:InsaneStats_GetAttributeValue("alt_gamespeed")) * 100
-					if ply:InsaneStats_GetStatusEffectLevel("alt_gamespeed_cooldown") <= 0
-					and ply:InsaneStats_GetStatusEffectLevel("alt_gamespeed_down") <= 0
+					if not ply:InsaneStats_HasStatusEffect("alt_gamespeed_cooldown")
+					and not ply:InsaneStats_HasStatusEffect("alt_gamespeed_down")
 					and stacks ~= 0 then
 						ply:InsaneStats_ApplyStatusEffect("alt_gamespeed_down", stacks, 10)
 					end
@@ -3675,10 +3925,11 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 					end
 
 					if ply:InsaneStats_GetSkillState("just_breathe") == 0
-					and ply:InsaneStats_EffectivelyHasSkill("just_breathe") then
+					and ply:InsaneStats_EffectivelyHasSkill("just_breathe")
+					and ply:KeyDown(IN_DUCK) then
 						if not game.SinglePlayer() and SERVER then
 							local skillTier = ply:InsaneStats_GetEffectiveSkillTier("just_breathe")
-							for i,v in ents.Iterator() do
+							for i,v in InsaneStats:GetEntityIterator() do
 								if ply:InsaneStats_IsValidAlly(v) then
 									v:InsaneStats_ApplyStatusEffect("charge", skillTier, 10)
 								end
@@ -3688,8 +3939,22 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 						ply:InsaneStats_SetSkillData("just_breathe", 1, 10)
 					end
 
+					if ply:InsaneStats_EffectivelyHasSkill("crystallized_time")
+					and ply:KeyDown(IN_SPEED)
+					and ply.insaneStats_PreviousTimeData
+					and ply:Alive() then
+						local desiredEntry = ply:InsaneStats_GetEffectiveSkillValues("crystallized_time", 3)
+						desiredEntry = math.min(desiredEntry * 10, #ply.insaneStats_PreviousTimeData)
+						local timeData = ply.insaneStats_PreviousTimeData[desiredEntry]
+
+						ply:SetPos(timeData.pos)
+						ply:SetEyeAngles(timeData.ang)
+						ply:SetHealth(timeData.hp)
+						ply:SetArmor(timeData.ar)
+					end
+
 					if ply:InsaneStats_GetEffectiveSkillTier("friendly_fire_off") > 1
-					and ply:InsaneStats_GetStatusEffectLevel("no_movement_modifications") <= 0 then
+					and not ply:InsaneStats_HasStatusEffect("no_movement_modifications") then
 						for i,v in ipairs(ents.FindByClass("npc_citizen")) do
 							--print(v:GetInternalVariable("squadname"), v:GetNPCState())
 							if v:GetInternalVariable("squadname") == "player_squad" and v:GetNPCState() > 0
@@ -3746,7 +4011,7 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 					ply:InsaneStats_SetEntityData("last_duck_press", 0)
 					local oldVel = ply:GetVelocity()
 					if not ply:OnGround() and ply:InsaneStats_EffectivelyHasSkill("mantreads")
-					and oldVel.z > -10000 and ply:InsaneStats_GetStatusEffectLevel("no_movement_modifications") <= 0 then
+					and oldVel.z > -10000 and not ply:InsaneStats_HasStatusEffect("no_movement_modifications") then
 						ply:SetVelocity(vector_up * -10000 - oldVel)
 					end
 				else
@@ -3754,21 +4019,21 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 				end
 			end
 			if key == IN_JUMP and not ply:InsaneStats_GetEntityData("air_jumped_negate")
-			and ply:InsaneStats_GetStatusEffectLevel("no_movement_modifications") <= 0 then
+			and not ply:InsaneStats_HasStatusEffect("no_movement_modifications") then
 				local canWPASS2Jump = ply:InsaneStats_GetStatusEffectLevel("air_jumped") + 1
 				< ply:InsaneStats_GetAttributeValue("jumps") + ply:InsaneStats_GetStatusEffectLevel("extra_jumps")
 				local canSkillJump = ply:InsaneStats_GetSkillStacks("jumper") > 0
 				if canWPASS2Jump or canSkillJump then
-					if canSkillJump then
+					if canWPASS2Jump then
+						ply:InsaneStats_ApplyStatusEffect("air_jumped", 1, 5, {amplify = true})
+                    elseif canSkillJump then
 						local newStacks = ply:InsaneStats_GetSkillStacks("jumper") - 1
 						ply:InsaneStats_SetSkillData("jumper", newStacks <= 0 and -1 or 1, newStacks)
-					elseif canWPASS2Jump then
-						ply:InsaneStats_ApplyStatusEffect("air_jumped", 1, 5, {amplify = true})
 					end
 
 					-- vertical
 					local currentVel = ply:GetVelocity()
-					
+
 					-- horizontal
 					local desiredVector = Vector(currentVel.x, currentVel.y, 0)
 					local shuntStrength = (ply:KeyDown(IN_SPEED) and ply:GetRunSpeed() or ply:GetWalkSpeed())
@@ -3810,9 +4075,9 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 				local oldStacks = ply:InsaneStats_GetSkillStacks("explosive_arsenal")
 				local newStacks = bit.bxor(oldStacks, 2)
 				if bit.band(newStacks, 2) == 0 then
-					ply:PrintMessage(HUD_PRINTTALK, "Invincible Instant Rockets: Enabled")
-				else
 					ply:PrintMessage(HUD_PRINTTALK, "Invincible Instant Rockets: Disabled")
+				else
+					ply:PrintMessage(HUD_PRINTTALK, "Invincible Instant Rockets: Enabled")
 				end
 				ply:InsaneStats_SetSkillData("explosive_arsenal", -2, newStacks)
 			elseif wepClass == "weapon_crossbow" then
@@ -3858,6 +4123,31 @@ hook.Add("Think", "InsaneStatsSharedWPASS2", function()
 		end
 
 		for i,ply in player.Iterator() do
+            if ply:KeyDown(IN_RELOAD) and ply:InsaneStats_GetAttributeValue("reload_bullet") ~= 1 then
+				local curTime = CurTime()
+                local nextReloadBullet = ply:InsaneStats_GetEntityData("reload_bullet_next") or 0
+                if nextReloadBullet < curTime then
+                    local data = {next = curTime + 1 / (ply:InsaneStats_GetAttributeValue("reload_bullet") - 1), attacker = ply}
+                    hook.Run("InsaneStatsModifyNextFire", data)
+                    ply:InsaneStats_SetEntityData("reload_bullet_next", data.next)
+                    ply:FireBullets({
+                        Damage = 10,
+                        Callback = function(attacker, trace, dmginfo)
+                            dmginfo:SetDamageType(DMG_CLUB)
+
+                            local ent = trace.Entity
+                            if IsValid(ent) and SERVER then
+                                ply:SimulateGravGunPickup(ent)
+                                ply:SimulateGravGunDrop(ent)
+                            end
+                        end,
+                        AmmoType = "GaussEnergy",
+                        TracerName = "GunshipImpact",
+                        Dir = ply:GetAimVector(),
+                        Src = ply:GetShootPos()
+                    })
+                end
+            end
 			local currentWep = ply:GetActiveWeapon()
 			local validForMeleeArts = IsValid(currentWep) and (
 				currentWep:GetClass() == "weapon_physcannon"
@@ -3889,7 +4179,7 @@ hook.Add("Think", "InsaneStatsSharedWPASS2", function()
 
 							if times ~= 0 then
 								local entitiesToFire = {}
-							
+
 								if entities == "!activator" then
 									entitiesToFire = {attacker}
 								elseif entities == "!self" then
@@ -3899,11 +4189,11 @@ hook.Add("Think", "InsaneStatsSharedWPASS2", function()
 								else
 									entitiesToFire = ents.FindByName(entities)
 								end
-							
+
 								for _, ent in ipairs(entitiesToFire) do
 									ent:Fire(v.input, v.param, v.delay, attacker, trace.Entity)
 								end
-							
+
 								if times > 0 then
 									v.times = times - 1
 								end
@@ -3916,7 +4206,7 @@ hook.Add("Think", "InsaneStatsSharedWPASS2", function()
 					Src = ply:GetShootPos()
 				})
 			end
-			local jumperStacks = ply:InsaneStats_GetStatusEffectLevel("no_movement_modifications") > 0
+			local jumperStacks = ply:InsaneStats_HasStatusEffect("no_movement_modifications")
 			and 0 or ply:InsaneStats_GetEffectiveSkillValues("jumper")
 			if ply:OnGround() then
 				ply:InsaneStats_ClearStatusEffect("air_jumped")
@@ -3951,14 +4241,16 @@ hook.Add("InsaneStatsEffectiveSpeed", "InsaneStatsSharedWPASS2", function(data)
 end)
 
 hook.Add("PlayerNoClip", "InsaneStatsSharedWPASS2", function(ply, desiredState)
-	if ply:InsaneStats_GetStatusEffectLevel("can_noclip") ~= 0 then
-		return ply:InsaneStats_GetStatusEffectLevel("can_noclip") > 0
+	if ply:InsaneStats_HasStatusEffect("can_noclip") then
+		return ply:InsaneStats_HasStatusEffect("can_noclip")
 	end
 end)
 
 hook.Add("InsaneStatsWPASS2AddHealthNerfFactor", "InsaneStatsSharedWPASS2", function(data)
 	local ent = data.ent
-	data.nerfFactor = data.nerfFactor * (1 + ent:InsaneStats_GetEffectiveSkillValues("bloodletter_pact", 2) / 100)
+	data.nerfFactor = data.nerfFactor
+	* ent:InsaneStats_GetAttributeValue("health_over")
+	* (1 + ent:InsaneStats_GetEffectiveSkillValues("bloodletter_pact", 2) / 100)
 
 	if ent:InsaneStats_EffectivelyHasSkill("grandmaster_of_earth") then
 		local totalLevel = ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_fire")
@@ -3973,10 +4265,12 @@ end)
 
 hook.Add("InsaneStatsWPASS2AddArmorNerfFactor", "InsaneStatsSharedWPASS2", function(data)
 	local ent = data.ent
+	data.nerfFactor = data.nerfFactor * ent:InsaneStats_GetAttributeValue("armor_over")
+
 	if ent:InsaneStats_EffectivelyHasSkill("hacked_shield") then
 		data.nerfFactor = data.nerfFactor * (1 + ent:InsaneStats_GetEffectiveSkillValues("hacked_shield", 2) / 100)
 	end
-	
+
 	if ent:InsaneStats_EffectivelyHasSkill("grandmaster_of_earth") then
 		local totalLevel = ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_fire")
 		+ ent:InsaneStats_GetEffectiveSkillTier("grandmaster_of_air")
@@ -3998,3 +4292,24 @@ hook.Add("InsaneStatsBlockFreebie", "InsaneStatsSharedWPASS2", function(ply, sho
 		or ply:InsaneStats_GetAttributeValue("no_free_ammo") ~= 1
 	) and ammoType < 257 then return true end
 end)
+
+timer.Create(
+	"InsaneStatsSharedWPASS2", 0.1, 0, function()
+		for i,v in player.Iterator() do
+			v.insaneStats_PreviousTimeData = v.insaneStats_PreviousTimeData or {}
+			table.insert(
+				v.insaneStats_PreviousTimeData, 1,
+				{
+					pos = v:GetPos(),
+					ang = v:GetAngles(),
+					hp = v:InsaneStats_GetHealth(),
+					ar = v:InsaneStats_GetArmor()
+				}
+			)
+
+			for i = 121, #v.insaneStats_PreviousTimeData do
+				table.remove(v.insaneStats_PreviousTimeData)
+			end
+		end
+	end
+)

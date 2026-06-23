@@ -13,18 +13,19 @@ function EFFECT:Init(effdata)
 			particle:SetCollide(false)
 			particle:SetDieTime(lifeTime)
 			particle:SetEndAlpha(255)
-			particle:SetEndSize(size)
+			particle:SetEndSize(0)
 			particle:SetLighting(false)
 			particle:SetStartAlpha(255)
 			particle:SetStartSize(size)
 			particle:SetRoll(math.pi/4)
+			particle:SetColor(255, 0, 0)
 		end
 	end
 end
 
 function EFFECT:Think()
 	local curTime = CurTime()
-	
+
 	if self.KillTime >= curTime then
 		return true
 	else

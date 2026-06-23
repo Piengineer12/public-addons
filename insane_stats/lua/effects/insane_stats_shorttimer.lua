@@ -28,7 +28,8 @@ function EFFECT:Init(effdata)
 			particle:SetEndSize(self.Size)
 			particle:SetLighting(false)
 			particle:SetStartAlpha(255)
-			particle:SetStartSize(self.Size)
+			particle:SetStartSize(0)
+			particle:SetColor(255, 0, 0)
 			--[[particle:SetThinkFunction(function(particle)
 				if IsValid(self) then
 					particle:SetMaterial(GetParticleMaterial(particle))
@@ -43,7 +44,7 @@ end
 
 function EFFECT:Think()
 	local curTime = CurTime()
-	
+
 	if self.KillTime >= curTime then
 		if self.Particle then
 			local nextMaterial = self:GetParticleMaterial(particle)

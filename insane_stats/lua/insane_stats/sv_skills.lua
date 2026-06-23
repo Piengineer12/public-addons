@@ -59,7 +59,7 @@ hook.Add("PlayerSpawn", "InsaneStatsSkills", function(ply, fromTransition)
 		ply:InsaneStats_SetSkills(nil)
 		ply:InsaneStats_SetSealedSkills(nil)
 	end
-	
+
 	if not ply.insaneStats_Skills and InsaneStats:GetConVarValue("skills_save") then
 		local skills = savedPlayerSkills[ply:SteamID()] or {}
 		ply:InsaneStats_SetSkills(skills)
@@ -78,14 +78,14 @@ timer.Create("InsaneStatsSkills", 0, 0, function()
 	end
 
 	for k,v in pairs(InsaneStats:GetSkillDataToNetwork()) do
-		if k:IsPlayer() then
+		if IsValid(k) and k:IsPlayer() then
 			net.Start("insane_stats")
 			net.WriteUInt(8, 8)
 
 			local data = {}
 			for k2,v2 in pairs(v) do
 				local skillData = k:InsaneStats_GetSkillData(k2)
-		
+
 				table.insert(data, {
 					id = InsaneStats:GetSkillID(k2),
 					state = skillData.state or -2,
@@ -93,7 +93,7 @@ timer.Create("InsaneStatsSkills", 0, 0, function()
 					updateTime = skillData.updateTime or CurTime()
 				})
 			end
-			
+
 			net.WriteUInt(#data, 16)
 			for i,v2 in ipairs(data) do
 				net.WriteUInt(v2.id or 0, 16)

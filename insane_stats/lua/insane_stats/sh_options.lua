@@ -194,7 +194,7 @@ hook.Add("CCVCCMRun", "InsaneStatsOptionsShared", function()
 						Remove Weapons: 0\n\z
 						Remove Suit: 0\n\z
 						Play Sound: 2-7 (<targetname/*>, <sound>, [class/*], [model/*], [soundlevel (default: 75)], [pitch (default: 100)], [volume (default: 1)])\n\z
-						Show Timer: 1-2 (<duration>, [color (default: -1)])\n\z
+						Show Timer: 1-3 (<duration>, [color (default: -1)], [text])\n\z
 						Run Command: 1+ (<command>, [arg1], [arg2], [...])\n\z
 						Toggle ConVar: 1 (<name>)\n\z
 						Add ConVar: 2 (<name>, <value>)\n\z

@@ -4,16 +4,17 @@ InsaneStats.PointCommandCustomEvents = {}
 concommand.Add("insanestats_pointcmder_timer", function(ply, cmd, args, argStr)
 	if (not IsValid(ply) or ply:IsAdmin()) then
 		if #args < 1 then
-			InsaneStats:Log("Format: insanestats_pointcmder_debugtimer [duration=10] [color=-1]")
+			InsaneStats:Log("Format: insanestats_pointcmder_debugtimer [duration=10] [color=-1] [text]")
 		else
-			local duration, color = args[1], args[2]
-			duration = tonumber(duration) or 10
-			color = tonumber(color) or -1
+			local duration, color, text = args[1], args[2], table.concat(args, " ", 3)
+			duration = tonumber(duration) or duration == "inf" and math.huge or 10
+			color = tonumber(color) or color == "inf" and math.huge or -1
 
 			net.Start("insane_stats")
 			net.WriteUInt(10, 8)
 			net.WriteFloat(CurTime() + duration)
 			net.WriteFloat(color)
+            net.WriteString(text or "")
 			net.Broadcast()
 		end
 	end
@@ -120,7 +121,7 @@ end)
 
 local function GetWildcardMatchEntities(name, class, model)
 	local inputEntities = {}
-	for j,v2 in ents.Iterator() do
+	for j,v2 in InsaneStats:GetEntityIterator() do
 		if InsaneStats:WildcardMatches(name, v2:GetName())
 		and InsaneStats:WildcardMatches(class, v2:GetClass())
 		and InsaneStats:WildcardMatches(model, v2:GetModel()) then
@@ -165,16 +166,17 @@ function InsaneStats:DoActions(actions)
 					end
 
 					local sameMap = newMap == game.GetMap()
-					PrintMessage(HUD_PRINTTALK,
-						sameMap and string.format("Map is restarting in %.1f seconds!", delay)
-						or string.format("Map is changing to %s in %.1f seconds!", newMap, delay)
-					)
+                    local text = "Restarting Map"
+                    if not sameMap then
+                        text = string.format("Changing Map To \"%s\"", newMap)
+                    end
 
 					local color = sameMap and 4 or 1
 					net.Start("insane_stats")
 					net.WriteUInt(10, 8)
 					net.WriteFloat(CurTime() + delay)
 					net.WriteFloat(color)
+                    net.WriteString(text)
 					net.Broadcast()
 				end
 
@@ -193,6 +195,7 @@ function InsaneStats:DoActions(actions)
 						net.WriteUInt(10, 8)
 						net.WriteFloat(CurTime() + duration)
 						net.WriteFloat(color)
+                        net.WriteString(v[2][3] and v[2][3][1] or "")
 						net.Broadcast()
 					elseif action == InsaneStats.ACTIONS.APPLY_STATUS then
 						local filterName = v[2][1][1]
@@ -214,7 +217,7 @@ function InsaneStats:DoActions(actions)
 
 						local effectName = v[2][2] and v[2][2][1] or '*'
 						for j,v2 in ipairs(inputEntities) do
-							for k,v3 in pairs(v2.insaneStats_StatusEffects) do
+							for k,v3 in pairs(v2:InsaneStats_GetStatusEffectData()) do
 								if InsaneStats:WildcardMatches(effectName, k) then
 									v2:InsaneStats_ClearStatusEffect(k)
 								end
@@ -299,7 +302,7 @@ function InsaneStats:DoActions(actions)
 					end
 				end)
 			end
-	
+
 			v[4] = v[4] - 1
 		end
 	end
@@ -356,7 +359,7 @@ function InsaneStats:CheckEvents(eventType, ...)
 		self.LocalMapEvents = {}
 		local currentMap = game.GetMap()
 		for i,v in ipairs(self.PointCommandCustomEvents) do
-			if v[1] == currentMap then
+			if InsaneStats:WildcardMatches(v[1], currentMap) then
 				table.Add(self.LocalMapEvents, v[2])
 			end
 		end
@@ -401,7 +404,7 @@ hook.Add("Think", "InsaneStatsPointCommand", function()
 	coroutine.resume(scanThread)
 
 	if killScanData then
-		for i,v in ents.Iterator() do
+		for i,v in InsaneStats:GetEntityIterator() do
 			local class = v:GetClass()
 			local name = v:GetName()
 			local model = v:GetModel()

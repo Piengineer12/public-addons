@@ -6,15 +6,14 @@ Donate:			https://ko-fi.com/piengineer12
 
 misc
 
-add more support for Synergy maps (info_player_equip, trigger_coop, hud_timer)
 test non-remake maps too
 enemies gain skills based on level
 rewards for less damage taken / less time taken
 ]]
 
 InsaneStats = {
-	VERSION = "2.2.0",
-	VERSION_DATE = "2025-09-30",
+	VERSION = "3.0.0-beta.1",
+	VERSION_DATE = "2026-06-22",
 	WORKSHOP_ID = "2980423627"
 }
 
@@ -39,6 +38,7 @@ local clientFiles = {
 	"cl_coin",
 	"cl_infhealth",
 	"cl_net",
+    "cl_notifs",
 	"cl_options",
 	"cl_pointcommander",
 	"cl_skills",
@@ -50,6 +50,7 @@ local clientFiles = {
 local sharedFiles = {
 	"sh_base",
 	"sh_coin",
+    "sh_compat",
 	"sh_infhealth",
 	"sh_options",
 	"sh_pointcommander",
@@ -64,6 +65,7 @@ local sharedFiles = {
 local serverFiles = {
 	"sv_base",
 	"sv_coin",
+    "sv_compat",
 	"sv_infhealth",
 	"sv_net",
 	"sv_pointcommander",

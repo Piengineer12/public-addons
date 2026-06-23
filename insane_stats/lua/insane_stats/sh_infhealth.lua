@@ -18,6 +18,11 @@ InsaneStats:RegisterConVar("infhealth_spawn_invincibility", "insanestats_infheal
 	display = "Spawn Invincible Seconds", desc = "Spawned players are given this many seconds of invincibility.",
 	type = InsaneStats.FLOAT, min = 0, max = 10
 })
+InsaneStats:RegisterConVar("infhealth_prevent_no_knockback_crash", "insanestats_infhealth_prevent_no_knockback_crash", "1", {
+    display = "Prevent World Attacker Crash", desc = "All damage will deal at least 1 unit of upward knockback. \z
+    Fixes crashes caused by zero knockback damage on NPCs.",
+	type = InsaneStats.BOOL
+})
 InsaneStats:RegisterConVar("infhealth_armor_chance", "insanestats_infhealth_armor_chance", "100", {
 	display = "Armor Chance", desc = "Chance for NPCs to have armor.",
 	type = InsaneStats.FLOAT, min = 0, max = 100
@@ -65,17 +70,17 @@ function ENT:InsaneStats_GetHealth()
 	return InsaneStats:GetConVarValue("infhealth_enabled") and self:InsaneStats_GetEntityData("health")
 	or self:Health()
 end
-	
+
 function ENT:InsaneStats_GetMaxHealth()
 	return InsaneStats:GetConVarValue("infhealth_enabled") and self:InsaneStats_GetEntityData("max_health")
 	or self:GetMaxHealth()
 end
-	
+
 function ENT:InsaneStats_GetArmor()
 	return InsaneStats:GetConVarValue("infhealth_enabled") and tonumber(self:InsaneStats_GetEntityData("armor"))
 	or self.Armor and tonumber(self:Armor()) or 0
 end
-	
+
 function ENT:InsaneStats_GetMaxArmor()
 	return InsaneStats:GetConVarValue("infhealth_enabled") and tonumber(self:InsaneStats_GetEntityData("max_armor"))
 	or self.GetMaxArmor and tonumber(self:GetMaxArmor()) or 0
@@ -88,7 +93,7 @@ local function OverrideHealth()
 		ENT.InsaneStats_SetRawMaxHealth = ENT.SetMaxHealth
 		ENT.InsaneStats_GetRawMaxHealth = ENT.GetMaxHealth
 	end
-	
+
 	function ENT:SetHealth(newHealth)
 		newHealth = tonumber(newHealth)
 		assert(CLIENT or newHealth >= -math.huge, "Something tried to set health on "..tostring(self).." to nan!")
@@ -96,23 +101,23 @@ local function OverrideHealth()
 		if newHealth > 0 then
 			self.insaneStats_HealthRoot8 = InsaneStats:CalculateRoot8(newHealth)
 		end
-		
+
 		if self.InsaneStats_SetRawHealth then
 			local scaledHealth = newHealth
 			if self:InsaneStats_GetMaxHealth() > 999999999 and self:InsaneStats_GetMaxHealth() < math.huge then
 				scaledHealth = scaledHealth / self:InsaneStats_GetMaxHealth() * 999999999
 			end
-			
+
 			scaledHealth = math.Clamp(math.ceil(scaledHealth), -999999999, 999999999)
 			self:InsaneStats_SetRawHealth(scaledHealth)
 			self.insaneStats_OldRawHealth = scaledHealth
 		end
-		
+
 		if SERVER then
 			self:InsaneStats_MarkForUpdate(1)
 		end
 	end
-	
+
 	function ENT:Health()
 		local actual = self:InsaneStats_GetEntityData("health") or self:InsaneStats_GetRawHealth()
 		local int, frac = math.modf(actual)
@@ -120,7 +125,7 @@ local function OverrideHealth()
 		frac = math.ceil(frac * mult) / mult
 		return int + frac
 	end
-	
+
 	function ENT:SetMaxHealth(newHealth)
 		newHealth = tonumber(newHealth)
 		assert(CLIENT or newHealth >= -math.huge, "Something tried to set max health on "..tostring(self).." to nan!")
@@ -131,12 +136,12 @@ local function OverrideHealth()
 			InsaneStats:Log("Max health on %s was set to %g, is this intentional?", tostring(self), newHealth)
 			debug.Trace()
 		end
-		
+
 		if self.InsaneStats_SetRawMaxHealth then
 			local scaledMaxHealth = math.Clamp(math.ceil(newHealth), -999999999, 999999999)
 			self:InsaneStats_SetRawMaxHealth(scaledMaxHealth)
 			self.insaneStats_OldRawMaxHealth = scaledMaxHealth
-		
+
 			if newHealth > 999999999 then
 				local scaledHealth = self:InsaneStats_GetHealth() / newHealth * 999999999
 				scaledHealth = math.Clamp(math.ceil(scaledHealth), -999999999, 999999999)
@@ -144,16 +149,18 @@ local function OverrideHealth()
 				self.insaneStats_OldRawHealth = scaledHealth
 			end
 		end
-		
+
 		if SERVER then
 			self:InsaneStats_MarkForUpdate(1)
 		end
 		if SERVER and self:IsPlayer() and InsaneStats:IsDebugLevel(2) then
 			InsaneStats:Log("%s max health set to %g", tostring(self), newHealth)
-			debug.Trace()
+			if InsaneStats:IsDebugLevel(3) then
+				debug.Trace()
+			end
 		end
 	end
-	
+
 	function ENT:GetMaxHealth()
 		local actual = self:InsaneStats_GetEntityData("max_health") or self:InsaneStats_GetRawMaxHealth()
 		local int, frac = math.modf(actual)
@@ -169,7 +176,7 @@ local function DeOverrideHealth()
 		ENT.Health = ENT.InsaneStats_GetRawHealth
 		ENT.SetMaxHealth = ENT.InsaneStats_SetRawMaxHealth
 		ENT.GetMaxHealth = ENT.InsaneStats_GetRawMaxHealth
-		
+
 		ENT.InsaneStats_SetRawHealth = nil
 		ENT.InsaneStats_GetRawHealth = nil
 		ENT.InsaneStats_SetRawMaxHealth = nil
@@ -184,7 +191,7 @@ local function OverrideArmor()
 		PLAYER.InsaneStats_SetRawMaxArmor = PLAYER.SetMaxArmor
 		PLAYER.InsaneStats_GetRawMaxArmor = PLAYER.GetMaxArmor
 	end
-	
+
 	function ENT:SetArmor(newArmor)
 		assert(CLIENT or newArmor >= -math.huge, "Something tried to set armor on "..tostring(self).." to nan!")
 		self:InsaneStats_SetEntityData("armor", newArmor)
@@ -221,7 +228,7 @@ local function OverrideArmor()
 
 			if newArmor > 2147483647 then
 				timer.Simple(0, function()
-					if (IsValid(self) and self:InsaneStats_GetCurrentArmorAdd() == 1) then
+					if (IsValid(self) and self:InsaneStats_GetStartingArmor() > 2147483647) then
 						InsaneStats:Log(
 							"Warning! Max armor on %s set to above 2147483647 without using the XP system!",
 							tostring(self)
@@ -232,7 +239,7 @@ local function OverrideArmor()
 			end
 		end
 	end
-	
+
 	function ENT:GetMaxArmor()
 		local actual = tonumber(self:InsaneStats_GetEntityData("max_armor")) or 0
 		local int, frac = math.modf(actual)
@@ -240,30 +247,30 @@ local function OverrideArmor()
 		frac = math.ceil(frac * mult) / mult
 		return int + frac
 	end
-	
+
 	function PLAYER:SetArmor(newArmor)
 		assert(CLIENT or newArmor >= -math.huge, "Something tried to set armor on "..tostring(self).." to nan!")
 		self:InsaneStats_SetEntityData("armor", newArmor)
 		if newArmor > 0 then
 			self.insaneStats_ArmorRoot8 = InsaneStats:CalculateRoot8(newArmor)
 		end
-		
+
 		if self.InsaneStats_SetRawArmor then
 			local scaledArmor = newArmor
 			if self:InsaneStats_GetMaxArmor() > 999999999 and self:InsaneStats_GetMaxArmor() < math.huge then
 				scaledArmor = scaledArmor / self:InsaneStats_GetMaxArmor() * 999999999
 			end
-			
+
 			scaledArmor = math.Clamp(math.ceil(scaledArmor), -999999999, 999999999)
 			self:InsaneStats_SetRawArmor(scaledArmor)
 			self.insaneStats_OldRawArmor = scaledArmor
 		end
-		
+
 		if SERVER then
 			self:InsaneStats_MarkForUpdate(1)
 		end
 	end
-	
+
 	function PLAYER:Armor()
 		local actual = tonumber(self:InsaneStats_GetEntityData("armor")) or self:InsaneStats_GetRawArmor()
 		local int, frac = math.modf(actual)
@@ -271,7 +278,7 @@ local function OverrideArmor()
 		frac = math.ceil(frac * mult) / mult
 		return int + frac
 	end
-	
+
 	function PLAYER:SetMaxArmor(newArmor)
 		assert(CLIENT or newArmor >= -math.huge, "Something tried to set max armor on "..tostring(self).." to nan!")
 		self:InsaneStats_SetEntityData("max_armor", newArmor)
@@ -284,12 +291,12 @@ local function OverrideArmor()
 			InsaneStats:Log("Max armor on %s was set to %g, is this intentional?", tostring(self), newArmor)
 			debug.Trace()
 		end
-		
+
 		if self.InsaneStats_SetRawMaxArmor then
 			local scaledMaxArmor = math.Clamp(math.ceil(newArmor), -999999999, 999999999)
 			self:InsaneStats_SetRawMaxArmor(scaledMaxArmor)
 			self.insaneStats_OldRawMaxArmor = scaledMaxArmor
-		
+
 			if newArmor > 999999999 then
 				local scaledArmor = self:InsaneStats_GetArmor() / newArmor * 999999999
 				scaledArmor = math.Clamp(math.ceil(scaledArmor), -999999999, 999999999)
@@ -297,12 +304,12 @@ local function OverrideArmor()
 				self.insaneStats_OldRawArmor = scaledArmor
 			end
 		end
-		
+
 		if SERVER then
 			self:InsaneStats_MarkForUpdate(1)
 		end
 	end
-	
+
 	function PLAYER:GetMaxArmor()
 		local actual = tonumber(self:InsaneStats_GetEntityData("max_armor")) or self:InsaneStats_GetRawMaxArmor()
 		local int, frac = math.modf(actual)
@@ -318,12 +325,12 @@ local function DeOverrideArmor()
 		PLAYER.Armor = PLAYER.InsaneStats_GetRawArmor
 		PLAYER.SetMaxArmor = PLAYER.InsaneStats_SetRawMaxArmor
 		PLAYER.GetMaxArmor = PLAYER.InsaneStats_GetRawMaxArmor
-		
+
 		PLAYER.InsaneStats_SetRawArmor = nil
 		PLAYER.InsaneStats_GetRawArmor = nil
 		PLAYER.InsaneStats_SetRawMaxArmor = nil
 		PLAYER.InsaneStats_GetRawMaxArmor = nil
-		
+
 		ENT.SetArmor = nil
 		ENT.GetArmor = nil
 		ENT.SetMaxArmor = nil
@@ -340,7 +347,7 @@ local function OverrideDamage()
 		DMGINFO.InsaneStats_ScaleRawDamage = DMGINFO.ScaleDamage
 		DMGINFO.InsaneStats_GetRawDamage = DMGINFO.GetDamage
 	end
-	
+
 	function DMGINFO:SetDamage(num)
 		InsaneStats:SetDamage(num)
 		self:InsaneStats_SetRawDamage(num)
@@ -350,7 +357,7 @@ local function OverrideDamage()
 			error("Something tried to set damage to nan!")
 		end]]
 	end
-	
+
 	function DMGINFO:AddDamage(num)
 		InsaneStats:SetDamage(self:GetDamage() + num)
 		self:InsaneStats_AddRawDamage(num)
@@ -361,7 +368,7 @@ local function OverrideDamage()
 			error("Something tried to set damage to nan!")
 		end]]
 	end
-	
+
 	function DMGINFO:SubtractDamage(num)
 		InsaneStats:SetDamage(self:GetDamage() - num)
 		self:InsaneStats_SubtractRawDamage(num)
@@ -372,7 +379,7 @@ local function OverrideDamage()
 			error("Something tried to set damage to nan!")
 		end]]
 	end
-	
+
 	function DMGINFO:ScaleDamage(num)
 		local damage = self:GetDamage()
 		if damage == 0 then
@@ -391,7 +398,7 @@ local function OverrideDamage()
 			error("Something tried to set damage to nan!")
 		end]]
 	end
-	
+
 	function DMGINFO:GetDamage()
 		return InsaneStats:GetDamage() or self:InsaneStats_GetRawDamage()
 	end
@@ -405,7 +412,7 @@ local function DeOverrideDamage()
 		DMGINFO.SubtractDamage = DMGINFO.InsaneStats_SubtractRawDamage
 		DMGINFO.ScaleDamage = DMGINFO.InsaneStats_ScaleRawDamage
 		DMGINFO.GetDamage = DMGINFO.InsaneStats_GetRawDamage
-		
+
 		DMGINFO.InsaneStats_SetRawDamage = nil
 		DMGINFO.InsaneStats_AddRawDamage = nil
 		DMGINFO.InsaneStats_SubtractRawDamage = nil
@@ -451,21 +458,21 @@ local statusEffects = {
 		name = "Pheonix's Intervention",
 		typ = 1,
 		img = "condor-emblem",
-		apply = SERVER and function(ent, level, duration, attacker)
+		--[[apply = SERVER and function(ent, level, duration, attacker)
 			if ent:InsaneStats_IsMob() then
 				ent.insaneStats_PreventOverdamage = true
 			end
-		end
+        end]]
 	},
 	undying = {
 		name = "Undying",
 		typ = 1,
 		img = "magic-palm",
-		apply = SERVER and function(ent, level, duration, attacker)
+		--[[apply = SERVER and function(ent, level, duration, attacker)
 			if ent:InsaneStats_IsMob() then
 				ent.insaneStats_PreventOverdamage = true
 			end
-		end
+        end]]
 	},
 	helibomber = {
 		name = "Helibomber Damage Up",

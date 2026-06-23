@@ -305,17 +305,17 @@ function InsaneStats:ScaleLevelToTotalValue(value, mul, start, multiplicative)
 	if multiplicative then
 		-- value = -start/mul*(1-(mul+1)^(level-1))
 		-- log(value/start*mul+1)/log((mul+1))+1 = level
-		
+
 		return math.log(math.max(value/start*mul+1, 0), mul+1)+1
 	else
 		--[[
 		if c = a*(x-1+(x^2-3*x+2)*b/2)
 		then x = (sqrt(a (b - 2)^2 + 8 b c) + sqrt(a) (3 b - 2))/(2 sqrt(a) b) and a b!=0, courtesy of WolframAlpha
 		]]
-		
+
 		local part = math.sqrt(math.max(start*(mul - 2)^2 + 8*mul*value, 0))
 		local sqrtStart = math.sqrt(start)
-		
+
 		return (part + sqrtStart*(3*mul - 2))/(2*sqrtStart*mul)
 	end
 end
@@ -349,7 +349,7 @@ end
 
 function InsaneStats:DetermineDamageMulPure(attacker, vic)
 	local damageBonus = 1
-	
+
 	if self:GetConVarValue("xp_enabled") then
 		local level = attacker:InsaneStats_GetLevel()
 		if attacker:IsPlayer() then
@@ -408,6 +408,11 @@ function ENT:InsaneStats_GetLevelProgress()
 		"xp_scale_add_mode"
 	)
 
+    if xp / nextXP >= InsaneStats.INT_ONLY_START then
+		math.randomseed(xp / nextXP)
+        currentXP = nextXP * math.random()
+		math.randomseed(SysTime())
+    end
 	return currentXP, nextXP
 end
 
@@ -436,6 +441,14 @@ function ENT:InsaneStats_SetXP(xp, dropValue)
 	end
 	assert(xp >= -math.huge, "Something tried to set XP on "..tostring(self).." to nan!")
 
+	local oldLevel = self:InsaneStats_GetEntityData("level")
+	if not oldLevel and self.insaneStats_XPRoot8 then
+		-- the old level must be persisted across level transitions!
+		oldLevel = math.floor(InsaneStats:GetLevelByXPRequired(
+			self.insaneStats_XPRoot8 ^ 8
+		))
+	end
+
 	local maxMul = InsaneStats:GetConVarValue("xp_other_max_mul")
 	if maxMul >= 0 and not self:IsPlayer() then
 		local maxXP = -1
@@ -449,26 +462,26 @@ function ENT:InsaneStats_SetXP(xp, dropValue)
 			end
 		end
 	end
-	
+
 	self:InsaneStats_SetEntityData("xp", xp)
 	if xp > 0 then
 		self.insaneStats_XPRoot8 = InsaneStats:CalculateRoot8(xp)
 	end
-	
+
 	if dropValue then
 		self:InsaneStats_SetDropXP(dropValue)
 		if dropValue > 0 then
 			self.insaneStats_DropXPRoot8 = InsaneStats:CalculateRoot8(dropValue)
 		end
 	end
-	
+
 	local newLevel = math.floor(InsaneStats:GetLevelByXPRequired(xp))
 	-- self.insaneStats_Level can be nil
-	if self:InsaneStats_GetEntityData("level") ~= newLevel and SERVER then
-		hook.Run("InsaneStatsLevelChanged", self, self:InsaneStats_GetEntityData("level") or newLevel, newLevel)
-		self:InsaneStats_ApplyLevel(newLevel)
+	if oldLevel ~= newLevel and SERVER then
+		hook.Run("InsaneStatsLevelChanged", self, oldLevel, newLevel)
+		self:InsaneStats_ApplyLevel(newLevel, oldLevel)
 	end
-	
+
 	self:InsaneStats_SetEntityData("level", newLevel)
     if SERVER then
 	    self:InsaneStats_MarkForUpdate(2)

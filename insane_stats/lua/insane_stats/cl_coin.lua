@@ -45,16 +45,17 @@ local function DangerousPaint()
 	x = x + InsaneStats.FONT_BIG + outlineThickness
 
 	local text = math.floor(coins)
-	if InsaneStats:GetConVarValue("hud_coins_simplified") then
-		text = InsaneStats:FormatNumber(text)
-	else
-		text = string.Comma(text)
-	end
-	InsaneStats:DrawTextOutlined(text, 3, x, y, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
+	--if then
+		text = InsaneStats:FormatNumber(text, {noShortening = not InsaneStats:GetConVarValue("hud_coins_simplified")})
+	--else
+		--text = string.Comma(text)
+	--end
+
+    y = y + InsaneStats.FONT_BIG / 2
+	local aX, aY = InsaneStats:DrawTextOutlined(text, 3, x, y, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 
 	if slowCoins ~= coins then
-		y = y + InsaneStats.FONT_BIG
-
+        y = y + aY
 		local change = coins - slowCoins
 		local textColor = change > 0 and color_green or change < 0 and color_red or color_white
 
@@ -64,7 +65,7 @@ local function DangerousPaint()
 		else
 			text = (change < 0 and "" or "+")..string.Comma(text)
 		end
-		InsaneStats:DrawTextOutlined(text, 3, x, y, textColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
+		InsaneStats:DrawTextOutlined(text, 3, x, y, textColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 	end
 end
 
@@ -90,22 +91,22 @@ hook.Add("HUDPaint", "InsaneStatsCoins", function()
 				slowCoins = coins
 			else
 				surface.SetAlphaMultiplier(life)
-		
+
 				local popAmt = math.max(1, life - 3.75)
 				local scrW = ScrW()
 				local scrH = ScrH()
 				local x = scrW * InsaneStats:GetConVarValue("hud_coins_x") - 8
 				local y = scrH * InsaneStats:GetConVarValue("hud_coins_y") - 8
-		
+
 				local m = Matrix()
 				m:Translate(Vector(x, y, 0))
 				m:Scale(Vector(popAmt, popAmt, popAmt))
-				
+
 				render.PushFilterMag(TEXFILTER.ANISOTROPIC)
 				cam.PushModelMatrix(m, true)
 
 				local ok, err = pcall(DangerousPaint)
-		
+
 				cam.PopModelMatrix()
 				render.PopFilterMag()
 				surface.SetAlphaMultiplier(1)
@@ -352,7 +353,7 @@ local function CreateReforgePanel(parent, shopEntity)
 					math.abs(tier),
 					true
 				)
-				
+
 				local cost = InsaneStats:GetReforgeCost(value, ply:InsaneStats_GetReforgeBlacklist())
 				--CostLabel:SetText("Reforge Cost: "..InsaneStats:FormatNumber(math.ceil(cost)))
 				text = text.."Reforge Cost: "..InsaneStats:FormatNumber(math.ceil(cost))
@@ -369,7 +370,7 @@ local function CreateReforgePanel(parent, shopEntity)
 				text = text.."Cannot be rerolled"
 			end
 			TierLabel:SetText(text)
-			
+
 			for i=#ModifierList:GetLines(), 1, -1 do
 				ModifierList:RemoveLine(i)
 			end
@@ -489,14 +490,14 @@ local function CreateReforgePanel(parent, shopEntity)
 			local modifier = rowPanel:GetValue(2)
 			if not modifierBlacklist[modifier] then
 				BlacklistModifierList:AddModifierLine(modifier)
-	
+
 				local modifierBlacklist = ply:InsaneStats_GetReforgeBlacklist()
 				modifierBlacklist[modifier] = true
 				ply:InsaneStats_SetReforgeBlacklist(modifierBlacklist)
-	
+
 				local text, ent = Selector:GetSelected()
 				Selector:OnSelect(0, text, ent)
-	
+
 				net.Start("insane_stats")
 				net.WriteUInt(5, 8)
 				net.WriteEntity(shopEntity)
@@ -601,7 +602,7 @@ local function CreateItemsPanel(parent, shopEntity)
 				draw.SimpleText(name, "InsaneStats.Small", w/2, y, color_white, TEXT_ALIGN_CENTER)
 			end
 		end
-		
+
 		function Item:DoClick()
 			costStr = InsaneStats:FormatNumber(math.ceil(InsaneStats:GetItemCost(i, ply)))
 			CostLabel:SetText(name.." Cost: "..costStr)
@@ -712,7 +713,7 @@ function InsaneStats:CreateShopMenu(shopEntity, weaponsSold, ammoSold, modifierB
 			color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP
 		)
 		x = x + outlineThickness
-		
+
 		InsaneStats:DrawMaterialOutlined(
 			InsaneStats:GetIconMaterial(
 				InsaneStats:GetConVarValue("coins_legacy") and "emerald" or "metal-disc"

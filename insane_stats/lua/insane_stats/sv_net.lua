@@ -5,6 +5,7 @@ local players = {}
 local entitiesRequireUpdate = {}
 --local entityDispositionsRequireUpdate = {}
 local damageInfosRequireUpdate = {}
+local notifsRequireUpdate = {}
 
 function ENT:InsaneStats_MarkForUpdate(flag)
 	if IsValid(self) then
@@ -21,10 +22,10 @@ end]]
 function ENT:InsaneStats_DamageNumber(attacker, damage, types, hitgroup, wasHealthyWhenDamaged)
 	if (IsValid(self) and (self:GetClass() ~= "prop_physics" or self:GetCollisionGroup() ~= COLLISION_GROUP_DEBRIS)) then
 		local entIndex = self:EntIndex()
-		
+
 		damageInfosRequireUpdate[entIndex] = damageInfosRequireUpdate[entIndex]
 			or {damage = 0, types = 0, flags = 0, hitgroup = 10, position = self:WorldSpaceCenter()}
-		
+
 		local currentDamageInfo = damageInfosRequireUpdate[entIndex]
 		currentDamageInfo.attacker = IsValid(attacker) and attacker or currentDamageInfo.attacker
 		if tonumber(damage) then
@@ -41,7 +42,7 @@ function ENT:InsaneStats_DamageNumber(attacker, damage, types, hitgroup, wasHeal
 			currentDamageInfo.flags = bit.bor(currentDamageInfo.flags, 16)
 		end
 		currentDamageInfo.types = bit.bor(currentDamageInfo.types, types or 0)
-						
+
 		-- generic hitgroup has value 8 for our purposes
 		local hitgroup = hitgroup or 0
 		if hitgroup == 0 then
@@ -51,26 +52,54 @@ function ENT:InsaneStats_DamageNumber(attacker, damage, types, hitgroup, wasHeal
 	end
 end
 
+function ENT:InsaneStats_SendNotification(typ, ...)
+	notifsRequireUpdate[self] = notifsRequireUpdate[self] or {}
+	local currentNotifs = notifsRequireUpdate[self]
+	local args = {...}
+	local prefix = ""
+	if typ == 1 then
+		local ammoID, ammoAmt = unpack(args)
+		if ammoID > 0 then
+			local id = string.format("a_%u", ammoID)
+			if currentNotifs[id] then
+				currentNotifs[id].amt = currentNotifs[id].amt + ammoAmt
+			else
+				currentNotifs[id] = {typ = 1, id = ammoID, amt = ammoAmt}
+			end
+		end
+	else
+		hook.Run("InsaneStatsSendNotification", typ, ...)
+	end
+end
+
+local dataSendBoost = 0
 local function BroadcastEntityUpdates()
 	for k,v in pairs(entitiesRequireUpdate) do
 		if not (IsValid(k) and k:EntIndex() > 0) then
 			entitiesRequireUpdate[k] = nil
 		end
 	end
-	
+
 	local sentEntities = {}
-	
+
 	net.Start("insane_stats")
 	net.WriteUInt(1, 8)
-	local count = math.min(table.Count(entitiesRequireUpdate), 16)
+	local totalCount = table.Count(entitiesRequireUpdate)
+	local count = math.min(totalCount, math.ceil(2 ^ dataSendBoost), 255)
+	local deltaBoost = FrameTime()
+	if totalCount > count then
+		dataSendBoost = dataSendBoost + deltaBoost
+	else
+		dataSendBoost = math.max(dataSendBoost - deltaBoost, 0)
+	end
 	net.WriteUInt(count, 8)
-	
+
 	for k,v in pairs(entitiesRequireUpdate) do
 		net.WriteUInt(k:EntIndex(), 16)
 		net.WriteInt(v, 32)
 		--print(k)
 		--print(v)
-		
+
 		if bit.band(v, 1) ~= 0 then
 			net.WriteDouble(k:InsaneStats_GetHealth())
 			net.WriteDouble(k:InsaneStats_GetMaxHealth())
@@ -80,13 +109,13 @@ local function BroadcastEntityUpdates()
 			net.WriteDouble(k.GetMaxClip2 and k:GetMaxClip2() or 0)]]
 			--print(k)
 		end
-		
+
 		if bit.band(v, 2) ~= 0 then
 			net.WriteDouble(k:InsaneStats_GetXP())
 		end
-		
+
 		-- bitflag 4 is for entity name and class, which usually don't change
-		
+
 		if bit.band(v, 8) ~= 0 then
 			net.WriteDouble(k:InsaneStats_GetBatteryXP())
 			net.WriteBool(k.insaneStats_ModifierChangeReason == 1)
@@ -98,13 +127,13 @@ local function BroadcastEntityUpdates()
 				net.WriteUInt(v2-1, 16)
 			end
 		end
-		
+
 		if bit.band(v, 16) ~= 0 then
-			local toNetworkStatusEffects = k.insaneStats_StatusEffectsToNetwork or {}
+			local toNetworkStatusEffects = k:InsaneStats_GetEntityData("status_effects_to_network") or {}
 			local data = {}
-			
+
 			for k2,v2 in pairs(toNetworkStatusEffects) do
-				local statusEffectData = k.insaneStats_StatusEffects and k.insaneStats_StatusEffects[k2]
+				local statusEffectData = k:InsaneStats_GetStatusEffectData(k2)
 				if statusEffectData then
 					table.insert(data, {
 						id = InsaneStats:GetStatusEffectID(k2),
@@ -119,19 +148,19 @@ local function BroadcastEntityUpdates()
 					})
 				end
 			end
-			
+
 			net.WriteUInt(#data, 16)
 			for i,v2 in ipairs(data) do
 				net.WriteUInt(v2.id or 0, 16)
 				net.WriteDouble(v2.level)
 				net.WriteFloat(v2.expiry)
 			end
-			
-			k.insaneStats_StatusEffectsToNetwork = {}
+
+			k:InsaneStats_SetEntityData("status_effects_to_network", {})
 		end
-		
+
 		-- bitflag 32 is for disposition, but that works on a per player basis, so broadcasting isn't suitable
-		
+
 		if bit.band(v, 64) ~= 0 then
 			net.WriteDouble(k:InsaneStats_GetCoins())
 			net.WriteUInt(k:InsaneStats_GetLastCoinTier() + 1, 8)
@@ -148,7 +177,7 @@ local function BroadcastEntityUpdates()
 				net.WriteUInt(InsaneStats:GetSkillID(k2), 8)
 			end
 		end
-		
+
 		if bit.band(v, 256) ~= 0 then
 			net.WriteUInt(k.insaneStats_CitizenFlags, 4)
 		end
@@ -157,21 +186,21 @@ local function BroadcastEntityUpdates()
 			net.WriteDouble(k.insaneStats_Clip1Adj or 0)
 			net.WriteDouble(k.insaneStats_Clip2Adj or 0)
 		end
-		
+
 		--print(k, v)
 		entitiesRequireUpdate[k] = nil
 		table.insert(sentEntities, k)
 		count = count - 1
 		if count == 0 then break end
 	end
-	
+
 	--[[local bytesWritten = net.BytesWritten()
 	if bytesWritten > 2048 then
 		InsaneStats:Log("WARNING: A "..string.Comma(bytesWritten).." byte entity broadcast packet in a single tick?! At this rate we'd be sending "..string.NiceSize(bytesWritten*200/3).."/s to everyone!")
 		InsaneStats:Log("Sent entities: ")
 		PrintTable(sentEntities)
 	end]]
-	
+
 	net.Broadcast()
 end
 
@@ -180,7 +209,7 @@ local function BroadcastDamageUpdates()
 	net.WriteUInt(3, 8)
 	local count = math.min(table.Count(damageInfosRequireUpdate), 255)
 	net.WriteUInt(count, 8)
-	
+
 	for k,v in pairs(damageInfosRequireUpdate) do
 		net.WriteUInt(k, 16)
 		net.WriteEntity(v.attacker or NULL)
@@ -192,7 +221,7 @@ local function BroadcastDamageUpdates()
 			net.WriteInt(v.hitgroup or 0, 8)
 		end
 		net.WriteVector(v.position)
-		
+
 		local isAlly = false
 		local ent = Entity(k)
 		if (IsValid(ent) and ent:IsNPC()) then
@@ -202,13 +231,44 @@ local function BroadcastDamageUpdates()
 			v.flags,
 			isAlly and 4 or 0
 		), 8)
-		
+
 		damageInfosRequireUpdate[k] = nil
 		count = count - 1
 		if count == 0 then break end
 	end
-	
+
 	net.Broadcast()
+end
+
+local function SendNotificationUpdates()
+	for k,v in pairs(notifsRequireUpdate) do
+		local shouldPlayPickupNoise = false
+
+		net.Start("insane_stats", true)
+		net.WriteUInt(15, 8)
+
+		local sendData = table.ClearKeys(v)
+
+		net.WriteUInt(#sendData, 8)
+		for i,v2 in ipairs(sendData) do
+			if v2.typ == 1 then
+				net.WriteUInt(v2.id - 1, 8)
+				net.WriteDouble(v2.amt)
+
+				if not shouldPlayPickupNoise then
+					shouldPlayPickupNoise = true
+				end
+			end
+		end
+
+		net.Send(k)
+
+		if shouldPlayPickupNoise then
+			k:EmitSound("BaseCombatCharacter.AmmoPickup")
+		end
+	end
+
+	notifsRequireUpdate = {}
 end
 
 -- this coroutine thread is to deal with dispositions
@@ -218,10 +278,10 @@ local dispositionScanner = coroutine.create(function()
 		local i = 1
 		while npcs[i] do
 			local ent = npcs[i]
-			
+
 			if (IsValid(ent) and ent:IsNPC()) then
 				local isAlly, isEnemy = false, false
-				
+
 				for i,v in player.Iterator() do
 					if IsValid(ent) and IsValid(v) then
 						local disposition = ent:Disposition(v)
@@ -246,10 +306,10 @@ local dispositionScanner = coroutine.create(function()
 						ent:InsaneStats_MarkForUpdate(256)
 					end
 				end
-				
+
 				ent:InsaneStats_SetEntityData("is_ally", isAlly)
 				ent:InsaneStats_SetEntityData("is_enemy", isEnemy)
-				
+
 				i = i + 1
 			else
 				table.remove(npcs, i)
@@ -270,13 +330,17 @@ hook.Add("Think", "InsaneStatsNet", function()
 	if next(entitiesRequireUpdate) then
 		BroadcastEntityUpdates()
 	end
-	
+
 	--[[if next(entityDispositionsRequireUpdate) then
 		BroadcastEntityDispositionUpdates()
 	end]]
-	
+
 	if next(damageInfosRequireUpdate) then
 		BroadcastDamageUpdates()
+	end
+
+	if next(notifsRequireUpdate) then
+		SendNotificationUpdates()
 	end
 
 	for i=1,66 do
@@ -301,10 +365,10 @@ net.Receive("insane_stats", function(length, ply)
 		for _, updateEntity in ipairs(entities) do
 			local steamID = ply:SteamID()
 			nextEntityUpdatePlayers[steamID] = nextEntityUpdatePlayers[steamID] or {}
-			
+
 			if IsValid(updateEntity) then
 				local creationID = updateEntity:GetCreationID()
-				
+
 				if (nextEntityUpdatePlayers[steamID][creationID] or 0) <= RealTime() then
 					nextEntityUpdatePlayers[steamID][creationID] = RealTime() + 0.5
 					local flags = 63
@@ -314,25 +378,25 @@ net.Receive("insane_stats", function(length, ply)
 					--[[if updateEntity.npcLVL then
 						flags = bit.bor(flags, 128)
 					end]]
-					
+
 					net.Start("insane_stats")
 					net.WriteUInt(1, 8)
 					net.WriteUInt(1, 8)
 					net.WriteUInt(updateEntity:EntIndex(), 16)
-					
+
 					net.WriteInt(flags, 32)
-					
+
 					net.WriteDouble(updateEntity:InsaneStats_GetHealth())
 					net.WriteDouble(updateEntity:InsaneStats_GetMaxHealth())
 					net.WriteDouble(updateEntity:InsaneStats_GetArmor())
 					net.WriteDouble(updateEntity:InsaneStats_GetMaxArmor())
-					
+
 					net.WriteDouble(updateEntity:InsaneStats_GetXP())
-					
+
 					net.WriteString(updateEntity:GetClass())
 					net.WriteString(updateEntity:GetName())
 					net.WriteBool(updateEntity:InsaneStats_GetIsAlpha())
-						
+
 					net.WriteDouble(updateEntity:InsaneStats_GetBatteryXP())
 					net.WriteBool(updateEntity.insaneStats_ModifierChangeReason == 1)
 					net.WriteUInt(updateEntity.insaneStats_Tier or 0, 16)
@@ -343,23 +407,23 @@ net.Receive("insane_stats", function(length, ply)
 						net.WriteString(k2)
 						net.WriteUInt(v2-1, 16)
 					end
-					
+
 					local allStatusEffectData = {}
-					for k,v in pairs(updateEntity.insaneStats_StatusEffects or {}) do
+					for k,v in pairs(updateEntity:InsaneStats_GetStatusEffectData()) do
 						table.insert(allStatusEffectData, {
 							id = InsaneStats:GetStatusEffectID(k),
 							expiry = v.expiry,
 							level = v.level
 						})
 					end
-					
+
 					net.WriteUInt(#allStatusEffectData, 16)
 					for k,v in pairs(allStatusEffectData) do
 						net.WriteUInt(v.id, 16)
 						net.WriteDouble(v.level)
 						net.WriteFloat(v.expiry)
 					end
-					
+
 					if updateEntity:IsNPC() then
 						net.WriteInt(updateEntity:Disposition(ply), 4)
 					else
@@ -388,7 +452,7 @@ net.Receive("insane_stats", function(length, ply)
 					if bit.band(flags, 256) ~= 0 then
 						net.WriteUInt(updateEntity.insaneStats_CitizenFlags, 4)
 					end
-					
+
 					net.Send(ply)
 				end
 			end
@@ -400,7 +464,7 @@ net.Receive("insane_stats", function(length, ply)
 				RunConsoleCommand("insanestats_revert_all_server_convars", "yes")
 			else
 				local typ = InsaneStats:GetConVarData(conVarName).type
-				
+
 				if typ == InsaneStats.BOOL then
 					InsaneStats:GetConVarData(conVarName).conVar:SetBool(net.ReadBool())
 				elseif typ == InsaneStats.INT then
@@ -462,7 +526,7 @@ net.Receive("insane_stats", function(length, ply)
 					ply:InsaneStats_SetSkills({})
 					ply:InsaneStats_SetSealedSkills({})
 					ply:InsaneStats_RemoveCoins(price)
-					
+
 					ply:InsaneStats_MarkForUpdate(128)
 				end
 			elseif subFunc == 5 then
@@ -554,6 +618,8 @@ net.Receive("insane_stats", function(length, ply)
 			2: seal
 			3: disable (admin only)
 			4: use skill ID for extended operation codes
+            5: remove 1
+            6: remove max
 		]]
 		local operation = net.ReadUInt(4)
 		if operation == 0 then
@@ -562,13 +628,34 @@ net.Receive("insane_stats", function(length, ply)
 			if skillName then
 				local max = ply:InsaneStats_GetSkillMaxLevel(skillName)
 				local currentTier = ply:InsaneStats_GetSkillTier(skillName)
+                local newTier = currentTier
 				if currentTier < max and ply:InsaneStats_GetSkillPoints() >= 1 then
-					ply:InsaneStats_SetSkillTier(skillName, currentTier+1)
+                    newTier = currentTier + 1
 				elseif currentTier == max and ply:InsaneStats_GetUberSkillPoints() >= 1 then
-					ply:InsaneStats_SetSkillTier(skillName, currentTier*2)
-				elseif currentTier > max and currentTier < max * 2 and ply:InsaneStats_GetSkillPoints() >= 1 then
-					ply:InsaneStats_SetSkillTier(skillName, currentTier+2)
+					newTier = currentTier * 2
+				elseif currentTier > max and currentTier < max * 2
+                and ply:InsaneStats_GetSkillPoints() >= 1 then
+					newTier = currentTier + 2
 				end
+
+                local newSkills = {}
+                for k,v in pairs(ply:InsaneStats_GetSkills()) do
+                    if k == skillName then
+                        newSkills[k] = newTier
+                    else
+                        newSkills[k] = v
+                    end
+                end
+                local valid, err = ply:InsaneStats_IsSkillAllocationValid(newSkills)
+                if valid then
+                    ply:InsaneStats_SetSkillTier(skillName, newTier)
+                else
+                    InsaneStats:Log(string.format(
+                        "Skill allocation of %s is invalid: %s",
+                        tostring(ply),
+                        err
+                    ))
+                end
 			end
 		elseif operation == 1 then
 			local skillID = net.ReadUInt(8) + 1
@@ -578,8 +665,26 @@ net.Receive("insane_stats", function(length, ply)
 				local currentTier = ply:InsaneStats_GetSkillTier(skillName)
 				local div = currentTier > max and 2 or 1
 				local spend = math.min(ply:InsaneStats_GetSkillPoints(), max - currentTier / div)
-				
-				ply:InsaneStats_SetSkillTier(skillName, currentTier + spend * div)
+                local newTier = currentTier + spend * div
+
+                local newSkills = {}
+                for k,v in pairs(ply:InsaneStats_GetSkills()) do
+                    if k == skillName then
+                        newSkills[k] = newTier
+                    else
+                        newSkills[k] = v
+                    end
+                end
+                local valid, err = ply:InsaneStats_IsSkillAllocationValid(newSkills)
+                if valid then
+                    ply:InsaneStats_SetSkillTier(skillName, newTier)
+                else
+                    InsaneStats:Log(string.format(
+                        "Skill allocation of %s is invalid: %s",
+                        tostring(ply),
+                        err
+                    ))
+                end
 			end
 		elseif operation == 2 and ply:InsaneStats_CanSealSkills() then
 			local skillID = net.ReadUInt(8) + 1
@@ -594,7 +699,7 @@ net.Receive("insane_stats", function(length, ply)
 				local newState = not InsaneStats:IsSkillDisabled(skillName)
 				InsaneStats:DisableSkill(skillName, newState or nil)
 
-				for i,v in ents.Iterator() do
+				for i,v in InsaneStats:GetEntityIterator() do
 					v:InsaneStats_MarkForUpdate(128)
 				end
 
@@ -608,7 +713,7 @@ net.Receive("insane_stats", function(length, ply)
 		elseif operation == 4 then
 			local suboperation = net.ReadUInt(8)
 			if suboperation == 0 then
-				for i,v in ents.Iterator() do
+				for i,v in InsaneStats:GetEntityIterator() do
 					v:InsaneStats_MarkForUpdate(128)
 				end
 
@@ -628,9 +733,110 @@ net.Receive("insane_stats", function(length, ply)
 			elseif suboperation == 3 and bit.band(InsaneStats:GetConVarValue("skills_allow_reset"), 1) ~= 0 then
 				ply:InsaneStats_SetSkills({})
 				ply:InsaneStats_SetSealedSkills({})
+            elseif suboperation == 4 then
+                -- read a list of skills and then apply them to the player
+                -- if the allocation is valid
+                local newSkills = {}
+                if bit.band(InsaneStats:GetConVarValue("skills_allow_reset"), 1) == 0 then
+                    -- resetting is not possible so just merge skills
+                    newSkills = ply:InsaneStats_GetSkills()
+                end
+				for i=1, net.ReadUInt(8) do
+					local skillName = InsaneStats:GetSkillName(net.ReadUInt(8))
+                    local skillTier = net.ReadUInt(16)
+                    if skillName then
+                        newSkills[skillName] = math.max(newSkills[skillName] or 0, skillTier)
+                    end
+				end
+                local sealedSkills = {}
+				for i=1, net.ReadUInt(8) do
+					local skillName = InsaneStats:GetSkillName(net.ReadUInt(8))
+                    if skillName then
+                        sealedSkills[skillName] = true
+                    end
+                end
+                local valid, err = ply:InsaneStats_IsSkillAllocationValid(newSkills)
+                if valid then
+                    ply:InsaneStats_SetSkills(newSkills)
+
+                    if ply:InsaneStats_CanSealSkills() then
+                        ply:InsaneStats_SetSealedSkills(sealedSkills)
+                    else
+                        ply:InsaneStats_SetSealedSkills({})
+                    end
+                else
+                    InsaneStats:Log(string.format(
+                        "Skill allocation of %s is invalid: %s",
+                        tostring(ply),
+                        err
+                    ))
+                end
+			end
+		elseif operation == 5 and InsaneStats:GetConVarValue("skills_allow_remove") then
+			local skillID = net.ReadUInt(8) + 1
+			local skillName = InsaneStats:GetSkillName(skillID)
+			if skillName then
+				local max = ply:InsaneStats_GetSkillMaxLevel(skillName)
+				local currentTier = ply:InsaneStats_GetSkillTier(skillName)
+                local newTier = currentTier
+				if currentTier > max then
+                    newTier = currentTier/2
+                elseif currentTier > 0 then
+                    newTier = currentTier - 1
+				end
+
+                local newSkills = {}
+                for k,v in pairs(ply:InsaneStats_GetSkills()) do
+                    if k == skillName then
+                        newSkills[k] = newTier
+                    else
+                        newSkills[k] = v
+                    end
+                end
+                local valid, err = ply:InsaneStats_IsSkillAllocationValid(newSkills)
+                if valid then
+                    ply:InsaneStats_SetSkillTier(skillName, newTier)
+
+                    if not ply:InsaneStats_CanSealSkills() then
+                        ply:InsaneStats_SetSealedSkills({})
+                    end
+                else
+                    InsaneStats:Log(string.format(
+                        "Skill allocation of %s is invalid: %s",
+                        tostring(ply),
+                        err
+                    ))
+                end
+			end
+        elseif operation == 6 and InsaneStats:GetConVarValue("skills_allow_remove") then
+			local skillID = net.ReadUInt(8) + 1
+			local skillName = InsaneStats:GetSkillName(skillID)
+			if skillName then
+                local newSkills = {}
+                for k,v in pairs(ply:InsaneStats_GetSkills()) do
+                    if k == skillName then
+                        newSkills[k] = 0
+                    else
+                        newSkills[k] = v
+                    end
+                end
+                local valid, err = ply:InsaneStats_IsSkillAllocationValid(newSkills)
+                if valid then
+                    ply:InsaneStats_SetSkillTier(skillName, 0)
+
+                    if not ply:InsaneStats_CanSealSkills() then
+                        ply:InsaneStats_SetSealedSkills({})
+                    end
+                else
+                    InsaneStats:Log(string.format(
+                        "Skill allocation of %s is invalid: %s",
+                        tostring(ply),
+                        err
+                    ))
+                end
 			end
 		end
-		
+
 		-- send to players
 		ply:InsaneStats_MarkForUpdate(128)
 	elseif func == 7 then

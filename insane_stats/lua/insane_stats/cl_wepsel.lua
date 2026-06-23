@@ -523,7 +523,7 @@ local function InitWeaponSelectorWindow()
 			local selectedWeapon = self.insaneStats_SelectedWeapon
 			if IsValid(selectedWeapon) then
 				input.SelectWeapon(selectedWeapon)
-				if InsaneStats:IsDebugLevel(2) then
+				if InsaneStats:IsDebugLevel(1) then
 					InsaneStats:Log("Switching to %s!", tostring(selectedWeapon))
 				end
 				ply:EmitSound("common/wpn_hudoff.wav", 0, 100, InsaneStats:GetConVarValue("hud_wepsel_volume") / 100)
@@ -709,7 +709,7 @@ local function InitWeaponSearchWindow()
 		self:Close()
 		if IsValid(wep) then
 			input.SelectWeapon(wep)
-			if InsaneStats:IsDebugLevel(2) then
+			if InsaneStats:IsDebugLevel(1) then
 				InsaneStats:Log("Switching to %s!", tostring(wep))
 			end
 			ply:EmitSound("common/wpn_hudoff.wav", 0, 100, InsaneStats:GetConVarValue("hud_wepsel_volume") / 100)

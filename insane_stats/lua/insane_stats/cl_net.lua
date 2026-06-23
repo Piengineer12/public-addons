@@ -21,7 +21,7 @@ local function BroadcastEntityUpdates()
 				if count >= 255 then break end
 			end
 		end
-		
+
 		-- probe the server for status updates
 		net.Start("insane_stats")
 		net.WriteUInt(1, 8)
@@ -61,34 +61,34 @@ net.Receive("insane_stats", function()
 			local lastCoinTier--, wpLevel, wpDangerous
 			local citizenFlags, skills, sealedSkills
 			local clipAdj1, clipAdj2
-			
+
 			if bit.band(flags, 1) ~= 0 then
 				health = net.ReadDouble()
 				maxHealth = net.ReadDouble()
 				armor = net.ReadDouble()
 				maxArmor = net.ReadDouble()
 			end
-				
+
 			if bit.band(flags, 2) ~= 0 then
 				xp = net.ReadDouble()
 			end
-				
+
 			if bit.band(flags, 4) ~= 0 then
 				class = net.ReadString()
 				name = net.ReadString()
 				isAlpha = net.ReadBool()
 			end
-			
+
 			if bit.band(flags, 8) ~= 0 then
 				batteryXP = net.ReadDouble()
 				modifierChangeReason = net.ReadBool()
 				tier = net.ReadInt(16)
-				
+
 				modifiers = {}
 				for i=1, net.ReadUInt(16) do
 					local key = net.ReadString()
 					local value = net.ReadUInt(16)+1
-					
+
 					if key == "" then
 						InsaneStats:Log("Received an empty string for modifier, is the network toasted?")
 						InsaneStats:Log("This occured while processing entity %u.", entIndex)
@@ -97,18 +97,18 @@ net.Receive("insane_stats", function()
 					end
 				end
 			end
-			
+
 			if bit.band(flags, 16) ~= 0 then
 				statusEffects = {}
-				
+
 				for i=1, net.ReadUInt(16) do
 					local id = net.ReadUInt(16)
 					local level = net.ReadDouble()
 					local expiry = net.ReadFloat()
-					
+
 					-- decode the id to a named one
 					local idStr = InsaneStats:GetStatusEffectName(id)
-					
+
 					if idStr then
 						statusEffects[idStr] = {level = level, expiry = expiry}
 					else
@@ -117,16 +117,16 @@ net.Receive("insane_stats", function()
 					end
 				end
 			end
-			
+
 			if bit.band(flags, 32) ~= 0 then
 				disposition = net.ReadInt(4)
 			end
-				
+
 			if bit.band(flags, 64) ~= 0 then
 				coins = net.ReadDouble()
 				lastCoinTier = net.ReadUInt(8)
 			end
-			
+
 			if bit.band(flags, 128) ~= 0 then
 				skills, sealedSkills = {}, {}
 				for i=1, net.ReadUInt(8) do
@@ -147,7 +147,7 @@ net.Receive("insane_stats", function()
 				clipAdj1 = net.ReadDouble()
 				clipAdj2 = net.ReadDouble()
 			end
-			
+
 			local ent = Entity(entIndex)
 			if IsValid(ent) and entIndex == ent:EntIndex() then
 				if health then
@@ -162,33 +162,30 @@ net.Receive("insane_stats", function()
 						ent:SetMaxArmor(maxArmor)
 					end
 				end
-				
+
 				if xp then
 					ent:InsaneStats_SetXP(xp)
 				end
-				
+
 				if class then
 					ent.insaneStats_Class = class
 					ent.insaneStats_Name = name
 					ent:InsaneStats_SetIsAlpha(isAlpha)
 				end
-				
+
 				if batteryXP then
 					ent:InsaneStats_SetBatteryXP(batteryXP)
 					ent.insaneStats_Tier = tier
-					
+
 					hook.Run("InsaneStatsModifiersChanging", ent, ent.insaneStats_Modifiers, modifiers, modifierChangeReason)
-					
+
 					ent.insaneStats_Modifiers = modifiers
 					InsaneStats:ApplyWPASS2Attributes(ent)
 					ent.insaneStats_WPASS2Name = nil
 				end
-				
+
 				if statusEffects then
-					--ent.insaneStats_StatusEffects = ent.insaneStats_StatusEffects or {}
-					
 					for k,v in pairs(statusEffects) do
-						--ent.insaneStats_StatusEffects[k] = v
 						if v.level == 0 then
 							ent:InsaneStats_ClearStatusEffect(k)
 						else
@@ -196,11 +193,11 @@ net.Receive("insane_stats", function()
 						end
 					end
 				end
-				
+
 				if disposition then
 					ent.insaneStats_Disposition = disposition
 				end
-				
+
 				if coins then
 					ent:InsaneStats_SetCoins(coins)
 					ent:InsaneStats_SetLastCoinTier(lastCoinTier - 1)
@@ -219,7 +216,7 @@ net.Receive("insane_stats", function()
 					ent.insaneStats_Clip1Adj = clipAdj1
 					ent.insaneStats_Clip2Adj = clipAdj2
 				end
-				
+
 				hook.Run("InsaneStatsEntityUpdated", ent, flags)
 			end
 		end
@@ -282,7 +279,7 @@ net.Receive("insane_stats", function()
 			else return bind
 			end
 		end)
-		
+
 		chat.AddText(color, text)
 	elseif func == 6 then
 		local ent = net.ReadEntity()
@@ -316,20 +313,20 @@ net.Receive("insane_stats", function()
 		end
 	elseif func == 8 then
 		local ply = LocalPlayer()
-		ply.insaneStats_SkillData = ply.insaneStats_SkillData or {}
-		
+
 		if IsValid(ply) then
 			for i=1, net.ReadUInt(16) do
 				local id = net.ReadUInt(16)
 				local state = net.ReadInt(4)
 				local stacks = net.ReadDouble()
 				local updateTime = net.ReadFloat()
-				
+
 				-- decode the id to a named one
 				local idStr = InsaneStats:GetSkillName(id)
-				
+
 				if idStr then
-					ply.insaneStats_SkillData[idStr] = {state = state, stacks = stacks, updateTime = updateTime}
+					local data = ply:InsaneStats_GetSkillData()
+					data[idStr] = {state = state, stacks = stacks, updateTime = updateTime}
 				else
 					InsaneStats:Log("Received unknown skill ID %u, is the network toasted?", id)
 					InsaneStats:Log("This occured while processing entity %s.", tostring(ply))
@@ -346,7 +343,8 @@ net.Receive("insane_stats", function()
 	elseif func == 10 then
 		local expiry = net.ReadFloat()
 		local color = net.ReadFloat()
-		InsaneStats.PointCommanderTimer = {expiry = expiry, color = color}
+        local text = net.ReadString()
+		InsaneStats.PointCommanderTimer = {expiry = expiry, color = color, text = text}
 	elseif func == 11 then
 		local toAddChat = {}
 		for i=1, net.ReadUInt(16) do
@@ -395,10 +393,12 @@ net.Receive("insane_stats", function()
 			input.SelectWeapon(toSwitchTo)
 		end
 	elseif func == 15 then
-		local ammoID = net.ReadUInt(9)
-		local quantity = net.ReadDouble()
-		local ammoName = game.GetAmmoName(ammoID).."_ammo"
-		hook.Run("HUDAmmoPickedUp", ammoName, quantity)
+		local toRead = net.ReadUInt(8)
+		for i=1,toRead do
+			local ammoName = game.GetAmmoName(net.ReadUInt(8) + 1)
+			local quantity = net.ReadDouble()
+			hook.Run("HUDAmmoPickedUp", ammoName, quantity)
+		end
 	end
 end)
 

@@ -41,6 +41,7 @@ function ENT:SpawnFunction(ply, traceResult, class)
 		local ent = ents.Create(class)
 		if IsValid(ent) then
 			ent:SetValueExponent(math.floor(-math.log(math.random())))
+			--ent:SetValueExponent(84)
 			local spawnPos = traceResult.HitPos + traceResult.HitNormal * 6 * ent:GetSizeMultiplier()
 			ent:SetPos(spawnPos)
 			ent:Spawn()
@@ -67,7 +68,7 @@ function ENT:Initialize()
 			end
 		end
 		self:SetModel(model)
-		
+
 		local scale = modelModified and 2 or 0.25
 		self:SetModelScale(scale * sizeMultiplier)
 		if modelModified then
@@ -81,14 +82,14 @@ function ENT:Initialize()
 		self:AddEffects(EF_ITEM_BLINK)
 		self:SetColor(InsaneStats:GetCoinColor(self:GetValueExponent()))
 		self:DrawShadow(false)
-		
+
 		if modelModified then
 			self:UseTriggerBounds(true, 32 / sizeMultiplier)
 		else
 			self:PhysicsInitSphere(6 * sizeMultiplier, "gmod_bouncy")
 			self:UseTriggerBounds(true, 128)
 		end
-		
+
 		local physobj = self:GetPhysicsObject()
 		if IsValid(physobj) then
 			if modelModified then
