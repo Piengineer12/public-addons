@@ -681,17 +681,17 @@ local function GenerateFonts()
 	surface.CreateFont("InsaneStats.Small", {
 		font = font,
 		size = InsaneStats.FONT_SMALL,
-		symbol = true
+		extended = true
 	})
 	surface.CreateFont("InsaneStats.Medium", {
 		font = font,
 		size = InsaneStats.FONT_MEDIUM,
-		symbol = true
+		extended = true
 	})
 	surface.CreateFont("InsaneStats.Big", {
 		font = font,
 		size = InsaneStats.FONT_BIG,
-		symbol = true
+		extended = true
 	})
 end
 
