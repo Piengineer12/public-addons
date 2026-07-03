@@ -400,6 +400,14 @@ local function OverrideWeapons()
 		local data = {next = nextTime, wep = self, attacker = self:GetOwner()}
 		hook.Run("InsaneStatsModifyNextFire", data)
 
+		-- scripted weapons don't need to have the 1-tick cooldown
+		-- but a weapon calling a function millions of times in a single
+		-- tick can freeze the game, so enforce a 1-tick cooldown regardless
+		-- if the weapon is MWBase it must be 2 ticks minimum
+		data.next = math.max(
+			data.next,
+			CurTime() + (self.Base == "mg_base" and 2 or 1) * FrameTime()
+		)
 		return self:InsaneStats_SetRawNextPrimaryFire(data.next)
 	end
 
@@ -407,6 +415,11 @@ local function OverrideWeapons()
 		local data = {next = nextTime, wep = self, attacker = self:GetOwner()}
 		hook.Run("InsaneStatsModifyNextFire", data)
 
+		-- see above
+		data.next = math.max(
+			data.next,
+			CurTime() + (self.Base == "mg_base" and 2 or 1) * FrameTime()
+		)
 		return self:InsaneStats_SetRawNextSecondaryFire(data.next)
 	end
 
@@ -425,7 +438,10 @@ local function OverrideWeapons()
 			old = self.insaneStats_LastClip1 or self:InsaneStats_Clip1(),
 			new = num, wep = self
 		}
-		hook.Run("InsaneStatsModifyWeaponClip", data)
+		-- HACK: MWBase weapons need to be clip-modified *after* firing a shot otherwise nothing will be fired!
+		if self.Base ~= "mg_base" or self.insaneStats_EnableMWBaseCallModifyWeaponClipUltraHack then
+			hook.Run("InsaneStatsModifyWeaponClip", data)
+		end
 		if InsaneStats:GetConVarValue("wpass2_no_fractional_clips") then
 			data.new = (math.random() < data.new % 1 and math.ceil or math.floor)(data.new)
 		end
@@ -442,7 +458,9 @@ local function OverrideWeapons()
 			old = self.insaneStats_LastClip2 or self:InsaneStats_Clip2(),
 			new = num, wep = self, secondary = true
 		}
-		hook.Run("InsaneStatsModifyWeaponClip", data)
+		if self.Base ~= "mg_base" or self.insaneStats_EnableMWBaseCallModifyWeaponClipUltraHack then
+			hook.Run("InsaneStatsModifyWeaponClip", data)
+		end
 		if InsaneStats:GetConVarValue("wpass2_no_fractional_clips") then
 			data.new = (math.random() < data.new % 1 and math.ceil or math.floor)(data.new)
 		end

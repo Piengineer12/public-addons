@@ -730,7 +730,7 @@ local function CauseDelayedDamage(data)
 
                     victim:InsaneStats_ApplyStatusEffect(
                         "shock", effectDamage,
-                        10, {amplify = true, attacker = attacker}
+                        10, {extend = 10, attacker = attacker}
                     )
                 end
             end
@@ -3212,7 +3212,7 @@ hook.Add("InsaneStatsEntityKilledOnce", "InsaneStatsWPASS2", function(victim, at
             end
 
             local duration = attacker:InsaneStats_GetAttributeValue("starlight") - 1
-            attacker:InsaneStats_ApplyStatusEffect("starlight", 1, duration)
+            attacker:InsaneStats_ApplyStatusEffect("starlight", 1, duration, {extend = true})
 
             if attacker:InsaneStats_IsValidAlly(victim) then
                 stacks = (1 - attacker:InsaneStats_GetAttributeValue("kill10s_ally_damage")) * 100
@@ -4477,6 +4477,7 @@ local onBreakClasses = {
 local crossbowBolts = {}
 local function TryMagnetItem(ent, ignorePly)
     if ent:InsaneStats_IsItem() and not IsValid(ent:GetOwner())
+	and not ent:GetNWBool("insanestats_use")
 	and not ent:CreatedByMap() and not ent.insaneStats_IsProxyWeapon then
         -- who's the closest player?
         local closestPly
@@ -5761,30 +5762,35 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 
                 bloodlet(k)
 
-                if (IsValid(wep) and not wep:IsScripted()) then
-                    wep.insaneStats_LastPrimaryFire = wep.insaneStats_LastPrimaryFire or wep:GetNextPrimaryFire()
-                    if wep.insaneStats_LastPrimaryFire ~= wep:GetNextPrimaryFire() then
-                        wep:SetNextPrimaryFire(wep:GetNextPrimaryFire())
-                        wep.insaneStats_LastPrimaryFire = wep:GetNextPrimaryFire()
-                    end
+                if IsValid(wep) and (not wep:IsScripted() or wep.Base == "mg_base") then
+					-- HACK: any weapons based on mg_base (MW Base) need to be ammo-replenished *after* firing a shot, otherwise nothing will be fired!
+					wep.insaneStats_LastPrimaryFire = wep.insaneStats_LastPrimaryFire or wep:GetNextPrimaryFire()
+					if wep.insaneStats_LastPrimaryFire ~= wep:GetNextPrimaryFire() then
+						wep:SetNextPrimaryFire(wep:GetNextPrimaryFire())
+						wep.insaneStats_LastPrimaryFire = wep:GetNextPrimaryFire()
+					end
 
-                    wep.insaneStats_LastSecondaryFire = wep.insaneStats_LastSecondaryFire or wep:GetNextSecondaryFire()
-                    if wep.insaneStats_LastSecondaryFire ~= wep:GetNextSecondaryFire() then
-                        wep:SetNextSecondaryFire(wep:GetNextSecondaryFire())
-                        wep.insaneStats_LastSecondaryFire = wep:GetNextSecondaryFire()
-                    end
+					wep.insaneStats_LastSecondaryFire = wep.insaneStats_LastSecondaryFire or wep:GetNextSecondaryFire()
+					if wep.insaneStats_LastSecondaryFire ~= wep:GetNextSecondaryFire() then
+						wep:SetNextSecondaryFire(wep:GetNextSecondaryFire())
+						wep.insaneStats_LastSecondaryFire = wep:GetNextSecondaryFire()
+					end
 
-                    wep.insaneStats_LastClip1 = wep.insaneStats_LastClip1 or wep:InsaneStats_Clip1()
-                    if wep.insaneStats_LastClip1 ~= wep:InsaneStats_Clip1() then
-                        wep:SetClip1(wep:InsaneStats_Clip1())
-                        wep.insaneStats_LastClip1 = wep:InsaneStats_Clip1()
-                    end
+					wep.insaneStats_LastClip1 = wep.insaneStats_LastClip1 or wep:InsaneStats_Clip1()
+					if wep.insaneStats_LastClip1 ~= wep:InsaneStats_Clip1() then
+						wep.insaneStats_EnableMWBaseCallModifyWeaponClipUltraHack = true
+						wep:SetClip1(wep:InsaneStats_Clip1())
+						wep.insaneStats_EnableMWBaseCallModifyWeaponClipUltraHack = nil
+						wep.insaneStats_LastClip1 = wep:InsaneStats_Clip1()
+					end
 
-                    wep.insaneStats_LastClip2 = wep.insaneStats_LastClip2 or wep:InsaneStats_Clip2()
-                    if wep.insaneStats_LastClip2 ~= wep:InsaneStats_Clip2() then
-                        wep:SetClip2(wep:InsaneStats_Clip2())
-                        wep.insaneStats_LastClip2 = wep:InsaneStats_Clip2()
-                    end
+					wep.insaneStats_LastClip2 = wep.insaneStats_LastClip2 or wep:InsaneStats_Clip2()
+					if wep.insaneStats_LastClip2 ~= wep:InsaneStats_Clip2() then
+						wep.insaneStats_EnableMWBaseCallModifyWeaponClipUltraHack = true
+						wep:SetClip2(wep:InsaneStats_Clip2())
+						wep.insaneStats_EnableMWBaseCallModifyWeaponClipUltraHack = nil
+						wep.insaneStats_LastClip2 = wep:InsaneStats_Clip2()
+					end
                 end
 
                 if not k:InsaneStats_HasStatusEffect("no_time_manipulation") then
@@ -6185,7 +6191,7 @@ end)
 
 hook.Add("InsaneStatsLevelChanged", "InsaneStatsWPASS2", function(ent, oldLevel, newLevel)
     if InsaneStats:GetConVarValue("skills_enabled") and ent:InsaneStats_EffectivelyHasSkill("actually_levelling_up")
-    and oldLevel < newLevel and IsValid(ent) then
+    and (oldLevel and oldLevel < newLevel) and IsValid(ent) then
         local amplifier = newLevel - oldLevel
         local args = {ent:InsaneStats_GetEffectiveSkillValues("actually_levelling_up", 5)}
         -- wait for level to apply first!
@@ -6435,4 +6441,21 @@ hook.Add("SetupMove", "InsaneStatsWPASS2", function(ply, mv, cmd)
             ply:InsaneStats_SetSkillData("master_of_air", 1, 0)
         end
     end
+end)
+
+hook.Add("OnPlayerPhysicsPickup", "InsaneStatsWPASS2", function(ply, ent)
+	if ent:GetClass() == "grenade_helicopter" and ply:InsaneStats_EffectivelyHasSkill("campfire") then
+		ply:SimulateGravGunPickup(ent)
+	end
+end)
+
+
+hook.Add("OnPlayerPhysicsDrop", "InsaneStatsWPASS2", function(ply, ent, throw)
+	if ent:GetClass() == "grenade_helicopter" and throw then
+		local phys = ent:GetPhysicsObject()
+		local vel = ent:WorldSpaceCenter() - ply:GetShootPos()
+		vel:Normalize()
+		vel:Mul(ply:InsaneStats_GetEffectiveSkillValues("campfire", 3))
+		phys:AddVelocity(vel)
+	end
 end)

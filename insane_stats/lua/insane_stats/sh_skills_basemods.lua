@@ -2590,13 +2590,15 @@ local skills = {
     campfire = {
         name = ":fire:",
         desc = "+%u%% damage dealt while within %s from the nearest fire. \z
-        Dealing damage to an Item Crate directly sets its health to 1 before the attack connects.",
+        Dealing damage to an Item Crate directly sets its health to 1 before the attack connects. \z
+        Also, helicopter bombs thrown NOT from the gravity gun gain %s per second velocity.",
         values = function(level)
-            local distance = 512
+            local dist1, dist2 = 512, level * 256
             if CLIENT then
-                distance = InsaneStats:FormatNumber(distance, {distance = true})
+                dist1 = InsaneStats:FormatNumber(dist1, {distance = true})
+				dist2 = InsaneStats:FormatNumber(dist2, {distance = true, plus = true})
             end
-            return level * 25, distance
+            return level * 25, dist1, dist2
         end,
         img = "campfire",
         pos = {5, -6},

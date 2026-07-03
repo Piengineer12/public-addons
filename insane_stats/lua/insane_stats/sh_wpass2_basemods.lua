@@ -3736,10 +3736,19 @@ local teleportTraceData = {
 }
 
 local shouldAddBullets = true
+local totalPenetrationTicks = 0
 local commonTraceData = {
 	mask = MASK_SHOT
 }
 hook.Add("EntityFireBullets", "InsaneStatsSharedWPASS2", function(attacker, data)
+	if totalPenetrationTicks > 100 then
+		print("Something caused an infinite bullet loop!")
+		debug.Trace()
+		return false
+	else
+		totalPenetrationTicks = totalPenetrationTicks + 1
+	end
+
 	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
 		if shouldAddBullets then
 			local newNum = data.Num * attacker:InsaneStats_GetAttributeValue("bullets")
@@ -4114,6 +4123,7 @@ hook.Add("KeyRelease", "InsaneStatsSharedWPASS2", function(ply, key)
 end)
 
 hook.Add("Think", "InsaneStatsSharedWPASS2", function()
+	totalPenetrationTicks = 0
 	if InsaneStats:GetConVarValue("wpass2_enabled") or InsaneStats:GetConVarValue("skills_enabled") then
 		if SERVER then
 			InsaneStats.canPlayPoisonSound = true
