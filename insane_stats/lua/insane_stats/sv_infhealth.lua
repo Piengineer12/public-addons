@@ -239,6 +239,9 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 		end
 	end
 
+	--[[if InsaneStats:GetConVarValue("infhealth_refine_attacker") then
+	end]]
+
 	-- run the others first
 	local shouldNegate = hook.Run("NonInsaneStatsEntityTakeDamage", vic, dmginfo, ...)
 	if shouldNegate then
@@ -347,13 +350,21 @@ hook.Add("EntityTakeDamage", "InsaneStatsUnlimitedHealth", function(vic, dmginfo
 					dmginfo:InsaneStats_SetRawDamage(math.max(maxDamage, 0))
 					if stunned then
 						vic:InsaneStats_ClearStatusEffect("stunned")
-						vic:InsaneStats_ApplyStatusEffect("invincible", 1, 0.25)
+						vic:InsaneStats_ApplyStatusEffect("invincible", 1, 0.4)
 					end
 				end
 
 				if not vic:InsaneStats_IsMob() or vic:GetClass() == "npc_combine_camera" then
                     -- there is a map that wants the player to destroy a camera before getting spotted
 					vic:Fire("InsaneStats_OnDamaged")
+				end
+
+				-- HACK: the OnHalfHealth output should've taken care of this
+				-- but it just doesn't fire if a combine gunship takes too much damage in a single hit
+				-- such that it's little remaining health means no amount of damage will register
+				-- as a hit with this system
+				if healthRatio < 0.5 then
+					vic:Fire("InsaneStats_OnHalfHealth")
 				end
 			elseif vic.insaneStats_PreventOverdamage then
 				-- make sure to not let the helicopter's health go too low since it also causes issues
@@ -530,6 +541,9 @@ local multipleDamageClasses = {
 	prop_dropship_container = true
 }
 local neverOverdamageClasses = {
+	-- FIXME: uncommenting this out can leave the guard alive with 0 hp
+	-- however, commenting this out results in multiple hits to kill a guard
+	--npc_antlionguard = true,
     npc_helicopter = true,
     npc_combinegunship = true
 }
@@ -546,23 +560,28 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsUnlimitedHealth", function(ent)
 
 		ent.insaneStats_PreventOverdamage = ent.insaneStats_PreventOverdamage or neverOverdamageClasses[class]
 
-        if ent.insaneStats_TempOnHalfHealth or multipleDamageClasses[class] then
-            local duration = class == "prop_dropship_container" and 100 or ent.insaneStats_TempOnHalfHealth and 10 or 1
+        if ent.insaneStats_TempOnHalfHealth --[[or multipleDamageClasses[class] ]] then
+            local duration = 0.1--class == "prop_dropship_container" and 25 or ent.insaneStats_TempOnHalfHealth and 5 or 0.1
             ent.insaneStats_TempOnHalfHealth = nil
             ent:InsaneStats_ApplyStatusEffect("pheonix", duration, math.huge)
             ent:Fire("AddOutput", "OnHalfHealth !self:InsaneStats_OnHalfHealth")
         end
-        if ent.insaneStats_TempOnDamaged or ent.insaneStats_TempOnStun then
+        if ent.insaneStats_TempOnDamaged or ent.insaneStats_TempOnStun or ent.insaneStats_TempOnHealthChanged then
             local times = 1
             if ent.insaneStats_TempOnStun or multipleDamageClasses[class]
-            and (ent:GetInternalVariable("damagefilter") or "") == ""
-			or ent:GetClass() == "func_breakable" and ent:InsaneStats_GetStartingHealth() > 9999 then
-				-- this last line is due to tales-from-the-source_01, the map breaks if the hitbox is destroyed in < 5
-				-- yet, other maps such as coop_z_harrier2 cannot be progressed if it's 15
+				and (ent:GetInternalVariable("damagefilter") or "") == "" then
+				-- must be 15 at minimum due to lost industry 2
+				-- however, gm_locals requires this to only be true
+				-- if they have no damage filters
                 times = 15
+			elseif ent.insaneStats_TempOnHealthChanged then
+				-- this is due to tales-from-the-source_01 and js_coop_gethev_v1a, the map breaks if the hitbox is destroyed in < 5
+				-- yet, other maps such as coop_z_harrier2 cannot be progressed if it's 15
+				times = 5
             end
             ent.insaneStats_TempOnDamaged = nil
             ent.insaneStats_TempOnStun = nil
+            ent.insaneStats_TempOnHealthChanged = nil
             ent:InsaneStats_ApplyStatusEffect("undying", times, math.huge)
             ent:Fire("AddOutput", "OnDamaged !self:InsaneStats_OnDamaged")
             ent:Fire("AddOutput", "OnFoundPlayer !self:InsaneStats_OnDamaged")
@@ -603,11 +622,13 @@ end)
 
 hook.Add("EntityKeyValue", "InsaneStatsUnlimitedHealth", function(ent, key, value)
 	key = key:lower()
-	if key == "onhalfhealth" then
+	if key == "onhalfhealth" or key == "onfoundplayer" then
 		ent.insaneStats_TempOnHalfHealth = true
-	elseif key == "ondamaged" or key == "onhealthchanged" or key == "ondamagedbyplayer"
-    or key == "onfoundplayer" or key == "onfoundenemy" or string.match(key, "^on.*damage$") then -- onfourthdamage is a gunship-specific output
+	elseif key == "ondamaged" or key == "ondamagedbyplayer"
+    or key == "onfoundenemy" or string.match(key, "^on.*damage$") then -- onfourthdamage is a gunship-specific output
 		ent.insaneStats_TempOnDamaged = true
+	elseif key == "onhealthchanged" then
+		ent.insaneStats_TempOnHealthChanged = true
 	elseif key == "onstunnedplayer" then
 		ent.insaneStats_TempOnStun = true
 	end
@@ -635,7 +656,7 @@ hook.Add("AcceptInput", "InsaneStatsUnlimitedHealth", function(ent, input, activ
 			)
 		end
 
-		timer.Simple(1, function()
+		timer.Simple(0.1, function()
 			if IsValid(ent) and not ent.insaneStats_NoOSP then
 				if ent:InsaneStats_GetHealth() / ent:InsaneStats_GetMaxHealth() > 0.9375 then
 					ent.insaneStats_HitAtHalfHealth = 0
@@ -660,7 +681,7 @@ hook.Add("AcceptInput", "InsaneStatsUnlimitedHealth", function(ent, input, activ
 					if InsaneStats:IsDebugLevel(1) then
 						InsaneStats:Log("Applying invincibility to %s!", tostring(ent))
 					end
-					ent:InsaneStats_ApplyStatusEffect("invincible", 1, 1)
+					ent:InsaneStats_ApplyStatusEffect("invincible", 1, 0.1)
 
 					local newUndyingLevel = undyingLevel - 1
 

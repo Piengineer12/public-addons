@@ -21,6 +21,7 @@ concommand.Add("insanestats_pointcmder_timer", function(ply, cmd, args, argStr)
 end, nil, "Shows a timer to all players.\
 Format: insanestats_pointcmder_debugtimer [duration=10] [color=-1]")
 
+local mapTimeScale = 1
 hook.Add("AcceptInput", "InsaneStatsPointCommand", function(ent, input, activator, caller, value)
 	if InsaneStats:GetConVarValue("pointcmder_enabled") then
 		input = input:lower()
@@ -64,8 +65,17 @@ hook.Add("AcceptInput", "InsaneStatsPointCommand", function(ent, input, activato
 					if (tonumber(restCommand) or 0) >= 200 then
 						restCommand = "10000"
 					end
-				elseif mainCommand == "cl_playermodel" or mainCommand == "host_timescale"
-				or mainCommand == "host_framerate" or mainCommand and IsConCommandBlocked(mainCommand) then
+				elseif mainCommand == "host_timescale" then
+					if developer then
+						InsaneStats:Log("Setting map timescale to \"%s\"...", restCommand)
+					end
+					local newMapTimeScale = tonumber(restCommand)
+					if newMapTimeScale then
+						mapTimeScale = newMapTimeScale
+					end
+					mainCommand = nil
+				elseif mainCommand == "cl_playermodel" or mainCommand == "host_framerate"
+				or mainCommand and IsConCommandBlocked(mainCommand) then
 					if developer then
 						InsaneStats:Log("Command \"%s\" from \"%s\" was blocked!", command, tostring(ent))
 					end
@@ -117,6 +127,10 @@ hook.Add("AcceptInput", "InsaneStatsPointCommand", function(ent, input, activato
 			)
 		end
 	end
+end)
+
+hook.Add("InsaneStatsTimeScale", "InsaneStatsWPASS2", function(data)
+	data.timeScale = data.timeScale * mapTimeScale
 end)
 
 local function GetWildcardMatchEntities(name, class, model)
@@ -400,6 +414,7 @@ hook.Add("Initialize", "InsaneStatsPointCommand", function()
 end)
 
 local killScanData
+local currentTimeScale
 hook.Add("Think", "InsaneStatsPointCommand", function()
 	coroutine.resume(scanThread)
 
@@ -426,6 +441,14 @@ hook.Add("Think", "InsaneStatsPointCommand", function()
 		end
 
 		killScanData = nil
+	end
+
+	local data = {timeScale = 1}
+	hook.Run("InsaneStatsTimeScale", data)
+	local newTimeScale = data.timeScale
+	if currentTimeScale ~= newTimeScale then
+		currentTimeScale = newTimeScale
+		game.SetTimeScale(newTimeScale)
 	end
 end)
 

@@ -114,6 +114,7 @@ local modifiers = {
 			prefix = "Preserving",
 			modifiers = {
 				ammo_consumption = 1/1.21,
+				--clip_over = 1/1.21,
 				melee_damage = 1.21
 			},
 			max = 10,
@@ -124,6 +125,7 @@ local modifiers = {
 			prefix = "Motivation",
 			modifiers = {
 				kill10s_ammo_consumption = 1/1.21,
+				--clip_over = 1/1.21,
 				melee_damage = 1.21
 			},
 			max = CalculateLimit(2, 1/1.21),
@@ -133,9 +135,10 @@ local modifiers = {
 			prefix = "Holding",
 			modifiers = {
 				clip = 1.4641,
+				--clip_over = 1/1.21,
 				lastammo_damage = 1.21
 			},
-			max = 10,
+			max = CalculateLimit(2, 1/1.21),
 			cost = 2,
 			flags = InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY
 		},
@@ -229,7 +232,7 @@ local modifiers = {
 			prefix = "Hurtful",
 			suffix = "Hurt",
 			modifiers = {
-				hitstack_victim_damagetaken = 1.1
+				hitstack_victim_damagetaken = 1.331
 			},
 			weight = 0.5,
 		},
@@ -260,7 +263,7 @@ local modifiers = {
 		empower = {
 			prefix = "Empowering",
 			modifiers = {
-				killstack_damage = 1.1
+				killstack_damage = 1.331
 			},
 			weight = 0.5
 		},
@@ -268,7 +271,7 @@ local modifiers = {
 			prefix = "Nimble",
 			suffix = "Nimbility",
 			modifiers = {
-				killstack_firerate = 1.1
+				killstack_firerate = 1.331
 			},
 			weight = 0.5,
 			max = 10
@@ -494,9 +497,10 @@ local modifiers = {
 			suffix = "Smallness",
 			modifiers = {
 				clip = 1/1.4641,
+				--clip_over = 1.21,
 				lastammo_damage = 1/1.21
 			},
-			max = 10,
+			max = CalculateLimit(2, 1/1.21),
 			cost = -2,
 			flags = InsaneStats.WPASS2_FLAGS.SCRIPTED_ONLY
 		},
@@ -565,7 +569,7 @@ local modifiers = {
 		reckless = {
 			prefix = "Reckless",
 			modifiers = {
-				killstack_damagetaken = 1.1
+				killstack_damagetaken = 1.331
 			},
 			weight = 0.5,
 			cost = -1
@@ -681,7 +685,7 @@ local modifiers = {
 				kill_no_recoil = 1.1
 			},
 			weight = 2,
-            max = 5
+            max = 2
 		},
 	},
 
@@ -752,7 +756,7 @@ local modifiers = {
 			prefix = "Manic",
 			suffix = "Mania",
 			modifiers = {
-				killstack_xp = 1.1
+				killstack_xp = 1.331
 			},
 			flags = InsaneStats.WPASS2_FLAGS.XP,
 			weight = 1
@@ -782,7 +786,7 @@ local modifiers = {
 		resist = {
 			prefix = "Resisting",
 			modifiers = {
-				killstack_defence = 1.1
+				killstack_defence = 1.331
 			}
 		},
 		supply = {
@@ -1152,7 +1156,7 @@ local modifiers = {
 			prefix = "Intense",
 			suffix = "Intensity",
 			modifiers = {
-				critstack_damage = 1.1
+				critstack_damage = 1.331,
 			},
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			weight = 0.5
@@ -1160,7 +1164,7 @@ local modifiers = {
 		gatling = {
 			prefix = "Gatling",
 			modifiers = {
-				critstack_firerate = 1.1,
+				critstack_firerate = 1.331,
 			},
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			weight = 0.5,
@@ -1169,7 +1173,7 @@ local modifiers = {
 		ponder = {
 			prefix = "Pondering",
 			modifiers = {
-				critstack_xp = 1.1,
+				critstack_xp = 1.331,
 			},
 			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP),
 			weight = 0.5,
@@ -1336,8 +1340,7 @@ local modifiers = {
 			prefix = "Masterful",
 			suffix = "Mastery",
 			modifiers = {
-				kill1s_xp = 1.21,
-				kill1s_xp2 = 1.21
+				kill1s_xp = 1.21
 			},
 			weight = 0.5,
 			cost = 2,
@@ -1347,8 +1350,8 @@ local modifiers = {
 			prefix = "Rash",
 			suffix = "Rashness",
 			modifiers = {
-				mark = 1.21,
-				killstackmarked_damage = 1.21
+				mark = 1.1^6,
+				killstackmarked_damage = 1.1^6
 			},
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			weight = 0.5,
@@ -1357,8 +1360,8 @@ local modifiers = {
 		steam = {
 			prefix = "Steaming",
 			modifiers = {
-				mark = 1.21,
-				killstackmarked_firerate = 1.21
+				mark = 1.1^6,
+				killstackmarked_firerate = 1.1^6
 			},
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			weight = 0.5,
@@ -1367,8 +1370,8 @@ local modifiers = {
 		savor = {
 			prefix = "Savoring",
 			modifiers = {
-				mark = 1.21,
-				killstackmarked_xp = 1.21
+				mark = 1.1^6,
+				killstackmarked_xp = 1.1^6
 			},
 			flags = bit.bor(InsaneStats.WPASS2_FLAGS.ARMOR, InsaneStats.WPASS2_FLAGS.XP),
 			weight = 0.5,
@@ -1500,7 +1503,7 @@ local modifiers = {
 		disarm = {
 			prefix = "Disarming",
 			modifiers = {
-				critstack_defence = 1.1,
+				critstack_defence = 1.331,
 			},
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			weight = 0.5,
@@ -1554,7 +1557,7 @@ local modifiers = {
 		rage = {
 			prefix = "Raging",
 			modifiers = {
-				hittakenstack_damage = 1.1
+				hittakenstack_damage = 1.331
 			},
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			weight = 0.5
@@ -1562,7 +1565,7 @@ local modifiers = {
 		ward = {
 			prefix = "Warding",
 			modifiers = {
-				hittakenstack_defence = 1.1
+				hittakenstack_defence = 1.331
 			},
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			weight = 0.5
@@ -1664,8 +1667,8 @@ local modifiers = {
 			prefix = "Hard",
 			suffix = "Hardness",
 			modifiers = {
-				mark = 1.21,
-				killstackmarked_defence = 1.21
+				mark = 1.1^6,
+				killstackmarked_defence = 1.1^6
 			},
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			cost = 2,
@@ -1769,7 +1772,8 @@ local modifiers = {
 		guard = {
 			prefix = "Guarding",
 			modifiers = {
-				armor_trueblock = 2
+				armor_trueblock = 2,
+				bhop = 2
 			},
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			weight = 0.5,
@@ -1898,7 +1902,7 @@ local modifiers = {
 			prefix = "Fragile",
 			suffix = "Fragility",
 			modifiers = {
-				hittakenstack_damagetaken = 1.1
+				hittakenstack_damagetaken = 1.331
 			},
 			flags = InsaneStats.WPASS2_FLAGS.ARMOR,
 			cost = -1,
@@ -1968,11 +1972,11 @@ local attributes = {
 	},
 	height_damage = {
 		display = "%s damage dealt, scaled by height from ground",
-		mul = 2
+		mul = 4
 	},
 	height_firerate = {
 		display = "%s fire rate, scaled by height from ground",
-		mul = 2
+		mul = 4
 	},
 	armor_damage = {
 		display = "%s damage dealt, scaled by shield %%",
@@ -2113,7 +2117,7 @@ local attributes = {
 	},
 	height_defence = {
 		display = "%s defence, scaled by height from ground",
-		mul = 2
+		mul = 4
 	},
 	ping_defence = {
 		display = "%s defence, multiplied by ping",
@@ -2182,7 +2186,7 @@ local attributes = {
 		mul = 0.2
 	},
 	kill_clipsteal = {
-		display = "%s clip refilled on kill"
+		display = "%s clip filled on kill, diminishing past max"
 	},
 	kill_supplychance = {
 		display = "%s chance for random item on kill",
@@ -2232,44 +2236,45 @@ local attributes = {
 		mul = 10,
 	},
 	kill1s_xp = {
-		display = "%s coins and XP gain for +1s after kill, scaled by square root of duration",
-		mul = 5
-	},
-	kill1s_xp2 = {
-		display = "%s coins and XP gain for +1s from props, scaled by square root of duration",
+		display = "%s stacking (max ×10) coins and XP gain from NPCs and props for 1s",
 		mul = 5
 	},
 	killstack_damage = {
-		display = "%s stacking damage dealt per kill for 10s",
+		display = "%s stacking (max ×12) damage dealt per kill for 10s",
+		mul = 0.3,
 	},
 	killstack_firerate = {
-		display = "%s stacking fire rate per kill for 10s",
+		display = "%s stacking (max ×12) fire rate per kill for 10s",
+		mul = 0.3,
 	},
 	killstack_defence = {
-		display = "%s stacking defence per kill for 10s",
+		display = "%s stacking (max ×12) defence per kill for 10s",
+		mul = 0.3
 	},
 	killstack_damagetaken = {
-		display = "%s stacking damage taken per kill for 10s",
+		display = "%s stacking (max ×12) damage taken per kill for 10s",
+		mul = 0.3,
 		invert = true
 	},
 	killstack_xp = {
-		display = "%s stacking coins and XP gain per kill for 10s",
+		display = "%s stacking (max ×12) coins and XP gain per kill for 10s",
+		mul = 0.3,
 	},
 	killstackmarked_damage = {
-		display = "%s stacking damage dealt per marked kill for 10s",
-		mul = 1.2
+		display = "%s stacking (max ×10) damage dealt per marked kill for 10s",
+		mul = 0.36
 	},
 	killstackmarked_firerate = {
-		display = "%s stacking fire rate per marked kill for 10s",
-		mul = 1.2
+		display = "%s stacking (max ×10) fire rate per marked kill for 10s",
+		mul = 0.36
 	},
 	killstackmarked_defence = {
-		display = "%s stacking defence per marked kill for 10s",
-		mul = 1.2
+		display = "%s stacking (max ×10) defence per marked kill for 10s",
+		mul = 0.36
 	},
 	killstackmarked_xp = {
-		display = "%s stacking coins and XP gain per marked kill for 10s",
-		mul = 1.2
+		display = "%s stacking (max ×10) coins and XP gain per marked kill for 10s",
+		mul = 0.36
 	},
 	crit_lifesteal = {
 		display = "%s healing on crit",
@@ -2280,20 +2285,20 @@ local attributes = {
 		mul = 0.02
 	},
 	critstack_damage = {
-		display = "%s stacking damage dealt per crit for 10s",
-		mul = 0.1
+		display = "%s stacking (max ×120) damage dealt per crit for 10s",
+		mul = 0.03
 	},
 	critstack_firerate = {
-		display = "%s stacking fire rate per crit for 10s",
-		mul = 0.1
+		display = "%s stacking (max ×120) fire rate per crit for 10s",
+		mul = 0.03
 	},
 	critstack_defence = {
-		display = "%s stacking defence per crit for 10s",
-		mul = 0.1
+		display = "%s stacking (max ×120) defence per crit for 10s",
+		mul = 0.03
 	},
 	critstack_xp = {
-		display = "%s stacking coins and XP gain per crit for 10s",
-		mul = 0.1
+		display = "%s stacking (max ×120) coins and XP gain per crit for 10s",
+		mul = 0.03
 	},
 	hit1s_damage = {
 		display = "%s damage dealt, 1s cooldown",
@@ -2346,20 +2351,20 @@ local attributes = {
 		mul = 0.2
 	},
 	hittakenstack_damage = {
-		display = "%s stacking damage dealt per hit taken for 10s",
-		mul = 0.1
+		display = "%s stacking (max ×120) damage dealt per hit taken for 10s",
+		mul = 0.03
 	},
 	hittakenstack_defence = {
-		display = "%s stacking defence per hit taken for 10s",
-		mul = 0.1
+		display = "%s stacking (max ×120) defence per hit taken for 10s",
+		mul = 0.03
 	},
 	hitstack_victim_damagetaken = {
-		display = "%s stacking victim damage taken per hit for 10s",
-		mul = 0.1
+		display = "%s stacking (max ×120) victim damage taken per hit for 10s",
+		mul = 0.03
 	},
 	hittakenstack_damagetaken = {
-		display = "%s stacking damage taken per hit taken for 10s",
-		mul = 0.1,
+		display = "%s stacking (max ×120) damage taken per hit taken for 10s",
+		mul = 0.03,
 		invert = true
 	},
 	dissolvewarning = {
@@ -2386,9 +2391,13 @@ local attributes = {
 		display = "%s clip size",
 	},
 	clip_firerate = {
-		display = "%s fire rate, scaled by clip %%",
+		display = "%s fire rate, scaled by clip %% (max ×10)",
 		mul = 2
 	},
+	--[[clip_over = {
+		display = "%s Insane Stats clip refilling softcap",
+		invert = true
+	},]]
 	lastammo_damage = {
 		display = "%s last clip shot damage dealt",
 	},
@@ -2417,7 +2426,7 @@ local attributes = {
 	},
     height_damage = {
         display = "%s damage dealt, scaled by height from ground",
-        mul = 2
+        mul = 4
     },
 	lowhealth_xp = {
 		display = "Up to %s coins and XP gain at low health",
@@ -2432,7 +2441,7 @@ local attributes = {
 		mul = 2
 	},
 	clip_xp = {
-		display = "%s XP gain, scaled by square root of clip %%",
+		display = "%s XP gain, scaled by clip %%",
 		mul = 2
 	},
 	prop_xp = {
@@ -2453,7 +2462,7 @@ local attributes = {
 	},
 	height_xp = {
 		display = "%s coins and XP gain, scaled by height from ground",
-		mul = 2
+		mul = 4
 	},
     seen_xp = {
 		display = "%s coins and XP gain from seen kills",
@@ -2491,7 +2500,7 @@ local attributes = {
 		display = "%s hemotoxin chance",
 	},
 	cosmicurse = {
-		display = "%s cosmic damage dealt",
+		display = "%s supernova damage dealt after 0.5s",
 		mul = 10
 	},
 	victim_xpyield = {
@@ -2694,6 +2703,9 @@ local attributes = {
 	switch_speed = {
 		display = "%s weapon switch speed",
 		mul = 2
+	},
+	bhop = {
+		display = "Allows easy bunnyhopping"
 	}
 }
 
@@ -3206,8 +3218,8 @@ local statusEffects = {
 		overtime = true
 	},
 	masterful_xp = {
-		name = "Loot Power",
-		typ = 1,
+		name = "Stacking NPC And Prop Loot Up",
+		typ = 2,
 		img = "crystal-shine"
 	},
 	air_jumped = {
@@ -3538,7 +3550,7 @@ hook.Add("InsaneStatsModifyNextFire", "InsaneStatsSharedWPASS2", function(data)
 			if wep.Clip1 then
 				local clip1 = wep:InsaneStats_Clip1()
 				local maxClip1 = wep:GetMaxClip1()
-				local clip1Fraction = clip1 / maxClip1
+				local clip1Fraction = math.Clamp(clip1 / maxClip1, 0, 10)
 				if maxClip1 <= 0 then
 					clip1Fraction = 1
 				end
@@ -4075,9 +4087,9 @@ hook.Add("KeyPress", "InsaneStatsSharedWPASS2", function(ply, key)
 				local oldStacks = ply:InsaneStats_GetSkillStacks("explosive_arsenal")
 				local newStacks = bit.bxor(oldStacks, 1)
 				if bit.band(newStacks, 1) == 0 then
-					ply:PrintMessage(HUD_PRINTTALK, "Explode Grenade on Collision: Enabled")
-				else
 					ply:PrintMessage(HUD_PRINTTALK, "Explode Grenade on Collision: Disabled")
+				else
+					ply:PrintMessage(HUD_PRINTTALK, "Explode Grenade on Collision: Enabled")
 				end
 				ply:InsaneStats_SetSkillData("explosive_arsenal", -2, newStacks)
 			elseif wepClass == "weapon_rpg" and ply:InsaneStats_EffectivelyHasSkill("explosive_arsenal") then
@@ -4323,3 +4335,11 @@ timer.Create(
 		end
 	end
 )
+
+hook.Add("SetupMove", "InsaneStatsSkillsDefault", function(ply, move, cmd)
+	if ply:InsaneStats_EffectivelyHasSkill("jumper") or ply:InsaneStats_GetAttributeValue("bhop") > 1 then
+		if move:KeyDown(IN_JUMP) and move:KeyWasDown(IN_JUMP) and ply:OnGround() then
+			move:SetButtons(bit.band(move:GetButtons(), bit.bnot(IN_JUMP)))
+		end
+	end
+end)

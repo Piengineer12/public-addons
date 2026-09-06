@@ -83,12 +83,24 @@ hook.Add("InitPostEntity", "InsaneStatsCompat", function()
     end
 
     if InsaneStats:GetConVarValue("lego_softcap") and CalculateStuds then
-        local originalCalculateStuds = CalculateStuds
+        InsaneStats.originalCalculateStuds = InsaneStats.originalCalculateStuds or CalculateStuds
         function CalculateStuds(worth, ...)
             worth = InsaneStats:ComputeNerfedIncrement(0, worth/10000, 1.875) * 10000
-            return originalCalculateStuds(worth, ...)
+            return InsaneStats.originalCalculateStuds(worth, ...)
         end
     end
+end)
+
+hook.Add("PostCleanupMap", "InsaneStatsCompat", function()
+	timer.Simple(0.5, function()
+		if InsaneStats:GetConVarValue("lego_softcap") and CalculateStuds then
+			InsaneStats.originalCalculateStuds = InsaneStats.originalCalculateStuds or CalculateStuds
+			function CalculateStuds(worth, ...)
+				worth = InsaneStats:ComputeNerfedIncrement(0, worth/10000, 1.875) * 10000
+				return InsaneStats.originalCalculateStuds(worth, ...)
+			end
+		end
+	end)
 end)
 
 hook.Add("InsaneStatsAmmoCrateInteracted", "InsaneStatsCompat", function(ply, ent)
@@ -184,7 +196,8 @@ hook.Add("EntityKeyValue", "InsaneStatsCompat", function(ent, key, value)
     elseif class == "info_target_gunshipcrash" and key == "oncrashed" then
         replaceAllGunships = "never"
         InsaneStats:Log("info_target_gunshipcrash entity with OnCrashed output has been detected, all gunships will not be replaced with helicopters!")
-    elseif class == "logic_choreographed_scene" and key ~= "oncanceled" then
+    elseif class == "logic_choreographed_scene" and key ~= "oncanceled"
+    or class == "prop_dynamic" and key == "onanimationdone" then
         ent.insaneStats_ChoreographedOutputs = ent.insaneStats_ChoreographedOutputs or {}
 
         local rawData = string.Explode("\x1B", value)
@@ -249,12 +262,14 @@ end)
 hook.Add("InsaneStatsEntityCreated", "InsaneStatsCompat", function(ent)
     local class = ent:GetClass()
     if class=="npc_combinegunship" then
-        if next(ent:GetChildren()) and not replaceAllGunships then
+        -- all gunships have children, the key is instead to look for what's not usually part of a gunship
+        if #ent:GetChildren() > 2 and not replaceAllGunships then
             InsaneStats:Log("A gunship with children has been detected, all gunships will be replaced with helicopters!")
             replaceAllGunships = "yes"
         end
         if InsaneStats:GetConVarValue("prevent_gunship_death_crash") and replaceAllGunships == "yes" then
             local keyValues = ent.insaneStats_KVs or {}
+            local children = ent:GetChildren()
             local pos = ent:GetPos()
 
             for i,v in ipairs(ents.FindByClass("info_target_helicopter_crash")) do
@@ -277,11 +292,25 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsCompat", function(ent)
                     heli:SetKeyValue(key, value)
                 end
             end
+            for i,v in ipairs(children) do
+                v:SetParent(heli)
+            end
             heli:Spawn()
         end
     elseif (class=="npc_combinedropship" or class=="prop_dropship_container")
         and InsaneStats:GetConVarValue("nonsolid_combine_dropship") then
         ent:SetCollisionGroup(COLLISION_GROUP_WORLD)
+    elseif ent.Base == "legocoin" then
+        -- secretly clip on extra code to show our pickup notifs c:
+        local oldCollect = ent.Collect
+        ent.Collect = function(self, ply, ...)
+            net.Start("insane_stats")
+            net.WriteUInt(2, 8)
+            net.WriteString("legocoin")
+            net.WriteUInt(math.Round(math.log10(self.Worth) - 1), 2)
+            net.Send(ply)
+            oldCollect(self, ply, ...)
+        end
     end
 end)
 
@@ -290,10 +319,11 @@ local activeTime = 0
 hook.Add("AcceptInput", "InsaneStatsCompat", function(ent, input, activator, caller, value)
     input = input:lower()
     local class = ent:GetClass()
-    if input == "start" and class == "logic_choreographed_scene"
+    if (input == "start" and class == "logic_choreographed_scene")
+    or (input == "setanimation" and class == "prop_dynamic")
     and InsaneStats:GetConVarValue("skip_missing_scenes") then
-        -- see if the scene even exists
-        local sceneFile = ent:GetInternalVariable("SceneFile")
+        -- see if the file even exists
+        local sceneFile = class == "prop_dynamic" and ent:GetModel() or ent:GetInternalVariable("SceneFile")
         if file.Exists(sceneFile, "GAME") then
             ent.insaneStats_ChoreographedOutputs = nil
         else
@@ -334,7 +364,7 @@ hook.Add("AcceptInput", "InsaneStatsCompat", function(ent, input, activator, cal
         if input == "kill" then
             ent:Fire("Disable")
             return true
-        elseif input == "disable" and ent ~= activeCamera and activeTime + 0.5 > CurTime() then
+        elseif input == "disable" and ent ~= activeCamera and activeTime + 0.15 > CurTime() then
             return true
         elseif input == "enable" then
             activeCamera = ent
@@ -386,8 +416,11 @@ hook.Add("AcceptInput", "InsaneStatsCompat", function(ent, input, activator, cal
                 target = not ent:HasSpawnFlags(1) and activator:IsPlayer() and activator
             })
         end
-    elseif input == "spawn" and (class == "npc_template_maker" or class == "npc_maker")
-    and not ent:HasSpawnFlags(32) then
+    elseif input == "spawn" and (
+        class == "npc_antlion_template_maker"
+        or class == "npc_template_maker"
+        or class == "npc_maker"
+    ) and not ent:HasSpawnFlags(32) then
         local spawnDelay = InsaneStats:GetConVarValue("maker_spawn_enable")
         --[[local lastSpawn = ent.insaneStats_SpawnedTime or 0
         if lastSpawn + spawnDelay > CurTime() then
@@ -411,19 +444,28 @@ end)
 
 local createdCrossbowCollisions = {}
 hook.Add("InsaneStatsCrossbowBoltLanded", "InsaneStatsCompat", function(bolt, attacker, landed)
-    if landed and bolt:GetCreationTime() + 0.05 < CurTime() and InsaneStats:GetConVarValue("solid_bolts") > 0 then
+    if landed and InsaneStats:GetConVarValue("solid_bolts") > 0 then
         createdCrossbowCollisions[attacker] = createdCrossbowCollisions[attacker] or {}
         local attackerCreatedCrossbowCollisions = createdCrossbowCollisions[attacker]
 
         local desiredAng = bolt:GetAngles()
         desiredAng:RotateAroundAxis(bolt:GetUp(), 90)
         local collide = ents.Create("prop_physics")
-        collide:SetModel("models/hunter/plates/plate075.mdl")
-        collide:SetPos(bolt:WorldSpaceCenter())
+        collide:SetModel("models/hunter/plates/plate05.mdl")
+        collide:SetPos(bolt:WorldSpaceCenter() - bolt:GetUp())
         collide:SetAngles(desiredAng)
-        collide:SetNoDraw(true)
+        --collide:SetNoDraw(true)
+        collide:SetMaterial("models/wireframe")
+        collide:SetColor(Color(255, 127, 0, 31))
+        collide:SetRenderMode(RENDERMODE_TRANSCOLOR)
         collide:Spawn()
-        collide:SetMoveType(MOVETYPE_NONE)
+        --bolt:SetParent(collide)
+        --collide:SetMoveType(MOVETYPE_NONE)
+
+        local physObj = collide:GetPhysicsObject()
+        if IsValid(physObj) then
+            physObj:EnableMotion(false)
+        end
 
         table.insert(attackerCreatedCrossbowCollisions, collide)
         if #attackerCreatedCrossbowCollisions > InsaneStats:GetConVarValue("solid_bolts") then
@@ -523,5 +565,14 @@ hook.Add("EntityTakeDamage", "InsaneStatsCompat", function(vic, dmginfo)
     if vic:GetClass() == "npc_combinegunship" and replaceAllGunships == "yes"
     and InsaneStats:GetConVarValue("prevent_gunship_death_crash") then
         return true
+    end
+end)
+
+hook.Add("Initialize", "InsaneStatsCompat", function()
+    if InsaneStats:GetConVarValue("skip_missing_scenes") then
+        hook.Remove("InitPostEntity", "FixMap_DMI_deadman_island_IPE")
+    end
+    if InsaneStats:GetConVarValue("spawn_master") then
+        hook.Remove("PlayerSpawn", "FixMap_DMI_deadman_island_IPE")
     end
 end)

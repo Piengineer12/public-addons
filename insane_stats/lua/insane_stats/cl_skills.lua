@@ -16,6 +16,14 @@ InsaneStats:RegisterClientConVar("hud_skills_size", "insanestats_hud_skills_size
     display = "Skill Statuses Size", desc = "Size of skill status indicators.",
     type = InsaneStats.FLOAT, min = 0, max = 10
 })
+InsaneStats:RegisterClientConVar("hud_skills_grid_size", "insanestats_hud_skills_grid_size", "2.5", {
+    display = "Skill Grid Size", desc = "Size of skills on the skill grid.",
+    type = InsaneStats.FLOAT, min = 0, max = 10
+})
+InsaneStats:RegisterClientConVar("hud_skills_spacing", "insanestats_hud_skills_grid_spacing", "0.5", {
+    display = "Skill Grid Spacing", desc = "Space between skills on the skill grid.",
+    type = InsaneStats.FLOAT, min = 0, max = 10
+})
 InsaneStats:RegisterClientConVar("hud_skills_per_row", "insanestats_hud_skills_per_row", "18", {
     display = "Skill Statuses Per Row", desc = "Number of skill statuses per row. If set to 0, all skill status indicators will be in a single row.",
     type = InsaneStats.INT, min = 0, max = 100
@@ -61,8 +69,8 @@ local function CreateSkillButton(parent, skillName)
     local ply = LocalPlayer()
     local skillInfo = InsaneStats:GetSkillInfo(skillName)
     local outlineWidth = InsaneStats:GetOutlineThickness()
-    local buttonSize = InsaneStats.FONT_BIG * 2.5 + outlineWidth * 2
-    local buttonDistance = 1.5
+    local buttonSize = InsaneStats.FONT_BIG * InsaneStats:GetConVarValue("hud_skills_grid_size") + outlineWidth * 2
+    local buttonDistance = 1 + InsaneStats:GetConVarValue("hud_skills_spacing")
     local buttonOffset = buttonSize * buttonDistance * 6
     local Button = vgui.Create("DButton", parent)
     Button:SetSize(buttonSize, buttonSize)
@@ -247,7 +255,8 @@ local function CreateSkillButton(parent, skillName)
         local buttonY = skillPos[2] * buttonDistance * buttonSize + buttonOffset
         self:SetPos(buttonX, buttonY)
 
-        local requiredAdjacent = ply:InsaneStats_GetSkillAdjacentPointsRequired(skillName)
+        local requiredAdjacent = InsaneStats:GetConVarValue("skills_disable_allocation_check") >= 2
+            and 0 or ply:InsaneStats_GetSkillAdjacentPointsRequired(skillName)
         local adjacent = ply:InsaneStats_GetSkillTier(skillName)
         -- - ply:InsaneStats_GetEffectiveSkillValues("master_of_air", 3)
 

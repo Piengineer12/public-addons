@@ -93,19 +93,19 @@ local PANEL = {
             local _exp_1 = id
             if 1 == _exp_1 then
               dxs = {
-                InsaneStats:ComputeDXForNerfedIncrement(currentRatio, 1 - currentRatio, nerfFactor)
+                InsaneStats:ComputeForNerfedIncrement(currentRatio, 1 - currentRatio, nerfFactor)
               }
             elseif 2 == _exp_1 then
               dxs = {
-                InsaneStats:ComputeDXForNerfedIncrement(currentRatio, 1, nerfFactor)
+                InsaneStats:ComputeForNerfedIncrement(currentRatio, 1, nerfFactor)
               }
             elseif 3 == _exp_1 then
               dxs = {
-                InsaneStats:ComputeDXForNerfedIncrement(currentRatio, 10, nerfFactor)
+                InsaneStats:ComputeForNerfedIncrement(currentRatio, 10, nerfFactor)
               }
             elseif 4 == _exp_1 then
               dxs = {
-                InsaneStats:ComputeDXForNerfedIncrement(currentRatio, 100, nerfFactor)
+                InsaneStats:ComputeForNerfedIncrement(currentRatio, 100, nerfFactor)
               }
             end
             qty = maxHealth * (dxs[1] + dxs[2] * overUnitPrice)
@@ -146,19 +146,19 @@ local PANEL = {
             local _exp_1 = id
             if 1 == _exp_1 then
               dxs = {
-                InsaneStats:ComputeDXForNerfedIncrement(currentRatio, 1 - currentRatio, nerfFactor)
+                InsaneStats:ComputeForNerfedIncrement(currentRatio, 1 - currentRatio, nerfFactor)
               }
             elseif 2 == _exp_1 then
               dxs = {
-                InsaneStats:ComputeDXForNerfedIncrement(currentRatio, 1, nerfFactor)
+                InsaneStats:ComputeForNerfedIncrement(currentRatio, 1, nerfFactor)
               }
             elseif 3 == _exp_1 then
               dxs = {
-                InsaneStats:ComputeDXForNerfedIncrement(currentRatio, 10, nerfFactor)
+                InsaneStats:ComputeForNerfedIncrement(currentRatio, 10, nerfFactor)
               }
             elseif 4 == _exp_1 then
               dxs = {
-                InsaneStats:ComputeDXForNerfedIncrement(currentRatio, 100, nerfFactor)
+                InsaneStats:ComputeForNerfedIncrement(currentRatio, 100, nerfFactor)
               }
             end
             qty = maxArmor * (dxs[1] + dxs[2] * overUnitPrice)

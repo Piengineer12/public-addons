@@ -25,14 +25,42 @@ hook.Add("InsaneStatsWPASS2EntityMarked", "InsaneStatsWPASS2", function(entIndex
 end)
 
 hook.Add("InsaneStatsWPASS2EntitiesHighlighted", "InsaneStatsWPASS2", function(highlights)
+	--[[local classCounts = {}
 	for i,v in ipairs(highlights) do
-		highlightedEntities[v.index] = {
+		local class = v.class
+		classCounts[class] = (classCounts[class] or 0) + 1
+	end]]
+
+	-- this used to only show one entity, but it's clear that it's not enough
+	--local newHighlightedEntities
+	for i,v in ipairs(highlights) do
+		local iter = v.iter
+		local index = v.index
+		local class = v.class
+		local hue = (60 + iter * 30) % 360
+		local highlightData = {
 			pos = v.pos,
-			class = v.class,
-			start = v.start,
-			indicator = v.indicator
+			class = class,
+			origin = v.origin,
+			color = HSVToColor(hue, 1, 1),
+			--alpha = 1 / classCounts[class],
+			start = v.start
 		}
+
+		if iter == -8 then
+			highlightedEntities[index] = highlightData
+		else
+			--newHighlightedEntities = newHighlightedEntities or {}
+			if LocalPlayer():KeyDown(IN_SPEED) then
+				highlightedEntities = {} break
+			end
+			highlightedEntities[index] = highlightData
+		end
 	end
+
+	--[[if newHighlightedEntities then
+		highlightedEntities = newHighlightedEntities
+	end]]
 end)
 
 --[[
@@ -262,6 +290,7 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 
 			cam.Start3D()
 			for k,v in pairs(highlightedEntities) do
+				--[[
 				-- if the entity is valid
 				local sqrDistToHide = 16384
 				local ent = Entity(k)
@@ -272,48 +301,54 @@ hook.Add("HUDPaint", "InsaneStatsWPASS2", function()
 				local distSqr = v.pos:DistToSqr(ply:WorldSpaceCenter())
 				if distSqr < sqrDistToHide or v.start > 0 and v.start < magentaStartExpiryTime then
 					highlightedEntities[k] = nil
+					else]]
+				if v.start > 0 and v.start < magentaStartExpiryTime then
+					highlightedEntities[k] = nil
 				else
 					-- get the entity position in 2D space
 					screenData[k] = v.pos:ToScreen()
+					local alpha = (1 - (curTime - v.start) / lifeTime) * 255
+					local color = v.color
+					local lineColor = Color(color.r, color.g, color.b, alpha)
+					render.DrawLine(v.pos, v.origin, lineColor)
 				end
 			end
 			cam.End3D()
 
 			for k,v in pairs(highlightedEntities) do
 				--local expires = v.start > 0
-				local toScreenData = screenData[k]
-				--if toScreenData.visible then
-				toScreenData.x = math.Clamp(toScreenData.x, 0, ScrW())
-				toScreenData.y = math.Clamp(toScreenData.y, 0, ScrH())
+				local pos = screenData[k]
 
 				-- draw the target indicator
-				local alpha = 1 - (curTime - v.start) / lifeTime
-				local indicator = v.indicator
+				local alpha = (1 - (curTime - v.start) / lifeTime)
 				surface.SetAlphaMultiplier(alpha)
-				if indicator == 3 then
-					surface.DrawCircle(toScreenData.x, toScreenData.y, InsaneStats.FONT_SMALL, 0, 255, 255)
-				elseif indicator == 2 then
-					surface.DrawCircle(toScreenData.x, toScreenData.y, InsaneStats.FONT_SMALL, 0, 255, 0)
-				elseif indicator == 1 then
-					surface.DrawCircle(toScreenData.x, toScreenData.y, InsaneStats.FONT_SMALL, 255, 0, 255)
+				if v.pos == v.origin then
+					surface.SetDrawColor(v.color)
+					surface.DrawOutlinedRect(
+						pos.x - InsaneStats.FONT_SMALL, pos.y - InsaneStats.FONT_SMALL,
+						InsaneStats.FONT_SMALL * 2, InsaneStats.FONT_SMALL * 2
+					)
+				else
+					surface.DrawCircle(pos.x, pos.y, InsaneStats.FONT_SMALL, v.color)
 				end
 
 				-- draw the target information
-				local textPosX = toScreenData.x
-				local textPosY = toScreenData.y + InsaneStats.FONT_SMALL + outlineThickness
+				local textPosX = pos.x
+				local textPosY = pos.y + InsaneStats.FONT_SMALL + outlineThickness
 
 				InsaneStats:DrawTextOutlined(
 					language.GetPhrase(v.class), 1,
 					textPosX, textPosY,
-					indicator == 3 and color_aqua
-					or indicator == 2 and color_green
-					or indicator == 1 and color_magenta,
+					v.color,
 					TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP
 				)
 
-				--if expires then
-					surface.SetAlphaMultiplier(1)
-				--end
+				-- draw line to origin
+				-- NOTE: does not render correctly like this!
+				--surface.SetDrawColor(v.color)
+				--surface.DrawLine(pos.x, pos.y, origin.x, origin.y)
+
+				surface.SetAlphaMultiplier(1)
 			end
 		end
 	end
@@ -363,7 +398,7 @@ hook.Add("Think", "InsaneStatsWPASS2", function()
 			ply.insaneStats_Starlight = ProjectedTexture()
 			ply.insaneStats_Starlight:SetTexture("effects/flashlight/hard")
 			ply.insaneStats_Starlight:SetNearZ(32)
-			ply.insaneStats_Starlight:SetBrightness(0.5)
+			ply.insaneStats_Starlight:SetBrightness(0.25)
 			ply.insaneStats_Starlight:SetEnableShadows(false)
 			--ply.insaneStats_Starlight:SetColor(color_white)
 		end

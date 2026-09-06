@@ -46,10 +46,12 @@ end
 hook.Add("OnEntityCreated", "InsaneStats", function(ent)
 	local delay = InsaneStats:GetConVarValue("spawn_delay")
 	timer.Simple(delay, function()
-        if (IsValid(ent) and not ent:IsPlayer() and not ent.insaneStats_EntityCreatedHookCalled) then
-            ent.insaneStats_EntityCreatedHookCalled = true
+        if IsValid(ent) and not ent:IsPlayer() then
 			hook.Run("InsaneStatsTransitionCompat", ent)
-			hook.Run("InsaneStatsEntityCreated", ent)
+			if not ent:InsaneStats_GetEntityData("entity_created_hook_called") then
+				ent:InsaneStats_SetEntityData("entity_created_hook_called", true)
+				hook.Run("InsaneStatsEntityCreated", ent)
+			end
 		end
 	end)
 end)
@@ -283,8 +285,8 @@ hook.Add("Think", "InsaneStats", function()
             if not lastCheckedEntities[ent] then
                 local delay = InsaneStats:GetConVarValue("spawn_delay")
                 timer.Simple(delay, function()
-                    if (IsValid(ent) and not ent:IsPlayer() and not ent.insaneStats_EntityCreatedHookCalled) then
-                        ent.insaneStats_EntityCreatedHookCalled = true
+                    if (IsValid(ent) and not ent:IsPlayer() and not ent:InsaneStats_GetEntityData("entity_created_hook_called")) then
+                        ent:InsaneStats_SetEntityData("entity_created_hook_called", true)
                         hook.Run("InsaneStatsTransitionCompat", ent)
                         hook.Run("InsaneStatsEntityCreated", ent)
                     end

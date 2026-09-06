@@ -147,7 +147,7 @@ InsaneStats:RegisterConVar("xp_other_level_time_minimum", "insanestats_xp_other_
 	display = "Non-player Time Level Minimum", desc = "Minimum level increase of spawned entities per minute.",
 	type = InsaneStats.FLOAT, min = 0, max = 1000
 })
-InsaneStats:RegisterConVar("xp_other_level_drift", "insanestats_xp_other_drift", "2", {
+InsaneStats:RegisterConVar("xp_other_level_drift", "insanestats_xp_other_drift", "4", {
 	display = "Non-player XP Drift", desc = "Randomly alters spawned non-players' XP by multiplying / dividing up to this factor.",
 	type = InsaneStats.FLOAT, min = 1, max = 100
 })

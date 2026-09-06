@@ -39,9 +39,9 @@ InsaneStats:RegisterConVar("skills_shuffle_seed", "insanestats_skills_shuffle_se
 InsaneStats:RegisterConVar("skills_disable_allocation_check", "insanestats_skills_disable_allocation_check", "0", {
     display = "Disable Allocation Validity Check",
     desc = "Disables checking on whether a player's skill allocation is valid. \z
-    It is recommended to not touch this unless an addon update causes previous skill allocations \z
-    to become invalid.",
-	type = InsaneStats.BOOL
+    Useful when an addon update causes previous skill allocations to become invalid.\n\z
+    If 2, all clients will see all skill adjacency checks as satisfied.",
+	type = InsaneStats.INT, min = 0, max = 2
 })
 
 InsaneStats:RegisterConVar("skills_level_start", "insanestats_skills_level_start", "2", {
@@ -466,7 +466,7 @@ function ENTITY:InsaneStats_GetInternalAllocationFromSubset(subset)
     return closed
 end
 function ENTITY:InsaneStats_IsSkillAllocationValid(subset)
-    if InsaneStats:GetConVarValue("skills_disable_allocation_check") then return true end
+    if InsaneStats:GetConVarValue("skills_disable_allocation_check") >= 1 then return true end
 
     local closed = self:InsaneStats_GetInternalAllocationFromSubset(subset)
     for k,v in pairs(subset) do

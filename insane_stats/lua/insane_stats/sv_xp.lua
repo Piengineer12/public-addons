@@ -214,7 +214,11 @@ function ENT:InsaneStats_ApplyLevel(level, oldLevel)
 			"xp_"..scaleType.."_health_mode"
 		))
 
-		newHealth = newHealth * (currentMaxHealth == oldHealth and 1 or currentMaxHealth / oldHealth)
+		--newHealth = newHealth * (currentMaxHealth == oldHealth and 1 or currentMaxHealth / oldHealth)
+		-- be additive about it using starting health, not multiplicative!
+		if math.abs(oldHealth) < math.huge and math.abs(currentMaxHealth) < math.huge then
+			newHealth = newHealth - oldHealth + currentMaxHealth
+		end
 		if not (newHealth >= -math.huge) then
 			print(
 				currentMaxHealth, startingHealth,
@@ -252,7 +256,11 @@ function ENT:InsaneStats_ApplyLevel(level, oldLevel)
 				"xp_"..scaleType.."_armor_mode"
 			))
 
-			newArmor = newArmor * (currentMaxArmor == oldArmor and 1 or currentMaxArmor / oldArmor)
+			--newArmor = newArmor * (currentMaxArmor == oldArmor and 1 or currentMaxArmor / oldArmor)
+			-- see above
+			if math.abs(oldArmor) < math.huge and math.abs(currentMaxArmor) < math.huge then
+				newHealth = newHealth - oldArmor + currentMaxArmor
+			end
 			if not (newArmor > 0) then
 				print(
 					currentMaxArmor, startingArmor,
@@ -1249,4 +1257,7 @@ hook.Add("PlayerCanPickupItem", "InsaneStatsXP", function(ply, item)
 	else
 		hook.Run("InsaneStatsPlayerPickedUpItem", ply, item)
 	end
+end)
+
+hook.Add("InsaneStatsPlayerPickupItem", "InsaneStatsXP", function(ply, item)
 end)

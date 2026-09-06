@@ -804,27 +804,6 @@ function InsaneStats:GetWPASS2SavedData()
 	return playerLoadoutData
 end
 
-function InsaneStats:ComputeNerfedIncrement(x, dx, n)
-	-- when x<1, y=x
-	if x < 1 then
-		local dxToUse = math.min(1 - x, dx)
-		x = x + dxToUse
-		dx = dx - dxToUse
-	end
-
-	if n <= 1e-7 then
-		x = x + dx
-	elseif dx ~= 0 then
-		local c = 2/n-1
-		local y = c * math.exp( (x-1)/c ) + 1 - c
-		if y == math.huge then y = 0 end
-		y = y + dx
-		x = c * math.log( (y+c-1)/c ) + 1
-	end
-
-	return x
-end
-
 -- this coroutine thread deals with entity relationship collections
 -- for ENTITY:InsaneStats_GetValidEnemies() and ENTITY:InsaneStats_GetValidAllies()
 --[[local relationships = {}
@@ -1057,6 +1036,44 @@ function ENTITY:InsaneStats_AddMaxArmor(armor)
 		hook.Run("InsaneStatsWPASS2AddMaxArmor", data)
 
 		self:SetMaxArmor(math.max(self:InsaneStats_GetMaxArmor() + data.maxArmor, 0))
+	end
+end
+
+function ENTITY:InsaneStats_RefillClips(frac)
+	local wep = self.GetActiveWeapon and self:GetActiveWeapon() or NULL
+	if IsValid(wep) and frac ~= 0 then
+		local maxClip1 = wep:GetMaxClip1()
+		local maxClip2 = wep:GetMaxClip2()
+		local clip1Used = maxClip1 > 0
+		local clip2Used = maxClip2 > 0
+		local ammoType1 = wep:GetPrimaryAmmoType()
+		local ammoType2 = wep:GetSecondaryAmmoType()
+		local data = {ent = self, nerfFactor = 1}
+		hook.Run("InsaneStatsWPASS2RefillClipNerfFactor", data)
+		local nerfFactor = data.nerfFactor
+		local isPlayer = self:IsPlayer()
+
+		if clip1Used then
+			local currentFrac = wep:InsaneStats_Clip1() / maxClip1
+			local newFrac = InsaneStats:ComputeNerfedIncrement(currentFrac, frac, nerfFactor)
+			wep:SetClip1(math.min(maxClip1 * newFrac, 2147483647))
+		elseif isPlayer then
+			local ammoMax = game.GetAmmoMax(ammoType1)
+			local currentFrac = self:GetAmmoCount(ammoType1) / ammoMax
+			local newFrac = InsaneStats:ComputeNerfedIncrement(currentFrac, frac/3, nerfFactor)
+			self:GiveAmmo((newFrac-currentFrac) * ammoMax, ammoType1)
+		end
+
+		if clip2Used then
+			local currentFrac = wep:InsaneStats_Clip2() / maxClip2
+			local newFrac = InsaneStats:ComputeNerfedIncrement(currentFrac, frac, nerfFactor)
+			wep:SetClip2(math.min(maxClip2 * newFrac, 2147483647))
+		elseif isPlayer then
+			local ammoMax = game.GetAmmoMax(ammoType2)
+			local currentFrac = self:GetAmmoCount(ammoType2) / ammoMax
+			local newFrac = InsaneStats:ComputeNerfedIncrement(currentFrac, frac/3, nerfFactor)
+			self:GiveAmmo((newFrac-currentFrac) * ammoMax, ammoType2)
+		end
 	end
 end
 
@@ -1464,7 +1481,7 @@ hook.Add("PlayerCanPickupWeapon", "InsaneStatsWPASS", function(ply, wep)
 
 	-- we want to pick up the correct weapon in a pile,
 	-- so prevent them from picking up the wrong weapons for a sec
-	if nextPickup > curTime and nextPickup < curTime + 2 then
+	if nextPickup > curTime and nextPickup < curTime + 0.5 then
 		if devEnabled then
 			InsaneStats:Log(
 				"Prevented %s from picking up %s due to pickup cooldown.",
@@ -1981,7 +1998,7 @@ end)
 hook.Add("InsaneStatsScaleXP", "InsaneStatsWPASS2", function(data)
 	if InsaneStats:GetConVarValue("wpass2_enabled") then
 		local victim = data.victim
-		if IsValid(victim) then
+		if IsValid(victim) and victim:IsPlayer() then
 			data.xp = data.xp * victim:InsaneStats_GetAttributeValue("reverse_xp")
 		end
 	end

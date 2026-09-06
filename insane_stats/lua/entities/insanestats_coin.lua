@@ -45,10 +45,6 @@ function ENT:SpawnFunction(ply, traceResult, class)
 			local spawnPos = traceResult.HitPos + traceResult.HitNormal * 6 * ent:GetSizeMultiplier()
 			ent:SetPos(spawnPos)
 			ent:Spawn()
-			local physobj = ent:GetPhysicsObject()
-			if IsValid(physobj) then
-				physobj:SetVelocity(VectorRand(-128, 128))
-			end
 			return ent
 		end
 	end
@@ -76,7 +72,7 @@ function ENT:Initialize()
 			self:Activate()
 		end
 
-		self:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
+		self:SetCollisionGroup(COLLISION_GROUP_WORLD)
 		self:SetTrigger(true)
 		self:SetMaterial("models/shiny")
 		self:AddEffects(EF_ITEM_BLINK)
@@ -98,6 +94,13 @@ function ENT:Initialize()
 			physobj:SetDamping(0.5, 0.5)
 			physobj:SetMass(128)
 			physobj:Wake()
+
+			local maxSpeed = sizeMultiplier * 128
+			local vel = physenv.GetGravity() * sizeMultiplier
+			vel:Normalize()
+			vel:Add(VectorRand())
+			vel:Mul(maxSpeed)
+			physobj:SetVelocity(vel)
 		end
 	end
 end

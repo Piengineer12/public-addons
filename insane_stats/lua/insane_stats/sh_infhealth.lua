@@ -4,6 +4,10 @@ InsaneStats:RegisterConVar("infhealth_enabled", "insanestats_infhealth_enabled",
 	display = "Infinite Health", desc = "Health and armor limits are removed. NPCs are also able to spawn with armor.",
 	type = InsaneStats.BOOL
 })
+--[[InsaneStats:RegisterConVar("infhealth_refine_attacker", "insanestats_infhealth_refine_attacker", "1", {
+	display = "Refine Attacker", desc = "If damage is dealt by a non-mob source, try to find and credit the true attacker.",
+	type = InsaneStats.BOOL
+})]]
 InsaneStats:RegisterConVar("infhealth_knockback", "insanestats_infhealth_knockback", "1", {
 	display = "Custom Knockback", desc = "Enables custom knockback handling, allowing damage to significantly push NPCs. \z
 	If disabled, WPASS2 modifiers that affect knockback will become unobtainable.",
@@ -152,11 +156,24 @@ local function OverrideHealth()
 
 		if SERVER then
 			self:InsaneStats_MarkForUpdate(1)
-		end
-		if SERVER and self:IsPlayer() and InsaneStats:IsDebugLevel(2) then
-			InsaneStats:Log("%s max health set to %g", tostring(self), newHealth)
-			if InsaneStats:IsDebugLevel(3) then
-				debug.Trace()
+
+			if self:IsPlayer() and InsaneStats:IsDebugLevel(2) then
+				InsaneStats:Log("%s max health set to %g", tostring(self), newHealth)
+				if InsaneStats:IsDebugLevel(3) then
+					debug.Trace()
+				end
+			end
+
+			if newHealth > 2147483647 then
+				timer.Simple(0, function()
+					if (IsValid(self) and self:InsaneStats_GetStartingHealth() > 2147483647) then
+						InsaneStats:Log(
+							"Warning! Max health on %s set to above 2147483647 without using the XP system!",
+							tostring(self)
+						)
+						debug.Trace()
+					end
+				end)
 			end
 		end
 	end

@@ -134,11 +134,6 @@ InsaneStats:RegisterConVar("wpass2_attributes_player_constant_speed", "insanesta
 	This fixes the issue of weapons with speed attributes that also set the player's speed causing players to infinitely stack speed multipliers.",
 	type = InsaneStats.BOOL
 })
-InsaneStats:RegisterConVar("wpass2_attributes_player_constant_timescale", "insanestats_wpass2_attributes_player_constant_timescale", "0", {
-	display = "Use Precalculated Time Scale", desc = "Whenever the time scale is changed by WPASS2, non-WPASS2 time scale modifiers are removed. \z
-	This fixes the issue of time scale modifiers being stacked infinitely due to other addons.",
-	type = InsaneStats.BOOL
-})
 InsaneStats:RegisterConVar("wpass2_attributes_player_enabled", "insanestats_wpass2_attributes_player_enabled", "1", {
 	display = "Player Attribute Effects", desc = "If disabled, modified weapons / armor batteries will have no effect on players.",
 	type = InsaneStats.INT, min = 0, max = 1
@@ -763,7 +758,7 @@ end
 
 hook.Add("InsaneStatsLoadWPASS", "InsaneStatsSharedWPASS", function(modifiers, attributes, registeredEffects)
 	attributes.reverse_xp = {
-		display = "%s coins and XP yielded on death",
+		display = "On player, %s coins and XP yielded on death",
 		invert = true
 	}
 end)
@@ -990,6 +985,50 @@ function InsaneStats:GetModifierProbabilities(wep)
 	return modifierProbabilities
 end
 
+function InsaneStats:ComputeNerfedIncrement(x, dx, n)
+	-- when x<1, y=x
+	if x < 1 then
+		local dxToUse = math.min(1 - x, dx)
+		x = x + dxToUse
+		dx = dx - dxToUse
+	end
+
+	if n <= 1e-7 then
+		x = x + dx
+	elseif dx ~= 0 then
+		local c = 2/n-1
+		local y = c * math.exp( (x-1)/c ) + 1 - c
+		if y == math.huge then y = 0 end
+		y = y + dx
+		x = c * math.log( (y+c-1)/c ) + 1
+	end
+
+	return x
+end
+
+-- needed for item shops to overheal / overshield
+function InsaneStats:ComputeForNerfedIncrement(x, dy, n)
+	local dx1, dx2 = 0, 0
+
+	-- when y<1, x=y
+	if x < 1 then
+		dx1 = math.min(1 - x, dy)
+		x = x + dx1
+		dy = dy - dx1
+	end
+
+	if n <= 0 then
+		return dx1, dy
+	elseif dy ~= 0 then
+		local c = 2/n-1
+		local y1 = c * math.exp( (x-1)/c ) + 1 - c
+		local y2 = c * math.exp( (x+dy-1)/c ) + 1 - c
+		dx2 = y2 - y1
+	end
+
+	return dx1, dx2
+end
+
 local ENTITY = FindMetaTable("Entity")
 
 function ENTITY:InsaneStats_SetBatteryXP(xp)
@@ -1182,7 +1221,10 @@ function ENTITY:InsaneStats_ApplyStatusEffect(id, level, duration, data)
 
 	data = data or {}
 	if (effectTable and effectTable.expiry >= curTime) and not data.replace then
-		if data.amplify then level = level + effectTable.level end
+		if data.amplify then
+			local maxLevel = tonumber(data.amplify) or math.huge
+			level = math.max(math.min(level + effectTable.level, maxLevel), level)
+		end
 
 		if data.extend then
 			local maxDuration = tonumber(data.extend) or math.huge

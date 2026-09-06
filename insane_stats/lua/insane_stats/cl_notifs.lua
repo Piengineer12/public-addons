@@ -63,7 +63,7 @@ InsaneStats:RegisterClientConVar("hud_pickup_timer_kills", "insanestats_hud_pick
 
 local notifs = {}
 local notifI = 0
-hook.Add("HUDDrawPickupHistory", "InsaneStats", function()
+hook.Add("HUDDrawPickupHistory", "InsaneStatsNotifs", function()
 	local ply = LocalPlayer()
 	local hasSuit = ply:IsSuitEquipped()
 
@@ -216,7 +216,7 @@ hook.Add("HUDDrawPickupHistory", "InsaneStats", function()
     end
 end)
 
-hook.Add("HUDAmmoPickedUp", "InsaneStats", function(item, amount)
+hook.Add("HUDAmmoPickedUp", "InsaneStatsNotifs", function(item, amount)
 	local simplified = InsaneStats:GetConVarValue("hud_pickup_simplified")
     local class = item.."_ammo"
     local id = notifI
@@ -248,7 +248,7 @@ hook.Add("HUDAmmoPickedUp", "InsaneStats", function(item, amount)
     end
 end)
 
-hook.Add("HUDItemPickedUp", "InsaneStats", function(class)
+hook.Add("HUDItemPickedUp", "InsaneStatsNotifs", function(class)
 	local simplified = InsaneStats:GetConVarValue("hud_pickup_simplified")
     local ply = LocalPlayer()
     local color = InsaneStats:GetColor("light_gray")
@@ -288,7 +288,7 @@ hook.Add("HUDItemPickedUp", "InsaneStats", function(class)
     end
 end)
 
-hook.Add("HUDWeaponPickedUp", "InsaneStats", function(wep)
+hook.Add("HUDWeaponPickedUp", "InsaneStatsNotifs", function(wep)
     local id = notifI
     if InsaneStats:GetConVarValue("hud_pickup_stacking") then
         id = wep:GetClass()
@@ -399,3 +399,20 @@ hook.Add("DrawDeathNotice", "InsaneStats", function(x, y)
         return true
     end
 end)
+
+function InsaneStats:AddNotification(giveID, func)
+	local id = notifI
+	if InsaneStats:GetConVarValue("hud_pickup_stacking") then
+		id = giveID or id
+	else
+		notifI = notifI + 1
+	end
+
+	local notifData = notifs[id]
+	if not notifData then
+		notifData = {}
+		notifs[id] = notifData
+	end
+	notifData.time = RealTime()
+	func(notifData)
+end

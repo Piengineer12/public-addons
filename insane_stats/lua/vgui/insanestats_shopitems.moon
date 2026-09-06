@@ -72,13 +72,13 @@ PANEL = {
                             nerfFactor = ply\InsaneStats_GetHealthNerfFactor!
                             dxs = switch id
                                 when 1
-                                    {InsaneStats\ComputeDXForNerfedIncrement currentRatio, 1 - currentRatio, nerfFactor}
+                                    {InsaneStats\ComputeForNerfedIncrement currentRatio, 1 - currentRatio, nerfFactor}
                                 when 2
-                                    {InsaneStats\ComputeDXForNerfedIncrement currentRatio, 1, nerfFactor}
+                                    {InsaneStats\ComputeForNerfedIncrement currentRatio, 1, nerfFactor}
                                 when 3
-                                    {InsaneStats\ComputeDXForNerfedIncrement currentRatio, 10, nerfFactor}
+                                    {InsaneStats\ComputeForNerfedIncrement currentRatio, 10, nerfFactor}
                                 when 4
-                                    {InsaneStats\ComputeDXForNerfedIncrement currentRatio, 100, nerfFactor}
+                                    {InsaneStats\ComputeForNerfedIncrement currentRatio, 100, nerfFactor}
                             qty = maxHealth * (dxs[1] + dxs[2] * overUnitPrice)
                             price = math.max 0, (qty - freeQty) * unitPrice
                         
@@ -113,13 +113,13 @@ PANEL = {
                             nerfFactor = ply\InsaneStats_GetArmorNerfFactor!
                             dxs = switch id
                                 when 1
-                                    {InsaneStats\ComputeDXForNerfedIncrement currentRatio, 1 - currentRatio, nerfFactor}
+                                    {InsaneStats\ComputeForNerfedIncrement currentRatio, 1 - currentRatio, nerfFactor}
                                 when 2
-                                    {InsaneStats\ComputeDXForNerfedIncrement currentRatio, 1, nerfFactor}
+                                    {InsaneStats\ComputeForNerfedIncrement currentRatio, 1, nerfFactor}
                                 when 3
-                                    {InsaneStats\ComputeDXForNerfedIncrement currentRatio, 10, nerfFactor}
+                                    {InsaneStats\ComputeForNerfedIncrement currentRatio, 10, nerfFactor}
                                 when 4
-                                    {InsaneStats\ComputeDXForNerfedIncrement currentRatio, 100, nerfFactor}
+                                    {InsaneStats\ComputeForNerfedIncrement currentRatio, 100, nerfFactor}
                             qty = maxArmor * (dxs[1] + dxs[2] * overUnitPrice)
                             price = math.max 0, (qty - freeQty) * unitPrice
                         

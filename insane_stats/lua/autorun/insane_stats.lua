@@ -12,8 +12,8 @@ rewards for less damage taken / less time taken
 ]]
 
 InsaneStats = {
-	VERSION = "3.0.1-rc.1",
-	VERSION_DATE = "2026-07-03",
+	VERSION = "3.1.0",
+	VERSION_DATE = "2026-09-06",
 	WORKSHOP_ID = "2980423627"
 }
 

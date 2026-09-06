@@ -221,7 +221,36 @@ net.Receive("insane_stats", function()
 			end
 		end
 	elseif func == 2 then
-		hook.Run("HUDItemPickedUp", net.ReadString())
+		local class = net.ReadString()
+		if class == "legocoin" then
+			local value = 10 ^ (net.ReadUInt(2) + 1)
+			InsaneStats:AddNotification("legocoin", function(notif)
+				notif.count = (notif.count or 0) + value
+				local color = math.log10(notif.count)
+				if color < 2 then
+					local rgb = color * 127.5
+					color = Color(rgb, rgb, rgb)
+				elseif color < 3 then
+					local mul = color / 3
+					color = Color(255 * mul, 191 * mul, 0)
+				else
+					color = HSVToColor((color + 5) * 30 % 360, 0.75, 1)
+				end
+
+				notif.texts = notif.texts or {"Collected ", "", " Studs"}
+				notif.texts[2] = InsaneStats:FormatNumber(
+					notif.count,
+					{noShortening = not InsaneStats:GetConVarValue(
+						 "hud_pickup_simplified"
+					)}
+				)
+
+				notif.colors = notif.colors or {color_white, color_white, color_white}
+				notif.colors[2] = color
+			end)
+		else
+			hook.Run("HUDItemPickedUp", class)
+		end
 	elseif func == 3 then
 		local count = net.ReadUInt(8)
 		--print(count)
@@ -239,16 +268,25 @@ net.Receive("insane_stats", function()
 		local isForCtrlF = net.ReadBool()
 		if isForCtrlF then
 			local highlights = {}
-			local count = net.ReadUInt(8)
+			local start = CurTime()
+			local count = net.ReadUInt(8) + 1
 			for i=1, count do
-				local entIndex = net.ReadUInt(16)
+				local entIndex = net.ReadUInt(32)
 				local pos = net.ReadVector()
 				local class = net.ReadString()
-				local indicator = net.ReadUInt(2)
-				local start = CurTime()
-				table.insert(highlights, {
-					index = entIndex, pos = pos, class = class, start = start, indicator = indicator
-				})
+				local origin = net.ReadVector()
+				local iter = net.ReadInt(4)
+				table.insert(
+					highlights,
+					{
+						index = entIndex,
+						pos = pos,
+						class = class,
+						origin = origin,
+						iter = iter,
+						start = start
+					}
+				)
 			end
 
 			hook.Run("InsaneStatsWPASS2EntitiesHighlighted", highlights)

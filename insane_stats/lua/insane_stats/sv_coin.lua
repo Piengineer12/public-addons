@@ -34,15 +34,9 @@ local function SpawnCoins(victim, value)
 			local ent = ents.Create("insanestats_coin")
 			if IsValid(ent) then
 				ent:SetValueExponent(bit.tobit(valueExponent))
-				ent:Spawn()
 				local spawnPos = pos + vector_up * 6 * ent:GetSizeMultiplier()
 				ent:SetPos(spawnPos)
-				local physobj = ent:GetPhysicsObject()
-				if IsValid(physobj) then
-					local initialVel = VectorRand(-128, 128)
-					initialVel:Add(physenv.GetGravity() / 4)
-					physobj:SetVelocity(initialVel)
-				end
+				ent:Spawn()
 
 				if InsaneStats:IsDebugLevel(2) then
 					InsaneStats:Log("Spawned %s worth %g", tostring(ent), toSubtract)
@@ -70,7 +64,7 @@ hook.Add("InsaneStatsEntityKilledPostXP", "InsaneStatsCoins", function(victim, a
 				)
 			end
 		end
-		
+
 		local data = {victim = victim, attacker = attacker, inflictor = inflictor, coins = value}
 		hook.Run("InsaneStatsScaleCoins", data)
 		value = data.coins
@@ -86,7 +80,7 @@ hook.Add("InsaneStatsEntityKilledPostXP", "InsaneStatsCoins", function(victim, a
 			extraValue = lost
 		end
 		value = value + extraValue
-		
+
 		SpawnCoins(victim, value)
 	end
 end)
@@ -106,7 +100,7 @@ hook.Add("InsaneStatsPropBroke", "InsaneStatsCoins", function(victim, attacker)
 				"coins_level_add_mode"
 			)
 		end
-		
+
 		local data = {victim = victim, attacker = attacker, inflictor = inflictor, coins = value}
 		hook.Run("InsaneStatsScaleCoins", data)
 		value = data.coins
@@ -162,6 +156,7 @@ hook.Add("InsaneStatsEntityCreated", "InsaneStatsCoins", function(ent)
 	and math.random() < InsaneStats:GetConVarValue("coins_shop_replace_chance") / 100 then
 		local crateAmmoType = tonumber(ent:GetInternalVariable("AmmoType"))
 		local shop = ents.Create("insanestats_shop")
+		shop:SetName(ent:GetName())
 		shop:SetPos(ent:GetPos())
 		shop:SetAngles(ent:GetAngles())
 		shop:SetFreebieAmmoType(InsaneStats:TranslateAmmoCrateTypeToAmmoType(crateAmmoType))
@@ -175,7 +170,7 @@ hook.Add("PlayerSpawn", "InsaneStatsCoins", function(ply, fromTransition)
 	if fromTransition then
 		ply:InsaneStats_SetEntityData("coins_loaded", nil)
 	end
-	
+
 	if not ply:InsaneStats_GetEntityData("coins_loaded") then
 		local coins = InsaneStats:GetConVarValue("coins_player_save") and savedPlayerCoins[ply:SteamID()]
 		if coins then
@@ -185,7 +180,7 @@ hook.Add("PlayerSpawn", "InsaneStatsCoins", function(ply, fromTransition)
 		if modifierBlacklist then
 			ply:InsaneStats_SetReforgeBlacklist(modifierBlacklist)
 		end
-		
+
 		ply:InsaneStats_SetEntityData("coins_loaded", true)
 	end
 end)
